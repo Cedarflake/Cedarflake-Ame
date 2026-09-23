@@ -1,7 +1,8 @@
 # R2c closeout execution
 
-Status: **The accumulated C05 generated-native workload passes pixels, counts, transient Retry
-feedback and owned retirement; other frozen variants and final gates remain open**.
+Status: **Release bulk deletion misses its convergence bound and remains an active functional
+blocker. The selected C05 generated-native workload passes; other frozen variants and final gates
+remain open**.
 
 The [accumulated candidate hosted checkpoint](../acceptance/r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint)
 passes all required jobs on `9c584a0`; the later `aac68ed` run repeats C01's connection-lifetime
@@ -1710,6 +1711,38 @@ Prepare a new single-use configuration with the identical reviewed source closur
 reservation. Resume only after renewed live memory evidence; seek practical headroom before
 launch rather than repeatedly consuming configurations at the threshold. The final entry guard,
 all original limits and the one admitted native lifetime remain unchanged.
+
+The [admitted result](../acceptance/r2c-release-native.md#release-bulk-deletion-convergence-failure)
+reaches both imports and both physical batches within their phase limits. Addition automatically
+reaches 2012, but removal does not reach 512 within 300 seconds; the closed catalog retains 242
+deleted source paths. Two historical navigation observations during removal also remain unresolved.
+Owned retirement and all source postchecks pass. The frozen aggregate independently rejects the
+terminal Sandbox capture/action label, without evaluating its later functional assertions. Preserve
+both failures, charge this reservation through 7564, and do not replay this method unchanged.
+
+#### Release deletion worker cadence diagnosis
+
+Reserve 45 active minutes, cumulative 7609: 20 for the Live scheduling and lease/publication
+ownership map, 15 for a focused causal regression, five for independent boundary review and five
+for records. This responds to the proven Release deletion blocker under standing functional
+authorization. The closed queue's median 250-ms completion interval and one-authoritative-scope
+worker are a lead, not proof that every delay or navigation symptom has the same cause.
+
+Reproduce multiple ready authoritative deletion scopes through the production application
+scheduler with an explicit poll count and independently inspect resulting membership. Establish
+whether the ready backlog requires another external poll for every scope, without changing the
+poll interval, deadlines, queue classifications, retries or catalog guards. Keep the earlier C04
+gap-recovery path distinct. Map success, failure, cancellation, root replacement, revision races,
+worker retirement and next-root fairness before admitting a repair. Follow ADR 0025: any behavioral
+growth first requires a typed owner for the affected Live worker responsibility; do not append
+another special case to the production runtime. Record production/inline/dedicated-test sizes.
+
+This diagnostic block admits generated unit fixtures only, no new native lifetime or real root.
+Preserve every failed receipt and the original 300-second bulk bound. A proven cause leads to a
+separately recorded bounded implementation/verification method under the existing authorization;
+an inconclusive test leads to a changed diagnostic method, never another unchanged client replay.
+Keep navigation during publication and terminal-input evidence as separate obligations until their
+own causal evidence exists. A worker regression alone does not accept the Release user workflow.
 
 #### Current Release gallery stability and remaining menu return
 

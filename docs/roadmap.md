@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-09-23
+Last planning update: 2026-09-24
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -117,7 +117,12 @@ warning-free selected Debug workflow evidence; final-source and Release acceptan
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
 host retirement. Native keyboard sort return now passes on current Release source; layout return,
-more-menu input and remaining Release variants retain their frozen duties. C01's mixed-load recovery
+more-menu input and remaining Release variants retain their frozen duties.
+The [Release bulk deletion result](acceptance/r2c-release-native.md#release-bulk-deletion-convergence-failure)
+now establishes a functional blocker: deletion misses its existing convergence bound and leaves
+deleted paths in the closed catalog. Diagnose and repair the Live worker scheduling boundary first;
+historical navigation during the same publication stream remains unproved. Earlier Debug C04 and
+selected browsing passes do not accept this Release workload. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading

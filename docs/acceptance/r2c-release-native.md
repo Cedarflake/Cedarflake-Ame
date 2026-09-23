@@ -671,5 +671,90 @@ Replacement configuration `8b398bce286d4509a47b91bd81d31049` is prepared with th
 payload and 33 byte-identical reviewed source files. Its 40 input files are frozen in
 `.build/r2c-release-bulk-admitted/reviewed-source-manifest.json`, SHA-256
 `E22F0E3E718038FB543AE79A444A6CA95FF3551223BDB6799BE75607B12E9B78`.
-It has no host admission or runtime result yet. The focused method checks remain applicable to
-the unchanged helpers; they do not supply the outstanding native result.
+It subsequently completes the admitted lifetime below. The focused method checks remain applicable
+to the unchanged helpers; they do not replace the failed functional result.
+
+## Release bulk deletion convergence failure
+
+Run `8b398bce286d4509a47b91bd81d31049` uses the same verified unsigned Release payload and the
+33-source/40-input closure above. Host admission starts at 2026-09-23T23:00:33.2810756Z with
+7547191296 available bytes. Both real picker confirmations fit the original 240-second bound,
+at 92.563 and 193.181 seconds. The independent background preparation retires successfully in
+134471 ms with a matching PID and closed Job before the second confirmation. The complete
+10000-file, 10921494393-byte background is observed imported within 151.221 seconds of confirmation.
+
+The addition is admitted at 203.923925 seconds; its guarded physical copy takes 107210 ms.
+The selected root automatically reaches 2012 decoded images within 140.473 seconds of admission.
+An actual historical-rail click then displays 2012 dates, and the next observation contains
+decoded thumbnails without a compensating wheel event. Removal is admitted at 363.587925 seconds,
+after visible addition completion and before the unchanged 390-second cutoff. Exactly 1500 newly
+created files are removed in 14218 ms; the retained source roster is exactly 512 files.
+
+**Product removal does not converge within 300 seconds.** Observations at 295.321 and 305.997
+seconds after the removal command still show 835 and 792 images respectively, with updating
+feedback. No successful removal observation is written. The client closes normally at host
+elapsed 678.641 seconds. Its closed catalog still contains 754 active bulk locations, including
+242 paths whose source files were deleted. This is persistent incomplete reconciliation, not
+only delayed presentation. The unchanged background contains exactly 10000 active locations.
+
+The bulk queue retains 256 pending and 15 retry-wait rows. All retry failures are
+`incremental_catalog_revision_changed`; the sampled attempts are one, without exhausted work.
+The deletion window has 1536 rows, including 1265 completed rows. Their 1264 adjacent completion
+intervals have median 250 ms; 1232 fall between 200 and 300 ms. Most completed work and all pending
+work use authoritative subtree reconciliation. Current production code leases one authoritative
+scope per Live worker, whose retirement and next admission depend on the external 250-ms poll.
+This is a causal lead requiring a focused worker-boundary regression; it is not yet a verified fix.
+The older C04 Debug gap-recovery pass remains valid for its recorded path and does not establish
+this optimized-client precise-notification workload.
+
+During deletion, two acknowledged native rail clicks at host elapsed 562.171 and 598.898 seconds
+do not produce the intended historical dates in subsequent observations; both still show 2026.
+These observations retain a separate navigation obligation. Returned input does not prove that
+the application admitted the intended navigation, and the owning cause is not established.
+No manual refresh or wheel event repairs the deletion result. Unobserved frames are not accepted
+as proof that transient Retry or blank-wall feedback never occurred.
+
+All owned processes retire. The application exits with code zero and closed Job; the conservative
+same-host close upper bound is 2306.469 ms. Across 2320 samples, peak working set is 447164416 bytes,
+sampled private bytes 402354176 and peak paged memory 404660224. Minimum host availability is
+3153842176 bytes. Complete guest background postchecks take 67629 ms; exact retained-512 hashes
+and dates also pass. The guest finishes in 729556 ms with no cleanup failures; the host finishes
+in 800471 ms with `processBoundaryPassed=true` and no remaining Sandbox process. All 10516 original
+host generated files pass the 57.075-second postcheck. No real root is accessed.
+
+The complete oracle nevertheless exits one, first reporting `A native input or observation failed`.
+After acknowledged Sandbox confirmation, capture returns `no screenshot targets found for process`
+instead of the frozen expected `window is not a usable app window`; the recorded action is also
+`confirm-sandbox-close`, rather than the expected `normal-close-sandbox-confirm`. Independent host
+receipts establish process disposal, but neither this terminal capture variant nor the action name
+is rewritten to satisfy the frozen oracle. Its later membership and missing-removal-observation
+checks are unreached. The separate closed-catalog inspection establishes the product failure.
+Process retirement and source preservation therefore pass while the complete functional variant
+remains failed. Charge the 90-minute reservation through cumulative 7564 and end this method.
+
+The remaining two-minute independent result review verifies twelve key receipt hashes, samples
+five unchanged helpers, and confirms the recorded close bound and failure separation. It does not
+repeat screenshot interpretation or the SQL oracle and does not establish the worker cause.
+
+Evidence under `build/integration-storage-8b398bce286d4509a47b91bd81d31049`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `host-result.json` | `11C97E3EAEE8E29E092B8A211442182319E90C19960BCDCE508783D79C8D4295` |
+| `output/guest-result.json` | `EC76411FE3F8307EE5D7FD87BD369AA9DBD5348F9E2BCFAC1B462E8DAE9973B7` |
+| `output/batch-result.json` | `29E2FB54356F5920A72D78697F95AF67DF5EBC47FF7407DB3B9A046BA5C979C4` |
+| `output/batch-add.observed.json` | `54B5CE618FC544924E68C01097C5E44A18C645E6D08D63D263606BA9ECBADD7B` |
+| `output/batch-remove.done.json` | `ACFA0A230EBFC44FAABF3A706AB58C370ACC772B9F6139DBB7CE0E1FB7BA6B5E` |
+| `output/guest-source-post.json` | `439EE0460CCCDEEBDC930DA3CF8A7879B27BA711A28BA999D796869ED9A282E4` |
+| `output/batch-source-post.json` | `E87CA206DC89F646E167DFEC08AC34C2224252295A597D7E2262D3E547F8A2BA` |
+| `output/native-action-events.jsonl` | `2DAA4A15DA7B46FB09ED08E07513B65F9042CCD52A1FC64F3FDDEEC8B8E7A871` |
+| `output/native-observations.jsonl` | `85E482A752B023D9C463C471DEFFF9334A7C635A80F8573031F07AB25C19A626` |
+| `output/catalog/ame.sqlite3` | `E044CB87DABB28A2CA3A589C3E1EFE3CE970B124C55EB754729C2E24F91336EA` |
+| `closed-catalog-summary.json` | `0074EAF4E5D53B86A85AC1E191734EA53FE92256E80CE19D874F5C502EEA53FD` |
+| `run-assessment.json` | `FDF8111936158EE602D2CBF3A0555B07AD45C372756519C2FC7BDE9B7DFA4A92` |
+
+The two read-only diagnostic scripts are retained separately under
+`.build/r2c-release-bulk-analysis`; they do not change the frozen run closure. Catalog inspection
+uses read-only/query-only access and confirms its hash unchanged. The complete host postcheck is
+`source-integrity-1790205334844090600.json` in the retained generated fixture, SHA-256
+`E4FC9350C31ED525F1713D7F6EBC3DD3274FEE7C9EA705DE656DF6C7189CEF87`.
