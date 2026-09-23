@@ -107,7 +107,8 @@ and an admitted source-copy future now preserves the new selection and original 
 old-work retirement and normal exit; remaining Release boundaries stay open. The
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
-host retirement. Menu focus return and remaining Release variants retain their frozen duties. C01's mixed-load recovery
+host retirement. Native keyboard sort return now passes on current Release source; layout return,
+more-menu input and remaining Release variants retain their frozen duties. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading

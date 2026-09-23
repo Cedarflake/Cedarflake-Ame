@@ -967,6 +967,36 @@ Charge the 120-minute reservation conservatively in full through 5824 minutes. R
 method and evidence limits in the [query interaction record](../acceptance/r2c-query-interactions.md#native-viewer-replacement-during-pending-source-copy);
 no unchanged replay or complete UX-05/Release/Daily acceptance follows from this result.
 
+#### Native viewer identity across source rewrite, rename and removal
+
+Reserve 120 active minutes for UX-05C: 40 for fixture/observer preparation, 20 for focused checks,
+15 for one native lifetime, 15 for complete source/catalog checks, 20 for independent method/result
+review and ten for records. Cumulative reservation becomes 5944 minutes; serial build and full
+source-oracle wall time remain separate. The completed pending-page/copy methods are not replayed.
+
+Use a fresh derived backup with the existing immutable 10000/512/2/2 roots and one new GUID-owned
+source containing two deterministic, differently shaped historical-date images. Register only that
+new source through the real scanner during fixture setup. In the complete Debug client, actual
+root/tile input opens the selected original. After its pixels are verified, rewrite that exact
+generated file in place with different pixels while preserving file ID, length and modification
+time. Then rename it, then remove it, admitting each operation only after the prior authoritative
+viewer/catalog result. No immutable fixture or real original may be changed; verify direct-child
+paths, held source identity, explicit per-step intent and expected final membership before mutation.
+
+Require the production watcher to publish each change without a manual scan: the same-path update
+advances source evidence and displays the new original color; rename retains stable asset identity
+while the displayed location/path changes; authoritative removal closes that viewer and returns
+current gallery pixels with the remaining member. Observe current location/scan/revision/generation,
+decoded original dimensions/color, errors and absence of stale viewer resurrection. Keep independent
+source/oracle checks and latched failures, 30-second per-change convergence, a 600-second parent,
+4 GiB entry, 2 GiB client/system-reserve bounds and six-second normal close. No new product policy,
+bridge surface, retries, artificial publication delay or UI-action injection is admitted.
+
+Retain failing attempts and stop this method for causal diagnosis rather than an unchanged replay.
+This verifies a generated native Debug identity workflow; Release, C11, C01/C02, final-source and
+separately authorized external acceptance remain independent. Missing Release memory does not
+waive its existing seven-GiB entry requirement or block this independent frozen variant.
+
 #### Native reversal while a time request remains pending
 
 Reserve 75 active minutes for the outstanding UX-08A race: 25 for the scoped observer and boundary
@@ -1103,6 +1133,55 @@ retirement at 507063 ms preserve the bounds; full guest/host source checks pass.
 through 5039 minutes. End this Release-menu method series without another automatic UI lifetime;
 retain UX-08C's unaccepted Release sequence and continue independent frozen obligations. A future
 menu method must resolve the scheduling failure before requesting another live admission.
+
+#### Release menu with preparation completed before admission
+
+Reserve 90 active minutes: 25 for schedule and fixture preparation, ten for boundary checks,
+15 for one native lifetime, ten for source/catalog checks, 15 for independent review and 15 for
+records. Cumulative reservation becomes 6034 minutes, including the separately retained 120-minute
+viewer rewrite/rename/removal reservation. Its native lifetime has not started; method preparation
+and review are already in progress. Serial build and complete source-oracle wall time remain
+separate. Newly available host memory gives this Release
+boundary priority without removing any frozen variant or resetting C01/C02 allowances.
+
+The preceding lifetime's recorded input-start call returns at 03:38:46.362 UTC; its next call is
+03:41:35.193 UTC, after the import-admission deadline. This 168.831-second orchestration gap is
+distinct from application import or menu behavior. The changed method completes history, tool,
+source, observation-helper and retirement preparation before starting the parent. Validate the
+helper's elapsed-time guards without a VM, bind the returned Sandbox window during guest copying,
+and use short readiness observations to admit the application immediately when both guest and
+native bindings are ready. Each actual input still follows a fresh, inspected observation and is
+followed by one new screenshot; no preselected coordinates, blind input chain, or product-side
+action injection replaces this loop. A scheduling interruption is a failed admission, never a
+reason to extend its deadline.
+
+The old Release payload predates the current viewer and presentation changes. First preserve its
+evidence, run the canonical unsigned Windows gate against the current product source, and bind
+the resulting exact payload hashes to one fresh single-use fixture. Keep the ordinary guest
+Documents/mixed location, production Known Folders storage, all 10000 generated files and
+10921494393 source bytes. Retain import confirmation before 240 elapsed seconds, the 300-second
+import bound, optional-input cutoff at 540 seconds, 900-second parent, 3072-MiB guest, seven-GiB
+host entry, two-GiB app ceiling/host reserve and six-second normal application close. The live
+window is reserved for observed picker, keyboard menu return and normal retirement only.
+
+Acceptance requires the actual focused sort/layout/more trigger, Enter, Escape and Enter return
+behavior with no intervening pointer refocus; each missing sequence remains open. Retain complete
+guest source hashes/dates before and after, exact closed-catalog membership, host 10516-file
+integrity and all process/Job/Sandbox retirement. No source rewrite, storage bypass, signing,
+installed-service action, real root or additional automatic VM replay is admitted. If preparation,
+input scheduling or verification fails, preserve the run and establish its cause before changing
+the method.
+
+The [current-source result](../acceptance/r2c-release-native.md#native-keyboard-sort-return-on-current-release)
+verifies complete import, decoded gallery pixels, native sort Enter/Escape/Enter return, source
+integrity and normal app/Job/Sandbox retirement. Initial search-to-sort traversal uses 13 observed
+Tab inputs; the remaining optional interval permits layout open/close but not its second Enter,
+which is rejected before input at the unchanged cutoff. More-menu input is unperformed. Retain
+both missing sequences for the next applicable Release workload; do not start another unchanged
+menu-only VM. Charge this 90-minute reservation in full; the separate 120-minute viewer identity
+reservation remains open and has not been charged in full. Cumulative charged work is 5914 minutes
+and cumulative reserved work remains 6034 minutes. Continue the prepared viewer rewrite/rename/removal
+method next.
 
 #### C01 owned-thread observation calibration
 

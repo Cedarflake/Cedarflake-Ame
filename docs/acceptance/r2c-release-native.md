@@ -1,10 +1,10 @@
 # R2c isolated Release client evidence
 
-Status: normal native Release lifetime verified; remaining interaction variants and final gates open
+Status: normal native Release lifetime and keyboard sort return verified; remaining interaction variants and final gates open
 
 ## Scope and artifact
 
-The 2026-09-23 run uses documentation head
+The earlier 2026-09-23 run uses documentation head
 `f3ece08b79e1cc15a3c1f40d1c2a7b5fdc65bed5` and unchanged product source through
 `7144a1954cd6c6ce18c022df956cee87b8f3bb55`. The only tracked dirty file at build time is the
 execution plan. The canonical `quality_verify_unsigned_windows.ps1` finishes successfully:
@@ -19,6 +19,9 @@ unchanged. Three already installed Microsoft-signed MSVC runtime DLLs are copied
 diagnostic payload, with separate hashes/signature/version receipts; no installer or release
 package is changed. Networking, clipboard, audio, video and printer redirection are disabled.
 Only generated sources and the payload are mapped read-only, with one fresh writable result root.
+
+The later [keyboard sort lifetime](#native-keyboard-sort-return-on-current-release) uses a fresh
+current-source build. Its provenance is separate from these retained earlier artifacts.
 
 ## Retained admission failures
 
@@ -343,3 +346,79 @@ The direct-fixture attempt is retained under
 Its complete host post-check is
 `build/integration-storage-e84f07c4443e4008b0c71381991477a4/source-integrity-1790135178678719000.json`,
 SHA-256 `99B7F3DEA6031817D747C6AF14A7861CE8A1FDCC8749E81DD0CAED0435959435`.
+
+## Native keyboard sort return on current Release
+
+Run `3b0f46e1e0874343bcd1fe5dabe5f752` uses product commit
+`b0d1bda4cf9f950de2567099a6a7245195411fbc`; only the execution plan is dirty at build time.
+The canonical unsigned Windows gate passes from 09:34:54.1256718 through 09:36:43.3406110 UTC,
+including all three runner cases, both engine-retirement cases and the catalog-free bridge smoke.
+Its 19 product files total 79463844 bytes; build evidence SHA-256 is
+`F545C8AF9F84B178F52A06839279C6AF225137844BF7FFC2474E156BE014D4ED`.
+The optimized client retains normal guest Known Folders and the same separately verified local
+MSVC runtimes. No product code or storage policy changes for this method.
+
+The previous attempt's original tool timestamps show a 168.831-second gap after the application
+startup call. This method completes preparation before parent admission, binds the native window
+during copying and polls readiness in at most 20-second observations. Method review corrects
+three diagnostic boundaries before launch: recheck input deadlines after asynchronous logging
+and after tool return; publish the flushed startup receipt atomically without overwrite; and bind
+every observation/action to the selected window and a valid screenshot. Six focused cases cover
+deadline, invalid-clock, wrong-window, missing-image and receipt-publication rejection boundaries.
+These controls neither inject product actions nor substitute for observed UI behavior.
+
+The guest copies and verifies all 10000 files / 10921494393 bytes in 132562 ms, preserving hashes
+and historical creation/modification times. Picker confirmation is recorded immediately before
+the input call at 229.109 elapsed seconds; the call returns at 09:47:55.145 UTC, also inside the
+unchanged 240-second admission. All input times below use that same pre-call recording boundary;
+subsequent screenshots confirm the visible results rather than their exact rendering time.
+The observed completed count, completion feedback and
+decoded gallery pixels are recorded 74.496 seconds after confirmation; this is a conservative
+observation interval, not a measured exact scan duration. The closed catalog independently contains
+the exact 10000 expected relative paths in one active root, with `quick_check=ok`.
+
+After a pointer focus on the empty search field, 13 individually observed Tab inputs reach the
+visibly focused sort trigger. Enter opens the sort menu at 450.507 elapsed seconds; Escape closes
+it at 461.018, a subsequent capture confirms the menu is absent, and Enter reopens it at 484.246.
+There is no intervening pointer refocus or menu selection. This proves visible native keyboard
+return for sort; it does not claim observation of an internal FocusNode. A following Escape and
+Tab reach layout; Enter opens it at 513.510 and Escape closes it at 522.285. Its proposed second
+Enter reaches the 540-second optional-input guard and is rejected before input. Layout return and
+the unperformed more-menu sequence therefore remain unaccepted. The lengthy initial traversal
+consumes the available optional interval; this is incomplete coverage, not a reproduced menu defect.
+
+Normal app-close input begins at 09:53:20.099 UTC (554.240 elapsed seconds). The host observes its
+matching successful exit receipt at 09:53:21.8796024 UTC, a same-host conservative upper bound of
+1780.6024 ms, within six seconds. Guest post-verification checks every source hash and date in
+70656 ms and copies the catalog only after application and Job retirement. Closing the Sandbox
+normally and confirming disposal completes the parent in 673373 ms, within 900 seconds, with no
+surviving Sandbox process. The post-disposal screenshot fails because the target window has gone;
+that capture error is retained separately from the independent successful retirement receipt.
+
+Entry host availability is 7796301824 bytes; minimum is 3642183680, above the 2-GiB reserve.
+Across 1368 samples, guest peak working set/private/paged memory are respectively
+189370368/143548416/145588224 bytes. Application exit is zero, cleanup failures are empty and
+the 2-GiB ceiling is retained. Full host 10516-file source oracles pass before and after in
+52.640 and 51.477 seconds. No real source root is accessed or mutated.
+
+Receipts are retained under `build/integration-storage-3b0f46e1e0874343bcd1fe5dabe5f752/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `host-result.json` | `0403C8F80E170324DCF5165F7B9659281A7B040673FB25E83EC7F690270B9849` |
+| `output/guest-result.json` | `87FC505A0723B4F0D72D55151C6FAAB62F2A4B9692F5787A662F7006102A57E5` |
+| `output/native-action-events.jsonl` | `3026C0FC24F995666DE20B695BD76B4B98F810DC77FEA5936AC6C70192D130D8` |
+| `output/native-observations.jsonl` | `2CC6A16E083071D0F1CE879987358F0DF6F29695B08AFF4594B1708E944CC9D4` |
+| `catalog-verification.json` | `93F5A322543638A36C09C762CA7C87EE417E200D11D88B4B62FF3665CE8B8F8E` |
+| `preparation-evidence.json` | `74111A69A6B6EAA1D1DA6E87178A67D9BF3B9A7788CDCED7C3FE3777549F53C9` |
+
+The host post-check is `source-integrity-1790157432102399300.json` under the retained generated
+fixture `integration-storage-e84f07c4443e4008b0c71381991477a4`, SHA-256
+`93F8FF23D610C4B0FC8BE798C5CC3F6CC1E487DABFDF8D03D96F0AF7E6901FD7`.
+The selected sort boundary and complete lifetime pass; the three-menu method is incomplete.
+Independent result review verifies the receipt hashes, 27 input pairs, source checks and retirement
+timing. It does not independently inspect the original screenshots or decoded pixels. Its two
+record corrections distinguish pre-call input times from visible-result times and the prepared
+viewer method's open reservation from a claim of zero work.
+Remaining Release workflows, C11, C01/C02, full Daily, accumulated review and external acceptance
+retain their independent obligations. This result does not erase any previous failed attempt.

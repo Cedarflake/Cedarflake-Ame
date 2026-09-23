@@ -561,3 +561,9 @@ the `.stdout.log`, `.process.json`, `.interaction.json` and `.close.json` SHA-25
 The full host oracle is `source-integrity-1790136060171064500.json` under the retained generated
 fixture `integration-storage-e84f07c4443e4008b0c71381991477a4`, SHA-256
 `D5813C16C931FCD7CF8EDC6DCD3D590A16DB555428B79E0DF1C208F889A97E0D`.
+
+The later [current Release keyboard sort lifetime](r2c-release-native.md#native-keyboard-sort-return-on-current-release)
+reaches the trigger through observed Tab navigation and verifies Enter/Escape/Enter without pointer
+refocus, with complete source, catalog and normal process retirement evidence. That sequence is
+distinct from the earlier pointer-open experiments. Layout return and more-menu input remain
+unaccepted; no internal focus identity is inferred from Release screenshots.
