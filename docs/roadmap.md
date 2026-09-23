@@ -106,7 +106,8 @@ continuity, including native position retention across replacement and append. C
 lifetime timing and remaining final-source gates remain open. The
 pending time-rail reversal now has exact current-target and stale-result retirement evidence.
 C11's loading-feedback composition preserves the viewport, with focused and selected native Debug
-position-stability evidence; preceding failures and final-source/Release duties remain explicit.
+position-stability evidence and selected current Release gallery observations; preceding failures
+and remaining final-source/client duties remain explicit.
 Native viewer close/reopen during pending paging
 and an admitted source-copy future now preserves the new selection and original pixels through
 old-work retirement and normal exit; remaining Release boundaries stay open. The

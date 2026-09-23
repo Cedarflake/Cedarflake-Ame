@@ -1487,6 +1487,25 @@ Use one lifetime only. A failed admission, unknown input or failed assertion ret
 and ends this method; it does not authorize another unchanged run. No real roots, source mutations,
 signing, service installation, new dependency or product behavior is included.
 
+The first unsigned invocation builds the Release client and passes the native runner cases, but
+its outer Windows PowerShell 5.1 `2>&1 | Tee-Object` capture promotes Cargo's ordinary stderr
+completion output to `NativeCommandError` under `ErrorActionPreference=Stop`. Bridge smoke is
+unreached; retain the failed gate evidence and do not admit a VM from the compiled artifact.
+Reserve 15 additional active minutes, cumulative 6979, for a controlled logging probe, independent
+stdout/stderr process capture and one corrected invocation of the same canonical gate. Prove
+ordinary stderr plus exit zero and a nonzero exit remain distinguishable, without changing the
+gate, weakening its error policy or dropping stderr. No further VM lifetime or unchanged gate
+replay is added. Only a complete passing corrected gate can resume the existing single lifetime.
+
+The corrected capture proves stderr and zero/nonzero exits, and the complete canonical gate
+passes. The [single Release result](../acceptance/r2c-release-native.md#current-release-gallery-stability-and-incomplete-menu-traversal)
+verifies exact import, decoded double-direction historical navigation, settled point observations,
+source/catalog integrity and normal retirement. It does not reach either remaining keyboard menu
+return sequence; preserve that input-coverage failure without another unchanged menu-only lifetime.
+Charge both reservations in full through 6979 active minutes. C11's Debug frame oracle remains
+distinct from the new Release point observations; the remaining frozen queue and final gates stay
+open. Continue independent functional obligations before reconsidering an input method.
+
 #### Release keyboard menu return
 
 Reserve 50 active minutes for the remaining Release input boundary: five for fresh admission,

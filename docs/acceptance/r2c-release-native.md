@@ -422,3 +422,77 @@ record corrections distinguish pre-call input times from visible-result times an
 viewer method's open reservation from a claim of zero work.
 Remaining Release workflows, C11, C01/C02, full Daily, accumulated review and external acceptance
 retain their independent obligations. This result does not erase any previous failed attempt.
+
+## Current Release gallery stability and incomplete menu traversal
+
+Run `ae88ab1153734f1595ec34057270ca19` uses commit
+`f66d2a6d1078d1692185a305c13a114ed4492727`, whose product source equals C11's `a1c165b`.
+The first canonical unsigned invocation builds the application and passes three runner and two
+engine-retirement cases, then its outer Windows PowerShell 5.1 merged `Tee-Object` capture treats
+Cargo's ordinary stderr as `NativeCommandError`. It is a failed gate with bridge smoke unreached;
+`.build/r2c-release-gallery-current/failed-pipeline-evidence.json` preserves that result.
+
+A small controlled process reproduces this capture failure with ordinary stderr and exit zero.
+The first separate-capture probe also exposes a missing retained process handle; the corrected
+probe keeps that handle and verifies stderr plus exact exit codes zero and 17. The unchanged
+canonical gate then passes with separate stdout/stderr files from 19:13:12.2166361 through
+19:14:34.7973626 UTC, including the Release bridge smoke. Only the execution plan is dirty.
+The 19-file payload evidence hash is
+`A052ED73ECEAE0364242B7FB762B82357B7318378E2CE77E9B542B51AEFC8506`.
+No product, gate assertion or error policy changes. Eight reviewed native/guest helpers remain
+byte-identical, and their six input/admission checks pass before the single fresh lifetime.
+
+The guest copies and verifies all 10000 files / 10921494393 bytes onto ordinary NTFS in 92706 ms.
+Actual picker confirmation occurs at 181.963 elapsed seconds; the complete count, completion
+feedback and decoded gallery are observed within 51.071 seconds of that input. This is an
+observation upper bound, not exact import latency. The closed catalog independently passes
+`quick_check` and contains exactly the expected 10000 relative paths in one root.
+
+Actual rail clicks occur at 233.036 and 253.200 elapsed seconds. Their displayed tooltip targets
+are December 2012 and January 2019 respectively; action labels name the nearby year labels, not
+an exact calendar selection. The next inspected captures show current decoded thumbnails without
+any wheel input, at 19:20:24.347 and 19:20:46.200 UTC. Loading captures retain the rail and viewport
+boundary. The second settled capture and the one at 19:21:08.761 show the same gallery arrangement,
+date heading and slider position, with no intervening input. These point observations span 22.561
+seconds; they do not establish continuous frame stability or replace C11's Debug race/geometry
+oracle. No Retry preview or persistent blank wall is observed in these captures.
+
+The remaining layout/more keyboard return sequences are **not reached**. Two reverse traversals
+do not establish a visible target, then forward traversal and a source-selection attempt consume
+the optional interval. The source selection returns its own root gallery to the top. Later keys
+show window, library, settings and source controls, but no layout/more Enter/Escape/Enter sequence
+is sent. This is incomplete input coverage and orchestration, not proof of a menu defect or input
+success. Preserve the gap; do not launch another unchanged menu-only VM from this result.
+
+Actual normal Close begins at 513.024 elapsed seconds, before the 540-second cutoff. The same-host
+observer sees its matching successful exit receipt within **1177.024 ms** of input. Guest source
+postcheck verifies every hash/date in 48321 ms and copies the catalog after app/Job retirement.
+Sandbox Close and confirmation then complete normal parent retirement in **623081 ms**, within
+900 seconds; no Sandbox process remains. The final post-click capture reports an unusable window
+after the disposal input; this error is retained separately from the successful process receipt.
+
+Stderr is empty. Entry availability is 8799993856 bytes and minimum host availability 4359872512.
+Across 1361 samples, guest peak working set/private/paged memory are respectively
+317714432/233209856/331984896 bytes, below the two-GiB ceiling. Host source checks pass all 10516
+files before/after in 52.963/46.010 seconds; the post receipt is
+`source-integrity-1790191670168512700.json`, SHA-256
+`ED71943E77086D74D0702C8191BCF959C551D80F30567732411644ABB19D20D2`.
+No real source root is accessed. Receipts remain in
+`build/integration-storage-ae88ab1153734f1595ec34057270ca19/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `host-result.json` | `905270BEE61EAB1B597980958FBACF209D3BFD5A4B1C2728FB7BF23D1551F2A6` |
+| `output/guest-result.json` | `1D2F25A338967C4204505DFA7C974746A8294CB50E3C4CAA1940FA4240C79A9E` |
+| `output/native-action-events.jsonl` | `36FC8F60B3658DE29DC680DD43C31FF60FC03A4BAD2A85CA693E054C8E432D7D` |
+| `output/native-observations.jsonl` | `47FE015FD1EF99E8057A1A931B7DBAB09E660CAC6D17709E7B8754392243907D` |
+| `catalog-verification.json` | `9F448CBDA1A8C8B734C9D3B245AD524D6439F20BBD16CAEC09E34455CCF3C2D1` |
+
+Charge the 90-minute reservation and 15-minute capture correction in full through 6979 active
+minutes. This adds current optimized-client gallery and normal-lifetime evidence only. Menu
+return, other frozen variants, C01/C02, complete Daily, accumulated review and external acceptance
+retain their independent obligations.
+
+Independent result review verifies structured receipt hashes, bounds, source checks and the
+preserved capture failure. It does not independently rejudge the original screenshots' pixels,
+geometry or focus. No blocking discrepancy remains within that reviewed evidence scope.
