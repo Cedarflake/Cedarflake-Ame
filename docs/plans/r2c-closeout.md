@@ -832,6 +832,63 @@ raw-batch boundary. Charge the 45-minute reservation in full. Preserve the exact
 and separate exhaustion, Release, C01/C02 and candidate obligations; do not replay this completed
 continuation to obtain a different claim.
 
+#### Direct owned-handle termination at a leased recovery boundary
+
+Reserve 90 active minutes for the still-open UX-07C lease boundary: 35 for process-identity and
+observer work, 15 for one crash/restart pair, 15 for integrity/result checks, 15 for one independent
+method/result review and ten for records. Cumulative reservation becomes 5699 minutes; complete
+source-oracle wall time remains separate. The previous receipt-mediated capture and successful
+yielded-batch continuation remain closed, with their original outcomes intact.
+
+The earlier capture wrote and flushed a receipt, crossed into a polling parent and queried the
+process before termination. The worker completed its 128-entry batch during that interval. Remove
+that interval from the new method: a single read-only catalog observer retains a Windows process
+handle, bound before observation to the owned PID, exact process creation FILETIME and executable.
+Immediately after reading a real active lease it calls documented `TerminateProcess` on that
+already-validated handle, then `WaitForSingleObject`. No receipt write, process lookup or parent
+poll precedes termination. This changes diagnostic timing, not production scheduling or lease policy.
+
+Use a fresh derived backup and another explicitly owned 10000-small-PNG source with the same four
+immutable retained roots. Reuse the verified EXE/kernel/DLL set unchanged. Capture and post-exit
+evidence must still match the exact executing control, generation, expiration, run and authority;
+a yielded or completed row fails. Start the same-catalog successor EXE immediately after successful
+parent retirement, preserving the real 30-second lease and observing whether the retained
+generation remains untouched until expiry. Require final successor-generation completion,
+10000 staged entries, exact five-root membership, no new full scan, consumed lineage retention,
+retired authority/spool and current gallery pixels within 300 seconds of restart.
+
+Retain the original 600-second per-lifetime parent, six-second normal close, 4 GiB entry,
+2 GiB client/system-reserve bounds, complete pre/post source oracles and owned Job cleanup.
+Before the single pair, prove that wrong PID, executable or creation time cannot authorize
+termination, exercise the Win32 owner only on one self-created harmless hidden child, and review
+the method. No process suspension, debugger, product barrier, SQL edit, source hydration or
+installed-service privilege is introduced. A failed pair stops this method for a causal checkpoint;
+it grants no unchanged retry or another yielded-state substitution for the required leased case.
+
+The harmless-child calibration rejects its correct PID/FILETIME because the configured Python
+version alias differs from the executable path returned by Windows. A read-only self-process
+probe confirms both paths identify the same file; the child's retained parent handle retires it.
+No Ame process or native pair was started. Reserve five additional active minutes, cumulative
+5704, for one changed calibration using the actual versioned executable path, verified against
+the configured interpreter before launch. Preserve exact PID/FILETIME/executable equality in the
+termination owner; path alias tolerance is not added to that owner.
+
+Independent method review also requires a matching observation after restart and before the
+original natural expiry. Check every sampled pre-expiry owner against the captured control,
+generation, expiry, root and run identities; retain bounded first/last samples and their count.
+If restart misses the entire pre-expiry interval, fail that boundary instead of accepting only a
+later successor. Keep the successor timing and complete terminal assertions unchanged.
+
+The changed calibration and ten diagnostic boundary tests pass. The single native pair then
+preserves the exact executing lease after process loss and records 102 matching pre-expiry samples
+after restart. Natural expiry/requeue precedes complete 10000-entry recovery, exact five-root
+membership, unchanged scan identity/status projection and retired authority/spool. Current pixels
+and synchronized state appear at 133767 ms; normal close takes 367.4085 ms, with complete owned
+retirement. The final 20516-file source oracle and independent result review pass. Charge the
+95-minute reservation in full; retain the wheel-input attribution limit and the separate
+exhaustion, C01/C02, Release and final
+candidate duties. Do not repeat this completed leased-crash pair to satisfy another variant.
+
 #### Native viewer replacement while previous-page loading remains pending
 
 Reserve 60 active minutes for the remaining UX-05B native boundary: 30 for the diagnostic owner,

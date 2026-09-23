@@ -49,6 +49,14 @@ follow-up retain their unresolved checkpoints and consumed experiment limits:
 | R2C-C10 | UX-04B/C preview feedback / S2, focused and native functional correction verified | [Constrained feedback layout](r2c-browsing-diagnosis.md#c10-narrow-thumbnail-feedback) corrects narrow wrapping and enlarged-text overflow. Size/scale and keyboard boundaries pass; native 48-pixel Retry recovers current pixels with stable geometry. The combined parent exit-time evidence failure remains explicit. | Complete native lifetime timing and candidate gates |
 | R2C-C11 | UX-08A loading feedback / S2, deferred to final minor-repair batch | [Native frame geometry](r2c-query-interactions.md#c11-loading-row-geometry-during-pending-reversal) identifies a two-pixel loading-row viewport change and one-pixel center-anchor correction. Both pending reversals preserve exact target/source authority and show all 15 current visible images; the strict stability assertion fails and is not waived. | UX-08A position stability and candidate acceptance |
 
+The [executing-lease restart](r2c-process-lifecycle.md#native-restart-with-an-unexpired-executing-lease)
+retains two unresolved observations for the existing feedback/input verification: blocked wording
+appears while automatic recovery still progresses and clears at convergence; two native wheel
+requests return without proving sustained viewport movement. The owners to examine are synchronization
+status projection and input delivery/viewport observation. Neither observation yet has causal
+evidence of a new functional defect; do not count the wheel calls as accepted interaction or add an
+unchanged native replay. The independently verified recovery and source-safety result remains scoped.
+
 ### Hosted mixed-load recurrence on 9359618
 
 Run [35721552835](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35721552835), on

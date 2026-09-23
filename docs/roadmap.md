@@ -84,8 +84,9 @@ replacement/exclusive-source Retry verification. The selected S2 sidebar and nar
 corrections have focused lifecycle/layout and selected native functional evidence. Their combined
 parent run retains an exit-time evidence failure; complete lifetime and candidate gates remain open. The
 [process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
-actual paused-checkpoint restoration, explicit continuation and recovery of an incomplete raw
-inventory after process loss, while preserving failed attempts and the open executing-lease boundary.
+actual paused-checkpoint restoration, explicit continuation and recovery after raw-batch and
+executing-lease process loss, including natural lease expiry. Failed attempts and the separate
+combined exhaustion boundary remain explicit.
 The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel
 correction, primary committed-refresh admission correction and the selected native picker,
 focused Enter Retry and pre-registration Pause-Cancel pass. Remaining focus-return variants,

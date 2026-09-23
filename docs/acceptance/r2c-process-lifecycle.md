@@ -244,3 +244,77 @@ It does not establish executing-lease expiry, exhausted retries in this same lif
 read counts, continuation from entry 129 without rereading, physical spool reclamation, Release,
 complete UX-07C or R2c. Controlled exhaustion/peer-eligibility cases retain their separate evidence;
 C01/C02, final candidate gates and external acceptance remain open.
+
+## Native restart with an unexpired executing lease
+
+The [direct owned-handle method](../plans/r2c-closeout.md#direct-owned-handle-termination-at-a-leased-recovery-boundary)
+at checkout `a81d5c63fa90cb8fedb7863f59843f9d04ed7c05` reuses the exact seven EXE/kernel/DLL
+hashes from the preceding native record. Product source and artifacts are unchanged. It uses a
+fresh derived backup, the same immutable 10000/512/2/2 generated roots and another explicitly owned
+10000-small-PNG root. The previous failed capture and successful yielded-batch restart remain intact.
+
+The observer binds a retained process handle to the admitted PID, exact creation FILETIME and
+executable before observing recovery. After reading an executing lease, it terminates that handle
+and waits for exit before writing a receipt. The first harmless-child calibration rejects the
+configured Python alias because Windows reports its versioned executable path. A read-only
+same-file check and one changed calibration using that actual path pass; exact process identity
+checks remain unchanged. Ten diagnostic boundary tests and PowerShell parsing pass. Independent
+method review adds mandatory pre-expiry samples before the single native pair is admitted.
+
+Crash run `5b235a60913843cd944461dbe890732b` owns Ame PID 31124, parent 4100 and observer 33216.
+Following real generated-directory loss and restoration, it captures control 6528, generation 1,
+with inventory/authority `watcher-gap-promotion-6528` still running and the spool enumerating.
+Capture-to-exit observation takes 74476.2 microseconds; exit is intentionally 57005. The post-exit
+row still has the exact leased control, root generation, lease generation, expiry, attempt and
+run/authority identities. No batch yield is substituted for that assertion. The 65507-ms parent
+and both Jobs retire without failure; the observer's exit timestamp is retained.
+
+Resume run `5f124bf778cd4f22a070100945e23bb2` starts a new Ame process, PID 34580, parent 38844,
+observer 30816, against the same catalog. No SQL edit, clock change, shortened lease, process
+suspension or product barrier is used. The original lease expires naturally at
+`2026-09-23T08:25:06.925Z`. All 102 pre-expiry observations match its original identities and
+ownership; the first is at `08:24:39.656Z`, the last at `08:25:06.757Z`. Only bounded first/last
+samples and their count are retained. The first observed higher generation is 2 at `08:25:08.363Z`,
+already `pending` with `change_lease_expired`. This is an observation of expiry/requeue, not a
+precise new-lease acquisition time.
+
+The terminal oracle passes 133.329 seconds after its observer starts. At application 133767 ms,
+the root is synchronized with truthful `liveOnly` capability and 12 current gallery tiles have
+decoded pixels. Control 6528 completes at generation 88 and catalog revision 788; all 10000 entries
+are staged, enumeration and absence authority are complete, candidates are settled, the original
+authority is retired and the spool is logically `retired`. Exact membership is 10000/10000/512/2/2.
+All ten scan records retain the same `id`, `root_id` and `status` projection; no additional full scan
+supplies recovery. This does not compare every scan-record column. Gap 6527 retains its consumed
+claim to control 6528; that claim was consumed before the crash, not newly consumed by restart.
+
+Window observations show retained generated pixels while recovery is pending and after completion.
+The affected root temporarily displays blocked/update feedback, which clears at convergence. Two
+native wheel requests return without error, but the observed top layout does not prove sustained
+movement; they establish neither delivered scrolling nor interactive browsing during recovery.
+That input-attribution limitation remains separate from the recovery and current-pixel assertions.
+The actual title-bar Close exits zero in 367.4085 ms. The complete resumed parent lasts 177063 ms,
+with 984 pixel frames, no latched application failure and complete process/helper/Job retirement.
+
+| Lifetime | Memory samples | Peak working set bytes | Sampled peak private bytes | Kernel peak commit bytes | Minimum system available bytes |
+| --- | --- | --- | --- | --- | --- |
+| Executing-lease crash | 238 | 395304960 | 353746944 | 358797312 | 5631901696 |
+| Same-catalog restart | 660 | 613994496 | 714002432 | 724180992 | 5400870912 |
+
+The complete 20516-file source oracle passes before the pair in 75.078 seconds and after both
+lifetimes in 77.954 seconds, preserving identities, bytes, timestamps and exact directory members.
+The final catalog has all five exact memberships. The final source receipt is
+`integrity-1790152167635025500.json`; raw admissions, process/memory/ownership results and sources
+remain in `build/integration-storage-2b943a68a32b41b69e240235aafbbcba`, with diagnostic owners in
+ignored `.build/r2c-lease-native`. Independent result review confirms the selected recovery,
+normal-exit and source-safety boundaries without a new blocker; the limitations below remain.
+
+| Receipt | SHA-256 |
+| --- | --- |
+| Exact crash parent | `4905A7EAD0E19E4BD834B37D480945B012AF31459F5F3FEB5D7605ADA83FAD9C` |
+| Resumed parent | `A68FE207AF9F372D56FA4D1EDC41FB2C2253471EEC964DD5FF3A65146CEEF69B` |
+| Recovery terminal oracle | `572A1FBCDE07A443718F83778D86B60EB955AEA9D65B0BFE1EBB8BA90A5103FD` |
+
+This closes the selected actual-process crash, natural executing-lease expiry and complete native
+recovery boundary. It does not establish combined retry exhaustion, exact source read counts,
+physical spool reclamation, Release, interactive scrolling, complete UX-07C or R2c. C01/C02, final
+candidate gates and separately authorized external acceptance remain open.
