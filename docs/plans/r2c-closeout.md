@@ -1456,6 +1456,91 @@ own the exact evidence. Charge the 45-minute reservation in full through 6874 ac
 return to the frozen functional queue, without another C12 diagnostic run. Final-source and
 Release obligations remain separate.
 
+#### Populated warm-start source-activity evidence
+
+Reserve 90 active minutes for the remaining UX-01A native boundary: 20 for source-activity
+observation calibration, 25 for an isolated populated-client fixture and observer, 15 for one
+native lifetime, ten for source/result checks, ten for independent review and ten for records.
+Cumulative reservation becomes 7069 minutes. Current production control flow remains unchanged;
+this admission does not reopen a completed menu-only or C12 lifetime.
+
+First calibrate the installed Windows file-I/O recorder with a uniquely named, bounded session
+and generated files. Require observable positive file-read and directory-enumeration controls,
+exact process/path attribution and no lost events. Distinguish metadata and watcher handles from
+source-content opens. Do not infer zero activity from an empty, incomplete or uncalibrated trace,
+and do not change system permissions or recording settings globally. If the installed recorder
+cannot establish that boundary, stop this observation method with the exact missing evidence;
+do not turn an unobserved native zero into a pass or expose new production instrumentation APIs.
+
+After calibration, use a fresh derived-store copy of the closed generated 10012-image catalog and
+its owned preview cache. Keep the original frozen mixed-size/historical sources read-only. The
+native client must display current cached pixels while ordinary synchronization starts, retain
+exact membership and healthy portable capability for ten seconds, and create no new scan or
+inventory rows. Observe the entire startup, not a quiet interval selected after startup. The
+existing 100 controlled no-change starts remain separate evidence for the continuous-journal
+path; portable native startup cannot establish signed-service or real-journal acceptance.
+
+Preserve four-GiB host admission, two-GiB app/host bounds, the 900-second parent and six-second
+normal close. Source pre/post oracles, actual decoded content, exact artifact/process identities,
+create-new receipts and complete owned recorder/process retirement are required. No real library,
+source edit, dependency, schema change, forced scan or weaker acceptance threshold is admitted.
+
+The recorder's provider admission returns Windows access denied before calibration. Its partial
+empty session is discovered and stopped by exact identity; the following query confirms absence.
+No client is launched and no zero-access result follows. The 20-minute calibration allocation is
+closed; the other 70 minutes are unexecuted, with the 7069-minute reservation retained rather than
+silently transferred. A future privileged run needs a concrete reviewed capture/client proposal.
+Continue the independent source-slot obligation below without changing Windows privileges.
+
+#### Native original-viewer source-slot retirement
+
+Reserve 90 active minutes, cumulative reservation 7159: 30 for the isolated observer and fixture,
+15 for focused guardrails/build preparation, 15 for one native lifetime, ten for integrity checks,
+ten for independent review and ten for records. Reuse the frozen 10516-file background and seed
+two generated, differently sized and dated color images through the real scan path. No source
+rewrites, forced cleanup, product behavior or new API is included.
+
+Use actual pointer opening, Left/Right navigation and Escape return. Require the exact selected
+asset/source generation and current decoded color at every viewer step, then the same gallery
+anchor and ten seconds of stable current pixels. Reuse C12's validated raster-owned pixel observer.
+After each settled viewer step and return, acquire both existing native source-read slots through
+the production bridge, require a third acquisition to fail with `viewer_source_busy`, close both
+leases, and prove renewed acquisition. Probe only after buffer/decode completion, without holding
+the probe across user input. Every exceptional path must close its acquired leases. This proves
+slot availability in the native process; it does not claim a new global file-I/O zero.
+
+Keep the existing 600-second parent, 480-second optional-input cutoff, six-second normal close,
+four-GiB host admission and two-GiB client/reserve bounds. Preserve source and exact catalog checks,
+actual input delivery, warning-free stderr and owned Job/monitor retirement. One failed lifetime
+ends this method with a causal checkpoint. Release, warm-start counters, C01/C02 and final-source
+gates remain separate; no additional menu-only session is admitted.
+
+The first lifetime opens the filename-selected image at position 2/2. Its first decoded-original
+and two-slot retirement probe passes, but Right cannot reach the other image. The preparation
+incorrectly derives order from fixture modification dates; the catalog uses the actual effective
+dates. Normal close succeeds with no cleanup failure; the same-host native-input-to-exit upper
+bound is 436.5093 ms. The parent correctly fails for missing navigation evidence. All two new and
+10516 background source postchecks pass.
+Charge the 90-minute reservation through 7159; retain the incomplete run without a product-failure
+or complete-workflow claim.
+
+Reserve a 30-minute correction, cumulative 7189: ten for order admission and focused checks, ten
+for one native lifetime including postchecks, five for independent review and five for records.
+Choose the first and second entries from the actual complete two-entry root query, require the
+exact expected membership and distinct identities, and retain that query order in the seed receipt.
+Keep source identity, colors, native Right/Left/Escape, slot capacity, return anchor, ten-second
+stability and all time/resource assertions unchanged. Prove both filename orders and rejection of
+incomplete, duplicate or foreign members before launch. Use a separate fresh fixture and preserve
+the preceding scripts/receipts. One further failure ends this corrected method without an unchanged
+replay. This changes diagnostic selection only, not gallery sorting or source media.
+
+The corrected query-order lifetime completes actual pointer opening, Right/Left/Escape, three
+decoded-original slot probes, the returned-gallery slot probe and ten-second anchor stability.
+Normal close and complete owned retirement pass, with empty stderr. The [source-slot record](../acceptance/r2c-closeout-cycle.md#native-original-viewer-source-slot-evidence)
+retains the first failure, all 10518 source postchecks and exact passing evidence. Charge the full
+correction reservation through 7189 minutes; preserve Release and final-source duties instead of
+replaying this boundary.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one

@@ -791,7 +791,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 | UX-04A | Materialize cold then warm actual media previews; verify pixels, source version, cache ownership and unchanged source | Preview store/media adapters and existing seven-format acceptance; [selected cold/warm Release pixels, source integrity and normal lifetime verified](r2c-release-native.md), cache/source ownership acceptance remains open |
 | UX-04B | Rewrite fixture with identical size/ID/mtime while the old request is pending; reconcile one path and show new pixels, reject old publication | [Post-decode same-metadata replacement passes](#controlled-query-source-and-viewer-evidence); [native watcher publication, stale Dart result retirement and current decoded color pass](r2c-browsing-diagnosis.md#native-replacement-and-exclusive-source-recovery); Release remains open |
 | UX-04C | Hold source exclusively or present corrupt bytes, then recover; preserve precise failure, valid source retries and no stale ready publication | [Controlled exclusive-open, corruption and newer-source recovery pass](#controlled-query-source-and-viewer-evidence); [native exclusive-open recovery](r2c-browsing-diagnosis.md#native-replacement-and-exclusive-source-recovery) and [C10 native compact feedback](r2c-query-interactions.md#native-correction-interactions-and-retained-lifetime-gap) have functional evidence. The combined parent timing failure, final-source gates and Release remain open |
-| UX-05A | Open original, navigate both ways and return; actual decode, correct anchor and released source slots | Viewer/source reader and controlled position cases; [Release decode, Left/Right, observed return anchor and normal lifetime verified](r2c-release-native.md), source-slot acceptance remains open |
+| UX-05A | Open original, navigate both ways and return; actual decode, correct anchor and released source slots | Viewer/source reader and controlled position cases; [Release decode, Left/Right, observed return anchor and normal lifetime verified](r2c-release-native.md); [selected native Debug decode, return anchor and source-slot retirement pass](#native-original-viewer-source-slot-evidence); final-source and Release slot boundaries remain open |
 | UX-05B | Close/reopen while paging or buffer copy is pending; old completion/errors remain retired and new navigation works | [Connected viewer and source-lifetime cases pass](#controlled-query-source-and-viewer-evidence); [native pending-page close/reopen](r2c-query-interactions.md#native-viewer-replacement-during-pending-paging) and [pending source-copy replacement](r2c-query-interactions.md#native-viewer-replacement-during-pending-source-copy) verify actual input, current original pixels, old-work retirement and normal exit. The copy hold precedes the actual engine file copy; Release and final-source gates remain open |
 | UX-05C | Same-path source rewrite, then authoritative rename/removal; newest pixels and stable asset until authoritative removal | [Selected native Debug source identity and natural viewer return pass](r2c-query-interactions.md#settled-source-native-result) after actual source reads retire. [The C12 observer correction and complete repeat](r2c-query-interactions.md#c12-raster-observer-and-complete-source-identity-result) preserve current pixels, source/catalog checks and normal exit with empty stderr. Earlier failures remain explicit; final-source and Release acceptance remain open |
 | UX-06A | A/B update while queued C is cancelled; independent progress and only C is cancelled | [Native queued cancellation and real updates pass](#native-queued-cancellation-and-real-updates), with exact 10000/512 completions, unchanged C, real catalog refresh and independent execution release; the command-admission interval is controlled |
@@ -884,7 +884,81 @@ unchanged owning source validates reuse; it does not renew native or final-gate 
 Charge the 20-minute documentation reservation in full: 3514 conservatively reserved minutes,
 not measured elapsed work. Native input/Release, C01/C02, final review and external exits remain.
 
+### Native warm-start recorder admission
+
+The current native UX-01A preparation finds the existing source-access counters compiled only for
+Rust tests. A separate installed Windows file-I/O recorder calibration is attempted before any
+client launch. `logman` returns `0x80070005` while enabling the kernel-file provider, with an
+administrator-required message. The exact calibration session nevertheless exists with one empty
+buffer; a subsequent successful stop and not-found query prove its retirement. No positive file
+read or directory-enumeration control runs, so the 64-KiB trace supplies no zero-access evidence.
+The failure and separate retirement receipt remain in `.build/r2c-warm-start/`. No system privilege
+is changed, no real root is touched, and the native startup counter obligation remains open.
+
+### Native original-viewer source-slot evidence
+
+On product source `a1c165b2cb11c380ef4a8ee3f2f47c0af139b2b6` (documentation HEAD
+`d4ef3bae476bfbe666d6da801f815a1159d82d39`), run `4918ba993fad4e818c33df99dae125c6`
+retains an incomplete first attempt in `.build/r2c-viewer-slots/` and generated fixture
+`integration-storage-e502ea404f104e58829bac48df9eda27`. Actual pointer opening displays the
+selected red 4096 by 1024 original at position 2/2 with its current source generation and exact
+RGBA. After decode, two production source leases are available, a third returns
+`viewer_source_busy`, both close, and a renewed lease succeeds and closes.
+
+The diagnostic incorrectly selects by filename while expecting Right to reach the other item.
+The real query order places that selected image last, so no Right input is sent and no navigation
+or return pass is claimed. Native Close exits the application with code zero: the same-host
+input-to-exit upper bound is 436.5093 ms and application close-dispatch-to-exit is 326.0163 ms.
+The 307091-ms parent correctly fails for missing `viewer-step-1`. The post-close screenshot
+refresh reports the absent window after successful Close delivery. Owned process, monitor and Job
+retirement have no cleanup failure and stderr is empty. The two new sources and all 10516 frozen
+background files pass their complete postchecks; catalog counts are `2,2,2,512,10000`.
+This is a fixture-selection failure, not a reproduced gallery-sort or source-slot defect.
+
+The corrected, independently reviewed method selects the actual first and second members of the
+complete root query. Five focused cases cover both filename orders plus truncated/paged, foreign
+and duplicate identities. Fifteen reused observer/input/retirement source files match the first
+attempt byte for byte, retaining its 20 passing guardrail cases. The 12 Dart sources analyze
+without findings and the diagnostic Debug build completes in 24.5 seconds. No product code changes.
+
+Run `a77461e6f62c4d1c84ffe472f783b177`, with separate fixture
+`integration-storage-7472112b066f4070864fe8172e974459`, completes the native path:
+
+- the real root query records green `remaining.png` before red `selected.png`;
+- actual pointer opening and paired Right/Left/Escape key events produce green 1024 by 4096,
+  red 4096 by 1024, then the original green image, each with current source identity and exact RGBA;
+- all three decoded-original checkpoints and the returned-gallery checkpoint admit two real Rust
+  source leases, reject the third with `viewer_source_busy`, close the leases and admit a renewed
+  lease which also closes; probes do not overlap navigation input;
+- Escape restores the original tile rectangle `[284,226,48,138]` with current decoded thumbnails;
+  the observer records ten seconds of valid gallery stability and rejects gaps above one second;
+- the application, parent, monitor and Job retire normally. The same-host native-input-to-exit
+  upper bound is 357.7997 ms; application close-dispatch-to-exit is 253.4687 ms. Parent elapsed time
+  is 126577 ms. Both application and monitor stderr are empty. Peak sampled private
+  memory is 429101056 bytes, kernel peak commitment is 449216512 bytes, and the minimum sampled
+  available host memory is 7881736192 bytes. All original bounds hold.
+- both new source fingerprints and exact five-root membership pass the postcheck. All 10516
+  background source files pass the complete content/identity/date oracle in 47.958 seconds.
+  Its receipt `source-integrity-1790194486930575200.json` has SHA-256
+  `8BE4A16728FFB456CA1C041551DD894767D81C9B9736D610CE2CA60B84AA5967`.
+
+The close input has a delivered receipt; only its subsequent capture reports the already-closed
+window. That capture message does not substitute for the independent zero-exit and retirement
+receipts. Current source manifest, admission, result and parent SHA-256 values are respectively
+`E2C5F53F9C184B16ED93B4F3D7EF8906B52134B89A1BBD76EC17B981450DA6EA`,
+`662374E67E65D35C3D36265A4F298789051C4439484D752DF67361B5F3AF067F`,
+`2C51D7044C86275ACEA07CCA2C740A0D3905A425C212F8A19B84D811E91289ED` and
+`0F34D12ED04565006F948DFB9D4EAA72A14DF6023ACAB8149E678C71CBFEF996`.
+The manifest and admission remain in `.build/r2c-viewer-slots-ordered/`; result, input and process
+receipts remain with the fixture. This proves the selected native Debug source-slot boundary,
+not global zero file activity, Release slot capacity or final-candidate acceptance.
+Independent result review matches the structured result, query order, delivered inputs, retirement,
+source postchecks and five listed hashes. Its timing-origin clarification is incorporated above;
+it does not independently repeat the visual observations or all source-manifest comparisons.
+
 ### Controlled query, source and viewer evidence
+
+#### Retained controlled results
 
 This 2026-09-22 check matches actual assertions and exact test output on production source
 `935961800893862a2a2d0cf50ce6f31673ce3f12`. Controlled transitions retain their client limitations:
