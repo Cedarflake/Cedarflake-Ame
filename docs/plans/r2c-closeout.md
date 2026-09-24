@@ -2123,6 +2123,111 @@ normal-retirement condition and verifier unchanged. A new rejection or failed as
 supplement. Independent non-mutating verification and other admitted duties can proceed while
 the question is pending.
 
+#### Dedicated Release menu control
+
+The remaining UX-08C layout and more-menu return sequences can proceed independently while exact
+disposable-source deletion approval is pending. Reserve 45 active minutes: eight preparation,
+four independent method review, 15 for one native lifetime, ten complete source/catalog checks,
+four result review and four records. Cumulative reservation is 8414 minutes, including the separate
+35-minute deletion-admission reservation that remains conditional and unconsumed.
+
+The changed execution method assigns the existing dedicated native controller exclusively to this
+one window from readiness through normal retirement. Prepare imports, screenshots, input and close
+helpers before host admission; the coordinating process handles records and postchecks separately.
+This addresses the recorded orchestration gaps and missed menu traversal, without repeating the
+unchanged menu-only schedule. Reuse the reviewed single-root menu helpers by exact hashes with
+the currently verified Release. Keep all 10000 mixed-size/historical files and 10921494393 bytes,
+ordinary guest NTFS and production Known Folders, import before 240 host seconds, import completion
+within 300 seconds, optional input before 540 seconds, the 900-second parent, six-second app close,
+seven-GiB host entry, 3072-MiB guest and two-GiB app ceiling/host reserve.
+
+After the actual picker import completes with 10000 images and decoded tiles, establish focus in
+the search field and use individually observed Tab inputs to the visible layout trigger. Sort
+return is already verified and is not repeated. Require Enter to open layout, Escape to dismiss,
+and Enter to reopen, with no intervening pointer refocus; dismiss, Tab to more, and repeat its
+Enter/Escape/Enter return before final dismissal. No menu selection, injected focus, indexed
+framework action, source modification or substitute small workload is included. Each input needs
+a newly inspected screenshot; any failed or unknown input ends optional work and retains the gap.
+
+Close normally by the optional cutoff. Require exact closed-catalog membership, complete guest
+hash/date postcheck, all 10516 host source checks and independent process/Job/Sandbox retirement.
+The final disposed-target capture can be classified separately only after its input-return and
+normal host-retirement evidence agree. One failed assertion consumes this method; no unchanged
+replay follows. Bulk/date/per-root-preview acceptance, the older finalization report and external
+gates retain their separate duties.
+
+The single menu lifetime `bc4d1d6a70234be4848e5e1e217fe807` completes the real 10000-image import,
+exact closed membership, full guest/host source checks and normal retirement. Thirteen observed
+Tab inputs reach only sort at 508.709 host seconds; neither remaining menu sequence is attempted.
+Close starts at 520.283 seconds, preserving the 540-second boundary. The method therefore fails
+input coverage, not a reproduced product menu assertion. Its input calls return in 94–135 ms per
+Tab, totaling 1387 ms; the first-to-last Tab admission span is 220.198 seconds. Observation and
+orchestration time must be distinguished from native input delivery. Charge all 45 minutes:
+8379 charged and 8414 reserved, with the separate 35-minute deletion admission still pending.
+
+#### Menu traversal route diagnosis
+
+Reserve 20 active minutes, cumulative reservation 8434: ten for a temporary full-application focus
+fixture, five for one focused Flutter diagnostic, three independent review and two records. No
+additional native lifetime is admitted by this block. Use the production app/widgets with a
+populated virtualized gallery and history rail to measure actual forward and reverse traversal.
+Inspect focus ownership but change it only with ordinary pointer/keyboard test events; do not call
+`requestFocus`, invoke callbacks or replace traversal policy. Also evaluate a first-photo context
+menu followed by Escape and reverse traversal as a natural focus-entry route. Do not select a
+context-menu command or change gallery selection, layout or source data.
+
+The diagnostic has bounded generated in-memory state and a generated preview solely to plan native
+input. It cannot replace the unchanged 10000-file Release workload or establish client acceptance.
+Record exact traversal order and the number of observed inputs required before proposing another
+native method. A failed or inconclusive route is evidence, not permission to relax the original
+deadline, use blind repeated keys or restart the same forward traversal.
+
+The final diagnostic passes three Windows-platform cases after retaining two fixture/decode
+failures and one platform-cleanup failure. It measures 14 forward Tabs from search to layout,
+no header menu within eight reverse Tabs from search, and two reverse Tabs from the first photo
+after right-click/Escape to more. The [route record](../acceptance/r2c-release-native.md#measured-natural-focus-route)
+owns the traces and limitations. Charge all 20 minutes: 8399 charged, 8434 reserved, retaining the
+separate pending 35-minute deletion admission. No new VM is started under this diagnostic block.
+
+#### Release menus through a measured photo focus route
+
+The diagnostic and independent review identify a shorter ordinary input path. Admit one revised
+45-minute supplement, cumulative 8479 reserved: ten preparation and input-boundary checks, four
+independent admission review, 15 for one native lifetime, ten complete postchecks, and six final
+review/records. Keep the separate 35-minute deletion request pending. This scope contains no source
+deletion and does not reopen failed bulk runs or the unresolved earlier finalization incident.
+
+Reuse the preceding single-root Release workload, source and lifetime helpers. Add only a typed
+native input-request builder for the documented right mouse button, preserving key/left/double
+click behavior and all screenshot/window/time admission guards. Prove valid requests and rejection
+of unsupported kinds, absent screenshots and invalid coordinates before freezing its hashes.
+Do not inject application callbacks, set focus or use indexed framework actions.
+
+Keep all 10000 files, 10921494393 bytes, original hashes/dates, ordinary guest NTFS/Known Folders,
+240-second import admission, 300-second completion, 540-second optional-input cutoff, 900-second
+parent, six-second normal app exit, seven-GiB entry, 3072-MiB guest and two-GiB app/host bounds.
+After completed import and decoded tiles, right-click the first observed photo and dismiss its
+context menu with Escape. Observe each Shift+Tab; proceed only when more visibly has focus. Test
+Enter/Escape/Enter without pointer refocus, dismiss, use one observed reverse Tab toward layout,
+and perform its Enter/Escape/Enter sequence. No menu command is selected. An unexpected route,
+missing focus or failed input ends optional work; do not extend the cutoff or revert to the slow
+search traversal. Each action already captures a fresh state; inspect it before the next action
+and avoid duplicate captures unless the state actually changed or recovery requires one.
+
+Close normally and require the unchanged exact closed-catalog, guest/host source and independent
+Job/process/Sandbox retirement checks. Record the functional verdict separately from host success.
+One failed assertion consumes this revised method; preserve it and do not replay unchanged.
+
+The single revised run `00ae59f967f8422db3bde63c5d5da622` fails before import confirmation: the
+picker selection is sent at 229.280 host seconds, and the subsequent confirmation request is
+rejected by the unchanged 240-second guard before any input or action receipt. It never reaches
+the measured photo focus route. Normal application/Job/Sandbox retirement and guest source checks
+complete, but the unchanged closed-membership verifier fails. The
+[input timing record](../acceptance/r2c-release-native.md#photo-route-run-stops-before-import)
+preserves the distinct preparation, observation and invocation intervals. Charge all 45 minutes:
+8444 charged, 8479 reserved, with only the separate 35-minute deletion admission conditional.
+This route's native allowance is consumed; no additional lifetime is admitted here.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one

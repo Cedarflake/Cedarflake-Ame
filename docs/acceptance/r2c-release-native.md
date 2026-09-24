@@ -988,3 +988,141 @@ bounds, closed membership, queue settlement, preview ownership, source checks an
 paired with complete host retirement. It finds no new blocker within that scope. It does not
 reinterpret screenshots or accept the unresolved navigation and keyboard observations. Together
 with the six-minute method review, this consumes the reserved review allowance.
+
+## Dedicated menu control and traversal coverage gap
+
+Run `bc4d1d6a70234be4848e5e1e217fe807` uses the verified `a0cde9141b514f92d2a6415f633def5f9bb5d221`
+Release payload. All eight reused helpers, 32 inputs and 37 product-source hashes remain unchanged;
+the method manifest SHA-256 is
+`A7CBA5028826ACD38C4117BF3921D351075C8EADEC2ED7BD6AF93352B8AF9377`.
+The workload retains all 10000 generated mixed-size/historical images and 10921494393 bytes,
+ordinary guest NTFS, production Known Folders and the original resource and timing bounds.
+
+The actual picker confirmation occurs at 216.396 host seconds. A screenshot at 261.570 seconds
+shows import completion, 10000 pictures and decoded tiles; the later explicit completion receipt
+conservatively records 55.277 seconds from confirmation. Exact closed membership and read-only
+catalog verification pass. The guest's complete hash/date postcheck takes 71555 ms; all 10516
+host source files pass their postcheck in 67.729 seconds.
+
+The required layout/more keyboard-return sequences **remain untested** in this lifetime.
+Thirteen individually observed Tab inputs reach only sort at 508.709 host seconds. Their actual
+input calls take 94–135 ms each, totaling 1387 ms, while their first-to-last admission span is
+220.198 seconds. The gap includes observation and orchestration; it is not evidence that key
+delivery itself consumes that time. Normal application close starts at 520.283 seconds, before
+the unchanged 540-second optional-input cutoff. This is a failed test-execution method, not a
+reproduced product menu failure, and cannot be replayed unchanged.
+
+Normal application retirement takes at most 1357.7625 ms, exits zero and retires its owned Job.
+The complete host boundary passes in 659656 ms with no remaining Sandbox process or cleanup
+failure. Entry availability is 7947198464 bytes; minimum host availability is 3706683392 bytes;
+the client's kernel peak working set is 187056128 bytes. All 20 input pairs acknowledge delivery.
+Only the final Sandbox dismissal encounters the expected disposed-target capture error, with
+matching independent normal-retirement evidence. Host success establishes the lifetime boundary,
+not the missing menu interactions.
+
+Records under `build/integration-storage-bc4d1d6a70234be4848e5e1e217fe807` retain these SHA-256 hashes:
+
+| Record | SHA-256 |
+| --- | --- |
+| `host-result.json` | `CE4162CF55F6C9843D643CDF5E721756820ADA595DCCE0B056F555FE8AD23C7F` |
+| `catalog-verification.json` | `9188DEECFFCBF0F326E2546B9434973BE9E41E95A194F486A5D38A131D9079C9` |
+| `post-run-bindings.json` | `3C3FE28AE87F6ED2CD80F6560470AF09C260152FB6DB9DD240DE513D7416854F` |
+
+### Measured natural focus route
+
+A temporary diagnostic uses the production `AmeApp`, real widgets and ordinary mouse/key events
+with 96 generated in-memory assets, a two-year virtual timeline and a generated decoded preview.
+It inspects focus ancestors without calling `requestFocus`, invoking UI callbacks or replacing
+traversal policy. The existing scanner fixture supplies no retained task; no scan starts. This
+fixture plans native inputs and does not substitute for the 10000-file Release workload.
+
+The three Windows-variant diagnostic cases pass. From search, 14 forward Tabs reach layout;
+eight reverse Tabs do not reach a header menu and traverse photos. Right-clicking the first visible
+photo, dismissing its context menu with Escape, then pressing Shift+Tab twice reaches more via
+the previous-time control. No context-menu item, image selection or layout change is executed.
+The focused diagnostic does not establish either menu's native Enter/Escape/Enter result.
+
+The first two diagnostic attempts fail the decoded-preview prerequisite; the second additionally
+exposes an uninitialized scan-recovery bridge in the test fixture. Bounded real-I/O frame waiting
+and the existing scanner fixture correct these preparation issues. The third obtains the focus
+traces but fails platform-override cleanup. The fourth uses Flutter's managed Windows platform
+variant and passes all three cases. Earlier logs are retained, not replaced by the passing result.
+The final diagnostic source and raw output under `.build/r2c-menu-route-planning` have hashes
+`24841800954402B47AF30963DE3DA4538462E85EC570BC13FE6917F062FDD405` and
+`E0FC7DA14595C5334F63F724315CB0E256BAFD2A06BA91C03E29FAC76E6CB771`, respectively.
+
+Independent review confirms the diagnostic's pointer/key-only focus changes, retained failed
+attempts and actual trace. The test asserts arrival at a header menu; the exact two-step count is
+an observation from this fixture, not a guaranteed native route. The preceding native run's
+bindings also agree with its original host, action and catalog receipts. No native menu acceptance
+is inferred from either review.
+
+The already-triggered hosted run
+[35965449940](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35965449940) completes on
+`d629cbbed343ed95b6913269e1cea6f5c896533d` with all ten required jobs and the aggregate gate passing.
+Its signing-only jobs remain skipped under the PR policy. This status does not establish the
+unperformed native menu sequence, diagnose the older finalization stall or satisfy signed-package
+acceptance.
+
+## Photo-route run stops before import
+
+Run `00ae59f967f8422db3bde63c5d5da622` retains the unchanged `a0cde914` Release payload, all
+10000 generated images and the preceding deadline/resource requirements. Nine input-boundary
+tests and independent admission review pass. The new 53-line input-request owner and 36 dedicated
+test lines add explicit right-button translation; neither has inline tests. Seven reused helpers
+are byte-identical. The frozen ten-source/32-input manifest SHA-256 is
+`F41AF8359A90292C78D2621C92E88BD27FF391CB009DFF8146977E1E101A6B51`.
+The complete 10516-file host source precheck passes in 57.830 seconds.
+
+The native method fails its import-admission target, before the photo focus route can be attempted.
+The final successful picker selection is at 229.280 host seconds. The subsequent `confirm-import`
+call is rejected by the unchanged 240-second guard before it emits an action receipt or sends
+input. There is no import confirmation, `importComplete`, right-click or menu key sequence.
+The rejection has no precise timestamp field; it is bounded after the cutoff and before the
+07:27:34.004 UTC retirement observation, not assigned an invented exact duration.
+
+| Preparation or input observation, 2026-09-24 UTC | Evidence |
+| --- | --- |
+| Guest source copy/hash/date verification | 127675 ms for all 10000 files and 10921494393 bytes |
+| Guest readiness receipt | 07:25:35.2940039, guest clock; host first reads ready at 162.981 elapsed seconds |
+| Refreshed binding before admission | 07:25:45.727, needed after the earlier desktop observation |
+| Start-media publication | 07:25:55.000, host clock |
+| Admission's automatic screenshot | 07:25:56.761, still desktop |
+| First actual empty Ame view | 07:26:05.813 |
+| Open-import input / return / automatic screenshot | 07:26:20.315 / 20.754 / 20.881 |
+| First actual picker view | 07:26:30.703 |
+| Select-mixed input / return / automatic screenshot | 07:26:41.775 / 41.911 / 42.048 |
+
+The empty-app-to-invocation interval is 14.502 seconds; picker-to-selection invocation is
+11.072 seconds. These operation-side intervals are distinct from input delivery and application
+rendering. The automatic screenshots before the app and picker appeared require later state
+observations; they are not evidence of a stalled import. This failure must not be conflated with
+the earlier reported post-validation finalization wait.
+
+Ame closes normally at 302.799 host seconds. Independent host observation bounds its exit at
+1363.8873 ms, with exit zero and owned Job retirement. All guest hashes/dates pass in 69131 ms,
+and the closed database is copied only after exit. The original catalog verifier then exits one
+with `Unexpected root or root count`; unconfirmed import does not satisfy its 10000-member duty.
+The functional verdict remains failed despite successful retirement.
+
+The final Sandbox confirmation acknowledges input at 07:30:12.475 UTC, followed by the retained
+disposed-target capture error. Independent host retirement passes in 441588 ms, with no remaining
+Sandbox process or cleanup failure. Minimum host availability is 3640848384 bytes and the empty
+client's kernel peak working set is 157904896 bytes; this is not a populated-library resource pass.
+Original receipts and `catalog-verification-failure.json` remain under
+`build/integration-storage-00ae59f967f8422db3bde63c5d5da622`. No unchanged replay is admitted.
+
+The complete host source postcheck passes for all 10516 generated files in 58.279 seconds, with
+receipt SHA-256 `401FC0FEC5D190B37E8598D654155C4733D34CFE6CBFDBF2606D052D970186BA`.
+All ten helper, 32 input and 37 product hashes remain unchanged. Six actual input pairs each
+acknowledge delivery; there is no confirmation pair. Final bindings explicitly retain
+`importConfirmationSent=false`, `menuReturnVerified=false`, `closedCatalogVerified=false` and
+catalog-verification exit one, alongside successful process retirement. Their SHA-256 is
+`24E274939320E0EDABEAD475F496D1EE4C6D96CBA355D8CAC6C237F4174E97C2`;
+`host-result.json` is `6D6B691002BF80FC260CE8D181E8DD46C0C9C3735B9961FC9DBFB03969D4FC6C` and
+`catalog-verification-failure.json` is
+`D96332548A9FEF32695635A5F6660CB8607D78DB9B12BC6A78F8ADA91F675EC7`.
+
+The bounded record review confirms the retained failure, receipt/hash correspondence, diagnostic
+limitations, links and cumulative accounting. It does not independently re-observe native pixels,
+rerun source hashes or recheck hosted CI. No further native lifetime is admitted by this record.
