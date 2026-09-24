@@ -895,6 +895,63 @@ read or directory-enumeration control runs, so the 64-KiB trace supplies no zero
 The failure and separate retirement receipt remain in `.build/r2c-warm-start/`. No system privilege
 is changed, no real root is touched, and the native startup counter obligation remains open.
 
+### Populated Release startup preparation
+
+The admitted UX-01A method now has a prepared two-lifetime fixture on documentation head
+`bdf9fb7`. It imports the unchanged 10000-image, 10921494393-byte generated mixed-size/historical
+corpus into a fresh disposable profile, normally retires the first process and Job, then starts a
+distinct process against that same profile. Closed catalog snapshots retain exact root, scan,
+asset and source identity checks; separately observed pixels and navigation remain required.
+This is preparation evidence only: no populated native observation has run under this method.
+
+The isolated payload retains the unsigned evidence from source `94f52f0` plus its verified dirty
+source hashes, subsequently committed as `562e53d`. Those twelve source/test hashes still match.
+Later runtime-source edits consist only of the reviewed test-measurement wrappers, whose non-test
+calls and ordering are retained; the remaining changes are tests and documentation. This justifies
+the scoped Release reuse and does not claim a fresh current-head build. The frozen manifest binds
+512 current product files, 25 diagnostic helpers, 38 prepared inputs and the original Release/empty
+Sandbox admission evidence. Its SHA-256 is
+`1A4AEB8FF9FA1346BAFA8B2C5599AC9C1E93F188070C4FBCC32376DD99C4B96D`.
+
+The typed lifecycle owner rejects overlapping starts, reused PIDs and foreign/late epoch receipts.
+Every owned resource has independent retirement, including partial-start and cleanup failure paths.
+Review identifies and corrects input admission after asynchronous waits, late start receipts and
+ambiguous Sandbox close evidence. Atomic start publication now rechecks authority after flushing
+and immediately before publication. Actual input rechecks the current owner, screenshot age and
+deadline after recording and asynchronous reads. Sandbox request and confirmation use distinct
+observed actions; the final verifier requires their complete current-run/window pairing, final
+position in the action history and observed target disappearance. No action-name error waiver
+can establish retirement.
+
+Focused checks pass: 29 lifecycle, ten host-completion, 13 JavaScript input/session and seven Python
+evidence tests, including asynchronous rejection and actual session composition with fake input
+ports. PowerShell parsing passes. These 59 checks do not constitute native input evidence.
+The unchanged host source verifier checks all 10516 retained/generated test files in 61.022 seconds.
+No original-media root is read or modified.
+Its final receipt is `source-integrity-1790282905687320900.json`, SHA-256
+`ADE50C6B7D5D4076223A6BF9091BC08A5D1F65C976BC2B27484C40E504B482BD`.
+The diagnostic owners contain 86 lifecycle, 104 process, 49 guest composition, 196 native session,
+134 host supervision and 151 offline-verification lines, with no inline tests. Six dedicated test
+files contain 318 lines. These are ignored acceptance helpers; product source is unchanged.
+
+The startup source map connects `main.dart` through `mountAmeApplicationAndRevealWindow`,
+`LibrarySynchronizationLifecycleOwner`, `RustLibrarySynchronization` and the existing Rust
+production continuity owner. The retained complete Daily log reports the two mount/reveal and
+three lifecycle tests passing, and the exact 100-start production-observer test passing. Its
+controlled journal session proves zero enumeration/media-content opens/spool/inventory/new scan
+rows while retaining watcher handles and bounded metadata probes. The Flutter lifecycle still
+uses a cached-text stand-in. Neither that test nor future catalog equality supplies native I/O
+measurement; the earlier failed ETW calibration and separately required native/external counter
+evidence remain unchanged.
+
+The prepared configuration is in `.build/r2c-populated-startup/`, run
+`9f9559e2e8f14f76b4c8e5473c0a1386`. The exact payload/source/helper admission passes, but the final
+resource guard measures 6.79 GiB available against the original 7 GiB floor. Resetting only the
+owned UI-control session yields 6.86 GiB; the later check is 6.84 GiB. No host-start receipt exists
+and no Sandbox or Ame process is launched. This is a resource-blocked preparation, not a failed
+native workload or a passing UX-01A verdict. The single execution remains unconsumed; reuse this
+configuration after fresh resource and source-integrity admission, retaining all original bounds.
+
 ### Native original-viewer source-slot evidence
 
 On product source `a1c165b2cb11c380ef4a8ee3f2f47c0af139b2b6` (documentation HEAD

@@ -156,8 +156,8 @@ method; do not substitute repeated instrumentation or weaker source guards for t
 #### Populated no-change startup method
 
 After recording the current measurement checkpoint, select the still-open UX-01A populated-client
-observation while the separate exact-deletion authorization remains pending. This preparation is
-queued, not yet admitted, run or charged. On admission reserve at most 100 active minutes: 20 for
+observation while the separate exact-deletion authorization remains pending. This method is
+admitted on `bdf9fb7`; reserve at most 100 active minutes: 20 for
 the retained source/artifact and lifecycle map, 30 for the two-lifetime fixture, 15 for focused
 guardrails, 15 for one native execution, 15 for independent method/result review and five for records.
 
@@ -184,6 +184,26 @@ row/count equality alone is not evidence of zero source opens or enumeration. St
 proved by native observation versus instrumented application tests; never promote a cached-content
 stand-in to populated-client evidence. This scope admits no deletion, real-root access, service
 installation, new media feature or additional M03 diagnostic benchmark.
+
+This method is admitted on `bdf9fb7`: reserve its 100 active minutes, bringing the cumulative
+envelope to 9059 charged / 9194 reserved, including the untouched conditional 35-minute deletion
+admission. Native execution still requires the typed two-lifetime owner, focused checks, source
+and payload binding, independent method review, and fresh resource admission described above.
+
+Preparation establishes two independently owned process lifetimes and passes 59 focused checks.
+The [prepared startup record](../acceptance/r2c-closeout-cycle.md#populated-release-startup-preparation)
+binds the reused Release, source corpus, observer-test boundary and corrected input guards.
+The launch guard observes only 6.79 GiB available; releasing the owned UI session leaves 6.86 GiB,
+and a later check remains 6.84 GiB. No Sandbox or application starts and no native allowance is
+consumed. Preserve the unconsumed configuration; refresh the source digest and resource admission
+before its single execution. Do not generate another fixture or repeat preparation tests solely
+because memory becomes available.
+
+Conservatively charge 83 minutes for mapping, fixture implementation, focused checks, the first
+13 minutes of review allowance and records: cumulative accounting is 9142 charged / 9194 reserved.
+The outstanding 17 minutes are the one native execution and final two-minute evidence review;
+the separate conditional 35-minute deletion allowance remains untouched. Resource waiting is not
+engineering time. The final review remains required before declaring the native path accepted.
 
 #### M04 bounded implementation method
 

@@ -281,8 +281,23 @@ repeat the ignored performance workload or substitute for its failed gate. This 
 does not claim a new isolated Release client run or signed installed-service evidence.
 
 The final independent evidence recheck confirms the receipt/log bindings, totals and retained
-failure boundaries. The next populated-startup method remains queued; that review does not admit
-or execute its separate workload.
+failure boundaries. At that checkpoint the populated-startup method is still queued; that review
+does not admit or execute its separate workload. Its subsequent preparation has a separate
+[current record](r2c-closeout-cycle.md#populated-release-startup-preparation).
+
+The subsequent [hosted run on `54aa1ed`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36010904727)
+fails Windows Scan while its other nine required jobs pass. The retained-import case passes;
+picker cancellation and selection return the diagnostic `-1` sentinel after their automation child
+exceeds its 15-second wait. The Windows build completes in 274.6 seconds; the integration receipt
+ends after 401883 ms with exit one and no cleanup failure. These observations identify an input
+automation timeout, not its underlying cause or a reproduced scan/publication failure. The three
+raw diagnostics remain under `.build/r2c-populated-startup/ci-54aa1ed/`.
+
+The independently triggered [run on `bdf9fb7`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36053519811)
+passes all ten required jobs and the aggregate gate; three signing-only jobs are skipped. No manual
+unchanged rerun is issued. This current-head hosted pass does not erase the earlier C02 automation
+failure, explain its intermittent cause, waive M03's Debug performance failure or complete final
+candidate acceptance.
 
 ## M04 navigation ownership and lifecycle
 
