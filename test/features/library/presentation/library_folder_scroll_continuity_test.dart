@@ -178,6 +178,7 @@ class _Navigation extends ConsumerWidget {
         transientRootPath: null,
         folderTree: tree,
         isBusy: false,
+        isBrowseDisabled: false,
         onSelectLibrary: () {},
         onSelectRoot: (_) {},
         onSelectFolder: (_, _) {},

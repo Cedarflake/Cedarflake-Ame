@@ -122,9 +122,11 @@ more-menu input and remaining Release variants retain their frozen duties.
 The [corrected Release bulk result](acceptance/r2c-release-native.md#release-live-continuation-result)
 now meets the original addition/deletion bounds, exact closed membership and normal-lifetime
 requirements, preserving the preceding failed run. The Live worker correction also passes complete
-local Daily and required hosted gates. The active functional investigation is root selection during
-background import and historical navigation during publication; their causes require independent
-proof. Remaining keyboard-return and final candidate duties stay open. C01's mixed-load recovery
+local Daily and required hosted gates. The
+[browsing-admission record](acceptance/r2c-browsing-admission.md) owns the root-read correction during
+background import and the distinct date-intent diagnosis during publication. The root correction has
+complete local quality evidence; its optimized-client proof and the date-intent repair remain open.
+Remaining keyboard-return and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading

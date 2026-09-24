@@ -334,6 +334,10 @@ persistence layers.
   proven supersession, not after an arbitrary failure or unchanged busy result. Disposal settles
   every in-flight waiter, including replaced attempts. Catalog revision disagreement remains a
   genuine read failure, and retry cannot repeat the committed source scan.
+- `library_browse_admission.dart` owns read admission independently from scan-command admission.
+  A published catalog remains queryable during a primary scan; unpublished staging is never read
+  as completed content. Query replacement, paging and time reads retain their distinct exclusions.
+  This policy cannot grant a publication lease or bypass revision and result-generation checks.
 - Visible root removal admits an opaque, single-use prepared operation before awaiting the feedback
   frame. The application coordinator owns execution, abandonment, and disposal invalidation; the
   widget supplies only the rendered-frame boundary. A committed unregister clears selection even

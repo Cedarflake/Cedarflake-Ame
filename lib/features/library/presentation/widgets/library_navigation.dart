@@ -28,6 +28,7 @@ class LibraryNavigation extends StatefulWidget {
     required this.transientRootPath,
     required this.folderTree,
     required this.isBusy,
+    required this.isBrowseDisabled,
     this.updatingRootIds = const {},
     this.isAddingSourceDisabled = false,
     this.addingSourceDisabledReason,
@@ -58,6 +59,7 @@ class LibraryNavigation extends StatefulWidget {
   final String? transientRootPath;
   final LibraryFolderTreeState folderTree;
   final bool isBusy;
+  final bool isBrowseDisabled;
   final Set<String> updatingRootIds;
   final bool isAddingSourceDisabled;
   final String? addingSourceDisabledReason;
@@ -180,7 +182,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         isSelected:
                             !widget.isSettingsSelected &&
                             widget.selectedRootId == null,
-                        onPressed: widget.isBusy
+                        onPressed: widget.isBrowseDisabled
                             ? null
                             : widget.onSelectLibrary,
                         icon: const Icon(Symbols.photo_library_rounded),
@@ -243,7 +245,9 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           ),
                         ),
                       ),
-                      onTap: widget.isBusy ? null : widget.onSelectLibrary,
+                      onTap: widget.isBrowseDisabled
+                          ? null
+                          : widget.onSelectLibrary,
                     ),
                   const SizedBox(height: 12),
                   if (widget.roots.isEmpty && widget.transientRootPath == null)
@@ -273,7 +277,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           widget.selectedRootId == root.id &&
                           widget.selectedFolderRelativePath == null,
                       isExpanded: _isExpanded(root.id, ""),
-                      isBrowseDisabled: widget.isBusy,
+                      isBrowseDisabled: widget.isBrowseDisabled,
                       isUpdating: widget.updatingRootIds.contains(root.id),
                       isUpdateDisabled: widget.retainedScanRootId == root.id,
                       focusNode: _focusNodeForRoot(root.id),
@@ -373,7 +377,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
               widget.selectedRootId == root.id &&
               widget.selectedFolderRelativePath == folder.relativePath,
           isExpanded: isExpanded,
-          isBusy: widget.isBusy,
+          isBusy: widget.isBrowseDisabled,
           onSelect: () => widget.onSelectFolder(root, folder),
           onToggleExpansion: folder.hasChildFolders
               ? () => _toggleBranch(root.id, folder.relativePath)

@@ -18,6 +18,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [Process lifecycle](r2c-process-lifecycle.md) | Pending native-call close, actual paused-checkpoint restoration and explicit continuation, retained failures and remaining input limits |
 | [Picker and task controls](r2c-input-controls.md) | C06 pending-pause Cancel correction, focused regressions and retained unsuccessful native input attempt |
 | [Native query interactions](r2c-query-interactions.md) | Generated publication/query/page evidence, preserved diagnostic failures and remaining combined native interactions |
+| [Browsing admission](r2c-browsing-admission.md) | Published-catalog reads during import, connected Retry verification and the separate unresolved date-revision boundary |
 | [Isolated Release client](r2c-release-native.md) | Actual optimized-client pixels, navigation, source/catalog checks and retained Sandbox admission/retirement failures |
 | [Evidence publication](r2c-evidence-publication.md) | C02 native file-replacement attribution, controlled holder/mapping cases and unresolved local gate failure |
 | [Library count reconciliation](library-count-reconciliation.md) | Same-directory Photos/Ame totals, metadata path census, admission differences and unresolved historical revision evidence |

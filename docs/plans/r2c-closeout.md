@@ -1861,6 +1861,18 @@ hashes/dates, exact closed membership, queue settlement and all owned retirement
 only to fill keyboard coverage or infer transient-frame stability from point captures. Real roots,
 installed service and signing remain outside this method.
 
+The root-read correction now has 92 focused passing cases, complete Daily and an independent incremental recheck.
+The connected query-failure Retry omission is corrected with a failing-before/passing-after actual
+button case. Fresh unsigned Release and native proof remain pending. The fresh native lifetime must
+select the already-published bulk root while the background import is visibly active, then retain
+that selection through automatic bulk convergence. The post-click screenshot must show the bulk
+selection and its page while mixed import remains active in that same frame; an earlier active
+frame followed by a post-import selection is insufficient. Preserve the observed primary task and exact
+catalog/source/retirement evidence; a click after import completion cannot prove this correction.
+The distinct date-revision probe still returns to the first page. Its coherent timeline/page and
+current-intent correction requires a separately recorded ownership method before implementation;
+neither this root-read policy nor a settled post-deletion jump closes that boundary.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one

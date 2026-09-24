@@ -10,6 +10,7 @@ import "../../../app/presentation/ame_notifications.dart";
 import "../adapters/windows_library_platform_actions.dart";
 import "../../settings/application/ame_preferences.dart";
 import "../../settings/presentation/ame_settings_page.dart";
+import "../application/library_browse_admission.dart";
 import "../application/library_catalog.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
@@ -240,7 +241,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     final state = ref.read(libraryControllerProvider);
-    if (state.isBusy || state.isLoadingTimeAnchor) {
+    if (!LibraryBrowseAdmission(state).canBrowse) {
       _synchronizationRefreshRetry = Timer(
         const Duration(milliseconds: 250),
         _scheduleSynchronizationRefresh,
@@ -1060,6 +1061,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               transientRootPath: _transientRootPath(state),
               folderTree: folderTree,
               isBusy: state.isBusy,
+              isBrowseDisabled: !LibraryBrowseAdmission(state).canBrowse,
               updatingRootIds: updateState.activeRootIds,
               isAddingSourceDisabled:
                   updateState.hasActive || state.hasRetainedScan,
@@ -1134,7 +1136,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                               case final LibraryQueryFailed failure)
                             LibraryQueryFailureBanner(
                               failure: failure,
-                              onRetry: state.isBusy
+                              onRetry: !LibraryBrowseAdmission(state).canBrowse
                                   ? null
                                   : () => unawaited(
                                       _applyQuery(

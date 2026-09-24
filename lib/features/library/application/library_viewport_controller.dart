@@ -4,6 +4,7 @@ import "package:flutter/foundation.dart";
 
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
+import "library_browse_admission.dart";
 import "library_catalog.dart";
 import "library_catalog_publication.dart";
 import "library_page_operation.dart";
@@ -213,9 +214,9 @@ class LibraryViewportController {
     }
     final hasVisibleRangeRequest =
         _pendingVisibleRange != null || _activeVisibleRange != null;
-    if (_state.status == LibraryStatus.choosingDirectory ||
-        _state.isScanning ||
-        (_state.isLoadingTimeAnchor && !hasVisibleRangeRequest)) {
+    if (!LibraryBrowseAdmission(
+      _state,
+    ).canStartQuery(hasVisibleRangeRequest: hasVisibleRangeRequest)) {
       return LibraryQueryUpdateOutcome.busy;
     }
     _supersedeQueryWindowRequests();
@@ -377,11 +378,7 @@ class LibraryViewportController {
 
   Future<bool> _loadNextPage() async {
     final cursor = _state.nextCursor;
-    if (cursor == null ||
-        _state.isBusy ||
-        _state.isLoadingPage ||
-        _state.isLoadingPreviousPage ||
-        _state.isLoadingTimeAnchor) {
+    if (cursor == null || !LibraryBrowseAdmission(_state).canReadPage) {
       return false;
     }
 
@@ -481,11 +478,7 @@ class LibraryViewportController {
 
   Future<bool> _loadPreviousPage() async {
     final cursor = _state.previousCursor;
-    if (cursor == null ||
-        _state.isBusy ||
-        _state.isLoadingPage ||
-        _state.isLoadingPreviousPage ||
-        _state.isLoadingTimeAnchor) {
+    if (cursor == null || !LibraryBrowseAdmission(_state).canReadPage) {
       return false;
     }
 
@@ -646,10 +639,7 @@ class LibraryViewportController {
   }
 
   bool get _isTimeNavigationBlocked =>
-      _state.isProcessing ||
-      _state.isLoadingPage ||
-      _state.isLoadingPreviousPage ||
-      _state.isLoadingTimeAnchor;
+      !LibraryBrowseAdmission(_state).canNavigateTime;
 
   bool _isCompatibleTimeNavigation(LibraryTimeNavigationRequest request) {
     final timeline = _state.timeline;
@@ -1083,7 +1073,9 @@ class LibraryViewportController {
   }
 
   Future<void> loadInitialTimeline() async {
-    if (_state.roots.isEmpty || _state.timeline != null || _state.isBusy) {
+    if (_state.roots.isEmpty ||
+        _state.timeline != null ||
+        !LibraryBrowseAdmission(_state).canBrowse) {
       return;
     }
     final generation = _publicationGeneration;

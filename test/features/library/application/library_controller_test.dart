@@ -754,7 +754,10 @@ void main() {
       expect(state.scanId, scanner.startedScanId);
       expect(state.stagedAssetCount, 80);
       expect(state.assets.single.locationId, "location-published");
-      expect(catalog.anchors, isEmpty);
+      expect(catalog.anchors, hasLength(1));
+      expect(catalog.anchors.single.revision, initialSnapshot.revision);
+      expect(catalog.anchors.single.monthKey, bucket.monthKey);
+      expect(catalog.anchors.single.itemOffset, 19);
       expect(await Future.wait(pendingJumps), everyElement(isFalse));
     },
   );
