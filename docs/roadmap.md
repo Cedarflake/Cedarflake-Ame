@@ -117,8 +117,8 @@ viewer-return evidence after source reads retire. C12's diagnostic observer corr
 warning-free selected Debug workflow evidence; final-source and Release acceptance remain open. The
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
-host retirement. Native keyboard sort return now passes on current Release source; layout return,
-more-menu input and remaining Release variants retain their frozen duties.
+host retirement. Native keyboard sort, layout and more-menu return now have current Release
+input and normal-lifetime evidence; remaining Release variants retain their frozen duties.
 The [corrected Release bulk result](acceptance/r2c-release-native.md#release-live-continuation-result)
 now meets the original addition/deletion bounds, exact closed membership and normal-lifetime
 requirements, preserving the preceding failed run. The Live worker correction also passes complete
@@ -137,7 +137,7 @@ The complete native verdict and reported finalization/refresh behavior remain op
 run's stop is attributed to the source helper before the import acceptance deadline; its exact
 finalization interval remains unmeasured. Completed validation counters and actual published import
 completion retain distinct evidence.
-Remaining keyboard-return and final candidate duties stay open. C01's mixed-load recovery
+Remaining frozen variants and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading

@@ -1205,3 +1205,81 @@ The host postcheck SHA-256 is
 The 17 original evidence bindings and explicit failed functional verdict are retained in
 `.build/r2c-menu-settled-observation/final-bindings.json`, SHA-256
 `7B04B7DBC659DEC9989216F084E0DBD9FEB1F56ADB794A5750EBE1E2C8ADE151`.
+
+## Bounded source-digest preparation
+
+The revised method retains the previous failed native lifetime. A read-only host comparison of
+the complete 10000-file/10921494393-byte generated corpus measures 50456 ms with the original
+PowerShell verification, including 40470 ms hashing and 6871 ms metadata lookup. A bounded Windows
+CNG digest with sequential 128-KiB reads measures 40895 ms, including 30912 ms hashing. Repeating
+the original method afterward measures 48933 ms, including 38845 ms hashing. All hashes, lengths
+and historical dates match the frozen oracle. This supports reduced host verification cost, not
+a promised guest duration or native functional result; it does not attribute all savings to the
+algorithm alone. The original sample and full measurements remain in
+`.build/r2c-source-digest-cost`.
+
+The digest owner contains 41 production, zero inline-test and 95 dedicated-test lines. Fourteen
+cases cover chunk boundaries, empty content, source timestamps, missing/directory/exclusive input,
+clock/abort rejection and real mid-read cancellation followed by worker retirement and exclusive
+reopen. Cancellation is checked between read blocks; a blocking filesystem read is not forcibly
+interrupted. The existing outer process/lifetime guards remain. All 20 unchanged native session
+boundary tests pass. Product source remains unchanged at the 37-file passing Daily baseline.
+
+Run `c860c62b0ebb4006a3dec10d37f60a23` is prepared in `.build/r2c-menu-bounded-digest`, with 15 helper
+and 33 input hashes. Only guest digest computation and its payload inclusion change: copying,
+membership, path, length, date, original Clock/300-second/abort and native input checks remain.
+Independent recheck confirms the mid-read cancellation boundary and exact guest payload wiring.
+The complete host precheck verifies all 10516 files in 52.041 seconds. One native lifetime is
+admitted by the [bounded method](../plans/r2c-closeout.md#source-verification-cost-and-native-admission);
+preparation and host timing alone do not close import, finalization, menu or gallery acceptance.
+
+### Bounded-digest native import and menu return
+
+The admitted run starts at 2026-09-24 09:03:09.2418188 UTC with 7981359104 available host bytes.
+Guest copy plus complete verification takes 101972 ms; the copy log reports 54 seconds, 10000
+copied files and zero failures. Readiness is observed at 135.158 host seconds. This is faster
+than the preceding 127772-ms preparation, but copying, hashing, startup and observation costs
+remain distinct. The complete source digest and date assertions are unchanged.
+
+Actual picker confirmation succeeds at 195.992 host seconds, within the original 240-second
+admission. At 233.487 seconds the screenshot shows 10000 found images while the task still says
+adding and the gallery count is zero. At 243.934 seconds it shows **import complete**, 10000 gallery
+images and decoded first-screen photos. The explicit completion receipt records 59.457 seconds
+from confirmation, below the original 300 seconds; this includes observation/recording delay and
+is not the backend's precise completion duration. No continuous finalization trace was captured.
+
+Ordinary native right-click opens the first photo's context menu. Escape closes it; two individually
+observed reverse Tabs move through the rail's newer-row control to the visible more-button focus.
+More opens with Enter at 300.028 seconds, closes with Escape at 308.861 and opens again with Enter
+at 318.382. After dismissal, one reverse Tab visibly focuses layout. Layout opens with Enter at
+346.184, closes with Escape at 356.808 and opens again with Enter at 366.485. No pointer refocus
+occurs between each menu's three keys, and no menu command is selected. The inspected screenshots
+retain the decoded gallery, first date group, rail and 10000 count. They prove these selected
+native input/return sequences, not absence of every transient frame or peer-publication behavior.
+
+Normal app close is sent at 385.201 host seconds. Matching host observation of the app/Job exit
+provides a 1966.6845-ms upper bound, within six seconds; exit code is zero. Guest postcheck verifies
+all 10000 hashes/dates in 46265 ms and copies the closed database. Sandbox-close confirmation
+returns at 09:10:54.363 UTC; its subsequent screenshot reports
+`foreground window did not report a process id`. This post-close capture error is retained.
+Independent host evidence completes at 467841 ms with retired application/Job, no cleanup failure
+and no remaining Sandbox process; subsequent native discovery returns no Sandbox window. The
+successful input acknowledgement and independent retirement evidence support this lifetime;
+unknown input errors elsewhere are not waived.
+
+The original closed-catalog verifier passes: SQLite quick check is `ok`, one root and exactly the
+10000 frozen relative paths are active. Host postcheck verifies all 10516 files in 56.800 seconds,
+SHA-256 `F6AEF5EE30C4BE9922A327E3AB62D3A2E659BD5A7ABB38A8B2299989507AB860`. Minimum host availability
+is 3261644800 bytes; peak app working set is 186425344 bytes. These meet the unchanged resource
+bounds for this selected populated-client workload. Application stdout/stderr are empty.
+
+The final 21 evidence bindings remain in `.build/r2c-menu-bounded-digest/final-bindings.json`,
+SHA-256 `9F2E204D5AC7AE223C59DBBE98B6890D49E4561C10149D2E754F97CF9C67533A`. Its 15 helper/33 input
+hashes and the 37 product baseline hashes remain unchanged. The helper manifest is
+`4B9E09DC09F18E1C4E60DADC19DE63929605015A23BF44A58561EE7C00DE3D56`; preparation evidence is
+`F6B9E8458129B0441A0B54F3EEDFC584C98B280E1149E7AD3BF5B372E566C5AB`.
+Independent record review confirms those bindings, action order, closed membership and same-host
+retirement/resource bounds; it does not independently re-observe the screenshots or decoded pixels.
+This closes the selected current Release layout/more keyboard-return gap while retaining every
+preceding failed attempt. The earlier concurrent finalization/refresh report, exact-deletion
+continuation, other frozen variants and complete R2c acceptance remain open.
