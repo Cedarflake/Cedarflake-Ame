@@ -720,3 +720,9 @@ and native observations plus offline catalog/lifetime evidence. Complete deletio
 acceptance and attribution of the original finalization wait remain open. This run again observes
 complete validation counters before terminal publication, but does not establish the old wait's
 cause or accept all C05/R2c duties.
+
+Hosted run [35994900094](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35994900094)
+passes all ten required jobs and the aggregate gate at `562e53d2d182ec0b1ddb5bc8389529d4c02f9a7e`.
+The three signing-only jobs are skipped as required for this PR. This is the committed-position
+checkpoint's hosted result; it neither validates later test changes nor closes its remaining
+native and external duties.
