@@ -61,8 +61,9 @@ browsing-recovery correction. Their evidence is in the
 [browsing-recovery record](acceptance/synchronization-browsing-recovery.md).
 The latter preserves the initial Daily failure, subsequent focused/partition results, and unsigned
 Windows verification. Its isolated mixed-load pass does not establish full-suite stability.
-A fresh complete Daily and current retained-library client acceptance remain unproved for that
-correction. A documentation reorganization does not change any of these acceptance states.
+The accumulated Live worker correction now has complete local Daily evidence in the
+[current Release record](acceptance/r2c-release-native.md#bounded-live-worker-continuation).
+Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
@@ -118,12 +119,12 @@ warning-free selected Debug workflow evidence; final-source and Release acceptan
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
 host retirement. Native keyboard sort return now passes on current Release source; layout return,
 more-menu input and remaining Release variants retain their frozen duties.
-The [Release bulk deletion result](acceptance/r2c-release-native.md#release-bulk-deletion-convergence-failure)
-now establishes a functional blocker: deletion misses its existing convergence bound and leaves
-deleted paths in the closed catalog. The Live worker scheduling correction now has focused and
-complete local Daily evidence; verify the corrected current Release workload next. Historical
-navigation during the same publication stream remains unproved. Earlier Debug C04 and
-selected browsing passes do not accept this Release workload. C01's mixed-load recovery
+The [corrected Release bulk result](acceptance/r2c-release-native.md#release-live-continuation-result)
+now meets the original addition/deletion bounds, exact closed membership and normal-lifetime
+requirements, preserving the preceding failed run. The Live worker correction also passes complete
+local Daily and required hosted gates. The active functional investigation is root selection during
+background import and historical navigation during publication; their causes require independent
+proof. Remaining keyboard-return and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
 not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading

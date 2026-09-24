@@ -1,13 +1,15 @@
 # R2c closeout execution
 
-Status: **Release bulk deletion misses its convergence bound and remains an active functional
-blocker. The selected C05 generated-native workload passes; other frozen variants and final gates
-remain open**.
+Status: **The corrected Release bulk workload passes its original convergence and lifetime
+bounds. Browsing during import/publication is the active functional investigation; remaining
+frozen variants and final gates stay open**.
 
 The [accumulated candidate hosted checkpoint](../acceptance/r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint)
 passes all required jobs on `9c584a0`; the later `aac68ed` run repeats C01's connection-lifetime
-control failure. Neither result resolves the preserved C01/C02 failures, remaining
-actual client paths, complete local gate, final review or external acceptance prerequisites.
+control failure. The current Live worker checkpoint passes complete local Daily, all required
+hosted jobs, unsigned Release verification and the selected native bulk workload. Earlier
+failures and remaining actual client paths, final candidate gates,
+review and external acceptance prerequisites remain explicit; a local pass does not replace them.
 
 ### Completion goal and required deliveries
 
@@ -1783,7 +1785,8 @@ bounds merely because focused tests pass. Navigation remains a separate unresolv
 The ownership extraction, focused boundary tests and independent recheck now pass. The complete
 local Daily also passes, including the original full mixed-load and ten-phase UIA cases. This
 does not erase their earlier failures or close final candidate obligations. The current unsigned
-build and the separately admitted native workload remain the next verification steps.
+Release gate also passes. Charge the repair reservation through 7729; the separately admitted
+native workload and its result are recorded below.
 
 #### Release Live continuation revalidation
 
@@ -1819,6 +1822,44 @@ focus and Enter/Escape/Enter without pointer refocus; the original cutoff and no
 remain binding. Unreached variants carry forward without another lifetime in this admission.
 Do not infer absence of transient Retry or blank frames from sparse screenshots. A failure ends
 this admission with evidence and a revised causal method; no unchanged replay or extended deadline.
+
+The [completed Release lifetime](../acceptance/r2c-release-native.md#release-live-continuation-result)
+passes addition, deletion, exact closed membership, preview ownership, full source checks and
+normal retirement. Independent method/result review consumes its ten-minute reservation, with
+no new structural blocker; result review does not repeat screenshot interpretation. Charge the
+block in full through 7804 active minutes. Import-time root selection and publication-time rail
+navigation remain unresolved; layout/more-menu keyboard return is unreached. The single native
+lifetime is consumed and cannot be replayed under this admission.
+
+#### Browsing admission during import and publication
+
+Reserve 120 active minutes, cumulative 7924: 20 for causal diagnosis, 45 for at most two confirmed
+owning-policy corrections and focused regressions, 15 for independent review, 15 for one prepared
+native lifetime, ten for postchecks and 15 for records. Build and gate process wall time remains
+separate. This continues UX-03A and UX-08A; incomplete UX-08C keyboard coverage is a separate duty.
+
+Trace root-selection admission during a peer's first import and time-navigation ownership during
+catalog publication independently. Reproduce each boundary using controlled pending operations,
+published content and explicit user intent before changing behavior. A shared global busy flag is
+a lead, not evidence that both observations share a cause. Record rejected actions, generations,
+loading owners and terminal cleanup; preserve removal fencing, unpublished-root handling and
+stale-result retirement. Extract an affected admission policy into its typed owner before changing
+a multi-responsibility screen/controller. Do not loosen scan or mutation admission to enable reads.
+
+Prove normal, pending, superseded, failed, disposed and removed-target paths as applicable, and
+retain stable current-query content and position. No schema, dependency, source mutation, framework
+input replacement or broad controller cleanup is admitted. Format owned files, then run focused
+tests, lint and applicable Daily/unsigned Windows gates serially. Unknown causality or a failed
+corrected reproduction ends that method with its evidence and a revised diagnostic step.
+
+A native follow-up requires a fresh single-use configuration bound to the corrected payload,
+reviewed input method and a concrete pending-publication observation. Keep the complete 10000-file
+mixed-size/historical background, 12-to-2012-to-512 generated batch, original 240/390-second
+admissions, 300-second convergence, 690-second optional-input cutoff, 900-second parent, six-second
+normal close, seven-GiB host entry, three-GiB guest and two-GiB client/host reserve. Verify source
+hashes/dates, exact closed membership, queue settlement and all owned retirement. Do not replay
+only to fill keyboard coverage or infer transient-frame stability from point captures. Real roots,
+installed service and signing remain outside this method.
 
 #### Current Release gallery stability and remaining menu return
 

@@ -817,7 +817,8 @@ suite. The per-epoch control's 91-ms P95 only covers its first-page boundary; th
 published-baseline workload separately passes with 123-ms P95 and no sample above one second.
 The earlier C01/C02 failures remain historical evidence with their unresolved attribution and
 final candidate obligations. This current local checkpoint does not establish hosted or retained-
-library acceptance. Current Release build/client verification remains open.
+library acceptance. Release client verification is pending at this local checkpoint; its later
+result is recorded below.
 
 Daily runs from 07:57:10 to 08:30:22 local time on 2026-09-24. Its PowerShell transcript and
 machine-readable summary are `.build/r2c-live-worker-fix/daily.txt` and `daily-summary.json`.
@@ -838,6 +839,152 @@ Physical reviewability at this checkpoint:
 New owner source totals include their small conditional test-support methods and module declarations;
 test bodies are physically separate. Shared priority diagnostics only switch to the owned read-only
 accessor, and shared generated-fixture visibility is restricted to production test descendants.
-Focused evidence, the current Daily and review do not close the original 300-second Release
-deletion bound, rail navigation, terminal-input evidence, final-source or external acceptance
-obligations.
+Focused evidence, this Daily and review alone do not close the original 300-second Release
+deletion bound or native input duties. The later native result below supplies the selected batch
+and lifetime evidence; remaining navigation, final-source and external acceptance stay open.
+
+## Live continuation Release preparation
+
+The canonical unsigned Windows gate passes on clean source
+`280f35bf7a661f61256c0680dc1a927fa3be2323` in 153619 ms. It builds the optimized application and
+broker, passes three runner and two real-engine lifecycle cases, and passes the catalog-free
+Release-DLL/native-channel bridge smoke. The evidence file
+`build/quality-unsigned-windows/evidence.json` has SHA-256
+`06EBF0102D640ED1C628774520E6B3DA8537A3210D72A5C99604FFED927DBA69`.
+This build does not supply signed-package or installed-service acceptance.
+
+The fresh generated-only configuration is `dcd10f777339463596fed2a436c06efd`, using that exact
+payload and the unchanged 10000-file background plus 12-to-2012-to-512 batch roster. Fifteen Node
+boundary tests and 34 offline Python cases pass. All helper PowerShell sources parse. Seventeen
+source-guard checks and six preparation-process cases are reused only for their byte-identical
+owners. Independent method review confirms the terminal-capture exception remains bound to
+acknowledged final input, the same Sandbox, paired action evidence and independently successful
+host retirement; it also catches and corrects a plan-only addition-deadline typo. The actual
+addition/removal guards remain 240/390 seconds throughout. Six review minutes are consumed and
+four remain for the result.
+
+The immutable helper manifest `.build/r2c-release-live-continuation/reviewed-source-manifest.json`
+contains 33 sources and 40 input files, SHA-256
+`2982DBECFCD31917670D05613C0091C180DAC01533CBF764EE266A97B859E606`.
+Only the four declared native-session/input-oracle source and test files differ from the preceding
+closure. Old failed run evidence and its oracle remain unchanged. The complete 10516-file source
+precheck passes in 65.034 seconds, recorded as `source-integrity-1790210343616348900.json` in the
+retained generated fixture, SHA-256
+`95D421B2ACBFB423992A29FFCA7578498B18E2673CE2E09A4A9EAB33B468AEAE`.
+
+The preparation resource check at 2026-09-24T00:49:08Z has 7195938816 available bytes, below the retained
+7516192768-byte entry threshold; it launches no VM or application and leaves the configuration
+unconsumed. The later lifetime below starts only after resources recover and a complete fresh
+source precheck passes. The earlier unmet prerequisite is not a failed product run.
+
+## Live continuation hosted checkpoint
+
+Run [35938990417](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35938990417) checks head
+`280f35bf7a661f61256c0680dc1a927fa3be2323`. The unsigned artifact identifies the actual tested PR
+merge as `57621de5126958843d8b799ce9e837b55fd67309`. Its Git tree and the source head's Git tree
+are both `7de7f451b0c7d5abadc18efb5f2b7edd1f1d6ef3`, verified through the Git commit objects.
+The final result passes all ten required jobs and the aggregate gate. The earlier nine-job
+checkpoint remains in its immutable partial assessment.
+Signing-only jobs are skipped under the existing PR policy, without signed acceptance.
+
+Seven small evidence artifacts are retained under
+`.build/r2c-live-worker-fix/hosted-35938990417`. Each of the five synthetic summaries proves exactly
+one executed passing test, zero ignored cases, exit zero, complete captured output and a test-process
+peak below its existing 512-MiB limit. Source and output hashes are recorded in `assessment.json`,
+SHA-256 `B18E9275DCC1DD1553F80D47A9A68B74D3A36860F51B70013716A239E270AD36`.
+
+| Workload | Actual observations | Test-process peak bytes |
+| --- | --- | ---: |
+| JPEG | 6000-by-4000 fixture; full decode/resize 129.9761 ms, scaled 95.9815 ms | 81784832 |
+| Seven media formats | Seven cold generations, seven warm cache reuses and seven unchanged sources | 64409600 |
+| Synthetic scan | 10000 files; cold 14321 ms, warm 12030 ms, pause 2 ms, resume 14228 ms, cancel 154 ms | 25882624 |
+| Journal parser | 1000000 records covered in 245 bounded pages; at most 4095 retained records | 10612736 |
+| Catalog publication | 50000 identities staged/published in one commit; 146 overlapping polls, zero partial observations and one retained pending P0 | 18247680 |
+
+Memory scope is the direct test child's kernel peak working set. Build measurements cover the
+primary Cargo process only and do not establish a compiler-tree memory bound. These are hosted
+synthetic/unsigned gates; the 10921494393-byte mixed-media Windows client workload,
+original Release deletion deadline and external acceptance remain independent duties.
+
+The completed Static and Rust log records 1534 passing tests, zero failures, 19 existing ignored
+cases and three broker integration tests. The original complete mixed-load case passes with
+25 samples, 99-ms P95 and no sample above one second. Its distinct connection-lifetime controls
+measure 386 ms per poll and 82 ms per epoch at the first-page boundary; those controls alone do
+not prove full recovery. `final-status.json`, `static-rust.txt` and `final-assessment.json` are
+retained beside the partial assessment. The final assessment SHA-256 is
+`E319CDC8ED6233C02A25BCD7116EB2D293B49F9C71658F219C48321CE1AA02EF`.
+
+## Release Live continuation result
+
+Run `dcd10f777339463596fed2a436c06efd` uses the exact prepared optimized payload from `280f35b`.
+All 33 frozen helper sources and 40 inputs retain their manifest hashes. The refreshed complete
+10516-file host precheck passes before admission; the host enters with 9578176512 available bytes.
+The independent preparation process finishes and retires before the second actual picker
+confirmation. No real source root, installed service, explicit rescan or manual display refresh
+is involved.
+
+| Required boundary | Observed result |
+| --- | --- |
+| Baseline | 12 pictures imported and visibly decoded |
+| Background import | 10000 mixed-size/historical pictures, 10921494393 bytes; completion observed after 169.174 seconds |
+| Addition | 2000 generated files; automatic 12-to-2012 convergence observed after 156.964 seconds |
+| Deletion | 1500 generated files; automatic 2012-to-512 convergence observed after 63.746 seconds |
+| Closed catalog | Exactly two roots and the expected 10000 plus 512 active members, with matching source identities, sizes and dates; no unsettled queue work |
+| Preview ownership | 97 current ready previews verified; no active failed preview; 114 cache files totaling 2706495 bytes |
+| Normal application close | 1315.743 ms, exit zero, owned Job and process retired |
+| Complete host lifetime | 738341 ms, no remaining Sandbox processes or cleanup failure |
+| Resources | Client peak working set 448622592 bytes; minimum host availability 4761661440 bytes |
+
+Both additions and removals retain their original stimulus-admission clocks and 300-second
+convergence limit. The application visibly updates its total to 12012 before selecting the bulk
+root; the subsequent root selection proves its exact 2012 count. It does not substitute a manual
+refresh for automatic publication. The closed read-only catalog verifies exact final membership
+and complete queue settlement, and its bytes remain unchanged by verification.
+
+After deletion, an actual 2012 rail click shows that region and then its decoded previews without
+a wheel event. Opening `added-1500.png` and exiting with Escape returns to the same observed
+historical layout. These are point observations, not exhaustive frame coverage or proof that no
+transient Retry feedback can occur.
+
+Two interaction gaps remain explicit. During background import, root clicks at 209.472 and
+239.282 seconds leave the all-library view unchanged; selection succeeds after import completion.
+The source-navigation tile receives `state.isBusy` as its browse-disable input, providing a
+concrete admission-policy lead for the next bounded investigation. A rail click at 367.486 seconds
+during deletion does not establish the intended historical region; the settled post-delete click
+works. Its cause is not assigned to the same policy without proof. Layout pointer-open/Escape and
+subsequent Tab traversal do not produce the required observed keyboard Enter/Escape/Enter sequence;
+layout and more-menu keyboard-return acceptance remain incomplete.
+
+The final Sandbox confirmation returns acknowledged input, followed by the exact missing-target
+capture error for its bound process. The unchanged reviewed oracle accepts only this final paired
+action together with independent successful host retirement. It does not erase the preceding
+failed run or relax input failure handling. The guest verifies hashes and dates for all 10000
+background and 512 retained batch files. A subsequent complete 10516-file host check passes in
+56.534 seconds. The first host verification invocation stops at a misspelled manifest property
+before running either oracle; the corrected invocation reads the existing `inputs` field and
+passes without modifying the frozen method.
+
+Evidence is retained under `build/integration-storage-dcd10f777339463596fed2a436c06efd`:
+
+| Record | SHA-256 |
+| --- | --- |
+| `host-result.json` | `A1D9929F8F2EF195E597ECEC0476706DB673C14FA20599B3C93EAEEFEEDAF024` |
+| `catalog-verification.json` | `17DF0F2FB906AA1B1A9881354E71FC5DC954D49E3A6673D056111EC8EF2D7DCF` |
+| `output/native-action-events.jsonl` | `FD7AFEFE3BCF9485BEB2FE7A49DB3D46CA96ECA690A28E11D51CBC5CE6CAD8B8` |
+| `output/native-observations.jsonl` | `A7DE36119CEA370CB24B3416B88CC835A8672FD3E4ABFE53D86C455C6BDC70B9` |
+| `output/catalog/ame.sqlite3` | `DD3E34F53F3D32C17874B784427686AA2B5BB8DF26A4A24B52920D80E57F9A98` |
+| `run-assessment.json` | `A7FEECFD151F0194A83553D4A6630C651E016B1AD8EAD9940CB823981D1686E7` |
+
+The refreshed host pre/post records are `source-integrity-1790212173696903300.json` and
+`source-integrity-1790213089356673500.json` in the retained generated fixture, SHA-256
+`20D447B0271CBA73C773AFA1BBD293D01AB4CBE706157D2CC33210FF364E3B66` and
+`6AD926FDCC399B61921FF2A69F1D150715A183327C0E7C5572DD6BF587706A90` respectively.
+This closes the selected corrected Release batch, source-safety and normal-lifetime boundaries.
+It does not close navigation during publication, keyboard-return variants, every transient frame,
+the full 24-variant roster, final accumulated review or external acceptance.
+
+The remaining four-minute independent result review verifies structured receipt hashes, original
+bounds, closed membership, queue settlement, preview ownership, source checks and terminal input
+paired with complete host retirement. It finds no new blocker within that scope. It does not
+reinterpret screenshots or accept the unresolved navigation and keyboard observations. Together
+with the six-minute method review, this consumes the reserved review allowance.
