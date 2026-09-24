@@ -1863,7 +1863,10 @@ installed service and signing remain outside this method.
 
 The root-read correction now has 92 focused passing cases, complete Daily and an independent incremental recheck.
 The connected query-failure Retry omission is corrected with a failing-before/passing-after actual
-button case. Fresh unsigned Release and native proof remain pending. The fresh native lifetime must
+button case. Fresh unsigned Release passes; the single native lifetime fails its binding deadline
+before Ame launches. Its generated-source postchecks and normal Sandbox retirement pass, with the
+failure and unreached assertions retained in the browsing-admission record. Charge this block in
+full through 7924 active minutes; do not replay that consumed configuration. A future native lifetime must
 select the already-published bulk root while the background import is visibly active, then retain
 that selection through automatic bulk convergence. The post-click screenshot must show the bulk
 selection and its page while mixed import remains active in that same frame; an earlier active
@@ -1872,6 +1875,66 @@ catalog/source/retirement evidence; a click after import completion cannot prove
 The distinct date-revision probe still returns to the first page. Its coherent timeline/page and
 current-intent correction requires a separately recorded ownership method before implementation;
 neither this root-read policy nor a settled post-deletion jump closes that boundary.
+
+#### Date intent across catalog publication
+
+Reserve 180 active minutes, cumulative 8104: 25 for contract and causal boundary checks, 70 for one
+coherent date-intent repair and focused regressions, 20 for independent method/change/result review,
+15 for one prepared native lifetime, ten for postchecks and 40 for final inspection and records.
+Canonical build, lint and complete gate process wall time remains separate. Continue UX-08A and
+the unreached UX-03A proof; do not reopen completed maintenance deliveries or unrelated menu work.
+
+Resolve an explicit month and within-month offset against the current timeline and load its bounded
+page in one SQLite read snapshot. The typed result owns the actual revision, query, resolved anchor
+and distinct target/window-start offsets. Center the bounded page on the target so changed date-row
+grouping retains its prefix. Keep strict ordinary cursor validation unchanged; a date intent grants no stale
+cursor authority. Keep missing-month fallback deterministic in display order, bounded offsets,
+empty timelines and unknown dates explicit. Do not add retry loops or rebuild the library.
+
+Application admission must reject older publications, changed queries, removed roots, cancellation,
+disposal and superseded intent. Extract receipt validation and time-result publication from the
+large viewport facade. Presentation must retain only the admitted semantic date intent across its
+own successful publication, retire obsolete pointer/layout projections, and align against current
+geometry without a wheel event. Query, layout, controller and later-input changes still retire it.
+Map the full success/failure/loading/late-completion lifecycle before editing.
+
+Prove the original revision-crossing reproduction, exact page ordinals, deletion of the requested
+month, unknown/empty results and a concurrent publication between timeline and page reads. Prove
+pending supersession, cancellation, disposal and current-layout alignment through application and
+connected widget cases. Regenerate bridge output only through the canonical generator. No schema,
+dependency, source write, cloud access or installed-service change is admitted. Record owner sizes,
+format explicit owned files, run focused tests, lint, Daily and fresh unsigned Windows gates serially.
+
+Only a verified corrected product and reviewed input method admit one new native configuration.
+Complete documentation, tool recovery and source checks before its host clock starts; admit the
+bound window immediately after observing it, with no intervening history/document work. Keep all
+original 10000-file background, 12-to-2012-to-512, 120-second guest binding, 240/390-second batch
+admissions, 300-second convergence, 690-second input, 900-second parent and six-second close limits.
+Keep seven-GiB host entry, three-GiB guest and two-GiB client/host reserve. Require the same-frame
+import-active root proof and historical alignment during publication, exact closed membership,
+source integrity and normal retirement. Missing observations stay open. Unknown cause, failed
+corrected regression or native admission ends this method with its evidence and a revised checkpoint;
+no unchanged replay, synthetic input substitution or deadline extension is allowed.
+
+The contract and implementation reviews consume 17 of the 20 review minutes, including the
+incremental row-prefix and exact topology corrections. Three remain for result review. The original multi-column
+counterexample fails before the correction; focused corrected cases pass. Complete candidate
+gates are recorded below; the single new native lifetime remains unconsumed at this checkpoint.
+
+The first complete Daily consumes its invocation and stops after two exact domain-topology failures;
+the remaining 1537 Rust cases pass, including the unchanged mixed-load gate. Register the newly
+introduced domain module in the existing typed exact roster and prove its positive and rejecting
+declaration cases. This causal contract correction admits the plan's one further complete Daily
+with separate output. Do not weaken availability analysis or replay the unchanged failed source.
+The intervening unchanged UIA guardrail has one `File.Replace` failure and one successful isolated
+reproduction attempt; that allowance is consumed. Retain the unexplained I/O event and require the
+guardrail in corrected Daily. No further unchanged isolated replay is admitted by this checkpoint.
+
+The corrected complete Daily passes on all 37 frozen source/test/tool hashes, including the exact
+topology checks, original mixed load, 93 Flutter files, controlled scan, ten native accessibility
+phases and 16 asynchronous bridge contracts. Both complete Daily allowances are consumed; there
+is no further full replay in this method. Commit this verified candidate before fresh unsigned
+packaging, then perform the single prepared native lifetime. Final result review retains three minutes.
 
 #### Current Release gallery stability and remaining menu return
 

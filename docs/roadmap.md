@@ -125,7 +125,10 @@ requirements, preserving the preceding failed run. The Live worker correction al
 local Daily and required hosted gates. The
 [browsing-admission record](acceptance/r2c-browsing-admission.md) owns the root-read correction during
 background import and the distinct date-intent diagnosis during publication. The root correction has
-complete local quality evidence; its optimized-client proof and the date-intent repair remain open.
+complete local quality and unsigned Release evidence; native admission expires before application
+launch. Its optimized-client proof remains open. The bounded date-intent correction now has focused
+coherent timeline/page and multi-column alignment evidence and complete local Daily; fresh optimized
+packaging and native proof remain open, retaining the failed native lifetime.
 Remaining keyboard-return and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

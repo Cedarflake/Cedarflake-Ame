@@ -310,6 +310,18 @@ impl SqliteCatalogReadExecutor {
         })
     }
 
+    pub(crate) fn load_time_snapshot(
+        &self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        intent: &crate::domain::GalleryTimeIntent,
+    ) -> Result<crate::domain::GalleryTimeSnapshot, ScanError> {
+        self.execute_read(CatalogReadRetryOperation::CatalogSnapshot, |catalog| {
+            catalog.load_time_snapshot(max_items, query, query_id, intent)
+        })
+    }
+
     pub(crate) fn load_snapshot_around_location(
         &self,
         max_items: u32,

@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "../domain/library_models.dart";
+import "../domain/library_time_snapshot.dart";
 
 const _retryDelay = Duration(milliseconds: 120);
 
@@ -18,6 +19,10 @@ class LibraryTimeNavigationRequest {
   final LibraryTimeline timeline;
   final LibraryTimeAnchor anchor;
   final int globalItemOffset;
+  LibraryTimeSnapshot? _resolution;
+  LibraryTimeline get currentTimeline => _resolution?.timeline ?? timeline;
+  int get currentItemOffset =>
+      _resolution?.targetItemOffset ?? globalItemOffset;
   final _completion = Completer<bool>();
 }
 
@@ -115,6 +120,16 @@ class LibraryTimeNavigationRequests {
       request._generation == _generation &&
       _isCompatible(request);
 
+  bool ownsExplicitIntent(LibraryTimeNavigationRequest request) =>
+      identical(_visibleRangeOwner, request) && accepts(request);
+
+  void adoptResolution(
+    LibraryTimeNavigationRequest request,
+    LibraryTimeSnapshot result,
+  ) {
+    request._resolution = result;
+  }
+
   void beginLoading(LibraryTimeNavigationRequest request) {
     _loadingGeneration = request._generation;
   }
@@ -138,7 +153,7 @@ class LibraryTimeNavigationRequests {
       _visibleRangeOwner = null;
       return true;
     }
-    return owner.globalItemOffset >= start && owner.globalItemOffset < end;
+    return owner.currentItemOffset >= start && owner.currentItemOffset < end;
   }
 
   void retainPassiveInRange({required int start, required int end}) {

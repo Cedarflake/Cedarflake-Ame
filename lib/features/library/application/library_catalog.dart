@@ -3,17 +3,26 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../src/rust/api/catalog.dart" as rust_api;
 import "../../../src/rust/domain.dart" as rust_domain;
 import "../../../src/rust/domain/gallery_query_snapshot.dart" as rust_query;
+import "../../../src/rust/domain/gallery_time_snapshot.dart" as rust_time;
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 import "../domain/library_query_snapshot.dart";
+import "../domain/library_time_snapshot.dart";
 
 export "../domain/library_query_snapshot.dart";
+export "../domain/library_time_snapshot.dart";
 
 const libraryCatalogWindow = 500;
 const libraryTimelineWindow = 160;
 const libraryFolderWindow = 200;
 
 abstract interface class LibraryCatalog {
+  Future<LibraryTimeSnapshot> resolveTimeIntent({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeIntent intent,
+  });
+
   Future<LibraryQuerySnapshot> loadQuerySnapshot({
     required int maxItems,
     required LibraryGalleryQuery query,
@@ -80,6 +89,40 @@ class RustLibraryCatalog
         LibraryStableQueryAnchorCatalog,
         LibraryStableAssetCatalog {
   const RustLibraryCatalog();
+
+  @override
+  Future<LibraryTimeSnapshot> resolveTimeIntent({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeIntent intent,
+  }) async {
+    try {
+      final result = await rust_api.loadLibraryTimeSnapshot(
+        maxItems: maxItems,
+        query: _mapQuery(query),
+        intent: rust_time.GalleryTimeIntent(
+          monthKey: intent.monthKey,
+          itemOffset: BigInt.from(intent.itemOffset),
+        ),
+      );
+      final anchor = result.anchor;
+      return LibraryTimeSnapshot(
+        snapshot: _mapSnapshot(result.snapshot),
+        timeline: _mapTimeline(result.timeline),
+        anchor: anchor == null
+            ? null
+            : LibraryTimeAnchor(
+                revision: anchor.revision,
+                queryId: anchor.queryId,
+                monthKey: anchor.monthKey,
+                itemOffset: anchor.itemOffset.toInt(),
+              ),
+        windowStartItemOffset: result.windowStartOrdinal.toInt(),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_time_intent_load_failed");
+    }
+  }
 
   @override
   Future<LibraryQuerySnapshot> loadQuerySnapshot({

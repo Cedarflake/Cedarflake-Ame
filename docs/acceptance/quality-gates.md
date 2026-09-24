@@ -1063,7 +1063,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/quality_verify_git_range.ps1` checks committed whitespace over an explicit Git revision
   range so a clean hosted checkout does not turn `git diff HEAD --check` into an empty gate.
 - `./tool/quality_verify_bridge_contracts.ps1` checks generated bridge hash identity and exact
-  asynchronous API and wire method bodies without building. `./tool/quality_test_bridge_contracts.ps1`
+  asynchronous API and wire method bodies without building, including coherent query and semantic
+  date snapshots. `./tool/quality_test_bridge_contracts.ps1`
   runs compiler-free negative fixtures against that boundary, including cross-method false matches.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.

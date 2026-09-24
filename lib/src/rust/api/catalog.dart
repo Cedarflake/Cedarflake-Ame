@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../domain/gallery_query_snapshot.dart';
+import '../domain/gallery_time_snapshot.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -36,6 +37,16 @@ Future<GalleryQuerySnapshot> loadLibraryQuerySnapshot({
   maxItems: maxItems,
   query: query,
   anchor: anchor,
+);
+
+Future<GalleryTimeSnapshot> loadLibraryTimeSnapshot({
+  required int maxItems,
+  required GalleryQuery query,
+  required GalleryTimeIntent intent,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryTimeSnapshot(
+  maxItems: maxItems,
+  query: query,
+  intent: intent,
 );
 
 Future<GalleryTimeline> loadLibraryGalleryTimeline({

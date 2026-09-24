@@ -291,6 +291,16 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
 }
 
 impl GalleryQueryRepository for SqliteCatalog {
+    fn load_time_snapshot(
+        &mut self,
+        max_items: u32,
+        query: &GalleryQuery,
+        query_id: &str,
+        intent: &crate::domain::GalleryTimeIntent,
+    ) -> Result<crate::domain::GalleryTimeSnapshot, ScanError> {
+        super::gallery_time_snapshot::load_time_snapshot(self, max_items, query, query_id, intent)
+    }
+
     fn load_query_snapshot(
         &mut self,
         max_items: u32,

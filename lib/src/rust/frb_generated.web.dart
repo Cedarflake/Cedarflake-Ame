@@ -16,6 +16,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'domain.dart';
 import 'domain/gallery_query_snapshot.dart';
+import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
@@ -110,6 +111,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryTimeAnchor dco_decode_box_autoadd_gallery_time_anchor(dynamic raw);
+
+  @protected
+  GalleryTimeIntent dco_decode_box_autoadd_gallery_time_intent(dynamic raw);
 
   @protected
   int dco_decode_box_autoadd_i_16(dynamic raw);
@@ -229,6 +233,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryTimeBucket dco_decode_gallery_time_bucket(dynamic raw);
+
+  @protected
+  GalleryTimeIntent dco_decode_gallery_time_intent(dynamic raw);
+
+  @protected
+  GalleryTimeSnapshot dco_decode_gallery_time_snapshot(dynamic raw);
 
   @protected
   GalleryTimeline dco_decode_gallery_timeline(dynamic raw);
@@ -354,6 +364,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryQueryAnchor? dco_decode_opt_box_autoadd_gallery_query_anchor(
+    dynamic raw,
+  );
+
+  @protected
+  GalleryTimeAnchor? dco_decode_opt_box_autoadd_gallery_time_anchor(
     dynamic raw,
   );
 
@@ -542,6 +557,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryTimeIntent sse_decode_box_autoadd_gallery_time_intent(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   int sse_decode_box_autoadd_i_16(SseDeserializer deserializer);
 
   @protected
@@ -697,6 +717,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryTimeIntent sse_decode_gallery_time_intent(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryTimeSnapshot sse_decode_gallery_time_snapshot(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GalleryTimeline sse_decode_gallery_timeline(SseDeserializer deserializer);
 
   @protected
@@ -848,6 +878,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryQueryAnchor? sse_decode_opt_box_autoadd_gallery_query_anchor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryTimeAnchor? sse_decode_opt_box_autoadd_gallery_time_anchor(
     SseDeserializer deserializer,
   );
 
@@ -1067,6 +1102,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_gallery_time_intent(
+    GalleryTimeIntent self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_i_16(int self, SseSerializer serializer);
 
   @protected
@@ -1262,6 +1303,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_gallery_time_intent(
+    GalleryTimeIntent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_time_snapshot(
+    GalleryTimeSnapshot self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_gallery_timeline(
     GalleryTimeline self,
     SseSerializer serializer,
@@ -1447,6 +1500,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_gallery_query_anchor(
     GalleryQueryAnchor? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_gallery_time_anchor(
+    GalleryTimeAnchor? self,
     SseSerializer serializer,
   );
 

@@ -88,6 +88,12 @@ persistence layers.
   retires its own identity on timeout or unwind, without revoking an active permit or consuming
   another waiter's position. Callbacks run outside the admission mutex; completed-write epochs
   advance only when the admitted permit retires.
+- `domain/gallery_time_snapshot.rs` owns semantic month resolution, display-order fallback and
+  bounded target-window selection. `sqlite_catalog/gallery_time_snapshot.rs` resolves that intent
+  and reads the timeline, roots and page inside one `GalleryReadTransaction`. The target ordinal
+  remains distinct from the centered page start, so changed row grouping retains a loaded prefix.
+  Ordinary time anchors and paging cursors keep their strict revision/query authority; this read
+  grants no source access, catalog mutation or stale-cursor permission.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
@@ -298,6 +304,13 @@ persistence layers.
   and acceptance by the navigation owner; those generations are not interchangeable. Query
   replacement and disposal settle waiters without letting an old finalizer clear newer loading.
   Physical reads remain serialized, and passive demand cannot replace a compatible explicit jump.
+- `library_time_snapshot_reader.dart` owns the single semantic read admitted after an explicit
+  date navigation encounters a stale strict anchor, coherent-result validation and immutable
+  projection. Passive prefetch cannot acquire that authority unless the same request is promoted
+  by an explicit target. Cancellation, query/publication supersession and disposal fence both
+  reads. `library_time_seek_alignment.dart` retains the semantic target through its admitted
+  publication; current geometry and complete target-row coverage govern alignment. Query, layout,
+  controller and later input changes retire that presentation authority.
 - `library_preview_order.dart` owns the pure priority, optional demand-rank and arrival comparison.
   The queue owns active-location exclusion, demand/source validity, bounded execution and result
   acceptance; selection order cannot confer publication authority. `LibraryState` separately

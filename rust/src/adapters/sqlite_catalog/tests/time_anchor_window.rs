@@ -2,6 +2,8 @@ use super::*;
 use crate::domain::GalleryQueryAnchor;
 use crate::ports::GalleryQueryRepository;
 
+mod current_snapshot;
+
 #[test]
 fn time_anchor_and_reverse_windows_match_complete_query_ordinals() {
     let directory = tempdir().expect("temporary catalog");

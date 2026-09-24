@@ -1262,6 +1262,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                       scrollController: _galleryScrollController,
                       layoutMetrics: activeSnapshot?.metrics,
                       timeline: state.timeline,
+                      resolvedTimeAnchor: state.activeTimeAnchor,
                       layoutShape: _layoutShape,
                       virtualGeometry: activeSnapshot?.virtualGeometry,
                       windowStartItemOffset: state.windowStartItemOffset,

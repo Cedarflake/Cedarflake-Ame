@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1914098230;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1125317015;
 
 // Section: executor
 
@@ -810,6 +810,47 @@ fn wire__crate__api__catalog__load_library_query_snapshot_impl(
                         api_max_items,
                         api_query,
                         api_anchor,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__catalog__load_library_time_snapshot_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_library_time_snapshot",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_max_items = <u32>::sse_decode(&mut deserializer);
+            let api_query = <crate::domain::GalleryQuery>::sse_decode(&mut deserializer);
+            let api_intent = <crate::domain::gallery_time_snapshot::GalleryTimeIntent>::sse_decode(
+                &mut deserializer,
+            );
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::catalog::load_library_time_snapshot(
+                        api_max_items,
+                        api_query,
+                        api_intent,
                     )?;
                     Ok(output_ok)
                 })())
@@ -1878,6 +1919,34 @@ impl SseDecode for crate::domain::GalleryTimeBucket {
     }
 }
 
+impl SseDecode for crate::domain::gallery_time_snapshot::GalleryTimeIntent {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_monthKey = <Option<String>>::sse_decode(deserializer);
+        let mut var_itemOffset = <u64>::sse_decode(deserializer);
+        return crate::domain::gallery_time_snapshot::GalleryTimeIntent {
+            month_key: var_monthKey,
+            item_offset: var_itemOffset,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_snapshot = <crate::domain::CatalogSnapshot>::sse_decode(deserializer);
+        let mut var_timeline = <crate::domain::GalleryTimeline>::sse_decode(deserializer);
+        let mut var_anchor = <Option<crate::domain::GalleryTimeAnchor>>::sse_decode(deserializer);
+        let mut var_windowStartOrdinal = <u64>::sse_decode(deserializer);
+        return crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
+            snapshot: var_snapshot,
+            timeline: var_timeline,
+            anchor: var_anchor,
+            window_start_ordinal: var_windowStartOrdinal,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::GalleryTimeline {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2376,6 +2445,17 @@ impl SseDecode for Option<crate::domain::gallery_query_snapshot::GalleryQueryAnc
                     deserializer,
                 ),
             );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::GalleryTimeAnchor> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::domain::GalleryTimeAnchor>::sse_decode(deserializer));
         } else {
             return None;
         }
@@ -3040,59 +3120,65 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__catalog__load_paused_library_scan_impl(
+        21 => wire__crate__api__catalog__load_library_time_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        22 => wire__crate__api__catalog__load_paused_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => {
+        23 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        24 => {
             wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len)
         }
-        24 => wire__crate__api__preview__materialize_library_preview_impl(
+        25 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        27 => wire__crate__api__synchronization__poll_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => {
+        28 => {
             wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        30 => {
+        31 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        31 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        32 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        32 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        33 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        34 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        35 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__storage__update_storage_settings_impl(
+        37 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -3116,18 +3202,18 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        25 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        26 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        29 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        30 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -3733,6 +3819,50 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::GalleryTimeBucket>
     for crate::domain::GalleryTimeBucket
 {
     fn into_into_dart(self) -> crate::domain::GalleryTimeBucket {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_time_snapshot::GalleryTimeIntent {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.month_key.into_into_dart().into_dart(),
+            self.item_offset.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_time_snapshot::GalleryTimeIntent
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_time_snapshot::GalleryTimeIntent>
+    for crate::domain::gallery_time_snapshot::GalleryTimeIntent
+{
+    fn into_into_dart(self) -> crate::domain::gallery_time_snapshot::GalleryTimeIntent {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.snapshot.into_into_dart().into_dart(),
+            self.timeline.into_into_dart().into_dart(),
+            self.anchor.into_into_dart().into_dart(),
+            self.window_start_ordinal.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_time_snapshot::GalleryTimeSnapshot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_time_snapshot::GalleryTimeSnapshot>
+    for crate::domain::gallery_time_snapshot::GalleryTimeSnapshot
+{
+    fn into_into_dart(self) -> crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
         self
     }
 }
@@ -4990,6 +5120,24 @@ impl SseEncode for crate::domain::GalleryTimeBucket {
     }
 }
 
+impl SseEncode for crate::domain::gallery_time_snapshot::GalleryTimeIntent {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.month_key, serializer);
+        <u64>::sse_encode(self.item_offset, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::gallery_time_snapshot::GalleryTimeSnapshot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::CatalogSnapshot>::sse_encode(self.snapshot, serializer);
+        <crate::domain::GalleryTimeline>::sse_encode(self.timeline, serializer);
+        <Option<crate::domain::GalleryTimeAnchor>>::sse_encode(self.anchor, serializer);
+        <u64>::sse_encode(self.window_start_ordinal, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::GalleryTimeline {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5398,6 +5546,16 @@ impl SseEncode for Option<crate::domain::gallery_query_snapshot::GalleryQueryAnc
             <crate::domain::gallery_query_snapshot::GalleryQueryAnchor>::sse_encode(
                 value, serializer,
             );
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::GalleryTimeAnchor> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::GalleryTimeAnchor>::sse_encode(value, serializer);
         }
     }
 }

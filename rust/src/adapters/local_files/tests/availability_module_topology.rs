@@ -27,14 +27,16 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         assert!(contracts[0].attributes.is_empty());
         assert!(!contracts[0].is_inline);
     }
-    let query_snapshot = DOMAIN_MODULE_CONTRACTS
-        .iter()
-        .filter(|contract| contract.name == "gallery_query_snapshot")
-        .collect::<Vec<_>>();
-    assert_eq!(query_snapshot.len(), 1);
-    assert_eq!(query_snapshot[0].visibility, "pub");
-    assert!(query_snapshot[0].attributes.is_empty());
-    assert!(!query_snapshot[0].is_inline);
+    for module_name in ["gallery_query_snapshot", "gallery_time_snapshot"] {
+        let snapshot = DOMAIN_MODULE_CONTRACTS
+            .iter()
+            .filter(|contract| contract.name == module_name)
+            .collect::<Vec<_>>();
+        assert_eq!(snapshot.len(), 1);
+        assert_eq!(snapshot[0].visibility, "pub");
+        assert!(snapshot[0].attributes.is_empty());
+        assert!(!snapshot[0].is_inline);
+    }
     let fixtures = CRATE_PARENT_MODULE_CONTRACTS
         .iter()
         .filter(|contract| contract.name == "media_fixtures")
@@ -193,6 +195,12 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             DOMAIN_SOURCE,
             "pub mod gallery_query_snapshot;",
             "pub(crate) mod gallery_query_snapshot;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod gallery_time_snapshot;",
+            "pub(crate) mod gallery_time_snapshot;",
         ),
     ] {
         assert!(

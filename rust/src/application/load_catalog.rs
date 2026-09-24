@@ -1,5 +1,8 @@
 use std::path::Path;
 
+mod time_snapshot;
+pub use time_snapshot::load_catalog_time_snapshot;
+
 #[cfg(test)]
 use crate::adapters::SqliteCatalog;
 use crate::adapters::{SqliteCatalogReadExecutor, inspect_root_availability};

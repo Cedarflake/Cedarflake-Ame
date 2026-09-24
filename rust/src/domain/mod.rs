@@ -2,6 +2,8 @@ use std::fmt::{Display, Formatter};
 
 pub mod gallery_query_snapshot;
 pub use gallery_query_snapshot::{GalleryQueryAnchor, GalleryQuerySnapshot};
+pub mod gallery_time_snapshot;
+pub use gallery_time_snapshot::{GalleryTimeIntent, GalleryTimeSnapshot};
 
 mod library_catalog_delta;
 pub(crate) mod library_change;

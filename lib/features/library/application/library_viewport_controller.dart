@@ -11,6 +11,7 @@ import "library_page_operation.dart";
 import "library_query_refresh.dart";
 import "library_query_snapshot_reader.dart";
 import "library_time_navigation_requests.dart";
+import "library_time_snapshot_reader.dart";
 
 export "library_query_refresh.dart" show LibraryQueryUpdateOutcome;
 
@@ -58,6 +59,7 @@ class LibraryViewportController {
   final _pages = LibraryPageOperation();
   late final _queryRefresh = LibraryQueryRefreshCoordinator(_publications);
   late final _querySnapshots = LibraryQuerySnapshotReader(_catalog);
+  late final _timeSnapshots = LibraryTimeSnapshotReader(_catalog);
 
   late final _timeNavigation = LibraryTimeNavigationRequests(
     cannotPublish: () => _cannotPublish,
@@ -644,8 +646,8 @@ class LibraryViewportController {
   bool _isCompatibleTimeNavigation(LibraryTimeNavigationRequest request) {
     final timeline = _state.timeline;
     return timeline != null &&
-        timeline.revision == request.timeline.revision &&
-        timeline.queryId == request.timeline.queryId &&
+        timeline.revision == request.currentTimeline.revision &&
+        timeline.queryId == request.currentTimeline.queryId &&
         _state.query == request.query;
   }
 
@@ -657,41 +659,24 @@ class LibraryViewportController {
       timeNavigationErrorMessage: null,
     );
     try {
-      final snapshot = await _catalog.loadAtTime(
-        maxItems: libraryTimelineWindow,
-        query: request.query,
-        anchor: request.anchor,
+      final result = await _timeSnapshots.load(
+        request,
+        canPublish: () => _canPublishTimeNavigation(request, generation),
+        ownsExplicitIntent: () => _timeNavigation.ownsExplicitIntent(request),
       );
-      if (!_canPublishTimeNavigation(request, generation)) {
+      if (result == null || !_canPublishTimeNavigation(request, generation)) {
         return false;
       }
-      if (snapshot.revision != request.timeline.revision ||
-          snapshot.queryId != request.timeline.queryId) {
-        throw const LibraryCatalogFailure(
-          code: "catalog_cursor_stale",
-          message: "The catalog changed while navigating the timeline",
-        );
-      }
+      final snapshot = result.snapshot;
       _retainPreviewPending(snapshot.assets.map((asset) => asset.locationId));
       _resetRetainedCatalogPages(
         assets: snapshot.assets,
-        startItemOffset: request.globalItemOffset,
+        startItemOffset: result.windowStartItemOffset,
         previousCursor: snapshot.previousCursor,
         nextCursor: snapshot.nextCursor,
       );
-      _state = _state.copyWith(
-        roots: snapshot.roots,
-        assets: snapshot.assets,
-        catalogPath: snapshot.catalogPath,
-        catalogRevision: snapshot.revision,
-        queryId: snapshot.queryId,
-        windowStartItemOffset: request.globalItemOffset,
-        previousCursor: snapshot.previousCursor,
-        nextCursor: snapshot.nextCursor,
-        activeTimeAnchor: request.anchor,
-        isLoadingTimeAnchor: false,
-        pageErrorMessage: null,
-      );
+      _timeNavigation.adoptResolution(request, result);
+      _state = publishLibraryTimeSnapshot(_state, result);
       return true;
     } on LibraryCatalogFailure catch (error) {
       if (!_canPublishTimeNavigation(request, generation)) {

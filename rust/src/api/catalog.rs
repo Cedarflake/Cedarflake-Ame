@@ -73,6 +73,14 @@ pub fn load_library_query_snapshot(
     crate::application::load_catalog_query_snapshot(max_items, query, anchor)
 }
 
+pub fn load_library_time_snapshot(
+    max_items: u32,
+    query: GalleryQuery,
+    intent: crate::domain::GalleryTimeIntent,
+) -> Result<crate::domain::GalleryTimeSnapshot, ScanError> {
+    crate::application::load_catalog_time_snapshot(max_items, query, intent)
+}
+
 pub fn load_library_gallery_timeline(query: GalleryQuery) -> Result<GalleryTimeline, ScanError> {
     load_gallery_timeline(query)
 }

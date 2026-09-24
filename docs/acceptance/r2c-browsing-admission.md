@@ -1,6 +1,6 @@
 # Browsing admission during import and publication
 
-Status: root-browsing correction passes focused and complete Daily checks; Release/native proof remains open
+Status: root-browsing and date-publication corrections pass complete local Daily; fresh date-candidate Release and native proof pending
 
 The [Release continuation](r2c-release-native.md#release-live-continuation-result) observes two root
 clicks ignored during background import and an unsuccessful historical jump during deletion.
@@ -69,8 +69,32 @@ The ignored `.build/r2c-publication-browsing/daily-summary.json` retains the ori
 start/end times and all ten unchanged hashes; SHA-256 is
 `F0D8CB2CEC81B2A4E2652F2CBDCD75D309F71B39576442B945D325CC88E4B97B`.
 The standalone lint checkpoint precedes the final Retry line; complete Daily reruns lint on that
-final source. The fresh optimized package and same-frame import-time root observation remain
-separate pending requirements. No previous native result is relabeled as evidence for this change.
+final source. The fresh optimized package and same-frame import-time root observation are separate
+requirements. No previous native result is relabeled as evidence for this change.
+
+### Optimized build and uncompleted native admission
+
+The canonical unsigned Windows gate passes on clean source `058d38b9651e069158bfb826be517e57b6e3d817`,
+from 02:33:44 to 02:35:52 UTC on 2026-09-24. It includes the fresh optimized application and broker,
+three engine-free runner cases, two actual Debug-engine retirements and catalog-free Release
+bridge smoke. Its retained evidence SHA-256 is
+`1A7BDFE3DDEF3E055D2721DEF3F0EA3B42B34B8B0C5A1F8C2FEED61492079354`.
+
+Native run `5fb59ce2fb6246e9a9b1cc3f2374eeb0` fails before application launch. The guest prepares
+the 12-file baseline and starts background source preparation, but the 120-second native-binding
+admission expires during the control-session interruption. No `start-media.json`, import
+confirmation, batch request or application-exit receipt exists. Consequently root switching,
+automatic convergence, closed membership and application-close timing are all unreached.
+This is a failed verification lifetime, not a product failure or a passing native result.
+
+The observed normal Sandbox close is followed by its confirmation. That input returns before
+capture reports no target for the same bound Sandbox process. The parent exits with failure after
+284367 ms, with no remaining Sandbox processes, no guest cleanup failure and minimum host available
+memory of 5113954304 bytes. Successful resource retirement does not change the failed parent result.
+All 33 reviewed helper hashes match. Startup and post-exit checks each verify all 10516 host
+generated sources; the final check completes in 56.133 seconds. No real source is involved.
+The independent bounded result review confirms these structured limits and does not replace
+the missing client observations. This single-use lifetime is consumed without an unchanged replay.
 
 ## Separate date-navigation diagnosis
 
@@ -88,3 +112,108 @@ authority, obtain coherent current timeline/page evidence, and align the current
 rejecting replaced-query, removed-root and later-user-intent results. Merely permitting stale
 cursors, replaying clicks, adding a notification or loading the first page does not meet that exit.
 No date-navigation product change is included in the root-browsing correction.
+
+### Coherent date-intent correction
+
+The subsequent correction preserves strict existing anchors. Only a still-current explicit date
+request that receives `catalog_cursor_stale` may obtain one semantic time snapshot. Rust resolves
+the month and bounded within-month offset against the current timeline, then reads its page in the
+same SQLite transaction. Missing months choose the next surviving month in display order, or the
+last surviving endpoint; empty and unknown-date results remain explicit. A concurrent root deletion
+after resolution cannot mix a new page with an old timeline. No retry loop or source read is added.
+
+The application result owner checks root membership, revision, query, cursors, timeline totals and
+target containment before publishing. Cancellation, disposal and supersession reject late results
+without clearing a newer request's loading state. A passive read retains its prior behavior; an
+explicit request may promote the same pending read. Presentation retains semantic intent only
+through its admitted publication and aligns against current geometry within the existing eight
+frame bound. Query/layout/controller changes and later user input still cancel that authority.
+
+Implementation review identifies a multi-column counterexample: an old row start becomes the middle
+of a new row after deletion, while a page beginning exactly at the target omits that row's prefix.
+The added Rust oracle first fails with window start 22 instead of zero. The corrected read keeps
+the target anchor but begins at most half a page earlier, resolved through the same timeline.
+The Dart request retains the target ordinal independently from this window start. Static incremental
+review finds the identified boundary addressed; it does not establish native acceptance.
+
+Focused verification passes all five new Rust tests, plus the existing clock case matched by the
+filter. It includes exact full-order page comparison in both directions, missing/unknown dates,
+endpoint clamping, concurrent deletion and unchanged strict/sort/month rejections. The final changed
+Flutter files pass 24 cases: 13 application date cases, six presentation alignment cases and five
+existing committed-update cases. The four-column case changes date groups from `[70, 10, 20]` to
+`[20, 8, 22]`: target 80 becomes 30 in the row starting at 28 and aligns without a wheel event,
+including geometry delayed three frames. These use real navigation/viewport owners with controlled
+catalog and layout fixtures, not a native full-wall or media-decoding claim. Earlier controller and
+navigation tests remain recorded; complete Daily must verify the final accumulated source.
+
+The first lint invocation fails because one static update fixture lacks the new typed catalog
+method; that fixture now rejects unexpected semantic reads explicitly, and its five cases pass.
+Two canonical bridge-generation invocations generate output but fail at immediate Rust formatting
+with Windows error 1224 on the mapped generated file. Separate formatting and Release-library
+compilation then pass after generator retirement. The failed generator invocations remain failures;
+generated output is not hand edited. Final-source gates retain hash and wire-mode verification.
+
+Physical owner sizes at the focused checkpoint include blanks and declarations; inline tests are
+zero for these files. Generated bridge output is excluded from handwritten maintenance findings.
+
+| Responsibility | Production lines | Dedicated test lines |
+| --- | ---: | ---: |
+| Rust semantic date policy | 126 | 150 |
+| SQLite coherent date read | 63 | 180 |
+| Rust application composition | 20 | Covered through adapter and connected caller boundaries |
+| Dart typed result / read and projection | 40 / 134 | 434 |
+| Dart time-request lifecycle / viewport facade | 312 / 1327 | Existing controller/request suites plus the above cases |
+| Presentation semantic alignment / navigation | 52 / 760 | 278 new and existing navigation tests |
+
+No schema, dependency, real-library, cloud, installed-service or source-media mutation is involved.
+The complete Daily, fresh unsigned package and new native lifetime remain required for this source.
+
+### First complete-gate failure and exact topology correction
+
+The first date-candidate Daily runs from 03:35:12 to 03:55:21 UTC on 2026-09-24, with all 35 frozen
+source/test hashes unchanged. Lint passes; the Rust library finishes with 1537 passing, two failing
+and 19 previously explicit ignored cases. The original mixed P0/P1/P2 gate passes, including full
+convergence, with visible P95 85 ms and maximum 88 ms. Flutter and subsequent native/bridge phases
+are not reached because the Rust phase fails.
+
+Both failures report the exact cause: the domain topology roster rejects the newly introduced
+`gallery_time_snapshot` module as unexpected. The correction adds only that existing public,
+attribute-free, out-of-line declaration to the typed roster. No root availability implementation,
+enumeration restriction or checker algorithm changes. Positive topology checks now include it;
+the same ten mutation cases reject missing/duplicate declarations, changed visibility/attributes,
+alternate paths, inline/generated loading and an added unknown module. The original failing run
+remains in `.build/r2c-date-publication`; the one corrected full invocation gets separate evidence.
+Its `daily-result.json` SHA-256 is
+`84F0ABF7970A4D7E7F23A92E9EA971825A4BE4A3384D5BCDDFC543B1888E3AB4`.
+All eight focused availability cases then pass, including exact topology, macro/module-redirection
+and enumeration rejection. A one-minute incremental review confirms the declaration remains exact;
+it introduces no runtime or AST-policy relaxation. The touched local-files owner retains 3991
+production and 3432 inline-test lines; its topology test module has 253 dedicated lines. The change
+only updates existing typed test data and its independent positive/negative verification.
+
+The following standalone lint attempt stops in the unchanged UIA guardrail's sequential progress
+round-trip: `File.Replace` reports that it cannot remove the destination. No native client starts,
+and the guardrail's finally block retires its scratch. One permitted isolated invocation of that
+same compiler-free guardrail then exits zero, including blocked-child cleanup. The original I/O
+failure has no proven causal attribution and remains recorded; neither product code nor evidence
+publication policy is changed to conceal it. The corrected full Daily must execute this guardrail
+again as part of its complete lint phase, alongside the causal topology correction.
+
+### Corrected complete local quality checkpoint
+
+The corrected canonical Daily exits zero from 04:02:27 to 04:36:58 UTC on 2026-09-24. All 37 frozen
+source/test/tool hashes remain unchanged. Warning-free lint, the complete Rust library (1539 passing
+and the same 19 explicit exclusions), three broker integration cases and all 93 Flutter test files
+pass. The original mixed workload retains all 25 foreground samples, 2048 P1 candidates and 10000
+P2 entries with complete convergence; visible P95 is 79 ms and maximum 90 ms.
+
+Controlled Windows scanning exits zero without run or cleanup failure. Both whole-window
+accessibility cases and all ten phases pass, with normal primary-process exit, owned Job closure
+and no cleanup failure. All 16 asynchronous bridge contracts and matching content hashes pass.
+The previously failing unchanged UIA guardrail also passes within this complete lint invocation.
+Neither earlier failed invocation is replaced or reclassified.
+
+The immutable `.build/r2c-date-corrected/daily-result.json` retains times, base commit and exact
+candidate hashes; SHA-256 is
+`CE3596CE1B1E8E9A7B0AA7A706E8044123EB0B7E93C9EC55EF7E8DFC5B67C7C5`.
+Fresh optimized packaging and the single admitted native lifetime remain separate requirements.

@@ -29,6 +29,7 @@ use super::{
 mod folders;
 mod gallery;
 mod gallery_snapshot;
+mod gallery_time_snapshot;
 mod metadata_inventory;
 mod migrations;
 mod operation_diagnostics;

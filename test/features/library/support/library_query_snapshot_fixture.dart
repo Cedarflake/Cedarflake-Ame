@@ -3,6 +3,14 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 
 mixin LibraryQuerySnapshotFixture implements LibraryCatalog {
   @override
+  Future<LibraryTimeSnapshot> resolveTimeIntent({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeIntent intent,
+  }) =>
+      throw UnimplementedError("This fixture has no changing date projection");
+
+  @override
   Future<LibraryQuerySnapshot> loadQuerySnapshot({
     required int maxItems,
     required LibraryGalleryQuery query,

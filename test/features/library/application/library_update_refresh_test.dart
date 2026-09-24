@@ -312,6 +312,12 @@ class _Catalog implements LibraryCatalog {
     required LibraryTimeAnchor anchor,
   }) => throw UnimplementedError();
   @override
+  Future<LibraryTimeSnapshot> resolveTimeIntent({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeIntent intent,
+  }) => throw StateError("Refresh must use one coherent query snapshot");
+  @override
   Future<bool> unregisterRoot(String rootId) => throw UnimplementedError();
 }
 

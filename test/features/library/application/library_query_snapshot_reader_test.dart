@@ -282,6 +282,13 @@ class _AtomicCatalog implements LibraryCatalog {
   int separateReads = 0;
 
   @override
+  Future<LibraryTimeSnapshot> resolveTimeIntent({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeIntent intent,
+  }) => throw UnimplementedError();
+
+  @override
   Future<LibraryQuerySnapshot> loadQuerySnapshot({
     required int maxItems,
     required LibraryGalleryQuery query,
