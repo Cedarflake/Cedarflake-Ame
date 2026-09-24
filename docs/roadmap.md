@@ -126,9 +126,11 @@ local Daily and required hosted gates. The
 [browsing-admission record](acceptance/r2c-browsing-admission.md) owns the root-read correction during
 background import and the distinct date-intent diagnosis during publication. The root correction has
 complete local quality and unsigned Release evidence; native admission expires before application
-launch. Its optimized-client proof remains open. The bounded date-intent correction now has focused
-coherent timeline/page and multi-column alignment evidence and complete local Daily; fresh optimized
-packaging and native proof remain open, retaining the failed native lifetime.
+launch. The subsequent current Release observes root selection during an active peer import. The
+date-intent correction has focused coherent timeline/page and multi-column alignment evidence,
+complete local Daily and fresh unsigned Release. Native verification retains a source-preparation
+failure and a corrected-helper lifetime that expires before import admission. The bounded source-cost
+method is consumed; deletion/date client acceptance remains open and requires a revised input method.
 Remaining keyboard-return and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

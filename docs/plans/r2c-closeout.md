@@ -1936,6 +1936,52 @@ phases and 16 asynchronous bridge contracts. Both complete Daily allowances are 
 is no further full replay in this method. Commit this verified candidate before fresh unsigned
 packaging, then perform the single prepared native lifetime. Final result review retains three minutes.
 
+Fresh unsigned Release passes. The single native lifetime observes import-active root selection,
+then fails when its source helper completes only 1830 additions within the unchanged 120-second
+phase. Deletion/date proof and normal client-close timing are unreached. Source postchecks and
+failure cleanup pass; the final three-minute review is consumed. Charge this block through 8104
+minutes. The following source-owner method must precede another native configuration.
+
+#### Source-stimulus cost boundary
+
+Reserve 90 active minutes, cumulative 8194: 15 for a paired cost probe, 25 for at most one proven
+helper-owner correction, 15 for positive/rejecting checks, ten for independent review, 15 for one
+native lifetime and ten for records. Heavy serial verification wall time remains separate. This
+does not reopen product behavior or add another issue family. Profile the existing generated-only
+copy responsibility by path validation, source verification, copy/date assignment and destination
+verification. Use fixed bounded samples under new ignored storage and preserve original media.
+
+Only measured repeated overhead permits replacing that operation with an equivalent typed owner.
+Retain source/destination hash and date checks, relative-path/reparse rejection, exclusive fresh
+destination creation, exact root/run ownership, cancellation and cleanup. Do not skip checks, cache
+mutable identity without authority, parallelize copies, hydrate files or raise deadlines. Unknown
+cost or lack of verified improvement ends this method with the failure and no native replay.
+
+After a causal correction and boundary review, reuse the verified product payload with a fresh
+single-use configuration. Keep all 10000 background files, 2000 additions and 1500 removals,
+120-second source phase, 240/390-second admission, 300-second convergence, 690-second input and
+900-second parent limits; retain the original memory, source, exact catalog and normal-close duties.
+One further failed corrected lifetime ends this method. Prior successful point observations do not
+replace missing date-publication, complete membership or normal-lifetime evidence.
+
+The bounded host sample identifies repeated helper-call overhead. The typed file owner reduces
+its 96-file segmented duration from 2.0044891 to 1.029733 seconds; an original-helper control remains
+1.965297 seconds. All original 17 and new 24 boundary checks pass. The seven-minute boundary review
+finds no new admission blocker and requests the now-recorded C#/profiler provenance binding.
+This admits one fresh native configuration with all original bounds. Three review minutes remain;
+the measured host improvement alone establishes no guest or complete workflow pass.
+
+The admitted corrected-helper lifetime then fails input admission: the picker opens at 85.013
+seconds, but the next input follows a control-session gap at 263.813 seconds. No import or source
+batch is admitted after the 240-second deadline. Normal application/Sandbox retirement and full
+guest/host source checks complete, while batch completion and closed imported membership remain
+unreached. The final three-minute review confirms these limits. Charge this allowance in full
+through 8194 active minutes. This ends the source-cost method; no unchanged replay or larger
+deadline is admitted. The corrected helper's guest batch cost and the date-publication client
+exit remain unverified. Preserve the [failed result](../acceptance/r2c-browsing-admission.md#corrected-helper-lifetime-without-import-admission)
+and the preceding source-cost failure separately from passing product gates. Any later native
+attempt requires a separately recorded causal input-scheduling method and review before launch.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one

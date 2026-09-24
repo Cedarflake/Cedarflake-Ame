@@ -1,6 +1,6 @@
 # Browsing admission during import and publication
 
-Status: root-browsing and date-publication corrections pass complete local Daily; fresh date-candidate Release and native proof pending
+Status: current Daily and unsigned Release pass; import-time root selection observed, deletion/date native proof remains open after source-cost and input-admission failures
 
 The [Release continuation](r2c-release-native.md#release-live-continuation-result) observes two root
 clicks ignored during background import and an unsuccessful historical jump during deletion.
@@ -217,3 +217,90 @@ The immutable `.build/r2c-date-corrected/daily-result.json` retains times, base 
 candidate hashes; SHA-256 is
 `CE3596CE1B1E8E9A7B0AA7A706E8044123EB0B7E93C9EC55EF7E8DFC5B67C7C5`.
 Fresh optimized packaging and the single admitted native lifetime remain separate requirements.
+
+### Current Release result and source-stimulus failure
+
+Clean commit `a0cde9141b514f92d2a6415f633def5f9bb5d221` passes fresh unsigned Windows verification
+from 04:40:35 to 04:43:59 UTC on 2026-09-24, including the optimized payload, three runner cases,
+both real-engine retirement cases and Release bridge smoke. The retained evidence SHA-256 is
+`223FBCC9CDFFF33A02B0BEFE045DE786860F4A22BE68D7C25810492B29EB8FCD`.
+
+Native run `20eac6bdf85346319d15abd637a8de3c` binds successfully and displays all 12 baseline images.
+Both native picker confirmations precede 240 seconds. Addition is admitted at 230.797 seconds;
+the subsequent root-selection input occurs at 239.418 seconds. A single observed frame then shows
+`bulk` selected, 346 images and decoded historical thumbnails while `mixed` still reports an
+active import with 3575 found images. This directly observes the selected root-admission behavior;
+it does not establish complete native acceptance or transient-frame stability.
+
+The source-stimulus helper copies 1830 of the planned 2000 added files before its unchanged
+120-second phase limit expires. Its result records `Source stimulus exceeded 120 seconds`.
+No addition-complete, removal, background-import-complete or closed-catalog receipt exists. The
+last background observation is verification of 10000/10000, not a completed import. The guest
+retires the application through failure cleanup. Subsequent normal Sandbox close and confirmation
+retire the host; the parent fails after 403882 ms with no remaining Sandbox process or cleanup
+failure. This is not normal client-close timing or a passing lifetime.
+
+Entry availability is 8407019520 bytes, minimum observed host availability is 3512258560 bytes,
+and application kernel peak working set is 448610304 bytes. The declared memory limits are met;
+these measurements do not explain source-copy latency. All 33 helper hashes remain unchanged.
+Independent result review confirms the structured failure boundaries; its three minutes consume
+the remaining review allowance. All 10516 host generated sources pass the postcheck in 65.787
+seconds. Guest source postchecks and exact closed membership remain unreached after failure.
+The consumed lifetime is retained without an unchanged replay. Delete-time date proof remains open.
+
+### Bounded source-copy cost correction
+
+A fixed 96-file, 72962832-byte generated sample separates path validation, source verification,
+copy/date assignment and destination verification. The first diagnostic fails only when projecting
+ordered dictionaries into `Measure-Object`; its generated copies remain retained. Explicit typed
+PowerShell records correct that reporter before the separately labeled measurements.
+
+The original helper takes 2.0044891 seconds (634 ms paths, 483 ms source, 355 ms copy and 507 ms
+destination). A typed .NET file-identity owner takes 1.029733 seconds (150, 241, 349 and 278 ms).
+The subsequent original-helper control takes 1.965297 seconds. These host samples demonstrate
+repeated helper-call overhead, not proof that the guest's 120-second failure has been eliminated.
+
+The 93-line C# owner retains ordinary/reparse path checks, complete source and destination SHA-256,
+creation/modification ticks, no-overwrite copy and deterministic hash-stream disposal. The 114-line
+PowerShell facade retains run ownership, exact roster, cancellation, removal and phase limits.
+Guest preparation includes the new owner. The original 17 guard checks and 24 additional checks
+pass; the latter cover same-length content replacement, changed dates, locks, malformed identity,
+rooted/traversing paths and reparse targets without changing the source or rejected target.
+The new dedicated test file has 85 lines; these owners have no inline tests.
+
+The seven-minute independent boundary review finds no new admission blocker and requires complete
+measurement provenance. A separate `profile-source-binding.json` binds the C# owner, PowerShell
+facade, profiler, new tests and all three original profile results without overwriting them.
+The revised single native lifetime and final three-minute result review are recorded below.
+
+### Corrected-helper lifetime without import admission
+
+Run `827d7a8bcb2d43a3b61eb04a4a418ddb` uses the same verified product payload and the corrected
+source helper. The actual picker opens at 85.013 seconds; its next input occurs at 263.813 seconds
+after a control-session gap. The 240-second import/addition admission is already expired. No import
+confirmation or batch request occurs. The picker is cancelled, and the batch result retains
+`added=0`, `removed=0`, `state=seeded` and `Batch stopped before the complete admitted sequence`.
+This input-scheduling failure supplies no measurement of the corrected helper's guest batch cost.
+Deletion/date navigation, both import completions and exact closed membership remain unreached.
+
+Normal application close is observed at 285.058 seconds. The matching exit receipt reports exit
+zero, process retirement and Job closure; the same-host input-to-receipt upper bound is 1647.0173 ms.
+All 10000 guest sources retain their full hashes and dates after exit. Normal Sandbox close and
+confirmation occur at 396.480 and 404.779 seconds. The final input returns before capture reports
+the disposed target. The parent finishes with failure at 407266 ms, no remaining Sandbox process
+and no cleanup failure. Normal cleanup does not turn the incomplete sequence into a passed lifetime.
+
+Entry available memory is 8222470144 bytes, minimum host availability is 3686486016 bytes and the
+application kernel peak is 156971008 bytes. These meet the original resource bounds. The final
+host check verifies all 10516 generated sources in 55.239 seconds. Its retained-catalog counts
+belong to the source-preservation fixtures, not this run's unimported catalog.
+
+All 36 helper/profiler/test hashes, all 41 guest-input hashes and the 37 product hashes from the
+passing Daily remain unchanged. The frozen helper manifest SHA-256 is
+`305F7827D2D4BD1408A0218220D1F9CC6E54F61F38DECA3DFFCF4BEB5AD1B162`;
+the separate measurement binding SHA-256 is
+`17674E65B214AA80CD55CC373D141C888E2FB51EF2BCBB13B87221EDB6032943`.
+The final three-minute independent review confirms the failed admission and limited cleanup/source
+evidence. It independently checks the helper/measurement binding and two typed-owner inputs; the
+complete 41-input hash check is separate primary verification. The source-cost method is consumed
+and ends here without an unchanged replay. Native date/publication acceptance remains open.
