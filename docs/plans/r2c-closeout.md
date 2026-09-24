@@ -2228,6 +2228,34 @@ preserves the distinct preparation, observation and invocation intervals. Charge
 8444 charged, 8479 reserved, with only the separate 35-minute deletion admission conditional.
 This route's native allowance is consumed; no additional lifetime is admitted here.
 
+#### Original finalization stop attribution
+
+Reserve 25 active minutes, cumulative 8504 reserved: ten for original receipt identity and same-host
+timing, five for the frozen helper's failure/retirement chain, five independent review and five
+records. The separate 35-minute disposable-source deletion admission remains conditional. This is
+a read-only attribution pass on run `20eac6bdf85346319d15abd637a8de3c`, not another native lifetime
+or product repair. Bind the original receipts and relevant prepared helper hashes without rewriting
+them, compare the second successful import confirmation with the host's first observation of the
+matching retired guest result, and retain the original 300-second import limit.
+
+Keep source-stimulus failure, forced process retirement, completed validation counters, actual import
+completion and visible gallery updates distinct. Do not subtract guest UTC from host UTC or treat
+the parent lifetime as import duration. If the available interval ends before the import limit,
+correct that failure attribution without claiming the unmeasured finalization wait or refresh
+behavior passed. Reuse later corrected-helper results only within their recorded workload and
+observation limits. No source access, deletion, app launch, new diagnostics in product code or
+unchanged rerun is admitted by this block.
+
+The [original timing assessment](../acceptance/r2c-browsing-admission.md#original-stop-and-import-deadline-attribution)
+finds at most 124.3525638 host seconds between the completed background confirmation's before-input
+record and first observation of the already retired application. Matching prepared helper hashes
+and the failure receipts attribute the stop to the source stimulus's 120-second limit, before the
+300-second import acceptance allowance. This is a test deadline, not an application-internal timer.
+Exact finalization duration, publication wait reason and continuous gallery stability remain
+unmeasured; no product completion is inferred. Charge all
+25 minutes: 8469 charged, 8504 reserved, retaining only the separate conditional 35-minute deletion
+admission. This closes the read-only method without another native lifetime.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one

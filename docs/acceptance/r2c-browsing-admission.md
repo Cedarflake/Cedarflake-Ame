@@ -309,7 +309,9 @@ and ends here without an unchanged replay. Native date/publication acceptance re
 
 The preceding import observation is reported as 10000/10000 with continued verification, gallery
 refresh and changing image totals. The retained native record never establishes import completion.
-The source helper's independent 120-second failure therefore cannot close this reported behavior.
+The source helper's independent 120-second failure ends this lifetime before its 300-second import
+acceptance deadline; it does not close the reported finalization/refresh behavior. The original
+failure remains failed, with its stop cause and unmeasured product behavior distinguished below.
 
 Current source keeps file validation separate from atomic publication. While publication is delayed
 by pending Live work or preemption, `scan_library/publication.rs` can emit another `Finalizing`
@@ -319,6 +321,36 @@ publications can still change the selected gallery and total. This explains poss
 not the precise cause or duration of the observed run. The next native lifetime below supplies
 terminal-task and settled point observations, but leaves exact closed membership and the preceding
 finalization interval unverified. The original time limits remain authoritative.
+
+#### Original stop and import deadline attribution
+
+The original run's second `confirm-import` has a unique completed before/after input pair:
+04:50:25.680–04:50:25.860 UTC on 2026-09-24. The host first observes the matching `guest-result.json`
+at 04:52:30.0325638 UTC. That atomically published result already records the application retired,
+its Job closed and no cleanup failure. Both interval endpoints come from the host; guest UTC and
+the 403882-ms parent lifetime are not used to measure import duration. From before input delivery
+through observation of completed retirement, the recorded upper bound is **124.3525638 seconds**.
+The background import therefore did not receive the full original 300-second acceptance allowance.
+This is the test's completion deadline, not an application-internal timeout.
+
+The prepared helper sources establish the stop chain: `batch_stimulus.ps1` expires its independent
+120-second addition phase after 1830 copies; `batch_owner.ps1` detects that process exit;
+`media_guest.ps1` enters failure cleanup and closes the application Job before atomically publishing
+its guest result. `run_media.ps1` subsequently rejects that failed process boundary. All 33 prepared
+helper hashes still match the prelaunch manifest. This attributes the test stop to the source
+stimulus, not a measured import-acceptance deadline failure. The later typed-copy correction and its
+98458-ms complete addition are recorded above; this attribution does not admit another unchanged run.
+
+The read-only assessment in `.build/r2c-finalization-stop-attribution/assessment-with-observations.json`
+binds 40 original receipt/manifest/helper inputs, rechecks them after reading, verifies the completed
+confirmation pair and failure chain, and finds no `observed-complete-10000`, normal app-exit or
+addition-complete receipt. Its SHA-256 is
+`125F1DBC0BF6829A654D1F6611F40D687AAB1753212901AA5CDDBF7996473AB9`.
+The original application output logs are empty and no closed catalog was preserved. Exact time
+spent finalizing, its publication wait reason and continuous gallery stability remain unmeasured.
+Neither this arithmetic nor the later selected completion observations close those product limits.
+The bounded independent review verifies all 40 bindings and the assessment method hash, confirms
+the failure chain, and retains this conservative timing and product-evidence distinction.
 
 ### Input-stage correction and incomplete deletion admission
 
