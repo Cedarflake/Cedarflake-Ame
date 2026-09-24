@@ -12,6 +12,7 @@ import "library_preview_coordinator.dart";
 import "library_preview_queue.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
+import "library_query_projection.dart";
 import "library_root_removal_controller.dart";
 import "library_scan_execution.dart";
 import "library_primary_scan_lifecycle.dart";
@@ -70,6 +71,8 @@ class LibraryController extends Notifier<LibraryState>
   @override
   Future<bool> reloadPrimaryScanCatalog() =>
       _viewport.refreshPrimaryScanCatalog();
+
+  LibraryQueryProjections get queryProjections => _viewport.queryProjections;
 
   LibraryViewportController get _viewport =>
       _viewportController ??= LibraryViewportController(

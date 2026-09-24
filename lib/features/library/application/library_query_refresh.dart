@@ -1,10 +1,10 @@
 import "dart:async";
 
 import "library_catalog_publication.dart";
+import "library_query_projection.dart";
+import "library_query_update.dart";
 
-enum LibraryQueryUpdateOutcome { applied, busy, superseded, failed }
-
-typedef LibraryQueryAttempt = Future<LibraryQueryUpdateOutcome> Function();
+export "library_query_update.dart";
 
 class _ActiveQueryAttempt {
   _ActiveQueryAttempt(this.generation);
@@ -16,9 +16,13 @@ class _ActiveQueryAttempt {
 /// User queries may replace a projection; committed refresh obligations survive
 /// that replacement and resume against the user's latest published query.
 class LibraryQueryRefreshCoordinator {
-  LibraryQueryRefreshCoordinator(this._publications);
+  LibraryQueryRefreshCoordinator(
+    this._publications, [
+    LibraryQueryProjections? projections,
+  ]) : _projections = projections ?? LibraryQueryProjections();
 
   final LibraryCatalogPublicationCoordinator _publications;
+  final LibraryQueryProjections _projections;
   _ActiveQueryAttempt? _active;
   final Set<_ActiveQueryAttempt> _inFlight = {};
   Future<void> _committedTail = Future<void>.value();
@@ -59,6 +63,7 @@ class LibraryQueryRefreshCoordinator {
           continue;
         }
         final publicationGeneration = _publications.generation;
+        final positionGeneration = _projections.generation;
         final request = _start(attempt);
         final outcome = await request.completion.future;
         if (outcome == LibraryQueryUpdateOutcome.applied) {
@@ -66,7 +71,8 @@ class LibraryQueryRefreshCoordinator {
         }
         final wasReplaced =
             request.generation != _generation ||
-            publicationGeneration != _publications.generation;
+            publicationGeneration != _publications.generation ||
+            positionGeneration != _projections.generation;
         if (wasReplaced &&
             (outcome == LibraryQueryUpdateOutcome.superseded ||
                 outcome == LibraryQueryUpdateOutcome.busy)) {

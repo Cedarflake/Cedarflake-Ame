@@ -133,10 +133,13 @@ source-preparation and input-admission lifetimes. Dedicated native control now o
 import, date navigation during deletion convergence and exact closed membership, but the complete
 verifier retains a missing per-root preview-demand failure. Its continuation is interrupted by
 automatic approval before deletion; approval of only the disposable generated copies is pending.
-The complete native verdict and reported finalization/refresh behavior remain open. The original
-run's stop is attributed to the source helper before the import acceptance deadline; its exact
-finalization interval remains unmeasured. Completed validation counters and actual published import
-completion retain distinct evidence.
+The addition-only workload verifies completed concurrent import, exact membership and per-root
+visible preview demand. Its exposed position movement now has an owning committed-refresh
+correction, later-scroll regressions, complete local quality/unsigned Release and selected native
+anchor-retention evidence. A close-label aggregate failure is retained separately from passing
+offline catalog/lifetime verification. The complete deletion/date verdict and attribution of the
+original finalization wait remain open; the original run stopped in its source helper before the
+import acceptance deadline. Validation counters and terminal publication retain distinct evidence.
 Remaining frozen variants and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

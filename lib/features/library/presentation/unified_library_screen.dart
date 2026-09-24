@@ -15,6 +15,7 @@ import "../application/library_catalog.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
+import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
 import "../application/library_update_controller.dart";
 import "../application/library_view_preferences.dart";
@@ -24,6 +25,7 @@ import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
+import "library_gallery_query_transition.dart";
 import "library_strings.dart";
 import "library_synchronization_feedback.dart";
 import "library_search_availability.dart";
@@ -88,10 +90,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   _galleryLayoutSnapshot;
   LibraryGalleryVisiblePosition? _visibleGalleryPosition;
   LibraryGalleryLayoutTransition? _galleryLayoutTransition;
-  LibraryGalleryVisiblePosition? _pendingQueryPosition;
+  late final LibraryGalleryQueryTransition _queryTransition;
+  late final LibraryQueryProjectionRegistration _queryProjection;
   final LibraryGalleryPositionResolver _galleryPositionResolver =
       LibraryGalleryPositionResolver();
-  int _queryTransitionGeneration = 0;
   int _galleryLayoutTransitionGeneration = 0;
   Timer? _searchDebounce;
   Timer? _layoutDimensionSettleTimer;
@@ -165,6 +167,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       _handleSynchronizationSnapshot,
     );
     _synchronizationSnapshot = synchronization.current;
+    _queryTransition = LibraryGalleryQueryTransition(
+      readState: () => ref.read(libraryControllerProvider),
+      capturePosition: (allowPreviousQueryIdentity) =>
+          _freezeCurrentGalleryPosition(
+            ref.read(libraryControllerProvider),
+            allowPreviousQueryIdentity: allowPreviousQueryIdentity,
+          ),
+      readViewerAnchor: _readViewerQueryAnchor,
+      reconcileViewer: _viewer.reconcile,
+      onPublished: _publishQueryPosition,
+      onFailed: _scheduleRecoveredDimensionPublication,
+    );
+    _queryProjection = _libraryController.queryProjections.attach(
+      _queryTransition,
+    );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _recordSynchronizationNotifications(_synchronizationSnapshot);
@@ -176,6 +193,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void dispose() {
     _isDisposing = true;
+    _libraryController.queryProjections.detach(_queryProjection);
+    _queryTransition.dispose();
     _viewer.removeListener(_handleViewerChanged);
     _viewer.dispose();
     _searchDebounce?.cancel();
@@ -892,7 +911,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     _isGalleryUserScrolling = isScrolling;
+    _queryTransition.setUserScrolling(isScrolling);
     if (isScrolling) {
+      _libraryController.queryProjections.invalidatePosition();
       _layoutDimensionRecoveryRange = null;
       _layoutDimensionRecoveryAnchor = null;
       _layoutDimensionSettleTimer?.cancel();
@@ -938,7 +959,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (_pendingLayoutDimensionUpdates.isEmpty ||
         _isGalleryUserScrolling ||
         _galleryLayoutTransition != null ||
-        _pendingQueryPosition != null) {
+        _queryTransition.pendingPosition != null) {
       _layoutDimensionDeadlineTimer?.cancel();
       _layoutDimensionDeadlineTimer = null;
       return;
@@ -962,7 +983,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         _pendingLayoutDimensionUpdates.isEmpty ||
         _isGalleryUserScrolling ||
         _galleryLayoutTransition != null ||
-        _pendingQueryPosition != null) {
+        _queryTransition.pendingPosition != null) {
       return;
     }
     final current = ref.read(libraryControllerProvider);
@@ -1232,7 +1253,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             onRevealFile: _revealAsset,
             onVisiblePositionChanged: (position) {
               if (_galleryLayoutTransition == null &&
-                  _pendingQueryPosition == null) {
+                  _queryTransition.pendingPosition == null) {
                 _visibleGalleryPosition = position;
               }
             },
@@ -1347,133 +1368,54 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     BigInt? synchronizationRevision,
     bool preserveGalleryPosition = true,
     bool forceRefresh = false,
-  }) async {
-    final requestGeneration = ++_queryTransitionGeneration;
-    final currentState = ref.read(libraryControllerProvider);
-    final isContinuingQueryTransition = _pendingQueryPosition != null;
-    final frozenPosition = preserveGalleryPosition
-        ? _freezeCurrentGalleryPosition(
-            currentState,
-            allowPreviousQueryIdentity: isContinuingQueryTransition,
-          )
-        : null;
-    _pendingQueryPosition = frozenPosition;
-    final viewerAnchor =
-        synchronizationRevision == null || _viewer.assetId == null
-        ? null
-        : _assetByStableIdentity(
-                currentState.assets,
-                _viewer.assetId!,
-                _viewer.locationId,
-              ) ??
-              _viewer.retainedAsset;
-    final requestedAnchorLocationId =
-        viewerAnchor?.locationId ?? frozenPosition?.locationId;
-    final anchorAssetId =
-        viewerAnchor?.assetId ??
-        frozenPosition?.assetId ??
-        (frozenPosition == null
-            ? null
-            : _assetByLocation(
-                currentState.assets,
-                frozenPosition.locationId,
-              )?.assetId);
-    final controller = ref.read(libraryControllerProvider.notifier);
-    final viewerIndex = viewerAnchor == null
-        ? -1
-        : currentState.assets.indexWhere(
-            (asset) =>
-                asset.assetId == viewerAnchor.assetId &&
-                asset.locationId == viewerAnchor.locationId,
-          );
-    final fallbackGlobalItemIndex = viewerIndex >= 0
-        ? currentState.windowStartItemOffset + viewerIndex
-        : frozenPosition?.globalItemIndex;
-    final updateOutcome = synchronizationRevision == null
-        ? (await controller.updateQuery(
-                query,
-                anchorLocationId: requestedAnchorLocationId,
-                anchorAssetId: anchorAssetId,
-                fallbackGlobalItemIndex: fallbackGlobalItemIndex,
-                forceRefresh: forceRefresh,
-              )
-              ? LibraryQueryUpdateOutcome.applied
-              : LibraryQueryUpdateOutcome.failed)
-        : await controller.refreshFromSynchronization(
-            catalogRevision: synchronizationRevision,
-            anchorLocationId: requestedAnchorLocationId,
-            anchorAssetId: anchorAssetId,
-            fallbackGlobalItemIndex: fallbackGlobalItemIndex,
-          );
-    if (!mounted || requestGeneration != _queryTransitionGeneration) {
-      return LibraryQueryUpdateOutcome.superseded;
-    }
-    if (updateOutcome != LibraryQueryUpdateOutcome.applied) {
-      _pendingQueryPosition = null;
-      _scheduleRecoveredDimensionPublication();
-      return updateOutcome;
-    }
-    if (synchronizationRevision != null) {
-      await _viewer.reconcile();
-      if (!mounted || requestGeneration != _queryTransitionGeneration) {
-        return LibraryQueryUpdateOutcome.superseded;
-      }
-    }
-    final state = ref.read(libraryControllerProvider);
-    final revision = state.catalogRevision;
-    final resolution = state.queryAnchorResolution;
-    LibraryGalleryVisiblePosition? nextPosition;
-    if (revision != null && state.assets.isNotEmpty) {
-      final frozenLoadedIndex = frozenPosition == null
-          ? -1
-          : state.assets.indexWhere(
-              (asset) => asset.locationId == frozenPosition.locationId,
-            );
-      final didReturnToFrozenQuery =
-          frozenPosition != null &&
-          frozenPosition.queryId == state.queryId &&
-          frozenPosition.revision == revision &&
-          frozenLoadedIndex >= 0 &&
-          state.windowStartItemOffset + frozenLoadedIndex ==
-              frozenPosition.globalItemIndex;
-      if (didReturnToFrozenQuery) {
-        nextPosition = frozenPosition;
-      } else if (frozenPosition != null &&
-          resolution != null &&
-          resolution.requestedLocationId == frozenPosition.locationId &&
-          resolution.didResolve) {
-        final resolvedAsset = _assetByLocation(
-          state.assets,
-          resolution.locationId!,
-        );
-        nextPosition = LibraryGalleryVisiblePosition(
-          queryId: state.queryId,
-          revision: revision,
-          monthKey: null,
-          locationId: resolution.locationId!,
-          assetId: resolvedAsset?.assetId,
-          globalItemIndex: resolution.ordinal!,
-          itemFraction: frozenPosition.itemFraction,
-          viewportFraction: frozenPosition.viewportFraction,
-        );
-      } else {
-        nextPosition = LibraryGalleryVisiblePosition(
-          queryId: state.queryId,
-          revision: revision,
-          monthKey: state.timeline?.buckets.firstOrNull?.monthKey,
-          locationId: state.assets.first.locationId,
-          assetId: state.assets.first.assetId,
-          globalItemIndex: state.windowStartItemOffset,
-          itemFraction: 0,
-          viewportFraction: 0,
+  }) => _queryTransition.run(
+    (anchor) async {
+      final controller = ref.read(libraryControllerProvider.notifier);
+      if (synchronizationRevision != null) {
+        return controller.refreshFromSynchronization(
+          catalogRevision: synchronizationRevision,
+          anchorLocationId: anchor?.requestedLocationId,
+          anchorAssetId: anchor?.assetId,
+          fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
         );
       }
+      final applied = await controller.updateQuery(
+        query,
+        anchorLocationId: anchor?.requestedLocationId,
+        anchorAssetId: anchor?.assetId,
+        fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
+        forceRefresh: forceRefresh,
+      );
+      return applied
+          ? LibraryQueryUpdateOutcome.applied
+          : LibraryQueryUpdateOutcome.failed;
+    },
+    preservePosition: preserveGalleryPosition,
+    reconcileSelection: synchronizationRevision != null,
+  );
+
+  LibraryAsset? _readViewerQueryAnchor() {
+    final assetId = _viewer.assetId;
+    if (assetId == null) {
+      return null;
     }
+    return _assetByStableIdentity(
+          ref.read(libraryControllerProvider).assets,
+          assetId,
+          _viewer.locationId,
+        ) ??
+        _viewer.retainedAsset;
+  }
+
+  void _publishQueryPosition(LibraryGalleryQueryPublication publication) {
+    if (!mounted || _isDisposing) {
+      return;
+    }
+    final nextPosition = publication.position;
     _galleryLayoutSnapshot.value = null;
     setState(() {
-      _pendingQueryPosition = null;
       _visibleGalleryPosition = nextPosition;
-      if (!preserveGalleryPosition || nextPosition == null) {
+      if (!publication.preservePosition || nextPosition == null) {
         _galleryLayoutTransition = null;
       } else {
         _galleryLayoutTransitionGeneration += 1;
@@ -1483,15 +1425,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         );
       }
     });
-    if (!preserveGalleryPosition) {
-      _scheduleGalleryStartReset(requestGeneration);
+    if (!publication.preservePosition) {
+      _scheduleGalleryStartReset(publication.generation);
     }
-    return LibraryQueryUpdateOutcome.applied;
   }
 
   void _scheduleGalleryStartReset(int requestGeneration) {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || requestGeneration != _queryTransitionGeneration) {
+      if (!mounted || !_queryTransition.isCurrent(requestGeneration)) {
         return;
       }
       for (final position in _galleryScrollPositions) {
@@ -1553,7 +1494,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             allowPreviousQueryIdentity)) {
       return _positionWithAssetIdentity(transitionPosition, state);
     }
-    final pendingPosition = _pendingQueryPosition;
+    final pendingPosition = _queryTransition.pendingPosition;
     if (pendingPosition != null &&
         (matchesCurrentIdentity(pendingPosition) ||
             allowPreviousQueryIdentity)) {

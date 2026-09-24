@@ -1,10 +1,33 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog_publication.dart";
+import "package:cedarflake_ame/features/library/application/library_query_projection.dart";
 import "package:cedarflake_ame/features/library/application/library_query_refresh.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test("later position input renews the committed read obligation", () async {
+    final projections = LibraryQueryProjections();
+    final owner = LibraryQueryRefreshCoordinator(
+      LibraryCatalogPublicationCoordinator(),
+      projections,
+    );
+    addTearDown(owner.dispose);
+    final first = Completer<LibraryQueryUpdateOutcome>();
+    var reads = 0;
+    final result = owner.refreshCommitted(() {
+      reads += 1;
+      return reads == 1
+          ? first.future
+          : Future.value(LibraryQueryUpdateOutcome.applied);
+    });
+    await Future<void>.delayed(Duration.zero);
+    projections.invalidatePosition();
+    first.complete(LibraryQueryUpdateOutcome.superseded);
+    expect(await result, isTrue);
+    expect(reads, 2);
+  });
+
   test(
     "committed refresh waits for an active passive query and admits no competing refresh",
     () async {

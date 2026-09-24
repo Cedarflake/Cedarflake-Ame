@@ -347,6 +347,21 @@ persistence layers.
   proven supersession, not after an arbitrary failure or unchanged busy result. Disposal settles
   every in-flight waiter, including replaced attempts. Catalog revision disagreement remains a
   genuine read failure, and retry cannot repeat the committed source scan.
+- `library_query_projection.dart` owns the current gallery's optional projection registration.
+  A committed application refresh may use that projection to capture a stable visible identity;
+  without a mounted gallery it still reads the catalog. Detaching an old registration cannot
+  revoke a replacement, and application disposal admits no further read. The viewport retains
+  committed admission, coherent query reads, revision checks and catalog-publication authority.
+  A read also retains the projection's position generation. A later user scroll retires that
+  authority before catalog publication; a committed refresh resumes after the gesture using its
+  new position. Query, catalog-publication and position generations remain independent.
+  `library_gallery_query_transition.dart` owns position capture, identity/fallback resolution and
+  presentation-generation cleanup for user queries, passive refresh and committed import display.
+  It preserves the resolved page's global offset and the visible row's fraction. A retired gallery
+  cannot restore pixels or clear a newer pending position; its retirement does not undo an accepted
+  application publication. The screen composes the resulting layout transition without owning a
+  second asynchronous query-position lifecycle. A gesture waiter belongs to its presentation
+  generation; a newer query or disposal retires it without issuing its old read.
 - `library_browse_admission.dart` owns read admission independently from scan-command admission.
   A published catalog remains queryable during a primary scan; unpublished staging is never read
   as completed content. Query replacement, paging and time reads retain their distinct exclusions.

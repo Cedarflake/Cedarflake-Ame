@@ -8,6 +8,7 @@ import "library_browse_admission.dart";
 import "library_catalog.dart";
 import "library_catalog_publication.dart";
 import "library_page_operation.dart";
+import "library_query_projection.dart";
 import "library_query_refresh.dart";
 import "library_query_snapshot_reader.dart";
 import "library_time_navigation_requests.dart";
@@ -57,7 +58,11 @@ class LibraryViewportController {
   final void Function(Iterable<String>) _retainPreviewPending;
   final _publications = LibraryCatalogPublicationCoordinator();
   final _pages = LibraryPageOperation();
-  late final _queryRefresh = LibraryQueryRefreshCoordinator(_publications);
+  final queryProjections = LibraryQueryProjections();
+  late final _queryRefresh = LibraryQueryRefreshCoordinator(
+    _publications,
+    queryProjections,
+  );
   late final _querySnapshots = LibraryQuerySnapshotReader(_catalog);
   late final _timeSnapshots = LibraryTimeSnapshotReader(_catalog);
 
@@ -101,6 +106,7 @@ class LibraryViewportController {
     }
     _isDisposed = true;
     _queryRefresh.dispose();
+    queryProjections.dispose();
     _publications.dispose();
     _timeNavigation.dispose();
     _pendingVisibleRange = null;
@@ -141,11 +147,21 @@ class LibraryViewportController {
     ),
   );
 
-  Future<bool> refreshPrimaryScanCatalog() => _queryRefresh.refreshCommitted(
-    () async => await reloadFirstCatalogPage()
-        ? LibraryQueryUpdateOutcome.applied
-        : LibraryQueryUpdateOutcome.superseded,
-  );
+  Future<bool> refreshPrimaryScanCatalog() =>
+      _queryRefresh.refreshCommitted(() {
+        final generation = _publicationGeneration;
+        return queryProjections.publish((anchor) async {
+          if (!_canPublishGeneration(generation)) {
+            return LibraryQueryUpdateOutcome.superseded;
+          }
+          return await reloadFirstCatalogPage(
+                anchor: anchor,
+                projectionRead: queryProjections.beginRead(),
+              )
+              ? LibraryQueryUpdateOutcome.applied
+              : LibraryQueryUpdateOutcome.superseded;
+        });
+      });
 
   Future<bool> updateQuery(
     LibraryGalleryQuery query, {
@@ -1038,13 +1054,17 @@ class LibraryViewportController {
     return true;
   }
 
-  Future<bool> reloadFirstCatalogPage() async {
+  Future<bool> reloadFirstCatalogPage({
+    LibraryQueryAnchor? anchor,
+    LibraryQueryProjectionRead? projectionRead,
+  }) async {
     final generation = _publicationGeneration;
     final query = _state.query;
-    final result = await _querySnapshots.load(query: query);
+    final result = await _querySnapshots.load(query: query, anchor: anchor);
     final snapshot = result.snapshot;
     final timeline = result.timeline;
-    if (!_canPublishGeneration(generation)) {
+    if (!_canPublishGeneration(generation) ||
+        (projectionRead != null && !queryProjections.accepts(projectionRead))) {
       return false;
     }
     _publishFirstCatalogPage(
@@ -1165,13 +1185,16 @@ class LibraryViewportController {
     }
     final previousState = _state;
     final wasRemoving = previousState.status == LibraryStatus.removing;
+    final windowStart =
+        snapshot.queryAnchorResolution?.windowStartItemOffset ?? 0;
     _resetRetainedCatalogPages(
       assets: snapshot.assets,
-      startItemOffset: 0,
+      startItemOffset: windowStart,
       previousCursor: snapshot.previousCursor,
       nextCursor: snapshot.nextCursor,
     );
     _state = LibraryState.fromSnapshot(snapshot, query: query).copyWith(
+      windowStartItemOffset: windowStart,
       taskKind: previousState.taskKind == LibraryTaskKind.remove
           ? LibraryTaskKind.remove
           : null,

@@ -535,3 +535,188 @@ These gates do not replace the failed native coverage or final candidate and ext
 The scoped independent review checks the three new run records against their structured
 receipts and finds no contradiction in these failure classifications. It does not repeat the
 source traversal, all hashes or independent pixel acceptance.
+
+### Concurrent addition completion and unrequested position change
+
+Run `b15a9218afd541149259a47267d4b8d0` uses unchanged Release product `a0cde91` and the full
+10000-file, 10921494393-byte mixed-size/historical corpus. Its separately reviewed addition-only
+helper admits 12 baseline images and 2000 additions, rejects removal, and retains the original
+deletion/date/per-root verifier unchanged. Focused helper checks pass: 22 PowerShell guards, five
+owned-process cases, 21 Node cases and 44 Python oracle cases. Independent admission review
+corrects the inherited deletion terminal condition and the final-copy deadline check before launch.
+
+Both import confirmations meet their original limits, at 107.333 and 195.052 host seconds; the
+addition request also precedes 240 seconds. A selected peer gallery shows 259 decoded images
+while the background import has found 7400. Complete validation at 10000/10000 is visible at
+262.693, 277.143, 295.396 and 309.778 host seconds, while the peer count grows from 857 to 1841.
+The first point showing actual import completion and 2012 peer images is at 324.313 seconds.
+The later explicit completion receipt records 159.063 seconds from import confirmation; it is
+an observation bound, not the exact backend transition time. Source addition takes 101926 ms;
+the explicit 2012-image receipt is 159.682 seconds after its request. Both retain the original
+120-second source and 300-second convergence bounds. This run completes; it does not explain
+the backend wait in the earlier interrupted run or establish continuous-frame stability.
+
+The native point observations also expose an unrequested browsing-position change. The peer's
+first fully visible date is 2013-08-02 during complete-validation observations, then 2022-12-02
+at 324.313 seconds and again at 354.299 seconds. Recorded UI input is absent between the peer
+selection at 218.842 seconds and the next root selection at 368.884 seconds; no wheel or rail
+input occurs. This is an open C05 position-continuity finding, not proof of a specific anchor or
+backend cause. One transient placeholder at 262.693 seconds has decoded by the next observation;
+no persistent Retry failure is established by these samples.
+
+After explicitly selecting each root, native observations show 10000 mixed images and decoded
+tiles, then 2012 peer images and decoded tiles. The final peer observations, 30.633 seconds apart,
+retain the same count, date and position. The closed-catalog oracle passes both exact memberships,
+source identities/dates, two completed active scans with matching published counts, no unfinished
+work and ready artifacts owned by each root. It verifies 108 and 36 ready previews, with 145 cache
+files occupying 2880084 bytes. Unrequested pending previews are not failed previews.
+
+Normal app close at 471.532 seconds has a same-host exit upper bound of 1204.9208 ms, exit zero
+and Job retirement. Both source helpers retire. All 10000 guest hashes/dates pass in 45977 ms;
+the peer postcheck verifies exactly 2012 files and zero removals. The catalog is copied after exit.
+Sandbox confirmation returns before capture reports `no screenshot targets found`; the independent
+host boundary passes at 572174 ms with no remaining process or cleanup failure. Entry availability
+is 7543533568 bytes, minimum host availability 2924281856 bytes and app peak working set 449552384
+bytes, within the unchanged resource bounds. All 10516 host sources pass their postcheck in 59.549
+seconds. These generated-source checks do not access real-library roots.
+
+All 44 helper, 42 prepared-input and 37 product hashes remain unchanged. The helper manifest
+SHA-256 is `0AD8CF129A393C947D44DF579AA46C620D9E903D42A364D0AB48BF1B99BD96D6`;
+the 27-artifact final binding is `7C949B70843FBED8D990805D121F222BACC8D73FF13FF7D50B6DC8A13788BF75`.
+Ignored records live in `.build/r2c-concurrent-addition` and the run's integration-storage directory.
+Primary screenshot annotations are bound by UTC and observation-log ordinal because the tool reuses
+`screenshot-0`; that identifier alone is not unique evidence. The selected addition/catalog/lifetime
+checks pass, while unrequested position movement, complete C05 acceptance, the pending deletion
+workload and final candidate duties remain open.
+
+The independent result review verifies all 27 evidence bindings and their timestamp/ordinal
+identities, convergence/admission limits, closed-catalog result, source postcheck receipts and
+normal lifetime. It finds no new blocker within that selected scope. It does not independently
+rejudge pixels or repeat the full source traversal; position continuity remains an open exit.
+
+### Committed import position correction
+
+The connected page regression reproduces the observed class of movement: after a peer import
+completes, adding newer dated items leaves the scroll pixel offset unchanged while replacing the
+visible 2013 images with 2022 images. Ordinary synchronization enters the screen's stable-image
+position workflow; the primary import's committed reload previously read the first catalog page
+directly. That path neither supplied the visible identity nor restored its resolved ordinal.
+
+The correction connects committed refresh to the same position workflow through an optional,
+identity-owned projection registration. Catalog admission and coherent bounded reads remain in
+the application. Position capture, identity/fallback resolution and stale-presentation retirement
+move from the screen into `LibraryGalleryQueryTransition`; the screen composes its layout result.
+The returned query window's start remains distinct from the anchor's ordinal. A detached gallery
+does not prevent headless catalog refresh, and its old registration cannot detach a replacement.
+No scan, persistence, bridge, dependency, source-file or status-text change is included.
+
+The original page counterexample fails before the change and passes afterward. Both 48-image and
+504-image additions now retain the visible identities and rectangles without further input; the
+latter places the old position outside the first 500-item catalog window. Focused cases cover
+nonzero window offsets, changed-location identity resolution, missing-anchor fallback, old success
+and failure during a newer request, read failure cleanup, disposal during viewer reconciliation,
+registration replacement and headless/disposed admission. The existing committed-refresh and
+coherent-snapshot regressions also pass. The first diagnostic incorrectly waited for an ongoing
+progress animation to settle, then switched to bounded frame observation; a later test-only matcher
+typo is corrected before the bounded-window pass. Neither is a product failure.
+
+Independent review identifies a further boundary: a held committed read could restore its old
+position after a later user scroll. The connected page regression adds real drag input while the
+read is held; both addition sizes fail before this correction. A projection read now retains an
+opaque position-generation token, rejected before catalog publication when scrolling supersedes
+it. The committed obligation survives that proven replacement, waits for the gesture to end and
+reads from the new position. New user queries supersede the waiting request's authority; disposal
+releases gesture waiters. Arbitrary
+read failures are not retried, and independent query/publication generations remain intact.
+
+All four connected page cases now pass, including the two later-scroll counterexamples. The final
+six focused files pass 36 tests across page composition, projection registration, primary refresh,
+committed admission, coherent snapshots and presentation ownership. Differential independent review
+checks the rejected-before-publication boundary and gesture/query/disposal cases, with no further
+finding in this scope; it does not rerun tests or establish native behavior. The first lint capture
+incorrectly promoted Cargo's ordinary stderr progress to a PowerShell exception. A separate
+stdout/stderr child-process capture retains that failure and then completes the canonical lint
+with exit zero, no analyzer issues and unchanged source hashes.
+
+Physical sizes, including blanks/comments: controller 357 production lines, viewport 1350, screen
+2131, projection registry 77, committed-refresh coordinator 136, shared query outcome contract three
+and query-position owner 213; all have zero inline test lines. Dedicated new page, position-owner
+and registration tests are 294, 232 and 72 lines respectively; the existing snapshot-reader and
+refresh tests are 446 and 157 lines. Larger unrelated facade responsibilities remain the roadmap's
+retained decomposition duties.
+
+Complete serial Daily passes on base `94f52f0` with the 12 changed source/test files frozen by hash.
+The main Rust suite passes 1539 cases with its existing 19 ignored cases; the broker binary passes
+three cases. All 96 Flutter test files, Windows scan integration, required whole-window UIA phases,
+native process/Job retirement and 16 asynchronous bridge contracts pass. The ignored manual
+performance, wrapper/subprocess and authorization-bound cases are not counted as accepted here.
+The captured invocation takes 2157.987 seconds, exits zero and verifies all frozen hashes unchanged.
+Its receipt SHA-256 is `741BC21250F7C4FE986BEE22E1E36ED9BBBB213D694A888A5423D6A61EE4FEAB`.
+Logs and the exact source list are retained in `.build/r2c-position-continuity`.
+
+Native preparation reuses the 44 previously checked addition-only helpers byte-for-byte. Independent
+admission review identifies and closes an artifact-binding gap before the unsigned invocation:
+the completed gate now records its fresh evidence digest, and preparation requires that digest,
+the current evidence and the configured payload evidence to agree. This avoids inferring a dirty
+candidate's artifact identity from the unchanged base commit alone. The fresh unsigned Windows gate
+passes in 124.535 seconds with exit zero and unchanged source hashes. Its runner/engine checks and
+optimized bridge smoke pass; the latter does not open a catalog. Build evidence SHA-256 is
+`1D7E207D3F945C21D250BF67C637AA96AE0B7320A29D84CD5C2E0D14DD646662`.
+
+The one changed native lifetime, `00224139fc8e488192ae5b7f13baceea`, uses that exact payload and
+the complete 10000-file, 10921494393-byte mixed-size/historical corpus. Baseline and full imports
+are admitted before their original 150/240-second deadlines. The peer receives all 2000 additions
+in 103.836 seconds with zero removals. Completed import is explicitly recorded within 152.704 seconds
+of picker confirmation; the peer's 2012-image convergence is recorded within 137.567 seconds of
+the addition request. These are observation upper bounds, not exact backend transition durations.
+
+With no input between selecting the growing peer and explicitly switching roots afterward,
+the middle row's three distinct 2014-09-01 images retain their visible position across growth,
+10000/10000 Finalizing observations and completed import. The sampled middle-row rectangles remain
+at y=468–606 with columns x=300–346, 353–537 and 544–727. The first visible date changes from
+2014-10-01 to 2014-09-02 as new items arrive above the retained anchor; this does not establish
+that every visible row stays unchanged. No sampled completion jumps to a newer year. The connected
+page tests separately assert exact location identities and rectangles, including later scrolling.
+
+Explicit root selections then show 10000 and 2012 images, each with decoded visible tiles. Cold
+placeholders after selection resolve on the following observation. The last two decoded peer
+samples are 48.322 seconds apart with the same dates and geometry. These are manual point-in-time
+pixel observations, not continuous no-flicker or frame-timing evidence; the reviewer does not
+independently rejudge the pixels. All 11 notes bind to distinct original observation timestamps,
+JSONL line numbers and returned window identity; the reused `screenshot-0` identifier is not a
+standalone screenshot identity.
+
+The original aggregate verifier fails before catalog assertions because the recorded normal-close
+action is named `normal-close-app`, while its frozen predicate requires `normal-close-ame`. The
+failure and raw receipts remain unchanged. A separately reviewed offline adapter verifies the one
+adjacent successful click pair, fresh observed target, coordinates, receipt hashes and matching
+app/Job retirement, then normalizes only those two labels in memory before applying the unchanged
+predicate. Its three tests include ten rejecting subcases and guest-clock skew controls. Result
+review removes an unsupported host/guest clock comparison: the close bound now uses only host
+input and first-exit-observation times; guest exit fields establish receipt consistency. The initial
+adapter and result are retained, and the corrected close report reuses the unchanged passing catalog
+assertions. This is separate offline verification,
+not a passing original aggregate invocation; no native replay or deadline change is performed.
+
+That offline verification passes all unchanged closed-catalog assertions: exact 10000/2012
+membership, source identity and historical metadata, completed publications, no unfinished change
+queue and independently owned ready previews in both roots (83 and 42). The bounded cache has
+126 files and 2674442 bytes; no active location remains failed. Guest source postchecks cover both
+complete directories. The full 10516-file host postcheck passes in 56.798 seconds with original
+identities, bytes and dates preserved. No real source tree or deletion stimulus is accessed.
+
+Normal application close is bounded by the host's first exit observation at 1433.4 ms, with exit
+zero and closed Job. The Sandbox exits within 767.137 seconds, leaving no owned process or cleanup
+failure. The final close input returns successfully; its following capture reports the disposed
+Sandbox target, retained separately from input failure. Host entry is above seven GiB, sampled
+available memory stays above two GiB and the app peak working set is 428.2 MiB. Postchecks confirm
+all 44 helper, 42 prepared-input and 46 product/source hashes unchanged. Forty-five evidence bindings,
+including the original aggregate failure, offline adapter and gate receipts, are retained in
+`.build/r2c-position-native/final-bindings-v2.json`, SHA-256
+`430E1BA5FAA41C7D1142091CC2C3C5BCDAE99393EE2F46ADCE72D293DFAE7EA2`.
+
+This closes the selected committed-import position correction with focused, current-source gate
+and native observations plus offline catalog/lifetime evidence. Complete deletion/date/per-root
+acceptance and attribution of the original finalization wait remain open. This run again observes
+complete validation counters before terminal publication, but does not establish the old wait's
+cause or accept all C05/R2c duties.

@@ -9,6 +9,31 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
+    "later input rejects the obsolete anchored page before publication",
+    () async {
+      final pending = Completer<LibraryQuerySnapshot>();
+      final catalog = _AtomicCatalog([pending.future]);
+      var state = LibraryState.fromSnapshot(_querySnapshot(1).snapshot);
+      final controller = LibraryViewportController(
+        catalog,
+        () => state,
+        (value) => state = value,
+        () => false,
+        (_) {},
+      );
+      addTearDown(controller.dispose);
+      controller.seed(state);
+      final read = controller.reloadFirstCatalogPage(
+        projectionRead: controller.queryProjections.beginRead(),
+      );
+      controller.queryProjections.invalidatePosition();
+      pending.complete(_querySnapshot(2));
+      expect(await read, isFalse);
+      expect(state.catalogRevision, BigInt.one);
+    },
+  );
+
+  test(
     "query replacement consumes one coherent snapshot during catalog updates",
     () async {
       final catalog = _AtomicCatalog([Future.value(_querySnapshot(8))]);
@@ -62,6 +87,59 @@ void main() {
       expect(catalog.separateReads, 0);
     },
   );
+
+  test("anchored committed reload retains its nonzero window offset", () async {
+    const resolution = LibraryQueryAnchorResolution(
+      requestedLocationId: "kept",
+      locationId: "kept",
+      ordinal: 1224,
+      windowStartItemOffset: 1000,
+    );
+    final result = LibraryQuerySnapshot(
+      snapshot: LibrarySnapshot(
+        catalogPath: "fixture.sqlite3",
+        revision: BigInt.two,
+        queryId: "query",
+        roots: const [],
+        assets: const [],
+        queryAnchorResolution: resolution,
+      ),
+      timeline: LibraryTimeline(
+        revision: BigInt.two,
+        queryId: "query",
+        totalItems: 2000,
+        buckets: const [
+          LibraryTimeBucket(itemCount: 2000, aspectRatioSum: 2000),
+        ],
+      ),
+    );
+    final catalog = _AtomicCatalog([Future.value(result)]);
+    var state = LibraryState.fromSnapshot(_querySnapshot(1).snapshot);
+    final controller = LibraryViewportController(
+      catalog,
+      () => state,
+      (value) => state = value,
+      () => false,
+      (_) {},
+    );
+    addTearDown(controller.dispose);
+    controller.seed(state);
+    expect(
+      await controller.reloadFirstCatalogPage(
+        anchor: const LibraryQueryAnchor(
+          requestedLocationId: "kept",
+          assetId: "asset",
+          fallbackGlobalItemIndex: 724,
+        ),
+      ),
+      isTrue,
+    );
+    expect(state.windowStartItemOffset, 1000);
+    expect(state.queryAnchorResolution, same(resolution));
+    expect(state.timeline?.totalItems, 2000);
+    expect(catalog.requests.single?.assetId, "asset");
+    expect(catalog.separateReads, 0);
+  });
 
   test(
     "a superseded coherent response cannot overwrite a newer query",

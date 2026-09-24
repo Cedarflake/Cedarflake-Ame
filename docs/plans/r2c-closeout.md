@@ -2376,6 +2376,87 @@ Charge all 60 minutes: 8639 charged, 8674 reserved, with only the separate condi
 deletion allowance remaining. The selected menu-return duty is complete; no repeat native lifetime
 is needed for it. Continue the remaining frozen duties and final gates in roadmap order.
 
+#### Concurrent import and addition terminal observation
+
+Reserve 90 active minutes, cumulative 8764 reserved: 20 for current publication ownership and
+evidence, 20 for a narrowly owned addition-only fixture, ten focused helper checks, five independent
+admission review, 15 for one native lifetime, ten complete source/catalog checks, five result review
+and five records. The preceding 8639 minutes remain charged; the conditional 35-minute deletion
+admission remains unconsumed. This is a separate additive workload, not a replacement or replay of
+the incomplete 12-to-2012-to-512 deletion/date/per-root acceptance.
+
+The frontend controlled trace already excludes repeated Finalizing callbacks alone as the cause of
+its tested gallery invalidation. The production publication owner can retain complete validation
+counters while waiting for live work or write preemption; that source fact does not identify the
+original run's wait reason. Verify the reported concurrent user path with the current unchanged
+Release, rather than adding status text or another retry. Preserve the original unmeasured wait.
+
+Use the complete 10000-file, 10921494393-byte mixed-size/historical corpus and a 12-file generated
+peer. Import the peer before 150 host seconds, import the full corpus and request all 2000 additions
+before 240 seconds. Keep the 120-second source-stimulus limit, 300-second import and addition
+convergence bounds, 690-second optional input cutoff, 900-second parent and six-second normal
+application close. Retain seven-GiB host entry, 3072-MiB guest and two-GiB client ceiling/host reserve.
+Use the verified bounded digest only for source preparation/postchecks; it cannot change input,
+publication, source membership or deadlines.
+
+The fixture exposes only addition. Reject removal requests and finish its own source lifecycle at
+exactly 2012 files with zero removals; do not reuse a deletion failure as an expected pass. Verify
+the complete generated source identities, hashes and historical dates before and after execution,
+and retain the original full-sequence verifier unchanged. Focused checks must reject wrong run or
+phase, incomplete additions, changed source payload/date, missing per-root ready previews and
+unfinished publication. Bind helpers, prepared inputs and product hashes before launch.
+
+Observe the peer gallery during background import, record complete-validation and terminal task
+observations where visible, then select mixed and require 10000 images and decoded tiles. Return
+to the peer and require 2012 images and decoded tiles; inspect a second settled observation at
+least ten seconds later. Screenshot samples do not establish continuous no-flicker evidence or an
+exact backend wait interval. Require both roots' exact closed membership, metadata/source identity,
+independently verified ready artifacts, no unfinished work, full guest/10516-file host source
+checks and normal process/Job/Sandbox retirement. A failed admission or assertion ends this one
+method, with its evidence retained. No removal, real-root access, product change, service, signing,
+new dependency or deadline extension is included.
+
+The one native run completes its selected addition, closed-catalog, preview-demand, full source and
+normal-lifetime checks. It also exposes an unrequested position change during publication, retained
+in the [browsing record](../acceptance/r2c-browsing-admission.md#concurrent-addition-completion-and-unrequested-position-change).
+Complete validation counters precede actual completion; this run does not identify the earlier
+backend wait. Charge the entire 90-minute allowance: 8729 charged, 8764 reserved, with the separate
+conditional 35-minute deletion allowance unchanged. No unchanged native replay is admitted.
+
+#### Publication position continuity
+
+Reserve 150 active minutes, cumulative 8914 reserved: 30 causal diagnosis, 35 owning-layer repair,
+20 focused boundary verification, 30 applicable serial quality/build gates, 15 one changed native
+workload, ten independent review and ten records. The preceding 8729 charged minutes and conditional
+35-minute deletion admission remain intact. This continuation addresses the observed input-free
+2013-to-2022 position change; it does not expand into unrelated scrolling or status redesign.
+
+Trace the selected root's stable visible identity, query revision, committed first-import refresh,
+timeline geometry and restore authority. First reproduce a lost-position boundary using actual
+controller/gallery composition with dated additions and peer import completion. A mock callback
+count alone cannot establish the defect. Preserve query supersession, coherent revision reads,
+user navigation precedence, bounded windows and fallback when an anchor is removed. Establish the
+affected typed owner before extending a multi-responsibility facade; no compensating scroll retry,
+status-only change, fixed offset or merged generation may conceal an unresolved cause.
+
+Any product correction requires a failing-before/passing-after boundary regression, relevant race
+checks, owned-file formatting, lint, complete Daily and applicable unsigned Release. One native
+confirmation may follow only after those gates and independent review, retaining the previous
+corpus, addition-only scope and every resource/deadline/retirement bound. No deletion or real root
+is included. If the cause remains unproven or a changed verification fails, retain the failure and
+stop that method; do not repeatedly rerun it or claim complete browsing acceptance.
+
+The connected counterexamples establish the committed-import position cause and the later-scroll
+race. The owning correction passes focused tests, lint, complete Daily and fresh unsigned Release.
+Its one changed native lifetime retains the middle historical-image anchor through concurrent
+addition and terminal import; exact membership, per-root ready previews, all generated source
+postchecks and normal retirement are verified. The original aggregate's close-label mismatch stays
+failed; a separately reviewed offline adapter validates unchanged receipts and predicates without
+replaying the client. See the [position record](../acceptance/r2c-browsing-admission.md#committed-import-position-correction)
+for the evidence boundaries and retained original wait/deletion obligations. Charge the entire
+150-minute allowance: **8879 charged / 8914 reserved**, leaving only the separate conditional
+35-minute deletion admission unconsumed. No unchanged native replay is admitted for this correction.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one
