@@ -352,6 +352,43 @@ Neither this arithmetic nor the later selected completion observations close tho
 The bounded independent review verifies all 40 bindings and the assessment method hash, confirms
 the failure chain, and retains this conservative timing and product-evidence distinction.
 
+#### Controlled finalization and gallery invalidation diagnostic
+
+An ignored Flutter diagnostic composes the production `AmeApp`, primary scan lifecycle, viewport and
+gallery widgets with controlled scan/catalog ports. Its generated decoded PNG backs 96 initial
+asset records, followed by a coherent 128-record peer snapshot. The 10000/10000 validation counters
+and imported-root count are injected values, not a real 10000-file scan. The window is 1280×800 on
+the Windows target platform; this is not native input or mixed-media Release acceptance.
+
+The first three invocations fail because the fixture's asynchronous catalog callback calls guarded
+`expect` while `WidgetTester.pump` is active. The third records that exact framework conflict in
+the task error; its oversized text then overflows the task-surface column by 110 pixels. Replacing
+only that fixture assertion with `expectSync` preserves the query check and produces a passing
+fourth invocation. Original logs and source versions remain retained. The induced error-text
+overflow does not reproduce a normal import transition or establish the old native incident's cause.
+
+The corrected diagnostic checks 100 deliberately advanced frames: 60 across 30 complete-validation
+events, ten during a held peer read with ten further validation events, ten after peer publication,
+ten during the held committed import reload, and ten after its release. All 16 selected visible
+tile location IDs and rectangles remain equal to their baseline, decoded image objects remain
+non-null, the rail remains present, and no Retry label or framework exception appears. The selected
+root count advances from 96 to 128 only after the controlled peer snapshot arrives. Import remains
+scanning before its terminal event, refreshing while its committed reload is held, and visibly
+completed after release. One late Finalizing event is injected after the Completed event while
+that reload is still pending; it cannot reopen the scan or prevent the visible terminal result.
+
+The fixture records exactly two `_Catalog.load` calls: peer refresh and committed import reload.
+Repeated Finalizing events admit no additional gallery snapshot load. Timeline calls are not
+counted; these are not total database/I/O counts. Non-null image objects and sampled geometry are
+not a pixel oracle or proof of continuous native stability. The independent review confirms the
+fixture correction and these limited claims. No product change follows this unreproduced frontend
+hypothesis. Real backend publication duration and the reported native refresh interval remain open.
+
+`.build/r2c-finalization-frame-diagnostic/assessment.json` binds all four original logs, three earlier
+fixture versions, the final fixture/PNG and its two shared test helpers. It records the clean product
+base, library tree and 37 hashes still matching the passing Daily; no test process remains. Its
+SHA-256 is `3B65D0F385055A8F0E4BD40ABDD6093AFF9F61D1067CA2955B80C3A80BD4A24D`.
+
 ### Input-stage correction and incomplete deletion admission
 
 The ignored native input helper now has an independent 40-line scheduling owner with 60 dedicated

@@ -2256,6 +2256,38 @@ unmeasured; no product completion is inferred. Charge all
 25 minutes: 8469 charged, 8504 reserved, retaining only the separate conditional 35-minute deletion
 admission. This closes the read-only method without another native lifetime.
 
+#### Finalization feedback and gallery invalidation diagnostic
+
+Reserve 60 active minutes, cumulative 8564 reserved: 20 for current event/publication ownership and
+existing-test mapping, 20 for one controlled full-application fixture, ten for the focused diagnostic,
+five independent review and five records. Keep the separate 35-minute deletion admission pending.
+The hypothesis is that repeated complete-validation progress, or its interleaving with a peer's
+publication, clears the selected gallery or initiates redundant reads before terminal import.
+
+Use the production application, controller, scan lifecycle and widgets with bounded generated
+decoded previews and controlled scan/catalog ports. Emit repeated 10000/10000 Finalizing events,
+hold and release a coherent peer publication, then hold and release the import's committed reload.
+Observe every deliberately advanced frame for retained visible tile identity/geometry, actual
+decoded images, truthful task state and catalog-read admission; a late progress event cannot reopen
+the completed scan. Record fixture size and injected boundaries explicitly. This isolates frontend
+causality; synthetic counters and port results do not represent a real 10000-file scan, backend
+publication cost, native input, or the frozen mixed-media Release acceptance.
+
+Keep diagnostics in ignored scratch and preserve failed outputs. Correct only a demonstrated
+fixture defect within this block; a product counterexample requires a separately recorded owning
+repair. Do not change product status text, add retries, weaken publication/identity guards, or start
+a native lifetime merely to make the symptom disappear. If the hypothesis is not reproduced, retain
+that limited result and the native gap without treating it as an import or stability pass.
+
+The [controlled frame diagnostic](../acceptance/r2c-browsing-admission.md#controlled-finalization-and-gallery-invalidation-diagnostic)
+passes after correcting the fixture's asynchronous assertion and retaining three failed outputs.
+It observes 100 sampled frames, 16 stable visible tile IDs/rectangles, decoded images and two gallery
+snapshot loads; timeline/I/O totals are not measured. Repeated Finalizing and a late event during
+committed refresh do not reopen the task or clear this gallery. The independent review confirms
+the narrow result, not real backend/native acceptance. Charge the full 60 minutes: 8529 charged,
+8564 reserved, with the separate 35-minute deletion admission still conditional. This diagnostic
+does not admit a product patch or another native lifetime.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one
