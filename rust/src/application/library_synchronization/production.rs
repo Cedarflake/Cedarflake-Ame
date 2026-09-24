@@ -90,6 +90,14 @@ mod inventory_cleanup;
 mod poll_catalog;
 
 #[cfg(windows)]
+mod live_work;
+
+#[cfg(windows)]
+use live_work::LiveTask;
+#[cfg(all(test, windows))]
+use live_work::LiveWorkOutcome;
+
+#[cfg(windows)]
 use poll_catalog::PollCatalogOwner;
 
 #[cfg(windows)]
@@ -610,14 +618,6 @@ struct JournalCloseTask {
     receiver: Receiver<Result<(), ScanError>>,
     worker: Option<JoinHandle<()>>,
     outcome: Option<Result<(), ScanError>>,
-}
-
-#[cfg(windows)]
-struct LiveTask {
-    root_id: String,
-    cancelled: Arc<AtomicBool>,
-    receiver: Receiver<Result<AuthoritativeLibraryChangeReport, ScanError>>,
-    worker: Option<JoinHandle<()>>,
 }
 
 #[cfg(windows)]
@@ -2554,19 +2554,13 @@ impl ProductionSynchronization {
         else {
             return Ok(());
         };
-        self.start_live_work(
-            root_id,
-            root_generation,
-            now_unix_ms,
-            storage.catalog_path.clone(),
-        )
+        self.start_live_work(root_id, root_generation, storage.catalog_path.clone())
     }
 
     fn start_live_work(
         &mut self,
         root_id: String,
         root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
         catalog_path: std::path::PathBuf,
     ) -> Result<(), ScanError> {
         if self.live.is_some() {
@@ -2575,68 +2569,14 @@ impl ProductionSynchronization {
                 "Another P0 live worker already owns the reserved slot",
             ));
         }
-        let queue_policy = self.runtime.queue_policy();
-        let recovery_policy = self.runtime.recovery_policy();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let worker_root_id = root_id.clone();
         let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::Builder::new()
-            .name("ame-p0-live-reconciliation".to_owned())
-            .spawn(move || {
-                let catalog = catalog_session.open_in_lane(LibraryChangeLane::Live);
-                let result = catalog.and_then(|mut catalog| {
-                    let Some(root) = catalog.load_incremental_catalog_root(&worker_root_id)? else {
-                        return Ok(AuthoritativeLibraryChangeReport::default());
-                    };
-                    if root.root_generation != root_generation || root.active_scan_id.is_none() {
-                        return Ok(AuthoritativeLibraryChangeReport::default());
-                    }
-                    if let Some(leased) = catalog.lease_live_authoritative_library_change(
-                        &worker_root_id,
-                        root_generation,
-                        now_unix_ms,
-                        queue_policy,
-                    )? {
-                        #[cfg(test)]
-                        pause_live_worker_after_lease(&worker_root_id);
-                        process_leased_authoritative_library_change_cancellable(
-                            &mut catalog,
-                            &root,
-                            &leased,
-                            now_unix_ms,
-                            queue_policy,
-                            recovery_policy,
-                            &worker_cancelled,
-                        )
-                    } else {
-                        process_ready_library_changes_in_lane_cancellable(
-                            &mut catalog,
-                            &worker_root_id,
-                            root_generation,
-                            LibraryChangeLane::Live,
-                            now_unix_ms,
-                            queue_policy,
-                            &worker_cancelled,
-                        )
-                        .map(|incremental| AuthoritativeLibraryChangeReport { incremental })
-                    }
-                });
-                let _ = sender.send(result);
-            })
-            .map_err(|error| {
-                ScanError::new(
-                    "live_reconciliation_worker_start_failed",
-                    format!("Could not start the reserved P0 worker: {error}"),
-                )
-            })?;
-        self.live = Some(LiveTask {
+        self.live = Some(LiveTask::start(
+            catalog_session,
             root_id,
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
+            root_generation,
+            self.runtime.queue_policy(),
+            self.runtime.recovery_policy(),
+        )?);
         Ok(())
     }
 
@@ -2644,36 +2584,22 @@ impl ProductionSynchronization {
         let Some(task) = self.live.as_mut() else {
             return 0;
         };
-        let result = match task.receiver.try_recv() {
-            Ok(result) => Some(result),
-            Err(TryRecvError::Empty) => None,
-            Err(TryRecvError::Disconnected) => Some(Err(ScanError::new(
-                "live_reconciliation_worker_disconnected",
-                "The reserved P0 worker stopped without a result",
-            ))),
-        };
-        let Some(result) = result else {
+        let Some(outcome) = task.poll() else {
             return 0;
         };
-        let root_id = task.root_id.clone();
-        if let Some(worker) = task.worker.take() {
-            let _ = worker.join();
-        }
+        let root_id = task.root_id().to_owned();
         self.live = None;
-        match result {
-            Ok(report) => report.incremental.applied_mutation_count,
-            Err(error) => {
-                #[cfg(debug_assertions)]
-                eprintln!(
-                    "[Ame sync] live worker failed code={} message={}",
-                    error.code,
-                    one_line_message(&error.message),
-                );
-                self.runtime
-                    .record_recovery_failure(&root_id, &error.code, now_unix_ms);
-                0
-            }
+        if let Some(error) = outcome.failure {
+            #[cfg(debug_assertions)]
+            eprintln!(
+                "[Ame sync] live worker failed code={} message={}",
+                error.code,
+                one_line_message(&error.message),
+            );
+            self.runtime
+                .record_recovery_failure(&root_id, &error.code, now_unix_ms);
         }
+        outcome.report.applied_mutation_count
     }
 
     fn poll_journal(&mut self) -> u32 {
@@ -3725,7 +3651,7 @@ impl ProductionSynchronization {
         self.is_stopping = true;
         self.stop_requested.store(true, Ordering::Release);
         if let Some(task) = &self.live {
-            task.cancelled.store(true, Ordering::Release);
+            task.request_stop();
         }
         if let Some(task) = &self.journal {
             task.cancelled.store(true, Ordering::Release);
@@ -3827,13 +3753,7 @@ impl ProductionSynchronization {
         self.maybe_panic_while_draining(DrainPanicPoint::RequestStop);
         self.request_stop()?;
         if let Some(task) = self.live.as_mut() {
-            finish_runtime_task_until(
-                &task.receiver,
-                &mut task.worker,
-                deadline,
-                "live_reconciliation_stop_timeout",
-                "P0 reconciliation did not stop within the bounded shutdown window",
-            )?;
+            task.finish_stopping_until(deadline)?;
             #[cfg(test)]
             self.maybe_panic_while_draining(DrainPanicPoint::P0Result);
             self.live = None;
@@ -4048,6 +3968,9 @@ fn unsupported_platform() -> ScanError {
 
 #[cfg(test)]
 mod tests {
+    #[cfg(windows)]
+    pub(super) mod live_worker;
+
     #[cfg(windows)]
     mod priority;
     #[cfg(windows)]
@@ -4574,14 +4497,14 @@ mod tests {
             DrainPanicPoint::P0Result => {
                 let (sender, receiver) = mpsc::sync_channel(1);
                 let worker = thread::spawn(move || {
-                    let _ = sender.send(Ok(AuthoritativeLibraryChangeReport::default()));
+                    let _ = sender.send(LiveWorkOutcome::default());
                 });
-                runtime.live = Some(LiveTask {
-                    root_id: "panic-p0".to_owned(),
-                    cancelled: Arc::new(AtomicBool::new(false)),
+                runtime.live = Some(LiveTask::from_test_parts(
+                    "panic-p0".to_owned(),
+                    Arc::new(AtomicBool::new(false)),
                     receiver,
-                    worker: Some(worker),
-                });
+                    worker,
+                ));
             }
             DrainPanicPoint::P1Result => {
                 let (sender, receiver) = mpsc::sync_channel(1);
@@ -4877,11 +4800,11 @@ mod tests {
     }
 
     #[cfg(windows)]
-    struct ProductionGapFixture {
+    pub(super) struct ProductionGapFixture {
         _directory: tempfile::TempDir,
-        source_root: std::path::PathBuf,
-        root_id: String,
-        storage: crate::application::storage::StoragePaths,
+        pub(super) source_root: std::path::PathBuf,
+        pub(super) root_id: String,
+        pub(super) storage: crate::application::storage::StoragePaths,
         scan_rows_before: i64,
     }
 
@@ -4967,7 +4890,7 @@ mod tests {
             }
         }
 
-        fn new_with_media_baseline(name: &str) -> Self {
+        pub(super) fn new_with_media_baseline(name: &str) -> Self {
             let directory = tempfile::tempdir().expect("media gap test directory");
             let source_root = directory.path().join("source");
             std::fs::create_dir_all(&source_root).expect("media gap source root");
@@ -7357,14 +7280,14 @@ mod tests {
                 thread::yield_now();
             }
             p0_worker_finished.store(true, Ordering::Release);
-            let _ = p0_sender.send(Ok(AuthoritativeLibraryChangeReport::default()));
+            let _ = p0_sender.send(LiveWorkOutcome::default());
         });
-        production.live = Some(LiveTask {
-            root_id: "panic-p0".to_owned(),
-            cancelled: p0_cancelled,
-            receiver: p0_receiver,
-            worker: Some(p0_worker),
-        });
+        production.live = Some(LiveTask::from_test_parts(
+            "panic-p0".to_owned(),
+            p0_cancelled,
+            p0_receiver,
+            p0_worker,
+        ));
 
         let p1_cancelled = Arc::new(AtomicBool::new(false));
         let p1_release = Arc::new(AtomicBool::new(false));
@@ -7488,7 +7411,7 @@ mod tests {
                 runtime
                     .live
                     .as_ref()
-                    .and_then(|task| task.worker.as_ref())
+                    .and_then(|task| task.progress().1)
                     .is_some()
             );
             assert!(
@@ -7522,8 +7445,7 @@ mod tests {
                 runtime
                     .live
                     .as_ref()
-                    .and_then(|task| task.worker.as_ref())
-                    .is_some_and(JoinHandle::is_finished)
+                    .is_some_and(|task| task.progress().1 == Some(true))
                     && runtime
                         .journal
                         .as_ref()
@@ -7851,14 +7773,14 @@ mod tests {
                 thread::yield_now();
             }
             thread::sleep(Duration::from_millis(20));
-            let _ = sender.send(Ok(AuthoritativeLibraryChangeReport::default()));
+            let _ = sender.send(LiveWorkOutcome::default());
         });
-        runtime.live = Some(LiveTask {
-            root_id: "deadline-root".to_owned(),
-            cancelled: live_cancelled,
+        runtime.live = Some(LiveTask::from_test_parts(
+            "deadline-root".to_owned(),
+            live_cancelled,
             receiver,
-            worker: Some(worker),
-        });
+            worker,
+        ));
         let registry = ready_test_registry(runtime);
 
         let started = Instant::now();
@@ -8018,14 +7940,14 @@ mod tests {
             }
             thread::sleep(Duration::from_millis(30));
             p0_worker_finished.store(true, Ordering::Release);
-            let _ = p0_sender.send(Ok(AuthoritativeLibraryChangeReport::default()));
+            let _ = p0_sender.send(LiveWorkOutcome::default());
         });
-        runtime.live = Some(LiveTask {
-            root_id: "root-p0".to_owned(),
-            cancelled: Arc::clone(&p0_cancelled),
-            receiver: p0_receiver,
-            worker: Some(p0_worker),
-        });
+        runtime.live = Some(LiveTask::from_test_parts(
+            "root-p0".to_owned(),
+            Arc::clone(&p0_cancelled),
+            p0_receiver,
+            p0_worker,
+        ));
 
         let (p1_sender, p1_receiver) = mpsc::sync_channel(1);
         let p1_worker_cancelled = Arc::clone(&p1_cancelled);

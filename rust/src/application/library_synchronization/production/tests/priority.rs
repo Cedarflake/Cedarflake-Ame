@@ -579,9 +579,7 @@ fn run_priority_workload(
                 std::time::Instant::now() < lane_progress_deadline,
                 "sample {index} did not advance both active lower-priority lanes: p1={p1_completed_at_start}->{p1_completed} p2={p2_source_reads_at_start}->{p2_source_reads} visible={visible_latency:?} poll_count={poll_count} poll_total={poll_total:?} poll_maximum={poll_maximum:?} queue_admission={queue_admission_latency:?} worker_admission={worker_admission_latency:?} queue={:?} live_worker={:?} journal_worker={:?} recovery_worker={:?} runtime_stopping={} stop_requested={} low_writer_ops={} now_unix_ms={:?}",
                 priority_queue_progress(&progress_connection),
-                fixture.production.live.as_ref().map(|task| {
-                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
-                }),
+                fixture.production.live.as_ref().map(LiveTask::progress),
                 fixture.production.journal.as_ref().map(|task| {
                     priority_worker_progress(task.worker.as_ref(), &task.cancelled)
                 }),

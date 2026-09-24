@@ -120,8 +120,9 @@ host retirement. Native keyboard sort return now passes on current Release sourc
 more-menu input and remaining Release variants retain their frozen duties.
 The [Release bulk deletion result](acceptance/r2c-release-native.md#release-bulk-deletion-convergence-failure)
 now establishes a functional blocker: deletion misses its existing convergence bound and leaves
-deleted paths in the closed catalog. Diagnose and repair the Live worker scheduling boundary first;
-historical navigation during the same publication stream remains unproved. Earlier Debug C04 and
+deleted paths in the closed catalog. The Live worker scheduling correction now has focused and
+complete local Daily evidence; verify the corrected current Release workload next. Historical
+navigation during the same publication stream remains unproved. Earlier Debug C04 and
 selected browsing passes do not accept this Release workload. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

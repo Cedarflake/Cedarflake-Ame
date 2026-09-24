@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-23
+- Last amended: 2026-09-24
 
 ## Context
 
@@ -56,6 +56,14 @@ persistence layers.
   coordinator. Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
+- `production/live_work.rs` owns an admitted Live worker's thread, result, cancellation and bounded
+  retirement. `live_work/batch.rs` owns continuation across ready authoritative scopes, bounded by
+  the queue lease limit and a monotonic admission quantum. Each scope reloads root/generation and
+  catalog revision; its existing namespace, lease and publication guards remain authoritative.
+  Partial committed results survive a later terminal error. A retry, deferral or supersession ends
+  the quantum, and ordinary path fallback never extends a partially consumed scope batch. Root
+  choice and rotation remain in the coordinator; a presentation poll is not a per-scope execution
+  permit. The quantum stops new admission rather than promising interruption of a running scope.
 - `library_synchronization/observer_handoff.rs` owns the uncommitted observation plan, partial
   capacity publication, and its opaque writer reservation through `ports/LibraryChangeIngress`.
   The runtime cannot overwrite that plan or claim freshness before submission. Adapter-owned

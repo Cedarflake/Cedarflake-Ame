@@ -758,3 +758,86 @@ The two read-only diagnostic scripts are retained separately under
 uses read-only/query-only access and confirms its hash unchanged. The complete host postcheck is
 `source-integrity-1790205334844090600.json` in the retained generated fixture, SHA-256
 `E4FC9350C31ED525F1713D7F6EBC3DD3274FEE7C9EA705DE656DF6C7189CEF87`.
+
+## Bounded Live worker continuation
+
+The first causal regression uses two generated images, two already-due authoritative deletion
+scopes, one external production poll and complete worker retirement before exact membership
+inspection. On unchanged product source at `5300b3c`, it fails in 0.68 seconds with
+`unchanged.png` still cataloged. The failed output is retained separately as
+`.build/r2c-release-bulk-analysis/cadence-red.txt`. This confirms a concrete per-scope poll
+dependency alongside the closed Release queue's measured cadence. It does not explain every
+delay or the unresolved rail observations.
+
+The application now has an admitted-worker owner in `production/live_work.rs` and a bounded
+reconciliation owner in `live_work/batch.rs`. The coordinator retains single-slot admission,
+root selection and rotation. A worker continues successfully completed authoritative scopes up to
+the existing queue lease bound and a 100-ms monotonic admission quantum. An already-running scope
+retains its previous reconstruction and cancellation bounds. Root generation, active publication
+and catalog revision are read again for each scope, with fresh admission time. Retry, deferral,
+supersession, cancellation, root retirement or error stops continuation. Ordinary path batching
+is only the initial fallback; it cannot extend a partially consumed scope batch. Committed
+mutation counts and a later structured failure survive together in the worker outcome.
+
+The owning change preserves namespace/lease checks, transactions, queue classification, debounce,
+retry policy, external polling, public bridge, schema and dependencies. It writes no media.
+Worker timeout retains the original handle and deadline rather than detaching an executor.
+No-change polling does not start this worker without ready work. Broader production runtime and
+lane decomposition remains the recorded debt; this is a complete extraction of the admitted Live
+worker responsibility, not a claim that the entire runtime has been split.
+
+Independent review identifies two validation gaps and the recheck confirms both corrections.
+The original strict two-deletion assertion is moved into deterministic execution of the actual
+reconciliation owner with a controlled elapsed clock. It proves both real SQLite publications,
+fresh revisions and durable completion times 37 ms apart, without treating a legitimate 100-ms
+yield on a slow machine as failure. The real-thread production test separately retains bounded
+progress and exact remaining-membership checks. The original failed test is preserved as causal
+evidence; it is not described as an unchanged test turning green. Another actual-catalog case
+retires or advances the root immediately after the first successful scope and proves that the
+next step acquires no lease. A separate after-lease replacement case retains publication fencing.
+
+The final `live_work` focused selection passes 24 tests in 9.74 seconds, with none ignored. These
+include batch/time bounds, no-change scope accounting, cancellation before/between/after leases,
+retry/deferral/supersession, partial success followed by error, ordinary path fallback, generation
+replacement, root removal, peer rotation, disconnection and retained timeout ownership. Related
+production namespace/ancestor-guard and running-scan cases pass 3/3; the retained-worker panic
+and combined P0/P1/P2 stop/restart cases pass 1/1 each. `quality_lint.ps1` passes, including warnings-
+denied Clippy and Dart analysis. Its synthetic summary-persistence warning is an intentional
+negative fixture that verifies original-error precedence and lock release, not a product warning.
+The PowerShell transcript is `.build/r2c-live-worker-fix/focused-and-lint.txt`; native test counts
+come from the completed command output. Full Daily subsequently passes: 1534 Rust tests, zero
+failures and 19 existing ignored cases in 1009.87 seconds, three broker binary integration tests,
+all 88 Flutter test files, the three-test Windows scan integration, the original ten-phase
+whole-window UIA contract, 15 asynchronous bridge contracts and whitespace verification. The
+canonical command exits zero. Ignored cases retain their explicit manual, separately authorized
+or subprocess-only duties; none is converted into an acceptance pass.
+
+The connection-lifetime control and original complete mixed-load test both pass in that same
+suite. The per-epoch control's 91-ms P95 only covers its first-page boundary; the original full
+published-baseline workload separately passes with 123-ms P95 and no sample above one second.
+The earlier C01/C02 failures remain historical evidence with their unresolved attribution and
+final candidate obligations. This current local checkpoint does not establish hosted or retained-
+library acceptance. Current Release build/client verification remains open.
+
+Daily runs from 07:57:10 to 08:30:22 local time on 2026-09-24. Its PowerShell transcript and
+machine-readable summary are `.build/r2c-live-worker-fix/daily.txt` and `daily-summary.json`.
+The transcript does not include every native child-output line. Windows scan evidence is retained
+under `build/integration-storage-c1f0c7ff135649d4beee1bd08d065373`; it exits zero in 73666 ms.
+All ten UIA phases and owned process/Job retirement pass, with no cleanup failure.
+
+Physical reviewability at this checkpoint:
+
+| Owner | Production/source lines | Inline-test lines | Dedicated-test lines |
+| --- | ---: | ---: | ---: |
+| Production coordinator before | 4048 | 10488 | existing shared tests |
+| Production coordinator after | 3968 | 10490 | existing shared tests |
+| Admitted Live worker | 132 | 0 | 57 |
+| Live reconciliation batch | 187 | 0 | 308 |
+| Production worker regressions | 0 | 0 | 238 |
+
+New owner source totals include their small conditional test-support methods and module declarations;
+test bodies are physically separate. Shared priority diagnostics only switch to the owned read-only
+accessor, and shared generated-fixture visibility is restricted to production test descendants.
+Focused evidence, the current Daily and review do not close the original 300-second Release
+deletion bound, rail navigation, terminal-input evidence, final-source or external acceptance
+obligations.

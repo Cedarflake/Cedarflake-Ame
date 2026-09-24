@@ -1744,6 +1744,82 @@ an inconclusive test leads to a changed diagnostic method, never another unchang
 Keep navigation during publication and terminal-input evidence as separate obligations until their
 own causal evidence exists. A worker regression alone does not accept the Release user workflow.
 
+The generated two-image regression now fails on unchanged product code: one external production
+poll admits the worker, both source deletions are already due, and the completed worker leaves
+`unchanged.png` cataloged. The test retires all workers before inspecting exact membership. Together
+with the one-scope worker and the recorded 250-ms completion cadence, this establishes the imposed
+per-scope presentation-poll dependency. It does not establish the navigation cause or predict full
+Release convergence. Charge the diagnostic reservation through 7609.
+
+#### Bounded Live worker continuation repair
+
+Reserve 120 active minutes, cumulative 7729: 40 for the ownership extraction and bounded execution,
+25 for focused regressions, 20 for applicable serial quality work, 20 for independent implementation
+review/recheck and 15 for records. Verification process wall time is separate. This changes only
+the Rust application Live worker boundary; it admits no dependency, schema, public bridge, source
+mutation, UI polling or scope-classification change.
+
+The smallest outcome is that already-ready independent deletion scopes can progress within one
+admitted worker instead of waiting for a presentation poll each. Extract admitted worker start,
+completion, cancellation and deadline retirement into its own typed owner. Keep root selection
+and its rotation cursor in the production coordinator. Continue successful authoritative scopes
+up to the existing queue batch bound, with a 100-ms monotonic admission quantum; a running scoped
+operation retains its existing cancellation and bounded reconstruction rules. The quantum stops
+admitting additional work, not an already-started operation. Re-read root generation, publication
+baseline and catalog revision before each lease, use current time for later admissions, and stop
+on deferral, retry, cancellation, missing/replaced root or terminal error. Ordinary path-batch
+fallback keeps its current admission policy. Retain committed mutation accounting even if a later
+scope fails; no partial result becomes a complete-synchronization claim.
+
+Prove the original regression, batch/time bounds, fresh revision/root checks, cancellation after
+lease and between scopes, partial failure, owned retirement, and next-root fairness. Reuse relevant
+existing namespace, full-scan overlap and shutdown regressions. Record owner sizes and preserve
+the earlier Release failure. Run formatting, focused tests, lint and applicable Daily/unsigned
+Release gates serially; record pre-existing gate failures separately and diagnose any new failure
+before rerunning. A fresh native workload needs its own current payload binding and corrected,
+reviewed terminal-input evidence method. Do not launch it or raise its original 300/900-second
+bounds merely because focused tests pass. Navigation remains a separate unresolved obligation.
+
+The ownership extraction, focused boundary tests and independent recheck now pass. The complete
+local Daily also passes, including the original full mixed-load and ten-phase UIA cases. This
+does not erase their earlier failures or close final candidate obligations. The current unsigned
+build and the separately admitted native workload remain the next verification steps.
+
+#### Release Live continuation revalidation
+
+Reserve 75 active minutes, cumulative 7804: 25 for the fresh method and input-evidence guards,
+ten for independent method/result review, 15 for one native lifetime, ten for postchecks and
+15 for records. Build and verification process wall time remain separate. The preceding repair
+must first finish its applicable quality checkpoint and produce a fresh canonical unsigned Release
+payload; record any unresolved Daily failure separately without calling the candidate accepted.
+
+Retain the complete 10000-file mixed-size/historical background and the exact 12-to-2012-to-512
+batch roster. Keep both picker confirmations and addition admission before 240 seconds, removal
+admission before 390 seconds, optional interaction before 690 seconds, 300-second convergence,
+900-second parent, six-second application close, seven-GiB host entry, three-GiB guest and two-GiB
+client/host reserve.
+Use the reviewed independent background preparation and ordinary guest Known Folders. Bind every
+actual input to a fresh observed window and screenshot. No real root or installed service is used.
+
+Create a new helper closure and single-use run. A named Sandbox-close confirmation method fixes
+the action identity before sending input. The terminal oracle may additionally recognize the exact
+missing-screenshot-target error for that same bound Sandbox process, only after acknowledged final
+input with its unique matching before/after pair and independently successful host retirement.
+Prove rejection of unacknowledged or failed input, a foreign target/run, arbitrary capture errors,
+later input and remaining processes. Preserve all preceding configurations, receipts, manifests
+and failed conclusions unchanged; the new oracle cannot retroactively accept the failed workload.
+
+After visible automatic addition and deletion, inspect exact closed catalog membership and source
+hashes/dates, record convergence from the original stimulus admission, and verify worker/process
+retirement and memory. Exercise historical navigation during publication where time permits and
+after deletion without a compensating wheel event; missing native observations remain open.
+Only after both batch assertions pass, use any remaining input window for viewer return and the
+already-open layout/more-menu keyboard-return variants. Each menu requires observed keyboard
+focus and Enter/Escape/Enter without pointer refocus; the original cutoff and normal close reserve
+remain binding. Unreached variants carry forward without another lifetime in this admission.
+Do not infer absence of transient Retry or blank frames from sparse screenshots. A failure ends
+this admission with evidence and a revised causal method; no unchanged replay or extended deadline.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one
