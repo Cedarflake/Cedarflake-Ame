@@ -72,6 +72,65 @@ existing scan test namespace. Record production/inline/dedicated-test sizes and 
 counts. A failed assertion or changed cost path requires diagnosis before further runs. Real roots
 and the frozen mixed-media client corpus remain untouched by this extraction.
 
+#### M03 event-boundary cost observation
+
+After the committed-position checkpoint, reserve 90 active minutes, cumulative 9004 reserved:
+20 for the original benchmark/profile and event boundaries, 25 for test-only observation and its
+boundary checks, 15 for one changed measurement and applicable serial gates, 15 independent review
+and 15 records. The preceding 8879 charged minutes and conditional 35-minute deletion admission
+remain intact. This advances the incomplete M03 cost comparison while exact-deletion authority is
+pending; it does not waive functional or external acceptance.
+
+The original workstation command uses Debug, whereas hosted synthetic workloads compile Release.
+Do not replace the recorded 72090-ms Debug cold-scan failure with a hosted Release pass. Add bounded
+monotonic event observations only to the existing generated benchmark: call entry to Started,
+Started to first Finalizing, validation through the first complete counter, publication through
+Completed, and return after Completed. Repeated complete counters cannot reset the publication
+interval. Reject missing, foreign, out-of-order or incomplete observations and prove those checks
+without filesystem work. These event intervals localize costs, not native I/O or thread scheduling.
+
+Keep the original test identity, complete 10000-file cold/warm/pause/resume/cancel workload, exact
+membership, source checks, 60/60/5/60/5-second thresholds and 512 MiB ceiling. No product behavior,
+source-library access, new dependency or benchmark deadline changes are included. After focused
+observer checks and one independent method review, admit one serial Debug invocation through the
+existing performance command under the repository lock. Preserve its result even if an assertion
+fails; diagnose the measured dominant interval before any further workload or product repair.
+Complete applicable lint/Daily evidence for changed tests and record profile/source differences
+before interpreting comparisons. A pass does not retroactively explain the old failure.
+
+The single actual workload and method/evidence review consume this observation's diagnostic
+allowance. Its failed performance result and current correctness-gate status belong in the
+[M03 checkpoint](../acceptance/r2c-maintainability.md#m03-event-boundary-cost-checkpoint).
+Conservatively charge the 90 minutes in full: cumulative work is 8969 charged / 9004 reserved,
+including the untouched conditional 35-minute deletion admission. No second workload is admitted
+under this observation block.
+
+#### M03 owning-operation measurement method
+
+The event-boundary result leaves the original Debug limits unmet. Its dominant interval precedes
+final validation, with file inspection, prior selection, staging, traversal and checkpoints still
+combined. Prepare a second bounded diagnostic pass after the current test-only checkpoint is
+recorded. On admission, reserve 90 active minutes: 15 for operation/source mapping, 25 for a typed
+test-only aggregate collector, 15 for focused checks and result analysis, 15 independent review,
+and 20 for recording and applicable serial gates. Do not charge or start this queued block as part
+of the preceding 90-minute observation.
+
+Measure the existing operations at their owning call boundaries: source discovery, prior selection,
+media inspection, location staging and checkpoint/directory persistence. Keep a fixed-size set of
+counts and monotonic durations scoped to one test thread and scan operation; retain no event list,
+file paths or per-file output. Prove disabled collection, phase accounting, scope retirement and
+failure cleanup. Calls, ordering, returns, source checks and transaction boundaries must remain
+unchanged. The compiled application gains no diagnostic control, dependency or alternate policy.
+
+After method review, admit one instrumented invocation of the same Debug 10000-file workload under
+its existing limits and repository lock. Bind the source and helper hashes, report unaccounted time,
+and preserve all original assertions and any failure. Do not attribute the current cold/warm gap
+to metadata reuse or repeated path opening without operation evidence. The existing guarded source
+inspection paths are comparison candidates only; their existence is not permission to weaken
+identity or namespace checks. This method admits measurement, not a speculative fast path. Any
+later repair requires a measured owner, a narrow causal regression and its own bounded method;
+unexplained cost after this pass ends diagnostic expansion for this family.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle

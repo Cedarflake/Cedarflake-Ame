@@ -93,6 +93,85 @@ not weakened. The changed-source case proves prior selection; existing scan test
 complete failure/publication oracles. Independent review plus one scoped fixture recheck reports
 no actionable issue, charging six active minutes. Performance acceptance remains open above.
 
+### M03 event-boundary cost checkpoint
+
+The 2026-09-24 measurement uses production base `562e53d` plus three test-only files. It retains the
+original workstation Debug command, 10000 generated 2-by-2 PNG files, cold/warm/pause/resume/cancel
+sequence, 60/60/5/60/5-second limits and 512 MiB working-set ceiling. Hosted synthetic jobs use
+Release; their passing results cannot replace this Debug gate. Production, bridge, schema and
+dependencies are unchanged. Intervening product changes and host conditions also prevent treating
+this measurement as an isolated causal comparison of the earlier M03 extraction.
+
+`tests/phase_cost.rs` records monotonic intervals without retaining events or adding I/O. All events
+require the current scan identity and lifecycle; discovery cannot follow finalization, the first
+validation counter must be zero, and issues or non-success terminal states reject the measurement.
+Completion requires the full, issue-free, unlimited inventory. Repeated complete counters retain
+the first timestamp. Nine deterministic boundary cases pass after independent method review
+identified and corrected the initial observer's unchecked event variants and missing zero boundary.
+The first four-case result is superseded by this nine-case result, not a failed product test.
+
+The initial capture failed before workload launch because its tool process inherited equal `Path`
+and `PATH` entries. The original admission and empty output remain in `.build/r2c-scan-phase-cost/`.
+A process-only normalization was first checked to reduce two equal entries to one without changing
+the value. The corrected capture rejects any other duplicate shape; it changes no system settings.
+Only one actual workload ran, with the canonical command under the repository mutex. Its source and
+helper hashes remained unchanged, and its actual failing exit code is retained.
+
+| Operation | Entry to Started (s) | Started to first Finalizing (s) | First to complete validation counter (s) | Complete counter to Completed (s) | Completed to return (s) | Total (s) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Cold | 0.269 | 55.297 | 12.071 | 0.842 | 0.015 | 68.494 |
+| Warm | 0.022 | 23.431 | 11.870 | 2.443 | 0.008 | 37.774 |
+| Resume | 0.071 | 55.366 | 12.175 | 0.865 | 0.015 | 68.491 |
+
+Each operation observed one complete-counter event. Values are rounded; raw microseconds are
+retained. Started-to-Finalizing includes traversal, identity/metadata work, staging, checkpoints
+and validation preparation. Complete-counter-to-Completed includes validation cleanup, namespace
+revalidation and publication; it is not a pure SQLite or scheduler measurement.
+
+The original cold assertion **fails** at 68.494 seconds. Recorded resume cost also exceeds its
+60-second limit, although that later assertion is not reached. Warm, pause (10 ms) and cancel
+(142 ms) measurements remain below their unchanged limits. Peak observed working set is 34193408
+bytes; catalog sizes are 54145024 and 31244288 bytes. Fixture creation takes 13.357 seconds,
+compilation 32.15 seconds, test execution 199.73 seconds and the captured command 234.974 seconds.
+The membership/cancelled-staging assertions before the cold limit pass. The later warm, pause,
+resume and cancel limits, catalog-size assertions, two selected-source byte checks and final
+source-file count do not execute after that failure. Their recorded measurements do not stand in
+for passing assertions; this failed run is not a source-integrity pass. No real-root input is supplied.
+
+The dominant current interval is before final validation. Cold and resume spend about 55 seconds
+there versus 23 seconds warm, but the event boundary cannot distinguish inspection, identity reads,
+staging or host I/O cost. It does not establish a cause or authorize an optimization. The standalone
+workload has no concurrent native-client import peer; its short final interval cannot explain or
+dismiss the earlier Sandbox finalization wait. M03 cost acceptance and that original wait remain
+open. Further workload execution requires a changed, bounded method that measures the responsible
+operations inside this interval; repeating this unchanged benchmark is not admitted.
+
+Raw output, the failed result, source hashes and helper hashes are retained in
+`.build/r2c-scan-phase-cost-verified/benchmark-result.json` and its matching stdout/stderr. The test
+module is 5497 dedicated-test lines; the new observer is 165 and its boundary suite 222. The scan
+facade remains 728 production lines with no inline tests. These counts do not justify unrelated
+decomposition. Complete lint passes in 134.565 seconds with the frozen test sources unchanged.
+Complete serial Daily then passes in 1815.852 seconds on the same three source hashes: 1548 Rust
+library tests, three broker tests, 96 Flutter test files, native Windows scan, all ten whole-window
+accessibility phases, 16 asynchronous bridge contracts and matching hashes. Nineteen existing
+manual/authorization-bound Rust tests remain ignored. Native scan finishes in 52.455 seconds;
+scan and accessibility report successful exit and no cleanup failure. The failed manual performance
+workload is not repeated by Daily. Independent evidence review confirms the phase numbers, hashes
+and failed/unexecuted assertion boundaries; it does not claim a passing performance gate.
+
+The ignored local result receipts bind the raw output and frozen inputs:
+
+| Receipt in `.build/r2c-scan-phase-cost-verified/` | SHA-256 |
+| --- | --- |
+| `benchmark-result.json` | `944081F6CCCBB5E217CB5FF24221D85DB0E13BF98C5F9433BEE1486CB6DD8201` |
+| `lint-result.json` | `2830EDD92B65E55A0E373F14182E16D7962D681231141C750BC07AB1975DC8AA` |
+| `daily-result.json` | `3F36A6DE46D1FB7CAC53F327E314E5F4F54034C1E455166FC3389850149EEEFF` |
+
+The existing unsigned Release and selected native position evidence at `562e53d` remains applicable
+to its unchanged product sources; these new files compile only in Rust tests. That reuse is not a
+new Release build, full client acceptance or a replacement for the failed Debug cost gate. The next
+owning-operation measurement is queued in the execution plan and has not run at this checkpoint.
+
 ## M04 navigation ownership and lifecycle
 
 `LibraryTimeNavigationRequests` owns pending and active requests, duplicate-target sharing, latest

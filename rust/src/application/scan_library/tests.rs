@@ -27,6 +27,8 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChang
 use super::*;
 
 mod finalization_live;
+#[cfg(windows)]
+mod phase_cost;
 
 fn load_test_snapshot(storage: &StoragePaths) -> crate::domain::CatalogSnapshot {
     SqliteCatalog::open(storage.catalog_path.clone())
@@ -3266,14 +3268,42 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     };
 
     let cold_started = Instant::now();
-    run_scan_with_storage(request("benchmark-cold"), |_| true, storage_paths.clone())
-        .expect("cold scan");
+    let mut cold_cost = phase_cost::ScanPhaseCost::new("benchmark-cold", FILE_COUNT as u64);
+    run_scan_with_storage(
+        request("benchmark-cold"),
+        |event| {
+            cold_cost
+                .observe(&event, cold_started.elapsed())
+                .expect("cold phase evidence");
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("cold scan");
     let cold_elapsed = cold_started.elapsed();
+    cold_cost
+        .finish(cold_elapsed)
+        .expect("complete cold phases")
+        .print("cold");
 
     let warm_started = Instant::now();
-    run_scan_with_storage(request("benchmark-warm"), |_| true, storage_paths.clone())
-        .expect("warm scan");
+    let mut warm_cost = phase_cost::ScanPhaseCost::new("benchmark-warm", FILE_COUNT as u64);
+    run_scan_with_storage(
+        request("benchmark-warm"),
+        |event| {
+            warm_cost
+                .observe(&event, warm_started.elapsed())
+                .expect("warm phase evidence");
+            true
+        },
+        storage_paths.clone(),
+    )
+    .expect("warm scan");
     let warm_elapsed = warm_started.elapsed();
+    warm_cost
+        .finish(warm_elapsed)
+        .expect("complete warm phases")
+        .print("warm");
 
     // Only an unpublished first import retains a foreground pause checkpoint.
     let resumable_storage = StoragePaths {
@@ -3315,10 +3345,14 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     assert!(paused_snapshot.roots[0].active_scan_id.is_none());
 
     let resume_started = Instant::now();
+    let mut resume_cost = phase_cost::ScanPhaseCost::new("benchmark-resumed", FILE_COUNT as u64);
     let mut did_complete_resume = false;
     resume_scan_with_storage(
         request("benchmark-resumed"),
         |event| {
+            resume_cost
+                .observe(&event, resume_started.elapsed())
+                .expect("resume phase evidence");
             did_complete_resume |= matches!(event, ScanEvent::Completed { .. });
             true
         },
@@ -3326,6 +3360,10 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     )
     .expect("resumed benchmark scan");
     let resume_elapsed = resume_started.elapsed();
+    resume_cost
+        .finish(resume_elapsed)
+        .expect("complete resume phases")
+        .print("resume");
     assert!(did_complete_resume);
     let resumed_connection =
         Connection::open(&resumable_storage.catalog_path).expect("resumed benchmark catalog");
