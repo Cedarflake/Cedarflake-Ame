@@ -27,6 +27,16 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 use super::storage::catalog_admission::with_scan_start;
 use super::{StoragePaths, storage_paths};
 
+macro_rules! measure_scan_operation {
+    ($operation:ident, $call:expr) => {{
+        #[cfg(test)]
+        let _measurement = $crate::application::scan_library::operation_cost::OperationTimer::start(
+            $crate::application::scan_library::operation_cost::Operation::$operation,
+        );
+        $call
+    }};
+}
+
 #[cfg(test)]
 mod admission_tests;
 mod entry_processing;
@@ -36,6 +46,8 @@ mod finalization;
 mod inspection_failure;
 #[cfg(all(test, windows))]
 mod media_input_tests;
+#[cfg(test)]
+mod operation_cost;
 mod publication;
 #[cfg(test)]
 mod resumption_tests;

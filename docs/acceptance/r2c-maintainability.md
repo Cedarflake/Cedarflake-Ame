@@ -170,7 +170,117 @@ The ignored local result receipts bind the raw output and frozen inputs:
 The existing unsigned Release and selected native position evidence at `562e53d` remains applicable
 to its unchanged product sources; these new files compile only in Rust tests. That reuse is not a
 new Release build, full client acceptance or a replacement for the failed Debug cost gate. The next
-owning-operation measurement is queued in the execution plan and has not run at this checkpoint.
+owning-operation measurement was queued at that checkpoint; its subsequent result follows.
+
+Hosted [36002444315](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36002444315) completes
+successfully on committed phase-observer checkpoint `8d83a51`: all ten required jobs and the aggregate
+Windows gate pass, while three signing-only jobs skip. That run does not cover the subsequent
+operation-observer working tree and does not replace the failed workstation Debug performance gate.
+
+### M03 owning-operation cost checkpoint
+
+The second bounded diagnostic pass uses `8d83a51` plus six Rust files. A fixed six-category
+accumulator belongs to one synchronous test thread and one scan scope. Timers retain that scope's
+identity through drop; unfinished/overlapping scopes, overlapping operations and inconsistent
+elapsed totals reject reporting. No per-file record or path list is retained. Non-test expansion
+executes the original call expressions and original iterator; application behavior, source guards,
+transactions, schema, bridge and dependencies are unchanged.
+
+The first focused invocation fails to compile a new test's parent-module import; it never runs the
+workload. After that correction, 11 focused cases and lint pass. Independent method review then
+finds that directory creation returns a lazy iterator: timing only its constructor omits `next()`.
+A test-only iterator now times each original `next()` without prefetching or changing its release
+point. Three additional cases cover laziness/exhaustion, early exit and unwind retirement, and the
+two-image scan counts creation, all iterator reads and source visits. Final focused evidence has
+14 passes, zero failures/ignored and unchanged inputs: 44.32 seconds compilation, 0.33 seconds test
+execution and 49.088 seconds captured command time. The scoped recheck admits one measurement.
+Final complete lint passes in 245.458 seconds; the earlier 201-second pass is superseded.
+
+| Owning operation (seconds) | Cold | Warm | Resume |
+| --- | ---: | ---: | ---: |
+| Source discovery: iterator creation, each `next()`, and source visits | 11.835 | 8.872 | 9.220 |
+| Prior selection and identity preparation | 4.605 | 1.679 | 3.881 |
+| Media inspection, including metadata reuse | 39.150 | 0.005 | 30.233 |
+| Successful location staging | 18.968 | 14.399 | 14.101 |
+| Directory persistence reads and writes | 0.183 | 0.162 | 0.170 |
+| Traversal checkpoint persistence | 0.086 | 0.103 | 0.083 |
+| Accounted operation time | 74.827 | 25.219 | 57.688 |
+| Unaccounted whole-scan time | 13.941 | 15.011 | 13.228 |
+| Whole scan, truncated to milliseconds | 88.767 | 40.230 | 70.916 |
+
+Each scan records 20002 discovery calls, 10000 calls in each prior/inspection/staging category,
+86 directory-persistence calls and 79 traversal checkpoints. Discovery includes one iterator
+construction, 10001 iterator reads including exhaustion, and 10000 source visits. The resumed
+workload also traverses 10000 entries under the existing resume policy; the observer does not
+change that policy. Raw microseconds are retained; summing individually truncated intervals can
+differ by a few microseconds from the combined duration.
+
+Measured operations account for all but approximately 0.380 / 0.248 / 0.328 seconds of the
+Started-to-Finalizing intervals. Whole-scan unaccounted time also includes admission, final
+validation, publication, return, object conversion and measurement overhead. Validation takes
+11.940 / 11.846 / 11.778 seconds; complete-counter-to-Completed takes 1.066 / 2.885 / 1.039 seconds.
+Each scan emits one complete-counter event. These aggregate boundaries cannot assign native system
+call, decoder, SQLite, host scheduling or storage-device cost within an operation.
+
+The unchanged cold limit **fails** at 88.767 seconds. Resume is also measured above 60 seconds,
+although its assertion is not reached. Warm 40.230 seconds, pause 12 ms and cancel 184 ms are recorded
+without converting later unexecuted assertions into passes. Peak observed test working set is
+34803712 bytes against the unchanged 536870912-byte ceiling. Catalog sizes are 54128640 and
+31150080 bytes. Fixture creation takes 35.141 seconds, compilation 22.62 seconds, test execution
+247.12 seconds and the captured command 271.190 seconds. Cargo exits 101 and the capture exits 1;
+source/helper hashes are unchanged. Membership, resumed terminal state and cancelled-staging checks
+before the cold limit pass. Later latency/catalog assertions and the two source-byte/final source
+count checks do not execute. This remains a failed performance run, not a source-integrity pass.
+
+The dominant measured owner is media inspection, followed by location staging. The low warm-path
+cost is consistent with the existing metadata-reuse branch; this pass does not separately count
+branch hits or identify which required source-validation or decoder operation can safely be
+removed from cold work. The existing
+`inspect_with_discovery` path also reopens/revalidates the configured root before data access;
+switching to it is not an established optimization. Source inspection also contains test-only
+observation work. Its contribution is not measured separately. No guard removal, longer namespace
+lock lifetime, counter change or speculative fast path follows from this result.
+
+The 35.141-second fixture creation and changed individual operation costs prevent interpreting
+the difference from the preceding 68.494-second run as an isolated instrumentation or product
+regression. Original Debug performance acceptance remains open. The independent native
+finalization-wait attribution also remains open: this standalone workload has no concurrent
+native import peer. The second diagnostic workload allowance is consumed; another unchanged or
+exploratory workload is not admitted by this checkpoint. A later repair needs a reproduced cause,
+its owning boundary, a causal regression and a separately recorded bounded method.
+
+Physical review sizes are 740 lines in the scan facade, 211 in entry processing and 346 in traversal,
+including test-only observation declarations; they contain no inline test functions. The new
+test-only collector/iterator owner is 172 lines and its dedicated suite 338. The existing main scan
+test module is 5512 lines. These additions do not authorize unrelated decomposition.
+
+Original compile failure and intermediate passing evidence remain in
+`.build/r2c-scan-operation-cost/` and `.build/r2c-scan-operation-cost-verified/`. Final receipts bind
+the new measurement and raw stdout/stderr in `.build/r2c-scan-operation-cost-final/`:
+
+| Receipt | SHA-256 |
+| --- | --- |
+| `focused-result.json` | `9F0DEA04342884EBF1A39F655311257BDB7ADE88A4677B4345D44985B663C601` |
+| `lint-result.json` | `C1301DBEC1E5CE846EE5E9833CC6A34D103B47D0C2498E09C8EE308F8F320818` |
+| `benchmark-result.json` | `40949710548F4070F7465AFF7B3A40ABE301C3688FF4F7B625BC811825FE99EF` |
+| `daily-result.json` | `3FDB6BB858081470831CDAB0B2CE0B3E07057E981887AA79C45BB26971A1EBC2` |
+
+Complete serial Daily passes in 2156.569 seconds with exit zero and unchanged source/helper hashes:
+1562 Rust tests pass with the existing 19 ignored, three broker binary tests pass, and all 96 Flutter
+test files pass. The actual Windows picker/scan/preview integration passes in 79.276 seconds without
+cleanup failures. All ten native UIA phases pass; the primary process exits, the owned Job closes,
+and the owned scratch directory is removed. Sixteen asynchronous bridge contracts and matching
+content hashes also pass. Controlled rejecting examples earlier in the log remain separate from
+the final native completion records.
+
+The current connection-lifetime control and complete P0/P1/P2 mixed-load case pass within that
+Daily. They do not explain preceding failures or close final candidate acceptance. Daily does not
+repeat the ignored performance workload or substitute for its failed gate. This test-only change
+does not claim a new isolated Release client run or signed installed-service evidence.
+
+The final independent evidence recheck confirms the receipt/log bindings, totals and retained
+failure boundaries. The next populated-startup method remains queued; that review does not admit
+or execute its separate workload.
 
 ## M04 navigation ownership and lifecycle
 

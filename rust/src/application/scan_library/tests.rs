@@ -3269,6 +3269,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
 
     let cold_started = Instant::now();
     let mut cold_cost = phase_cost::ScanPhaseCost::new("benchmark-cold", FILE_COUNT as u64);
+    let cold_operations = operation_cost::OperationCostScope::start();
     run_scan_with_storage(
         request("benchmark-cold"),
         |event| {
@@ -3281,6 +3282,10 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     )
     .expect("cold scan");
     let cold_elapsed = cold_started.elapsed();
+    cold_operations
+        .finish(cold_elapsed)
+        .expect("cold operation costs")
+        .print("cold");
     cold_cost
         .finish(cold_elapsed)
         .expect("complete cold phases")
@@ -3288,6 +3293,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
 
     let warm_started = Instant::now();
     let mut warm_cost = phase_cost::ScanPhaseCost::new("benchmark-warm", FILE_COUNT as u64);
+    let warm_operations = operation_cost::OperationCostScope::start();
     run_scan_with_storage(
         request("benchmark-warm"),
         |event| {
@@ -3300,6 +3306,10 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     )
     .expect("warm scan");
     let warm_elapsed = warm_started.elapsed();
+    warm_operations
+        .finish(warm_elapsed)
+        .expect("warm operation costs")
+        .print("warm");
     warm_cost
         .finish(warm_elapsed)
         .expect("complete warm phases")
@@ -3346,6 +3356,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
 
     let resume_started = Instant::now();
     let mut resume_cost = phase_cost::ScanPhaseCost::new("benchmark-resumed", FILE_COUNT as u64);
+    let resume_operations = operation_cost::OperationCostScope::start();
     let mut did_complete_resume = false;
     resume_scan_with_storage(
         request("benchmark-resumed"),
@@ -3360,6 +3371,10 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     )
     .expect("resumed benchmark scan");
     let resume_elapsed = resume_started.elapsed();
+    resume_operations
+        .finish(resume_elapsed)
+        .expect("resume operation costs")
+        .print("resume");
     resume_cost
         .finish(resume_elapsed)
         .expect("complete resume phases")

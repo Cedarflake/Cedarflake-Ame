@@ -131,6 +131,60 @@ identity or namespace checks. This method admits measurement, not a speculative 
 later repair requires a measured owner, a narrow causal regression and its own bounded method;
 unexplained cost after this pass ends diagnostic expansion for this family.
 
+This method is now admitted against `8d83a51`. Reserve its 90 active minutes: cumulative accounting
+is 8969 charged / 9094 reserved, including the untouched conditional 35-minute deletion admission.
+The exact operation scopes and collector's rejection/retirement cases require independent review
+before the one workload. No product optimization or further unchanged benchmark is included.
+Source-discovery measurement includes iterator creation, every lazy `next()` and per-entry visits.
+The test-only iterator must preserve laziness, early exit and owned resource retirement. Media
+inspection includes metadata reuse, prior selection includes identity preparation, and directory
+persistence includes its existing reads and writes. Unaccounted time includes final validation,
+publication, object conversion and measurement overhead; it is not automatically discovery cost.
+
+The single workload now identifies media inspection and location staging as the dominant measured
+owners, with the original cold/resume limits still unmet. Method correction, independent recheck,
+and the failed result are retained in the
+[operation-cost checkpoint](../acceptance/r2c-maintainability.md#m03-owning-operation-cost-checkpoint).
+Conservatively charge this block's 90 minutes in full: cumulative accounting is 9059 charged /
+9094 reserved, including the untouched conditional 35-minute deletion admission. Complete local
+correctness gates now pass; the original performance failure remains open. No second workload is
+available in this block.
+The remaining operation-internal cause is not an optimization mandate. Preserve the original
+diagnostic stop boundary and pursue a later repair only with a reproduced cause and a new bounded
+method; do not substitute repeated instrumentation or weaker source guards for that prerequisite.
+
+#### Populated no-change startup method
+
+After recording the current measurement checkpoint, select the still-open UX-01A populated-client
+observation while the separate exact-deletion authorization remains pending. This preparation is
+queued, not yet admitted, run or charged. On admission reserve at most 100 active minutes: 20 for
+the retained source/artifact and lifecycle map, 30 for the two-lifetime fixture, 15 for focused
+guardrails, 15 for one native execution, 15 for independent method/result review and five for records.
+
+Use the retained generated mixed-size/historical-date corpus and the same isolated Release payload
+or a verified current replacement. Keep host mappings read-only and all copies/catalogs inside the
+disposable guest. Import once, settle exact membership and decoded previews, normally close Ame,
+then relaunch that same guest profile without changing its sources, catalog, cache or settings.
+Observe populated cached content, usable root/gallery navigation, correct count and real decoded
+pixels after restart. Bind both distinct application PIDs, both normal exits, the preserved catalog
+identity and final source digests. The first process must retire before the second launches; a
+late first-process receipt/input binding cannot own or close the second lifetime.
+
+The existing guest supervisor accepts one app lifetime and a fresh profile; it cannot be reused by
+weakening that check or treating two PIDs as one. Establish a typed lifecycle owner for the two
+successive runs, reuse the existing process/Job boundary and independently prove late-receipt,
+failed-start and partial-cleanup rejection before launch. Preserve the 7 GiB host admission floor,
+3 GiB guest, 2 GiB client ceiling/host reserve, 900-second complete parent lifetime, 300-second
+import deadline and each six-second normal-close bound. If complete preparation cannot fit those
+existing limits, stop before launch and record the gap; no unchanged native replay is admitted.
+
+Combine the actual populated-client observation with the existing exact no-change source-call and
+inventory regressions only after mapping the same production startup/continuity owners. Catalog
+row/count equality alone is not evidence of zero source opens or enumeration. State which part is
+proved by native observation versus instrumented application tests; never promote a cached-content
+stand-in to populated-client evidence. This scope admits no deletion, real-root access, service
+installation, new media feature or additional M03 diagnostic benchmark.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle

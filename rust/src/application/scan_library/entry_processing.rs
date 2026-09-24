@@ -49,7 +49,10 @@ pub(super) fn apply_scan_entry(
     let mut discovered_event = None;
     match outcome {
         FileVisitOutcome::Directory => {
-            catalog.enqueue_directory(scan_id, relative_path)?;
+            measure_scan_operation!(
+                DirectoryPersistence,
+                catalog.enqueue_directory(scan_id, relative_path)
+            )?;
         }
         FileVisitOutcome::Ignored => {}
         FileVisitOutcome::TerminalMedia {
@@ -140,15 +143,18 @@ pub(super) fn apply_scan_entry(
                     return Ok(ScanEntryOutcome::Detached);
                 }
             }
-            let prepared = PreparedScanFile::load(
-                catalog,
-                inspector,
-                scan_id,
-                root_id,
-                file,
-                has_active_locations,
+            let prepared = measure_scan_operation!(
+                PriorSelection,
+                PreparedScanFile::load(
+                    catalog,
+                    inspector,
+                    scan_id,
+                    root_id,
+                    file,
+                    has_active_locations,
+                )
             )?;
-            let inspection = prepared.inspect(inspector);
+            let inspection = measure_scan_operation!(MediaInspection, prepared.inspect(inspector));
             match inspection {
                 Ok(mut inspection) => {
                     for issue in std::mem::take(&mut inspection.metadata.issues) {
@@ -162,7 +168,10 @@ pub(super) fn apply_scan_entry(
                         }
                     }
                     let asset = prepared.into_asset(inspection);
-                    catalog.stage_location(scan_id, root_id, &asset)?;
+                    measure_scan_operation!(
+                        LocationStaging,
+                        catalog.stage_location(scan_id, root_id, &asset)
+                    )?;
                     accepted_items += 1;
                     discovered_event = Some(ScanEvent::AssetDiscovered {
                         scan_id: scan_id.to_owned(),

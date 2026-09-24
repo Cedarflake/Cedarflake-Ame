@@ -62,11 +62,21 @@ pub(super) fn traverse_scan(
         )? {
             return Ok(ScanTraversalOutcome::Stopped);
         }
-        let Some(relative_directory) = catalog.claim_next_directory(&request.scan_id)? else {
+        let Some(relative_directory) = measure_scan_operation!(
+            DirectoryPersistence,
+            catalog.claim_next_directory(&request.scan_id)
+        )?
+        else {
             break;
         };
-        if !catalog.is_current_directory_enumerated(&request.scan_id, &relative_directory)? {
-            let entries = match discovery.entry_paths_in_directory(&relative_directory) {
+        if !measure_scan_operation!(
+            DirectoryPersistence,
+            catalog.is_current_directory_enumerated(&request.scan_id, &relative_directory)
+        )? {
+            let entries = match measure_scan_operation!(
+                SourceDiscovery,
+                discovery.entry_paths_in_directory(&relative_directory)
+            ) {
                 Ok(entries) => entries,
                 Err(issue) => {
                     *issue_count += 1;
@@ -96,18 +106,26 @@ pub(super) fn traverse_scan(
                         });
                         return Ok(ScanTraversalOutcome::Stopped);
                     }
-                    catalog.complete_directory(&request.scan_id, checkpoint)?;
+                    measure_scan_operation!(
+                        DirectoryPersistence,
+                        catalog.complete_directory(&request.scan_id, checkpoint)
+                    )?;
                     continue;
                 }
             };
+            #[cfg(test)]
+            let entries = super::operation_cost::DiscoveryCostIterator::new(entries);
             let mut batch = Vec::with_capacity(DIRECTORY_ENTRY_BATCH);
             for relative_path in entries {
                 batch.push(relative_path);
                 if batch.len() == DIRECTORY_ENTRY_BATCH {
-                    catalog.stage_directory_entries(
-                        &request.scan_id,
-                        &relative_directory,
-                        &batch,
+                    measure_scan_operation!(
+                        DirectoryPersistence,
+                        catalog.stage_directory_entries(
+                            &request.scan_id,
+                            &relative_directory,
+                            &batch,
+                        )
                     )?;
                     batch.clear();
                     if finish_if_controlled(
@@ -123,12 +141,21 @@ pub(super) fn traverse_scan(
                     }
                 }
             }
-            catalog.stage_directory_entries(&request.scan_id, &relative_directory, &batch)?;
-            catalog.complete_directory_enumeration(&request.scan_id, &relative_directory)?;
+            measure_scan_operation!(
+                DirectoryPersistence,
+                catalog.stage_directory_entries(&request.scan_id, &relative_directory, &batch)
+            )?;
+            measure_scan_operation!(
+                DirectoryPersistence,
+                catalog.complete_directory_enumeration(&request.scan_id, &relative_directory)
+            )?;
         }
 
         if let Some(saved_path) = checkpoint.last_visited_relative_path.as_deref()
-            && !catalog.has_directory_entry(&request.scan_id, &relative_directory, saved_path)?
+            && !measure_scan_operation!(
+                DirectoryPersistence,
+                catalog.has_directory_entry(&request.scan_id, &relative_directory, saved_path)
+            )?
         {
             let issue = ScanIssue {
                 path: checkpoint.last_visited_relative_path.clone(),
@@ -162,11 +189,14 @@ pub(super) fn traverse_scan(
         }
 
         loop {
-            let relative_paths = catalog.load_directory_entry_window(
-                &request.scan_id,
-                &relative_directory,
-                checkpoint.last_visited_relative_path.as_deref(),
-                DIRECTORY_ENTRY_WINDOW,
+            let relative_paths = measure_scan_operation!(
+                DirectoryPersistence,
+                catalog.load_directory_entry_window(
+                    &request.scan_id,
+                    &relative_directory,
+                    checkpoint.last_visited_relative_path.as_deref(),
+                    DIRECTORY_ENTRY_WINDOW,
+                )
             )?;
             if relative_paths.is_empty() {
                 break;
@@ -185,7 +215,10 @@ pub(super) fn traverse_scan(
                     return Ok(ScanTraversalOutcome::Stopped);
                 }
 
-                let visit = discovery.visit_relative_path(&relative_path);
+                let visit = measure_scan_operation!(
+                    SourceDiscovery,
+                    discovery.visit_relative_path(&relative_path)
+                );
 
                 visited_entries = visited_entries.checked_add(1).ok_or_else(|| {
                     ScanError::new(
@@ -243,7 +276,10 @@ pub(super) fn traverse_scan(
                 checkpoint.accepted_items = accepted_items;
                 checkpoint.issue_count = *issue_count;
                 if visited_entries.is_multiple_of(CHECKPOINT_INTERVAL) {
-                    catalog.checkpoint_scan(&request.scan_id, checkpoint)?;
+                    measure_scan_operation!(
+                        CheckpointPersistence,
+                        catalog.checkpoint_scan(&request.scan_id, checkpoint)
+                    )?;
                 }
 
                 let did_accept_asset =
@@ -291,10 +327,16 @@ pub(super) fn traverse_scan(
         }
 
         checkpoint.last_visited_relative_path = None;
-        catalog.complete_directory(&request.scan_id, checkpoint)?;
+        measure_scan_operation!(
+            DirectoryPersistence,
+            catalog.complete_directory(&request.scan_id, checkpoint)
+        )?;
     }
 
-    catalog.checkpoint_scan(&request.scan_id, checkpoint)?;
+    measure_scan_operation!(
+        CheckpointPersistence,
+        catalog.checkpoint_scan(&request.scan_id, checkpoint)
+    )?;
 
     Ok(ScanTraversalOutcome::Traversed {
         visited_entries,
