@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-09-24
+Last planning update: 2026-09-25
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -137,9 +137,12 @@ The addition-only workload verifies completed concurrent import, exact membershi
 visible preview demand. Its exposed position movement now has an owning committed-refresh
 correction, later-scroll regressions, complete local quality/unsigned Release and selected native
 anchor-retention evidence. A close-label aggregate failure is retained separately from passing
-offline catalog/lifetime verification. The complete deletion/date verdict and attribution of the
-original finalization wait remain open; the original run stopped in its source helper before the
-import acceptance deadline. Validation counters and terminal publication retain distinct evidence.
+offline catalog/lifetime verification. The complete deletion/date verdict remains open. The
+original interrupted finalization report is now an
+[unconfirmed observation](acceptance/r2c-browsing-admission.md#finalization-observation-disposition),
+with no dedicated replay or blocking obligation absent a repeatable functional failure. Its known
+stop came from the source helper before the import deadline; completed validation counters and
+terminal publication retain distinct evidence. Independent performance failures remain open.
 Remaining frozen variants and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,

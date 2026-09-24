@@ -2369,6 +2369,19 @@ unmeasured; no product completion is inferred. Charge all
 25 minutes: 8469 charged, 8504 reserved, retaining only the separate conditional 35-minute deletion
 admission. This closes the read-only method without another native lifetime.
 
+#### Finalization observation follow-up
+
+The 2026-09-25 [retrospective disposition](../acceptance/r2c-browsing-admission.md#finalization-observation-disposition)
+keeps the interrupted native finalization report as an unconfirmed observation. The intentional
+concurrent additions explain changing membership; no deliberate finalization hold was found in
+that run's frozen launcher or input sequence. Its known stop remains the source helper's deadline,
+and later native imports complete. The deliberately held frontend diagnostic is a separate fixture.
+Do not reserve another investigation, run a special reproduction or block the execution queue for
+this report alone. Reopen only on a repeatable trigger and blocked completion or unusable browsing
+observed during remaining ordinary verification. Preserve all original failed results, workload
+limits, confirmed defects and independent performance/acceptance obligations. This retrospective
+changes no product code and admits no new workload or diagnostic allowance.
+
 #### Finalization feedback and gallery invalidation diagnostic
 
 Reserve 60 active minutes, cumulative 8564 reserved: 20 for current event/publication ownership and

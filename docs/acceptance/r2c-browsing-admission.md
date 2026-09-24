@@ -322,6 +322,36 @@ not the precise cause or duration of the observed run. The next native lifetime 
 terminal-task and settled point observations, but leaves exact closed membership and the preceding
 finalization interval unverified. The original time limits remain authoritative.
 
+#### Finalization observation disposition
+
+As of 2026-09-25, the earlier suspected finalization stall is an **unconfirmed observation**, not
+an independently established product defect or a mandatory further investigation. This disposition
+governs the earlier open-attribution statements below; it does not change their historical evidence.
+
+A read-only recheck matches all 40 original receipt/helper bindings for run
+`20eac6bdf85346319d15abd637a8de3c`. Its prepared launcher starts the verified Release executable
+without a finalization-delay override, and the retained input sequence contains no pause or
+finalization-lock action. The intentional workload is a real 10000-image background import plus
+2000 additions to a separately selected 12-image root. Gallery membership/count updates during
+those additions are expected; this does not classify every unrecorded visual change as normal.
+
+The retained observation is 10000/10000 validation, which is distinct from terminal publication.
+The source-stimulus helper reaches only 1830 additions before its 120-second limit ends the test;
+the background import has at most 124.3525638 seconds before observed retirement, below its
+300-second allowance. That stop is established, but a product import timeout is not. The separate
+controlled frame diagnostic deliberately injects complete counters and holds catalog futures;
+those later simulated waits were not part of this native run.
+
+Later concurrent native runs reach completed import, including the addition-only run
+`b15a9218afd541149259a47267d4b8d0` with exact closed membership. Existing evidence therefore has
+no stable reproduction of an import remaining stuck. Keep the unexplained original interval in
+the record without a dedicated replay, additional diagnostic expansion or code repair on its
+own account. Reopen only if remaining ordinary verification produces a repeatable trigger and
+evidence of blocked completion or unusable browsing. This observation alone does not block the
+execution queue or readiness; independently failed performance gates, confirmed browsing defects
+and incomplete acceptance variants retain their existing requirements. No new client run or
+product change accompanies this reclassification.
+
 #### Original stop and import deadline attribution
 
 The original run's second `confirm-import` has a unique completed before/after input pair:

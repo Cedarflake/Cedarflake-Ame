@@ -142,9 +142,10 @@ The dominant current interval is before final validation. Cold and resume spend 
 there versus 23 seconds warm, but the event boundary cannot distinguish inspection, identity reads,
 staging or host I/O cost. It does not establish a cause or authorize an optimization. The standalone
 workload has no concurrent native-client import peer; its short final interval cannot explain or
-dismiss the earlier Sandbox finalization wait. M03 cost acceptance and that original wait remain
-open. Further workload execution requires a changed, bounded method that measures the responsible
-operations inside this interval; repeating this unchanged benchmark is not admitted.
+dismiss the earlier Sandbox finalization wait. M03 cost acceptance remains open; the native report's
+current [observation-only disposition](r2c-browsing-admission.md#finalization-observation-disposition)
+is separate. Further workload execution requires a changed, bounded method that measures the
+responsible operations inside this interval; repeating this unchanged benchmark is not admitted.
 
 Raw output, the failed result, source hashes and helper hashes are retained in
 `.build/r2c-scan-phase-cost-verified/benchmark-result.json` and its matching stdout/stderr. The test
@@ -243,11 +244,12 @@ lock lifetime, counter change or speculative fast path follows from this result.
 
 The 35.141-second fixture creation and changed individual operation costs prevent interpreting
 the difference from the preceding 68.494-second run as an isolated instrumentation or product
-regression. Original Debug performance acceptance remains open. The independent native
-finalization-wait attribution also remains open: this standalone workload has no concurrent
-native import peer. The second diagnostic workload allowance is consumed; another unchanged or
-exploratory workload is not admitted by this checkpoint. A later repair needs a reproduced cause,
-its owning boundary, a causal regression and a separately recorded bounded method.
+regression. Original Debug performance acceptance remains open. This standalone workload has no
+concurrent native import peer and does not establish the earlier wait's cause; its current
+[observation-only disposition](r2c-browsing-admission.md#finalization-observation-disposition)
+does not waive the performance failure. The second diagnostic workload allowance is consumed;
+another unchanged or exploratory workload is not admitted by this checkpoint. A later repair needs
+a reproduced cause, its owning boundary, a causal regression and a separately recorded bounded method.
 
 Physical review sizes are 740 lines in the scan facade, 211 in entry processing and 346 in traversal,
 including test-only observation declarations; they contain no inline test functions. The new
