@@ -1126,3 +1126,82 @@ catalog-verification exit one, alongside successful process retirement. Their SH
 The bounded record review confirms the retained failure, receipt/hash correspondence, diagnostic
 limitations, links and cumulative accounting. It does not independently re-observe native pixels,
 rerun source hashes or recheck hosted CI. No further native lifetime is admitted by this record.
+
+## Prepared settled-observation input method
+
+The [revised bounded method](../plans/r2c-closeout.md#release-input-after-observed-transition-settlement)
+addresses the preceding run's premature post-input captures. Its ignored observation owner awaits
+the matching guest process-start receipt within ten seconds, rechecks terminal state after that
+read and after capture, and gives each completed single input 350 ms before its automatic capture.
+This delay establishes no visible readiness or focus result; every next action still requires
+inspection of its returned screenshot. Original import, optional-input, parent and exit limits
+remain unchanged. Product code, guest workload and ordinary input transport are unchanged.
+
+Independent admission review finds two fixture races before launch: the guest-start JSON can still
+be being written, and retirement can occur while that receipt is being read. The corrected owner
+retries only incomplete JSON syntax within the existing deadline; identity errors, I/O failures,
+terminal evidence and expiry fail closed. Admission failure is latched, clears the prior observation
+and prohibits further optional input. All 20 boundary cases pass, including a session-level capture
+failure that proves no subsequent input is sent. Targeted independent recheck finds no remaining
+blocker in this helper change. The new owner has 52 production and 94 dedicated-test lines; the
+session has 157 production and 85 dedicated-test lines; neither has inline tests.
+
+Run identity `f40bf51555024d7baa65b2d099fec7e0` is prepared with the same verified `a0cde914`
+Release payload and 10000 mixed-size/historical files, totaling 10921494393 bytes. Its 12-helper,
+32-input manifest SHA-256 is
+`FF4A719030FD69F78A8A5C3B37E4531F8EF89735601E4B711973FEB91D334190`.
+All 37 recorded product hashes still match the passing Daily. The complete 10516-file host source
+check passes in 57.117 seconds; its receipt SHA-256 is
+`42CCD8ADCF6BDE035D55C2D0245229FB3018B75EE3744CCA2637B1B81FF280B8`.
+
+At 08:31:40 UTC on 2026-09-24, available host memory is 7072493568 bytes, below the unchanged
+7516192768-byte entry requirement. No test process is active, no host-start receipt exists, and no
+native input has been sent at that checkpoint. The runtime and exact reviewed session are loaded
+before admission. The subsequent resource restoration and consumed lifetime are recorded below;
+the preparation alone establishes no functional pass. The pending deletion authorization and
+reported earlier finalization behavior remain separate open duties.
+
+`.build/r2c-menu-settled-observation/preparation-result.json` binds these preparation facts; SHA-256
+`26192666E64DE65C49D4E854C0CE277CD501AF373000B0B95386253C7FECFAFC`.
+
+### Settled-observation native result
+
+After explicit resource restoration, the prepared lifetime starts with 9399488512 available host
+bytes. Guest source copying and complete hash/date verification take 127772 ms; the original
+robocopy log reports about 59 seconds for copying. The controller first observes readiness at
+174.052 host seconds. Its process-receipt-gated capture at 201.987 seconds still shows the desktop;
+the empty Ame view appears in the later 08:37:49.562 UTC observation. The 350 ms post-input capture
+after open-import still precedes the picker view, which is observed at 08:38:07.305 UTC.
+
+Open-import is sent at 222.781 host seconds; directory selection is sent at 237.066 seconds.
+Their native input calls return in 146 and 159 ms. The subsequent confirm-import call is rejected
+by the unchanged 240-second guard before any action receipt or input. Its exact rejection time is
+not recorded; it is after the cutoff and before the 08:38:45.629 UTC retirement observation.
+No import, finalization, decoded gallery or menu-return sequence is exercised. The unchanged closed
+catalog verifier actually exits one with `Unexpected root or root count`, retained in
+`.build/r2c-menu-settled-observation/catalog-verification.log`. The method remains a failed native
+acceptance attempt; the observation delay did not resolve the entry-time problem.
+
+Picker dismissal is followed by normal Ame close at 288.381 host seconds. Same-host before-input
+and first app-exit observation bound retirement by 2107.7904 ms; the app exits zero and its Job
+closes. The guest's full post-exit source hash/date check passes in 66583 ms, then the closed
+database is copied. Sandbox-close confirmation returns from native input at 08:40:47.981 UTC;
+its subsequent state capture fails with `foreground window did not report a process id`.
+Independent host evidence completes at 392939 ms with no remaining Sandbox process or cleanup
+failure, and native window discovery also returns no Sandbox. This supports retirement despite
+the disposed-target capture error; it does not convert the failed functional verdict into a pass.
+
+Minimum host availability is 3882487808 bytes. The empty client's peak working set is 157372416
+bytes; this is not a populated-gallery resource result. All 10516 host files pass the complete
+postcheck in 60.710 seconds. No further lifetime is admitted by this method. Preserve these failed
+timings before any changed source-preparation or input-admission method; another arbitrary capture
+delay is not a demonstrated correction.
+
+Independent record review confirms the 12 helper/32 input hashes, absent confirmation receipt,
+same-host retirement bound and complete postcheck; it does not independently re-observe pixels.
+The host postcheck SHA-256 is
+`9D04ACD5C2938E9DB683DECF90F5F91A569DAD41CCD18A6A99BDAB37C3AE59BD`;
+`host-result.json` is `CE9C74585267E80EFB58D3F97A174869D8CC530A04CEAAFB19E192BC24A8DA16`.
+The 17 original evidence bindings and explicit failed functional verdict are retained in
+`.build/r2c-menu-settled-observation/final-bindings.json`, SHA-256
+`7B04B7DBC659DEC9989216F084E0DBD9FEB1F56ADB794A5750EBE1E2C8ADE151`.

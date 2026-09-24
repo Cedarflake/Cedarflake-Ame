@@ -2288,6 +2288,54 @@ the narrow result, not real backend/native acceptance. Charge the full 60 minute
 8564 reserved, with the separate 35-minute deletion admission still conditional. This diagnostic
 does not admit a product patch or another native lifetime.
 
+#### Release input after observed transition settlement
+
+Reserve 50 active minutes, cumulative 8614 reserved: ten preparation, five focused boundary checks,
+five independent admission review, 15 for one native lifetime, ten complete postchecks and five
+review/records. The separate 35-minute disposable-source deletion request remains conditional.
+The preceding photo-route run's automatic captures still show the desktop and then the pre-picker
+view; later observations and operation-side gaps consume the import admission. Native input itself
+returns promptly. This changes the premature observation method, not any product deadline.
+
+Initialize the installed native runtime and load the exact session before host admission. Give
+application-start observation its own bounded owner: await the matching guest-start receipt, reject
+wrong identity or a terminal guest result, and require the original import reserve. After a single
+native input, allow a fixed 350 ms presentation interval before its one automatic state capture.
+The next action still requires inspection of that newly returned screenshot. Never loop blind input,
+invoke a framework action, extend a deadline, or assume a transition merely because the delay ended.
+Prove receipt failure/deadline and action-settlement boundaries with deterministic clocks before
+freezing the helper hashes. Product code and the preceding failed receipts remain unchanged.
+
+Use the existing 10000-file, 10921494393-byte mixed-size/historical corpus and exact current Release
+payload. Keep ordinary guest NTFS/Known Folders, seven-GiB host entry, 3072-MiB guest, two-GiB app and
+host bounds, 240-second import admission, 300-second import completion, 540-second optional cutoff,
+900-second parent and six-second app close. Observe actual import completion and decoded photos;
+record any visible finalization interval without inferring unobserved backend timing. Use the
+previously measured first-photo context-menu/Escape/reverse-Tab route for more and layout, each
+with Enter/Escape/Enter and no pointer refocus between the keys. Select no menu command.
+
+Retire normally and require exact closed membership, complete guest hash/date checks, all 10516
+host source checks and independent application/Job/Sandbox retirement. Source deletion, peer
+updates and the older finalization incident retain their separate duties. A failed or unknown
+input ends optional work; this one lifetime is consumed by any failed assertion. If resources
+prevent launch, preserve the prepared identity and await restored conditions without rebuilding
+or spending the native lifetime. Do not repeat this method unchanged.
+
+The [prepared observation method](../acceptance/r2c-release-native.md#prepared-settled-observation-input-method)
+passes 20 boundary cases and targeted independent recheck after two receipt/admission races are
+corrected. All 10516 source files pass the complete precheck; the 37 product hashes are unchanged.
+Initial host availability is below the original seven-GiB entry requirement; preparation is retained
+until the explicit resource-restoration reply. The subsequent
+[native result](../acceptance/r2c-release-native.md#settled-observation-native-result) consumes this
+one lifetime without completing import admission: source copy/check takes 127772 ms, readiness is
+first observed at 174.052 seconds, and the selected directory at 237.066 seconds is not confirmed
+before the 240-second guard. The added observation delay still captures pre-transition views.
+Normal application/Job/Sandbox retirement and complete source postchecks pass; the unchanged
+closed-membership verifier fails. No import, gallery, finalization or menu-return pass is inferred.
+Charge all 50 minutes: 8579 charged, 8614 reserved, retaining only the conditional 35-minute deletion
+allocation. This method has no remaining native allowance. A changed preparation/admission method
+needs measured causal evidence before another lifetime; do not increase the fixed delay and replay.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one
