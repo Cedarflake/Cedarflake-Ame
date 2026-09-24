@@ -1982,6 +1982,147 @@ exit remain unverified. Preserve the [failed result](../acceptance/r2c-browsing-
 and the preceding source-cost failure separately from passing product gates. Any later native
 attempt requires a separately recorded causal input-scheduling method and review before launch.
 
+#### Native input-stage admission
+
+Reserve 60 active minutes, cumulative 8254: 12 for preparation, ten for one scheduling-owner
+correction, five for boundary checks, eight for independent review (six before launch and two
+afterward), 15 for one native lifetime, five for source/retirement checks and five for records.
+The previous input trace contains a 178.8-second gap and permits a folder-selection input after
+the import phase is already expired. Correct that admission boundary in the ignored control helper.
+
+A typed input-stage owner must require a matching freshly observed target, reject observations
+aged 30 seconds or more, reserve the first import before 150 seconds, and reject every remaining
+import-stage input at 240 seconds. Successful confirmations alone advance its phase; failed or
+unknown input cannot. Retirement still requires a fresh observed target but bypasses optional-input
+cutoffs. Prove fresh admission, exact boundaries, interrupted observations, both confirmations,
+unknown outcomes and retirement without delivering test inputs to a real window.
+
+Prepare source checks, helper/build bindings, tool imports, the native controller and the complete
+next-action sequence before launching. From host start through addition admission, do only actual
+window observation/input, prerequisite receipt reads and concise progress updates. Do not interleave
+history, code, documentation, review or CI work. This changes input-stage ownership and scheduling;
+it cannot guarantee that an external control interruption will not recur. Such an interruption
+ends this single lifetime with the failed evidence and normal cleanup, without another replay.
+
+Retain all original workload, source-copy, 240/390-second batch admission, 300-second convergence,
+690-second input, 900-second parent, six-second close and memory limits. Reuse the verified product
+and typed copy helper; no product behavior, real-source access, cloud, service, signing or dependency
+change is included. Require import-active root selection, deletion-time historical alignment without
+wheel input, exact closed membership and all guest/host source checks. Existing failed lifetimes
+and unverified guest-copy cost remain explicit; guard tests alone establish no client pass.
+
+The reported finalization observation also remains in this same import/publication scope: a
+10000/10000 counter with ongoing verification, gallery refresh and a changing selected-root count
+does not establish completion. Observe the background task's actual terminal state, correlate the
+selected-root count with admitted source phases, and require settled content/count after both
+tasks finish. The existing 300-second import limit and closed-catalog checks remain authoritative.
+Repeated finalization callbacks can occur while atomic publication waits; source inspection alone
+does not attribute the previous native observation to a particular wait or prove absence of a stall.
+
+The single corrected lifetime admits both imports and addition on time, completes 2000 source
+additions within 120 seconds, and observes actual 10000-image import completion and 2012 selected
+images within their 300-second limits. A further 167.475-second observation gap consumes deletion
+admission; no removal or date input is delivered. Normal app/Sandbox retirement and guest/host
+source checks complete, but the incomplete batch prevents exact closed-catalog verification.
+Preserve the [limited result](../acceptance/r2c-browsing-admission.md#input-stage-correction-and-incomplete-deletion-admission)
+and the earlier suspected finalization stall. This ends the input-stage method; charge the full
+allowance through 8254 active minutes. The final two-minute result review confirms the structured
+timing and limited classification, without repeating the primary screenshot or full-hash checks.
+No unchanged replay, larger timeout or inferred deletion/date acceptance is admitted. A later
+attempt requires a distinct method that addresses the external observation gap before launch.
+
+#### Dedicated native observation continuity
+
+Reserve 45 active minutes, cumulative 8299: ten for preparation and current-state admission, five
+for independent method review, 15 for one native lifetime, eight for closed-catalog/source/retirement
+checks and seven for result review and records. The two preceding input failures occur across long
+observation gaps in the same execution context that owns preparation and evidence recovery. Freshness
+guards prevent expired inputs but cannot keep that context available during its recovery.
+
+Transfer exclusive native control to the existing bounded reviewer after it finishes method review
+and prepares the documented APIs, current helpers and action sequence. Do not create another agent
+or nested task. The controller owns only this single window lifetime and its observed completion
+receipts; it does no history, code, CI or document work after host admission. The primary executor
+starts and monitors the already reviewed host boundary, performs a separate read-only mapping of
+finalization/publication evidence, and independently verifies the resulting records after retirement.
+Only one executor may call the native input or capture API. No blind input sequence, synthetic
+completion, model-generated screenshot state or autonomous source action replaces observation.
+
+The changed boundary is execution-context ownership, not another helper patch or longer time limit.
+Copy the 38 verified helper sources unchanged into a fresh configuration and bind their hashes,
+guest inputs and the unchanged product payload. Reuse matching focused tests and passing product
+gates without another build. Require a controller-ready handshake before starting the host. From
+admission, the controller promptly alternates fresh observations and exactly one inspected native
+action, using the existing phase/receipt guards. Any further lost observation continuity, failed
+admission or unknown non-retirement input ends this single method with normal cleanup; it cannot
+trigger another replay.
+
+Retain the complete 10000-file mixed-size/historical corpus, 12-to-2012-to-512 bulk path, 120-second
+source phase, first import before 150 seconds, both imports/addition before 240 seconds, deletion
+before 390 seconds, 300-second convergence, 690-second optional input, 900-second parent and
+six-second normal close. Preserve seven-GiB host entry, three-GiB guest, two-GiB client ceiling and
+host reserve. Require actual terminal import, root browsing during active import, historical date
+navigation during deletion without wheel input, settled decoded content, exact closed membership
+and complete source checks. Reaching a terminal task again does not close the earlier finalization
+report without evidence of its wait. No product change, real-source access, signing, installed
+service, cloud access or new dependency is included.
+
+The [dedicated-control result](../acceptance/r2c-browsing-admission.md#dedicated-control-and-per-root-preview-coverage-failure)
+completes both bulk phases, selected date navigation, normal lifetime and source checks within
+the existing limits. Exact membership passes, but the complete verifier fails its retained
+per-root ready-preview assertion: the completed background root was never selected, so all its
+previews remain pending. Preserve this coverage failure separately from the successful observations
+and process boundary. Charge the full reservation through 8299 active minutes; no unchanged replay
+or weakened per-root assertion is admitted.
+
+#### Complete per-root preview demand
+
+Reserve 35 active minutes, cumulative 8334: five for configuration/binding, three for independent
+method review, 15 for one native lifetime, eight for source/catalog verification and four for
+result review/records. The causal coverage gap is explicit: the native sequence creates visible
+demand only for `bulk`, while the frozen closed-catalog oracle requires at least one independently
+verified ready artifact for each root. Preserve that oracle and its preceding failure.
+
+Use the same dedicated controller, unchanged helpers, verified Release and all original workload,
+admission, convergence, resource, parent and retirement bounds. After the same import, bulk and
+date-publication sequence completes, select `mixed` through its observed sidebar row. Require
+the selected-root title, exactly 10000 images and decoded current tiles. Then return to `bulk`,
+require exactly 512 images and decoded current historical content, and retain the settled point
+observation before normal close. Explicitly map these two visible-demand steps to the existing
+per-root artifact checks before launch; a terminal toast or total count alone cannot satisfy them.
+
+Complete source/closed-catalog verification without bypasses. Existing tests and product gates
+are reused only by exact matching hashes. No product/helper behavior, retry, timeout, source roster,
+real-root permission, signing or service boundary changes. One failed assertion ends this method;
+do not turn another missing required interaction into a pass or repeat the same sequence unchanged.
+
+The single run `5ab135e745fe4108aae5b1d61c489515` reaches actual completed import and all 2000
+additions. Automatic tool approval rejects the subsequent deletion request before execution,
+stating that the exact 1500-item source deletion lacks explicit authorization. No removal request
+is delivered. The application and Sandbox retire normally, and both complete source checks pass;
+the overall verdict remains incomplete and the per-root interaction sequence is not reached.
+Independent result review confirms the structured failure and timing boundaries without repeating
+the source hashes or pixel judgment. Charge the full reservation through 8334 minutes.
+
+#### Explicit disposable-source deletion admission
+
+Before another lifetime, resolve the rejected action's exact scope. The reviewed operation deletes
+only the first 1500 `added-*` entries from that run's frozen `bulk-plan.json`, inside the disposable
+Windows Sandbox directory `C:\Users\WDAGUtilityAccount\Documents\bulk`. Those files are generated
+copies created by this test. The guest account, ordinary Known Folder, run-owner marker, contained
+paths, file hashes and creation/modification dates are revalidated. The host corpus is mapped
+read-only; neither a retained real library nor the 10000-image host fixture is a deletion target.
+
+Ask for explicit approval of this concrete operation because automatic approval rejected it; do
+not retry it through another tool or alter the guard. Prepare one subsequent lifetime only after
+that answer. Reserve 35 active minutes, cumulative 8369, for five minutes of scoped preparation,
+three of admission review, 15 for the single lifetime, eight for complete source/catalog checks,
+and four for review/records. This addresses the external admission failure and preserves the
+preceding failed run. Keep every workload, deadline, resource limit, per-root preview interaction,
+normal-retirement condition and verifier unchanged. A new rejection or failed assertion ends this
+supplement. Independent non-mutating verification and other admitted duties can proceed while
+the question is pending.
+
 #### Current Release gallery stability and remaining menu return
 
 Reserve 90 active minutes, cumulative 6964: 20 preparation, ten focused admission checks, 15 one

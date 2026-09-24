@@ -304,3 +304,165 @@ The final three-minute independent review confirms the failed admission and limi
 evidence. It independently checks the helper/measurement binding and two typed-owner inputs; the
 complete 41-input hash check is separate primary verification. The source-cost method is consumed
 and ends here without an unchanged replay. Native date/publication acceptance remains open.
+
+### Reported finalization and refresh behavior
+
+The preceding import observation is reported as 10000/10000 with continued verification, gallery
+refresh and changing image totals. The retained native record never establishes import completion.
+The source helper's independent 120-second failure therefore cannot close this reported behavior.
+
+Current source keeps file validation separate from atomic publication. While publication is delayed
+by pending Live work or preemption, `scan_library/publication.rs` can emit another `Finalizing`
+event with the already complete validation counters. `LibraryScanSession` does not request a catalog
+reload for that event; only `Completed` enters the published-reload transition. Independent peer-root
+publications can still change the selected gallery and total. This explains possible coexistence,
+not the precise cause or duration of the observed run. The next native lifetime below supplies
+terminal-task and settled point observations, but leaves exact closed membership and the preceding
+finalization interval unverified. The original time limits remain authoritative.
+
+### Input-stage correction and incomplete deletion admission
+
+The ignored native input helper now has an independent 40-line scheduling owner with 60 dedicated
+test lines and no inline tests. It requires an observation younger than 30 seconds, the first import
+before 150 seconds and both imports before 240 seconds. Only a completely observed input advances
+the phase. Initial admission rejection latches failure; observing again cannot restore ordinary
+input authority. Retirement requires a fresh observation and explicit retirement admission. The
+connected facade is 190 production lines with 181 dedicated test lines and no inline tests.
+All 21 Node checks pass, including rejected-input recovery and retirement. The six-minute prelaunch
+review identifies and verifies the initial-admission latch correction before the single run.
+
+Run `af81d94b0ae34583b0d5697a297cee3f` uses the unchanged verified Release payload. Native import
+confirmations occur at 86.306 and 197.744 host seconds; the addition request follows at 198.118
+seconds. The first import visibly completes with all 12 baseline images. The source helper then
+completes all 2000 additions in 98458 ms, within the original 120-second phase bound. This is the
+corrected helper's first complete guest addition measurement; it does not establish removal cost.
+
+The observation after selecting `bulk` during active import still shows the previous gallery title,
+366 images and the active `mixed` import. No subsequent observation arrives for 167.475 seconds.
+The next frame shows selected `bulk`, 2012 images, decoded historical thumbnails and the actual
+`Import complete` task with 10000 imported images. Explicit observations record addition convergence
+at 200.838 seconds and background import completion at 201.218 seconds, each measured from its own
+admission. A second frame 19.349 seconds after the first retains the same count, content and position.
+These are settled point observations, not continuous-frame stability or a measurement of the earlier
+10000/10000 finalization wait. The preceding suspected stall remains unresolved.
+
+The removal request is rejected after the unchanged 390-second host admission deadline. No removal
+request, source deletion or historical-rail input is delivered. The batch retains `added=2000`,
+`removed=0`, `state=added` and `Batch stopped before the complete admitted sequence`. This is an
+input-scheduling failure, not a failed product import. It also does not repeat the earlier same-frame
+proof of completed root selection during an active peer import.
+
+Normal app close occurs at 419.798 seconds; exit zero, application retirement and Job closure are
+confirmed within a same-host upper bound of 1425.2227 ms. All 10000 guest source files retain their
+10921494393 bytes, hashes and dates; that postcheck takes 70742 ms. The incomplete batch prevents
+closed-catalog copy and its separate source postcheck. Exact imported membership is therefore
+unverified; the complete two-root verifier is not invoked against missing prerequisites.
+Sandbox close and confirmation occur at 549.836 and 563.632 seconds. The final input returns before
+the disposed target becomes unavailable for capture. The host fails at 565154 ms with no remaining
+Sandbox process or cleanup failure. Normal cleanup does not constitute a complete passing lifetime.
+
+Entry memory is 9023041536 bytes, minimum host availability 4132655104 bytes and the application
+kernel peak working set 449998848 bytes, all within the original bounds. The host postcheck verifies
+all 10516 generated sources in 67.83 seconds; retained catalog counts belong to those fixtures, not
+this run's imported catalog. All 38 helper, 41 guest-input and 37 product hashes remain unchanged.
+The frozen helper manifest SHA-256 is
+`72DDB89CDB42C20EAC9ADE8EB0F48655E6F6B4529F27B2CA635E8B4855EEC167`.
+The final two-minute independent review finds no contradiction in the structured timing or failure
+classification. It does not independently rejudge screenshots or recompute all source hashes; those
+remain primary verification. The input-stage method ends without another unchanged replay.
+
+### Dedicated control and per-root preview coverage failure
+
+Run `143c3d4e517042719b319e7540194cd8` separates native control from preparation and result checking,
+using the same 38 helper sources and verified Release. Both picker confirmations occur within their
+original limits, at 142.378 and 230.544 host seconds. A subsequent frame shows selected `bulk`,
+866 images and decoded dated tiles while `mixed` is still importing. Addition takes 103894 ms;
+the observed 2012-image convergence is 123.510 seconds after its request.
+
+At approximately 317.099 host seconds the task shows finalization at 10000/10000 with the selected
+bulk count still 1461. At approximately 342.429 seconds it shows actual import completion and
+2012 selected images. The explicit terminal observation is 123.848 seconds after import admission.
+This brackets the remaining wait between two observations, not the full finalization duration.
+It does not reproduce an indefinite finalization stall or resolve the preceding interrupted run.
+
+Removal is admitted before 390 seconds and physically removes 1500 generated files in 11174 ms.
+The actual historical-rail click at 393.493 seconds occurs during remaining catalog convergence,
+with 702 selected images. The source deletion itself has already finished. Subsequent observations
+show 512 images and decoded content around 2012 without wheel input; observations more than ten
+seconds apart retain the same pixels, count and rail position. The explicit 512-image observation
+is 71.832 seconds after removal admission. These are selected native point observations, not a
+continuous-frame no-flicker assertion.
+
+Normal app close is delivered at 449.858 seconds. Independent host receipt verification gives a
+930.675 ms close upper bound, exit zero and Job retirement. Both source helpers retire, all 10000
+guest source hashes/dates pass in 69218 ms and the exact 512-file remaining bulk source passes.
+The catalog is copied only after app exit. Sandbox close and confirmation occur at 575.950 and
+586.433 seconds; the final capture reports the disposed target after the click returns. The host
+boundary passes in 589304 ms with no remaining process or cleanup failure.
+
+The unchanged complete catalog verifier nevertheless fails at `A root has no verified ready
+previews`. Before that assertion, it verifies both exact active memberships, source metadata and
+identity, empty outstanding queues, bounded cache inventory and all ready-artifact ownership.
+A separate read-only diagnosis finds `bulk` with 60 ready and 452 pending previews, and `mixed`
+with 10000 pending previews; neither root has an active failed preview. Native control never selects
+the completed `mixed` root to create its visible preview demand. This is a missing required test
+interaction, not evidence that hidden-root pending previews failed. The complete verdict remains
+failed; the per-root assertion is retained and the verifier is not replayed unchanged.
+
+Entry memory is 8173584384 bytes, minimum host availability 3875487744 bytes and app kernel peak
+449110016 bytes. All 10516 host generated sources pass in 52.441 seconds. All 38 helper, 41 input
+and 37 product hashes remain unchanged; helper manifest SHA-256 is
+`3303684DAD33F7E4EC9FCA9054A0BF888FF72A73967B44EC4D2EB2D92921591F`.
+The primary verification independently checks the receipts, closed-catalog failure and source
+bindings. The native controller's image observations remain separately attributed; no second
+image review or complete R2c acceptance is claimed.
+
+### Per-root continuation and rejected deletion admission
+
+Run `5ab135e745fe4108aae5b1d61c489515` retains the same payload, helpers, source roster and original
+bounds. Picker confirmations occur at 131.598 and 229.877 host seconds. A subsequent observation
+shows selected `bulk`, decoded dated tiles and 754 images while `mixed` is still importing.
+The source helper completes all 2000 additions in 116973 ms, within its unchanged 120-second bound.
+
+The native controller observes finalization at 10000/10000 at 06:23:14.190 and 06:23:29.436 UTC;
+the selected bulk count changes from 1251 to 1307. The first actual completed-import observation
+is at 06:24:01.919 UTC, with all 2012 bulk images. These point observations distinguish completed
+validation counters from published import completion. They do not measure the exact transition
+instant, establish continuous-frame stability, or resolve the older reported finalization stall.
+
+Automatic approval rejects the combined call containing the next removal request before execution:
+`The action includes request('remove'), initiating deletion of 1,500 source items; the user did
+not explicitly authorize this exact destructive operation.` The rejected call does not publish
+its preceding addition observation: a later CreateNew write succeeds at 06:25:24.711 UTC. That
+receipt records 212.014 seconds after addition admission; the separate terminal-import observation
+records 212.312 seconds. No earlier timestamp is backfilled. There is no removal request,
+publication receipt, deletion, historical-rail input or completed per-root preview-demand sequence.
+
+Normal app close occurs at 442.192 host seconds. The independent same-host close upper bound is
+994.8431 ms, with exit zero and Job retirement. All 10000 guest source hashes and dates pass in
+72396 ms. The batch ends explicitly incomplete with `added=2000`, `removed=0`, `state=added`;
+its source postcheck and the closed catalog are unavailable. The exact canonical verifier path,
+`output/catalog/ame.sqlite3`, is independently checked absent. A supplemental local receipt
+corrects the noncanonical catalog filename listed by the first post-run binding record; neither
+record claims a catalog pass. The full verifier is not invoked against missing prerequisites.
+
+Sandbox close and confirmation occur at 581.146 and 601.899 seconds. Capture loses the disposed
+target after the confirmation input returns. The host ends at 604294 ms with an incomplete guest
+boundary, no remaining Sandbox processes and no cleanup failures. Normal retirement does not turn
+this authorization failure into a passing whole workflow.
+
+Entry availability is 8207826944 bytes, minimum host availability 3947737088 bytes and the app
+kernel peak working set 450699264 bytes. All 10516 host generated sources pass in 57.462 seconds.
+All 38 helper, 41 guest-input and 37 product hashes remain unchanged; manifest SHA-256 is
+`9FE81C6B7EC9A9EAEC12EEAA8EEE3870C92CC0FE1A58C9B827212A69812853F8`.
+The requested exact deletion scope is verified as manifest-owned generated copies inside the
+disposable guest `Documents\bulk`; host source mappings are read-only. Explicit approval is
+requested before another deletion lifetime. No alternative tool or guard change retries the action.
+
+The current product remains bound to the passing full local Daily and unsigned Release records.
+Required hosted checks for documentation head `5b578582639d36f9c228433f4d57d63fee962b61` also
+[complete successfully](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/35959454042).
+These gates do not replace the failed native coverage or final candidate and external acceptance.
+The scoped independent review checks the three new run records against their structured
+receipts and finds no contradiction in these failure classifications. It does not repeat the
+source traversal, all hashes or independent pixel acceptance.
