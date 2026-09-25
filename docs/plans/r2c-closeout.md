@@ -438,6 +438,63 @@ hosted required gates also passed. Continue the remaining frozen client and exte
 obligations. Recording these results does not renew completed Rust/Flutter/native runs or authorize
 another retained-library scan. Exact reported Retry/jump attribution and recovery cost remain open.
 
+#### Generated middle-timeline native observation
+
+The native window API is currently callable. Reserve 75 active minutes under the standing
+continuation authority: 20 for preparation and helper checks, 15 for one native lifetime, 15 for
+evidence analysis, 15 for independent method/result review and 10 for records. Accounting is
+9524 charged / 9634 reserved, including the untouched conditional 35-minute deletion allowance.
+
+Rebuild the current product with the existing guarded Debug entrypoint and in-memory preferences.
+Use fresh GUID-owned derived storage and the unchanged generated mixed corpus: 10000 images,
+10921494393 bytes, 12 dimensions and 201 historical months. Reuse the validated admission,
+process Job, memory monitor, source oracle and closed-catalog verifiers. The only runner change is
+one lifetime instead of the earlier two-lifetime restart scenario. Do not replay the accepted
+restart claim or reuse consumed admissions. Bind helper/payload/source hashes before launch.
+
+After native import settles, use Computer Use for a middle-date rail click, upward wheel traversal,
+direction reversal and viewer return. Retain immediate and settled screenshots, their window/run
+identities, input sequence and existing production preview diagnostics. Inspect source-backed
+pixels, visible dates and rail continuity; classify Retry only from captured feedback and a matching
+error. Sampling cannot establish the absence of every one-frame layout change or reproduce the
+reported retained-library incident by itself. Do not inject catalog changes to force a pass.
+
+Keep the original 300-second import bound, 900-second complete lifetime/verifier deadline,
+4 GiB Debug launch floor, 2 GiB client ceiling and 2 GiB system reserve. Verify all generated source
+identities/content before and after and exact closed-catalog membership/preview ownership. Stop
+on a failed guard, timeout, resource violation or unbound window; retain that failure and diagnose
+before any changed method. This admits no original-media read, deletion, normal-profile launch,
+new dependency, product change, service/signing action or replacement for Release acceptance.
+Unchanged product source keeps its passing local and hosted gates; helper changes require their
+specific positive/rejecting checks, not another complete Daily.
+
+The single observation completed with normal retirement, exact 10000-member/160-ready-preview
+ownership and full unchanged-source checks. The linked retained-runtime record preserves the
+actual input/screenshot scope, initial tool/recording rejections and Debug cold-preview costs.
+Charge this 75-minute envelope conservatively: 9599 charged / 9634 reserved. This closes only the
+selected generated observation; the reported retained-library incident and Release duties remain.
+
+#### First-import control during journal admission
+
+The later documentation-only hosted run fails the native retained-import Pause test with
+`persistent_journal_first_import_inactive`. Its original diagnostics are retained in the runtime
+record. Reserve 90 active minutes: 20 for a deterministic boundary reproduction, 30 for one owning
+correction, 15 for focused/native verification, 15 for independent review and 10 for records.
+Accounting becomes 9599 charged / 9724 reserved, including the separate conditional 35 minutes.
+Quality-process wall time remains recorded separately. Do not retry the unchanged hosted run.
+
+Prove whether accepted Pause/Cancel/Suspend during first-import capture is incorrectly surfaced as
+failure. Preserve journal/root/generation/scan leases and transaction checks: revoked admission
+must never publish. Extract the affected preflight responsibility before extending the scan facade;
+resolve the accepted control through the existing terminal/checkpoint owner. Preserve unrelated
+probe/database failures instead of treating every error as cancellation. Cover pre-poll control,
+control inside successful and rejected capture, missing control with an inactive lease, superseded
+authority and ordinary probe failure. Keep the 15-second capture limit and existing retry/backoff.
+Run focused Rust ownership/regression checks, the actual native retained-import/Pause workflow,
+lint, complete serial Daily and applicable fresh unsigned/hosted gates after a product change.
+No original-media operation, real Journal/service access, source workload or deadline relaxation
+is included. A failed reproduction requires a changed diagnostic method, not speculative guards.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle

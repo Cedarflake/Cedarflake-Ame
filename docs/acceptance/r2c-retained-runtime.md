@@ -5,6 +5,8 @@ Correction: `0677ba67020142d50e4b28cf7f3ce07e44fec924`, verified 2026-09-25.
 Status: startup recovery completed; paging correction passes focused, lint, complete local Daily,
 fresh unsigned Windows and hosted checks. Recovery cost, the exact retained-client incident and
 remaining R2c client acceptance remain open.
+The subsequent documentation-only head has a new hosted first-import pause failure, retained below;
+the earlier passing correction gates do not make that later run green.
 
 ## Existing recovery after startup
 
@@ -150,3 +152,72 @@ signing; signed installed-service acceptance remains open. `hosted-result.json` 
 to the exact correction commit. Subsequent changes to this record do not change the tested product
 source or renew these completed gates. Neither these results nor the independent expired-page
 reproduction establishes the exact Retry cause in the retained-client report.
+
+## Generated middle-timeline native observation
+
+The 2026-09-25 single Debug lifetime uses source `ae5180c`, whose product is unchanged from
+`0677ba6`. A freshly built guarded entry calls production startup with isolated derived storage
+and in-memory preferences. Run `ef6f3687ee9247c68ab4bc0759d5bcae` imports the frozen generated
+10000-image, 10921494393-byte corpus with 12 dimensions and 201 historical months. All 10000
+source identities, dates and content hashes match the oracle before and after, in 57.399 and
+47.576 seconds. No real-library source or retained profile was opened.
+
+Actual Computer Use observations cover:
+
+- a native picker import, observed complete after 87.872 seconds, with 10000 images displayed;
+- a middle-rail click reaching 2016-05-02, followed by source-backed pixels without more input;
+- decoded `6000x4000` viewer content at ordinal 4248/10000, then Escape retaining the same visible
+  date, tile arrangement and rail position;
+- upward wheel deltas of -1320, -3960 and -12000, reaching 2016-07-02 then 2016-12-02;
+- reverse +12000 returning the earlier 2016-07-02 arrangement, also unchanged at the later idle
+  observation.
+
+The immediate cold-region screenshots contain loading slots. Later observations show all visible
+slots filled, with no observed Retry feedback or unsolicited position jump. This samples frames;
+it cannot prove every intermediate frame, the entire 10000-image preview set, a forced stale-cursor
+race or the original real-library incident. The 107 emitted preview-queue diagnostic records all
+report `ready`; the logger omits some fast requests, so this is not an all-request trace. Maximum
+logged total/queue/active times are 13565/11620/6224 ms. Those Debug cold-preview costs remain
+performance observations, not a responsiveness acceptance pass. Engine stderr is empty.
+
+The complete native sequence and closed-catalog verifier finish in 440394 ms under the original
+900-second bound. Normal close takes 551.4179 ms; application and parent exit zero, the owned Job
+closes, and handles/monitor retire without cleanup failure. Peak working set is 709394432 bytes,
+kernel peak commit 778416128 bytes and minimum system availability 4844118016 bytes. The closed
+catalog has exactly 10000 active members and 160 owned ready preview artifacts totaling 3408886
+bytes, with no active failed-preview or unsettled-change rows.
+
+Preparation passed 68 admission, read-only, identity, capture, verifier-deadline and lifetime checks.
+The native API and screenshot-coordinate inputs work. Early recording attempted to combine two
+different REPL module instances; the original capture guard rejected that mismatched registration.
+Using the same evidence module for capture and observation preserves that guard. An indexed click
+also failed because its cached element was unavailable; a refreshed screenshot-coordinate click
+then opened the picker. One later transient notice expired before its coordinate click, so the
+click opened the underlying viewer; the actual viewer state and Escape result are recorded rather
+than claiming the intended notice dismissal. Pre-input records are attempted inputs, not delivery
+acknowledgements. No failed action or missing observation is counted as a successful workflow step.
+
+The ignored helper owner is `.build/r2c-middle-timeline-20260925`; the GUID storage above retains
+`started.json`, `native-inputs.ndjson`, observation receipts/screenshots, stdout/stderr, memory,
+closed-catalog and source-before/after evidence. Thirty payload/helper hashes remain unchanged.
+Independent method/result review checked those hashes, 28 observation identities and 31 screenshot
+references, exact membership and resource/retirement receipts. It did not independently re-observe
+the pixels. No product changes or repeated Daily were needed for this selected native observation.
+
+## Subsequent hosted first-import pause failure
+
+[Run 36126310364](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36126310364) on `ae5180c`
+fails the Windows Scan component after a successful build. In the retained-import test, the
+Started listener requests Pause. The stream instead reports
+`persistent_journal_first_import_inactive: The first-import journal probe lost its executing scan owner`
+at `integration_test/support/retained_import_workflow.dart:75`. A later picker test then observes
+two roots where it expects one; this follows the earlier failed retained-import flow. The middle
+picker-cancellation case passes. The parent exits one after 253757 ms; cleanup has no failures.
+
+The initial code trace identifies a control-versus-probe interval: the scan checks pending control
+before polling first-import capture, while journal opening rechecks the executing capture lease.
+A Pause arriving inside that poll can invalidate its lease. This is a concrete lifecycle race to
+reproduce at the owning boundary, not evidence that the journal's stale-publication guard should
+be removed or that the failure is only hosted-machine speed. No unchanged retry was requested.
+The downloaded three-file diagnostic artifact and job log are retained in the helper evidence
+directory. The earlier correction's passing hosted/local checks remain historical evidence.
