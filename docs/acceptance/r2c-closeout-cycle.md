@@ -1008,6 +1008,31 @@ Configuration SHA-256 is `D2579C96DE2F464FDD4C427F7060D0F6BE8E08156EF4172A2A09DA
 There is no host-start receipt or native attempt. Tool-access confirmation is pending; preparation
 proves neither guest readiness nor window input, normal retirement, populated startup or UX-01A.
 
+### Hosted checkpoint before readiness continuation
+
+[Run 36091829697](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36091829697) completes
+successfully for `109acff`: all ten required jobs and the aggregate Windows gate pass; three
+signing-only jobs are skipped. The tested PR merge commit is `203b678`, whose complete tree
+`2bd2dbe6e5beeef46db52ea15d194391a70560f3` exactly matches `109acff`. Readiness commit `c1077ee`
+changes only this record and the execution plan, so it changes no tested product or verification
+behavior.
+
+The retained logs report 1562 passing Rust library cases, 19 unchanged ignored cases, three passing
+broker cases and 96 passing Flutter test files. Both the complete mixed-load recovery and its
+connection-lifetime control pass. The native accessibility record contains all ten successful
+phases, two passing cases, normal primary exit and Job closure; controlled Windows scan also passes.
+The unsigned artifact separately proves three runner cases, two real engine-retirement cases with
+zero exit/closed Job, and the catalog-free Release bridge check. Its manifest reports a clean
+tested tree. These raw records are under `.build/r2c-sandbox-access/ci-109acff-jobs` and
+`ci-109acff-artifacts`, with the full hosted verdict in `ci-109acff-final.json`.
+
+All five Release synthetic workloads execute their exact selected test with zero ignored cases
+and passing resource records. The 10000-file workload records cold/warm/resume times of
+14650/11942/14859 ms; it does not replace or explain the original workstation Debug failures.
+This checkpoint also does not explain historical C01/C02 failures, supply the missing populated
+restart or deletion/date observations, or close signed-service, real-library, Journal or Cloud
+Files acceptance. The empty-Sandbox prerequisite remains prepared and unexecuted.
+
 ### Native original-viewer source-slot evidence
 
 On product source `a1c165b2cb11c380ef4a8ee3f2f47c0af139b2b6` (documentation HEAD
