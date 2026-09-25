@@ -3,16 +3,44 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::adapters::PublicationGuardedFileDiscovery;
 use crate::domain::{
-    AssetLocationView, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, LibraryRootGeneration,
-    PreviewRequest, ScanError, ScanIssue,
+    AssetLocationView, IncrementalLibraryChangeReport, LibraryChangeIntent,
+    LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeOrigin, LibraryChangeQueuePolicy,
+    LibraryChangeScope, LibraryRootGeneration, PreviewRequest, ScanError, ScanIssue,
 };
-use crate::ports::{IncrementalCatalogRepository, SourceReconciliationRepository};
+use crate::ports::{
+    IncrementalCatalogRepository, SourceReconciliationAdmission, SourceReconciliationRepository,
+};
 
 use super::super::incremental_library_changes::{
     AuthoritativePathSetContext, process_authoritative_path_set,
 };
 use super::super::{StoragePaths, catalog_session};
+
+enum SourceReconciliationOutcome {
+    RequestRetired,
+    PathWorkRetained,
+    Unresolved,
+}
+
+impl SourceReconciliationOutcome {
+    fn from_report(report: IncrementalLibraryChangeReport) -> Self {
+        if report.completed_count == 1 {
+            return Self::RequestRetired;
+        }
+        if report.superseded_count == 1 {
+            return Self::RequestRetired;
+        }
+        // Acknowledged retry/deferral transfers completion to the durable path owner.
+        // A storage error propagates before a report exists; it cannot retire the request.
+        if report.retried_count == 1 {
+            return Self::PathWorkRetained;
+        }
+        if report.deferred_count == 1 {
+            return Self::PathWorkRetained;
+        }
+        Self::Unresolved
+    }
+}
 
 pub(super) fn recover_source_mismatch(
     storage: &StoragePaths,
@@ -31,18 +59,24 @@ pub(super) fn recover_source_mismatch(
         return ScanError::new(issue.code, issue.message);
     }
     match reconcile_source(storage, request, location, root_generation) {
-        Ok(true) => ScanError::new(
+        Ok(SourceReconciliationOutcome::RequestRetired) => ScanError::new(
             "preview_request_superseded",
             format!(
                 "{}: source context was superseded during reconciliation",
                 issue.code
             ),
         ),
-        Ok(false) if issue.code == "preview_source_missing" => ScanError::new(
+        Ok(SourceReconciliationOutcome::PathWorkRetained) => ScanError::new(
             "preview_request_superseded",
-            "The preview source is missing; catalog reconciliation retains its existing authority",
+            "The changed source is retained by durable path reconciliation",
         ),
-        Ok(false) => ScanError::new(issue.code, issue.message),
+        Ok(SourceReconciliationOutcome::Unresolved) if issue.code == "preview_source_missing" => {
+            ScanError::new(
+                "preview_request_superseded",
+                "The preview source is missing; catalog reconciliation retains its existing authority",
+            )
+        }
+        Ok(SourceReconciliationOutcome::Unresolved) => ScanError::new(issue.code, issue.message),
         Err(error) => ScanError::new(
             error.code,
             format!("{}; source reconciliation: {}", issue.code, error.message),
@@ -55,19 +89,19 @@ fn reconcile_source(
     request: &PreviewRequest,
     location: &AssetLocationView,
     root_generation: LibraryRootGeneration,
-) -> Result<bool, ScanError> {
+) -> Result<SourceReconciliationOutcome, ScanError> {
     let mut catalog =
         catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
     let Some(root) = catalog.load_incremental_catalog_root(&location.root_id)? else {
-        return Ok(true);
+        return Ok(SourceReconciliationOutcome::RequestRetired);
     };
     if root.root_generation != root_generation
         || root.active_scan_id.as_deref() != Some(&request.expected_scan_id)
     {
-        return Ok(true);
+        return Ok(SourceReconciliationOutcome::RequestRetired);
     }
     let Some(identity) = root.publication_root_identity.as_ref() else {
-        return Ok(false);
+        return Ok(SourceReconciliationOutcome::Unresolved);
     };
     let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
         &root.root_path,
@@ -102,8 +136,15 @@ fn reconcile_source(
         most_recent_sequence: 0,
         coalesced_observation_count: 1,
     };
-    let Some(leased) = catalog.admit_source_reconciliation(request, &intent, now, policy)? else {
-        return Ok(false);
+    let leased = match catalog.admit_source_reconciliation(request, &intent, now, policy)? {
+        SourceReconciliationAdmission::Leased(leased) => leased,
+        SourceReconciliationAdmission::RequestSuperseded
+        | SourceReconciliationAdmission::ExistingPathWork => {
+            return Ok(SourceReconciliationOutcome::RequestRetired);
+        }
+        SourceReconciliationAdmission::LeaseUnavailable => {
+            return Ok(SourceReconciliationOutcome::Unresolved);
+        }
     };
     let report = process_authoritative_path_set(
         &mut catalog,
@@ -120,5 +161,5 @@ fn reconcile_source(
         },
         &discovery,
     )?;
-    Ok(report.completed_count == 1)
+    Ok(SourceReconciliationOutcome::from_report(report))
 }

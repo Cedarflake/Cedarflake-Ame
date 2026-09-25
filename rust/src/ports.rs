@@ -5,7 +5,9 @@ use std::sync::{Arc, Mutex};
 mod gallery_query;
 pub use gallery_query::GalleryQueryRepository;
 mod source_reconciliation;
-pub(crate) use source_reconciliation::SourceReconciliationRepository;
+pub(crate) use source_reconciliation::{
+    SourceReconciliationAdmission, SourceReconciliationRepository,
+};
 
 mod preview_health;
 pub use preview_health::{PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget};

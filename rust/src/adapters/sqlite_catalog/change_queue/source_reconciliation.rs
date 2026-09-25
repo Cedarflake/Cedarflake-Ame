@@ -4,7 +4,7 @@ use crate::domain::{
     LeasedLibraryChange, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
     LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, PreviewRequest, ScanError,
 };
-use crate::ports::SourceReconciliationRepository;
+use crate::ports::{SourceReconciliationAdmission, SourceReconciliationRepository};
 
 use super::super::{
     SqliteCatalog, database_error, load_catalog_revision, source_revision_token, sqlite_integer,
@@ -24,7 +24,7 @@ impl SourceReconciliationRepository for SqliteCatalog {
         intent: &LibraryChangeIntent,
         now_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
-    ) -> Result<Option<LeasedLibraryChange>, ScanError> {
+    ) -> Result<SourceReconciliationAdmission, ScanError> {
         validate_policy(policy)?;
         validate_intent_batch(std::slice::from_ref(intent), intent)?;
         if intent.root_id != request.expected_root_id
@@ -67,7 +67,7 @@ impl SourceReconciliationRepository for SqliteCatalog {
         if !current
             || !root_generation_is_current(&transaction, &intent.root_id, intent.root_generation)?
         {
-            return Ok(None);
+            return Ok(SourceReconciliationAdmission::RequestSuperseded);
         }
         let active = load_active_changes(
             &transaction,
@@ -81,7 +81,7 @@ impl SourceReconciliationRepository for SqliteCatalog {
                     || change.intent.previous_relative_path.as_deref()
                         == Some(&intent.relative_path))
         }) {
-            return Ok(None);
+            return Ok(SourceReconciliationAdmission::ExistingPathWork);
         }
         let counts = active_lane_counts(&active).adding(LibraryChangeLane::Recovery, 1);
         if !lane_admission_allows(policy, LibraryChangeLane::Recovery, counts)
@@ -113,17 +113,16 @@ impl SourceReconciliationRepository for SqliteCatalog {
                AND NOT EXISTS(SELECT 1 FROM library_recovery_authorities WHERE change_id = ?3)",
             params![expires, now_unix_ms, id, intent.root_id, intent.relative_path, i64::from(policy.max_attempts)],
         ).map_err(database_error)?;
-        let leased = if claimed == 1 {
-            let change = load_change(&transaction, id)?;
-            Some(LeasedLibraryChange {
-                lease_generation: change.lease_generation,
-                lease_expires_unix_ms: expires,
-                change,
-            })
-        } else {
-            return Ok(None);
+        if claimed != 1 {
+            return Ok(SourceReconciliationAdmission::LeaseUnavailable);
+        }
+        let change = load_change(&transaction, id)?;
+        let leased = LeasedLibraryChange {
+            lease_generation: change.lease_generation,
+            lease_expires_unix_ms: expires,
+            change,
         };
         transaction.commit().map_err(database_error)?;
-        Ok(leased)
+        Ok(SourceReconciliationAdmission::Leased(Box::new(leased)))
     }
 }

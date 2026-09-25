@@ -1,15 +1,24 @@
 use std::os::windows::fs::OpenOptionsExt;
+use std::sync::atomic::AtomicBool;
+use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::adapters::PublicationGuardedFileDiscovery;
+use crate::application::incremental_library_changes::{
+    AuthoritativePathSetContext, process_authoritative_path_set, process_ready_library_changes,
+};
 use crate::domain::{
     LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope,
+    LibraryChangeQueueStatus, LibraryChangeScope,
 };
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeQueue, SourceReconciliationRepository,
+    IncrementalCatalogRepository, LibraryChangeQueue, SourceReconciliationAdmission,
+    SourceReconciliationRepository,
 };
 use rusqlite::{Connection, params};
 
 use super::*;
+
+mod publication_race;
 
 fn ready_source_fixture(suffix: &str) -> (PreviewFixture, AssetLocationView) {
     let fixture = preview_fixture(suffix);
@@ -48,6 +57,13 @@ fn queue_row(path: &Path, id: i64) -> Vec<rusqlite::types::Value> {
     statement
         .query_row([id], |row| (0..count).map(|index| row.get(index)).collect())
         .expect("queue row")
+}
+
+fn current_unix_ms() -> i64 {
+    let elapsed = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("clock after epoch");
+    i64::try_from(elapsed.as_millis()).expect("supported timestamp")
 }
 
 #[test]
@@ -100,24 +116,31 @@ fn source_reconciliation_preserves_existing_authority_and_rejects_stale_admissio
         let before = queue_row(&fixture.storage.catalog_path, id);
         let mut stale = fixture.request.clone();
         stale.expected_source_generation += 1;
-        assert!(
+        assert!(matches!(
             catalog
                 .admit_source_reconciliation(&stale, &intent, 101, policy)
-                .expect("stale admission")
-                .is_none()
-        );
+                .expect("stale admission"),
+            SourceReconciliationAdmission::RequestSuperseded
+        ));
         assert_eq!(queue_row(&fixture.storage.catalog_path, id), before);
         let admitted = catalog
             .admit_source_reconciliation(&fixture.request, &intent, 101, policy)
             .expect("bounded source admission");
-        assert_eq!(admitted.is_some(), scope == LibraryChangeScope::Root);
+        if scope == LibraryChangeScope::Root {
+            assert!(matches!(admitted, SourceReconciliationAdmission::Leased(_)));
+        } else {
+            assert!(matches!(
+                admitted,
+                SourceReconciliationAdmission::ExistingPathWork
+            ));
+        }
         assert_eq!(queue_row(&fixture.storage.catalog_path, id), before);
-        assert!(
+        assert!(matches!(
             catalog
                 .admit_source_reconciliation(&fixture.request, &intent, 102, policy)
-                .expect("duplicate admission")
-                .is_none()
-        );
+                .expect("duplicate admission"),
+            SourceReconciliationAdmission::ExistingPathWork
+        ));
         assert_eq!(queue_row(&fixture.storage.catalog_path, id), before);
     }
 }
@@ -375,6 +398,269 @@ fn missing_source_observation_revalidates_a_recreated_file_before_catalog_remova
     )
     .expect("current source preview");
     assert_eq!(regenerated.preview_status, PreviewStatus::Ready);
+}
+
+#[test]
+fn changed_source_preserves_pending_path_work_and_retires_preview_request() {
+    verify_changed_source_during_path_work(LibraryChangeQueueStatus::Pending, PreviewStatus::Ready);
+}
+
+#[test]
+fn changed_source_preserves_executing_path_lease_and_recovers_current_pixels() {
+    verify_changed_source_during_path_work(LibraryChangeQueueStatus::Leased, PreviewStatus::Ready);
+}
+
+#[test]
+fn changed_source_pending_preview_recovers_through_original_path_work() {
+    verify_changed_source_during_path_work(
+        LibraryChangeQueueStatus::Pending,
+        PreviewStatus::Pending,
+    );
+}
+
+fn verify_changed_source_during_path_work(
+    existing_status: LibraryChangeQueueStatus,
+    preview_status: PreviewStatus,
+) {
+    let (fixture, ready) = ready_source_fixture("changed-source-owned-path");
+    let original_preview = fs::read(&ready.preview_path).expect("original preview");
+    let mut catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone()).expect("catalog");
+    let root = catalog
+        .load_incremental_catalog_root(&ready.root_id)
+        .expect("root query")
+        .expect("root");
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        max_lease_batch: 1,
+        ..LibraryChangeQueuePolicy::default()
+    };
+    let observed_unix_ms = current_unix_ms();
+    let mut intent = LibraryChangeIntent {
+        root_id: ready.root_id.clone(),
+        root_generation: root.root_generation,
+        kind: LibraryChangeIntentKind::Reconcile,
+        scope: LibraryChangeScope::Path,
+        relative_path: ready.relative_path.clone(),
+        previous_relative_path: None,
+        origin: LibraryChangeOrigin::MetadataInventory,
+        first_observed_unix_ms: observed_unix_ms,
+        most_recent_observed_unix_ms: observed_unix_ms,
+        first_sequence: 0,
+        most_recent_sequence: 0,
+        coalesced_observation_count: 1,
+    };
+    if preview_status == PreviewStatus::Pending {
+        catalog
+            .enqueue_library_change_intents(std::slice::from_ref(&intent), observed_unix_ms, policy)
+            .expect("dirty source evidence");
+        let report = process_ready_library_changes(
+            &mut catalog,
+            &root.root_id,
+            root.root_generation,
+            current_unix_ms(),
+            policy,
+        )
+        .expect("invalidate derived preview through ordinary reconciliation");
+        assert_eq!(report.completed_count, 1);
+    }
+    let original = active_location(&fixture);
+    assert_eq!(original.preview_status, preview_status);
+    assert!(original.source_revision.is_some());
+    let modified = fixture
+        .source_path
+        .metadata()
+        .expect("source metadata")
+        .modified()
+        .expect("source timestamp");
+    let mut replacement = Cursor::new(Vec::new());
+    image::DynamicImage::ImageRgb8(RgbImage::from_pixel(32, 24, Rgb([192, 96, 24])))
+        .write_to(&mut replacement, image::ImageFormat::Png)
+        .expect("replacement PNG");
+    let replacement = replacement.into_inner();
+    assert_eq!(replacement.len() as u64, ready.file_size);
+    fs::write(&fixture.source_path, &replacement).expect("rewrite owned fixture source");
+    fs::OpenOptions::new()
+        .write(true)
+        .open(&fixture.source_path)
+        .expect("fixture handle")
+        .set_times(fs::FileTimes::new().set_modified(modified))
+        .expect("preserve modification time");
+
+    let changed_unix_ms = current_unix_ms();
+    intent.first_observed_unix_ms = changed_unix_ms;
+    intent.most_recent_observed_unix_ms = changed_unix_ms;
+    catalog
+        .enqueue_library_change_intents(&[intent], changed_unix_ms, policy)
+        .expect("existing path work");
+    let existing_lease = if existing_status == LibraryChangeQueueStatus::Leased {
+        let leases = catalog
+            .lease_path_library_changes(
+                &root.root_id,
+                root.root_generation,
+                current_unix_ms(),
+                policy,
+            )
+            .expect("original owner leases its path");
+        assert_eq!(leases.len(), 1);
+        leases.into_iter().next()
+    } else {
+        None
+    };
+    let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
+    let id = connection
+        .query_row("SELECT MAX(id) FROM library_change_queue", [], |row| {
+            row.get(0)
+        })
+        .expect("queue ID");
+    let queue_count: i64 = connection
+        .query_row("SELECT COUNT(*) FROM library_change_queue", [], |row| {
+            row.get(0)
+        })
+        .expect("original queue count");
+    drop(connection);
+    drop(catalog);
+    let before = queue_row(&fixture.storage.catalog_path, id);
+    if let Some(leased) = &existing_lease {
+        assert!(leased.lease_expires_unix_ms > current_unix_ms());
+    }
+    let error = materialize_preview_with_storage(
+        preview_request_for(&original, 256, false),
+        fixture.storage.clone(),
+    )
+    .expect_err("changed source cannot satisfy the old preview request");
+    assert_eq!(queue_row(&fixture.storage.catalog_path, id), before);
+    assert_eq!(active_location(&fixture), original);
+    assert_eq!(
+        fs::read(&ready.preview_path).expect("retained preview"),
+        original_preview
+    );
+    assert_eq!(
+        fs::read(&fixture.source_path).expect("source bytes"),
+        replacement
+    );
+    assert_eq!(error.code, "preview_request_superseded");
+
+    let mut catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone()).expect("catalog");
+    let current_root = catalog
+        .load_incremental_catalog_root(&root.root_id)
+        .expect("current root")
+        .expect("root");
+    let report = if let Some(leased) = existing_lease {
+        let completion_unix_ms = current_unix_ms();
+        assert!(leased.lease_expires_unix_ms > completion_unix_ms);
+        let identity = current_root
+            .publication_root_identity
+            .as_ref()
+            .expect("root identity");
+        let discovery = PublicationGuardedFileDiscovery::new_incremental_publication_guard(
+            &current_root.root_path,
+            identity,
+        )
+        .expect("guarded fixture discovery");
+        process_authoritative_path_set(
+            &mut catalog,
+            AuthoritativePathSetContext {
+                root_id: &root.root_id,
+                root_generation: root.root_generation,
+                expected_catalog_revision: current_root.catalog_revision,
+                expected_root_identity: identity,
+                leased: &leased,
+                relative_paths: std::slice::from_ref(&original.relative_path),
+                now_unix_ms: completion_unix_ms,
+                queue_policy: policy,
+                cancellation: &AtomicBool::new(false),
+            },
+            &discovery,
+        )
+        .expect("original lease publishes current source")
+    } else {
+        process_ready_library_changes(
+            &mut catalog,
+            &root.root_id,
+            root.root_generation,
+            current_unix_ms(),
+            policy,
+        )
+        .expect("original pending work publishes current source")
+    };
+    assert_eq!(report.completed_count, 1);
+    let current = active_location(&fixture);
+    assert!(current.source_generation > original.source_generation);
+    assert_ne!(current.source_revision, original.source_revision);
+    assert_eq!(current.preview_status, PreviewStatus::Pending);
+    let regenerated = materialize_preview_with_storage(
+        preview_request_for(&current, 256, false),
+        fixture.storage.clone(),
+    )
+    .expect("current source preview");
+    assert_eq!(regenerated.preview_status, PreviewStatus::Ready);
+    let pixels = image::open(&regenerated.preview_path)
+        .expect("current pixels")
+        .to_rgb8();
+    let actual = pixels.get_pixel(pixels.width() / 2, pixels.height() / 2).0;
+    assert!(
+        actual
+            .into_iter()
+            .zip([192_u8, 96, 24])
+            .all(|(actual, expected)| actual.abs_diff(expected) <= 8)
+    );
+    assert_eq!(
+        fs::read(&fixture.source_path).expect("source after recovery"),
+        replacement
+    );
+    let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
+    let (final_count, completed): (i64, String) = connection
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM library_change_queue), status
+         FROM library_change_queue WHERE id = ?1",
+            [id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("original queue completion");
+    assert_eq!(final_count, queue_count);
+    assert_eq!(completed, "completed");
+}
+
+#[test]
+fn rejected_reconciliation_lease_preserves_the_source_error_and_rolls_back_insert() {
+    let (fixture, ready) = ready_source_fixture("rejected-source-lease");
+    let root = SqliteCatalog::open(fixture.storage.catalog_path.clone())
+        .expect("catalog")
+        .load_incremental_catalog_root(&ready.root_id)
+        .expect("root query")
+        .expect("root");
+    let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
+    connection
+        .execute_batch(
+            "CREATE TRIGGER reject_fixture_source_lease
+         BEFORE UPDATE OF status ON library_change_queue
+         WHEN NEW.status = 'leased'
+         BEGIN SELECT RAISE(IGNORE); END;",
+        )
+        .expect("fixture lease rejection");
+    drop(connection);
+    let issue = ScanIssue {
+        path: Some(ready.absolute_path.clone()),
+        code: "source_revision_changed_during_scan".to_owned(),
+        message: "Source revision changed before lease admission".to_owned(),
+    };
+    let error = super::super::source_reconciliation::recover_source_mismatch(
+        &fixture.storage,
+        &preview_request_for(&ready, 256, false),
+        &ready,
+        root.root_generation,
+        issue.clone(),
+    );
+    assert_eq!(error.code, issue.code);
+    assert_eq!(error.message, issue.message);
+    assert_eq!(active_location(&fixture), ready);
+    let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
+    let count: i64 = connection
+        .query_row("SELECT COUNT(*) FROM library_change_queue", [], |row| {
+            row.get(0)
+        })
+        .expect("rolled back queue insert");
+    assert_eq!(count, 0);
 }
 
 #[test]
