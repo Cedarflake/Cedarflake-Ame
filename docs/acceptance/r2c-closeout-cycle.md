@@ -992,6 +992,22 @@ readiness are prerequisites to a different, bounded continuation method.
 Host/abort receipts are under `build/integration-storage-9f9559e2e8f14f76b4c8e5473c0a1386`;
 the complete source postcheck is under `build/integration-storage-e84f07c4443e4008b0c71381991477a4`.
 
+### Empty Sandbox readiness preparation
+
+Follow-up `d5633c7bd2a84a1d9e268517916a371e` is prepared in `.build/r2c-sandbox-access` with
+unchanged copies of the existing canary preparation, guest and host scripts. Their three SHA-256
+comparisons and PowerShell parse checks pass. The guest script also matches successful predecessor
+`f409552af3f142df8e7c23b97da1817d`. The new WSB has exactly two fresh script/evidence mappings,
+read-only input, disabled network/clipboard, three-GiB guest memory and no media or product payload.
+Host entry/reserve and the whole canary deadline remain seven/two GiB and 180 seconds.
+
+Independent review confirms new identity, matching bindings, empty output and no reused receipts.
+Configuration SHA-256 is `D2579C96DE2F464FDD4C427F7060D0F6BE8E08156EF4172A2A09DAAA888B6026`;
+`preparation-result.json` SHA-256 is
+`61EEE0DA096378584F29716BB4F9082F9CA3616DD8AAEF69088FBB6862A5F969`.
+There is no host-start receipt or native attempt. Tool-access confirmation is pending; preparation
+proves neither guest readiness nor window input, normal retirement, populated startup or UX-01A.
+
 ### Native original-viewer source-slot evidence
 
 On product source `a1c165b2cb11c380ef4a8ee3f2f47c0af139b2b6` (documentation HEAD

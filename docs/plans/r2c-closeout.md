@@ -211,6 +211,38 @@ is admitted. A further method must first establish current window access and gue
 an empty Sandbox before reserving another media lifetime; it cannot infer guest execution or source
 safety from missing receipts or extend the original product deadlines.
 
+#### Empty Sandbox control and readiness prerequisite
+
+After the failed populated-startup admission, reserve 20 active minutes: five to prepare a fresh
+identity with the unchanged previously passing empty-Sandbox scripts, five for binding and
+isolation checks, five for one native readiness/close attempt, three for independent evidence
+review and two for records. Cumulative accounting is 9159 charged / 9214 reserved, including the
+untouched conditional 35-minute deletion allowance. This admits preparation now; native launch
+waits for the pending window-access confirmation. It adds no populated-client replay allowance.
+
+Use the existing three-GiB empty guest, seven-GiB host entry floor, two-GiB host reserve and
+180-second whole canary deadline. Map only its fresh read-only script directory and writeable
+receipt directory; include no application payload, catalog, media mapping, service or network.
+Preserve the previous failing lifetime and require a new run identity. Bind the reused helper
+hashes and verify the configuration before launch rather than regenerating or retesting product
+artifacts. The already passing guest checks remain useful method evidence, not proof that this
+guest will start.
+
+The current run must supply both a matching successful guest receipt and a screenshot from the
+returned Sandbox window before observed native close and confirmed process retirement. Neither
+window access alone nor an isolated guest receipt closes this prerequisite. Missing access,
+readiness, isolation or normal retirement ends the one attempt with its original result. Do not
+change permissions or services programmatically, extend the deadline, infer an unseen error, or
+start the media workload in the same lifetime. A successful prerequisite permits preparation of
+the separately bounded populated-client continuation, not retrospective acceptance of UX-01A.
+
+The fresh configuration and unchanged helper bindings now pass preparation and independent review;
+the [readiness preparation record](../acceptance/r2c-closeout-cycle.md#empty-sandbox-readiness-preparation)
+retains their exact identity. No native launch has occurred while tool-access confirmation is
+pending. Charge the 15 preparation/check/review/record minutes conservatively: cumulative accounting
+is 9174 charged / 9214 reserved. The one five-minute readiness attempt and the separate conditional
+35-minute deletion allowance remain unconsumed. No product or full media test is admitted here.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle
