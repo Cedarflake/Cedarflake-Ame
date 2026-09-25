@@ -1,8 +1,53 @@
 # R2c closeout execution
 
-Status: **The corrected Release bulk workload passes its original convergence and lifetime
-bounds. Browsing during import/publication is the active functional investigation; remaining
-frozen variants and final gates stay open**.
+Status: **R2c remains unaccepted. The current functional priority is retained-library browsing:
+Retry previews and unsolicited movement after synchronization has ended, plus the newly reported
+false bottom after scrolling during a timeline load. The repair batch is not client-accepted.**
+
+### Current execution checkpoint
+
+Updated 2026-09-26. Resume from this checkpoint and the linked owning evidence, then verify the
+live source and running artifact. Preserve the exact triggering sequence of each open incident;
+a related correction, a focused pass or a different native scenario cannot close it.
+
+| Outcome | Current evidence and unfinished work |
+| --- | --- |
+| Idle browsing stays at the requested position | **Open; a subsequent rerun reports recurrence.** Synchronization is already finished; a middle-timeline click loads successfully; upward scrolling then shows some Retry previews and jumps toward an earlier position, not the top. The expired-cursor, preview-retirement and later-scroll corrections have boundary evidence, but have not established resolution of this complete retained-library sequence. [Owning record](../acceptance/r2c-retained-runtime.md#timeline-navigation-upward-scrolling-and-retry) |
+| Scrolling during a timeline load does not create a false bottom | **Connected causal correction; native incident remains open.** Delayed full-layout arrival during a preceding-page restoration caused a jump to the final rows. Typed coordinate/intent ownership corrects that boundary, with connected and owner regressions. The fixture also moves the rail to the end, so it does not yet explain the reported still-middle rail discrepancy. [Owning record](../acceptance/r2c-retained-runtime.md#delayed-layout-prepend-correction) |
+| Updating retains the latest visible position | **Selected corrected generated native check passes.** Held old-page success/error regressions verify retirement before committed projection replacement. In the subsequent 10000-image lifetime, the update ends at the newly scrolled 2012-04-02 tile group without the earlier jump toward 2025. Point frames retain a small vertical adjustment; continuous pixel stability remains unproven. This update-completion failure is distinct from the already-idle incident. [Owning record](../acceptance/r2c-retained-runtime.md#corrected-generated-native-checkpoint) |
+| Retained-root update completes at a usable cost | **Open.** The JPEG header correction has bounded-I/O and adjacent scan evidence; it does not establish the complete retained-root update duration or explain every prior cost. [Owning record](../acceptance/r2c-retained-runtime.md#jpeg-inspection-reads-only-header-evidence) |
+| Screenshot creation converges and manual update reaches a terminal state | **Owning defects confirmed; native correction pending.** Subtree terminal-media evidence was rejected as if each child needed its own lease. The retained root also has an exhausted P0 subtree lease blocking manual publication. Corrected scope admission, bounded terminal cleanup, one-time retained recovery and terminal publication failure retain old snapshots and task evidence. [Owning record](../acceptance/r2c-retained-runtime.md#screenshot-arrival-and-manual-update-completion) |
+| Four required maintenance deliveries | M01–M04 have implemented, verified checkpoints in the [maintenance record](../acceptance/r2c-maintainability.md). Preserve those owners and regression boundaries; do not restart all four implementations. Later functional failures still require correction at their owning boundary. |
+| Remaining R2c completion | The frozen 24 variants, C01/C02 disposition, applicable Release/final gates and external acceptance remain required. The existing roster and evidence owners below retain their individual status. No stage advancement is admitted. |
+
+The verified repair batch is on `codex/r2c` through product commit `1704228`, separated into JPEG
+inspection, synchronization publication, preview reconciliation and gallery-position commits.
+The operated Debug artifact in run `ed24825fed214b429b46511b9112f5a3` predates the manual-update
+correction and retains its failed verdict. The corrected `e907837b0dad4cab916f4787522d0f07` lifetime
+now has selected native operation, exact membership, source-integrity and normal-exit evidence.
+It does not close the original retained-library incidents. A newly reported failure remains negative evidence until the executing artifact
+and complete triggering sequence are verified; do not assume an obsolete executable caused it.
+
+Next: the corrected passive-publication candidate now passes the captured first-page jump sequence
+in native run `b0e732489ecd441a915dd9e7ed0c3493`, including both middle regions and downward reversal.
+The corrected complete Daily and unsigned Windows gates now pass. Continue the exact remaining
+functional variants after the coherent repair checkpoint. Commit creation and evidence-only edits
+do not repeat these gates. The [combined verification record](../acceptance/r2c-retained-runtime.md#combined-repair-batch-verification)
+binds their source, results and retained exclusions.
+Preserve the original non-top Retry and database-pending false-bottom variants; their exact
+conditions are not closed by this selected native pass. Capture actual pending-request authority
+as well as a displayed loading wall in any later admitted variant. Do not repeat the same generated
+native workload without a changed causal method. Full verification follows this functional checkpoint;
+unit tests and CI do not replace it. The original blank-wall, rail disappearance, persistent-gray
+thumbnail and viewer-return reports remain mapped to the C05/UX evidence below and are not silently
+closed by this checkpoint. Reuse the current 10000-image mixed-size/historical corpus and its safety
+bounds. The prior one-off real-root observation has been consumed. The 2026-09-26 direction now
+authorizes operating or terminating the user's running Ame whenever required for this repair;
+do not wait for another window-close confirmation. Capture retained logs before termination.
+Additional real-root browsing remains bounded to one ten-minute middle-rail/upward/reverse-scroll
+observation against local-primary/cloud-primary, with no source mutation, hydration or new import.
+Keep the 2 GiB client ceiling and 2 GiB host reserve, and distinguish the original executing artifact
+from a rebuilt repair candidate. Actual synchronization validation uses disposable generated sources.
 
 The [accumulated candidate hosted checkpoint](../acceptance/r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint)
 passes all required jobs on `9c584a0`; the later `aac68ed` run repeats C01's connection-lifetime
@@ -45,7 +90,12 @@ unavailable signing, service, journal, cloud or real-root authority does not blo
 and does not convert a controlled test into external acceptance.
 
 Batch verification around a coherent functional change: use boundary tests while implementing,
-then run the required full local gates once on the frozen source. Commit creation, evidence-only
+operate the actual native client, then run the required full local gates once on the frozen source.
+The 2026-09-25 batching direction
+groups the reported Retry feedback, position jump and slow retained-root update into one current
+repair batch. Keep causal boundary checks during implementation; do not start a complete gate after
+each individual correction. Required complete verification remains a batch-delivery condition.
+Commit creation, evidence-only
 documentation and unchanged client observations do not restart those gates. Reuse current-source
 hosted results for the responsibilities assigned by ADR 0026; retain separate Windows 11 client,
 Release interaction and external acceptance duties. Keep independent functional work moving while
@@ -615,6 +665,326 @@ authority and an actual unrecoverable source error. Preserve all identities, lea
 guards. This is a hypothesis, not attribution of the observed two Retry controls. Run only the
 minimal generated regression; no original-media read, new native lifetime, full quality rerun or
 product behavior change is admitted until a causal failure establishes the owning correction.
+
+#### Preview retirement when path reconciliation already owns work
+
+The generated same-size, retained-mtime rewrite now establishes a causal failure: the old preview
+request returns `source_revision_changed_during_scan` while an unchanged same-path queue entry owns
+reconciliation. The queue row, catalog location and prior preview remain intact; the incorrect
+command outcome can project transient Retry feedback. This proves an application/admission defect,
+not attribution of either retained-library Retry frame. Charge the 45-minute diagnosis in full:
+9884 charged / 9919 reserved, retaining the conditional 35-minute deletion allowance.
+
+Reserve 120 active minutes for this bounded functional correction: 30 implementation, 15 focused
+regressions, 20 independent review and targeted recheck, 45 applicable gates after code freeze, and
+ten records/commit. Accounting becomes 9884 charged / 10039 reserved. Replace ambiguous admission
+absence with explicit stale-request, existing-path-work, granted-lease and unavailable-lease
+outcomes in the existing source-reconciliation port, adapter and application owners. Only proved
+retirement or already-owned work retires the old preview request. Preserve transaction, root,
+scan, source revision/generation, path, queue-capacity, lease and publication checks, including
+genuine source-open, root-identity, database and backpressure errors.
+
+Prove existing work is neither duplicated nor consumed, then let that original task converge and
+verify current pixels. Cover stale admission and existing pending/leased path ownership, preserve
+the real-error regressions, and reuse the frontend superseded-result regression. Record production
+and dedicated-test sizes; no bridge, schema, dependency or source-media policy changes are needed.
+After one bounded review, run focused checks, lint and one complete Daily for the frozen product
+change. Do not repeat unchanged gates for documentation or commit creation. No fresh real-root
+read, native browsing lifetime, C01/C02 replay or source mutation is admitted by this correction.
+An unexplained focused failure returns to this owner; unrelated symptoms remain separately recorded.
+
+The correction now has focused Rust/frontend, independent review/recheck and lint evidence. The
+complete Daily was intentionally interrupted on the subsequent batching direction, after 1269
+Rust cases reported passing and without a reported assertion failure; it is not a passing gate.
+Its processes retire and the tooling lock is released. Preserve the current source and defer a
+fresh complete gate to the combined batch boundary. Conservatively charge this 120-minute block:
+10004 charged / 10039 reserved, including the conditional 35-minute deletion allowance.
+
+#### Combined retained browsing and update-cost batch
+
+The current direction groups three reported symptoms before another full gate. Preserve the
+existing `0677ba6` anchored stale-page recovery correction and its earlier evidence, plus the new
+typed source-reconciliation correction and its focused evidence. Neither independently proves the
+exact historical retained-client sequence; a sampled non-reproduction does not close the jump.
+
+Reserve 90 active minutes for the next causal method, making 10004 charged / 10129 reserved:
+30 for unchanged-source cursor/manifest/anchor transitions using the retained input/catalog evidence
+and existing owning tests, 30 for recovery candidate preparation/publication cost accounting, 20
+for the smallest generated counterexample supported by that evidence, and ten for disposition and
+the next complete repair boundary. Keep the existing workload/deadline and failed-run allowances.
+Do not repeat the disproved invalidated-metadata hypothesis or the unchanged large-library run.
+
+Inspect retained logs, isolated derived catalogs and current source first. No real-root process,
+original-media read, source mutation or cloud hydration is admitted. A new real-root observation
+needs a prepared, separately approved run; the previous one has been consumed. Fix only a causal
+owning defect with its necessary boundary regression. Missing causal evidence remains an explicit
+open duty, not a claim that the symptom was fixed. Group lint, complete Daily and applicable final
+gates after the batch has a coherent frozen result; documentation or a focused pass cannot trigger
+another complete run. The existing original-media and external-acceptance limits still apply.
+
+The generated wheel/reflow interleaving now fails causally: after a 480-pixel upward wheel event,
+the deferred geometry replacement restores `location-3003` instead of retaining the newly visible
+`location-2988`. The unchanged reflow cases pass. This proves a later-input ownership defect, not
+complete attribution of the retained-library incident. Preserve that red result.
+
+Reserve a further 90 active minutes for its bounded correction, making 10004 charged / 10219
+reserved: 35 for a typed pending-reflow/anchor owner, 20 for focused later-input, transition and
+resize boundaries, 20 for one independent review/recheck, and 15 for records and disposition.
+Keep framework scrolling and the existing atomic sliver correction; the queued geometry may not
+restore an anchor captured before later movement. Preserve query/revision/location identity,
+sidebar anchor behavior, latest geometry selection and lifecycle retirement. No catalog, source,
+schema, dependency, bridge or new control is involved. Continue the separately reserved update-cost
+diagnosis and keep complete quality gates deferred until the three-symptom batch is frozen.
+
+The generated JPEG read counter confirms unnecessary source I/O in the inspection adapter:
+a valid 1,957,816-byte image with small headers causes 1,966,008 bytes of reads to obtain only
+dimensions and metadata. The pinned `image` JPEG constructor reads the complete compressed file
+before parsing headers. This establishes an avoidable per-candidate cost, not attribution of the
+entire retained-root recovery duration. Charge the 90-minute causal method conservatively:
+10094 charged / 10219 reserved; the reflow correction and conditional deletion allowances remain.
+
+Reserve 120 active minutes for bounded JPEG header inspection, making 10094 charged / 10339
+reserved: 45 implementation, 30 adapter boundary fixtures, 20 independent review/recheck, ten read
+cost comparison and 15 records. Use the same already-locked `zune-jpeg` 0.5.15 / `zune-core` 0.5.1
+engine directly behind the inspection adapter, preserving raw EXIF, orientation and header parsing
+through the first scan marker. Do not substitute `jpeg-decoder::read_info`, which returns before
+later header metadata. Record the exact direct dependency admission and resource/error mapping.
+Bound header reads; preserve source-open/revalidation, metadata identities, non-JPEG handling and
+real I/O errors. Cover ordinary and late EXIF, malformed/truncated headers, access errors and the
+resource limit with generated or existing licensed fixtures. No original-media reads, dependency
+upgrades, new native runtime, pixel decode or full gate per correction is admitted. Keep total
+retained-root timing attribution open until an independently admitted observation supplies it.
+
+The reflow and JPEG corrections now have their causal regressions and scoped review/recheck.
+The reflow review exposed both subsequent recovery-epoch capture and pre-build wheel consumption;
+the JPEG review exposed a budget outside buffering. All are corrected with retained failing cases.
+The final focused results are 18 wall cases, 43 connected-screen cases and 11 inspection cases;
+the preceding adjacent application run passes eight scan, three inventory and 12 preview cases.
+Conservatively charge both correction blocks: 10304 charged / 10339 reserved, leaving only the
+conditional 35-minute deletion allowance. Historical retained-client attribution remains open.
+
+Reserve one 120-active-minute combined verification block, making 10304 charged / 10459 reserved:
+90 for the canonical serial Daily (which already invokes lint), 20 for applicable unsigned Windows
+verification and ten for source/evidence/Git disposition. Freeze the three causal corrections
+together before client operation and the subsequent complete invocation. Do not run a separate duplicate lint invocation, restart passing
+components for documentation/commit changes, reduce workload or deadlines, or replay unchanged
+historical failures. A new gate failure retains its actual source and result and returns to its
+owning cause. No new real-library observation is admitted; the previously consumed approval and
+separate client/external acceptance duties remain unchanged.
+
+The current direction requires actual native-client operation before complete verification. The
+first combined Daily stopped at five style findings; the corrected second invocation is deliberately
+interrupted during Rust tests after 432540 ms. Neither is a complete pass. Retain both outcomes and
+the final frozen source binding. Do not resume Daily or substitute hosted CI for the native check.
+
+Reserve a bounded 60-active-minute native checkpoint, making 10304 charged / 10519 reserved:
+15 preparation/source binding, 15 current Debug build, 15 native operation and ten source/evidence
+checks, with five minutes for disposition. Reuse the existing isolated startup admission, owned
+process lifetime and memory monitor. A fresh GUID-owned catalog and in-memory preferences admit
+only the existing generated 10000-file, 10921494393-byte mixed-size/historical corpus, with full
+before/after identity, date and byte checks. Preserve the 300-second import bound, 900-second native
+lifetime, 4 GiB Debug start floor, 2 GiB client ceilings and 2 GiB system reserve. This does not replay
+the conditional generated-deletion workload or consume a new real-root browsing authorization.
+
+Use current Computer Use observations and one input followed by refreshed state: select the source
+through the actual picker; observe active import and terminal count; jump to a middle historical
+date without a following wheel event; scroll upward, reverse and settle; enter and leave the viewer;
+inspect the resulting position and thumbnail feedback. Record visible outcomes independently from
+logs and focused tests. Within the same lifetime, perform one menu-driven update of the unchanged
+generated root and observe its terminal state and browsing position within the same 300-second
+operation bound. This is a selected warm-update observation, not retained-root recovery timing.
+Any blank wall, persistent Retry, uncommanded position movement or missed
+terminal transition fails this checkpoint and returns to its owning cause. An input/tool failure
+is unverified client evidence, never a product pass. Native success admits one combined complete
+gate; it does not establish the unobserved historical real-library incident or Release acceptance.
+
+This native checkpoint fails the position invariant. After actual picker import and successful
+middle-date navigation, reversal and viewer return, a menu-driven update of the unchanged generated
+root moves the resting viewport from 2011-02-02 to 2025-02-01. Both source checks and exact closed
+10000-image membership pass; the application exits normally. Preserve the native failure separately
+from these passing safety/lifetime checks. Do not resume the complete gate.
+
+Charge the native reservation conservatively: 10364 charged / 10519 reserved. Reserve a bounded
+90-minute correction/checkpoint, making 10364 charged / 10609 reserved: 25 for mapping the manual
+update-to-query-publication route and its smallest causal regression, 20 for correction and focused
+checks, 15 for independent review/recheck, 20 for one corrected native lifetime, and ten for records.
+The selected hypothesis is a manual-update refresh bypassing the existing position-aware query
+projection; it must fail a causal regression before changing behavior. Reuse the owning projection
+and committed-refresh contracts, preserving later scroll/query authority, failed refresh retry and
+source safety. No presentation offset patch, new retry, schema change or real-root run is admitted.
+The corrected native run keeps the same corpus, bounds and before/after integrity obligations.
+
+The subsequent actual-client early-scroll, screenshot-arrival and manual-finalization reports
+extend this coherent functional batch. Reserve at most 120 active minutes, making 10364 charged /
+10729 reserved: 30 for current terminal/read-only derived-catalog diagnosis, 55 for at most two
+proven owning-boundary corrections and regressions, 15 focused checks, ten independent review and
+ten records. Preserve the prior correction's unused native allowance and all full-gate duties.
+No source enumeration, original-media writes, hydration, manual catalog repair, unchanged failed
+workload replay or new real-root client run is admitted. Inspect the pending query/cursor/geometry
+boundary and the reported terminal-evidence failure first. Complete verification counters alone
+do not establish publication; distinguish a progressing commit from a failed or blocked terminal
+transition using current evidence. If causality remains unresolved, retain the open incident and
+record a changed diagnostic method rather than adding retries or hiding its feedback.
+
+The retained task is now confirmed as an eight-attempt `change_lease_expired` P0 subtree. Its
+recovery stays inside this block: extend only the existing strict LiveOnly retained-subtree
+transfer to that failure code, preserving the original failure and attempts. Use the existing
+capacity, namespace and authority checks for a single P2 transfer. Publication shares that
+admission predicate; if P2 is full, terminate the foreground attempt without replacing its old
+snapshot, because P2 cannot drain while that same foreground scan runs. Never reset retries,
+fabricate a foreground claim, clear the queue or bypass recovery/foreground exclusion. Prove old
+lease rejection, P2 non-reentry, bounded full-capacity termination and normal recovery separately.
+
+#### Early-scroll pending-read diagnostic continuation
+
+Charge the preceding 120-minute diagnostic/correction block in full and reserve another 90 active
+minutes, making 10484 charged / 10819 reserved; prior unused native allowances remain distinct.
+Use at most 20 minutes to map the pending time-read, cancellation, page-cursor and layout-manifest
+boundaries, 35 for a connected delayed-read reproduction and at most one proven correction, 15 for
+focused checks, ten for independent review and ten for records. This changes the diagnostic method
+after the generated native run did not reproduce the false bottom; it is not an unchanged replay.
+
+Drive the real gallery/controller composition with a deliberately unresolved time read. Deliver
+upward input before resolving it, then reverse beyond the loaded window. Separately delay or fail
+the manifest and inspect global extent, current cursors, loading cleanup and late-result authority.
+Fixtures may reuse aggregate geometry from the existing isolated catalog, but must not read original
+media. No retry or offset guard is admitted without a failing causal assertion. Record an unresolved
+result as open, preserve the native checkpoint, and select another bounded method before expansion.
+Current lint is checked once with native command output intact after the PowerShell redirection
+interruption; complete Daily/Windows remains a combined batch gate after the functional checkpoint.
+
+#### Corrected native browsing checkpoint
+
+Charge the preceding 90-minute diagnostic block in full and reserve 45 active minutes, making
+10574 charged / 10864 reserved: 15 preparation and safety/source binding, 15 current Debug build,
+ten actual native operation and five records. The standing 2026-09-26 window-operation instruction
+admits this one ten-minute read-only browsing observation without another permission question.
+Use a fresh isolated derivative of the already-settled 79281-record catalog from the preceding
+authorized observation, not the original catalog containing the interrupted task. Verify settled
+root/queue state, exact copied membership and isolated preview paths before launch. This historical
+catalog baseline cannot prove current original-task recovery or current scan counts.
+
+Preserve the ordinary production startup, actual native input, 4 GiB Debug launch floor, 2 GiB
+client ceilings, 2 GiB host reserve, owned exit and original-copy integrity checks. Only local-primary
+and cloud-primary are admitted. No source writes, imports, manual updates, hydration, queue repair
+or recovery run is admitted; recovery markers stop this browsing-only observation. Bind the dirty
+candidate by exact product files and hashes, including untracked owners, plus the built payload and
+helpers. Exercise middle-date navigation, immediate upward and reverse scrolling and viewer return.
+Capture exact timing/visible outcomes rather than inferring a pending database read from gray tiles.
+After one observation, preserve unobserved variants and proceed to the combined applicable gates;
+any reproduced failure returns to its owning boundary before a new method is admitted.
+
+#### Retained reconciliation result diagnosis
+
+Charge the completed 45-minute native block in full: 10619 charged / 10864 reserved. Reserve a
+75-minute follow-up, giving 10939 reserved: 15 for existing logs and the result contract, 25 for a
+deterministic generated-source causal regression and owning correction, 15 focused verification,
+ten independent review and ten records. The native observation records 30 of 57 consistency-audit
+paths needing a second attempt, but it does not retain their first failure codes or identify each
+on-screen Retry tile. Do not claim that correlation proves their exact cause.
+
+Exercise source-mismatch reconciliation losing publication authority to another catalog commit,
+and distinguish a durable deferred/retry owner from a genuine media or storage failure. Preserve
+source revalidation, queue attempts, durable failure feedback and terminal ownership. Do not add
+blind retries, clear failure records, weaken revision guards or treat every error as supersession.
+Use fixture-owned media and the existing real database/application path; no additional real-root
+launch, scan, hydration or original catalog repair is included. A reproduced boundary returns to
+focused tests and one review; a non-reproduction remains open without an unchanged native replay.
+Full batch gates remain queued after this functional checkpoint.
+
+#### Corrected reconciliation native observation
+
+The generated database boundary now has a causal RED and 14 passing source-reconciliation cases.
+After its independent review, reserve 45 additional active minutes, cumulative 10984 reserved:
+15 for a bounded read-only UI observer, ten for current artifact binding/build, ten for one native
+observation and ten for records. Charge the preceding 75-minute block conservatively in full:
+10694 charged. This is a changed correction and evidence method, not an unchanged replay.
+
+Use a new derivative of the same previously settled 79281-item baseline, with the existing exact
+membership, cold-cache isolation, source allowlist, no-hydration, memory, ten-minute lifetime and
+normal-exit checks. The standing window-operation authorization admits this scoped continuation.
+Capture only bounded visible tile identities, preview status/error codes, viewport pixels/extents,
+window offsets and loading state in the ignored diagnostic directory. Observe existing frames;
+do not force repaint, change controller state, send synthetic widget input or weaken the production
+startup. Native actions remain actual window input. Distinguish existing unsupported/corrupt media
+from transient in-memory failure using identity, rather than catalog totals alone.
+
+Cover the prior second middle region, upward/reverse scrolling and viewer return. Stop source
+recovery/inventory, resource overflow or the complete deadline. No import, manual update, original
+catalog repair or source write is admitted. Freeze the coherent batch after this observation and
+run the already-reserved serial final gates once; missing exact timing and original-task recovery
+stay open rather than triggering another unchanged native loop.
+
+#### Stale passive time-prefetch recovery
+
+Charge the preceding 45-minute observation in full: 10739 charged / 10984 reserved. Reserve 90
+additional active minutes, cumulative 11074 reserved: 20 for a deterministic delayed-read case,
+20 for one owning correction, 15 focused checks, ten independent review, 15 observer correction
+and one changed native observation, and ten records. The failed native run is
+`24b37f47caa941b9994ed8051edfeeaf`; retain its data and consumed lifetime.
+
+Prove whether a stale passive time read bypasses the mounted gallery anchor. Recover through the
+existing coherent query/projection owners while retaining the original query, publication and time
+request authority. Cover later scrolling, explicit navigation, cancellation, disposal and late
+success/error; no extra retry policy, first-page fallback or source operation is admitted. Correct
+the ignored observer's non-finite geometry classification with positive and rejecting cases before
+any new launch. Missing geometry is unavailable evidence, never a successful empty-wall result.
+One subsequent current-artifact native observation retains the preceding real-root allowlist,
+derived-storage isolation, ten-minute lifetime, resource and source-safety bounds. It must differ
+by the proven correction, not just be another replay. Full batch gates remain the next coherent
+checkpoint; another observed defect stays open with its exact evidence and bounded next method.
+
+#### Publication-origin diagnostic checkpoint
+
+The 90-minute passive-prefetch block has a focused correction but fails its native experience
+check. Conservatively charge it in full: 10829 charged / 11074 reserved. Reserve 45 further active
+minutes, cumulative 11119 reserved: 15 for bounded read-only publication observation, ten build
+and one native lifetime, ten analysis and ten records. No behavior patch is admitted by this
+diagnostic block. Add a bounded provider-state listener to the ignored observer, recording only
+revision/window/loading transitions, source-code call stacks and the rendered wall's anchor
+availability. It must not mutate providers, force frames, issue catalog calls or touch source files.
+Use one fresh derivative of the same settled baseline and the existing native browsing/resource
+bounds. This changes the causal evidence method after the prior hypothesis proved insufficient.
+Identify which publication path and missing/obsolete anchor produced window zero; retain any
+non-reproduction without another unchanged replay. A proven cause requires its own narrow
+implementation checkpoint before editing. Complete Daily/Windows remains a batch gate, not a
+substitute for this still-failing experience.
+
+#### Passive synchronization publication authority
+
+Charge the preceding diagnostic allowance conservatively in full: 10874 charged / 11119 reserved.
+Reserve 75 active minutes, cumulative 11194 reserved: 25 implementation and causal regressions,
+15 independent review and focused checks, 15 one changed native lifetime, ten batch preparation
+and ten records. The native call stack now identifies `_updateQueryWithOutcome`, reached through
+`refreshFromSynchronization`. At 19:51:46.266 UTC revision 1083 is published after the upward
+gesture; at 19:51:46.268 the next refresh sees rendered revision 1075 and loses its anchor.
+Revision 1095 consequently publishes window zero at 19:51:47.526 without another input.
+
+Reuse the typed projection-read authority for passive synchronization, including late success,
+late failure and terminal loading cleanup. Preserve independent publication/query generations,
+minimum-revision validation, current error reporting and busy admission. Do not relax rendered
+revision checks or add a scroll-offset workaround. Prove the connected middle-window sequence
+with a held read, newer upward input and immediate follow-on refresh before frame rendering.
+Also retain normal no-scroll synchronization and genuine failure behavior. Only a changed,
+focused-verified candidate may consume the one native replay; preserve all prior failed verdicts.
+Independent review identifies the same transition's missing transfer to a newer date read. Two
+held-sync/date-navigation regressions fail with retained `isLoadingTimeline`; visible-range
+admission also depends on the obsolete baseline. Extract the baseline/retirement responsibility
+into a typed query-transition owner and prove date completion, old success/error and subsequent
+range admission. This is an additional causal boundary within the same publication lifecycle;
+it does not by itself close the reported middle-rail false-bottom incident.
+Full Daily/Windows remains the combined gate after the functional checkpoint, with original source
+safety and native lifetime/resource limits unchanged.
+
+The selected changed native lifetime now passes the captured first-page recurrence and the
+indexed post-run membership comparison. Conservatively charge this 75-minute block in full:
+10949 charged / 11194 reserved. Its one native replay is consumed. Continue the combined final
+batch checkpoint; the original non-top/Retry and exact pending-load variants are not waived.
+
+The combined gate stops in Dart analysis on five constructor initializing-formal findings before
+the remaining Daily components execute. Correct only that constructor syntax, retain the failed
+transcript, verify its existing owner cases and resume the canonical combined gate on the corrected
+source. This does not change layout policy or admit another unchanged native lifetime.
 
 #### M04 bounded implementation method
 
