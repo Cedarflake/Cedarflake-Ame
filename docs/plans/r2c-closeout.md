@@ -350,6 +350,55 @@ recording, rather than presenting reconstructed exact active times. Accounting i
 No further populated Debug replay is needed. Continue the unresolved frozen duties; Release guest
 readiness, deletion authorization and external inputs retain their independent prerequisites.
 
+#### Inactive source-open observation correction
+
+Current source exposes a concrete test-only cost defect: `record_source_content_open` canonicalizes
+the root before checking whether any source-content counter was registered. Thus an unobserved
+Debug content open still performs diagnostic filesystem work. The existing operation measurements
+do not quantify that work or prove that it explains the whole failed cold/resume interval.
+
+Reserve 80 active minutes under the standing continuation authority: ten for the causal boundary
+regression, twenty for the independently testable counter owner, ten focused caller checks, ten
+for one changed measurement and analysis, ten independent review, ten applicable serial gates and
+ten records. Accounting is 9324 charged / 9439 reserved, including the untouched conditional
+35-minute deletion allowance. This is a specific inactive-observer correction, not another
+exploratory operation-cost instrumentation pass or a production source-access optimization.
+
+First move the existing test-only counter policy intact to a narrow owner and prove that recording
+with no registered observer incorrectly resolves a root. Then prevent that inactive resolution
+while preserving canonical matching, enabled counts, reset behavior, saturation and synchronization;
+the resolver must run outside the registry lock. Keep the current counter API and all assertions.
+No production path/identity guard, media inspection, SQL, source I/O policy or dependency changes.
+Record affected owner/test sizes and verify enabled consumers, including the no-change startup
+counter, against the unchanged positive and negative expectations.
+
+After the failing/passing regression and independent review, allow one serial invocation of the
+original Debug 10000-file cold/warm/pause/resume/cancel benchmark, under its unchanged 60/60/5/60/5
+second and 512-MiB limits. Retain every source, membership, terminal-state and resource assertion.
+The new result must keep the earlier failed workloads explicit; a lower duration alone cannot
+attribute their entire difference to this correction. Failure ends this workload allowance without
+a second replay. Run applicable formatting, lint and complete Daily for the changed test source;
+no native or Release replay is required for a `cfg(test)`-only change. Other acceptance gaps remain.
+
+The one benchmark passes all original assertions. The first complete Daily then rejects the new
+test-only module in two exact source-loading checks: its declaration was not added to the existing
+availability-module contract. Preserve that failed Daily. Within this same correction, register
+only the exact private, out-of-line `cfg(all(windows, test))` declaration and extend the existing
+positive/negative contract fixtures. Do not weaken the AST validator, availability call closure,
+source guards or test expectations. Run the affected availability and counter tests, one scoped
+review recheck, lint and a new complete Daily on that corrected candidate. This is a causal fixture
+correction within the existing allowance, not an unchanged gate retry or another benchmark permit.
+Reuse the passing performance receipt with its original hashes; the later changes affect only the
+source-contract fixtures and preserve the measured counter and benchmark implementations.
+
+The corrected candidate now passes focused checks, scoped independent recheck, lint and complete
+serial Daily. The [maintenance record](../acceptance/r2c-maintainability.md#inactive-source-open-observation-correction)
+retains the successful cost measurement, the first failed Daily and its precise fixture correction.
+Conservatively charge the complete 80-minute envelope, including the correction and records:
+cumulative accounting is 9404 charged / 9439 reserved. Only the separate conditional 35-minute
+deletion allowance remains untouched. No further benchmark or correctness replay is needed for
+this unchanged slice; continue the remaining frozen client and external acceptance obligations.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle

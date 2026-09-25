@@ -82,6 +82,8 @@ mod file_admission;
 mod media_signature;
 mod preview_cache_namespace;
 mod preview_source;
+#[cfg(all(windows, test))]
+mod source_content_observation;
 #[cfg(windows)]
 mod viewer_source_guard;
 #[cfg(test)]
@@ -90,6 +92,12 @@ pub(crate) use catalog_identity::{open_catalog_identity_guard, read_catalog_iden
 pub use file_admission::{FileVisit, FileVisitOutcome};
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
 pub(crate) use preview_source::open_preview_source;
+#[cfg(all(windows, test))]
+use source_content_observation::record_source_content_open;
+#[cfg(all(windows, test))]
+pub(crate) use source_content_observation::{
+    reset_source_content_open_instrumentation, source_content_open_count,
+};
 #[cfg(windows)]
 pub(crate) use viewer_source_guard::open_viewer_source_guard;
 
@@ -115,10 +123,6 @@ static CONFIGURED_ROOT_OPEN_COUNTS: LazyLock<Mutex<HashMap<(PathBuf, bool), u64>
 
 #[cfg(test)]
 static ROOT_AVAILABILITY_METADATA_PROBE_COUNTS: LazyLock<Mutex<HashMap<PathBuf, u64>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-#[cfg(all(windows, test))]
-static SOURCE_CONTENT_OPEN_COUNTS: LazyLock<Mutex<HashMap<PathBuf, u64>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[cfg(test)]
@@ -346,39 +350,6 @@ pub(crate) fn root_availability_metadata_probe_count(root_path: &str) -> u64 {
         .get(&PathBuf::from(root_path))
         .copied()
         .unwrap_or(0)
-}
-
-#[cfg(all(windows, test))]
-pub(crate) fn reset_source_content_open_instrumentation(root_path: &str) {
-    let root =
-        std::fs::canonicalize(root_path).expect("instrumented source root is canonicalizable");
-    SOURCE_CONTENT_OPEN_COUNTS
-        .lock()
-        .expect("source content open instrumentation")
-        .insert(root, 0);
-}
-
-#[cfg(all(windows, test))]
-pub(crate) fn source_content_open_count(root_path: &str) -> u64 {
-    let root =
-        std::fs::canonicalize(root_path).expect("instrumented source root is canonicalizable");
-    SOURCE_CONTENT_OPEN_COUNTS
-        .lock()
-        .expect("source content open instrumentation")
-        .get(&root)
-        .copied()
-        .unwrap_or(0)
-}
-
-#[cfg(all(windows, test))]
-fn record_source_content_open(root_path: &Path) {
-    let root = std::fs::canonicalize(root_path).expect("opened source root is canonicalizable");
-    let mut counts = SOURCE_CONTENT_OPEN_COUNTS
-        .lock()
-        .expect("source content open instrumentation");
-    if let Some(count) = counts.get_mut(&root) {
-        *count = count.saturating_add(1);
-    }
 }
 
 #[cfg(test)]
@@ -6290,6 +6261,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             name: "media_signature",
             visibility: "",
             attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "source_content_observation",
+            visibility: "",
+            attributes: &["cfg(all(windows,test))"],
             is_inline: false,
         },
         AvailabilityModuleContract {

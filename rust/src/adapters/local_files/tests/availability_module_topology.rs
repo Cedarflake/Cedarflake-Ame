@@ -27,6 +27,14 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         assert!(contracts[0].attributes.is_empty());
         assert!(!contracts[0].is_inline);
     }
+    let observation = LOCAL_MODULE_CONTRACTS
+        .iter()
+        .filter(|contract| contract.name == "source_content_observation")
+        .collect::<Vec<_>>();
+    assert_eq!(observation.len(), 1);
+    assert_eq!(observation[0].visibility, "");
+    assert_eq!(observation[0].attributes, ["cfg(all(windows,test))"]);
+    assert!(!observation[0].is_inline);
     for module_name in ["gallery_query_snapshot", "gallery_time_snapshot"] {
         let snapshot = DOMAIN_MODULE_CONTRACTS
             .iter()
@@ -54,14 +62,43 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
 
 #[test]
 fn root_availability_admitted_modules_reject_alternate_generated_or_broader_loading() {
+    let local_source = LOCAL_SOURCE.replace("\r\n", "\n");
     let crate_source = CRATE_SOURCE.replace("\r\n", "\n");
     let signature = "mod media_signature;";
+    let observation = concat!(
+        "#[cfg(all(windows, test))]\n",
+        "mod source_content_observation;"
+    );
     let fixtures = concat!(
         "#[cfg(test)]\n",
         "#[path = \"../test_support/media_fixtures.rs\"]\n",
         "pub(crate) mod media_fixtures;"
     );
     for (source, declaration, replacements, source_key, module_name) in [
+        (
+            local_source.as_str(),
+            observation,
+            vec![
+                "".to_owned(),
+                format!("{observation}\n{observation}"),
+                observation.replace(
+                    "mod source_content_observation",
+                    "pub mod source_content_observation",
+                ),
+                observation.replace("#[cfg(all(windows, test))]\n", ""),
+                observation.replace("cfg(all(windows, test))", "cfg(windows)"),
+                observation.replace("cfg(all(windows, test))", "cfg(test)"),
+                observation.replace("cfg(all(windows, test))", "cfg(any(windows, test))"),
+                format!("#[path = \"alternate.rs\"]\n{observation}"),
+                format!("#[cfg_attr(test, path = \"alternate.rs\")]\n{observation}"),
+                format!("#[adversarial_loader]\n{observation}"),
+                observation.replace(';', " { mod generated {} }"),
+                "include!(\"alternate.rs\");".to_owned(),
+                format!("{observation}\nmod unknown_source_observation;"),
+            ],
+            "local",
+            "source_content_observation",
+        ),
         (
             LOCAL_SOURCE,
             "mod preview_source;",

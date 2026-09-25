@@ -299,6 +299,117 @@ unchanged rerun is issued. This current-head hosted pass does not erase the earl
 failure, explain its intermittent cause, waive M03's Debug performance failure or complete final
 candidate acceptance.
 
+### Inactive source-open observation correction
+
+At base `104733e`, the Windows test-only source-content counter canonicalizes every recorded root
+before checking whether any observer exists. That diagnostic filesystem operation is unnecessary
+when its registry is empty. The correction moves the counter into `source_content_observation.rs`
+and checks the empty registry before resolving the root. Canonical matching, enabled counts,
+per-root reset, saturation and mutex synchronization remain; resolution stays outside the lock.
+The registry retains its original process lifetime. A nonempty registry still resolves roots,
+including an unregistered root; this is not a broader registration-lifecycle redesign.
+
+The entire owner remains behind `cfg(all(windows, test))`. Ordinary Debug and Release application
+behavior, source guards, metadata inspection, transactions, schema, bridge and dependencies are
+unchanged. The correction establishes an inactive diagnostic-I/O defect, not the cause of every
+previous performance failure or of a native gallery/finalization symptom.
+
+The behavior-preserving extraction first runs eight boundary cases against the old policy: seven
+pass and the inactive case fails with one resolution instead of zero. After the correction all
+eight pass, including enabled counting, unrelated roots, reset isolation, resolver failure without
+mutex poisoning, resolution outside the lock, saturation and 256 concurrent increments. Ten
+existing application consumer cases then pass with their original zero/positive expectations:
+metadata reuse and changes, revision rebase, restarted gap recovery, native-rescan recovery,
+100 no-change startups and locked discovery. No source-count assertion is weakened. Independent
+method review finds no blocking issue and retains the nonempty-registry and attribution limits.
+
+The single admitted changed benchmark uses the original serial Debug command and all 10000
+generated 2-by-2 PNG files. It passes every original assertion:
+
+| Measurement | Observed | Unchanged limit |
+| --- | ---: | ---: |
+| Cold scan | 52.948 s | 60 s |
+| Warm scan | 32.348 s | 60 s |
+| Pause | 0.008 s | 5 s |
+| Resume | 52.941 s | 60 s |
+| Cancel | 0.150 s | 5 s |
+| Observed peak test working set | 34594816 bytes | 536870912 bytes |
+
+The complete membership, resumed terminal state, cancelled-staging absence, both catalog-size
+limits, first/last source bytes and final 10000-file count assertions execute and pass. The byte
+checks cover those two selected files, not a full-corpus hash. Catalog sizes are 54018048 and
+31113216 bytes. Fixture creation takes 11.504 seconds, compilation 24.65 seconds, test execution
+159.63 seconds and the captured command 188.315 seconds. Exit is zero with unchanged source/helper
+hashes. This small-image scan benchmark does not replace the separate mixed-size/historical-date
+native workload.
+
+Cold and resume media inspection take 20.325 / 20.352 seconds, staging 11.373 / 11.291 seconds and
+discovery 7.181 / 7.200 seconds. Their prior-selection/inspection/staging counts remain 10000 each,
+with 20002 discovery calls, 86 directory-persistence calls and 79 traversal checkpoints. The earlier
+72.090-, 68.494- and 88.767-second cold failures remain recorded above. Other measured operations
+and fixture creation also become faster in this run; the elapsed difference is not a controlled
+estimate of savings from this counter correction. This invocation passes the original Debug cost
+gate without retroactively explaining those earlier failures or closing C01/C02 and final R2c
+acceptance.
+
+| Affected owner | Pre-inline lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `local_files.rs` | 3962, including test-support declarations | 3438 | Existing child suites retained |
+| `source_content_observation.rs` | 68, entirely test-only | 0 | 117 |
+| `tests/availability_module_topology.rs` | 0 | 0 | 290 |
+
+These counts describe physical review boundaries; the pre-inline facade count is not exclusively
+production code. No unrelated adapter split accompanies the test-only correction.
+
+Local receipts retain frozen source/helper and output hashes:
+
+| Receipt below `.build/` | SHA-256 |
+| --- | --- |
+| `r2c-source-open-observation-before/focused-result.json` | `3D0497B6EDA9D33CFD4DEE08779E2A3AD7C297E62C20443218CE8146ACF250F1` |
+| `r2c-source-open-observation-after/focused-result.json` | `D2050A1A48D71DD74C6C409B43F5AC1CADA2EDAE152BD28C5499B64F568249B3` |
+| `r2c-source-open-observation-callers/focused-result.json` | `D554ACE8892229619D10EEC7362A992B7BA2320C200A14968209019F19AA0C7B` |
+| `r2c-source-open-observation-after/benchmark-result.json` | `9DB591E6BA52742A54B519D93DAFA0FCCA235F103E55A9583140481AF13BE539` |
+| `r2c-source-open-observation-after/lint-result.json` | `73EACF735F188C470FC8370F4EE60CB337FD2BB20CCA89BA84EBFD6B42D7F204` |
+| `r2c-source-open-observation-after/daily-result.json` (failed) | `D84716DD4A0606E9EC7B1D6A4D0437908B1E320BA3FE7E31F4120B8B6406ACCD` |
+| `r2c-source-open-observation-final/focused-result.json` | `81D992B6923D7B7D5291805470EB829642D9AD91CB72145CDBC382870390D44E` |
+| `r2c-source-open-observation-final/lint-result.json` | `1BE6174B2E78EDE90A4AEE63F300FA8B4DE9AC038E47CB88FB81EBBFAB922C5A` |
+| `r2c-source-open-observation-final/daily-result.json` | `2639C0CC9129F356B87B9AA4FEE915BE5CD2AD0EB2664DB47FEF9A17C460E1BB` |
+
+Initial complete lint passes in 132.540 seconds, including formatting, all-target/all-feature
+Clippy with warnings denied and the Dart analyzer, with unchanged source/helper hashes. The first
+Daily fails after 1031.251 seconds: 1568 Rust cases pass, two fail and 19 remain ignored. Both
+failures identify `source_content_observation` as an unexpected module in the exact availability
+source-loading contract. The complete mixed-load recovery and connection-lifetime control pass;
+Flutter and native integrations are not reached. This remains a failed Daily, with unchanged
+source/helper hashes and original stdout/stderr retained in the `after` directory.
+
+The subsequent correction adds only the private, out-of-line `cfg(all(windows, test))` declaration
+to the existing test contract. Its positive fixture verifies those exact properties, and 13
+negative declarations cover absence/duplication, public visibility, missing or broader cfg,
+alternate paths, generated loading and unknown modules. The AST validator and production
+availability call closure are unchanged. The measured counter and benchmark implementations are
+unchanged, so their original performance receipt is retained rather than replayed. All eight
+availability and eight counter cases pass in the final focused command, taking 37.056 seconds with
+unchanged source/helper hashes. A scoped independent static recheck finds no new issue, charging
+approximately one active minute for the static delta. Final complete lint
+passes in 161.832 seconds with unchanged source/helper hashes.
+
+Final complete serial Daily passes in 1822.022 seconds with exit zero and unchanged source/helper
+hashes: 1570 Rust library tests, three broker binary tests and all 96 Flutter test files pass;
+19 existing manual/authorization-bound Rust cases remain ignored. The actual Windows scan
+integration passes in 65.825 seconds without a cleanup failure. All ten native UIA phases pass,
+the primary process exits, its owned Job closes and its scratch directory is removed. Sixteen
+asynchronous bridge contracts and matching content hashes pass. The final receipt/log hashes and
+current source files are verified after completion.
+
+This Daily includes the four maintenance boundaries: status projection, preview ordering,
+scan/entry/finalization and viewport/navigation ownership. The unchanged complete mixed-load
+recovery, connection-lifetime control and fixed-keyset finalization under concurrent source changes
+also pass. The independent Debug cost gate above now passes on the corrected test observer, while
+the earlier failed performance and Daily records remain explicit. The correction requires no
+additional native or Release replay beyond the standard Daily integrations; remaining Release,
+final-candidate and external acceptance duties, including Sandbox readiness, remain separately owned.
+
 ## M04 navigation ownership and lifecycle
 
 `LibraryTimeNavigationRequests` owns pending and active requests, duplicate-target sharing, latest
@@ -316,11 +427,13 @@ publication (6), time navigation (11) and viewer/gallery geometry (2) suites als
 These include both tested window widths and stale-pointer retirement.
 
 Independent review against `148e23e` reports no actionable issue and charges 2.2 active minutes.
-The complete lint attempt passes its compiler-free guardrails, formatting and all-target/all-feature
-Clippy, then correctly fails on six constructor initializing-formal style findings. Correcting only
-those declarations preserves the public constructor parameters; formatting reports no changes and
-the full Dart analyzer then passes with no issues. This is a corrected partition result, not a
-passing complete Daily. Final native, performance and accumulated-source gates remain required.
+At that extraction checkpoint, complete lint passes its compiler-free guardrails, formatting and
+all-target/all-feature Clippy, then correctly fails on six constructor initializing-formal style
+findings. Correcting only those declarations preserves the public constructor parameters;
+formatting reports no changes and the full Dart analyzer then passes with no issues. This is a
+corrected partition result, not a passing complete Daily at that checkpoint. The later
+[current local checkpoint](#inactive-source-open-observation-correction) includes this lifecycle
+in a complete passing Daily. Remaining native and final accumulated-candidate duties are separate.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |

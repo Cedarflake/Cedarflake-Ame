@@ -142,7 +142,9 @@ original interrupted finalization report is now an
 [unconfirmed observation](acceptance/r2c-browsing-admission.md#finalization-observation-disposition),
 with no dedicated replay or blocking obligation absent a repeatable functional failure. Its known
 stop came from the source helper before the import deadline; completed validation counters and
-terminal publication retain distinct evidence. Independent performance failures remain open.
+terminal publication retain distinct evidence. The current
+[Debug scan-cost gate](acceptance/r2c-maintainability.md#inactive-source-open-observation-correction)
+now passes; earlier unexplained performance failures retain their separate disposition duties.
 Remaining frozen variants and final candidate duties stay open. C01's mixed-load recovery
 failure and C02's automation/evidence failures are recorded for final verification; their current
 evidence does not establish a highest-priority user incident. Deferral changes execution order,
@@ -177,9 +179,10 @@ repair admission, review, verification, stopping rules, and safety cautions.
    [host-isolated Debug populated restart](acceptance/r2c-closeout-cycle.md#native-debug-populated-restart)
    now passes; further Release client work still requires guest readiness. Preserve the separate
    instrumented no-source-call proof and remaining native variants.
-   Complete the four named maintenance deliveries with behavior and lifecycle evidence, preserving
-   functional-incident priority. Use one independent reviewer; unrelated physical decomposition
-   remains tracked debt.
+   The four named maintenance implementations have focused and current local Daily evidence,
+   including the passing Debug scan-cost gate. Remaining client and final-candidate obligations
+   retain functional-incident priority. Use one independent reviewer; unrelated physical
+   decomposition remains tracked debt.
 4. **Queued — final-source gates and readiness decision.** Freeze the candidate, resolve admitted
    findings, and complete applicable local Daily/Windows and hosted PR gates. Record implemented,
    focused-verified, final-source-verified, and client-accepted separately. Later behavior changes
