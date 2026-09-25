@@ -432,9 +432,10 @@ The correction checkpoint retains the original query authority during stale-page
 admits passive refresh before gallery projection. Focused and actual-widget position evidence,
 review findings, read-only preview classifications and candidate gates belong to the linked record.
 Charge the complete 120-minute envelope conservatively: 9524 charged / 9559 reserved, retaining
-the untouched conditional 35 minutes. Closing the current dev process is a prerequisite for gates
-that replace its Debug output. Continue only the unfinished native/unsigned gates on the unchanged
-verified source; committing that source does not renew a completed Rust/Flutter run or authorize
+the untouched conditional 35 minutes. After the retained dev process exited, the unchanged
+correction `0677ba6` completed the remaining native Daily and fresh unsigned Windows gates; its
+hosted required gates also passed. Continue the remaining frozen client and external acceptance
+obligations. Recording these results does not renew completed Rust/Flutter/native runs or authorize
 another retained-library scan. Exact reported Retry/jump attribution and recovery cost remain open.
 
 #### M04 bounded implementation method

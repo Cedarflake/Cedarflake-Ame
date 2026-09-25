@@ -1,9 +1,10 @@
 # Retained-library runtime observations
 
-Source: `dcce10e3ce7f2f62a61a82adcdede64c1608f501`; observed 2026-09-25.
-Status: startup recovery completed; paging correction passes focused, lint, Daily static and
-complete Flutter checks. Recovery cost, the exact retained-client incident and remaining native
-candidate gates remain open.
+Observed runtime baseline: `dcce10e3ce7f2f62a61a82adcdede64c1608f501`, 2026-09-25.
+Correction: `0677ba67020142d50e4b28cf7f3ce07e44fec924`, verified 2026-09-25.
+Status: startup recovery completed; paging correction passes focused, lint, complete local Daily,
+fresh unsigned Windows and hosted checks. Recovery cost, the exact retained-client incident and
+remaining R2c client acceptance remain open.
 
 ## Existing recovery after startup
 
@@ -115,15 +116,37 @@ The tests now attach an explicit projection without weakening their original ass
 shared fixture initially imported the anchor from the wrong module; that failed compilation is
 retained in `final-focused.log`, followed by the corrected passing run. Final lint passes formatting,
 Clippy with denied warnings, all tool guardrails and Dart analysis with no issues; its logs are
-`lint-final.log` and `lint-final.log.stderr`. Native Daily and unsigned verification share the Debug
-output still used by the existing retained-library process, so they cannot overwrite it while it
-remains running. Daily's static component passes: 1570 Rust cases, 19 explicitly ignored cases,
-three broker binary cases and all 16 asynchronous bridge contracts. The Rust suite took 1142.11
-seconds; its existing mixed-load P0 latency assertion also passes. Those ignored cases retain their
+`lint-final.log` and `lint-final.log.stderr`. Daily's static component passes: 1570 Rust cases,
+19 explicitly ignored cases, three broker binary cases and all 16 asynchronous bridge contracts.
+The Rust suite took 1142.11 seconds; its existing mixed-load P0 latency assertion also passes.
+Those ignored cases retain their
 separate explicit gates, and this pass does not explain historical C01/C02 failures. Daily's Flutter
 component also passes all 98 test files with no failed files; `daily-flutter.log` and its separate
 stderr retain the full run. Both components ran serially on the source bound by the manifest.
-Native Daily and fresh unsigned Windows checks remain pending while the existing user process
-holds their shared Debug output. That process was neither stopped nor updated, and still runs the
-preceding build. Hosted checks must bind the new commit; an earlier green head is not evidence for
-this correction. These partial gates do not establish complete Daily or real-client acceptance.
+
+Native gates initially waited for the retained process to release their shared Debug output.
+After that process exited, the unchanged correction passed both remaining Daily components:
+the controlled scan integration completed three cases in a 51.160-second parent lifetime, and
+native accessibility completed all ten ordered UIA phases. Both owned process lifetimes and cleanup
+completed without failure. Together with the earlier static and Flutter components, this establishes
+complete serial local Daily on the same source, without replaying its completed components.
+Evidence is retained in `daily-windows-scan.log`, `daily-windows-accessibility.log` and their separate
+stderr files under the ignored evidence directory.
+
+Fresh unsigned Windows verification also passes on the clean correction commit: three native
+window-lifecycle cases, two actual Debug-engine retirement cases, the optimized application/broker
+payload identity and the Release-DLL/native-channel bridge smoke without catalog access. The
+canonical receipt is copied to `unsigned-evidence.json`; `unsigned-windows.log` and its stderr retain
+the run. The parent PowerShell wrapper labels Cargo's normal compilation stderr as `NativeCommandError`,
+but the child exits zero and the canonical receipt records every required boundary as passed.
+These generated/virtual and catalog-free gates do not constitute a new retained-library run.
+
+[Hosted CI for the correction](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36122608963)
+also passes, with 11 successful jobs including the final required-gate summary. It covers complete
+Daily, the independent unsigned Release job, high-resolution JPEG, all seven supported formats,
+10000 images, one million journal records and 50000-identity concurrent publication. Three
+conditional release-workflow jobs were skipped, including signed verification and protected
+signing; signed installed-service acceptance remains open. `hosted-result.json` binds the result
+to the exact correction commit. Subsequent changes to this record do not change the tested product
+source or renew these completed gates. Neither these results nor the independent expired-page
+reproduction establishes the exact Retry cause in the retained-client report.
