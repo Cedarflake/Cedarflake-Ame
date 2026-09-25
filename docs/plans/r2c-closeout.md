@@ -476,7 +476,7 @@ selected generated observation; the reported retained-library incident and Relea
 
 #### First-import control during journal admission
 
-The later documentation-only hosted run fails the native retained-import Pause test with
+R2C-C14: the later documentation-only hosted run fails the native retained-import Pause test with
 `persistent_journal_first_import_inactive`. Its original diagnostics are retained in the runtime
 record. Reserve 90 active minutes: 20 for a deterministic boundary reproduction, 30 for one owning
 correction, 15 for focused/native verification, 15 for independent review and 10 for records.
@@ -485,8 +485,10 @@ Quality-process wall time remains recorded separately. Do not retry the unchange
 
 Prove whether accepted Pause/Cancel/Suspend during first-import capture is incorrectly surfaced as
 failure. Preserve journal/root/generation/scan leases and transaction checks: revoked admission
-must never publish. Extract the affected preflight responsibility before extending the scan facade;
-resolve the accepted control through the existing terminal/checkpoint owner. Preserve unrelated
+must never publish. The deterministic failure is inside selected journal opening work. Extract its
+admission and completion responsibility from `journal_baseline.rs`; return a typed retired outcome
+only for that work's revoked capture lease, leaving the scan facade and terminal/checkpoint owner
+unchanged. Preserve unrelated
 probe/database failures instead of treating every error as cancellation. Cover pre-poll control,
 control inside successful and rejected capture, missing control with an inactive lease, superseded
 authority and ordinary probe failure. Keep the 15-second capture limit and existing retry/backoff.

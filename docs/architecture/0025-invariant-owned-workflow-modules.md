@@ -56,6 +56,9 @@ persistence layers.
   coordinator. Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
+  `journal_baseline/opening.rs` owns opening probe admission, capability/baseline publication and
+  its typed recorded/retired outcome. A revoked first-import lease retires only its own work;
+  database and broker failures remain errors, and a committed receipt survives later control.
 - `production/live_work.rs` owns an admitted Live worker's thread, result, cancellation and bounded
   retirement. `live_work/batch.rs` owns continuation across ready authoritative scopes, bounded by
   the queue lease limit and a monotonic admission quantum. Each scope reloads root/generation and

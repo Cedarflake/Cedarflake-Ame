@@ -221,3 +221,46 @@ reproduce at the owning boundary, not evidence that the journal's stale-publicat
 be removed or that the failure is only hosted-machine speed. No unchanged retry was requested.
 The downloaded three-file diagnostic artifact and job log are retained in the helper evidence
 directory. The earlier correction's passing hosted/local checks remain historical evidence.
+
+## First-import opening retirement correction
+
+R2C-C14's deterministic regression reproduces the hosted error after selecting first-import opening
+work and accepting Pause before its LiveOnly capability write. The original test fails with the
+same `persistent_journal_first_import_inactive` probe error. The execution lease is correctly
+revoked; returning that normal retirement as an error from the selected opening aborts the
+foreground pre-enumeration poll. The cause is opening-result ownership, not a missing UI delay.
+
+`journal_baseline/opening.rs` now owns probe admission, capability/baseline publication and a typed
+`Recorded`/`Retired` result. A revoked first-import lease exits before source/broker access or
+after an already admitted probe. Write admission still acquires the existing SQLite transaction,
+then the exact execution permit and root/generation/scan checks. Only this work's own inactive
+publication error with its retained lease already revoked becomes `Retired`. Unrelated storage,
+root-authority and broker errors remain errors. A successful commit remains `Recorded` even if
+control arrived after permit admission. The scan facade and terminal/checkpoint owner are unchanged;
+the next existing control check settles Pause, Cancel or Suspend.
+
+The final focused journal-baseline namespace passes 18 tests in 6.58 seconds. Its 11 new boundary
+tests cover Pause/Cancel/Suspend before capture and during supported/LiveOnly probes, no access
+after retirement, rejected and already admitted SQLite writes, current supported/LiveOnly capture,
+catalog-authority mismatch with a current execution, original error preservation and same-ID
+execution replacement. The existing first-import filter passes 43 tests in 24.70 seconds, including
+publication control, observer retirement, checkpoint restoration and explicit continuation. The
+two filters overlap; their counts are not distinct test totals. An intermediate extraction compile
+failed because supported publication returns a baseline receipt; the explicit unit-result mapping
+corrected that type mismatch before these passing runs.
+
+Physical ownership counts include blank lines. `journal_baseline.rs` changes from 546 production /
+321 inline-test / 0 dedicated-test lines to 408 / 325 / 0. The new opening owner has 185 production,
+0 inline-test and 457 dedicated-test lines. The existing production coordinator retains 3968
+production and 10490 inline-test lines; only its opening-result mapping changes. This extraction
+leaves its child owners' 699 dedicated-test lines unchanged and does not close the separately
+tracked production-runtime decomposition debt.
+
+Independent review checked the original hosted failure, deterministic red test, final opening
+tests and the implementation delta without finding a blocking issue. It specifically retained the
+need for production native validation: Rust test builds bypass the actual first-import preflight
+poll, so focused tests alone cannot accept the connected Windows path. Source/format evidence and
+original failed attempts remain under `.build/r2c-first-import-control-20260925`. All source access
+in these tests uses generated temporary fixtures. No retained media, schema, bridge, dependency,
+deadline or workload changed. Native, complete Daily, unsigned and new hosted results remain pending
+at this focused checkpoint.

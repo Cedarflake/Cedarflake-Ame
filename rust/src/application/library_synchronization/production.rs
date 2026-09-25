@@ -2937,7 +2937,7 @@ impl ProductionSynchronization {
                     queue_policy,
                     worker_cancelled.as_ref(),
                 )
-                .map(|()| JournalTaskOutcome::BaselineBoundary);
+                .map(|_| JournalTaskOutcome::BaselineBoundary);
                 let _ = sender.send(result);
             })
             .map_err(|error| {

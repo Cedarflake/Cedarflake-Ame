@@ -5,13 +5,12 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::adapters::{SqliteCatalog, SqliteCatalogSession};
 use crate::application::scan_library::{FirstImportCaptureLease, first_import_capture_lease};
 use crate::domain::{
-    JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeLane,
-    LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason, LibraryRootGeneration,
+    JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeLane, LibraryRootGeneration,
     LibrarySynchronizationSnapshot, PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaseline,
     PersistentJournalBaselineClosingBoundary, PersistentJournalBaselinePhase,
-    PersistentJournalBaselineStartRequest, PersistentJournalCapability,
-    PersistentJournalCapabilityState, PersistentJournalContinuityState, PersistentJournalFailure,
-    PersistentJournalVolumeIdentity, ScanError,
+    PersistentJournalCapability, PersistentJournalCapabilityState,
+    PersistentJournalContinuityState, PersistentJournalFailure, PersistentJournalVolumeIdentity,
+    ScanError,
 };
 use crate::journal_broker::{
     BrokerResponse, CallerClaim, JournalCapability, PersistentChangeJournalOperationError,
@@ -24,6 +23,10 @@ use crate::ports::{
 };
 
 const JOURNAL_BOUNDARY_TIMEOUT_MILLIS: u32 = 10_000;
+
+mod opening;
+
+pub(super) use opening::{capture_opening_boundary, persist_unavailable_session};
 
 enum JournalBaselineOpeningAuthority {
     ExistingRoot,
@@ -222,76 +225,6 @@ pub(super) fn select_opening_work(
     Ok(select_candidate(candidates, root_cursor))
 }
 
-pub(super) fn persist_unavailable_session(
-    catalog: &mut SqliteCatalog,
-    work: &JournalBaselineOpeningWork,
-    observed_unix_ms: i64,
-) -> Result<(), ScanError> {
-    work.ensure_current()?;
-    let capability = live_only_capability(
-        &work.root_id,
-        work.root_generation,
-        work.authorized_unix_ms(observed_unix_ms),
-    );
-    match &work.authority {
-        JournalBaselineOpeningAuthority::ExistingRoot => {
-            catalog.save_persistent_journal_capability(&capability)
-        }
-        JournalBaselineOpeningAuthority::FirstImport { capture, .. } => catalog
-            .save_first_import_journal_capability(&capability, capture.scan_id(), || {
-                capture.acquire_publication()
-            }),
-    }
-}
-
-pub(super) fn capture_opening_boundary(
-    work: JournalBaselineOpeningWork,
-    session: &dyn PersistentChangeJournalSession,
-    caller: &CallerClaim,
-    observed_unix_ms: i64,
-    catalog_session: &SqliteCatalogSession,
-    queue_policy: LibraryChangeQueuePolicy,
-    cancelled: &AtomicBool,
-) -> Result<(), ScanError> {
-    ensure_boundary_not_cancelled(cancelled, "opening")?;
-    work.ensure_current()?;
-    let registration = describe_production_persistent_journal_root(
-        &work.root_id,
-        work.root_generation.value(),
-        &work.root_path,
-    )
-    .map_err(map_journal_operation_error)?;
-    let boundary = probe_journal_boundary(session, caller, &registration)?;
-    ensure_boundary_not_cancelled(cancelled, "opening")?;
-    work.ensure_current()?;
-    let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
-    match boundary {
-        JournalBoundaryProbe::Supported(supported) => {
-            let capture = match &work.authority {
-                JournalBaselineOpeningAuthority::ExistingRoot => None,
-                JournalBaselineOpeningAuthority::FirstImport { capture, .. } => {
-                    Some(capture.clone())
-                }
-            };
-            catalog.begin_journal_baseline_with_admission(
-                &opening_request(work, supported, observed_unix_ms),
-                queue_policy,
-                || {
-                    capture
-                        .as_ref()
-                        .map(FirstImportCaptureLease::acquire_publication)
-                        .transpose()
-                },
-            )?;
-        }
-        JournalBoundaryProbe::LiveOnly => {
-            persist_unavailable_session(&mut catalog, &work, observed_unix_ms)?;
-        }
-    }
-    drop(registration);
-    Ok(())
-}
-
 pub(super) fn capture_closing_boundary(
     work: JournalBaselineClosingWork,
     session: &dyn PersistentChangeJournalSession,
@@ -313,77 +246,6 @@ pub(super) fn capture_closing_boundary(
     catalog.capture_persistent_journal_baseline_closing_boundary(&closing)?;
     drop(registration);
     Ok(())
-}
-
-impl JournalBaselineOpeningWork {
-    fn ensure_current(&self) -> Result<(), ScanError> {
-        if let JournalBaselineOpeningAuthority::FirstImport { capture, .. } = &self.authority
-            && !capture.is_current()
-        {
-            return Err(ScanError::new(
-                "persistent_journal_first_import_inactive",
-                "The first-import journal probe lost its executing scan owner",
-            ));
-        }
-        Ok(())
-    }
-
-    fn authorized_unix_ms(&self, observed_unix_ms: i64) -> i64 {
-        match &self.authority {
-            JournalBaselineOpeningAuthority::ExistingRoot => observed_unix_ms,
-            JournalBaselineOpeningAuthority::FirstImport {
-                started_unix_ms, ..
-            } => observed_unix_ms.max(*started_unix_ms),
-        }
-    }
-}
-
-fn opening_request(
-    work: JournalBaselineOpeningWork,
-    boundary: SupportedJournalBoundary,
-    observed_unix_ms: i64,
-) -> PersistentJournalBaselineStartRequest {
-    let SupportedJournalBoundary {
-        volume,
-        root_file_reference,
-        journal_id,
-        next_usn,
-    } = boundary;
-    let authorized_unix_ms = work.authorized_unix_ms(observed_unix_ms);
-    let (run_id, authority_reason) = match work.authority {
-        JournalBaselineOpeningAuthority::ExistingRoot => (
-            crate::application::scan_library::stable_id(
-                "persistent-journal-baseline-v1",
-                &format!(
-                    "{}\0{}\0{}\0{}\0{}\0{}",
-                    work.root_id,
-                    work.root_generation.value(),
-                    volume.volume_guid,
-                    volume.volume_serial,
-                    journal_id.value(),
-                    next_usn.value(),
-                ),
-            ),
-            LibraryRecoveryAuthorityReason::ExistingRootBaseline,
-        ),
-        JournalBaselineOpeningAuthority::FirstImport { capture, .. } => (
-            capture.scan_id().to_owned(),
-            LibraryRecoveryAuthorityReason::FirstImportBoundary,
-        ),
-    };
-    PersistentJournalBaselineStartRequest {
-        run_id,
-        root_id: work.root_id,
-        root_generation: work.root_generation,
-        authority_reason,
-        volume,
-        root_file_reference,
-        journal_id,
-        opening_next_usn: next_usn,
-        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-        contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-        authorized_unix_ms,
-    }
 }
 
 fn closing_request(
@@ -549,8 +411,12 @@ mod tests {
     use std::path::PathBuf;
     use std::sync::Mutex;
 
+    use super::opening::opening_request;
     use super::*;
-    use crate::domain::{LibraryChangeId, PersistentJournalBaselinePhase};
+    use crate::domain::{
+        LibraryChangeId, LibraryChangeQueuePolicy, LibraryRecoveryAuthorityReason,
+        PersistentJournalBaselinePhase,
+    };
     use crate::journal_broker::{
         PersistentChangeJournalRead, ReadJournalRangeRequest, ReadJournalVolumeRequest,
         ResponseBinding, RootCapability,
@@ -706,7 +572,7 @@ mod tests {
             LibraryRootGeneration::initial(),
             PathBuf::from("unused"),
         );
-        let request = opening_request(work, supported_opening_boundary(), 100);
+        let request = opening_request(&work, supported_opening_boundary(), 100);
         let expected_run_id = crate::application::scan_library::stable_id(
             "persistent-journal-baseline-v1",
             &format!("{}\0{}\0{}\0{}\0{}\0{}", "root-a", 1, "volume-a", 7, 44, 20),
@@ -733,7 +599,7 @@ mod tests {
             capture,
             150,
         );
-        let request = opening_request(work, supported_opening_boundary(), 100);
+        let request = opening_request(&work, supported_opening_boundary(), 100);
 
         request.validate().expect("valid first-import request");
         assert_eq!(request.run_id, "first-import-scan");
