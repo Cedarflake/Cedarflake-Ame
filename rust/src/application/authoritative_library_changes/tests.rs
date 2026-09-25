@@ -34,6 +34,7 @@ use super::*;
 
 #[cfg(windows)]
 mod live_only_bulk;
+mod terminal_media;
 
 #[test]
 fn recovery_policy_rejects_unbounded_or_zero_limits() {

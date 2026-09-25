@@ -13,6 +13,8 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChang
 
 use super::super::SqliteCatalog;
 
+mod terminal_scope;
+
 #[test]
 fn persistent_journal_range_finalization_is_gated_by_owned_lineage() {
     let change_id = LibraryChangeId::new(1).expect("change ID");

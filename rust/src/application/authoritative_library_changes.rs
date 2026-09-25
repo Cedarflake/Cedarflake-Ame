@@ -264,7 +264,7 @@ where
         }
     }
     let relative_paths = paths.into_iter().collect::<Vec<_>>();
-    let incremental = process_authoritative_path_set(
+    let incremental = match process_authoritative_path_set(
         repository,
         AuthoritativePathSetContext {
             root_id: &root.root_id,
@@ -278,7 +278,20 @@ where
             cancellation,
         },
         &discovery,
-    )?;
+    ) {
+        Ok(incremental) => incremental,
+        Err(error) if error.code == "metadata_inventory_required" => {
+            return retry_authoritative_change(
+                repository,
+                leased,
+                root.catalog_revision,
+                metadata_inventory_required(),
+                now_unix_ms,
+                queue_policy,
+            );
+        }
+        Err(error) => return Err(error),
+    };
     Ok(AuthoritativeLibraryChangeReport { incremental })
 }
 

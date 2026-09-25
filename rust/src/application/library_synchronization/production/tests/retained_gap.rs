@@ -2,7 +2,16 @@ use super::*;
 
 #[test]
 fn production_retained_subtree_debt_allows_full_p2_lane_to_drain_then_transfers_once() {
-    let fixture = ProductionGapFixture::new("retained-subtree-capacity", 0);
+    retained_subtree_transfers_once("metadata_inventory_required");
+}
+
+#[test]
+fn production_retained_expired_subtree_recovers_without_resetting_attempts() {
+    retained_subtree_transfers_once("change_lease_expired");
+}
+
+fn retained_subtree_transfers_once(failure_code: &str) {
+    let fixture = ProductionGapFixture::new(failure_code, 0);
     std::fs::create_dir(fixture.source_root.join("album")).expect("album");
     std::fs::create_dir(fixture.source_root.join("other")).expect("other");
     let policy = crate::domain::LibraryChangeQueuePolicy {
@@ -61,10 +70,20 @@ fn production_retained_subtree_debt_allows_full_p2_lane_to_drain_then_transfers_
     catalog
         .enqueue_library_change_intents(&[intent], now, policy)
         .expect("gap");
+    let old_lease = catalog
+        .lease_live_authoritative_library_change(&fixture.root_id, generation, now, policy)
+        .expect("retained lease")
+        .expect("retained gap");
     let connection = rusqlite::Connection::open(&fixture.storage.catalog_path).expect("evidence");
-    connection.execute("UPDATE library_change_queue SET status='retry_wait', attempt_count=?1,
-        next_retry_unix_ms=NULL, last_failure_code='metadata_inventory_required', last_failure_message='retained bounded page'
-        WHERE relative_path='album'", [i64::from(policy.max_attempts)]).expect("retained debt");
+    connection
+        .execute(
+            "UPDATE library_change_queue SET status='retry_wait', attempt_count=?1,
+        next_retry_unix_ms=NULL, lease_expires_unix_ms=NULL, last_failure_code=?2,
+        last_failure_message='retained bounded page'
+        WHERE relative_path='album'",
+            rusqlite::params![i64::from(policy.max_attempts), failure_code],
+        )
+        .expect("retained debt");
     assert!(
         !catalog
             .has_ready_live_authoritative_library_change(&fixture.root_id, generation, now, policy)
@@ -83,7 +102,12 @@ fn production_retained_subtree_debt_allows_full_p2_lane_to_drain_then_transfers_
             .exhausted_retry_count,
         1
     );
-    connection.execute("UPDATE library_change_queue SET last_failure_code='metadata_inventory_required' WHERE relative_path='album'", []).expect("restore debt");
+    connection
+        .execute(
+            "UPDATE library_change_queue SET last_failure_code=?1 WHERE relative_path='album'",
+            [failure_code],
+        )
+        .expect("restore debt");
     drop(catalog);
     let mut production =
         fast_gap_runtime(QueuedSourceFactory::default(), test_live_only_connection());
@@ -101,12 +125,24 @@ fn production_retained_subtree_debt_allows_full_p2_lane_to_drain_then_transfers_
             i64::from(policy.max_attempts),
             2,
             0,
-            "metadata_inventory_required".to_owned()
+            failure_code.to_owned()
         )
     );
     fixture.assert_no_automatic_full_scan();
     production.stop().expect("owned stop");
-    let reopened = SqliteCatalog::open(fixture.storage.catalog_path.clone()).expect("FULL reopen");
+    let mut reopened =
+        SqliteCatalog::open(fixture.storage.catalog_path.clone()).expect("FULL reopen");
+    assert_eq!(
+        reopened
+            .complete_library_change(
+                old_lease.change.id,
+                old_lease.lease_generation,
+                0,
+                now + 10000
+            )
+            .expect("late old completion"),
+        crate::domain::LibraryChangeLeaseUpdateOutcome::Superseded,
+    );
     assert!(
         !reopened
             .has_ready_live_authoritative_library_change(
@@ -116,5 +152,34 @@ fn production_retained_subtree_debt_allows_full_p2_lane_to_drain_then_transfers_
                 policy
             )
             .expect("retired debt stays retired")
+    );
+    connection
+        .execute(
+            "UPDATE library_change_queue SET status='retry_wait', attempt_count=?1,
+         next_retry_unix_ms=NULL, lease_expires_unix_ms=NULL, last_failure_code=?2,
+         catalog_revision_at_success=NULL
+         WHERE origin='metadata_inventory'",
+            rusqlite::params![i64::from(policy.max_attempts), failure_code],
+        )
+        .expect("exhausted P2 cannot promote again");
+    assert!(
+        !reopened
+            .has_ready_live_authoritative_library_change(
+                &fixture.root_id,
+                generation,
+                now + 20000,
+                policy
+            )
+            .expect("P2 is outside retained Live promotion"),
+    );
+    assert_eq!(
+        connection
+            .query_row(
+                "SELECT COUNT(*) FROM library_change_queue WHERE origin='metadata_inventory'",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+        2,
     );
 }

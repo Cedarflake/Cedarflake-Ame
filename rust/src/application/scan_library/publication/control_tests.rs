@@ -14,6 +14,7 @@ use crate::ports::CatalogRepository;
 
 use super::super::{cancel_scan, run_scan_with_storage};
 
+mod exhausted_live_tests;
 mod first_import_tests;
 mod retry_callback_tests;
 

@@ -39,6 +39,10 @@ use coalescing::{
     validate_policy, validate_root_id,
 };
 pub(super) use gap_promotion::wake_metadata_inventory_capacity_deferrals;
+pub(super) use gap_promotion::{
+    eligible_query as retained_live_recovery_query,
+    retained_candidate as retained_live_recovery_candidate,
+};
 use metrics::{load_metrics, load_root_metrics};
 pub(super) use persistence::activate_root_change_queue;
 pub(super) use persistence::classify_lease_update;

@@ -15,6 +15,8 @@ use crate::domain::{
 };
 
 use super::change_queue;
+mod live_change_admission;
+use live_change_admission::ensure_publishable as ensure_change_queue_is_publishable;
 #[cfg(test)]
 mod pagination_tests;
 #[cfg(test)]
@@ -310,59 +312,6 @@ fn ensure_first_import_change_capture(
             "catalog_first_import_change_capture_unproven",
             "The first catalog snapshot has no durable journal or healthy live-observer handoff",
         ))
-    }
-}
-
-fn ensure_change_queue_is_publishable(
-    transaction: &Transaction<'_>,
-    scan_id: &str,
-    root_id: &str,
-    authority: &PublicationAuthority,
-) -> Result<(), ScanError> {
-    // Live reconciliation needs an active snapshot. The first import has already proved its
-    // opening change boundary; publishing its baseline neither consumes newer P0 nor proves
-    // Current. A replacement must instead keep the existing snapshot until P0 can publish.
-    if authority.previous_active_scan.is_none() {
-        return Ok(());
-    }
-    let has_blocking_change = transaction
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM library_change_queue AS changes
-               JOIN library_change_queue_lanes AS lanes ON lanes.change_id = changes.id
-               WHERE changes.root_id = ?1 AND changes.root_generation = ?2
-                 AND lanes.lane = 'p0_live'
-                 AND (
-                   changes.status IN ('pending', 'leased')
-                   OR (changes.status = 'retry_wait' AND NOT (
-                     changes.scope = 'path'
-                     AND changes.intent_kind <> 'freshness_unknown'
-                   ))
-                 )
-                 AND NOT EXISTS (
-                   SELECT 1 FROM library_live_gap_recovery_claims AS claims
-                   WHERE claims.gap_change_id = changes.id
-                     AND claims.consumer_kind = ?3
-                     AND claims.foreground_scan_id = ?4
-                     AND claims.consumed_unix_ms IS NULL
-                 )
-             )",
-            params![
-                root_id,
-                authority.root_generation,
-                LiveGapRecoveryConsumer::ForegroundScan.as_str(),
-                scan_id,
-            ],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if has_blocking_change {
-        Err(ScanError::new(
-            "catalog_scan_live_changes_pending",
-            "The scan cannot publish while newer live changes are still unfinished",
-        ))
-    } else {
-        Ok(())
     }
 }
 

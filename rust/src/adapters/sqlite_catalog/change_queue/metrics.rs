@@ -72,7 +72,8 @@ fn load_filtered_metrics(
                 "SELECT EXISTS(SELECT 1 FROM library_change_queue WHERE {root_predicate}
           AND (?3 IS NULL OR (root_id = ?3 AND root_generation = ?4))
           AND status = 'retry_wait' AND attempt_count >= ?2
-          AND last_failure_code = 'metadata_inventory_required' AND scope = 'subtree')"
+          AND last_failure_code IN ('metadata_inventory_required', 'change_lease_expired')
+          AND scope = 'subtree')"
             ),
             params![
                 now_unix_ms,

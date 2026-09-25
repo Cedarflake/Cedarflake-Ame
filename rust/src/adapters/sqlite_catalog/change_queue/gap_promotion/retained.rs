@@ -1,9 +1,6 @@
 use super::*;
 
-pub(in crate::adapters::sqlite_catalog::change_queue) fn eligible_query(
-    filter: &str,
-    attempts: &str,
-) -> String {
+pub(in crate::adapters::sqlite_catalog) fn eligible_query(filter: &str, attempts: &str) -> String {
     format!("SELECT queue.id FROM library_change_queue AS queue
          JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
          JOIN library_change_root_state AS active
@@ -18,7 +15,7 @@ pub(in crate::adapters::sqlite_catalog::change_queue) fn eligible_query(
            AND journal.capability_state = 'live_only' AND journal.continuity_state = 'live_only'
            AND queue.status = 'retry_wait' AND queue.attempt_count >= {attempts}
            AND queue.next_retry_unix_ms IS NULL AND queue.lease_expires_unix_ms IS NULL
-           AND queue.last_failure_code = 'metadata_inventory_required'
+           AND queue.last_failure_code IN ('metadata_inventory_required', 'change_lease_expired')
            AND queue.origin = 'live_notification' AND lane.lane = 'p0_live'
            AND queue.intent_kind = 'reconcile' AND queue.scope = 'subtree'
            AND queue.relative_path <> '' AND queue.previous_relative_path IS NULL
@@ -32,7 +29,7 @@ pub(in crate::adapters::sqlite_catalog::change_queue) fn eligible_query(
  AND ({filter}) ")
 }
 
-pub(in crate::adapters::sqlite_catalog::change_queue) fn candidate(
+pub(in crate::adapters::sqlite_catalog) fn candidate(
     connection: &Connection,
     root_id: &str,
     generation: LibraryRootGeneration,

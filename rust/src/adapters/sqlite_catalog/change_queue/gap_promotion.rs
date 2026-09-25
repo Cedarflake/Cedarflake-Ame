@@ -6,8 +6,10 @@ pub(in crate::adapters::sqlite_catalog) use capacity::wake_metadata_inventory_ca
 pub(super) use capacity::{
     defer_for_capacity, is_typed_capacity_deferred_live_gap, shape_predicate,
 };
-pub(super) use retained::eligible_query;
-pub(super) use retained::{candidate as retained_candidate, transfer_one as transfer_retained};
+pub(super) use retained::transfer_one as transfer_retained;
+pub(in crate::adapters::sqlite_catalog) use retained::{
+    candidate as retained_candidate, eligible_query,
+};
 
 fn is_live_only(
     connection: &Connection,

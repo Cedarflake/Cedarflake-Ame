@@ -26,6 +26,9 @@ const MAX_DELTA_COMPLETIONS: usize = 128;
 const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 const MAX_INCREMENTAL_PATH_WINDOW: usize = 4_096;
 
+mod terminal_evidence_scope;
+use terminal_evidence_scope::{CompletedLeasePaths, invalidate_changed_paths};
+
 #[cfg(test)]
 type BeforeCatalogDeltaCommitHook = Box<dyn FnOnce() -> Result<(), ScanError> + Send + 'static>;
 
@@ -616,7 +619,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 .query_row(
                     "SELECT status, lease_generation, root_id, root_generation, scope,
                             catch_up_source, catch_up_watermark,
-                            relative_path, previous_relative_path
+                            relative_path, previous_relative_path, intent_kind
                      FROM library_change_queue WHERE id = ?1",
                     [sqlite_integer(completion.change_id.value(), "change ID")?],
                     |row| {
@@ -630,6 +633,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                             row.get::<_, Option<String>>(6)?,
                             row.get::<_, String>(7)?,
                             row.get::<_, Option<String>>(8)?,
+                            row.get::<_, String>(9)?,
                         ))
                     },
                 )
@@ -645,6 +649,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 catch_up_watermark,
                 relative_path,
                 previous_relative_path,
+                intent_kind,
             )) = leased
             else {
                 return Ok(publication(
@@ -685,18 +690,23 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             catch_up_evidence_by_change.insert(completion.change_id, lineage);
             affected_paths_by_change.insert(
                 completion.change_id,
-                (relative_path, previous_relative_path),
+                CompletedLeasePaths::new(
+                    &scope,
+                    &intent_kind,
+                    relative_path,
+                    previous_relative_path,
+                )?,
             );
         }
         let mut terminal_projection_change_ids = HashSet::new();
         for update in &batch.terminal_media_evidence {
             if affected_paths_by_change
                 .get(&update.change_id)
-                .is_none_or(|(relative_path, _)| relative_path != &update.evidence.relative_path)
+                .is_none_or(|paths| !paths.accepts_terminal_path(&update.evidence.relative_path))
             {
                 return Err(ScanError::new(
                     "catalog_terminal_media_evidence_path_mismatch",
-                    "Terminal media evidence must describe the current path of its completed lease",
+                    "Terminal media evidence must belong to the path scope of its completed lease",
                 ));
             }
         }
@@ -759,6 +769,13 @@ impl IncrementalCatalogRepository for SqliteCatalog {
             }
         }
 
+        invalidate_changed_paths(
+            &transaction,
+            batch,
+            &active_scan_id,
+            &affected_paths_by_change,
+            &affected_location_ids,
+        )?;
         let mut identity_generation_batch = HashMap::new();
         let mut staging_identity_generation_batch = HashMap::new();
         for mutation in &batch.mutations {
@@ -861,24 +878,6 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                         ));
                     }
                 }
-            }
-        }
-        for (relative_path, previous_relative_path) in affected_paths_by_change.values() {
-            transaction
-                .execute(
-                    "DELETE FROM library_terminal_media_evidence
-                     WHERE root_id = ?1 AND relative_path = ?2",
-                    params![batch.root_id, relative_path],
-                )
-                .map_err(database_error)?;
-            if let Some(previous_relative_path) = previous_relative_path {
-                transaction
-                    .execute(
-                        "DELETE FROM library_terminal_media_evidence
-                         WHERE root_id = ?1 AND relative_path = ?2",
-                        params![batch.root_id, previous_relative_path],
-                    )
-                    .map_err(database_error)?;
             }
         }
         for update in &batch.terminal_media_evidence {
@@ -2110,10 +2109,10 @@ fn validate_delta_batch(batch: &CatalogDeltaBatch) -> Result<(), ScanError> {
             "A catalog delta exceeded the bounded mutation count",
         ));
     }
-    if batch.terminal_media_evidence.len() > batch.completions.len() {
+    if batch.terminal_media_evidence.len() > MAX_DELTA_MUTATIONS {
         return Err(ScanError::new(
             "catalog_terminal_media_evidence_count_invalid",
-            "Terminal media evidence must remain bounded by the completed lease batch",
+            "Terminal media evidence must remain within the bounded delta path limit",
         ));
     }
     let mut change_ids = HashSet::new();
