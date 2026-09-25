@@ -779,7 +779,7 @@ their actual passing output and unchanged source; the final complete Daily remai
 
 | Variant | Fixed action and expected result | Owning boundary and evidence path |
 | --- | --- | --- |
-| UX-01A | Warm existing catalog starts with usable content; no-change continuity enumerates/opens no source and creates no inventory | [Controlled lifecycle and 100 no-change starts pass](#startup-query-folder-and-recovery-evidence); the lifecycle fixture uses a cached-content stand-in, so combined populated-client observation remains open |
+| UX-01A | Warm existing catalog starts with usable content; no-change continuity enumerates/opens no source and creates no inventory | [Controlled lifecycle and 100 no-change starts pass](#startup-query-folder-and-recovery-evidence); [native Debug populated restart](#native-debug-populated-restart) now verifies the real 10000-image gallery across two executable lifetimes. Exact zero-source-call proof remains instrumented evidence; Release and normal-profile acceptance remain open |
 | UX-01B | Close while start/poll is pending, then launch the same fixture catalog; old PID exits within the existing bound and old epoch cannot publish | Window shutdown and synchronization epoch; `window_manager_actions_test.dart`, `library_synchronization_test.dart`; [native close and same-catalog relaunch verified](r2c-process-lifecycle.md); actual late-after-stop completion remains covered by controlled races |
 | UX-01C | Launch with interrupted first import; display paused checkpoint, require explicit Continue, preserve truthful portable capability | [Real paused restoration and explicit continuation verified](r2c-process-lifecycle.md#recovered-real-input-pair); [combined native paused feedback, portable notice and actual Continue](r2c-process-lifecycle.md#combined-paused-restoration-and-portable-capability) verifies exact 10012-location publication, source preservation and normal exit. Its aggregate input-parser failure remains explicit beside separate offline action verification; Release and candidate gates remain open |
 | UX-02A | Import through the actual picker with Chinese paths, wrong-extension PNG and damaged input; exact count/issues and unchanged source | [Complete generated Debug lifetime passes](r2c-input-controls.md#complete-native-input-and-rendered-feedback): exact three images, damaged-path/code oracle, source integrity and normal exit |
@@ -1005,8 +1005,125 @@ Independent review confirms new identity, matching bindings, empty output and no
 Configuration SHA-256 is `D2579C96DE2F464FDD4C427F7060D0F6BE8E08156EF4172A2A09DAAA888B6026`;
 `preparation-result.json` SHA-256 is
 `61EEE0DA096378584F29716BB4F9082F9CA3616DD8AAEF69088FBB6862A5F969`.
-There is no host-start receipt or native attempt. Tool-access confirmation is pending; preparation
-proves neither guest readiness nor window input, normal retirement, populated startup or UX-01A.
+At preparation, no host-start receipt or native attempt exists. Preparation alone proves neither
+guest readiness nor window input, normal retirement, populated startup or UX-01A. The subsequent
+execution below supersedes the pending tool-access condition.
+
+### Empty Sandbox initialization failure
+
+On `98d0c3d`, the prepared run `d5633c7bd2a84a1d9e268517916a371e` executes with unchanged helper
+and configuration bindings. Entry availability is 9023619072 bytes; the recorded minimum is
+8629411840 bytes. No application or media is mapped. Computer Use selects the returned Sandbox
+window, captures its actual error dialog and successfully clicks No to decline feedback. A fresh
+window listing and process query subsequently find no Sandbox. Window access and native input are
+therefore available; the preceding authorization-timeout explanation is not the current blocker.
+
+The screenshot instead reports initialization error `0x80370106`, virtual machine or container
+unexpected exit. No guest receipt arrives. The unchanged host supervisor preserves `passed=false`
+at 180820 ms with no remaining Sandbox process. Successful error-dialog dismissal does not prove
+a successful guest lifetime. No Ame launch, populated restart or image workflow is exercised.
+The enabled scoped container logs and Application log have no matching event; those available
+records do not establish the inner virtualization failure. No host settings, services or drivers
+are changed, and no feedback is transmitted.
+
+The host-start/result SHA-256 values are
+`EF66D367108E1BA2002E7990F9AC6F751A2166A6A1C6A0962C68B39DCBA15E63` and
+`2AEE121DA1AB54B63372C83D78F473EE5E5CEB8073FE3F058CDA43FBBA2E215E`.
+The native observation is retained in `.build/r2c-sandbox-access/native-initialization-failure.json`
+with SHA-256 `8B979CF293EEE26483F12665A810005D2D8CC32598A280A0D20D8D24C6CC985F`;
+its screenshot provenance is the task's actual Computer Use output, not a separately saved image.
+The [single software-rendering comparison](../plans/r2c-closeout.md#empty-sandbox-software-rendering-comparison)
+keeps this failed result and changes only the next disposable guest's virtual-GPU setting.
+
+### Software-rendering readiness comparison
+
+Run `b512cbd1ccbb415983c54103b215e7c3` uses the identical three-helper closure and normalized
+configuration, changing only fresh identity/paths and `vGPU=Disable`. Independent prelaunch review
+confirms that boundary, empty output, two exact script/evidence mappings and unchanged resources,
+deadline and retirement requirements. Its configuration SHA-256 is
+`3A5666AD57FBF4BB9D1E76D16474E22759CA409936AD10DE3C9418797E0ED0B5`.
+
+Native capture again shows `0x80370106`; observed No input dismisses it without sending feedback.
+The host preserves `passed=false`, no guest receipt and no surviving Sandbox process at 181363 ms.
+Entry/minimum host availability is 8892743680/8463683584 bytes. Disabling virtual GPU did not restore
+guest readiness; this neither proves nor rules out a particular driver defect. No Ame, image or
+ordinary-profile state participates in either empty-guest attempt.
+
+Read-only package inspection reports Windows Sandbox `0.8.107.0` as `PackageOffline, DataOffline,
+NotAvailable`, with no install location; the Calculator control reports `Ok`. The feature is
+enabled, while neither checked servicing nor update reboot flag is present. A specific-volume
+package query fails with `0x80070490`, so no particular drive is attributed. These are environment
+observations, not a proven initialization cause or authority to repair host components.
+
+Host-start/result SHA-256 values are
+`6BB2A5AC744690C0138BB451CBF2D1DD32247C77DE3CBC4F3CA05E06AC52CCB1` and
+`8758373D0F580C18D973EF011E2A7708B7D1AC551761324CFCBFC73801FE8297`.
+`.build/r2c-sandbox-software-rendering/native-initialization-failure.json` has SHA-256
+`8E616B09AF093A1A1C7147B7A0653496918B3D9E06D57B6585CD0A14EE7584C6`.
+The independent Debug populated-restart method proceeds without reclassifying either failed
+Sandbox run or closing the separate Release requirement.
+
+### Native Debug populated restart
+
+The host-isolated method calls production `main` through a Debug-only admission entrypoint, using
+a fresh GUID-owned derived store and in-memory presentation preferences. It admits only the frozen
+10000-image, 10921494393-byte generated corpus, with twelve dimensions and 201 historical months.
+No source-copy/change helper, artificial scan hold, seeded catalog or normal-profile setting is
+used. Source revision is `98d0c3da52300e49dfa2ba0b559ad3cbd356b007`; product source is unchanged.
+
+The preceding run `2e0db80d02f0477dbc83efbe3a4eeaed` retains two failed supervisor results. Its first
+native import completes in 96.723 seconds and exits normally in 659.4084 ms. The closed-catalog
+verifier then fails because SQLite URI interpretation was not enabled; no second client starts.
+After the read-only URI correction, exact membership, preview ownership and catalog identity pass.
+A continuation within the original absolute deadline fails before production bootstrap: Python
+records catalog mtime `1790316778123`, while Dart's Windows stat exposes `1790316778000`.
+The byte count and exact catalog SHA-256 remain unchanged. No second entry receipt exists, so
+this is an admission-helper failure, not an observed product startup failure. The original and
+continuation verdicts remain failed; complete source postverification passes for all 10000 files.
+Native observation also required raw JPEG support and one shared capture/evidence module instance;
+those adaptations and their changed helper bindings remain with the original run.
+
+The final corrected invocation is `057d635fd3fb450cb3063e97b8418337`. Its entry compares timestamps
+at the precision both runtimes expose, while host admission still requires exact closed-catalog
+hash equality. Before launch, the actual retained Python admission passes the corrected Dart guard
+without consumption; 13 guard checks and three real read-only SQLite checks pass. The retained
+29 lifetime/retirement, nine capture, nine stable-identity and five bounded-verifier checks cover
+the reused owners. Independent prelaunch review confirms the narrow changes. Owned Dart formatting,
+warnings-denied analysis, PowerShell parsing and the serial Windows Debug build pass.
+
+The complete two-process sequence passes in 237746 ms, within the unchanged 900-second bound:
+
+| Observation | Result |
+| --- | --- |
+| Native picker/import | Exactly 10000 images; observed completion in 69.897 seconds, below 300 seconds |
+| First gallery | Visible thumbnails finish without scrolling or Retry; normal close takes 564.1716 ms |
+| Second startup | A distinct process opens the same catalog with 10000 images and decoded content before native input |
+| Root and viewer | Native root selection, decoded 7680 x 4320 original, and Escape return preserve the observed top date, tile arrangement and rail position |
+| Second normal close | 446.4991 ms; both application/parent pairs exit zero, with closed Jobs/handles and no cleanup failure |
+| Closed membership | Both checks find exactly the frozen 10000 members, unchanged root/scan/asset/location/source identities and no unfinished queue work |
+| Preview ownership | Both checks verify 36 ready artifacts totaling 735012 bytes; this does not claim all 10000 previews were requested |
+| Resources | Peak working set 560070656 bytes; peak commit 874074112 bytes; minimum sampled host availability 5985288192 bytes; no two-GiB limit breach |
+| Source safety | Full before/after SHA-256, file identity, size and creation/modification-time checks pass for every file in 48.231/47.732 seconds |
+
+The first and second PIDs are 12608 and 27728, with distinct admission epochs. Stable closed-catalog
+identity projection is `d11a1d81a020566e9b1ad08b7964e999aa2c3544b371bd9f2bec6fcaebcb5d05` in both
+lifetimes. The database's whole-file hash changes after ordinary second-lifetime activity; the
+identity projection, rather than an assertion of byte-identical databases, proves retained members.
+No continuously captured animation or subsecond timestamp continuity is claimed. The snapshots
+prove the observed settled gallery return; instrumented no-source-call and frame-level lifecycle
+regressions retain their independent duties. This Debug result does not close Release, normal
+Known Folders, deletion/date, performance, signed-service or real-source acceptance.
+
+Evidence is retained under `build/integration-storage-057d635fd3fb450cb3063e97b8418337`, including
+native screenshot provenance, both admissions/entries, lifecycle receipts, catalog checks and source
+checks. `started.json` binds all helpers, the native payload and Dart kernel. Its SHA-256 is
+`933910D9AB2C9A0EC7D1FAFBCEE842431800F7B654CDE07FD4A35302143F0BD5`; sequence-result and source-after
+SHA-256 values are `D676E25E4D1C17B04446F9512FEFC289C2241C6E7310073BA36BEBE02347190B` and
+`FD31A5BA3199E83EC2EEC6321623267A48639C04769C446AADB0F69EE08A7EBE`.
+The earlier failed run remains under its own GUID; no receipt is overwritten or reclassified.
+Independent result review verifies all 30 artifact/helper bindings, saved screenshot hashes,
+PID/epoch/event ordering, both closed catalogs and the complete source postcheck. It finds no result
+blocker; that structured-evidence review does not independently repeat the native pixel observation.
 
 ### Hosted checkpoint before readiness continuation
 
@@ -1031,7 +1148,8 @@ and passing resource records. The 10000-file workload records cold/warm/resume t
 14650/11942/14859 ms; it does not replace or explain the original workstation Debug failures.
 This checkpoint also does not explain historical C01/C02 failures, supply the missing populated
 restart or deletion/date observations, or close signed-service, real-library, Journal or Cloud
-Files acceptance. The empty-Sandbox prerequisite remains prepared and unexecuted.
+Files acceptance. At that hosted checkpoint, the empty-Sandbox prerequisite is still unexecuted;
+its later failed native result is recorded above.
 
 ### Native original-viewer source-slot evidence
 

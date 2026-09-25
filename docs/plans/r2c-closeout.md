@@ -243,6 +243,113 @@ pending. Charge the 15 preparation/check/review/record minutes conservatively: c
 is 9174 charged / 9214 reserved. The one five-minute readiness attempt and the separate conditional
 35-minute deletion allowance remain unconsumed. No product or full media test is admitted here.
 
+The resumed readiness attempt now obtains the actual Sandbox screenshot and delivers the observed
+dialog's No action. Window access is available. The empty guest instead fails initialization with
+`0x80370106` (virtual machine or container exited unexpectedly), produces no guest receipt and
+retains the original 180-second failed verdict after its windows/processes retire. Memory stays
+above the retained reserve. Charge the remaining five minutes: 9179 charged / 9214 reserved;
+the conditional 35-minute deletion allowance remains untouched. Do not retain a pending window-
+permission question as the current blocker or attribute this empty-guest failure to Ame.
+
+#### Empty Sandbox software-rendering comparison
+
+Reserve one 20-minute follow-up under the standing continuation authority: five for preparation,
+five for one native attempt, five for independent review and five for recording. Cumulative
+accounting is 9179 charged / 9234 reserved. This tests one hypothesis, not a confirmed repair:
+whether avoiding virtual-GPU initialization permits the otherwise identical empty guest to start.
+Microsoft's [WSB configuration contract](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file#vgpu)
+supports `vGPU=Disable`, selecting software rendering. Do not infer that the installed display
+drivers caused the preceding generic initialization error; scoped available event logs do not
+establish its inner cause.
+
+Prepare a new identity and empty input/output using the unchanged canary helper closure, then add
+only `vGPU=Disable` to its WSB and bind the resulting configuration. Compare normalized XML and
+helper hashes against the preceding attempt. Keep the three-GiB guest, seven-GiB host entry,
+two-GiB reserve, 180-second deadline, read-only script mapping, disabled redirection/network,
+matching guest receipt, native screenshot and normal close/retirement requirements. Include no
+media or application payload. One independent review precedes launch. Preserve a failed result;
+this block admits neither another configuration sweep nor host service, feature, account, driver,
+security or profile changes. Success permits preparing a distinct bounded client continuation;
+it neither proves GPU performance nor completes populated restart acceptance.
+
+The independently reviewed comparison also fails with observed `0x80370106`, no guest receipt and
+the unchanged 180-second failed verdict. Native dismissal retires the window/process; disabling
+virtual GPU does not restore readiness. Charge the 20-minute block conservatively in full:
+9199 charged / 9234 reserved, including the untouched conditional 35-minute deletion allowance.
+The Sandbox package reports offline/unavailable state, but the available package and event records
+do not establish its inner failure or a specific offline volume. No further empty-guest sweep or
+host repair follows from this comparison. Tool access is available; the execution goal continues
+through the independent host-isolated functional method below.
+
+#### Host-isolated populated Debug restart
+
+While Release guest readiness is unavailable, reserve 75 active minutes for the remaining UX-01A
+native populated-content boundary: 15 for source/fixture mapping, 20 for a narrow two-lifetime
+harness, 15 for one native import/restart sequence, 15 independent review and ten for records.
+Cumulative accounting is 9199 charged / 9309 reserved. This is a changed, explicitly Debug method;
+it cannot close the separate optimized-client or normal Known Folders acceptance obligations.
+
+Reuse the existing Debug-only `CEDARFLAKE_AME_TEST_STORAGE_ROOT` mechanism, real Rust catalog and
+production application/bootstrap/window owners. Prepare one new GUID-owned derived directory and
+use in-memory presentation preferences, with no normal-profile settings writes or catalog cloning.
+Validate the exact derived root and source allowlist before loading the catalog or starting
+synchronization. Use the unchanged generated 10000-image mixed-size/historical corpus read-only;
+include no real roots, source mutation helper, source-copy workload or artificial scan/start hold.
+
+Drive the actual picker, import, normal close, second executable startup, root navigation and
+viewer/gallery return through observed native input. Require completed exact 10000 membership,
+decoded content before/after restart, the same derived catalog and unchanged source hashes/dates,
+distinct process identities and both normal exits. The second process cannot start until the first
+process and its owned Job retire. Keep a 900-second complete sequence, 300-second import bound,
+six-second normal-close bound, two-GiB client/host reserve and four-GiB host entry floor. Build
+serially under the repository lock and bind the current source/native/kernel artifacts. Prove the
+reused lifetime guards and changed path/phase admission before one independent prelaunch review.
+
+Do not substitute a mocked cached-content widget, invoke a controller to complete native actions,
+change the production entrypoint or infer source-call counts from catalog equality. Existing exact
+no-change enumeration/open/inventory regressions retain their separate instrumented proof. A failed
+native sequence preserves its result and ends this allowance; current Release, deletion/date,
+performance, signed-service and separately authorized real-source gates remain open.
+
+The first Debug lifetime completes the native 10000-image import and normal close. Its following
+closed-catalog helper fails because the SQLite URI was passed without URI interpretation; the
+second process never starts. Preserve that failed sequence. Correct only the read-only verifier;
+its offline result must prove all 10000 members, ready preview ownership and exact closed identities.
+The source/media workload is not repeated. Under standing continuation authority, reserve a
+20-minute continuation (eight implementation/checks, five native, two scoped independent review,
+five recording) to restore only the already-retired first lifetime and execute the still-unstarted
+second lifetime against that same catalog. Cumulative reservation becomes 9329 minutes. Keep the
+original run's absolute 900-second end, original source and product artifacts, four-/two-GiB memory
+conditions and six-second close bound. Reject foreign/failed retirement, a changed catalog,
+already-started second lifetime or expired original deadline; do not reset the clock. Record the
+continuation separately and never overwrite the original failure. If the deadline expires before
+admission, retain the preparation without launching. This is no authority to reimport or replay
+the complete failed sequence.
+
+That continuation stops before production bootstrap: Python records the catalog's subsecond mtime,
+whereas Dart's Windows stat returns whole seconds. The unchanged byte count and SHA-256 disprove a
+changed catalog; the exact first-import and source-integrity evidence survives. Preserve both failed
+supervisor results. Reserve one final 30-minute corrected-harness verification (five preparation and
+cross-runtime checks, five independent review, fifteen native, five recording), bringing reservation
+to 9359 minutes. Use a fresh GUID-owned empty derived store, the unchanged original 10000-image
+corpus and the same product source; replay the complete two-lifetime workload once, with its own
+unchanged 900/300/6-second and four-/two-GiB bounds. The causal method changes are explicit SQLite
+read-only URI interpretation, a timestamp comparison at the precision both runtimes expose while
+retaining exact closed-catalog hashes, and already-proven raw JPEG/current-module capture.
+Before that one launch, run the corrected Dart guard against the actual retained Python admission
+without consuming it, prove the retained catalog hash unchanged, and retain the preceding complete
+source after-check. There is no additional native replay if this corrected invocation fails; further
+work is limited to offline diagnosis and the other still-admitted goal requirements.
+
+The corrected invocation now completes both native lifetimes, exact membership/identity and full
+source postverification; the [result](../acceptance/r2c-closeout-cycle.md#native-debug-populated-restart)
+retains both earlier harness failures and the Debug/Release boundary. Conservatively charge all
+three admitted envelopes (75 + 20 + 30 minutes), including preparation, failed methods, review and
+recording, rather than presenting reconstructed exact active times. Accounting is now 9324 charged
+/ 9359 reserved; the remaining 35 minutes still belong only to the conditional deletion workload.
+No further populated Debug replay is needed. Continue the unresolved frozen duties; Release guest
+readiness, deletion authorization and external inputs retain their independent prerequisites.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle

@@ -172,7 +172,11 @@ repair admission, review, verification, stopping rules, and safety cautions.
    evidence cannot be inferred from widget remounts, static previews, MSAA, or unsigned bridge smoke.
    Populated Release restart remains open after the
    [failed Sandbox admission](acceptance/r2c-closeout-cycle.md#populated-release-startup-admission-failure);
-   current window access and empty guest readiness must precede a different bounded client method.
+   window access is now verified, but [empty guest initialization fails](acceptance/r2c-closeout-cycle.md#empty-sandbox-initialization-failure).
+   The software-rendering comparison also fails. The independent
+   [host-isolated Debug populated restart](acceptance/r2c-closeout-cycle.md#native-debug-populated-restart)
+   now passes; further Release client work still requires guest readiness. Preserve the separate
+   instrumented no-source-call proof and remaining native variants.
    Complete the four named maintenance deliveries with behavior and lifecycle evidence, preserving
    functional-incident priority. Use one independent reviewer; unrelated physical decomposition
    remains tracked debt.
