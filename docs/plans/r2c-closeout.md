@@ -585,6 +585,37 @@ block, alongside the separate conditional 35-minute generated-deletion allowance
 waits for current approval of both logical roots and the concrete run above; preparation does not
 authorize it or close the reported incident.
 
+The approved single lifetime now completes its input sequence and retires the client. Observed
+Retry frames and a null-value failure in the final observer remain distinct; no further client
+lifetime is admitted. Conservatively charge the remaining 15 minutes: 9809 charged / 9844 reserved.
+The next bounded method reserves 30 active minutes solely for the retained result: ten to compare
+copied versus original failed-preview classifications and trace the existing diagnostic policy,
+ten to identify the observer's null value without launching Ame or reading source media, and ten
+to record disposition. Accounting becomes 9809 charged / 9874 reserved, including the untouched
+conditional 35 minutes. Use only retained logs, read-only derived catalogs and a media-free process
+probe if necessary. Preserve the original failed receipt. No product patch, broad quality rerun,
+client replay or extra source read is admitted by this classification method; a proven functional
+cause requires its own narrow correction and regression before another full gate.
+
+The result classification now completes: unchanged 110 persisted failures, 162 logged ready
+outcomes, a 121-record source-revision/generation change within the logged sample and no observed
+position jump. Fast implicit outcomes remain unobserved by the existing logger. The media-free
+process comparison reproduces the final observer failure and proves retaining the parent handle
+preserves its exit timestamp; the ignored correction does not trigger another Ame run. Charge the
+30-minute method conservatively: 9839 charged / 9874 reserved. Only the separate conditional
+35-minute deletion allowance remains. Preserve the original aggregate failure and the distinction
+between observed Retry feedback, existing failed media and an as-yet unproved product cause.
+
+The next diagnostic method reserves 45 active minutes, making 9839 charged / 9919 reserved: ten
+to map source-reconciliation admission, 20 for one generated boundary reproduction, ten for
+focused verification and five for disposition. Inspect the existing `Option` admission result
+that combines an obsolete request with an already-active same-path change, then the caller's
+failed-preview projection. Compare changed-source demand during pending path work, retired source
+authority and an actual unrecoverable source error. Preserve all identities, leases and error
+guards. This is a hypothesis, not attribution of the observed two Retry controls. Run only the
+minimal generated regression; no original-media read, new native lifetime, full quality rerun or
+product behavior change is admitted until a causal failure establishes the owning correction.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle

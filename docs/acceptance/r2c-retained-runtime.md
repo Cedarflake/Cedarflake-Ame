@@ -348,3 +348,55 @@ viewport/startup reads from either must be covered. No import, update command, v
 source mutation or placeholder hydration is admitted. The original 4 GiB launch floor, 2 GiB
 client ceiling/system reserve and six-second normal-close bound remain. Recovery, resource failure
 or loss of window identity stops the run. The user-reported issue stays open pending this evidence.
+
+### Approved observation and retained result
+
+The approved lifetime runs from 13:34:07 UTC on 2026-09-25 and lasts 385651 ms, including cleanup.
+Initial window capture showed another foreground surface; reselecting and activating the exact
+returned Ame window restored the correct capture before any positional input. The isolated catalog
+opens with 79281 records, and selecting `cloud-primary` shows 48624. A middle-rail click at 13:36:02
+initially shows loading; the 13:36:23 observation shows decoded images without intervening input.
+That frame also has a background-update indicator; it does not reproduce the report's already-idle
+precondition for the entire first scroll.
+
+Upward input of -1320 shows two Retry controls in the immediate frame. The later no-input
+observation shows pixels at those positions and the update indication cleared. A further -6000
+input then shows Retry across visible rows; 18 controls remain in the observation 43.4 seconds
+later. The +7320 reversal returns the original middle-region arrangement, still stable 44.3
+seconds later. No unsolicited position jump is observed in these sampled frames. This is direct
+Retry feedback evidence, not proof that every such control shares one new functional defect, and
+does not establish continuous frame stability or reproduction of the original jump.
+
+The complete stdout contains 162 logged preview outcomes, all ready; stderr is empty. The existing
+queue logger omits fast implicit terminal requests and does not attach a returned failed asset's
+issue code, so those 162 lines cannot rule out transient failure. Read-only, row-capped comparison
+finds the same 110 persisted failed identities and classifications before and after: 104
+`image_format_unsupported` and six `image_decode_invalid`, all in `cloud-primary`. There are no new
+or cleared persisted failures. The exact visible Retry controls were not bound to location IDs,
+so this does not identify which of them corresponded to those existing classifications.
+
+Published count remains 79281, but the combined membership/metadata digest changes. Among the 162
+logged identities, 121 `cloud-primary` rows change only source revision and source generation; the
+sample has no capture-date, dimension, size or modification-time change. This explains neither the
+full historical recovery cost nor every unsampled metadata difference. The original full-root
+comparison reached its unchanged 350 ms deadline; the replacement selects logged identities in
+batches of at most 64 under the same deadline. Both roots finish synchronized with zero pending,
+retry or gap counters, and no recovery-start/finish marker occurs. Original database/WAL presence,
+size and SHA-256 remain unchanged. This comparison reads derived catalogs, not original media.
+
+Alt-F4 closes the application normally in 602.6654 ms; application and parent exit zero and all
+owned processes retire. The memory observer records 1444 samples, peak working set 414916608
+bytes, peak commit 569671680 bytes and minimum system availability 7387635712 bytes, with no
+failure or cleanup issue. The aggregate launcher nevertheless fails when reading the already-exited
+parent's `ExitTime` without having retained that `Process` object's handle. Its original failure
+receipt remains. A two-process, media-free comparison reproduces the same null-value error without
+the handle and obtains a valid exit timestamp with it. The ignored launcher now retains the parent
+handle before waiting; the executed version and matching hash are preserved as `launch-used.ps1`.
+No Ame replay follows this observer correction. The completed stopwatch bound supports parent
+retirement within 600 seconds, but does not rewrite the failed aggregate as a passing invocation.
+
+The ignored run retains `input.json`, full logs, original completion and memory receipts and
+`result-analysis.json`. It advances the observed symptom and its evidence; it does not close C05,
+the historical incident, Release acceptance or the complete R2c goal. Further diagnosis must separate
+existing failed media from transient admission/reconciliation or image-rendering feedback before
+changing product behavior. No extra full quality run is warranted by this observation alone.
