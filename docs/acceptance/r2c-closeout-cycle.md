@@ -902,7 +902,8 @@ The admitted UX-01A method now has a prepared two-lifetime fixture on documentat
 corpus into a fresh disposable profile, normally retires the first process and Job, then starts a
 distinct process against that same profile. Closed catalog snapshots retain exact root, scan,
 asset and source identity checks; separately observed pixels and navigation remain required.
-This is preparation evidence only: no populated native observation has run under this method.
+These checks establish preparation only. The later failed admission below supplies no populated
+native observation or passing UX-01A verdict.
 
 The isolated payload retains the unsigned evidence from source `94f52f0` plus its verified dirty
 source hashes, subsequently committed as `562e53d`. Those twelve source/test hashes still match.
@@ -944,13 +945,52 @@ uses a cached-text stand-in. Neither that test nor future catalog equality suppl
 measurement; the earlier failed ETW calibration and separately required native/external counter
 evidence remain unchanged.
 
-The prepared configuration is in `.build/r2c-populated-startup/`, run
-`9f9559e2e8f14f76b4c8e5473c0a1386`. The exact payload/source/helper admission passes, but the final
-resource guard measures 6.79 GiB available against the original 7 GiB floor. Resetting only the
-owned UI-control session yields 6.86 GiB; the later check is 6.84 GiB. No host-start receipt exists
-and no Sandbox or Ame process is launched. This is a resource-blocked preparation, not a failed
-native workload or a passing UX-01A verdict. The single execution remains unconsumed; reuse this
-configuration after fresh resource and source-integrity admission, retaining all original bounds.
+The configuration is in `.build/r2c-populated-startup/`, run
+`9f9559e2e8f14f76b4c8e5473c0a1386`. Its initial payload/source/helper admission passed, but the
+resource guard measured 6.79 GiB available against the original 7 GiB floor. Resetting only the
+owned UI-control session yielded 6.86 GiB; the later check was 6.84 GiB. Those checks produced no
+host-start receipt and launched no Sandbox or Ame process. The configuration remained unconsumed
+until the following execution; the earlier resource failure is retained.
+
+### Populated Release startup admission failure
+
+On documentation head `f1f27a7`, the same frozen 512 product, 25 helper and 38 input bindings pass.
+Fresh host verification passes all 10516 generated/retained fixture files in 67.095 seconds.
+Run `9f9559e2e8f14f76b4c8e5473c0a1386` starts Windows Sandbox at
+2026-09-25 02:59:25.8035140 UTC with 9172525056 available host bytes; its recorded minimum is
+8981147648 bytes. Memory admission and the two-GiB reserve both pass.
+
+Computer Use lists the matching Sandbox window, but window access returns
+`Computer Use app approval timed out`. No screenshot or native input is obtained. The only
+guest-output-directory file is the host's matching `abort.json`; no source-copy, admission,
+application-start/exit, catalog, memory or guest-result receipt exists. Missing receipts do not
+prove that no guest bootstrap or source-copy work executed, and the tool timeout alone does not
+establish why guest readiness is absent.
+
+The supervisor reaches its unchanged 900-second deadline and preserves
+`Media lifetime exceeded its 900-second parent deadline`. Its terminal record is
+`processBoundaryPassed=false`, elapsed 930992 ms including cleanup waiting, with Sandbox PID 14968
+still present. At 03:41:27.3598979 UTC, a new process query finds no Sandbox or Ame process; the
+current window list likewise has no Sandbox. This later disappearance supplies neither a normal
+close receipt nor a passing process-boundary verdict. No application import or restart acceptance
+follows from this run, and this failure does not reproduce the earlier finalization observation.
+
+The independent result review confirms those evidence limits. The complete host source postcheck
+passes all 10516 files in 51.599 seconds; guest postchecks remain unavailable. Source media mappings
+remain read-only, and no real-library root or product source is changed. The original results and
+the single consumed execution remain preserved; restoring tool access and proving empty guest
+readiness are prerequisites to a different, bounded continuation method.
+
+| Retained evidence | SHA-256 |
+| --- | --- |
+| `host-start.json` | `70816B4CDCA18890DD8C2355A31D938CDD71E34968F9AC030DAEFBCF67A91D52` |
+| `host-result.json` | `F6BF9D1139B591D03DDAFFD91E33FAC7C35DF89D97D84A98BC331353CF610BD0` |
+| `output/abort.json` | `8FB0C7C35619194F114952C75EC1D9F855C6F4F718737205CE22A11E82327483` |
+| `.build/r2c-populated-startup/failed-startup-observation.json` | `F1E94FD8C5A783B88265A5FB4C3CA24AD8085639BADE0517EEAE321CC98A0F5D` |
+| `source-integrity-1790307852410960200.json` | `E4A6ABF1AA529B46CDC3A6546C8BB4788C222DD2883340F09D4714FD108F6F14` |
+
+Host/abort receipts are under `build/integration-storage-9f9559e2e8f14f76b4c8e5473c0a1386`;
+the complete source postcheck is under `build/integration-storage-e84f07c4443e4008b0c71381991477a4`.
 
 ### Native original-viewer source-slot evidence
 

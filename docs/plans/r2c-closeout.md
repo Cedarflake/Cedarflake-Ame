@@ -193,17 +193,23 @@ and payload binding, independent method review, and fresh resource admission des
 Preparation establishes two independently owned process lifetimes and passes 59 focused checks.
 The [prepared startup record](../acceptance/r2c-closeout-cycle.md#populated-release-startup-preparation)
 binds the reused Release, source corpus, observer-test boundary and corrected input guards.
-The launch guard observes only 6.79 GiB available; releasing the owned UI session leaves 6.86 GiB,
-and a later check remains 6.84 GiB. No Sandbox or application starts and no native allowance is
-consumed. Preserve the unconsumed configuration; refresh the source digest and resource admission
-before its single execution. Do not generate another fixture or repeat preparation tests solely
-because memory becomes available.
+The initial launch guard observed only 6.79 GiB available; releasing the owned UI session left
+6.86 GiB, and a later check remained 6.84 GiB. No Sandbox or application started during those
+resource checks. Their unconsumed configuration was retained for fresh source/resource admission.
 
-Conservatively charge 83 minutes for mapping, fixture implementation, focused checks, the first
-13 minutes of review allowance and records: cumulative accounting is 9142 charged / 9194 reserved.
-The outstanding 17 minutes are the one native execution and final two-minute evidence review;
-the separate conditional 35-minute deletion allowance remains untouched. Resource waiting is not
-engineering time. The final review remains required before declaring the native path accepted.
+Preparation charged 83 minutes for mapping, fixture implementation, focused checks, the first
+13 minutes of review allowance and records: cumulative accounting was 9142 charged / 9194 reserved.
+The 2026-09-25 execution now consumes the final 15-minute native allowance and two-minute evidence
+review. Memory admission and the complete host source checks pass, but Computer Use window access
+times out and no guest preparation or application receipt arrives. The parent expires at its
+unchanged 900-second deadline; its failure and later process disappearance remain separate in the
+[failed startup record](../acceptance/r2c-closeout-cycle.md#populated-release-startup-admission-failure).
+Charge this block's 100 minutes in full: cumulative accounting is 9159 charged / 9194 reserved;
+only the separate conditional 35-minute deletion allowance remains untouched. Resource and tool
+permission waiting are not engineering time. UX-01A remains open, and no unchanged native replay
+is admitted. A further method must first establish current window access and guest readiness with
+an empty Sandbox before reserving another media lifetime; it cannot infer guest execution or source
+safety from missing receipts or extend the original product deadlines.
 
 #### M04 bounded implementation method
 

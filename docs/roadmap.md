@@ -170,6 +170,9 @@ repair admission, review, verification, stopping rules, and safety cautions.
    matrix. Add negative cases for uncovered transitions and preserve the original ten-phase local
    whole-window UIA path and owned-process exit. Real EXE restart and Release decoding/input
    evidence cannot be inferred from widget remounts, static previews, MSAA, or unsigned bridge smoke.
+   Populated Release restart remains open after the
+   [failed Sandbox admission](acceptance/r2c-closeout-cycle.md#populated-release-startup-admission-failure);
+   current window access and empty guest readiness must precede a different bounded client method.
    Complete the four named maintenance deliveries with behavior and lifecycle evidence, preserving
    functional-incident priority. Use one independent reviewer; unrelated physical decomposition
    remains tracked debt.
