@@ -5,8 +5,10 @@ Correction: `0677ba67020142d50e4b28cf7f3ce07e44fec924`, verified 2026-09-25.
 Status: startup recovery completed; paging correction passes focused, lint, complete local Daily,
 fresh unsigned Windows and hosted checks. Recovery cost, the exact retained-client incident and
 remaining R2c client acceptance remain open.
-The subsequent documentation-only head has a new hosted first-import pause failure, retained below;
-the earlier passing correction gates do not make that later run green.
+The subsequent documentation-only head's first-import Pause failure is retained below. Its owning
+correction `724a83e` passes focused checks, complete local Daily and connected native Pause, plus
+current-source hosted Windows Scan/unsigned verification. The hosted aggregate remains pending;
+earlier passing gates do not change the original failed result.
 
 ## Existing recovery after startup
 
@@ -262,5 +264,45 @@ need for production native validation: Rust test builds bypass the actual first-
 poll, so focused tests alone cannot accept the connected Windows path. Source/format evidence and
 original failed attempts remain under `.build/r2c-first-import-control-20260925`. All source access
 in these tests uses generated temporary fixtures. No retained media, schema, bridge, dependency,
-deadline or workload changed. Native, complete Daily, unsigned and new hosted results remain pending
-at this focused checkpoint.
+deadline or workload changed. The following accumulated verification completes the connected
+native and local quality duties that were pending at the focused checkpoint.
+
+### Connected verification on the corrected source
+
+`724a83ecf6ceb45fb27fcea29d6c0ab8dc8b8d34` contains the correction. The four product/test SHA-256
+records in `product-source.json` remain unchanged throughout verification and match the commit.
+Formatting changes no Dart files; lint passes in 158021 ms with warnings denied. One complete
+local Daily passes in 2035622 ms, from 11:56:08 to 12:30:03 UTC on 2026-09-25:
+
+- Rust: 1581 passed and 19 explicitly ignored; the broker binary adds three passing tests.
+- Flutter: all 98 test files pass.
+- Windows Scan: all three connected cases pass, using the production Rust DLL. Run
+  `d72fa1a99a6643f0af948c1c79a9ca03` exits zero in 80852 ms, with no cleanup failure. Its isolated
+  storage remains retained because the runner has no owned recursive-cleanup proof.
+- Windows accessibility: both test cases and all ten native UIA phases pass within the original
+  deadlines, with the owned process and Job retired.
+- The 16 asynchronous bridge contracts, matching bridge hashes and whitespace check pass.
+
+The retained-import case generates 1024 PNG sources, accepts Pause from the Started listener,
+observes the paused checkpoint without an error, restores that state in the widget tree, retains
+usable navigation, then executes Cancel. A further widget remount proves Cancel remains durable;
+source bytes remain unchanged through root removal. This case does not execute Continue or restart
+the EXE. Those distinct client duties cannot be inferred from this pass.
+
+[Hosted run 36133513545](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36133513545)
+belongs to head `724a83e`. Its Windows Scan, Flutter, accessibility, unsigned Windows and all five
+synthetic workloads pass. Static/Rust and the aggregate are still pending at this checkpoint.
+The unsigned artifact records merge commit `7987f5b917fcc7bc216b2fa8beea7fa696239e70`, whose tree
+`178c3d4c99919ffbefb70f8feb571dfa7539c3bf` exactly equals the repair's tree. Its parents include
+the repair head; no differing source is being accepted through an earlier build.
+
+The canonical hosted unsigned command passes its three engine-free window cases, two actual
+Debug-engine retirement cases, Release payload verification and catalog-free bridge smoke. The
+payload has 19 files / 79564708 bytes; the engine process exits zero in 5068 ms and closes its Job
+without cleanup failures. Only the text evidence artifact was downloaded. This current-source
+hosted evidence satisfies that ADR 0026 gate without duplicating its build locally; it does not
+prove Windows 11 Release interaction, signing, installed-service or retained-root acceptance.
+
+No additional complete local Daily is required by the commit or these evidence-only updates.
+The original hosted failure, deterministic red regression and intermediate compile error remain
+preserved. The reported retained-library Retry/jump and recovery cost remain separate open duties.

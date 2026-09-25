@@ -78,9 +78,11 @@ Item 3 selects functional synchronization and browsing. **R2C-C04 now has focuse
 verification** for fresh bulk changes and recovery of retained terminal work. The new
 [retained-library runtime findings](acceptance/r2c-retained-runtime.md) retain completed but slow
 recovery and a reported middle-timeline scroll jump with Retry feedback; the browsing incident
-takes current functional priority under its bounded execution method. A subsequent hosted first-import
-Pause/capture failure is the next bounded functional correction after the generated middle-timeline
-observation; its original diagnostics are preserved in the same runtime record. C04's original failure
+takes current functional priority under its bounded execution method. The subsequent first-import
+Pause/capture correction now passes connected native Pause and complete local Daily, with current
+hosted unsigned evidence; its original failure and remaining hosted result are preserved in the
+same runtime record. Continue the remaining functional variants without replaying unchanged gates.
+C04's original failure
 is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05's generated-only complete
 browsing workload and transient Retry feedback checks now pass; remaining client variants and final
 gates stay open.** Preview demand, recovered dates and missing-source request retirement have

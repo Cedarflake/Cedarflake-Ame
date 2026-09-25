@@ -44,6 +44,13 @@ and original failures remain. External prerequisites are prepared as concrete re
 unavailable signing, service, journal, cloud or real-root authority does not block independent work
 and does not convert a controlled test into external acceptance.
 
+Batch verification around a coherent functional change: use boundary tests while implementing,
+then run the required full local gates once on the frozen source. Commit creation, evidence-only
+documentation and unchanged client observations do not restart those gates. Reuse current-source
+hosted results for the responsibilities assigned by ADR 0026; retain separate Windows 11 client,
+Release interaction and external acceptance duties. Keep independent functional work moving while
+hosted jobs run, and do not cancel an active run with an evidence-only push.
+
 Hosted run 35682898100 on `22c5a0c` now passes all ten required verification jobs and its aggregate
 gate; signing-only release jobs are correctly skipped on this PR. This closes that head's hosted
 gate only. The earlier mixed-load and UIA failures remain evidence needing their planned disposition.
@@ -496,6 +503,17 @@ Run focused Rust ownership/regression checks, the actual native retained-import/
 lint, complete serial Daily and applicable fresh unsigned/hosted gates after a product change.
 No original-media operation, real Journal/service access, source workload or deadline relaxation
 is included. A failed reproduction requires a changed diagnostic method, not speculative guards.
+
+The correction `724a83e` passes the focused ownership regressions, independent review, lint and
+one complete local Daily. The connected native case verifies accepted Pause, restored paused
+checkpoint state, navigation and persistent Cancel; it does not execute Continue or restart the
+EXE. Current-source hosted Windows Scan and the canonical unsigned Windows job also pass. The
+hosted merge commit has the identical tree to the repair, so no duplicate local unsigned build is
+needed for that gate. Actual Windows 11 Release interaction remains a separate obligation. The
+runtime record owns measurements and the outstanding hosted Static/Rust aggregate result.
+Charge this 90-minute envelope conservatively: 9689 charged / 9724 reserved; the remaining
+35 minutes retain their conditional generated-deletion scope. No unchanged full gate replay is
+admitted by recording this checkpoint.
 
 #### M04 bounded implementation method
 
