@@ -189,15 +189,9 @@ class LibraryController extends Notifier<LibraryState>
 
   Future<LibraryQueryUpdateOutcome> refreshFromSynchronization({
     required BigInt catalogRevision,
-    String? anchorLocationId,
-    String? anchorAssetId,
-    int? fallbackGlobalItemIndex,
   }) {
     return _viewport.refreshFromSynchronization(
       catalogRevision: catalogRevision,
-      anchorLocationId: anchorLocationId,
-      anchorAssetId: anchorAssetId,
-      fallbackGlobalItemIndex: fallbackGlobalItemIndex,
     );
   }
 

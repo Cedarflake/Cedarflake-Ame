@@ -147,21 +147,26 @@ class LibraryViewportController {
     ),
   );
 
-  Future<bool> refreshPrimaryScanCatalog() =>
-      _queryRefresh.refreshCommitted(() {
-        final generation = _publicationGeneration;
-        return queryProjections.publish((anchor) async {
-          if (!_canPublishGeneration(generation)) {
-            return LibraryQueryUpdateOutcome.superseded;
-          }
-          return await reloadFirstCatalogPage(
-                anchor: anchor,
-                projectionRead: queryProjections.beginRead(),
-              )
-              ? LibraryQueryUpdateOutcome.applied
-              : LibraryQueryUpdateOutcome.superseded;
-        });
-      });
+  Future<bool> refreshPrimaryScanCatalog() => _queryRefresh.refreshCommitted(
+    () => _refreshCatalogProjection(_publicationGeneration),
+  );
+
+  Future<LibraryQueryUpdateOutcome> _refreshCatalogProjection(int generation) {
+    if (!_canPublishGeneration(generation)) {
+      return Future.value(LibraryQueryUpdateOutcome.superseded);
+    }
+    return queryProjections.publish((anchor) async {
+      if (!_canPublishGeneration(generation)) {
+        return LibraryQueryUpdateOutcome.superseded;
+      }
+      return await reloadFirstCatalogPage(
+            anchor: anchor,
+            projectionRead: queryProjections.beginRead(),
+          )
+          ? LibraryQueryUpdateOutcome.applied
+          : LibraryQueryUpdateOutcome.superseded;
+    });
+  }
 
   Future<bool> updateQuery(
     LibraryGalleryQuery query, {
@@ -345,21 +350,24 @@ class LibraryViewportController {
 
   Future<LibraryQueryUpdateOutcome> refreshFromSynchronization({
     required BigInt catalogRevision,
-    String? anchorLocationId,
-    String? anchorAssetId,
-    int? fallbackGlobalItemIndex,
   }) {
-    return _queryRefresh.runPassive(
-      () => _updateQueryWithOutcome(
-        _state.query,
-        anchorLocationId: anchorLocationId,
-        anchorAssetId: anchorAssetId,
-        fallbackGlobalItemIndex: fallbackGlobalItemIndex,
-        forceRefresh: true,
-        minimumCatalogRevision: catalogRevision,
-        showRefreshingStatus: false,
-      ),
-    );
+    return _queryRefresh.runPassive(() {
+      final generation = _publicationGeneration;
+      return queryProjections.publish((anchor) {
+        if (!_canPublishGeneration(generation)) {
+          return Future.value(LibraryQueryUpdateOutcome.superseded);
+        }
+        return _updateQueryWithOutcome(
+          _state.query,
+          anchorLocationId: anchor?.requestedLocationId,
+          anchorAssetId: anchor?.assetId,
+          fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
+          forceRefresh: true,
+          minimumCatalogRevision: catalogRevision,
+          showRefreshingStatus: false,
+        );
+      });
+    });
   }
 
   Future<void> loadNextPage() async {
@@ -466,7 +474,9 @@ class LibraryViewportController {
       }
       if (error.code == "catalog_cursor_stale") {
         try {
-          await reloadFirstCatalogPage();
+          await _queryRefresh.refreshCommitted(
+            () => _refreshCatalogProjection(generation),
+          );
         } on Object catch (refreshError) {
           if (_canPublishGeneration(generation)) {
             _state = _state.copyWith(
@@ -572,7 +582,9 @@ class LibraryViewportController {
       }
       if (error.code == "catalog_cursor_stale") {
         try {
-          await reloadFirstCatalogPage();
+          await _queryRefresh.refreshCommitted(
+            () => _refreshCatalogProjection(generation),
+          );
         } on Object catch (refreshError) {
           if (_canPublishGeneration(generation)) {
             _state = _state.copyWith(

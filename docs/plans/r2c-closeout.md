@@ -399,6 +399,44 @@ cumulative accounting is 9404 charged / 9439 reserved. Only the separate conditi
 deletion allowance remains untouched. No further benchmark or correctness replay is needed for
 this unchanged slice; continue the remaining frozen client and external acceptance obligations.
 
+#### Retained-library recovery and browsing follow-up
+
+The 2026-09-25 retained-library session on `dcce10e` exposes a long remaining recovery and a
+reported middle-timeline scroll jump with transient Retry feedback. Preserve the read-only
+observations in [the retained-runtime record](../acceptance/r2c-retained-runtime.md). The browsing
+incident takes functional priority; the completed recovery's cost remains a separate open finding.
+
+Reserve 120 active minutes under the existing functional-continuation authority: 30 for bounded
+diagnosis (including the initial live inspection), 45 for one causally verified owning correction,
+15 for focused regressions and safe client observation, 20 for one independent review and 10 for
+records. Accounting becomes 9404 charged / 9559 reserved, retaining the separate conditional
+35-minute deletion allowance. This does not reopen the consumed C01/C02 or bulk replay allowances.
+
+First prove or reject the unanchored stale-page recovery path after middle-date navigation;
+preserve current item identity, later user input, query replacement, cancellation and loading
+ownership for both paging directions. Reuse the existing query projection and committed-refresh
+owners. Classify preview Retry only from a captured failure or a matching boundary reproduction;
+do not suppress errors or assume it shares the scroll cause. Keep the original workloads and
+deadline criteria. A changed source requires focused tests, lint, one complete serial Daily and
+applicable final-source gates; an old green head cannot certify it.
+
+Read the already-running process and derived catalog only, with short query deadlines and logical
+root labels. No source traversal, content read, hydration, catalog reset, service change, forced
+restart or new real-library run is granted. Generated tests may reproduce the boundary independently.
+Do not change the running user's process. Preserve incomplete terminal buffers as partial evidence;
+no captured error does not prove that Retry was absent. If the bounded reproduction fails, record
+the unresolved cause and a changed next method instead of repeating unchanged tests or presenting
+a local optimization as the complete runtime fix.
+
+The correction checkpoint retains the original query authority during stale-page recovery and
+admits passive refresh before gallery projection. Focused and actual-widget position evidence,
+review findings, read-only preview classifications and candidate gates belong to the linked record.
+Charge the complete 120-minute envelope conservatively: 9524 charged / 9559 reserved, retaining
+the untouched conditional 35 minutes. Closing the current dev process is a prerequisite for gates
+that replace its Debug output. Continue only the unfinished native/unsigned gates on the unchanged
+verified source; committing that source does not renew a completed Rust/Flutter run or authorize
+another retained-library scan. Exact reported Retry/jump attribution and recovery cost remain open.
+
 #### M04 bounded implementation method
 
 Reserve at most 180 active minutes after M03: 40 for authority mapping, 75 for one complete lifecycle

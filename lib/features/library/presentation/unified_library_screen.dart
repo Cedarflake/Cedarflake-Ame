@@ -271,9 +271,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _pendingSynchronizationRevision = null;
     late final LibraryQueryUpdateOutcome updateOutcome;
     try {
-      updateOutcome = await _applyQuery(
-        state.query,
-        synchronizationRevision: targetRevision,
+      updateOutcome = await _libraryController.refreshFromSynchronization(
+        catalogRevision: targetRevision,
       );
     } finally {
       _isApplyingSynchronizationRevision = false;
@@ -1365,34 +1364,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   Future<LibraryQueryUpdateOutcome> _applyQuery(
     LibraryGalleryQuery query, {
-    BigInt? synchronizationRevision,
     bool preserveGalleryPosition = true,
     bool forceRefresh = false,
-  }) => _queryTransition.run(
-    (anchor) async {
-      final controller = ref.read(libraryControllerProvider.notifier);
-      if (synchronizationRevision != null) {
-        return controller.refreshFromSynchronization(
-          catalogRevision: synchronizationRevision,
-          anchorLocationId: anchor?.requestedLocationId,
-          anchorAssetId: anchor?.assetId,
-          fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
-        );
-      }
-      final applied = await controller.updateQuery(
-        query,
-        anchorLocationId: anchor?.requestedLocationId,
-        anchorAssetId: anchor?.assetId,
-        fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
-        forceRefresh: forceRefresh,
-      );
-      return applied
-          ? LibraryQueryUpdateOutcome.applied
-          : LibraryQueryUpdateOutcome.failed;
-    },
-    preservePosition: preserveGalleryPosition,
-    reconcileSelection: synchronizationRevision != null,
-  );
+  }) => _queryTransition.run((anchor) async {
+    final controller = ref.read(libraryControllerProvider.notifier);
+    final applied = await controller.updateQuery(
+      query,
+      anchorLocationId: anchor?.requestedLocationId,
+      anchorAssetId: anchor?.assetId,
+      fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
+      forceRefresh: forceRefresh,
+    );
+    return applied
+        ? LibraryQueryUpdateOutcome.applied
+        : LibraryQueryUpdateOutcome.failed;
+  }, preservePosition: preserveGalleryPosition);
 
   LibraryAsset? _readViewerQueryAnchor() {
     final assetId = _viewer.assetId;

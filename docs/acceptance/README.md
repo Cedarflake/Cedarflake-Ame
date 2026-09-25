@@ -14,6 +14,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [Browsing recovery](synchronization-browsing-recovery.md) | The 2026-09-09 source-version, query-snapshot, and folder recovery correction and its verification limits |
 | [LiveOnly subtree recovery](r2c-live-gap-recovery.md) | C04 causal repair, retained/fresh bulk client evidence, source/resource limits and unresolved C05 browsing observations |
 | [Browsing diagnosis](r2c-browsing-diagnosis.md) | C05 recovered-date publication correction, mixed-image/bulk native functional checks, retained replay failures and remaining presentation/final-gate limits |
+| [Retained-library runtime](r2c-retained-runtime.md) | Completed but slow retained recovery, C05 middle-window paging follow-up, read-only preview-failure observations and current verification limits |
 | [Maintenance deliveries](r2c-maintainability.md) | Required state, queue, scan and viewport responsibility changes and their behavior-preservation evidence |
 | [Process lifecycle](r2c-process-lifecycle.md) | Pending native-call close, actual paused-checkpoint restoration and explicit continuation, retained failures and remaining input limits |
 | [Picker and task controls](r2c-input-controls.md) | C06 pending-pause Cancel correction, focused regressions and retained unsuccessful native input attempt |

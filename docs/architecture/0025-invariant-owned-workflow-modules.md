@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-24
+- Last amended: 2026-09-25
 
 ## Context
 
@@ -347,6 +347,11 @@ persistence layers.
   proven supersession, not after an arbitrary failure or unchanged busy result. Disposal settles
   every in-flight waiter, including replaced attempts. Catalog revision disagreement remains a
   genuine read failure, and retry cannot repeat the committed source scan.
+  Passive admission precedes presentation capture, so a rejected request cannot retire an active
+  gallery projection. A passive request waiting for a gesture retains its original publication
+  authority and revalidates it before reading. Expired paging cursors use the same position-aware
+  refresh boundary, but retain their original query/publication authority; unlike a committed scan
+  obligation, they cannot resume against a later user query or erase its failure.
 - `library_query_projection.dart` owns the current gallery's optional projection registration.
   A committed application refresh may use that projection to capture a stable visible identity;
   without a mounted gallery it still reads the catalog. Detaching an old registration cannot

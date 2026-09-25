@@ -4,6 +4,10 @@ Status: preview-demand, capture-time publication, presentation and transient Ret
 focused and complete generated-native evidence. Prior failed lifetimes remain failed; other frozen
 client variants, final-source gates and external acceptance remain open.
 
+The later [retained-library runtime follow-up](r2c-retained-runtime.md) separately owns the
+2026-09-25 report of Retry feedback and a middle-window jump after synchronization finished.
+The earlier generated workload does not close that report or establish its cause.
+
 ## Retained bulk-removal error classification
 
 Read-only classification of the retained run `251298f9605f49e1b65fddbba4276e9a` matches native preview

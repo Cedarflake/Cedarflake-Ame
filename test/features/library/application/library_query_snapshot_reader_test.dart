@@ -7,6 +7,8 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/fixed_query_projection.dart";
+
 void main() {
   test(
     "later input rejects the obsolete anchored page before publication",
@@ -48,12 +50,18 @@ void main() {
       addTearDown(controller.dispose);
       controller.seed(state);
 
+      controller.queryProjections.attach(
+        const FixedQueryProjection(
+          LibraryQueryAnchor(
+            requestedLocationId: "old-location",
+            assetId: "asset",
+            fallbackGlobalItemIndex: 19,
+          ),
+        ),
+      );
       expect(
         await controller.refreshFromSynchronization(
           catalogRevision: BigInt.from(8),
-          anchorLocationId: "old-location",
-          anchorAssetId: "asset",
-          fallbackGlobalItemIndex: 19,
         ),
         LibraryQueryUpdateOutcome.applied,
       );

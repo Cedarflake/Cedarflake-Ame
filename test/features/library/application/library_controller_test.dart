@@ -16,6 +16,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/fixed_query_projection.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
 void main() {
@@ -38,12 +39,17 @@ void main() {
       );
       addTearDown(container.dispose);
       final controller = container.read(libraryControllerProvider.notifier);
-
+      controller.queryProjections.attach(
+        const FixedQueryProjection(
+          LibraryQueryAnchor(
+            requestedLocationId: "location-before",
+            assetId: "asset-before",
+            fallbackGlobalItemIndex: 79,
+          ),
+        ),
+      );
       final refresh = controller.refreshFromSynchronization(
         catalogRevision: BigInt.two,
-        anchorLocationId: "location-before",
-        anchorAssetId: "asset-before",
-        fallbackGlobalItemIndex: 79,
       );
       await Future<void>.delayed(Duration.zero);
       var state = container.read(libraryControllerProvider);
