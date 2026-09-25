@@ -322,6 +322,17 @@ not the precise cause or duration of the observed run. The next native lifetime 
 terminal-task and settled point observations, but leaves exact closed membership and the preceding
 finalization interval unverified. The original time limits remain authoritative.
 
+Existing same-root mutation coverage is distinct from that native peer-root workload.
+`replacement_finalization_keeps_a_fixed_keyset_across_live_cursor_and_window_changes` starts with
+257 images and, after 128 validations, adds two paths on opposite sides of the keyset cursor,
+deletes one already validated and one not-yet-validated path, and rewrites two images. It applies
+those six changes through the real Live lane, requires bounded progress to finish at 257/257, and
+checks the final count, changed-path membership and updated dimensions without another full scan.
+The retained complete local Daily and hosted
+run `36091829697` both record this case passing; `109acff` through `b936fe5` changes no product or
+verification source. This is controlled replacement-scan coverage, not native reproduction of the
+reported first import, a bulk-mutation performance result, or a causal explanation of its wait.
+
 #### Finalization observation disposition
 
 As of 2026-09-25, the earlier suspected finalization stall is an **unconfirmed observation**, not
