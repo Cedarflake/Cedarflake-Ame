@@ -7,7 +7,7 @@ fresh unsigned Windows and hosted checks. Recovery cost, the exact retained-clie
 remaining R2c client acceptance remain open.
 The subsequent documentation-only head's first-import Pause failure is retained below. Its owning
 correction `724a83e` passes focused checks, complete local Daily and connected native Pause, plus
-current-source hosted Windows Scan/unsigned verification. The hosted aggregate remains pending;
+current-source hosted verification, including every required job and the aggregate;
 earlier passing gates do not change the original failed result.
 
 ## Existing recovery after startup
@@ -291,7 +291,9 @@ the EXE. Those distinct client duties cannot be inferred from this pass.
 
 [Hosted run 36133513545](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36133513545)
 belongs to head `724a83e`. Its Windows Scan, Flutter, accessibility, unsigned Windows and all five
-synthetic workloads pass. Static/Rust and the aggregate are still pending at this checkpoint.
+synthetic workloads pass. Static/Rust and the aggregate subsequently complete successfully;
+all ten required jobs and the aggregate pass. The three conditional release jobs remain skipped,
+including protected signing and signed verification.
 The unsigned artifact records merge commit `7987f5b917fcc7bc216b2fa8beea7fa696239e70`, whose tree
 `178c3d4c99919ffbefb70f8feb571dfa7539c3bf` exactly equals the repair's tree. Its parents include
 the repair head; no differing source is being accepted through an earlier build.
@@ -306,3 +308,43 @@ prove Windows 11 Release interaction, signing, installed-service or retained-roo
 No additional complete local Daily is required by the commit or these evidence-only updates.
 The original hosted failure, deterministic red regression and intermediate compile error remain
 preserved. The reported retained-library Retry/jump and recovery cost remain separate open duties.
+
+## Prepared retained middle-timeline observation
+
+The current product remains `724a83e`; documentation head `08c0c86` changes no product tree.
+The isolated preparation uses the existing catalog's 30657 `local-primary` and 48624
+`cloud-primary` published records, 79281 in total. A read-only SQLite transaction supplies one
+backup snapshot. The copy independently passes the exact registered-root allowlist, published
+baseline, active-generation and no-pending/leased/retry/foreground-scan checks. Published membership
+and metadata retain SHA-256 `8cc43a5f7fc602cee5ba32d01828aba7efed079a00196325fe8c669d3f57110a`.
+The original main database and WAL have unchanged presence, size and SHA-256 after preparation.
+No source media was enumerated or opened, and no client started.
+
+The copied catalog resets only external preview-cache references under the existing storage
+isolation policy; empty-path failed classifications remain. This creates a cold isolated cache
+without altering original catalog/cache or published membership. It is a current-source
+observation, not a reconstruction of the original warm-cache session or its missing error frames.
+
+Six focused Python checks and nine Dart admission checks pass; Dart analysis reports no issues.
+The guarded Debug entry builds in 24.6 seconds and calls production startup with isolated storage
+and in-memory preferences. The runtime consists of 18 files / 175624124 bytes; its source trees,
+artifact hashes and eight helper files are bound in the ignored `payload.json`. PowerShell parsing
+and explicit missing-approval rejection pass without creating an admission or process. Native
+window inventory is available; no Ame window exists. These helper checks do not rerun Daily or
+establish a native browsing pass.
+
+The first independent method review found seven launch blockers in snapshot revalidation, stale
+pre-lock checks, final close/deadline checks, monitor terminal evidence, cleanup, recovery-start
+rejection and partial entry receipts. Their corrections pass the single scoped static recheck.
+The launch now checks the original database/WAL after both successful and failed lifetimes;
+product/artifact/resource admission happens after acquiring the repository lock. Native input,
+matching monitor results, original-catalog preservation and normal exit still need actual evidence.
+
+Preparation is retained under `.build/r2c-retained-browse-20260925`, run
+`639b186bcf1d45d8a75d4730e9a8143a`. No launch receipt exists. The pending approval covers only one
+600-second Debug lifetime, selecting `cloud-primary`, a middle-date jump, upward scrolling,
+reversal and settled observation. Its combined catalog registers both logical roots, so incidental
+viewport/startup reads from either must be covered. No import, update command, viewer, settings,
+source mutation or placeholder hydration is admitted. The original 4 GiB launch floor, 2 GiB
+client ceiling/system reserve and six-second normal-close bound remain. Recovery, resource failure
+or loss of window identity stops the run. The user-reported issue stays open pending this evidence.

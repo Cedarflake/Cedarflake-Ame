@@ -80,7 +80,7 @@ verification** for fresh bulk changes and recovery of retained terminal work. Th
 recovery and a reported middle-timeline scroll jump with Retry feedback; the browsing incident
 takes current functional priority under its bounded execution method. The subsequent first-import
 Pause/capture correction now passes connected native Pause and complete local Daily, with current
-hosted unsigned evidence; its original failure and remaining hosted result are preserved in the
+hosted required gates; its original failure and completed verification are preserved in the
 same runtime record. Continue the remaining functional variants without replaying unchanged gates.
 C04's original failure
 is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05's generated-only complete

@@ -510,10 +510,80 @@ checkpoint state, navigation and persistent Cancel; it does not execute Continue
 EXE. Current-source hosted Windows Scan and the canonical unsigned Windows job also pass. The
 hosted merge commit has the identical tree to the repair, so no duplicate local unsigned build is
 needed for that gate. Actual Windows 11 Release interaction remains a separate obligation. The
-runtime record owns measurements and the outstanding hosted Static/Rust aggregate result.
+runtime record owns measurements. Hosted run 36133513545 subsequently passes all ten required
+jobs and its aggregate on the correction's source tree.
 Charge this 90-minute envelope conservatively: 9689 charged / 9724 reserved; the remaining
 35 minutes retain their conditional generated-deletion scope. No unchanged full gate replay is
 admitted by recording this checkpoint.
+
+#### Retained recovery cost: metadata-admission distinction
+
+Reserve 60 active minutes for one changed diagnostic method: 15 for retained evidence and owning
+code, 20 for bounded read-only catalog classifications, 15 for a generated boundary reproduction
+only if those classifications support it, and ten for records. Accounting is 9689 charged /
+9784 reserved, including the unchanged conditional 35-minute deletion allowance. This is not an
+unchanged C01 workload replay or another complete quality run.
+
+Distinguish compatible, deliberately invalidated and obsolete metadata during recovery candidate
+preparation. Determine whether already-invalidated, unchanged source identities unnecessarily
+fall back to media inspection, while preserving genuine engine-upgrade and changed-source checks.
+Inspect only the existing derived catalog with read-only/query-only connections, 350 ms query
+deadlines, bounded returned rows and logical root names. Do not launch a retained client, enumerate
+or open original media, hydrate placeholders or change its catalog. SQL costs and terminal-log
+samples alone cannot establish the entire 18-minute cause. A generated causal counterexample may
+admit a separately bounded owning repair; otherwise record the unsupported hypothesis and stop it.
+
+The exact generation-4 sample returns 64 compatible pending records, each with a source revision;
+it does not support the invalidated-metadata hypothesis or reconstruct pre-recovery state. No
+product change or generated reproduction follows. A full-root aggregate hit its unchanged 350 ms
+deadline; the replacement reads only 64 indexed identities. Conservatively charge the block's
+60 minutes: 9749 charged / 9784 reserved, retaining the conditional 35 minutes.
+
+#### Retained middle-timeline replay preparation
+
+Reserve 60 active minutes: 20 for isolated admission and log capture, ten for one client lifetime,
+15 for result/review and 15 for records. Accounting is 9749 charged / 9844 reserved. Preparation
+may read and copy the existing derived catalog into a fresh GUID-owned build directory. It may
+not start a real-root client or read source media until the exact run receives current approval.
+After the first method review, redistribute this same 60-minute envelope to 30 minutes of
+preparation/correction, ten of client observation, ten of independent review and ten of records.
+This retains the total, single-lifetime allowance and all resource and safety limits.
+
+The reviewable run uses current Debug product code, in-memory preferences and only that copied
+catalog/cache. Bind the original catalog, copied membership and registered logical roots before
+launch; require no unfinished foreground scan or active pending/retry/leased work. One lifetime
+lasts at most 600 seconds, including normal close, under the existing 4 GiB launch floor, 2 GiB
+client ceiling and 2 GiB system reserve. Use native input for the reported middle-date seek,
+upward scroll and reversal, retaining complete stdout/stderr, input/screenshot identities and
+process retirement. Do not import, explicitly update, delete, rename, edit settings or open an
+original-image viewer. Abort on recovery work, resource failure or lost window identity. Preserve
+the first failed event; a non-reproduction does not authorize another unchanged lifetime.
+
+The isolated copy uses a cold preview cache: clear only copied external preview paths/artifact
+references using the existing storage-isolation policy, retaining failed classifications. This
+prevents the copied client from writing the original cache; it changes cache warmth and therefore
+cannot reconstruct the exact original session. Revalidate the copied roots and settled state in
+the same snapshot, and bind the original main database and WAL before and after preparation/run.
+Retain published membership and metadata digests across copied-cache isolation. Use the logical
+`cloud-primary` selection for one middle-date seek, upward scrolling, reversal and a settled idle
+observation. The combined copied catalog also registers `local-primary`; both roots must be in the
+approval because ordinary startup/viewport work may access either. No source hydration is admitted.
+
+Only ordinary read-only browsing and its bounded viewport prefetch may access approved real
+roots; original media remains immutable and placeholders must not hydrate. Source access cannot
+be inferred from catalog rows or generated data. Keep private paths, catalog, previews and captured
+pixels ignored/local. This observes the corrected source and captures a possible current cause;
+it does not reconstruct the original missing error or certify recovery performance, Release,
+signed service, journal or Cloud Files acceptance. Helper-only preparation does not renew Daily.
+
+The isolated backup, guarded entry build, focused helper checks and one scoped independent review
+plus recheck now complete. The runtime record binds the 79281 published records, unchanged original
+main database/WAL, artifact and cold-cache limitation. No real-root client or source media has
+been opened. Charge 30 minutes of preparation, ten of review and five of records: 9794 charged /
+9844 reserved. Only the ten-minute client allowance and five-minute result record remain in this
+block, alongside the separate conditional 35-minute generated-deletion allowance. Actual execution
+waits for current approval of both logical roots and the concrete run above; preparation does not
+authorize it or close the reported incident.
 
 #### M04 bounded implementation method
 
