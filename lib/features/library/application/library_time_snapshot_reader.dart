@@ -12,6 +12,7 @@ class LibraryTimeSnapshotReader {
     LibraryTimeNavigationRequest request, {
     required bool Function() canPublish,
     required bool Function() ownsExplicitIntent,
+    required Future<void> Function() recoverPassive,
   }) async {
     try {
       final snapshot = await _catalog.loadAtTime(
@@ -39,8 +40,14 @@ class LibraryTimeSnapshotReader {
       if (!canPublish()) {
         return null;
       }
-      if (error.code != "catalog_cursor_stale" || !ownsExplicitIntent()) {
+      if (error.code != "catalog_cursor_stale") {
         rethrow;
+      }
+      if (!ownsExplicitIntent()) {
+        await recoverPassive();
+        if (!canPublish() || !ownsExplicitIntent()) {
+          return null;
+        }
       }
       final result = await _catalog.resolveTimeIntent(
         maxItems: libraryTimelineWindow,

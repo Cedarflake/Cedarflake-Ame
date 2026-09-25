@@ -39,6 +39,10 @@ persistence layers.
 
 ### Rust boundaries
 
+- `media_inspector/jpeg_headers.rs` owns streamed JPEG header parsing, source-error retention and
+  the read budget. The media-inspection facade selects the detected format; this adapter returns
+  Ame dimensions/metadata and shares the existing EXIF/orientation policy. It neither opens a new
+  source nor changes source revalidation, preview decoding or inspection-engine identities.
 - `application/scan_library.rs` remains the scan command facade. Scan execution, terminal source
   reconciliation, P0 handoff, and publication waiting live behind dedicated application modules.
   `scan_library/execution_registry.rs` owns process-local execution registration and revocable
@@ -84,6 +88,15 @@ persistence layers.
   application command values. `scan_publication/transaction.rs` owns attempt-scoped priority
   preemption, SQLite progress interruption, callback retirement, and the transaction boundary;
   application publication owns retry admission and the pause/cancel/suspend terminal policy.
+- `catalog_delta/terminal_evidence_scope.rs` owns normalized terminal-media evidence containment
+  and bounded retirement for completed path/subtree/root leases. The delta transaction keeps lease,
+  namespace, revision, rollback and source revalidation authority. Too much retained evidence
+  returns the existing inventory requirement instead of expanding an unbounded cleanup.
+- `scan_publication/live_change_admission.rs` owns the distinction between unfinished and exhausted
+  uncovered P0 debt. It shares retained-subtree eligibility and current capacity with the queue
+  owner. Foreground publication cannot wait for a full P2 lane to drain while that foreground
+  itself excludes P2 execution. Failure preserves the published snapshot and debt; existing strict
+  retained recovery may transfer the original evidence once without restarting its retry history.
 - `sqlite_catalog/write_admission.rs` owns writer ordering, preemption notification, waiting
   registration, and permit retirement. Priority order remains authoritative across lanes; within
   one priority, admission follows registration order rather than condition-variable wakeup order.
@@ -229,7 +242,12 @@ persistence layers.
   child separately from root unavailability and other I/O failures. This observation retires stale
   preview work, never grants catalog-removal authority. `preview/source_reconciliation.rs` uses the
   existing exact-source admission and guarded path-set reconciliation; an existing path owner keeps
-  its lease and work. Recreated sources and root identity are revalidated before any catalog delta.
+  its lease and work. The admission port distinguishes a superseded request, existing path work,
+  a granted lease and an unavailable lease. Proven supersession or existing work retires the old
+  preview request; failure to acquire authority is not proof of retirement. Recreated sources and
+  root identity are revalidated before any catalog delta. After an admitted attempt, acknowledged
+  durable retry or deferral retains completion ownership and retires the stale preview request.
+  A failed persistence operation propagates its error and cannot claim that transfer.
 - `local_files/file_admission.rs` owns supported, terminal, and retryable file discovery after
   local-availability checks. `scan_library/inspection_failure.rs` owns the shared retained-location
   and precise-retry checkpoint rules for discovery and decoder failures. Incremental terminal-media
@@ -310,7 +328,12 @@ persistence layers.
 - `library_time_snapshot_reader.dart` owns the single semantic read admitted after an explicit
   date navigation encounters a stale strict anchor, coherent-result validation and immutable
   projection. Passive prefetch cannot acquire that authority unless the same request is promoted
-  by an explicit target. Cancellation, query/publication supersession and disposal fence both
+  by an explicit target. A stale passive read refreshes through the mounted query projection,
+  retaining its original navigation/publication authority. Promotion during that recovery retires
+  the passive result and transfers the same request to one semantic resolution; it cannot lose
+  the explicit target by publishing the previous visible anchor. The query snapshot reader retires
+  results and errors whose caller authority expired, and publication revalidates that authority.
+  Cancellation, query/publication supersession and disposal fence both
   reads. `library_time_seek_alignment.dart` retains the semantic target through its admitted
   publication; current geometry and complete target-row coverage govern alignment. Query, layout,
   controller and later input changes retire that presentation authority.
@@ -363,6 +386,12 @@ persistence layers.
   A read also retains the projection's position generation. A later user scroll retires that
   authority before catalog publication; a committed refresh resumes after the gesture using its
   new position. Query, catalog-publication and position generations remain independent.
+  Passive synchronization carries the same position token through its coherent read and final
+  publication; obsolete success or failure cannot replace a later gesture. Application
+  `library_query_transition.dart` owns the typed query-read baseline and exact-read retirement.
+  Consecutive query replacements retain their original published baseline; a date read or external
+  authority transfer retires that baseline and its loading state before taking ownership. A late
+  query finalizer cannot release a newer transition or leave visible-range admission blocked.
   `library_gallery_query_transition.dart` owns position capture, identity/fallback resolution and
   presentation-generation cleanup for user queries, passive refresh and committed import display.
   It preserves the resolved page's global offset and the visible row's fraction. A retired gallery
@@ -419,6 +448,19 @@ persistence layers.
   the existing Material linear indicator above the unchanged child viewport with framework Stack
   layout and pointer passthrough. The screen supplies the existing loading projection; neither
   owner changes scroll position, query authority or asynchronous loading lifetime to hide movement.
+- `library_gallery_reflow.dart` owns capture/resolution of a query-bound viewport anchor and the
+  pending geometry change. A retained scroll origin binds a framework ScrollPosition and its
+  captured offset; later movement invalidates reuse of the old anchor. The wall validates that
+  origin both when scheduling and when applying a transition, then resolves a replacement anchor
+  from the still-displayed snapshot when needed. The screen uses the same origin before freezing
+  a subsequent dimension-recovery epoch. Explicit transition generations stay distinct from
+  geometry generations; reflow alone cannot widen the frozen visible range or promote prefetch.
+- `library_gallery_prepend_compensation.dart` owns the position adjustment for earlier rows in a
+  window-local layout. Its shared-item offset preserves later wheel input even when trailing rows
+  are trimmed. A full query manifest owns all row positions and cannot inherit this compensation.
+  Query/revision/scroll-position replacement and explicit date/query/layout intent retire the old
+  operation; matching cleanup cannot clear a newer prepend owner. The screen composes the page
+  request and rendered-frame boundary, while application paging retains read/publication authority.
 - `library_synchronization_feedback.dart` owns the immutable message, detail, severity and existing
   manual-action projection of synchronization status. First-import and explicit-manual decisions
   remain distinct; blocked recovery takes precedence over automatic-progress explanations. A

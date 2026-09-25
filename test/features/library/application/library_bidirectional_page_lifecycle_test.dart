@@ -10,6 +10,46 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  for (final previous in [false, true]) {
+    for (final fails in [false, true]) {
+      test(
+        "committed refresh retires ${previous ? 'previous' : 'next'} page ${fails ? 'failure' : 'success'}",
+        () async {
+          final fixture = _BoundaryFixture();
+          final pendingPage = previous
+              ? fixture.viewport.loadPreviousPage().then<void>((_) {})
+              : fixture.viewport.loadNextPage();
+          expect(fixture.catalog.beforeLoads + fixture.catalog.afterLoads, 1);
+
+          expect(await fixture.viewport.refreshCurrentQuery(), isTrue);
+          expect(fixture.state.assets.single.locationId, "location-1");
+          final read = previous
+              ? fixture.catalog.previous
+              : fixture.catalog.next;
+          if (fails) {
+            read.completeError(
+              const LibraryCatalogFailure(
+                code: "page_unavailable",
+                message: "the retired page failed",
+              ),
+            );
+          } else {
+            read.complete(fixture.catalog.page(previous ? 0 : 2));
+          }
+          await pendingPage;
+
+          expect(fixture.state.assets.map((asset) => asset.locationId), [
+            "location-1",
+          ]);
+          expect(fixture.state.pageErrorMessage, isNull);
+          expect(fixture.state.previousPageErrorMessage, isNull);
+          expect(fixture.state.isLoadingPage, isFalse);
+          expect(fixture.state.isLoadingPreviousPage, isFalse);
+        },
+      );
+    }
+  }
+
   for (final prefetchPrevious in [true, false]) {
     for (final failRequested in [false, true]) {
       test(
@@ -261,6 +301,22 @@ class _BoundaryCatalog extends RetainedScanCatalog {
     }
     afterLoads += 1;
     return next.future;
+  }
+
+  @override
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  }) async {
+    if (query == _query) {
+      return LibraryQuerySnapshot(snapshot: page(1), timeline: timeline(query));
+    }
+    return super.loadQuerySnapshot(
+      maxItems: maxItems,
+      query: query,
+      anchor: anchor,
+    );
   }
 
   @override

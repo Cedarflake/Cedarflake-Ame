@@ -11,6 +11,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -686,148 +687,210 @@ void main() {
     expect(controller.timeSeekRequests, 0);
   });
 
-  testWidgets(
-    "preserves the viewport-center card when recovered dimensions reflow rows",
-    (tester) async {
-      const itemCount = 4000;
-      const wallSize = Size(900, 620);
-      final initialManifest = _manifest(itemCount, dimensionsKnown: false);
-      final manifest = ValueNotifier(initialManifest);
-      final state = _state(itemCount);
-      final controller = _RecordingGalleryController();
-      final scrollController = ScrollController();
-      LibraryGalleryVisiblePosition? visiblePosition;
-      addTearDown(() async {
-        scrollController.dispose();
-        manifest.dispose();
-        await tester.binding.setSurfaceSize(null);
-      });
-      await tester.binding.setSurfaceSize(const Size(1100, 760));
+  for (final scenario in [
+    (wheelDelta: 0.0, explicitTransition: false, wheelBeforeBuild: false),
+    (wheelDelta: -480.0, explicitTransition: false, wheelBeforeBuild: false),
+    (wheelDelta: 480.0, explicitTransition: false, wheelBeforeBuild: false),
+    (wheelDelta: -480.0, explicitTransition: true, wheelBeforeBuild: false),
+    (wheelDelta: 480.0, explicitTransition: true, wheelBeforeBuild: false),
+    (wheelDelta: -480.0, explicitTransition: true, wheelBeforeBuild: true),
+    (wheelDelta: 480.0, explicitTransition: true, wheelBeforeBuild: true),
+  ]) {
+    final scrollBeforeReflow = scenario.wheelDelta != 0;
+    testWidgets(
+      scrollBeforeReflow
+          ? "preserves wheel ${scenario.wheelDelta} during reflow "
+                "with explicit transition ${scenario.explicitTransition} "
+                "and wheel before build ${scenario.wheelBeforeBuild}"
+          : "preserves the viewport-center card when recovered dimensions reflow rows",
+      (tester) async {
+        const itemCount = 4000;
+        const wallSize = Size(900, 620);
+        final initialManifest = _manifest(itemCount, dimensionsKnown: false);
+        final manifest = ValueNotifier(initialManifest);
+        final state = _state(itemCount);
+        final controller = _RecordingGalleryController();
+        final scrollController = ScrollController();
+        LibraryGalleryVisiblePosition? visiblePosition;
+        LibraryGalleryLayoutTransition? transition;
+        var appliedTransitions = 0;
+        addTearDown(() async {
+          scrollController.dispose();
+          manifest.dispose();
+          await tester.binding.setSurfaceSize(null);
+        });
+        await tester.binding.setSurfaceSize(const Size(1100, 760));
 
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: ValueListenableBuilder(
-              valueListenable: manifest,
-              builder: (context, currentManifest, child) => Align(
-                alignment: Alignment.topLeft,
-                child: SizedBox(
-                  width: wallSize.width,
-                  height: wallSize.height,
-                  child: LibraryGalleryWall(
-                    state: state,
-                    controller: controller,
-                    scrollController: scrollController,
-                    layoutShape: GalleryLayoutShape.equalHeight,
-                    thumbnailSize: GalleryThumbnailSize.medium,
-                    selection: GallerySelection.empty(state.queryId),
-                    isSelecting: false,
-                    layoutManifest: currentManifest,
-                    onOpen: (_) {},
-                    onToggleSelection: (_) {},
-                    onViewInformation: (_) {},
-                    onCopyPath: (_) {},
-                    onRevealFile: (_) {},
-                    onVisiblePositionChanged: (position) {
-                      visiblePosition = position;
-                    },
-                    onLoadPrevious: controller.loadPreviousPage,
-                    onLayoutChanged: (_, _) {},
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              home: ValueListenableBuilder(
+                valueListenable: manifest,
+                builder: (context, currentManifest, child) => Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: wallSize.width,
+                    height: wallSize.height,
+                    child: LibraryGalleryWall(
+                      state: state,
+                      controller: controller,
+                      scrollController: scrollController,
+                      layoutShape: GalleryLayoutShape.equalHeight,
+                      thumbnailSize: GalleryThumbnailSize.medium,
+                      selection: GallerySelection.empty(state.queryId),
+                      isSelecting: false,
+                      layoutManifest: currentManifest,
+                      layoutTransition: transition,
+                      onLayoutTransitionApplied: (_) {
+                        appliedTransitions += 1;
+                      },
+                      onOpen: (_) {},
+                      onToggleSelection: (_) {},
+                      onViewInformation: (_) {},
+                      onCopyPath: (_) {},
+                      onRevealFile: (_) {},
+                      onVisiblePositionChanged: (position) {
+                        visiblePosition = position;
+                      },
+                      onLoadPrevious: controller.loadPreviousPage,
+                      onLayoutChanged: (_, _) {},
+                    ),
                   ),
                 ),
               ),
             ),
           ),
-        ),
-      );
+        );
 
-      final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
-        manifest: initialManifest,
-        availableWidth: wallSize.width - 40,
-        thumbnailSize: GalleryThumbnailSize.medium,
-        sortKey: LibraryGallerySortKey.captureTime,
-      );
-      scrollController.jumpTo(
-        initialSnapshot.metrics.itemOffsets[3000] +
-            initialSnapshot.metrics.photoRowHeight * 0.5 -
-            wallSize.height * 0.5,
-      );
-      await tester.pump();
-      await tester.pump();
+        final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+          manifest: initialManifest,
+          availableWidth: wallSize.width - 40,
+          thumbnailSize: GalleryThumbnailSize.medium,
+          sortKey: LibraryGallerySortKey.captureTime,
+        );
+        scrollController.jumpTo(
+          initialSnapshot.metrics.itemOffsets[3000] +
+              initialSnapshot.metrics.photoRowHeight * 0.5 -
+              wallSize.height * 0.5,
+        );
+        await tester.pump();
+        await tester.pump();
 
-      final anchorBefore = visiblePosition;
-      expect(anchorBefore, isNotNull);
-      final wallRect = tester.getRect(
-        find.byKey(const Key("library-photo-wall")),
-      );
-      final viewportCenter = wallRect.center;
-      final centerCandidates = <({String locationId, Rect rect})>[];
-      for (var index = 2980; index < 3020; index += 1) {
-        final finder = find.byKey(ValueKey("location-$index"));
-        if (finder.evaluate().length != 1) {
-          continue;
+        final anchorBefore = visiblePosition;
+        expect(anchorBefore, isNotNull);
+        final wallRect = tester.getRect(
+          find.byKey(const Key("library-photo-wall")),
+        );
+        final viewportCenter = wallRect.center;
+        final centerCandidates = <({String locationId, Rect rect})>[];
+        for (var index = 2980; index < 3020; index += 1) {
+          final finder = find.byKey(ValueKey("location-$index"));
+          if (finder.evaluate().length != 1) {
+            continue;
+          }
+          final rect = tester.getRect(finder);
+          if (rect.top <= viewportCenter.dy &&
+              viewportCenter.dy < rect.bottom) {
+            centerCandidates.add((locationId: "location-$index", rect: rect));
+          }
         }
-        final rect = tester.getRect(finder);
-        if (rect.top <= viewportCenter.dy && viewportCenter.dy < rect.bottom) {
-          centerCandidates.add((locationId: "location-$index", rect: rect));
-        }
-      }
-      expect(centerCandidates, isNotEmpty);
-      centerCandidates.sort(
-        (first, second) => (first.rect.center.dx - viewportCenter.dx)
-            .abs()
-            .compareTo((second.rect.center.dx - viewportCenter.dx).abs()),
-      );
-      final centerCard = centerCandidates.first;
-      expect(centerCard.locationId, anchorBefore!.locationId);
-      final centerFinder = find.byKey(ValueKey(centerCard.locationId));
-      final centerYBefore = centerCard.rect.center.dy;
+        expect(centerCandidates, isNotEmpty);
+        centerCandidates.sort(
+          (first, second) => (first.rect.center.dx - viewportCenter.dx)
+              .abs()
+              .compareTo((second.rect.center.dx - viewportCenter.dx).abs()),
+        );
+        final centerCard = centerCandidates.first;
+        expect(centerCard.locationId, anchorBefore!.locationId);
+        final centerFinder = find.byKey(ValueKey(centerCard.locationId));
+        final centerYBefore = centerCard.rect.center.dy;
 
-      final recovered = initialManifest.withDimensionUpdates([
-        for (var index = 0; index < itemCount; index++)
-          LibraryGalleryLayoutDimensionUpdate(
-            revision: initialManifest.revision,
-            queryId: initialManifest.queryId,
-            globalItemIndex: index,
-            locationId: "location-$index",
-            width: 650 + (index * 277) % 2350,
-            height: 1000,
+        final recovered = initialManifest.withDimensionUpdates([
+          for (var index = 0; index < itemCount; index++)
+            LibraryGalleryLayoutDimensionUpdate(
+              revision: initialManifest.revision,
+              queryId: initialManifest.queryId,
+              globalItemIndex: index,
+              locationId: "location-$index",
+              width: 650 + (index * 277) % 2350,
+              height: 1000,
+            ),
+        ]);
+        final recoveredSnapshot = LibraryGalleryLayoutSnapshot.build(
+          manifest: recovered,
+          availableWidth: wallSize.width - 40,
+          thumbnailSize: GalleryThumbnailSize.medium,
+          sortKey: LibraryGallerySortKey.captureTime,
+        );
+        expect(
+          recoveredSnapshot.metrics.contentExtent,
+          isNot(closeTo(initialSnapshot.metrics.contentExtent, 0.01)),
+        );
+
+        if (scenario.explicitTransition) {
+          transition = LibraryGalleryLayoutTransition(
+            generation: 1,
+            position: anchorBefore,
+            scrollPosition: scrollController.position,
+          );
+        }
+        manifest.value = recovered;
+        if (!scenario.wheelBeforeBuild) {
+          await tester.pump();
+        }
+        LibraryGalleryVisiblePosition? laterPosition;
+        if (scrollBeforeReflow) {
+          final previousOffset = scrollController.offset;
+          await tester.sendEventToBinding(
+            PointerScrollEvent(
+              position: viewportCenter,
+              scrollDelta: Offset(0, scenario.wheelDelta),
+            ),
+          );
+          expect(scrollController.offset, previousOffset + scenario.wheelDelta);
+          laterPosition = visiblePosition;
+          expect(laterPosition?.locationId, isNot(anchorBefore.locationId));
+        }
+        if (scenario.wheelBeforeBuild) {
+          await tester.pump();
+        }
+        await tester.pump();
+        await tester.pump();
+
+        final recoveredSliver = tester.widget<LibraryExactExtentSliver>(
+          find.byType(LibraryExactExtentSliver),
+        );
+        expect(
+          recoveredSliver.itemStartOffsets,
+          recoveredSnapshot.entryStartOffsets,
+        );
+        if (scrollBeforeReflow) {
+          final expected = laterPosition!;
+          final laterCard = find.byKey(ValueKey(expected.locationId));
+          expect(laterCard, findsOneWidget);
+          final laterRect = tester.getRect(laterCard);
+          expect(
+            laterRect.top + laterRect.height * expected.itemFraction,
+            closeTo(viewportCenter.dy, 2),
+          );
+        } else {
+          expect(centerFinder, findsOneWidget);
+          expect(
+            tester.getRect(centerFinder).center.dy,
+            closeTo(centerYBefore, 2),
+          );
+        }
+        expect(appliedTransitions, scenario.explicitTransition ? 1 : 0);
+        expect(
+          scrollController.position.maxScrollExtent,
+          closeTo(
+            recoveredSnapshot.metrics.contentExtent - wallSize.height,
+            0.01,
           ),
-      ]);
-      final recoveredSnapshot = LibraryGalleryLayoutSnapshot.build(
-        manifest: recovered,
-        availableWidth: wallSize.width - 40,
-        thumbnailSize: GalleryThumbnailSize.medium,
-        sortKey: LibraryGallerySortKey.captureTime,
-      );
-      expect(
-        recoveredSnapshot.metrics.contentExtent,
-        isNot(closeTo(initialSnapshot.metrics.contentExtent, 0.01)),
-      );
-
-      manifest.value = recovered;
-      await tester.pump();
-      await tester.pump();
-      await tester.pump();
-
-      final recoveredSliver = tester.widget<LibraryExactExtentSliver>(
-        find.byType(LibraryExactExtentSliver),
-      );
-      expect(
-        recoveredSliver.itemStartOffsets,
-        recoveredSnapshot.entryStartOffsets,
-      );
-      expect(centerFinder, findsOneWidget);
-      expect(tester.getRect(centerFinder).center.dy, closeTo(centerYBefore, 2));
-      expect(
-        scrollController.position.maxScrollExtent,
-        closeTo(
-          recoveredSnapshot.metrics.contentExtent - wallSize.height,
-          0.01,
-        ),
-      );
-    },
-  );
+        );
+      },
+    );
+  }
 
   testWidgets(
     "requests details for visible rows crossing either window boundary",
@@ -1060,6 +1123,7 @@ void main() {
         transition: LibraryGalleryLayoutTransition(
           generation: 1,
           position: initialAnchor,
+          scrollPosition: scrollController.position,
         ),
       );
       await tester.pump();
@@ -1095,6 +1159,7 @@ void main() {
         transition: LibraryGalleryLayoutTransition(
           generation: 2,
           position: squareAnchor,
+          scrollPosition: scrollController.position,
         ),
       );
       await tester.pump();
@@ -1116,6 +1181,7 @@ void main() {
         transition: LibraryGalleryLayoutTransition(
           generation: 3,
           position: largeSquareAnchor,
+          scrollPosition: scrollController.position,
         ),
       );
       await tester.pump();
@@ -1142,6 +1208,7 @@ void main() {
     await tester.binding.setSurfaceSize(const Size(1100, 760));
     final transition = LibraryGalleryLayoutTransition(
       generation: 41,
+      scrollPosition: null,
       position: LibraryGalleryVisiblePosition(
         queryId: state.queryId,
         revision: state.catalogRevision!,

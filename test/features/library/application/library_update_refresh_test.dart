@@ -10,7 +10,68 @@ import "package:flutter/foundation.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../support/fixed_query_projection.dart";
+
 void main() {
+  for (final scenario in [
+    (laterPosition: false, staleFailure: false),
+    (laterPosition: true, staleFailure: false),
+    (laterPosition: true, staleFailure: true),
+  ]) {
+    test("manual update retains the gallery anchor, $scenario", () async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      fixture.library.queryProjections.attach(
+        const FixedQueryProjection(
+          LibraryQueryAnchor(
+            requestedLocationId: "b",
+            assetId: "b",
+            fallbackGlobalItemIndex: 1,
+          ),
+        ),
+      );
+      fixture.updates.startUpdates(["a"]);
+      fixture.catalog.committed = true;
+      await fixture.scanner.complete("C:\\a");
+      await _until(() => fixture.catalog.reads.length == 1);
+      expect(fixture.catalog.reads.single.anchor?.requestedLocationId, "b");
+      expect(fixture.catalog.reads.single.anchor?.assetId, "b");
+      expect(fixture.catalog.reads.single.anchor?.fallbackGlobalItemIndex, 1);
+
+      if (scenario.laterPosition) {
+        fixture.library.queryProjections.attach(
+          const FixedQueryProjection(
+            LibraryQueryAnchor(
+              requestedLocationId: "a",
+              assetId: "a",
+              fallbackGlobalItemIndex: 0,
+            ),
+          ),
+        );
+        if (scenario.staleFailure) {
+          fixture.catalog.reads.first.result.completeError(
+            const LibraryCatalogFailure(
+              code: "catalog_database_busy",
+              message: "The replaced position read failed",
+            ),
+          );
+        } else {
+          fixture.catalog.complete(0);
+        }
+        await _until(() => fixture.catalog.reads.length == 2);
+        expect(fixture.state.catalogRevision, BigInt.one);
+        expect(fixture.catalog.reads.last.anchor?.requestedLocationId, "a");
+        fixture.catalog.complete(1);
+      } else {
+        fixture.catalog.complete(0);
+      }
+      await _until(() => !fixture.tasks.single.isActive);
+      expect(fixture.tasks.single.phase, LibraryRootUpdatePhase.completed);
+      expect(fixture.state.catalogRevision, BigInt.two);
+      expect(fixture.scanner.started, ["C:\\a"]);
+    });
+  }
+
   test(
     "two committed root updates finish despite competing passive synchronization",
     () async {
@@ -216,10 +277,11 @@ class _Fixture {
 }
 
 class _Read {
-  _Read(this.query, this.snapshot, this.timeline);
+  _Read(this.query, this.snapshot, this.timeline, this.anchor);
   final LibraryGalleryQuery query;
   final LibrarySnapshot snapshot;
   final LibraryTimeline timeline;
+  final LibraryQueryAnchor? anchor;
   final Completer<LibraryQuerySnapshot> result = Completer();
 }
 
@@ -288,7 +350,7 @@ class _Catalog implements LibraryCatalog {
     required LibraryGalleryQuery query,
     LibraryQueryAnchor? anchor,
   }) {
-    final read = _Read(query, snapshot(query), timeline(query));
+    final read = _Read(query, snapshot(query), timeline(query), anchor);
     reads.add(read);
     return read.result.future;
   }

@@ -35,6 +35,7 @@ import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
+import "widgets/library_gallery_prepend_compensation.dart";
 import "widgets/library_gallery_loading_region.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
@@ -84,7 +85,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   late final LibraryViewerSession _viewer;
   int _timelineSemanticsGeneration = 0;
   bool _isSelecting = false;
-  bool _isRestoringPreviousWindow = false;
+  LibraryGalleryPrependCompensation? _previousWindowCompensation;
+  bool get _isRestoringPreviousWindow =>
+      _previousWindowCompensation?.isActive ?? false;
   _LibraryDestination _destination = _LibraryDestination.gallery;
   late final ValueNotifier<_LibraryGalleryLayoutSnapshot?>
   _galleryLayoutSnapshot;
@@ -193,6 +196,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void dispose() {
     _isDisposing = true;
+    _previousWindowCompensation?.retire();
     _libraryController.queryProjections.detach(_queryProjection);
     _queryTransition.dispose();
     _viewer.removeListener(_handleViewerChanged);
@@ -1009,6 +1013,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         _galleryLayoutTransition = LibraryGalleryLayoutTransition(
           generation: _galleryLayoutTransitionGeneration,
           position: recoveryAnchor,
+          scrollPosition: _attachedGalleryScrollPosition,
         );
       }
     });
@@ -1366,19 +1371,22 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryGalleryQuery query, {
     bool preserveGalleryPosition = true,
     bool forceRefresh = false,
-  }) => _queryTransition.run((anchor) async {
-    final controller = ref.read(libraryControllerProvider.notifier);
-    final applied = await controller.updateQuery(
-      query,
-      anchorLocationId: anchor?.requestedLocationId,
-      anchorAssetId: anchor?.assetId,
-      fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
-      forceRefresh: forceRefresh,
-    );
-    return applied
-        ? LibraryQueryUpdateOutcome.applied
-        : LibraryQueryUpdateOutcome.failed;
-  }, preservePosition: preserveGalleryPosition);
+  }) {
+    _previousWindowCompensation?.retire();
+    return _queryTransition.run((anchor) async {
+      final controller = ref.read(libraryControllerProvider.notifier);
+      final applied = await controller.updateQuery(
+        query,
+        anchorLocationId: anchor?.requestedLocationId,
+        anchorAssetId: anchor?.assetId,
+        fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
+        forceRefresh: forceRefresh,
+      );
+      return applied
+          ? LibraryQueryUpdateOutcome.applied
+          : LibraryQueryUpdateOutcome.failed;
+    }, preservePosition: preserveGalleryPosition);
+  }
 
   LibraryAsset? _readViewerQueryAnchor() {
     final assetId = _viewer.assetId;
@@ -1397,6 +1405,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted || _isDisposing) {
       return;
     }
+    _previousWindowCompensation?.retire();
     final nextPosition = publication.position;
     _galleryLayoutSnapshot.value = null;
     setState(() {
@@ -1408,6 +1417,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         _galleryLayoutTransition = LibraryGalleryLayoutTransition(
           generation: _galleryLayoutTransitionGeneration,
           position: nextPosition,
+          scrollPosition: _attachedGalleryScrollPosition,
         );
       }
     });
@@ -1446,6 +1456,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _beginGalleryLayoutTransition(VoidCallback applyGeometryChange) {
+    _previousWindowCompensation?.retire();
     final state = ref.read(libraryControllerProvider);
     final position = _freezeCurrentGalleryPosition(state);
     _visibleGalleryRange = null;
@@ -1457,6 +1468,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         _galleryLayoutTransition = LibraryGalleryLayoutTransition(
           generation: _galleryLayoutTransitionGeneration,
           position: position,
+          scrollPosition: _attachedGalleryScrollPosition,
         );
       } else {
         _galleryLayoutTransition = null;
@@ -1474,8 +1486,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           position.revision == state.catalogRevision;
     }
 
-    final transitionPosition = _galleryLayoutTransition?.position;
-    if (transitionPosition != null &&
+    final transition = _galleryLayoutTransition;
+    final transitionPosition = transition?.position;
+    if (transition != null &&
+        transitionPosition != null &&
+        transition.retainsScrollPosition(_attachedGalleryScrollPosition) &&
         (matchesCurrentIdentity(transitionPosition) ||
             allowPreviousQueryIdentity)) {
       return _positionWithAssetIdentity(transitionPosition, state);
@@ -1486,16 +1501,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             allowPreviousQueryIdentity)) {
       return _positionWithAssetIdentity(pendingPosition, state);
     }
-    LibraryGalleryVisiblePosition? resolvedPosition;
-    if (_galleryScrollController.hasClients) {
-      final scrollPosition = _galleryScrollController.position;
-      resolvedPosition = _galleryPositionResolver.resolve(
-        queryId: state.queryId,
-        revision: state.catalogRevision,
-        scrollOffset: scrollPosition.pixels,
-        viewportDimension: scrollPosition.viewportDimension,
-      );
-    }
+    final resolvedPosition = _resolveCurrentGalleryPosition(state);
     if (resolvedPosition != null && matchesCurrentIdentity(resolvedPosition)) {
       return _positionWithAssetIdentity(resolvedPosition, state);
     }
@@ -1504,6 +1510,26 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         ? _positionWithAssetIdentity(visiblePosition, state)
         : null;
   }
+
+  LibraryGalleryVisiblePosition? _resolveCurrentGalleryPosition(
+    LibraryState state,
+  ) {
+    if (_galleryScrollController.hasClients) {
+      final scrollPosition = _galleryScrollController.position;
+      return _galleryPositionResolver.resolve(
+        queryId: state.queryId,
+        revision: state.catalogRevision,
+        scrollOffset: scrollPosition.pixels,
+        viewportDimension: scrollPosition.viewportDimension,
+      );
+    }
+    return null;
+  }
+
+  ScrollPosition? get _attachedGalleryScrollPosition =>
+      _galleryScrollController.hasClients
+      ? _galleryScrollController.position
+      : null;
 
   LibraryGalleryVisiblePosition _positionWithAssetIdentity(
     LibraryGalleryVisiblePosition position,
@@ -1534,7 +1560,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     setState(() {
-      _visibleGalleryPosition = transition?.position;
+      _visibleGalleryPosition =
+          _resolveCurrentGalleryPosition(ref.read(libraryControllerProvider)) ??
+          transition?.position;
       _galleryLayoutTransition = null;
     });
     _scheduleRecoveredDimensionPublication();
@@ -1817,12 +1845,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     final position = _galleryScrollController.position;
-    final previousPixels = position.pixels;
     final previousSnapshot = _galleryLayoutSnapshot.value;
-    final previousContentExtent = previousSnapshot?.metrics.contentExtent ?? 0;
-    final previousLeadingExtent =
-        previousSnapshot?.virtualGeometry.leadingExtent ?? 0;
-    _isRestoringPreviousWindow = true;
+    final compensation = LibraryGalleryPrependCompensation.capture(
+      position: position,
+      metrics: previousSnapshot?.metrics,
+      geometry: previousSnapshot?.virtualGeometry,
+      revision: previousSnapshot?.catalogRevision,
+    );
+    _previousWindowCompensation = compensation;
     try {
       final didLoad = await controller.loadPreviousPage();
       if (!didLoad || !mounted) {
@@ -1835,23 +1865,23 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       }
       final nextPosition = _galleryScrollController.position;
       final nextSnapshot = _galleryLayoutSnapshot.value;
-      final addedExtent =
-          (nextSnapshot?.metrics.contentExtent ?? previousContentExtent) -
-          previousContentExtent;
-      final leadingDelta =
-          (nextSnapshot?.virtualGeometry.leadingExtent ??
-              previousLeadingExtent) -
-          previousLeadingExtent;
-      final displacement = addedExtent + leadingDelta;
-      if (displacement.abs() > 0.01) {
-        nextPosition.jumpTo(
-          (previousPixels + displacement)
-              .clamp(nextPosition.minScrollExtent, nextPosition.maxScrollExtent)
-              .toDouble(),
-        );
+      if (nextSnapshot == null) {
+        return;
+      }
+      final target = compensation.resolve(
+        position: nextPosition,
+        metrics: nextSnapshot.metrics,
+        geometry: nextSnapshot.virtualGeometry,
+        revision: nextSnapshot.catalogRevision,
+      );
+      if (target != null && (target - nextPosition.pixels).abs() > 0.01) {
+        nextPosition.jumpTo(target);
       }
     } finally {
-      _isRestoringPreviousWindow = false;
+      compensation.retire();
+      if (identical(_previousWindowCompensation, compensation)) {
+        _previousWindowCompensation = null;
+      }
     }
   }
 
@@ -1876,6 +1906,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _beginTimelineNavigation() {
+    _previousWindowCompensation?.retire();
     _layoutDimensionSettleTimer?.cancel();
     _layoutDimensionSettleTimer = null;
     _layoutDimensionDeadlineTimer?.cancel();

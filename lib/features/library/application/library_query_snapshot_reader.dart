@@ -6,6 +6,30 @@ class LibraryQuerySnapshotReader {
 
   final LibraryCatalog _catalog;
 
+  Future<LibraryQuerySnapshot?> loadCurrent({
+    required LibraryGalleryQuery query,
+    required LibraryQueryAnchor? anchor,
+    required bool Function() canPublish,
+    BigInt? minimumRevision,
+  }) async {
+    if (!canPublish()) {
+      return null;
+    }
+    try {
+      final result = await load(
+        query: query,
+        anchor: anchor,
+        minimumRevision: minimumRevision,
+      );
+      return canPublish() ? result : null;
+    } on Object {
+      if (!canPublish()) {
+        return null;
+      }
+      rethrow;
+    }
+  }
+
   Future<LibraryQuerySnapshot> load({
     required LibraryGalleryQuery query,
     LibraryQueryAnchor? anchor,

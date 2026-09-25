@@ -285,8 +285,10 @@ void main() {
         ),
       );
       await expectLater(
-        reader.load(
+        reader.loadCurrent(
           query: const LibraryGalleryQuery(),
+          anchor: null,
+          canPublish: () => true,
           minimumRevision: BigInt.from(8),
         ),
         throwsA(

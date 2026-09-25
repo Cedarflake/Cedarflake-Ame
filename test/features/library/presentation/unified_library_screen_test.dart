@@ -22,6 +22,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_exa
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_main_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation_resize_handle.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -310,6 +311,125 @@ void main() {
       );
     },
   );
+
+  testWidgets("later wheel position survives two recovered dimension batches", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final assets = [
+      for (var index = 0; index < 80; index++)
+        LibraryAsset(
+          assetId: "asset-$index",
+          locationId: "location-$index",
+          rootId: "root-1",
+          activeScanId: "scan-1",
+          sourceRevision: null,
+          sourceGeneration: BigInt.one,
+          sourcePath: "C:\\Pictures\\$index.jpg",
+          displayPath: "C:\\Pictures\\$index.jpg",
+          relativePath: "$index.jpg",
+          previewPath: "",
+          fileSize: BigInt.one,
+          modifiedUnixMs: 1,
+          width: 0,
+          height: 0,
+          previewStatus: LibraryPreviewStatus.pending,
+        ),
+    ];
+    final initialState = _populatedState(
+      totalItems: assets.length,
+    ).copyWith(assets: assets);
+    final previewer = _ControlledLibraryPreviewer(assets);
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+          libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
+            _FixedLayoutManifestLoader(_unknownDimensionManifest(assets)),
+          ),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(previewer.requests, hasLength(2));
+    final completed = <String>{};
+    for (final locationId in previewer.requests.toList()) {
+      completed.add(locationId);
+      previewer.succeed(locationId, width: 2000, height: 1000);
+    }
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 160));
+    var wall = tester.widget<LibraryGalleryWall>(
+      find.byType(LibraryGalleryWall),
+    );
+    expect(wall.layoutTransition, isNotNull);
+    final oldAnchor = wall.layoutTransition!.position;
+    final viewport = find.byKey(const Key("library-photo-wall"));
+    final center = tester.getCenter(viewport);
+    final scrollPosition = _galleryScrollPosition(tester);
+    await tester.sendEventToBinding(
+      PointerScrollEvent(position: center, scrollDelta: const Offset(0, 480)),
+    );
+    expect(scrollPosition.pixels, 480);
+    final expected = wall.positionResolver!.resolve(
+      queryId: initialState.queryId,
+      revision: initialState.catalogRevision,
+      scrollOffset: scrollPosition.pixels,
+      viewportDimension: scrollPosition.viewportDimension,
+    )!;
+    expect(expected.locationId, isNot(oldAnchor.locationId));
+    await tester.pump();
+    await tester.pump();
+
+    void expectCurrentAnchor() {
+      final card = find.byKey(ValueKey(expected.locationId));
+      expect(card, findsOneWidget);
+      final bounds = tester.getRect(card);
+      expect(
+        bounds.top + bounds.height * expected.itemFraction,
+        closeTo(center.dy, 2),
+      );
+    }
+
+    expectCurrentAnchor();
+    wall = tester.widget<LibraryGalleryWall>(find.byType(LibraryGalleryWall));
+    expect(wall.layoutTransition, isNull);
+    final firstGeometry = tester
+        .widget<LibraryExactExtentSliver>(find.byType(LibraryExactExtentSliver))
+        .itemStartOffsets;
+    var completedVisible = false;
+    for (var attempt = 0; attempt < 10 && !completedVisible; attempt++) {
+      for (final locationId in previewer.requests.toList()) {
+        if (!completed.add(locationId)) {
+          continue;
+        }
+        final tile = find.byKey(ValueKey(locationId));
+        if (tile.evaluate().isNotEmpty &&
+            tester.getRect(tile).overlaps(tester.getRect(viewport))) {
+          completedVisible = true;
+        }
+        previewer.succeed(locationId, width: 3000, height: 1000);
+      }
+      await tester.pump();
+      await tester.pump();
+    }
+    expect(completedVisible, isTrue);
+    await tester.pump(const Duration(milliseconds: 160));
+    await tester.pump();
+    await tester.pump();
+    final secondGeometry = tester
+        .widget<LibraryExactExtentSliver>(find.byType(LibraryExactExtentSliver))
+        .itemStartOffsets;
+    expect(secondGeometry, isNot(firstGeometry));
+    expectCurrentAnchor();
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets(
     "publishes recovered dimensions after a timeline jump without scrolling",
@@ -2933,6 +3053,7 @@ void main() {
         assets: previousAssets,
       );
       final initialState = LibraryState.fromSnapshot(anchoredSnapshot).copyWith(
+        windowStartItemOffset: 30,
         timeline: LibraryTimeline(
           revision: BigInt.one,
           queryId: "query-1",
