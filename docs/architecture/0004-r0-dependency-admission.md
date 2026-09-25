@@ -24,6 +24,7 @@ models.
 | SQLite | `rusqlite` | 0.40.1 | MIT | Mature direct SQLite binding, explicit transactions, bundled library for predictable packaging |
 | Raster previews | `image` | 0.25.10 | MIT or Apache-2.0 | Pure Rust decoders, explicit allocation and dimension limits, selectable format features |
 | Large JPEG previews | `jpeg-decoder` | 0.3.2 | MIT or Apache-2.0 | Decoder-level DCT scaling behind the preview adapter, without adding a native runtime |
+| Streamed JPEG inspection | `zune-jpeg` / `zune-core` | 0.5.15 / 0.5.1 | MIT or Apache-2.0 or Zlib | The exact engine already used by the locked image decoder, with buffered header access instead of whole-file buffering |
 | Application paths | `directories` | 6.0.0 | MIT or Apache-2.0 | Cross-platform application data and cache directory discovery |
 | Derived identifiers | `blake3` | 1.8.6 | CC0-1.0 or Apache-2.0 | Versioned fast stable identifiers without using absolute paths as asset identity |
 
@@ -31,6 +32,14 @@ The Flutter, Riverpod, file-selector, bridge, SQLite, image, and jpeg-decoder li
 inspected from the resolved local packages before this decision was recorded. Transitive
 dependencies remain captured in `pubspec.lock` and `rust/Cargo.lock` and require review before
 distribution.
+
+The JPEG inspection adapter directly pins the already-resolved zune packages; this changes neither
+decoder version nor supported formats. Their local package manifests and MIT license texts were
+checked. Enable only `std` for the direct header API and retain transitive feature unification.
+The pinned buffered-reader contract supports parsing through the first scan marker, including EXIF
+after the frame header. `jpeg-decoder::read_info` is not equivalent because it can stop earlier.
+This is a private adapter optimization: dependency types do not cross the media-inspection port,
+and replacement can return to the general image decoder without a schema or bridge change.
 
 ## Considered alternatives
 
@@ -63,7 +72,7 @@ the supervised worker boundary remains unimplemented.
   `lib/src/rust`; Ame maps them at the API and Flutter scanner adapters.
 - Riverpod does not own catalog or scan policy.
 - `file_selector` is wrapped by `DirectoryPicker`.
-- `rusqlite`, `image`, `jpeg-decoder`, and `directories` remain inside Rust adapters or application
+- `rusqlite`, `image`, `jpeg-decoder`, `zune-jpeg`, `zune-core`, and `directories` remain inside Rust adapters or application
   composition.
 - Image default features are disabled. Only BMP, GIF, ICO, JPEG, PNG, TIFF, and WebP are compiled
   into the R0 adapter.

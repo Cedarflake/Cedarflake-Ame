@@ -1,4 +1,4 @@
-use std::io::{BufReader, Seek, SeekFrom};
+use std::io::{BufReader, Read, Seek, SeekFrom};
 use std::path::Path;
 
 use image::{ImageDecoder, ImageReader, Limits};
@@ -15,7 +15,11 @@ use super::local_files::canonical_source_root_path;
 use super::local_files::{FileDiscovery, open_source_file};
 
 mod decoder_failure;
+mod jpeg_headers;
 use decoder_failure::classify_decoder_error;
+
+#[cfg(test)]
+mod jpeg_header_tests;
 
 const MAX_SOURCE_DIMENSION: u32 = 100_000;
 const MAX_DECODER_ALLOCATION: u64 = 256 * 1024 * 1024;
@@ -102,11 +106,29 @@ impl LocalMediaInspector {
         self.inspect_reader(file, reader)
     }
 
-    fn inspect_reader(
+    fn inspect_reader<R: Read + Seek>(
         &self,
         file: &DiscoveredFile,
-        mut reader: ImageReader<BufReader<std::fs::File>>,
+        mut reader: ImageReader<BufReader<R>>,
     ) -> Result<MediaInspection, MediaInspectionFailure> {
+        if reader.format() == Some(image::ImageFormat::Jpeg) {
+            let mut source = reader.into_inner();
+            let format_probe_bytes = source.capacity();
+            source.seek(SeekFrom::Start(0)).map_err(|error| {
+                media_failure(
+                    file,
+                    MediaInspectionFailureKind::Retryable,
+                    "image_header_read_failed",
+                    error,
+                )
+            })?;
+            return jpeg_headers::inspect(
+                file,
+                source.into_inner(),
+                &self.metadata,
+                format_probe_bytes,
+            );
+        }
         let mut limits = Limits::default();
         limits.max_image_width = Some(MAX_SOURCE_DIMENSION);
         limits.max_image_height = Some(MAX_SOURCE_DIMENSION);

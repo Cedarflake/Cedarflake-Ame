@@ -23,6 +23,8 @@ jpeg-decoder = { version = "=0.3.2", default-features = false }
 kamadak-exif = "=0.6.1"
 rusqlite = { version = "0.40.1", features = ["bundled", "hooks"] }
 thiserror = "2.0.19"
+zune-core = { version = "=0.5.1", features = ["std"] }
+zune-jpeg = { version = "=0.5.15", default-features = false, features = ["std"] }
 
 [lints.rust]
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }
