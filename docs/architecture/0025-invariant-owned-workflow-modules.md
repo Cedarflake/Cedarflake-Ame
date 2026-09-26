@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-25
+- Last amended: 2026-09-26
 
 ## Context
 
@@ -110,6 +110,11 @@ persistence layers.
   remains distinct from the centered page start, so changed row grouping retains a loaded prefix.
   Ordinary time anchors and paging cursors keep their strict revision/query authority; this read
   grants no source access, catalog mutation or stale-cursor permission.
+- `sqlite_catalog/gallery/time_anchor.rs` owns strict month-predecessor lookup within the caller's
+  read transaction. Typed query/anchor inputs retain the month predicate, ordered ties, filters and
+  complete asset validation. Capture/creation dates add equivalent bounds on the existing ordered
+  date expression; unknown dates retain their NULL rule. Month bounds narrow database work without
+  granting source access, changing schema or weakening revision/query admission in the read facade.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.

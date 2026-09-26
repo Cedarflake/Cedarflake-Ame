@@ -3,6 +3,7 @@ use crate::domain::GalleryQueryAnchor;
 use crate::ports::GalleryQueryRepository;
 
 mod current_snapshot;
+mod month_bounds;
 
 #[test]
 fn time_anchor_and_reverse_windows_match_complete_query_ordinals() {
