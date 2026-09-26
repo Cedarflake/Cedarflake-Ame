@@ -10,6 +10,22 @@ correction `724a83e` passes focused checks, complete local Daily and connected n
 current-source hosted verification, including every required job and the aggregate;
 earlier passing gates do not change the original failed result.
 
+## Current incident disposition
+
+The 2026-09-26 local gate completion below covers the indexed time-window correction and the
+accumulated current source. It does not mean every reported runtime incident is resolved.
+
+| Reported behavior | Established correction or observation | Remaining obligation |
+| --- | --- | --- |
+| Middle timeline navigation waits on a blank wall | Indexed month-predecessor lookup reduces the same four native reads from 3.50–4.03 seconds to 0.46–0.64 seconds | Current-head hosted gates; retain the selected-scenario limit |
+| Retry feedback followed by an unsolicited earlier position | Source-reconciliation and passive-publication causes have boundary corrections; the reproduced first-page return has a corrected native result | The original already-idle, non-top Retry/jump combination is not attributed or closed |
+| Upward input during loading leaves a false bottom | Connected pending-read regressions and native held-result delivery preserve downward reachability | Natural executing-database input timing is not established by the later-input native runs |
+| Screenshot arrival reports blocked work; manual update stays busy | Retained exhausted work recovers once in an isolated copy; a local-primary manual update commits in 157532–160969 ms | Original profile state is not repaired by a copy test; retained recovery/update cost is not accepted solely for meeting a deadline |
+
+Keep these incidents as the next functional batch. Existing logs and causal boundaries precede
+another implementation or client lifetime. Focused checks support each proven correction; another
+complete Daily/Windows batch follows the combined functional checkpoint, not each small edit.
+
 ## Existing recovery after startup
 
 The existing Debug process started at 08:14:13.866 UTC. Read-only catalog evidence binds the
@@ -957,3 +973,245 @@ and exhausted publication admission), `35a2497` (preview reconciliation ownershi
 files and the related accepted architecture amendments. Commit creation changes none of the
 tested product bytes and does not require another complete gate. The remaining document commit
 records evidence and open duties without declaring R2c or the original incidents accepted.
+
+## Native early-scroll while time-result delivery is pending
+
+Run `fc34343d95ae43ba91b866181d5263c4` uses product head `56a9309` and an ignored typed catalog
+decorator. Its 650 product files and 690-file source/helper/Debug-payload closure are bound before
+launch. Production bootstrap is preserved except for that catalog injection, its shutdown retirement
+and in-memory preferences. The real query runs unchanged; exactly one result delivery is held.
+This establishes an unresolved application future, not an executing SQLite query throughout the hold.
+
+The actual Computer Use sequence and read-only pointer receipts establish:
+
+- Middle-rail input dispatches the September 2015 query at 21:34:56.495 UTC. The database finishes
+  at 21:34:56.613; delivery remains held. Upward native wheel input arrives at 21:35:11.765 with
+  `holdPending=true`, moving the visible date toward October 2015.
+- Explicit release occurs at 21:35:31.866 after a 35.367-second hold. The current wall completes
+  without another wheel event, at window start 4501 with 160 items and both neighboring cursors.
+- Native downward input moves 12000 logical pixels, beyond that loaded window to start 4768.
+  A second downward input advances another 686.667 logical pixels. The maximum extent remains
+  402403.2, `hasNext` remains true, and the final offset is 206004. Repeated stable observations
+  show ready visible previews, no Retry action and no first-page reset; the final view has 11 tiles.
+
+The initial offline analyzer fails on one sample immediately after the second downward gesture:
+five tile geometries are unavailable at 21:36:35.290. They are available in the next sample at
+21:36:35.785 and remain stable. A clear data-loading flag alone was incorrectly treated as proof
+that rendering had settled. Preserve this initial analyzer failure and the unavailable sample.
+The corrected offline oracle requires repeated identical complete decoded observations and a
+complete final observation in each interval. It rejects late input, expired hold, false bottom,
+failure to traverse the loaded window and persistently unavailable geometry. No extra native
+lifetime is used; continuous-frame acceptance is not inferred.
+
+The 177309-ms lifetime exits zero, with normal close taking 713.217 ms and no cleanup failure.
+Peak working set is 445513728 bytes, peak commit 409239552 bytes and minimum available system
+memory 5972635648 bytes. Exact closed membership and stable identity/metadata projection remain
+10000 items. All 10000 source identities, dates and hashes pass before and after for
+10921494393 bytes; the original generated catalog is unchanged. No real root or source copy is used.
+The guard, delivery-owner and geometry checks pass 33 cases. Preparation retains a corrected
+unique-match error and one format finding, both before client launch.
+
+Helpers and bindings are retained in `.build/r2c-pending-time-20260926`; the run directory owns
+the pointer/query/state observations, original analyzer failure reference, source checks, catalog,
+memory and normal-exit receipts. This passes the selected controlled pending-delivery sequence.
+It does not attribute the original non-top Retry incident, prove natural database-pending timing,
+recover the user's old task or establish complete retained-root update costs. The source is
+unchanged from the combined verified batch; this diagnostic does not require another full gate.
+
+## Native retained exhausted-task recovery
+
+Run `f03cb369bda049c59455390c8ec82033` binds the same `56a9309` product head, 650 source files
+and a 688-file source/helper/Debug-payload closure. A fresh isolated copy of the actual retained
+catalog admits only local-primary (30659 items), cloud-primary (48624 items), terminal foreground
+tasks and the exact exhausted LiveOnly subtree. Queue history and published metadata are preserved;
+external preview references are isolated before launch. Normal production startup owns recovery.
+No foreground import, whole-root manual update, service installation or source mutation is performed.
+
+The eight-attempt P0 row 66552, originally `retry_wait` with `change_lease_expired`, becomes
+`superseded` by distinct P2 row 66564 without resetting its attempts or failure. That P2 row completes
+on its first attempt. Its `watcher_uncovered_gap` authority retires, and the corresponding inventory
+has complete enumeration and absence authority, 23 staged entries, 22 candidates and no issue.
+Inventory execution takes 9915 ms; transfer to authority retirement takes 11127 ms. Both roots reach
+`synchronized` with zero pending/retry/gap counts and no remaining failure code.
+
+Actual native root selection and downward scrolling show local-primary's 30659-item wall with ready
+visible previews and no Retry action. Closed verification proves unchanged location/asset/path
+identities for all 79283 items. All 21 changed source-generation rows are inside the admitted subtree;
+19 of those also update metadata engine identity/version. Source revision tokens, file lengths,
+dates and dimensions are unchanged. Cloud-primary's 110 existing media failures remain unchanged
+(104 unsupported-format, six invalid-decode); neither root gains a failed preview. One positive
+lineage and ten rejecting mutations check the terminal evidence oracle.
+
+The 139751-ms process lifetime exits zero, 754.805 ms after native close, with no cleanup failure.
+Peak working set is 432091136 bytes, peak commit 408080384 bytes and minimum system availability
+6125518848 bytes. The original catalog and WAL retain their exact hashes. The closed verifier opens
+no source media; it does not provide a complete source-byte audit. Production retains its read-only,
+no-follow/no-recall source admission. This result proves the admitted old-task recovery in the copy;
+the user's original profile has not been repaired by this run.
+
+Helpers and bindings live in `.build/r2c-retained-recovery-20260926`. The run directory retains
+`closed-recovery-result.json`, `scope-and-oracle-verification.json`, native state/input observations,
+resource samples and complete lifetime receipts. Its periodic observer finds no gap-claim row for
+this LiveOnly path; the closed verifier follows the actual supersession link and independent
+recovery-authority record instead. No synthetic claim or terminal state is inserted to obtain a pass.
+Complete retained-root manual-update duration and the original idle non-top Retry incident remain open.
+
+## Current hosted connection-control failure
+
+Hosted run `36190435727` on `56a9309` finishes with nine required workers passing, Static/Rust and
+the aggregate failing, and the three signing-only jobs skipped. Rust reports 1607 passed, one failed
+and 19 ignored in 1670.51 seconds. The sole failed case is
+`same_mixed_load_controls_poll_connection_lifetime_without_relaxing_the_product_gate`.
+
+The PerPoll control completes with P95 642 ms. PerEpoch starts at 21:42:24.277 UTC, completes
+samples 0 through 17, then fails the original five-second P2 page-start bound at sample 18. The same
+poll thread records `close_us=8010184`, `proof_identity_after=8010 ms`, catalog revalidation 8010 ms
+and total poll 8016 ms at 21:42:54.879. This localizes the observed wait interval to identity-handle
+retirement; it does not distinguish time inside the OS call from descheduling or identify a driver.
+Captured test output is emitted later at 21:54:17; that timestamp is not the actual stall time.
+
+The separate production mixed-load case passes its complete recovery/publication assertions with
+all 25 samples and P95 608 ms, maximum 1117 ms. Its pass does not waive the failed required control.
+The raw job log and complete job status are retained under `.build/r2c-pending-time-20260926` as
+`ci-static-rust-failure.log` and `current-ci.json`. Earlier C01 failures, including a previous
+PerEpoch sample-18 page-start failure and a distinct PerPoll visibility failure, remain retained.
+No unchanged test replay or broader tracing was started for this observation.
+
+## Retained manual update and time-window read cost
+
+Run `86a8cc6a946148ee98d669b7363662f4` binds `56a9309`, 650 product files and a 688-file
+source/helper/Debug closure. It starts from a fresh isolated copy of the completed old-task recovery,
+with a cold derived cache and unchanged local-primary/cloud-primary membership (30659/48624).
+Actual native confirmation starts one local-primary manual update. It visits 35118 entries, accepts
+30659 images and records 662 `image_format_unsupported` issues, then commits terminal completion.
+
+The scan row records a 149808-ms span, but its completion timestamp precedes final transaction
+commit. The read-only sampler first sees committed completion between 157532 and 160969 ms after
+native confirmation. Thus the visible workflow takes about 2 minutes 41 seconds, not the shorter
+stored row duration. Actual native frames show full validation counters before the completion
+notice; the task does eventually leave updating and both roots become synchronized with no
+pending/retry/gap debt. This passes the original 300-second limit for this selected root, without
+establishing every retained-root or Release update-cost requirement.
+
+Closed comparison preserves all 79283 location/asset/path identities, source generations, revisions,
+sizes, dates and dimensions. Only 19 local rows update metadata engine identity/version; the peer
+root retains its active scan and metadata. Neither root gains a failed preview. Both the baseline
+derivative and original profile catalog/WAL keep their exact hashes. The 473014-ms lifetime exits
+zero, 560.689 ms after native close, without cleanup failure. Peak working set is 492728320 bytes,
+peak commit 443260928 bytes and minimum system availability 5981151232 bytes. No full source-byte
+audit is claimed; the closed verifier opens no source media.
+
+The native middle/up/reverse sequence keeps the intended position and traverses the loaded window,
+with no observed Retry, but reveals 3588.854/3873.080/3502.105/4032.528-ms time-window reads. Actual
+point frames show a blank wall during those reads. The first upward gesture arrives after the
+initial read retires; it is not database-pending input evidence. The ignored helper's foreground
+phase fields mistakenly observe the base library projection and remain null/completed/discovering;
+`observedPhases` cannot establish scan-phase timing. Durable scan snapshots and actual native frames
+provide the completion evidence instead. Preserve that observer limitation and the blank-wall result.
+
+Read-only diagnosis on the closed isolated catalog localizes the dominant delay to strict month-
+predecessor lookup. Its original computed-month predicate takes 3783.159/3890.612 ms (cold/warm),
+scans unrelated dates and sorts full asset payloads. A narrow late-payload candidate reduces this
+to 1606.681/1581.478 ms, but is not adopted. Equivalent bounds on the existing date expression index
+take 279.557/308.696 ms while preserving the original month predicate and complete payload digest
+`5737a10fc2653b6a7b57c3d51e5af3d21235328f041f0a387e8db5331e2133db`.
+The diagnostic uses Python SQLite 3.50.4, not the bundled Rust engine; native verification follows.
+Helpers, raw observations and original/candidate/indexed query results remain under
+`.build/r2c-retained-update-20260926` and its run directory. No diagnostic opens source media.
+
+## Indexed strict month-predecessor lookup
+
+`sqlite_catalog/gallery/time_anchor.rs` owns the typed predecessor query in the caller's existing
+read transaction. Capture/creation sorts add non-null and lexical month bounds using the already
+present date expression indexes; December uses the exclusive `YYYY-13` prefix boundary, including
+year 9999. Unknown dates retain their NULL predicate. Modification/name sort behavior, root/folder/
+search filters, tie order, predecessor offset, complete asset validation and strict query/revision
+admission remain unchanged. There is no schema, dependency, bridge or source-access change.
+
+The focused eight-case time-window suite passes. The new work-bound regression compares actual
+predecessor execution with the old month predicate over 2012 records: the corrected query uses fewer
+than 4000 VM steps while the old predicate exceeds 20000. This is deterministic work evidence,
+not a relaxed wall-clock threshold. The independent complete-query oracle checks December,
+unknown dates, both directions, cross-root ties, folder and search filtering for capture/creation
+sorts. Existing cases retain exact ordinals, stale-cursor rejection and concurrent publication.
+The first run fails because the new two-root fixture reuses one root path and also exposes two
+unhandled progress-handler results. Both are corrected. The next Rust run passes all eight cases;
+its outer PowerShell `finally` uses an invalid `-Lock` argument and exits nonzero. The process is
+terminal and the repository mutex is independently reacquired/released through `-Mutex`; that
+wrapper failure is retained separately from the Rust results and is not hidden by a repeat run.
+
+Physical ownership after extraction is 819 production lines in `gallery.rs` and 104 in
+`gallery/time_anchor.rs`, with zero inline tests in either. Dedicated time-window coverage comprises
+210 lines in the main fixture/case file, 180 in `current_snapshot.rs` and 162 in `month_bounds.rs`.
+The remaining query-builder responsibilities stay in the gallery facade; this change does not
+claim a complete physical decomposition of that owner.
+
+Run `b39d05d6a4b747d89f521c83433f3569` binds the corrected dirty source over `56a9309` (652 product
+files, 691-file source/helper/Debug closure), using a fresh copy of the completed manual-update
+catalog and a cold isolated cache. Actual native input repeats the same four result windows:
+
+| Operation | Window start | Previous read ms | Corrected read ms | Settled visible tiles |
+| --- | ---: | ---: | ---: | ---: |
+| Middle timeline click | 36074 | 3588.854 | 555.826 | 18 |
+| Upward 1030 physical pixels | 36059 | 3873.080 | 638.793 | 15 |
+| Upward 4000 physical pixels | 35994 | 3502.105 | 456.917 | 18 |
+| Reverse downward 18000 physical pixels | 36308 | 4032.528 | 473.568 | 11 |
+
+Each operation ends with two identical complete observations, ready visible previews, both
+neighboring cursors and no loading/Retry feedback. Logical movement is exactly the native wheel
+delta divided by the observed 1.5 scale; reverse movement crosses the previous window's end.
+The final position is 1169960.667 with maximum extent 2427335.2. Native point frames confirm the
+pictures appear without another scroll event; they do not establish continuous-frame behavior.
+The first upward event occurs after its preceding time read completes, despite its helper label
+`early-up`; the analyzer explicitly records `firstUpWhileTimeReadPending=false`.
+
+Closed verification preserves exact identities/metadata for all 79283 items and both protected
+catalog/WAL pairs. No new foreground scan, recovery inventory or preview failure appears. The 110
+pre-existing cloud-primary failures remain 104 unsupported and six invalid-decode. The 154629-ms
+lifetime exits zero, 597.537 ms after native close, with no cleanup failure. Across 568 samples,
+peak working set is 427954176 bytes, peak commit 398565376 bytes and minimum system availability
+5869539328 bytes. Source media remains read-only through the existing no-follow/no-recall path;
+the closed verifier opens none and does not claim a complete source-byte audit.
+
+The helper admission/geometry checks pass 23 cases and the browse-only scope check passes four.
+`.build/r2c-indexed-timeline-20260926` retains bindings, `closed-browse-result.json` and
+`browsing-comparison.json` in its run directory. This establishes the selected native latency and
+position correction. It does not reproduce or close the original non-top Retry incident or natural
+database-pending false-bottom case. Current-source complete quality/unsigned gates and the required
+independent review are separate, initially pending obligations.
+
+Independent static review finds no blocking change to NULL/December semantics, sort ties, filters,
+same-transaction payload validation or query/revision rejection. Its scope is the predecessor owner
+and focused regressions, not a new full-library audit or independent native replay. The work-bound
+case proves reduced unrelated-month traversal for its default capture-time query; it does not prove
+constant cost for every filter, and offset selection still grows within a large selected month.
+Additional direct cross-month capture/file fallback fixtures are a coverage suggestion, not a
+reproduced defect; existing gallery fallback and anchor cases remain in the complete Rust gate.
+
+### Current-source local gate completion
+
+The existing serial batch runs from 2026-09-26 02:23:36.423 UTC to 03:02:38.342 UTC and exits zero.
+It binds the same 652 product files over dirty `56a9309`, checking their exact hashes before and
+after each gate. Complete Daily passes in 2171.706 seconds; the entire Daily/unsigned batch takes
+2341.918 seconds. Product commit `629da9e` packages these unchanged bound bytes; commit creation
+requires no repeat gate.
+
+Daily includes warning-free lint/format/Clippy/analyzer, the full Rust and Flutter suites, Windows
+scan and native accessibility integration, 16 asynchronous bridge contracts and whitespace checks.
+The Rust library reports 1610 passed, zero failed and 19 ignored; the broker has three passing tests.
+Ignored opt-in workloads remain outside this Daily result. The complete mixed-load controls retain
+all original workload and deadline assertions, with PerPoll/PerEpoch P95 132/87 ms and the separate
+production case P95 83 ms. These passes do not explain or waive the earlier hosted C01 failure.
+
+Windows scan run `c4e0c3d642ae40cc89dc8fca8f386e59` passes in 59719 ms with no cleanup failures;
+its isolated evidence is retained. Native accessibility passes both integration cases and all ten
+ordered whole-window UIA phases, with confirmed process exit, closed Job and no cleanup failure.
+The unsigned gate builds the current Release application and broker, verifies 19 payload files
+and 190 Rust dependencies, passes three native window and two real-engine retirement cases, and
+passes the catalog-free Release bridge smoke. It does not replace populated Release, signing,
+installed-service or real-source acceptance.
+
+`.build/r2c-indexed-timeline-quality-20260926` retains `result.json`, both transcripts, a partial
+collected session stream and a frozen copy of the unsigned receipt. The original source/native
+binding and independent review remain linked above. Local checks establish this correction's
+engineering checkpoint; the incident table and earlier failed evidence retain their separate exits.

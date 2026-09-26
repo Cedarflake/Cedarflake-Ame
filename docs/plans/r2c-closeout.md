@@ -13,10 +13,10 @@ a related correction, a focused pass or a different native scenario cannot close
 | Outcome | Current evidence and unfinished work |
 | --- | --- |
 | Idle browsing stays at the requested position | **Open; a subsequent rerun reports recurrence.** Synchronization is already finished; a middle-timeline click loads successfully; upward scrolling then shows some Retry previews and jumps toward an earlier position, not the top. The expired-cursor, preview-retirement and later-scroll corrections have boundary evidence, but have not established resolution of this complete retained-library sequence. [Owning record](../acceptance/r2c-retained-runtime.md#timeline-navigation-upward-scrolling-and-retry) |
-| Scrolling during a timeline load does not create a false bottom | **Connected causal correction; native incident remains open.** Delayed full-layout arrival during a preceding-page restoration caused a jump to the final rows. Typed coordinate/intent ownership corrects that boundary, with connected and owner regressions. The fixture also moves the rail to the end, so it does not yet explain the reported still-middle rail discrepancy. [Owning record](../acceptance/r2c-retained-runtime.md#delayed-layout-prepend-correction) |
+| Scrolling during a timeline load does not create a false bottom | **Connected causal correction and controlled pending-delivery native check pass.** The actual client accepts upward input while a time-result delivery is held, then traverses the loaded window downward. Natural database-pending timing and the reported still-middle rail discrepancy remain open. [Owning record](../acceptance/r2c-retained-runtime.md#native-early-scroll-while-time-result-delivery-is-pending) |
 | Updating retains the latest visible position | **Selected corrected generated native check passes.** Held old-page success/error regressions verify retirement before committed projection replacement. In the subsequent 10000-image lifetime, the update ends at the newly scrolled 2012-04-02 tile group without the earlier jump toward 2025. Point frames retain a small vertical adjustment; continuous pixel stability remains unproven. This update-completion failure is distinct from the already-idle incident. [Owning record](../acceptance/r2c-retained-runtime.md#corrected-generated-native-checkpoint) |
-| Retained-root update completes at a usable cost | **Open.** The JPEG header correction has bounded-I/O and adjacent scan evidence; it does not establish the complete retained-root update duration or explain every prior cost. [Owning record](../acceptance/r2c-retained-runtime.md#jpeg-inspection-reads-only-header-evidence) |
-| Screenshot creation converges and manual update reaches a terminal state | **Owning defects confirmed; native correction pending.** Subtree terminal-media evidence was rejected as if each child needed its own lease. The retained root also has an exhausted P0 subtree lease blocking manual publication. Corrected scope admission, bounded terminal cleanup, one-time retained recovery and terminal publication failure retain old snapshots and task evidence. [Owning record](../acceptance/r2c-retained-runtime.md#screenshot-arrival-and-manual-update-completion) |
+| Retained-root update completes at a usable cost | **Measured, still open.** One isolated local-primary manual update reaches committed completion in 157532–160969 ms and preserves all 79283 items across both roots. Meeting the 300-second bound does not accept its cost or explain the prior 1088.599-second recovery. [Owning record](../acceptance/r2c-retained-runtime.md#retained-manual-update-and-time-window-read-cost) |
+| Screenshot creation converges and manual update reaches a terminal state | **Old-task recovery passes in an isolated copy of the actual retained catalog.** The original eight-attempt P0 row transfers to a distinct completed P2 owner, preserving failure history; scoped inventory completes in 9915 ms. Both roots become synchronized. Original profile state is unchanged, and complete manual-root update cost remains open. [Owning record](../acceptance/r2c-retained-runtime.md#native-retained-exhausted-task-recovery) |
 | Four required maintenance deliveries | M01–M04 have implemented, verified checkpoints in the [maintenance record](../acceptance/r2c-maintainability.md). Preserve those owners and regression boundaries; do not restart all four implementations. Later functional failures still require correction at their owning boundary. |
 | Remaining R2c completion | The frozen 24 variants, C01/C02 disposition, applicable Release/final gates and external acceptance remain required. The existing roster and evidence owners below retain their individual status. No stage advancement is admitted. |
 
@@ -985,6 +985,199 @@ The combined gate stops in Dart analysis on five constructor initializing-formal
 the remaining Daily components execute. Correct only that constructor syntax, retain the failed
 transcript, verify its existing owner cases and resume the canonical combined gate on the corrected
 source. This does not change layout policy or admit another unchanged native lifetime.
+
+#### Native early-scroll with held time-result delivery
+
+The complete repair-batch Daily and unsigned Windows gates now pass. Charge their reserved
+120-minute block in full: 11069 charged / 11194 reserved. Reserve 75 additional active minutes,
+cumulative 11269 reserved: 25 preparation and isolated harness checks, 15 Debug build, ten for one
+native lifetime, ten focused evidence review and 15 records. The original pending-read false-bottom
+and non-top Retry reports remain open; no unchanged native replay or full gate is renewed.
+
+Use a fresh derived-catalog copy of the completed generated 10000-image mixed-size/historical corpus.
+Validate exact published membership, source identity and bytes, settled tasks and isolated previews.
+No source copy, import, media mutation, real-root access, hydration or original catalog repair is
+included. Preserve the 4 GiB Debug launch floor, 2 GiB client ceilings, 2 GiB host reserve, six-second
+normal close and one 600-second process lifetime with owned cleanup.
+
+An ignored typed catalog decorator may delay delivery of exactly one actual `loadAtTime` result
+after explicit arming. It forwards the original query and result without replacing data, geometry,
+state or production navigation. Record query identity, actual database completion and release
+separately: an unresolved application future does not prove SQLite remains executing. Retain errors,
+retire the hold on shutdown, and fail observation if its 90-second bound expires. No indefinite
+future, repeated hold or new production diagnostic API is admitted.
+
+Through Computer Use, click a middle historical rail position, establish that the delivery is still
+pending, scroll upward, release that exact delivery, then scroll downward beyond the loaded window.
+Read-only pointer and state observations must establish the input/hold ordering, current cursors,
+rendered identities and global extent. No forced frames, callback invocation or offset mutation may
+simulate native input. A matching false bottom fails this checkpoint and returns to its owning
+boundary; a pass covers only this controlled pending-delivery sequence. Retain natural database
+latency, the original non-top Retry and old-task recovery/cost duties separately. Bind helpers,
+product files and compiled artifacts. Keep preparation/observer failure distinct from product failure.
+
+The single native lifetime now passes this controlled pending-delivery sequence, traverses the
+loaded window and continues downward. Its original offline geometry-classification failure remains
+separate from the corrected repeated-stable-observation verdict; no native replay was used. Exact
+source/membership and complete normal-exit evidence pass in the [owning record](../acceptance/r2c-retained-runtime.md#native-early-scroll-while-time-result-delivery-is-pending).
+Charge the 75-minute block in full: 11144 charged / 11269 reserved. The old retained-task recovery,
+natural database-pending timing and original non-top Retry duties remain open. Keep the current
+hosted run active; document changes do not cancel it or restart passing product gates.
+
+#### Retained exhausted-task recovery observation
+
+The current read-only original-catalog observation finds the old foreground update cancelled,
+while the same eight-attempt `change_lease_expired` subtree remains in `retry_wait`. Testing a
+settled derivative cannot close this user's recovery problem. Under the current authorization to
+operate the user's Ame for this repair, prepare one bounded recovery observation with a fresh
+isolated copy of that original derived catalog. Reserve 90 active minutes, cumulative 11359
+reserved: 25 preparation/admission checks, 15 Debug build, ten native operation, 25 closed evidence
+and ten focused review plus five records. Earlier charged work and failed lifetimes remain intact.
+
+Admit exactly local-primary and cloud-primary from the ignored local mapping, no active/paused
+foreground scans and exactly the identified unclaimed exhausted LiveOnly subtree. Preserve its
+queue row, attempts, failure, generation, namespace and durable catalog. Do not reset queue history,
+rewrite source paths or seed a successful recovery. Isolate copied preview references and prove
+that cache isolation preserves published membership and all non-preview evidence. Bind original
+catalog/WAL hashes, complete copied root/queue identity and the current executable before launch.
+
+Use normal production startup and native controls. Permit the existing production one-time P2
+recovery of this persisted gap; no import, manual whole-root update, source mutation, cloud hydration
+or service installation is included. Retain no-follow/no-recall source admission. The original
+catalog/cache remain untouched. Record the original row's atomic transfer, distinct P2 owner,
+terminal outcome, preserved original failure and source/generation checks. Observe actual progress,
+browsing usability and final truthful root feedback; do not infer recovery from a changing count.
+
+Keep one 600-second lifetime, 4 GiB Debug launch floor, 2 GiB client ceilings, 2 GiB host reserve
+and six-second normal close. Unexpected foreground work, unrelated root recovery, changed namespace,
+resource breach or missing terminal evidence ends observation with preserved diagnostics. Complete
+closed verification must explain membership changes through the admitted scope and current source
+evidence; do not require unchanged membership when the old catalog legitimately missed a screenshot.
+Use bounded read-only catalog queries and local, already-resident source evidence only; never
+hydrate a placeholder for verification. This closes only the old-gap recovery path when its
+evidence passes, not complete retained-root manual-update costs, signed-service or Cloud Files gates.
+
+Run `f03cb369bda049c59455390c8ec82033` now passes the admitted old-gap recovery, actual browsing,
+normal lifetime and closed catalog checks. All 21 changed metadata rows belong to the admitted
+subtree; both roots retain their exact membership and no new preview failure appears. The original
+catalog/WAL remain unchanged. The [owning result](../acceptance/r2c-retained-runtime.md#native-retained-exhausted-task-recovery)
+retains the failure lineage and limits. Charge the 90-minute block in full: 11234 charged / 11359
+reserved. This closes the isolated old-task recovery check, not the original profile's current state.
+
+Hosted run `36190435727` on `56a9309` finishes with nine required workers passing and Static/Rust
+failing its retained connection-lifetime control. PerEpoch sample 18 crosses the original five-second
+P2-start bound while the poll thread records an 8010-ms catalog-identity handle-retirement interval.
+The separate complete production workload passes with P95 608 ms. This remains failed required
+evidence; neither an OS cause nor continuous descheduling is proved. Preserve the exact arm and
+interval in the [hosted record](../acceptance/r2c-retained-runtime.md#current-hosted-connection-control-failure).
+No unchanged replay, relaxed deadline or extra full gate is admitted by these document updates.
+
+#### Retained manual-update cost and settled browsing
+
+The old-gap observation is complete. The remaining user outcome is a usable complete manual update,
+followed by the original already-idle middle-rail/upward/reverse-scroll sequence. Under the current
+authorization to operate Ame, reserve 90 active minutes, cumulative 11449 reserved: 25 isolated
+preparation and admission checks, 15 build, ten native operation, 25 closed comparison and 15 review
+and records. This is one changed functional scenario, not another old-gap or mixed-load replay.
+
+Copy the completed recovered derivative from `f03cb369bda049c59455390c8ec82033` to new isolated
+catalog/cache storage. Preserve both that baseline and the user's original catalog/WAL hashes;
+require exactly the two mapped real roots and no unsettled task. Through actual native controls,
+update local-primary once, keeping cloud-primary as a readable peer. Preserve the original
+300-second update deadline, one 600-second process lifetime, six-second normal close, 4 GiB launch
+floor, 2 GiB client ceilings and 2 GiB host reserve. Expiry retains failure and diagnostics; it does
+not authorize a longer retry or false completion. A query-only sampler records task phase, counters
+and terminal publication without driving any application action.
+
+After actual completion, select a middle historical date, scroll upward and reverse downward,
+observing current window/cursors, position, ready tiles and Retry feedback. Keep native point frames
+distinct from continuous-frame proof. Stop for an unrelated root recovery, extra foreground task,
+resource breach or source-safety violation. This allows source reads for this local-primary update
+and bounded visible/preload browsing only; no media write, cloud hydration, service or source copy.
+Closed evidence must account for membership/metadata differences, peer-root integrity, original
+catalog preservation and normal exit. Reuse unchanged product quality evidence; the CI control
+failure remains open and no full gate is renewed by this diagnostic.
+
+Run `86a8cc6a946148ee98d669b7363662f4` completes the one local-primary update and preserves both
+roots' exact 79283-item membership and protected catalogs. Actual committed completion is observed
+between 157532 and 160969 ms after native confirmation; the row's stored 149808-ms duration excludes
+the remaining transaction/publication interval and is not the user-visible elapsed time. The native
+middle/up/reverse sequence traverses the window without Retry or position reset, but exposes
+3.50–4.03-second time-window reads with a blank wall. Charge this block in full: 11324 charged /
+11449 reserved. This is partial functional evidence, not complete browsing acceptance.
+
+#### Retained time-window read latency diagnosis
+
+The new native evidence selects the slow snapshot path as the next functional cause to investigate.
+Reserve 60 active minutes, cumulative 11509 reserved: 25 read-only stage/query-plan diagnosis,
+20 narrowly scoped correction only if causality is established, ten boundary verification and five
+records. Preserve the failed native wait and all old allowances. Begin from the closed isolated
+catalog, inspect the exact anchor/page query and preview-finishing owners, and bound each diagnostic
+read to ten seconds with at most one cold and one warm sample per selected stage. No additional Ame
+lifetime, source-media read, full update or benchmark replay is admitted by this diagnosis.
+
+Separate database execution, catalog identity/session proof, derived preview checks and UI scheduling;
+an application-future duration cannot attribute these by itself. Do not add a presentation spinner,
+retry or stale cursor exception to conceal the delay. Any correction retains current query/revision
+ownership, bounded results, source safety and cache identity. Record a changed native proving method
+and applicable batch gates after the cause and correction are known; do not rerun existing checks
+merely because these diagnostic documents changed.
+
+The closed catalog attributes the dominant delay to month-predecessor resolution: the original
+predicate takes 3783/3891 ms, while equivalent bounds on the existing date expression index take
+280/309 ms and return the same complete payload. The correction belongs to
+`sqlite_catalog/gallery/time_anchor.rs`; it preserves the original month predicate, filters,
+ordering, revision/query authority and payload validation without a migration or dependency.
+Eight focused time-window regressions pass, including an original-predicate work-bound control,
+December/unknown-date ordering, filters and concurrent publication. Preserve the initial duplicate
+fixture-path failure and the later wrapper's incorrect lock-release parameter separately from the
+passing Rust result. Charge the diagnostic block in full: 11384 charged / 11509 reserved.
+
+#### Corrected retained time-window native verification
+
+Reserve 45 active minutes, cumulative 11554 reserved: 20 preparation/build, ten native interaction,
+ten closed comparison and five records. Copy the completed manual-update derivative from
+`86a8cc6a946148ee98d669b7363662f4` into fresh isolated catalog/cache storage. Under the current
+authorization to operate Ame, perform only middle timeline navigation, upward and reverse scrolling,
+then normal close. No new manual update, import, source mutation, cloud hydration or recovery run is
+admitted. Retain exact local-primary/cloud-primary membership and the protected original catalog/WAL.
+
+Use the same native controls and observational loading/position/preview records as the preceding
+slow run, with current source and executable hashes. Compare complete application-read intervals,
+actual rendered tiles, cursor continuation and input-relative position; a faster SQL microcheck alone
+does not pass the user path. Preserve the 600-second lifetime, six-second normal close, 4 GiB launch
+floor, 2 GiB client ceilings and 2 GiB host reserve. Stop for foreground work, unexpected recovery,
+source-safety or resource failure. Loading-interleaved input counts only if its receipt proves that
+the read was still pending. Retain every failure without another unchanged lifetime.
+
+After the focused and native result, reserve one serial current-source lint/Daily and unsigned
+Windows batch (120 active minutes; cumulative 11674 reserved). New query code requires these gates;
+the prior batch remains historical evidence. C01's hosted PerEpoch failure retains its original
+limits and separate correction obligation. Do not repeat a gate merely to package a commit.
+
+Run `b39d05d6a4b747d89f521c83433f3569` completes the selected native sequence on the corrected
+source: the same four windows take 556/639/457/474 ms instead of 3589/3873/3502/4033 ms. Native
+upward and reverse movement matches the input deltas, crosses the old loaded window, and ends with
+ready visible tiles and both cursors. No Retry is observed; exact 79283-item identity/metadata and
+protected original catalog/WAL hashes remain unchanged. The 154629-ms lifetime exits zero with
+597.537-ms normal close. The first upward input arrives after the time read completes, so this run
+does not close natural database-pending input or the unreproduced original Retry incident. Charge
+the native block in full: 11429 charged / 11674 reserved.
+
+The one current-source local batch now passes complete Daily and unsigned Windows, with unchanged
+652-file product hashes and zero exit status. Daily includes the original full workloads and all
+ten native UIA phases. Preserve the earlier hosted PerEpoch failure and the separate unverified
+client duties; this result does not accept all reported incidents. Charge the 120-minute block in
+full: 11549 charged / 11674 reserved. Actual serial gate wall time is 2341.918 seconds, recorded
+separately in the [gate result](../acceptance/r2c-retained-runtime.md#current-source-local-gate-completion).
+
+The next functional batch retains the original non-top Retry/jump, natural pending-load false
+bottom and retained recovery/update cost. Its [current disposition](../acceptance/r2c-retained-runtime.md#current-incident-disposition)
+separates causal correction, selected verification and unresolved evidence. Recover existing logs
+and identify the next changed proving method before another native lifetime. Use focused checks
+for a proven correction and complete actual client verification before the next combined full gate;
+neither an isolated fix nor commit packaging renews a full Daily/Windows invocation. This ordering
+adds no unchanged replay allowance or source-media mutation authority.
 
 #### M04 bounded implementation method
 
