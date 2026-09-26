@@ -10,6 +10,9 @@ class StorageStatusModel {
     required this.previewBudgetBytes,
     required this.previewUsedBytes,
     required this.catalogUsedBytes,
+    required this.catalogLiveBytes,
+    required this.catalogReclaimableBytes,
+    required this.catalogReclamation,
     required this.requiresRestart,
     required this.retiredPreviewRoots,
   });
@@ -24,8 +27,68 @@ class StorageStatusModel {
   final BigInt previewBudgetBytes;
   final BigInt previewUsedBytes;
   final BigInt catalogUsedBytes;
+  final BigInt catalogLiveBytes;
+  final BigInt catalogReclaimableBytes;
+  final CatalogReclamationModel catalogReclamation;
   final bool requiresRestart;
   final List<RetiredPreviewRootModel> retiredPreviewRoots;
+}
+
+enum CatalogReclamationPhase {
+  idle,
+  queued,
+  inspecting,
+  waitingForIdle,
+  checkingCapacity,
+  converting,
+  reclaiming,
+  completed,
+  cancelled,
+  failed,
+}
+
+class CatalogReclamationModel {
+  const CatalogReclamationModel({
+    required this.operationId,
+    required this.phase,
+    required this.catalogFileBytes,
+    required this.liveBytes,
+    required this.reclaimableBytes,
+    required this.reclaimedBytes,
+    required this.requiredTemporaryBytes,
+    required this.availableTemporaryBytes,
+    required this.errorCode,
+    required this.errorMessage,
+  });
+
+  final String? operationId;
+  final CatalogReclamationPhase phase;
+  final BigInt catalogFileBytes;
+  final BigInt liveBytes;
+  final BigInt reclaimableBytes;
+  final BigInt reclaimedBytes;
+  final BigInt? requiredTemporaryBytes;
+  final BigInt? availableTemporaryBytes;
+  final String? errorCode;
+  final String? errorMessage;
+
+  bool get isActive => switch (phase) {
+    CatalogReclamationPhase.queued ||
+    CatalogReclamationPhase.inspecting ||
+    CatalogReclamationPhase.waitingForIdle ||
+    CatalogReclamationPhase.checkingCapacity ||
+    CatalogReclamationPhase.converting ||
+    CatalogReclamationPhase.reclaiming => true,
+    CatalogReclamationPhase.idle ||
+    CatalogReclamationPhase.completed ||
+    CatalogReclamationPhase.cancelled ||
+    CatalogReclamationPhase.failed => false,
+  };
+
+  bool get canRetry =>
+      phase == CatalogReclamationPhase.cancelled ||
+      phase == CatalogReclamationPhase.failed ||
+      (phase == CatalogReclamationPhase.idle && reclaimableBytes > BigInt.zero);
 }
 
 class RetiredPreviewRootModel {

@@ -1,18 +1,34 @@
 use crate::application::{
-    cancel_preview_cleanup, clear_previews, clear_retired_previews,
-    load_storage_status as load_status, update_storage_settings as update_settings,
+    cancel_catalog_reclamation, cancel_preview_cleanup, clear_previews, clear_retired_previews,
+    load_catalog_reclamation, load_storage_status as load_status,
+    update_storage_settings as update_settings,
 };
-use crate::domain::{PreviewCleanupEvent, ScanError, StorageSettingsUpdate, StorageStatus};
+use crate::domain::{
+    CatalogReclamationSnapshot, PreviewCleanupEvent, ScanError, StorageSettingsUpdate,
+    StorageStatus,
+};
 use crate::frb_generated::StreamSink;
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn load_storage_status() -> Result<StorageStatus, ScanError> {
     load_status()
 }
 
-#[flutter_rust_bridge::frb(sync)]
 pub fn update_storage_settings(update: StorageSettingsUpdate) -> Result<StorageStatus, ScanError> {
     update_settings(update)
+}
+
+pub fn start_catalog_database_reclamation(
+    operation_id: String,
+) -> Result<CatalogReclamationSnapshot, ScanError> {
+    crate::application::start_catalog_reclamation(operation_id)
+}
+
+pub fn load_catalog_database_reclamation() -> Result<CatalogReclamationSnapshot, ScanError> {
+    load_catalog_reclamation()
+}
+
+pub fn cancel_catalog_database_reclamation(operation_id: String) -> bool {
+    cancel_catalog_reclamation(&operation_id)
 }
 
 pub fn clear_preview_cache(

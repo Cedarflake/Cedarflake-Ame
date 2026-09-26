@@ -1,6 +1,8 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 
-import "ame_overlay_semantics.dart";
+import "ame_popup_menu_position.dart";
 import "ame_typography.dart";
 
 abstract final class AmeMenuMetrics {
@@ -29,6 +31,18 @@ abstract final class AmeMenuMetrics {
   );
   static const RoundedRectangleBorder shape = RoundedRectangleBorder(
     borderRadius: BorderRadius.all(Radius.circular(borderRadius)),
+  );
+}
+
+abstract final class AmeMenuTransition {
+  static const Duration duration = Duration(milliseconds: 200);
+  static const Curve curve = Curves.easeOutCubic;
+  static const Curve reverseCurve = Curves.easeInCubic;
+  static const AnimationStyle popupAnimationStyle = AnimationStyle(
+    curve: curve,
+    duration: duration,
+    reverseCurve: reverseCurve,
+    reverseDuration: duration,
   );
 }
 
@@ -78,80 +92,101 @@ PopupMenuThemeData buildAmePopupMenuTheme(ColorScheme colorScheme) {
   );
 }
 
-class AmeMenuAnchor extends StatelessWidget {
-  const AmeMenuAnchor({
-    required this.menuChildren,
-    this.controller,
-    this.childFocusNode,
-    this.style,
-    this.alignmentOffset,
-    this.reservedPadding = const EdgeInsets.all(AmeMenuMetrics.viewportPadding),
-    this.builder,
-    this.child,
+typedef AmePopupMenuButtonBuilder =
+    Widget Function(BuildContext context, VoidCallback openMenu);
+
+class AmePopupMenuButton<T> extends StatefulWidget {
+  const AmePopupMenuButton({
+    required this.labels,
+    required this.items,
+    required this.onSelected,
+    required this.builder,
+    this.shortcuts = const [],
+    this.menuWidth,
+    this.maximumHeight,
+    this.leadingIconWidth = 0,
+    this.verticalGap = 4,
+    this.viewportRightMargin,
+    this.onOpened,
+    this.onOpenChanged,
+    this.initialValue,
     super.key,
   });
 
-  final MenuController? controller;
-  final FocusNode? childFocusNode;
-  final MenuStyle? style;
-  final Offset? alignmentOffset;
-  final EdgeInsetsGeometry reservedPadding;
-  final List<Widget> menuChildren;
-  final MenuAnchorChildBuilder? builder;
-  final Widget? child;
+  final Iterable<String> labels;
+  final Iterable<String> shortcuts;
+  final List<PopupMenuEntry<T>> items;
+  final ValueChanged<T> onSelected;
+  final AmePopupMenuButtonBuilder builder;
+  final double? menuWidth;
+  final double? maximumHeight;
+  final double leadingIconWidth;
+  final double verticalGap;
+  final double? viewportRightMargin;
+  final VoidCallback? onOpened;
+  final ValueChanged<bool>? onOpenChanged;
+  final T? initialValue;
+
+  @override
+  State<AmePopupMenuButton<T>> createState() => _AmePopupMenuButtonState<T>();
+}
+
+class _AmePopupMenuButtonState<T> extends State<AmePopupMenuButton<T>> {
+  final GlobalKey _anchorKey = GlobalKey(debugLabel: "Ame popup menu anchor");
+  bool _isRouteOpen = false;
 
   @override
   Widget build(BuildContext context) {
-    final anchorBuilder = builder;
-    final anchorChild = child;
-    final isolatedBuilder = anchorBuilder == null
-        ? null
-        : (BuildContext context, MenuController controller, Widget? child) =>
-              AmeOverlayTraversalBoundary(
-                child: anchorBuilder(context, controller, child),
-              );
-    return AmeOverlayTraversalBoundary(
-      child: MenuAnchor(
-        controller: controller,
-        childFocusNode: childFocusNode,
-        style: style,
-        alignmentOffset: alignmentOffset ?? Offset.zero,
-        reservedPadding: reservedPadding,
-        menuChildren: menuChildren,
-        builder: isolatedBuilder,
-        child: anchorChild == null
-            ? null
-            : AmeOverlayTraversalBoundary(child: anchorChild),
-      ),
+    return SizedBox(
+      key: _anchorKey,
+      child: widget.builder(context, _requestOpen),
     );
   }
-}
 
-MenuStyle ameFixedWidthMenuStyle(double width) {
-  return MenuStyle(
-    minimumSize: WidgetStatePropertyAll(Size(width, 0)),
-    maximumSize: WidgetStatePropertyAll(Size(width, double.infinity)),
-  );
-}
+  void _requestOpen() {
+    if (!_isRouteOpen) {
+      unawaited(_openMenu());
+    }
+  }
 
-Offset ameMenuBelowEndAlignment({
-  required double menuWidth,
-  double anchorWidth = 48,
-  double endOffset = 0,
-  double verticalGap = 4,
-}) {
-  return Offset(anchorWidth - menuWidth + endOffset, verticalGap);
-}
-
-Widget ameFixedWidthMenuItem({required double width, required Widget child}) {
-  return SizedBox(width: width, child: child);
-}
-
-void toggleAmeMenu(MenuController controller) {
-  if (controller.isOpen) {
-    controller.close();
-  } else {
-    controller.open();
+  Future<void> _openMenu() async {
+    final anchorContext = _anchorKey.currentContext;
+    if (anchorContext == null) {
+      return;
+    }
+    final position = amePopupMenuBelowAnchor(
+      context: context,
+      anchorContext: anchorContext,
+      verticalGap: widget.verticalGap,
+      viewportRightMargin: widget.viewportRightMargin,
+    );
+    if (position == null) {
+      return;
+    }
+    _isRouteOpen = true;
+    try {
+      widget.onOpenChanged?.call(true);
+      widget.onOpened?.call();
+      final selected = await showAmePopupMenu<T>(
+        context: context,
+        position: position,
+        labels: widget.labels,
+        shortcuts: widget.shortcuts,
+        items: widget.items,
+        menuWidth: widget.menuWidth,
+        maximumHeight: widget.maximumHeight,
+        leadingIconWidth: widget.leadingIconWidth,
+        initialValue: widget.initialValue,
+      );
+      if (mounted && selected != null) {
+        widget.onSelected(selected);
+      }
+    } finally {
+      _isRouteOpen = false;
+      if (mounted) {
+        widget.onOpenChanged?.call(false);
+      }
+    }
   }
 }
 
@@ -267,17 +302,30 @@ Future<T?> showAmePopupMenu<T>({
   required Iterable<String> labels,
   Iterable<String> shortcuts = const [],
   required List<PopupMenuEntry<T>> items,
+  double? menuWidth,
+  double? maximumHeight,
+  double leadingIconWidth = 0,
+  T? initialValue,
 }) {
-  return showMenu<T>(
-    context: context,
-    useRootNavigator: true,
-    position: position,
-    constraints: BoxConstraints.tightFor(
-      width: amePopupMenuContentWidth(
+  final resolvedWidth =
+      menuWidth ??
+      amePopupMenuContentWidth(
         context: context,
         labels: labels,
         shortcuts: shortcuts,
-      ),
+        leadingIconWidth: leadingIconWidth,
+      );
+  return showMenu<T>(
+    context: context,
+    useRootNavigator: true,
+    requestFocus: true,
+    position: position,
+    initialValue: initialValue,
+    popUpAnimationStyle: AmeMenuTransition.popupAnimationStyle,
+    constraints: BoxConstraints(
+      minWidth: resolvedWidth,
+      maxWidth: resolvedWidth,
+      maxHeight: maximumHeight ?? double.infinity,
     ),
     items: items,
   );

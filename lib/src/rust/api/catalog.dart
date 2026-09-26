@@ -4,6 +4,8 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../domain.dart';
+import '../domain/gallery_query_snapshot.dart';
+import '../domain/gallery_time_snapshot.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
@@ -11,6 +13,9 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 Stream<ScanEvent> scanLibrary({required ScanRequest request}) =>
     RustLib.instance.api.crateApiCatalogScanLibrary(request: request);
+
+Stream<ScanEvent> resumeLibraryScan({required ScanRequest request}) =>
+    RustLib.instance.api.crateApiCatalogResumeLibraryScan(request: request);
 
 Future<CatalogSnapshot> loadLibraryCatalog({
   required int maxItems,
@@ -24,10 +29,31 @@ Future<CatalogSnapshot> loadLibraryCatalog({
   before: before,
 );
 
-GalleryTimeline loadLibraryGalleryTimeline({required GalleryQuery query}) =>
-    RustLib.instance.api.crateApiCatalogLoadLibraryGalleryTimeline(
-      query: query,
-    );
+Future<GalleryQuerySnapshot> loadLibraryQuerySnapshot({
+  required int maxItems,
+  required GalleryQuery query,
+  GalleryQueryAnchor? anchor,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryQuerySnapshot(
+  maxItems: maxItems,
+  query: query,
+  anchor: anchor,
+);
+
+Future<GalleryTimeSnapshot> loadLibraryTimeSnapshot({
+  required int maxItems,
+  required GalleryQuery query,
+  required GalleryTimeIntent intent,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryTimeSnapshot(
+  maxItems: maxItems,
+  query: query,
+  intent: intent,
+);
+
+Future<GalleryTimeline> loadLibraryGalleryTimeline({
+  required GalleryQuery query,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryGalleryTimeline(
+  query: query,
+);
 
 Future<GalleryLayoutManifestChunk> loadLibraryGalleryLayoutManifestChunk({
   required int maxItems,
@@ -39,7 +65,7 @@ Future<GalleryLayoutManifestChunk> loadLibraryGalleryLayoutManifestChunk({
   after: after,
 );
 
-LibraryFolderPage loadLibraryFolderPage({
+Future<LibraryFolderPage> loadLibraryFolderPage({
   required String rootId,
   required String parentRelativePath,
   required int maxItems,
@@ -71,17 +97,47 @@ Future<CatalogSnapshot> loadLibraryCatalogAroundLocation({
   anchorLocationId: anchorLocationId,
 );
 
-bool removeLibraryRoot({required String rootId}) =>
+Future<CatalogSnapshot> loadLibraryCatalogAroundAsset({
+  required int maxItems,
+  required GalleryQuery query,
+  required String requestedLocationId,
+  required String anchorAssetId,
+  required BigInt fallbackOrdinal,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryCatalogAroundAsset(
+  maxItems: maxItems,
+  query: query,
+  requestedLocationId: requestedLocationId,
+  anchorAssetId: anchorAssetId,
+  fallbackOrdinal: fallbackOrdinal,
+);
+
+Future<AssetLocationView?> loadLibraryAssetById({
+  required String assetId,
+  String? preferredLocationId,
+}) => RustLib.instance.api.crateApiCatalogLoadLibraryAssetById(
+  assetId: assetId,
+  preferredLocationId: preferredLocationId,
+);
+
+Future<bool> removeLibraryRoot({required String rootId}) =>
     RustLib.instance.api.crateApiCatalogRemoveLibraryRoot(rootId: rootId);
 
-RecoverableScan? loadRecoverableLibraryScan() =>
+Future<RecoverableScan?> loadRecoverableLibraryScan() =>
     RustLib.instance.api.crateApiCatalogLoadRecoverableLibraryScan();
 
-RecoverableScan? loadPausedLibraryScan() =>
+Future<RecoverableScan?> loadPausedLibraryScan() =>
     RustLib.instance.api.crateApiCatalogLoadPausedLibraryScan();
 
 bool cancelLibraryScan({required String scanId}) =>
     RustLib.instance.api.crateApiCatalogCancelLibraryScan(scanId: scanId);
 
+Future<void> cancelRetainedLibraryScan({required String scanId}) => RustLib
+    .instance
+    .api
+    .crateApiCatalogCancelRetainedLibraryScan(scanId: scanId);
+
 bool pauseLibraryScan({required String scanId}) =>
     RustLib.instance.api.crateApiCatalogPauseLibraryScan(scanId: scanId);
+
+bool suspendLibraryScan({required String scanId}) =>
+    RustLib.instance.api.crateApiCatalogSuspendLibraryScan(scanId: scanId);

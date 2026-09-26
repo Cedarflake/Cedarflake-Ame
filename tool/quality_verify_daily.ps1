@@ -27,7 +27,9 @@ try {
             "--manifest-path",
             "rust\Cargo.toml",
             "--all-targets",
-            "--all-features"
+            "--all-features",
+            "--",
+            "--test-threads=1"
         )
     }
     if ($Component -in @("all", "flutter")) {
@@ -40,18 +42,7 @@ try {
         & (Join-Path $PSScriptRoot "integration_test_windows_accessibility.ps1")
     }
     if ($Component -in @("all", "static")) {
-        $rustHashLine = Select-String -LiteralPath "rust\src\frb_generated.rs" -Pattern (
-            "FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH"
-        )
-        $dartHashLine = Select-String -LiteralPath "lib\src\rust\frb_generated.dart" -Pattern (
-            "rustContentHash =>"
-        )
-        $rustHash = [regex]::Match($rustHashLine.Line, "=\s*(-?\d+)").Groups[1].Value
-        $dartHash = [regex]::Match($dartHashLine.Line, "=>\s*(-?\d+)").Groups[1].Value
-        if (-not $rustHash -or $rustHash -ne $dartHash) {
-            throw "Generated Rust and Dart bridge hashes do not match"
-        }
-
+        & (Join-Path $PSScriptRoot "quality_verify_bridge_contracts.ps1")
         Invoke-AmeChecked $toolchain.Git @("diff", "HEAD", "--check", "--")
     }
 } finally {

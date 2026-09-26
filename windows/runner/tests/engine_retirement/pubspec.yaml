@@ -1,0 +1,6 @@
+name: ame_engine_lifecycle_fixture
+description: A dependency-free Dart entrypoint for native engine lifecycle tests.
+publish_to: "none"
+
+environment:
+  sdk: ^3.12.2

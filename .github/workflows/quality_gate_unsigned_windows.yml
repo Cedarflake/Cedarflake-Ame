@@ -1,0 +1,75 @@
+name: Quality / Unsigned Windows Release
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: Optional branch, tag, or commit to verify
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  quality_unsigned_windows:
+    name: Unsigned Windows x64 Release
+    runs-on: windows-2025
+    timeout-minutes: 120
+    env:
+      CI: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.checkout_ref || github.sha }}
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.9
+          cache: true
+          pub-cache: true
+
+      - name: Report toolchain
+        shell: pwsh
+        run: |
+          flutter --version
+          dart --version
+          rustc --version
+          cargo --version
+
+      - name: Verify payload guardrails
+        shell: pwsh
+        run: ./tool/quality_test_unsigned_windows_payload.ps1
+
+      - name: Build and verify unsigned Windows Release
+        shell: pwsh
+        run: ./tool/quality_verify_unsigned_windows.ps1
+
+      - name: Preserve unsigned build evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: quality-unsigned-windows-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/quality-unsigned-windows/evidence.json
+            build/windows-runner-lifecycle/results-*.xml
+            build/windows-runner-lifecycle/Testing/Temporary/LastTest.log
+            build/windows-engine-lifecycle-*/results.xml
+            build/windows-engine-lifecycle-*/native-completion.json
+            build/windows-engine-lifecycle-*/pub.stdout.log
+            build/windows-engine-lifecycle-*/pub.stderr.log
+            build/windows-engine-lifecycle-*/kernel.stdout.log
+            build/windows-engine-lifecycle-*/kernel.stderr.log
+            build/windows-engine-lifecycle-*/configure.stdout.log
+            build/windows-engine-lifecycle-*/configure.stderr.log
+            build/windows-engine-lifecycle-*/build.stdout.log
+            build/windows-engine-lifecycle-*/build.stderr.log
+            build/windows-engine-lifecycle-*/native.stdout.log
+            build/windows-engine-lifecycle-*/native.stderr.log
+          if-no-files-found: error
+          retention-days: 14

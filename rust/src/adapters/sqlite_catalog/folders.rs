@@ -1,6 +1,9 @@
 use rusqlite::{Connection, params};
 
-use crate::domain::{LibraryFolderCursor, LibraryFolderPage, LibraryFolderView, ScanError};
+use crate::domain::{
+    LibraryFolderCursor, LibraryFolderPage, LibraryFolderPageDisposition, LibraryFolderView,
+    ScanError,
+};
 
 use super::{database_error, load_catalog_revision, normalize_relative_folder, sqlite_unsigned};
 
@@ -16,15 +19,20 @@ pub(super) fn load_folder_page(
     let transaction = connection.transaction().map_err(database_error)?;
     let revision = load_catalog_revision(&transaction)?;
     if after.is_some_and(|cursor| {
-        cursor.revision != revision
-            || cursor.root_id != root_id
-            || cursor.parent_relative_path != parent_relative_path
+        cursor.root_id != root_id || cursor.parent_relative_path != parent_relative_path
     }) {
         return Err(ScanError::new(
             "catalog_folder_cursor_stale",
-            "The catalog or folder scope changed after this folder cursor was created",
+            "The folder scope does not match this folder cursor",
         ));
     }
+
+    let after = after.filter(|cursor| cursor.revision == revision);
+    let disposition = if after.is_some() {
+        LibraryFolderPageDisposition::Append
+    } else {
+        LibraryFolderPageDisposition::Replace
+    };
 
     let after_relative_path = after
         .map(|cursor| cursor.relative_path.as_str())
@@ -157,6 +165,7 @@ pub(super) fn load_folder_page(
         parent_relative_path,
         folders,
         next_cursor,
+        disposition,
     })
 }
 

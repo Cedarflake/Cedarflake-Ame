@@ -1,13 +1,14 @@
 name: Release / Candidate Windows
 
 on:
-  push:
-    tags:
-      - "v*.*.*"
   workflow_dispatch:
     inputs:
       release_tag:
         description: Existing v-prefixed tag to verify and publish
+        required: true
+        type: string
+      expected_broker_publisher:
+        description: Exact Authenticode publisher for the Windows binaries
         required: true
         type: string
 
@@ -15,85 +16,414 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-candidate-${{ github.event.inputs.release_tag || github.ref }}
+  group: release-candidate-${{ inputs.release_tag }}
   cancel-in-progress: false
 
 jobs:
+  release_request:
+    name: Protected Release Request
+    runs-on: windows-2025
+    timeout-minutes: 5
+    permissions:
+      contents: read
+    outputs:
+      trusted_workflow_commit: ${{ steps.release_request.outputs.trusted_workflow_commit }}
+    steps:
+      - name: Validate protected-main release entry
+        id: release_request
+        shell: pwsh
+        env:
+          AME_EVENT_NAME: ${{ github.event_name }}
+          AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+          AME_HEAD_COMMIT: ${{ github.sha }}
+          AME_REF: ${{ github.ref }}
+          AME_REF_PROTECTED: ${{ github.ref_protected }}
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_WORKFLOW_COMMIT: ${{ github.workflow_sha }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $preReleaseIdentifier = (
+            '(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+          )
+          $tagPattern = (
+            '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.' +
+            '(?:0|[1-9][0-9]*)(?:-' +
+            $preReleaseIdentifier +
+            '(?:\.' + $preReleaseIdentifier + ')*)?$'
+          )
+          if (
+            $env:AME_EVENT_NAME -cne "workflow_dispatch" -or
+            $env:AME_REF -cne "refs/heads/main" -or
+            $env:AME_REF_PROTECTED -cne "true"
+          ) {
+            throw "Release publication must be dispatched from protected main"
+          }
+          if (
+            $env:AME_HEAD_COMMIT -cnotmatch '^[0-9a-f]{40}$' -or
+            $env:AME_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$' -or
+            $env:AME_HEAD_COMMIT -cne $env:AME_WORKFLOW_COMMIT
+          ) {
+            throw "Release workflow identity is not one immutable protected-main commit"
+          }
+          if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
+            throw "Release request requires one strict v-prefixed semantic-version tag"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
+            throw "Release request requires the exact Authenticode publisher"
+          }
+          "trusted_workflow_commit=$env:AME_WORKFLOW_COMMIT" >> $env:GITHUB_OUTPUT
+
   release_windows:
     name: Windows Candidate Gate
+    needs: release_request
     permissions:
       contents: read
     uses: ./.github/workflows/quality_gate_windows.yml
     with:
       gate_mode: release
-      checkout_ref: ${{ github.event.inputs.release_tag || github.sha }}
-      release_tag: ${{ github.event.inputs.release_tag || github.ref_name }}
+      release_tag: ${{ inputs.release_tag }}
+      expected_broker_publisher: ${{ inputs.expected_broker_publisher }}
+      trusted_workflow_commit: ${{ needs.release_request.outputs.trusted_workflow_commit }}
 
-  publish_portable:
-    name: Windows Portable ZIP
-    needs: release_windows
+  package_portable:
+    name: Windows Portable Package
+    needs:
+      - release_request
+      - release_windows
     runs-on: windows-2025
     timeout-minutes: 45
     permissions:
-      contents: write
+      contents: read
     env:
       CI: "true"
-      AME_RELEASE_TAG: ${{ github.event.inputs.release_tag || github.ref_name }}
+      AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+      AME_RELEASE_TAG: ${{ inputs.release_tag }}
+      AME_SOURCE_COMMIT: ${{ needs.release_windows.outputs.source_commit }}
+      AME_TRUSTED_WORKFLOW_COMMIT: ${{ needs.release_request.outputs.trusted_workflow_commit }}
+    outputs:
+      archive_artifact: ${{ steps.portable_identity.outputs.artifact_name }}
+      archive_name: ${{ steps.portable_identity.outputs.archive_name }}
+      archive_sha256: ${{ steps.portable_identity.outputs.archive_sha256 }}
     steps:
-      - name: Check out release tag
+      - name: Check out immutable release source
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ github.event.inputs.release_tag || github.sha }}
+          ref: ${{ needs.release_windows.outputs.source_commit }}
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          channel: stable
-          flutter-version: 3.44.9
-          cache: true
-          pub-cache: true
-
-      - name: Restore locked Dart dependencies
-        shell: pwsh
-        run: flutter pub get --enforce-lockfile
-
-      - name: Build Windows Release bundle
-        shell: pwsh
-        run: flutter build windows --release
-
-      - name: Package portable ZIP
+      - name: Prove package source and tag identity
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
+          if (
+            $env:AME_SOURCE_COMMIT -cnotmatch '^[0-9a-f]{40}$' -or
+            $env:AME_TRUSTED_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$'
+          ) {
+            throw "Portable packaging requires immutable source and workflow commits"
+          }
+          $tagRef = "refs/tags/$env:AME_RELEASE_TAG"
+          $tagObject = (git show-ref --verify --hash $tagRef).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagObject)) {
+            throw "The exact publication tag ref does not exist: $tagRef"
+          }
+          $tagCommit = (git rev-parse --verify "$tagRef^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+            throw "The exact publication tag does not resolve to a commit: $tagRef"
+          }
+          $headCommit = (git rev-parse --verify HEAD).Trim()
+          if (
+            $LASTEXITCODE -ne 0 -or
+            $headCommit -cne $tagCommit -or
+            $headCommit -cne $env:AME_SOURCE_COMMIT
+          ) {
+            throw "Package HEAD, release tag, and verified source commit do not match"
+          }
+          git cat-file -e "$env:AME_TRUSTED_WORKFLOW_COMMIT^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Trusted release-workflow commit is unavailable to the packager"
+          }
+          git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT
+          if ($LASTEXITCODE -ne 0) {
+            throw "Package source is not an ancestor of the trusted workflow commit"
+          }
+
+      - name: Download immutable signed Windows bundle
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.release_windows.outputs.signed_bundle_artifact }}
+          path: build/signed-windows
+
+      - name: Bind signed manifest to the package source
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $candidateRoot = [System.IO.Path]::GetFullPath("build\signed-windows")
+          $manifestPath = Join-Path $candidateRoot "manifest.json"
+          if (-not (Test-Path -LiteralPath $manifestPath -PathType Leaf)) {
+            throw "Signed candidate manifest is missing from the package input"
+          }
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 |
+            ConvertFrom-Json
+          if (
+            $manifest.format -cne "cedarflake-ame-signed-v1" -or
+            $manifest.tag -cne $env:AME_RELEASE_TAG -or
+            $manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT
+          ) {
+            throw "Signed manifest tag and source commit do not match the package request"
+          }
+
+      - name: Reverify downloaded signed Windows bundle
+        shell: pwsh
+        run: |
+          . ./tool/release_journal_broker_common.ps1
+          $releaseRoot = [System.IO.Path]::GetFullPath("build\signed-windows\payload")
+          Assert-AmeApplicationBundleSource `
+            -BundlePath $releaseRoot `
+            -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
+          Assert-AmeBrokerBinary `
+            -Path (Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe") `
+            -ExpectedPublisher $env:AME_EXPECTED_PUBLISHER | Out-Null
+
+      - name: Package portable ZIP
+        id: portable_identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
           $archivePath = (
-            ./tool/release_package_portable_windows.ps1 -Tag $env:AME_RELEASE_TAG |
+            ./tool/release_package_portable_windows.ps1 `
+              -Tag $env:AME_RELEASE_TAG `
+              -ReleaseRoot ([System.IO.Path]::GetFullPath("build\signed-windows\payload")) `
+              -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER |
               Select-Object -Last 1
           )
-          "AME_PORTABLE_ARCHIVE=$archivePath" >> $env:GITHUB_ENV
+          $archive = Get-Item -LiteralPath $archivePath -Force
+          $expectedName = (
+            "Cedarflake-Ame-$env:AME_RELEASE_TAG-windows-x64-portable.zip"
+          )
+          if (
+            $archive.PSIsContainer -or
+            $archive.Name -cne $expectedName -or
+            ($archive.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0
+          ) {
+            throw "Portable package output identity is invalid"
+          }
+          $archiveHash = (
+            Get-FileHash -LiteralPath $archive.FullName -Algorithm SHA256
+          ).Hash.ToLowerInvariant()
+          $artifactName = (
+            "Cedarflake-Ame-$env:AME_RELEASE_TAG-portable-" +
+            "$env:AME_SOURCE_COMMIT-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT"
+          )
+          "archive_name=$expectedName" >> $env:GITHUB_OUTPUT
+          "archive_path=$($archive.FullName)" >> $env:GITHUB_OUTPUT
+          "archive_sha256=$archiveHash" >> $env:GITHUB_OUTPUT
+          "artifact_name=$artifactName" >> $env:GITHUB_OUTPUT
 
-      - name: Publish GitHub Release
+      - name: Upload immutable portable ZIP
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.portable_identity.outputs.artifact_name }}
+          path: ${{ steps.portable_identity.outputs.archive_path }}
+          if-no-files-found: error
+          retention-days: 1
+
+  publish_portable:
+    name: Windows Portable ZIP
+    needs:
+      - release_windows
+      - package_portable
+    runs-on: windows-2025
+    timeout-minutes: 15
+    permissions:
+      contents: write
+    env:
+      AME_ARCHIVE_NAME: ${{ needs.package_portable.outputs.archive_name }}
+      AME_ARCHIVE_SHA256: ${{ needs.package_portable.outputs.archive_sha256 }}
+      AME_RELEASE_TAG: ${{ inputs.release_tag }}
+      AME_SOURCE_COMMIT: ${{ needs.release_windows.outputs.source_commit }}
+    steps:
+      - name: Download immutable portable ZIP
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.package_portable.outputs.archive_artifact }}
+          path: build/publish
+
+      - name: Validate immutable portable artifact
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          if (
+            $env:AME_SOURCE_COMMIT -cnotmatch '^[0-9a-f]{40}$' -or
+            $env:AME_ARCHIVE_SHA256 -cnotmatch '^[0-9a-f]{64}$'
+          ) {
+            throw "Publication identity outputs are invalid"
+          }
+          $publishRoot = [System.IO.Path]::GetFullPath("build\publish")
+          $items = @(Get-ChildItem -LiteralPath $publishRoot -Force)
+          if (
+            $items.Count -ne 1 -or
+            $items[0].PSIsContainer -or
+            $items[0].Name -cne $env:AME_ARCHIVE_NAME -or
+            ($items[0].Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0
+          ) {
+            throw "Publication artifact allowlist is not one exact portable ZIP"
+          }
+          $actualHash = (
+            Get-FileHash -LiteralPath $items[0].FullName -Algorithm SHA256
+          ).Hash.ToLowerInvariant()
+          if ($actualHash -cne $env:AME_ARCHIVE_SHA256) {
+            throw "Publication artifact hash does not match the read-only packager"
+          }
+
+      - name: Publish GitHub Release from the verified source commit
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $ErrorActionPreference = "Continue"
-          gh release view $env:AME_RELEASE_TAG `
-            --repo $env:GITHUB_REPOSITORY `
-            --json tagName 2>$null | Out-Null
-          $releaseExists = $LASTEXITCODE -eq 0
           $ErrorActionPreference = "Stop"
-          if ($releaseExists) {
+          function Resolve-ReleaseTagCommit {
+            $refRecord = gh api `
+              "repos/$env:GITHUB_REPOSITORY/git/ref/tags/$env:AME_RELEASE_TAG" |
+              ConvertFrom-Json
+            if ($LASTEXITCODE -ne 0) {
+              throw "GitHub release tag lookup failed"
+            }
+            $objectType = [string]$refRecord.object.type
+            $objectSha = [string]$refRecord.object.sha
+            for ($depth = 0; $objectType -ceq "tag"; $depth += 1) {
+              if ($depth -ge 8 -or $objectSha -cnotmatch '^[0-9a-f]{40}$') {
+                throw "GitHub release tag annotation chain is invalid"
+              }
+              $tagRecord = gh api `
+                "repos/$env:GITHUB_REPOSITORY/git/tags/$objectSha" |
+                ConvertFrom-Json
+              if ($LASTEXITCODE -ne 0) {
+                throw "GitHub annotated release tag lookup failed"
+              }
+              $objectType = [string]$tagRecord.object.type
+              $objectSha = [string]$tagRecord.object.sha
+            }
+            if (
+              $objectType -cne "commit" -or
+              $objectSha -cnotmatch '^[0-9a-f]{40}$'
+            ) {
+              throw "GitHub release tag does not resolve to one commit"
+            }
+            return $objectSha
+          }
+
+          function Get-ReleasePublicationAction {
+            param(
+              [string]$Repository,
+              [string]$ReleaseTag,
+              [string]$ArchiveName,
+              [string]$ArchiveSha256,
+              [string]$Token
+            )
+
+            $headers = @{
+              Accept = "application/vnd.github+json"
+              Authorization = "Bearer $Token"
+              "X-GitHub-Api-Version" = "2022-11-28"
+            }
+            $releaseEndpoint = "https://api.github.com/repos/$Repository/releases"
+            $escapedTag = [Uri]::EscapeDataString($ReleaseTag)
+            $response = Invoke-WebRequest `
+              -Uri "$releaseEndpoint/tags/$escapedTag" `
+              -Headers $headers -SkipHttpErrorCheck -TimeoutSec 30
+            if ($response.StatusCode -eq 404) {
+              return "create"
+            }
+            if ($response.StatusCode -ne 200) {
+              throw "GitHub release lookup failed with HTTP $($response.StatusCode)"
+            }
+            $release = $response.Content | ConvertFrom-Json
+            if (
+              [string]$release.id -cnotmatch '^[1-9][0-9]*$' -or
+              $release.tag_name -cne $ReleaseTag
+            ) {
+              throw "GitHub release lookup returned an invalid release identity"
+            }
+
+            $matchingAssets = [System.Collections.Generic.List[object]]::new()
+            $page = 1
+            do {
+              $response = Invoke-WebRequest `
+                -Uri "$releaseEndpoint/$($release.id)/assets?per_page=100&page=$page" `
+                -Headers $headers -SkipHttpErrorCheck -TimeoutSec 30
+              if ($response.StatusCode -ne 200) {
+                throw "GitHub release asset lookup failed with HTTP $($response.StatusCode)"
+              }
+              if (-not ([string]$response.Content).TrimStart().StartsWith("[")) {
+                throw "GitHub release asset lookup did not return an asset array"
+              }
+              [object[]]$pageAssets = ConvertFrom-Json -InputObject $response.Content
+              if ($null -eq $pageAssets) {
+                $pageAssets = @()
+              }
+              foreach ($asset in $pageAssets) {
+                if ($asset.name -ceq $ArchiveName) {
+                  $matchingAssets.Add($asset)
+                }
+              }
+              $page += 1
+            } while ($pageAssets.Count -eq 100)
+            if ($matchingAssets.Count -eq 0) {
+              return "upload"
+            }
+            if ($matchingAssets.Count -ne 1) {
+              throw "GitHub release has ambiguous same-name portable assets"
+            }
+            $asset = $matchingAssets[0]
+            $digestProperty = $asset.PSObject.Properties["digest"]
+            $assetDigest = if ($null -ne $digestProperty) {
+              [string]$digestProperty.Value
+            } else {
+              ""
+            }
+            if (
+              $asset.state -cne "uploaded" -or
+              $assetDigest -cnotmatch '^sha256:[0-9a-f]{64}$'
+            ) {
+              throw "Existing portable asset has no trustworthy uploaded SHA-256 digest"
+            }
+            if ($assetDigest -cne "sha256:$ArchiveSha256") {
+              throw "Existing portable asset differs from the verified ZIP identity"
+            }
+            return "skip"
+          }
+
+          $tagCommit = Resolve-ReleaseTagCommit
+          if ($tagCommit -cne $env:AME_SOURCE_COMMIT) {
+            throw "GitHub release tag moved after signed-source verification"
+          }
+          $archivePath = Join-Path (
+            [System.IO.Path]::GetFullPath("build\publish")
+          ) $env:AME_ARCHIVE_NAME
+          $actualHash = (
+            Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
+          ).Hash.ToLowerInvariant()
+          if ($actualHash -cne $env:AME_ARCHIVE_SHA256) {
+            throw "Portable ZIP changed immediately before publication"
+          }
+
+          $publicationAction = Get-ReleasePublicationAction `
+            -Repository $env:GITHUB_REPOSITORY `
+            -ReleaseTag $env:AME_RELEASE_TAG `
+            -ArchiveName $env:AME_ARCHIVE_NAME `
+            -ArchiveSha256 $env:AME_ARCHIVE_SHA256 `
+            -Token $env:GH_TOKEN
+          if ($publicationAction -ceq "upload") {
             gh release upload $env:AME_RELEASE_TAG `
-              $env:AME_PORTABLE_ARCHIVE `
-              --repo $env:GITHUB_REPOSITORY `
-              --clobber
-          } else {
+              $archivePath `
+              --repo $env:GITHUB_REPOSITORY
+          } elseif ($publicationAction -ceq "create") {
             $arguments = @(
               "release",
               "create",
               $env:AME_RELEASE_TAG,
-              $env:AME_PORTABLE_ARCHIVE,
+              $archivePath,
               "--repo",
               $env:GITHUB_REPOSITORY,
               "--verify-tag",
@@ -105,7 +435,21 @@ jobs:
               $arguments += "--prerelease"
             }
             & gh $arguments
+          } elseif ($publicationAction -ceq "skip") {
+            Write-Host "The existing portable asset matches the verified ZIP; publication skipped"
+          } else {
+            throw "GitHub Release publication action is invalid"
           }
           if ($LASTEXITCODE -ne 0) {
             throw "GitHub Release publication failed"
           }
+
+  verify_published:
+    name: Published Release Verification
+    needs: publish_portable
+    permissions:
+      contents: read
+    uses: ./.github/workflows/release_verify_published.yml
+    with:
+      release_tag: ${{ inputs.release_tag }}
+      expected_broker_publisher: ${{ inputs.expected_broker_publisher }}

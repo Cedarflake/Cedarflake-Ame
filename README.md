@@ -152,8 +152,11 @@ commands.
 ## Project documentation
 
 - [Product roadmap](docs/roadmap.md)
+- [Product and UI contracts](docs/README.md)
+- [R2c closeout execution](docs/plans/r2c-closeout.md)
 - [Architecture decisions](docs/architecture/README.md)
 - [Repository layout](docs/development/repository-layout.md)
 - [Quality gates](docs/acceptance/quality-gates.md)
+- [Acceptance evidence and history](docs/acceptance/README.md)
 - [Read-only real-library acceptance](docs/acceptance/read-only-real-library.md)
 - [Project engineering contract](AGENTS.md)
