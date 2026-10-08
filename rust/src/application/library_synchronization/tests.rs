@@ -960,7 +960,11 @@ fn active_authoritative_recovery_projects_updating_before_its_freshness_gap() {
         .expect("enqueue freshness gap");
     let request = ScanRequest {
         scan_id: "active-authoritative-recovery".to_owned(),
-        root_path: fixture.source_root.to_string_lossy().into_owned(),
+        root_path: catalog
+            .load_incremental_catalog_root(&fixture.root_id)
+            .expect("registered root")
+            .expect("published root")
+            .root_path,
         max_items: None,
         max_entries: None,
         preview_edge: 512,

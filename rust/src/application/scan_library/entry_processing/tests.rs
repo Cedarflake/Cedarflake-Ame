@@ -11,6 +11,8 @@ use crate::ports::{MediaInspectionFailure, MediaInspectionFailureKind};
 use super::super::finalization::FinalizationMode;
 use super::*;
 
+mod resumption;
+
 #[test]
 fn discovery_issue_detaches_before_inspection_or_staging() {
     let mut fixture = EntryFixture::new();

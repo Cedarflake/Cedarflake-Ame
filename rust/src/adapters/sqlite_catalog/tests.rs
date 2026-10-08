@@ -3488,7 +3488,8 @@ fn migrates_v13_with_an_empty_preview_artifact_index() {
                location_id TEXT NOT NULL, root_id TEXT NOT NULL,
                relative_path TEXT NOT NULL,
                preview_path TEXT NOT NULL,
-               preview_status TEXT NOT NULL DEFAULT 'pending'
+               preview_status TEXT NOT NULL DEFAULT 'pending',
+               PRIMARY KEY(scan_id, location_id)
              );",
         )
         .expect("v13 schema");
@@ -3551,7 +3552,8 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
                location_id TEXT NOT NULL, root_id TEXT NOT NULL,
                relative_path TEXT NOT NULL,
                preview_path TEXT NOT NULL,
-               preview_status TEXT NOT NULL
+               preview_status TEXT NOT NULL,
+               PRIMARY KEY(scan_id, location_id)
              );
              INSERT INTO asset_locations VALUES
                ('scan-1', 'asset-1', 'location-1', 'root-1', 'shared.jpg',
@@ -3643,7 +3645,8 @@ fn migrates_v15_by_reconciling_preview_ownership_with_active_locations() {
                root_id TEXT NOT NULL,
                relative_path TEXT NOT NULL,
                preview_path TEXT NOT NULL,
-               preview_status TEXT NOT NULL
+               preview_status TEXT NOT NULL,
+               PRIMARY KEY(scan_id, location_id)
              );
              INSERT INTO asset_locations VALUES
                ('scan-1', 'location-1', 'root-1', 'shared.jpg',

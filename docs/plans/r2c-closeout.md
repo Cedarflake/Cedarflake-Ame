@@ -6,21 +6,324 @@ false bottom after scrolling during a timeline load. The repair batch is not cli
 
 ### Current execution checkpoint
 
-Updated 2026-09-26. Resume from this checkpoint and the linked owning evidence, then verify the
+Updated 2026-10-09. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
+
+The retained first-import continuation exposed destructive retirement of reusable derived
+inspection results: the former explicit resume reset its namespace traversal and deleted all staged
+locations. A reopened unchanged-file regression called the metadata inspector twice instead of once.
+The correction preserves unpublished inspection results behind a fresh namespace verification
+roster; reuse requires current file identity, source revision and engine compatibility.
+Unseen or changed records cannot enter publication, and repeated interruption must retain reusable
+work. A label change does not close this defect. The implementation now proves unchanged-file reuse,
+changed/new/deleted membership, repeated interruption, cancellation, migration rollback and publication
+rejection. The subsequent [retained-source continuation](../acceptance/r2c-retained-runtime.md#retained-first-import-work-preservation)
+publishes all 64490 images in 156 seconds, preserves every predecessor asset/location/source identity,
+then completes one update, middle browsing and one original read. The host's missing close-input
+receipt keeps the full native lifetime failed despite exit code zero. Keep source media and both
+predecessor runs unchanged. The current candidate now passes complete Daily, the synthetic scan
+performance gate and unsigned Windows verification. Continue the separate update-performance,
+pending-read race and combined-source recovery obligations; these passes do not accept R2c.
+
+The subsequent [queued-layout regression](../acceptance/r2c-retained-runtime.md#queued-layout-transition-after-later-scrolling)
+reproduces old anchors overriding later input with pending, first and existing manifests. Its
+position-admission correction passes the focused boundaries and scoped review. This closes that
+layout cause only; continue the exact idle Retry/jump and visible-preview obligations below.
+
+The subsequent [generated idle sequence](../acceptance/r2c-retained-runtime.md#generated-idle-browsing-after-a-completed-update)
+has terminal update feedback, matching upward/reverse input deltas, viewer return and normal close.
+One reverse-navigation frame is unclassified, and no input overlaps a pending read. Preserve those
+limits and the separate retained-source case. Offline inspection of the latter catalog identifies
+208 second attempts among 465 completed source reconciliations, plus one retained revision-conflict
+retry. The exact single-path conflict now has a deterministic failing regression and a bounded
+rebase correction in its own typed owner. Root binding, complete preparation read-set and current
+source evidence must still match; durable retry, cancellation and final publication authority remain
+intact. The focused groups, including new identity/lease boundary cases, pass. Complete current
+candidate gates without raising preview concurrency. This removes a proven source of unnecessary
+retry waiting; the complete retained duration and idle Retry/jump incident still require evidence.
+
+The second Daily Rust phase passes, then Flutter exposes an unresolved-sort fallback defect and
+an obsolete source-menu expectation. Their focused corrections pass. The independently measured
+[attribute-handle duplication](../acceptance/r2c-retained-runtime.md#attribute-handle-cost-during-final-source-revalidation)
+now has a single-handle owner and source-safety regressions. The subsequent
+[complete accumulated Daily](../acceptance/r2c-retained-runtime.md#accumulated-daily-verification-on-2026-10-09)
+passes all components. This closes that pending gate; metadata timings and generated checks do not
+establish a complete retained-update speedup or native incident acceptance.
+
+The source-backed observation uses the audited combined destination with a fresh isolated
+derived catalog. Its bound entry permits one import and one update, each with 120000 item/entry
+limits and a scan-ID-bound 300-second cancellation deadline, followed by idle middle navigation,
+upward/reverse scrolling and one original-image read. The complete client lifetime is limited to
+1200 seconds with the existing 2-GiB client ceiling and 2-GiB host reserve. Helper source and compiled
+payload are bound before admission; component-case differences do not establish path equivalence.
+This measures current-source browsing and update cost, not automatic retirement of the old roots or
+the original retained-catalog incident. The earlier one-shot identity audit is consumed. New explicit
+source-read authorization was renewed on 2026-10-08 after the desktop deferral. Revalidated unchanged
+inputs reach finalization after 292759 ms, then the 300-second cancellation and host-retirement
+boundary ends the run before publication. The [failed import observation](../acceptance/r2c-retained-runtime.md#combined-directory-import-reaches-the-observation-deadline)
+retains 64490 staged images, an unpublished recoverable scan, unchanged protected catalogs and no
+cleanup failure. Update, browsing and original-image checks remain unreached. Do not turn this
+diagnostic budget into a product performance criterion or infer a warm-update result. Preserve the
+checkpoint and first separate the cold-import prerequisite from the intended browsing observation;
+any further real-source run needs a concrete bounded method under the standing read-only policy.
+
+The [checkpoint continuation](../acceptance/r2c-retained-runtime.md#prepared-checkpoint-continuation)
+was admitted under the standing read-only policy and also reached its 300-second deadline. It rebuilt
+the first import instead of reusing the predecessor's inspection results. Both runs remain failed
+observations; neither reached the update/browsing sequence. The current recovery repair above
+supersedes another unchanged continuation or a longer cold-import observation.
+
+The [prepared idle-browsing observation](#accumulated-candidate-idle-browsing-observation) now has
+an admitted, normally closed lifetime, but both retained source roots report unavailable before
+the target sequence. It does not establish the original browsing result. The obsolete-source
+root-failure admission correction now passes 46 focused cases and exact-file analysis. Preserve
+the unavailable-root run and do not replace the original incident with its result.
+
+The supplied destination is now identified as the combination of two large directories, not a
+proven one-to-one replacement for local-primary. Automatic recovery is the required outcome;
+the implemented manual picker is a fallback and cannot satisfy that outcome. Retain both old
+source bindings and their published records while the combined destination remains unassigned.
+Do not infer which files came from either old root or treat a missing root as authoritative deletion.
+The source transformation includes cross-volume moves, rearranged subdirectories and some deleted
+files; original structure was not preserved. The move history does not identify each unobserved old
+record. With no retained content-fingerprint baseline, changed physical identity remains a new
+observation and unmatched old records remain preserved. This is distinct from same-directory recovery.
+Explicit root relocation is implemented through the existing source menu and picker:
+metadata-only namespace admission retires old execution authority, and the ordinary cancellable scan
+reconciles into the retained root rather than adding a duplicate. Seven Rust relocation cases and
+40 primary-scan/relocation cases pass. The generated native picker now imports six images and a
+later lifetime completes manual relocation with all six identities and source hashes preserved.
+The latter lifetime requires owned-process termination after window/input interference; restart,
+later update and complete native acceptance remain open. Preserve all preceding failures in the
+[relocation checkpoint](../acceptance/r2c-retained-runtime.md#explicit-root-relocation-checkpoint).
+Do not infer that cloud-primary moved to the same directory. Do not mutate original media, hydrate
+placeholders, rewrite source paths in a retained catalog using a script, or carry cross-volume file
+identity/preview evidence into the new publication. A cancelled replacement scan retains the previous
+trustworthy snapshot and the explicit new source choice, so retry/restart can continue safely.
+Keep root-location transactions, scan target selection and primary-task lifetime separately owned.
+Continue with the combined-source boundary before another real-root operation. A directory's
+stable identity can establish its own rename, not the provenance of a directory assembled from
+multiple sources. Per-file matching must distinguish retained platform identity, changed identity,
+ambiguous candidates and unmatched old records. Names, relative paths, size and timestamps alone
+cannot authorize identity transfer. Existing R2c catalogs have no content-fingerprint baseline;
+do not introduce an implicit whole-library hashing pass or infer logical-asset equivalence from
+byte equality. Cross-volume copies remain new observations unless separately admitted evidence
+proves continuity under ADR 0007 and the product's independent-asset contract.
+
+The next bounded correction checks two generated source roots combined into one destination,
+including same-volume moves, copies with changed identity, colliding relative names and partial
+completion. Its purpose is to establish the missing discovery, matching and atomic-publication
+boundaries before changing production behavior. Preserve originals and both old published snapshots
+through cancellation or incomplete reconciliation. Automatic discovery remains limited to proven
+directory identity or configured observation scopes; do not search every volume or widen broker
+privilege. This supersedes the one-root interpretation of the supplied path, not the other open
+browsing/update incidents. After causal fixes, complete one combined native checkpoint and the
+accumulated candidate gates; do not repeat unchanged passing checks.
+
+The first implementation boundary is ordinary scan admission for an already discovered path:
+an exact, unique retained directory identity should recover its logical root automatically, while
+an assembled destination with another identity must not silently replace either former root.
+Keep registered-path precedence, explicit replacement and checkpoint resumption distinct. Recheck
+identity uniqueness, the expected binding and active work in the admission transaction. This is
+a prerequisite for automatic path discovery, not completion of that discovery. Allocate at most
+45 minutes of effective implementation, 15 minutes of focused generated checks and 15 minutes of
+one independent review before recording the next checkpoint. Use at most two old roots and eight
+small generated images, keep all derived storage isolated, and perform no real-root enumeration,
+hashing, namespace rewrite or source mutation. Stop expansion if the ownership or source evidence
+cannot be established; retain the complete automatic-recovery obligation.
+
+This admission boundary now passes its focused generated checks. The associated primary-task
+refresh also covers ordinary identity recovery, cancellation before Started, retained refresh
+ownership and explicit destination conflicts. Keep the detailed results in the
+[admission record](../acceptance/r2c-retained-runtime.md#discovered-directory-identity-admission).
+The next connected checkpoint permits at most 12 minutes of preparation/build work, one ten-minute
+native lifetime and five minutes of recording. Reuse the six-image generated relocation fixture;
+capture its closed catalog and hashes, rename only its verified fixture directory, and use the
+ordinary Add picker against the new path. Require one retained root, unchanged six asset/location
+identities and source hashes, terminal update feedback and normal close. Keep the one-GiB client
+ceiling, two-GiB host reserve and no real-source access. This proves admission after path discovery;
+it cannot close automatic unknown-path discovery or combined-source reconciliation. Input failure
+retains a failed lifetime and does not admit another unchanged run.
+This checkpoint is now consumed: the current Debug build is bound, but native input reaches only
+the ordinary picker and fails to establish path submission before the client exits. Closed
+catalog/source checks show no changed binding, new scan or altered generated bytes. Keep the
+functional verdict as not executed and do not relaunch the same method. The next implementation
+boundary remains automatic candidate discovery within proven identity/configured observation
+scope, separately from multi-source reconciliation; neither is replaced by the passing admission
+tests. Native input recovery and complete candidate gates remain open.
+
+Before wiring another runtime transition, allow one metadata-only Windows identity-lookup proof:
+at most 20 minutes of implementation and five minutes of execution/recording against the existing
+six-image generated fixture. The prototype may read its retained directory identity and open a
+local DOS directory as the same-volume hint; it must not enumerate media, request content access,
+open a raw volume, enable privileges, alter a catalog, search other drives or touch real roots.
+Check a renamed directory, a regular-file identity, malformed evidence and a mismatching volume.
+A discovered path is only a candidate: full publication-namespace proof and atomic generation/
+binding admission remain mandatory. This experiment decides whether the normal-token platform
+primitive is usable before any synchronization-runtime expansion; it does not establish automatic
+recovery, multi-source merge or native gallery acceptance.
+
+The normal-token lookup prototype succeeds for the renamed generated directory and refuses the
+three negative cases. Continue with a bounded production owner: at most 60 minutes of effective
+implementation, 15 minutes of focused generated checks and 15 minutes of independent review.
+Keep candidate discovery, transactional same-directory binding and background lifetime separate.
+Use one worker, only a missing published root with complete retained identity, its existing DOS
+volume hint and the full held publication guard. Prove stale-work retirement, durable recovery,
+unchanged asset/source evidence, cancellation and restart. Do not turn this into an automatic
+foreground full scan, arbitrary drive search or combined-directory binding. A publication-proof
+contract conflict or excessive transaction cost stops runtime expansion until its owning boundary
+is resolved; it does not waive automatic recovery. Native input and final gates remain separate.
+
+The first 80002-location write holds its transaction for 3180 ms; indexed paging still takes
+3375 ms and a separate 80006-row bulk-SQL probe takes 3649.659 ms. These failed standalone cost
+probes stop native expansion. The revised method uses the existing write-admission preemption
+boundary rather than transferring every path consumer to a new storage model. Allow at most
+30 further effective implementation minutes, 15 focused-check minutes and five review minutes
+to prove actual Live-writer admission within one second, atomic rollback after partial path work,
+complete quiet-period recovery, callback retirement and FULL reopen with historical journal claims.
+Retain the measured whole-transition cost; a priority-latency pass must not be described as a
+subsecond complete rebase. This does not change the original 25-sample P0 P95 gate or admit a
+native/real-root run before these boundaries pass. Large active-inventory cleanup and combined-root
+reconciliation remain separate unfinished requirements; no unchanged cost replay is authorized.
+
+Once the revised focused boundaries and scoped review pass, admit one changed native method:
+at most 12 minutes of preparation/build, one ten-minute lifetime and five minutes of recording.
+Reuse the already-renamed six-image generated fixture, capture its closed binding/identities/hashes,
+and start the current Debug client without picker input. Require automatic new-path recovery,
+one retained root and scan roster, six unchanged asset/location/source identities, terminal
+synchronization, actual viewer open/return and normal close. Preserve the one-GiB client ceiling
+and two-GiB host reserve. Keep a fresh helper/build manifest and receipt alongside the earlier
+failed picker attempt. No real root or source mutation is admitted by this checkpoint.
+
+That native lifetime now establishes automatic path recovery, six visible previews, actual original
+view/return, synchronized state and normal close. Its aggregate retention assertion fails because
+all six source generations and preview artifacts advance during the subsequent watcher-gap recovery.
+The unchanged-source hashes, physical identities, asset/location identities and scan roster are
+independently preserved. ADR 0007 and ADR 0024 already require this conservative invalidation after
+lost coverage; the expectation above incorrectly extended the binding transaction's preservation
+guarantee through the separate gap recovery. Preserve the failed assertion and do not remove dirty
+evidence or weaken recovery to satisfy it. Future checks distinguish atomic binding preservation
+from post-gap invalidation; no identical native rerun is admitted. The
+[automatic-location record](../acceptance/r2c-retained-runtime.md#automatic-directory-location)
+owns the result, cost failures and remaining large-inventory, combined-source and final-gate duties.
+
+Continue the combined-source publication boundary with at most 25 effective preparation minutes,
+ten focused-check minutes and five review/recording minutes. Use two generated roots with no more
+than eight small images. Exercise cancellation after staging but before publication, reopened
+retry, incomplete replacement and same-name/same-byte copies whose physical identity changes.
+Require both old published snapshots to survive and admit asset continuity only for observed
+matching physical identity. This checkpoint selects existing scan/publication behavior and adds
+its missing connected regressions; it does not authorize root retirement, a new source-discovery
+scope, cross-volume identity inference or a real-library scan. A missing causal boundary is recorded
+before any production extension. All preceding allowances and failed native assertions remain.
+
+This combined-source checkpoint now passes both connected generated regressions and scoped static
+review. It establishes cancellation/reopen preservation and conservative per-file matching, not
+automatic destination discovery or root retirement. Keep the
+[combined-source evidence](../acceptance/r2c-retained-runtime.md#combined-source-publication-boundary)
+distinct from the native same-directory result. Do not repeat these checks unchanged or relabel the
+supplied destination as either original root. Complete migration remains unproven, so both old
+bindings and unmatched published records stay retained.
+
+The large-inventory payload correction initially allocated 45 effective implementation minutes,
+15 focused-check minutes and 15 review/recording minutes to separately committed preparation.
+That method stops after scoped review identifies two unclosed boundaries: returning the directory
+to its original path leaves terminal inventory work without continuation, and retiring only the
+latest unfinished baseline can break its completed predecessor's validation chain. Its 22 passing
+focused cases do not cover those states and do not accept that implementation. Preserve the first
+test compile failure and the review findings; no intermediate-state validator is weakened.
+
+The revised method uses the existing preemptible atomic recovery transaction. Allow at most 30
+additional implementation minutes, 15 focused-check minutes and ten review/recording minutes.
+Delete logical entries, candidate ownership and frontier rows in fixed 1024-row statements, retaining
+the binding, run headers and authority until the complete transaction commits. Cancellation and
+Live preemption must roll back all payload changes, including after a page has been deleted. Prove
+FULL reopen, old-path return and ordinary inventory resumption after rollback, complete recovery
+on retry, actual Live-writer admission within one second and unchanged source bytes. Raw spools
+remain retired storage for the existing bounded maintenance owner; preserve control-row limits.
+This is not a subsecond whole-transition claim or the full P0 P95 gate. Use generated storage only;
+combined-source reconciliation, real-root authorization and complete candidate gates remain separate.
+
+The atomic method now has passing focused recovery, cancellation, old-path resumption, FULL reopen,
+priority-preemption and source-byte checks, plus scoped independent static review. Keep the
+[large-inventory evidence](../acceptance/r2c-retained-runtime.md#large-logical-inventory-retirement)
+and the discarded method's failures together. This closes the selected logical-payload refusal,
+not native large-inventory acceptance or automatic combined-source reconciliation. Do not replay
+the unchanged focused group or resurrect separately committed preparation. Continue from the
+remaining native/candidate gates and per-file discovery/publication obligations; both former real
+source bindings remain untouched.
+
+Before choosing a combined-source recovery policy, prepare one metadata-only identity audit using
+the existing guarded directory enumerator and a read-only retained-catalog connection. Allow 40
+effective implementation minutes, ten focused-check minutes and ten scoped review minutes. Bound
+the roster and traversal at 120000 records/entries and 10000 directories, with a 120-second audit
+deadline. Distinguish unique identity observations, ambiguous old aliases, unknown identities,
+changed metadata and unmatched old records; no count or filename authorizes root retirement. Prove
+same-volume movement, identity-changing copies, incomplete traversal and source/catalog preservation
+on generated fixtures before proposing a real run. The real candidate is not assigned to either
+old root, and this preparation grants no real-source enumeration, source mutation or hydration.
+
+The [identity-audit preparation](../acceptance/r2c-retained-runtime.md#metadata-only-combined-source-identity-audit)
+now passes four generated cases and scoped review; the retained two-root copy contains 79283
+locations. The guarded, input-bound launcher admits one 120-second audit within a 150-second parent
+lifetime, observes a 512-MiB process ceiling and keeps a two-GiB host reserve. The explicitly
+authorized lifetime now completes; its correspondence and resource results are in the linked
+record. That one-use authorization is consumed. Preserve both former roots and unmatched records;
+only unique physical continuity is established for part of cloud-primary, with no unchanged
+revision evidence. No local-primary identity is observed. Complete combined-source migration,
+original browsing and update obligations remain open; do not repeat the unchanged audit.
+
+The separately admitted large-inventory checkpoint verifies retirement through one generated
+native lifetime. Allow 30 effective preparation/build minutes, ten client minutes, ten scoped review
+minutes and five recording minutes. Use six mixed-dimension images with historical dates, 3073 old
+logical/raw inventory entries and 2305 owned candidates. Prepare through the same tested catalog
+APIs, retain a FULL-openable pre-launch catalog, then rename only this fresh generated source root.
+The current Debug client must recover its path automatically, show all six real previews, open and
+return from an original, settle synchronization and close normally. Verify closed catalog integrity,
+old authority retirement, retained asset/location/file identities and exact source bytes. Source
+generations and preview artifacts may advance under the existing post-gap invalidation contract.
+Keep the one-GiB client ceiling and two-GiB host reserve. This closes only the changed payload's
+connected recovery boundary, not combined-source provenance, original browsing or final gates. A
+failed lifetime is retained without an unchanged replay. No real-source operation is admitted.
+
+This lifetime is now consumed. Automatic binding, synchronization, six preview-ready results,
+closed identity/byte checks and FULL reopen pass. Original-image input delivery is unestablished and
+the process subsequently exits with code zero; all-six visible previews, viewer return and an
+observed close-to-exit interval remain unestablished. Preserve the date-admission and long-path
+observer failures in the [native result](../acceptance/r2c-retained-runtime.md#generated-native-large-inventory-recovery).
+Do not replay the same lifetime or treat the partial native result as combined-source recovery.
+Current real-candidate authorization, remaining interaction and accumulated candidate gates stay
+open. Continue independent work without changing either former source binding.
+
+Use the remaining generated-checkpoint allowance for one changed input method: activate the unique
+returned window before capture, use current screenshot-bound coordinates instead of the unavailable
+cached accessibility index, and refresh after each single action. Reuse the unchanged built client
+with a fresh generated fixture; preserve all first-attempt inputs and receipts before replacing the
+local run configuration. Allow at most eight client minutes, keeping the combined native allowance
+below the original ten minutes. Require all six visible previews, original open/return, explicit
+close input paired with the same process receipt, and closed identity/byte/FULL-reopen checks.
+Stop on another unresolved target/capture failure; no further unchanged replay is admitted. This
+input continuation does not authorize real sources or change the combined-source matching policy.
+
+The changed-method continuation now passes actual six-preview browsing, viewer open/return,
+explicit normal close, exact closed identity/byte checks and FULL reopen. Both lifetimes together
+consume 188417 ms of the original ten-minute native allowance; the first failure remains retained.
+The accumulated lint invocation also completes. This closes the selected large-inventory native
+boundary only. Preserve the real-candidate authorization question and the automatic combined-source,
+original browsing/update, Release and final-candidate obligations; no unchanged replay is needed.
 
 | Outcome | Current evidence and unfinished work |
 | --- | --- |
 | Idle browsing stays at the requested position | **Open; a subsequent rerun reports recurrence.** Synchronization is already finished; a middle-timeline click loads successfully; upward scrolling then shows some Retry previews and jumps toward an earlier position, not the top. The expired-cursor, preview-retirement and later-scroll corrections have boundary evidence, but have not established resolution of this complete retained-library sequence. [Owning record](../acceptance/r2c-retained-runtime.md#timeline-navigation-upward-scrolling-and-retry) |
-| Scrolling during a timeline load does not create a false bottom | **Connected causal correction and controlled pending-delivery native check pass.** The actual client accepts upward input while a time-result delivery is held, then traverses the loaded window downward. Natural database-pending timing and the reported still-middle rail discrepancy remain open. [Owning record](../acceptance/r2c-retained-runtime.md#native-early-scroll-while-time-result-delivery-is-pending) |
-| Updating retains the latest visible position | **Selected corrected generated native check passes.** Held old-page success/error regressions verify retirement before committed projection replacement. In the subsequent 10000-image lifetime, the update ends at the newly scrolled 2012-04-02 tile group without the earlier jump toward 2025. Point frames retain a small vertical adjustment; continuous pixel stability remains unproven. This update-completion failure is distinct from the already-idle incident. [Owning record](../acceptance/r2c-retained-runtime.md#corrected-generated-native-checkpoint) |
+| Scrolling during a timeline load does not create a false bottom | **Two natural pending-read input sequences now have selected functional evidence.** Delivered upward input precedes the unheld production read's completion; reverse input crosses each preceding loaded window. The full lifetime fails close admission, and the original Retry/jump remains open. This observes an application read, not a running SQLite statement. [Owning record](../acceptance/r2c-retained-runtime.md#natural-pending-read-input-and-retained-preview-cost) |
+| Updating retains the latest visible position | **Selected generated native checks pass, including publication during viewer return.** Old-page success/error regressions retain the newer scroll owner. The later 10000-image run changes the catalog revision while the viewer is open; returning preserves all 16 visible identities and rectangles and the exact scroll offset, then reverse scrolling crosses the preceding window. This does not close the already-idle Retry/jump incident or prove unsampled continuous-frame stability. [Owning record](../acceptance/r2c-retained-runtime.md#native-publication-during-viewer-return) |
 | Retained-root update completes at a usable cost | **Measured, still open.** One isolated local-primary manual update reaches committed completion in 157532–160969 ms and preserves all 79283 items across both roots. Meeting the 300-second bound does not accept its cost or explain the prior 1088.599-second recovery. [Owning record](../acceptance/r2c-retained-runtime.md#retained-manual-update-and-time-window-read-cost) |
 | Screenshot creation converges and manual update reaches a terminal state | **Old-task recovery passes in an isolated copy of the actual retained catalog.** The original eight-attempt P0 row transfers to a distinct completed P2 owner, preserving failure history; scoped inventory completes in 9915 ms. Both roots become synchronized. Original profile state is unchanged, and complete manual-root update cost remains open. [Owning record](../acceptance/r2c-retained-runtime.md#native-retained-exhausted-task-recovery) |
 | Four required maintenance deliveries | M01–M04 have implemented, verified checkpoints in the [maintenance record](../acceptance/r2c-maintainability.md). Preserve those owners and regression boundaries; do not restart all four implementations. Later functional failures still require correction at their owning boundary. |
 | Remaining R2c completion | The frozen 24 variants, C01/C02 disposition, applicable Release/final gates and external acceptance remain required. The existing roster and evidence owners below retain their individual status. No stage advancement is admitted. |
 
-The verified repair batch is on `codex/r2c` through product commit `1704228`, separated into JPEG
+The preceding repair batch through product commit `1704228` separates JPEG
 inspection, synchronization publication, preview reconciliation and gallery-position commits.
 The operated Debug artifact in run `ed24825fed214b429b46511b9112f5a3` predates the manual-update
 correction and retains its failed verdict. The corrected `e907837b0dad4cab916f4787522d0f07` lifetime
@@ -28,12 +331,13 @@ now has selected native operation, exact membership, source-integrity and normal
 It does not close the original retained-library incidents. A newly reported failure remains negative evidence until the executing artifact
 and complete triggering sequence are verified; do not assume an obsolete executable caused it.
 
-Next: the corrected passive-publication candidate now passes the captured first-page jump sequence
-in native run `b0e732489ecd441a915dd9e7ed0c3493`, including both middle regions and downward reversal.
-The corrected complete Daily and unsigned Windows gates now pass. Continue the exact remaining
-functional variants after the coherent repair checkpoint. Commit creation and evidence-only edits
-do not repeat these gates. The [combined verification record](../acceptance/r2c-retained-runtime.md#combined-repair-batch-verification)
-binds their source, results and retained exclusions.
+Current product commit `629da9e` additionally corrects indexed month-predecessor lookup. Its selected
+native timing/position sequence and complete local Daily/unsigned gates pass; hosted verification
+on documentation head `cea18dc` passes all ten required jobs and the aggregate gate. Continue the exact remaining functional variants after
+this checkpoint. Commit creation and evidence-only edits do not repeat these gates. The
+[current verification record](../acceptance/r2c-retained-runtime.md#current-source-local-gate-completion)
+binds source, results and retained exclusions. The earlier corrected passive-publication run
+`b0e732489ecd441a915dd9e7ed0c3493` remains the captured first-page-jump boundary evidence.
 Preserve the original non-top Retry and database-pending false-bottom variants; their exact
 conditions are not closed by this selected native pass. Capture actual pending-request authority
 as well as a displayed loading wall in any later admitted variant. Do not repeat the same generated
@@ -55,6 +359,76 @@ control failure. The current Live worker checkpoint passes complete local Daily,
 hosted jobs, unsigned Release verification and the selected native bulk workload. Earlier
 failures and remaining actual client paths, final candidate gates,
 review and external acceptance prerequisites remain explicit; a local pass does not replace them.
+
+### Current Release populated restart preparation
+
+While real-candidate identity authorization is pending, select the remaining UX-01A Release
+populated restart and its connected browsing boundary. Reserve at most 45 active preparation
+minutes, ten native minutes, ten scoped review minutes and five recording minutes; canonical build
+and source-oracle wall time remain separately recorded. Preserve all preceding failed lifetimes
+and allowances. Reuse the frozen 10000-image mixed-size/historical corpus without changing it and
+build the current source through the canonical unsigned Windows entrypoint. This artifact is for
+the selected client check, not a claim that the unfinished repair batch has passed final gates.
+
+Use one fresh Windows Sandbox normal profile with two distinct owned Release application
+lifetimes. Import through the actual picker, wait for exact publication, browse historical dates
+and close normally. Relaunch the identical EXE against that same normal-profile catalog, observe
+the populated wall and actual viewer return, then close normally. Retain the closed catalog after
+each lifetime, unchanged source membership/hashes/dates, distinct PIDs, source/artifact bindings,
+per-lifetime memory and same-host close timing. Record any new recovery/inventory work explicitly;
+visible pixels alone cannot establish zero source calls. Reuse the instrumented no-change boundary
+only where its source and conditions remain applicable.
+
+Keep the existing 3072-MiB guest, seven-GiB host startup floor, two-GiB host reserve and two-GiB app
+ceiling. Preparation does not admit a guest when the host floor is unmet. Retain the 900-second
+outer lifetime, six-second app close and native host-close retirement; both app lifetimes share
+the existing guest deadline. Do not enable Release test-storage overrides, use real media or change
+service, signing or host settings. Prepare and review the phase/receipt checks before admission;
+one failed prerequisite or lifetime stops this method without an unchanged replay.
+
+This preparation checkpoint has produced a passing current unsigned Release build and a bound
+fresh generated payload, but no Sandbox or application lifetime has started. The independent helper
+review exposed unproven requested-close evidence, queued-phase admission after abort, and missing
+bounded Sandbox retirement after failure. The first two now have corrections and focused evidence;
+the last remains open. The new launcher fails closed before admission, and its previously copied
+guest helpers must be rebound after the remaining retirement owner is resolved. Do not launch it,
+repeat the passing build, or interpret its prepared 10000-file mapping as native acceptance.
+Conservatively charge 40 active preparation minutes and the ten-minute review reservation; build
+wall time is separate. The latest host probe also remains below the seven-GiB startup floor.
+The [Release preparation record](../acceptance/r2c-release-native.md#populated-restart-preparation-checkpoint)
+owns the source binding, helper checks and exact unverified gap. Preserve the pending real-source
+audit authorization and both old source bindings; this work does not establish combined-directory
+identity or resolve the original browsing incidents.
+
+Resolve the failed-retirement prerequisite through one bounded ownership experiment before the
+prepared Release workload. Allow at most 25 active implementation minutes, ten review minutes and
+five recording minutes, plus one 180-second empty Sandbox lifetime and at most 30 seconds of
+failure retirement. Reuse the existing kill-on-close process Job; do not kill processes by name,
+repair/install the unavailable Sandbox CLI, broaden host privileges, or touch any source corpus.
+The empty guest uses the same 3072-MiB allocation, read-only input/writable evidence mappings and
+seven-GiB host entry/two-GiB reserve. Capture the baseline and actual Sandbox/VM process epochs,
+wait for the exact guest-ready receipt, then exercise the owned Job's failure disposal. Require
+the new client/VM process epochs to disappear while unrelated baseline processes remain. If the
+platform detaches the instance or ownership/retirement cannot be proved, retain the failure and
+keep the populated launcher closed; no unchanged replay or named-process termination is admitted.
+The normal populated workload still closes through native input. This experiment tests only its
+failure cleanup prerequisite and cannot substitute for either application lifetime or UX-01A.
+
+The single empty experiment is consumed and failed before guest readiness. After resource-only
+refusals without a launch, the fresh admission meets the seven-GiB floor, but Windows reports
+`0x80370106` during Sandbox initialization. The parent ends at 151150 ms with no guest-ready
+receipt. Its 432-ms final cleanup observes no residual Sandbox/VM epochs; because no running VM
+epoch was captured, this does not prove failure retirement of an initialized guest. Preserve that
+distinction and the original receipts. The Release controller now delegates owned Job disposal and
+checks complete prerequisite evidence, but its refreshed host/guest binding and connected lifetime
+remain unverified. Its admission is still closed. No unchanged empty replay, populated launch,
+additional memory request, host repair or elevation follows from this result. Charge the remaining
+five preparation minutes and the 25-minute retirement implementation reservation; the static
+canary review and evidence recording use their existing reservations. The later controller
+integration has focused refusal checks but awaits its scoped review after a viable changed method.
+The [failed empty initialization record](../acceptance/r2c-release-native.md#owned-sandbox-retirement-initialization-failure)
+retains the exact error, resource observations and unverified boundary. Continue independent R2c
+work while preserving the pending real-candidate authorization and unavailable signed inputs.
 
 ### Completion goal and required deliveries
 
@@ -1178,6 +1552,345 @@ and identify the next changed proving method before another native lifetime. Use
 for a proven correction and complete actual client verification before the next combined full gate;
 neither an isolated fix nor commit packaging renews a full Daily/Windows invocation. This ordering
 adds no unchanged replay allowance or source-media mutation authority.
+
+#### Immediate native upward input during a real time read
+
+Reserve 60 active minutes, cumulative 11734 reserved: 20 for reusing the isolated admission and a
+read-only request/pointer observer, ten for its validation and Debug build, ten for one native
+lifetime, 15 for closed comparison and five for records. The changed method removes the intervening
+screenshot from the explicitly requested click-then-immediate-up sequence. Observe and bind the
+unchanged gallery/rail region first, then issue that single planned two-input sequence through the
+documented Computer Use APIs and capture the resulting state. No guessed window, unrelated input,
+controller invocation or custom input transport is admitted.
+
+Use a new isolated copy of the completed manual-update derivative, retaining exactly local-primary
+and cloud-primary and protecting its baseline plus the original profile catalog/WAL. Production
+source is unchanged. A typed catalog observer only forwards the real time-read call and records
+dispatch, original completion and delivered native pointer events; it must not hold results, add
+delays, replace data, force frames or clear failures. A pending application read does not identify
+the executing SQLite statement; report that timing limit explicitly.
+
+Within one 600-second lifetime, admit at most two distinct middle targets, immediate upward input,
+settling and reverse movement beyond the loaded window, followed by one viewer return if time
+permits. Bind any Retry tile to its location/generation/code and distinguish an existing media
+failure from a new transition failure. Require an actual native wheel event between real read
+dispatch and completion before counting the pending-read variant. If both attempts miss that
+interval, retain the unverified result without another launch. Preserve the 4 GiB launch floor,
+2 GiB client ceilings and host reserve, six-second normal close, no-source-write/no-hydration
+guards and browse-only recovery stop. Reuse current product gates; this observation renews none.
+
+The retained run now has offline input, catalog and scope analysis. Both planned sequences cross
+their preceding windows after real pending-read upward input. Its normal-close admission fails;
+later unmatched input is not attributed to the planned sequence. Charge the 60-minute block in
+full: 11609 charged / 11734 reserved. The
+[owning result](../acceptance/r2c-retained-runtime.md#natural-pending-read-input-and-retained-preview-cost)
+preserves the 22-second cold visible-preview wait, source-generation changes, failure and limits.
+Do not repeat that client lifetime to turn the aggregate result green.
+
+#### Retained publication write-cost diagnosis
+
+Reserve 90 active minutes, cumulative 11824 reserved: 20 for a closed-catalog operation comparison,
+40 for a causal owning-layer correction, 20 for boundary regression and ten for evidence. The
+manual-update snapshots place complete traversal at 140338 ms and first observed committed
+completion at 160780 ms. These snapshots do not split validation from publication. The source
+inspection finds unconditional compatible-identity UPDATEs during publication; measurement must
+establish redundant writes before this hypothesis can justify a correction.
+
+Use only a new disposable copy of the completed isolated derived catalog. Limit the copy to 600 MiB
+and 30 seconds; select at most 4096 existing identities and measure the old and candidate UPDATEs
+once each inside transactions that always roll back, with 15 seconds per arm. Keep original SQL
+authority, identity validation, NULL semantics, generation adoption, peer aliases and atomic commit.
+No source media, live client, filesystem inventory, original-profile write or new dependency is
+admitted. A database-only cost difference is not a complete manual-update timing result.
+
+If redundant writes are confirmed, extract the complete identity-reconciliation responsibility
+from the publication facade before changing its write predicate. Prove that already-matching rows
+are untouched while NULL adoption, mixed aliases, newer source generations, conflicts, rollback,
+cancellation and supersession retain their behavior. Keep all original scan deadlines. Use focused
+tests now; the next combined functional/client checkpoint owns full gates. A small database cost
+improvement cannot close the remaining traversal cost or the original browsing incidents.
+
+The first comparison rejects redundant matching-row writes as the dominant cause: 4096 updates
+take 27.954 ms versus 21.811 ms with no matching-row writes. Do not extract or change that owner
+for this negligible difference. Within the same diagnostic allowance, reuse the disposable copy
+to measure the two identity-read statements over the same 4096 identities, plus each existing
+projection-retirement statement once. All mutations remain rollback-only, each phase retains a
+15-second ceiling and the original catalog remains protected. These are isolated database phases,
+not a simulated successful scan or a replacement for the retained native completion measurement.
+The phase probe uses Python's default prepared-statement cache, whereas the pinned Rust adapter's
+identity reads call `Connection::query_row`, which prepares the statement each time. Before using
+those timings to assess native cost, compare the same read-only 4096-identity roster once with the
+cache disabled and once enabled, preserving the same 15-second per-phase ceiling. A difference
+selects statement preparation for a focused native adapter check; it is not client acceptance.
+
+The completed comparison does not establish a dominant publication cause. Deleting the previous
+30659-location snapshot takes 4096 ms; the other measured phases and statement preparation are
+smaller. Preserve these negative results without changing scan SQL. Charge this block in full:
+11699 charged / 11824 reserved. The original scan and preview latency obligations remain open.
+
+#### Viewer refresh preserves the independent gallery anchor
+
+Reserve 60 active minutes, cumulative 11884 reserved: ten for retained-log causality, 20 for the
+owning correction and boundary regressions, 20 for connected gallery verification, and ten for
+review and records. Two existing native viewer-return sequences show the wall moving from its
+retained middle anchor toward the first item of a 500-item refreshed window. The query read is
+anchored to the viewer selection while the wall owns a different, still-loaded location. Current
+position resolution retains that location only when the catalog revision is unchanged, then falls
+back to the window start when the read resolved the viewer instead.
+
+Correct position resolution inside the existing typed `LibraryGalleryQueryTransition` owner.
+Preserve the viewer's catalog-read anchor and the wall's independent loaded identity, updating its
+ordinal from the accepted snapshot while retaining row and viewport fractions. Keep explicit
+resolved-identity and removed-anchor fallback behavior, query/position generations, stale result
+retirement and viewer-close/reopen ownership. Do not change the query protocol, source identities,
+preview failures, paging bounds or source-media access. Cover revision changes, changed ordinals,
+viewer closure during the read, removed anchors and supersession before connected gallery checks.
+This correction does not establish the cause of every idle Retry/jump or accept the full repair
+batch. Actual client verification precedes the next combined full gate; this focused correction
+does not start another Daily/Release invocation.
+
+The connected regression additionally exposes a 13-pixel displacement when the captured viewport
+center lies in a date heading or row gap. Capture clamps the point onto the nearest photo row but
+retains the old viewport fraction, so restoration uses two different physical points. Within this
+same allowance, make the existing reflow owner capture both fractions for the same row point and
+use that policy in both loaded-window and manifest geometry. Prove exact unchanged-layout
+round-trips across a date heading and a row gap, retaining native Flutter scrolling and the
+independent query/viewer authorities. Do not weaken pixel assertions or conceal the displacement.
+
+The connected native check uses one fresh derived copy of the existing completed 10000-image
+generated mixed-size/historical catalog, with an isolated cold preview cache. Its registered root
+must exactly match the existing generated corpus; no real root, import, manual scan, source copy,
+source mutation or hydration is admitted. Actual cold preview publications provide the changing
+catalog revisions. Through Computer Use, navigate to a middle date, open a visible image different
+from the wall anchor, observe publication and return; repeat at most once at another middle date.
+Retain read-only pointer/publication/visible geometry observations, exact closed membership and
+source-state comparison. Reuse the 4 GiB launch floor, 2 GiB client/host bounds, 600-second complete
+lifetime and six-second normal close. A read-only scope monitor aborts on new scan or recovery.
+No background publication during the viewer interval means that variant is unverified, not passed.
+
+The two position corrections pass 45 focused cases and one independent six-file review. The native
+generated lifetime preserves ordinary viewer-return geometry and exits normally, but revision stays
+unchanged; it does not verify refresh during the viewer session. Record this limitation without
+replaying the cold-cache method. The [owning evidence](../acceptance/r2c-retained-runtime.md#viewer-refresh-and-independent-gallery-position)
+retains both causal failures, implementation boundaries, source/resource checks and the native gap.
+Charge the full block: 11759 charged / 11884 reserved. Full gates remain queued after the combined
+functional checkpoint; the preceding complete gates do not cover these new source changes.
+
+#### Retained visible-preview queue diagnosis
+
+Reserve 75 active minutes, cumulative 11959 reserved: 15 for correlating existing tile/queue
+observations, 35 for a proven owning-layer correction, 15 for boundary regressions and ten for
+records. The recorded 22-second visible-readiness interval contains requests with approximately
+20 seconds queued and only 300–400 ms active. Correlate the exact selected visible locations with
+their demand, source generations and completion before attributing the delay. Use only existing
+logs and closed catalog evidence, with no source reads or new real-root client lifetime.
+
+Preserve visible/viewer precedence, bounded concurrency, independent source/query identities,
+stale-result rejection and explicit failure feedback. A ranking, demand or completion correction
+must live in its existing typed owner and have a causal boundary example; do not increase worker
+counts, add retries or weaken preview authority to improve a timing label. Actual mixed-media native
+verification and one combined final gate remain required after the functional repair batch. If the
+existing evidence does not select a cause, retain that gap and prepare a changed diagnostic method
+instead of replaying the same workload or changing unrelated preview code.
+
+Location correlation finds that the last visible items' successful requests take only 346–1729 ms
+while their prior source generations remain visible for about 18–22 seconds. Accepted refreshes
+advance every 3.2–3.6 seconds. Within this allowance, measure the source-bound location-anchor count
+and predecessor SQL against the closed derived catalog, then compare a redundant index bound with
+the exact original cursor predicate retained. At most two anchors and ten seconds per statement,
+read-only/query-only, no media opens. A result mismatch rejects the candidate; queue logs alone do
+not establish visible-demand starvation. Preserve root/folder/search filters, unknown dates, ties,
+sort direction and active-snapshot scope before any gallery-query correction.
+
+The exact count/predecessor comparison confirms full active-scan traversal and a 0.53–2.60-second
+count. Equivalent date bounds return identical counts/cursors in 0.04–0.44 seconds using the
+existing covering index. The bundled Rust regression independently reproduces 197600 virtual-machine
+steps for a 2012-item catalog whose preceding range contains six items. Extract complete
+location/asset-anchor resolution, ordinal fallback and preceding-window selection into
+`gallery/location_anchor.rs` before adding the bound. Only capture/creation anchors with known dates
+may constrain the preceding range to non-missing dates and the inclusive primary comparison;
+retain the complete original cursor predicate, ties and filters. Unknown dates and other sort keys
+keep their existing path. No schema, bridge, source-read, concurrency or failure-policy change is
+admitted. Use the same work-bound regression and independent ordered-window cases, then review the
+query owner before the combined native checkpoint.
+
+The 19 selected bundled-Rust anchor cases pass, including the unchanged work bound and filtered
+ordered windows. Independent review finds no actionable scoped finding and confirms the bound is
+implied by the original cursor predicate; it does not establish native latency. Charge this block
+in full: 11834 charged / 11959 reserved. The complete functional batch remains unaccepted.
+
+#### Generated publication during viewer return
+
+Reserve 60 active minutes, cumulative 12019 reserved: 20 preparation/build, ten native operation,
+20 closed comparison and ten review/records. Reuse the unchanged 10000-image generated mixed-size,
+historical corpus in fresh derived catalog/cache storage. The preceding cold-preview method never
+changed catalog revision. This changed method performs exactly one foreground manual update using
+the real root-menu control, then opens a visible image distinct from the wall anchor before update
+publication and returns after publication. Capture actual revision, query authority, wall identity,
+tile geometry and native input; absence of publication during the viewer interval leaves that
+variant unverified. Then perform upward/reverse scrolling and normal close in the same lifetime.
+
+No real root, source copy/write, fixture modification, import, forced publication, delayed result or
+background recovery is admitted. A query-only scope monitor requires the original exact generated
+root, at most one new foreground scan, a run/epoch/root-bound native update receipt before it starts,
+and no new inventory. Keep the original 300-second committed-update deadline, 600-second lifetime,
+six-second normal close, 4 GiB launch floor, 2 GiB client ceilings and 2 GiB host reserve. The closed
+comparison allows the new scan identity but requires identical complete asset/source membership,
+no unfinished work and unchanged protected baseline/profile catalogs. Observe scan phase timing
+without claiming generated scan cost explains the retained-root delay. No unchanged replay or
+complete Daily is included; full gates remain after the combined functional checkpoint.
+
+The first lifetime stops at its scope observer before viewer input. The observer incorrectly
+requires `requires_previous_snapshot = 1`; this field instead records prior-row preservation after
+discovery/inspection failure. The actual new row is the expected foreground update of the admitted
+root, retaining its original published baseline. Preserve this failed lifetime and original helper
+bytes. Within this block admit one causally corrected fresh-copy lifetime: require the baseline's
+active scan identity until the one admitted scan commits, then require that scan's identity. Keep
+all root/receipt/time/recovery checks and normal-exit requirements. Reuse the unchanged compiled
+Dart/product payload after exact hash checks; only the Python observation policy changes.
+
+The corrected native lifetime verifies publication while the viewer is open, exact 16-tile return
+geometry, upward/reverse reachability, unchanged complete generated membership and normal exit.
+Its update commits within 32389–35903 ms; this generated measurement does not accept retained-root
+cost. The [owning record](../acceptance/r2c-retained-runtime.md#native-publication-during-viewer-return)
+retains the failed first lifetime and corrected result. Charge this block in full: 11894 charged /
+12019 reserved. No further unchanged native replay is admitted here. Full gates remain queued
+behind the unresolved combined functional obligations.
+
+#### Warm scan staging statement cost
+
+Reserve 45 active minutes, cumulative 12064 reserved: 15 source-bound database measurement,
+20 only for a proven owning correction and focused regression, ten review/records. The existing
+operation measurements attribute material scan time to location staging. Prior probes measure
+identity reads and terminal updates, not the complete location insertion statement, which currently
+uses uncached preparation for every item. Compare exactly that statement with preparation caching
+disabled/enabled over the same 4096 unchanged generated records in a fresh disposable catalog copy.
+Use two arms, at most 15 seconds each, rollback all staged records, preserve SQL/bindings and require
+identical inserted payloads and virtual-machine work. No image access, native lifetime or full scan.
+Separate cache warmth, statement preparation and transaction-commit costs in the interpretation.
+An isolated saving selects a bundled-Rust causal check; it cannot accept real update latency or
+authorize changed identity/publication rules. Negligible or unexplained savings end this method
+without a cosmetic rewrite. Preserve the generated native result and all original real-root costs.
+
+The comparison returns identical staged payloads but only a 445-ms difference across 4096 records;
+it does not establish a dominant cause. Its progress callback cannot compare VM work across cached
+and individually prepared statements, so that requested evidence remains unproven. Preserve the
+[result and observer limitation](../acceptance/r2c-retained-runtime.md#warm-staging-statement-comparison),
+make no speculative staging change, and end this method without replay. Conservatively charge its
+45-minute block: 11939 charged / 12064 reserved. Existing retained-update and recovery costs remain
+open; this negative comparison cannot accept or waive them.
+
+#### Retained update metadata-reuse audit
+
+Reserve 30 active minutes, cumulative 12094 reserved, for a closed-catalog comparison of the
+retained manual update's exact before/after snapshots. Count unchanged path/identity/source-state
+and current metadata-engine eligibility by logical root before choosing another scan optimization.
+Use read-only connections, at most 80000 active rows per snapshot and a 15-second query deadline;
+open no media and start no client or scan. Compare only existing derived evidence and preserve
+protected catalog hashes. Separate truly changed source evidence from engine-version refresh and
+unchanged warm work; differences are not authority to skip source revalidation. If warm work is
+dominant, use that finding to select a measured owning operation, not another speculative SQL edit.
+
+The closed-catalog comparison finds 30640 of 30659 local-primary records eligible for warm
+metadata reuse. All identities and source states remain equal; the remaining 19 refresh an
+invalidated metadata-engine marker. The untouched peer is unchanged. Protected catalogs retain
+their hashes and no media is opened. This excludes mass reinspection as the explanation for the
+recorded traversal cost; it does not prove every eligibility branch executed. Charge the 30-minute
+block: 11969 charged / 12094 reserved. The owning result is in the
+[retained runtime record](../acceptance/r2c-retained-runtime.md#retained-update-metadata-reuse).
+
+#### Discovery attribute-handle ownership correction
+
+Reserve 60 active minutes, cumulative 12154 reserved: 20 for the causal boundary and repair,
+15 focused checks, 15 independent review and ten records. Windows discovery obtains metadata and
+identity from its root-relative handle, then reopens the absolute path for identity and revision.
+Prove the redundant reopen with an owned-file rename/replacement between handle acquisition and
+admission. Preserve the failing old-source result. Move the complete root-relative admission into
+the existing file-admission owner and retain the borrowed attribute handle through classification
+and evidence capture. Identity, revision and metadata must refer to that opened file; an evidence
+failure must not fall back to an unrelated path owner. Final root-relative revalidation remains
+mandatory and must reject the changed path.
+
+Keep attribute access, namespace/reparse/placeholder checks, content-signature admission and
+terminal/retryable outcomes unchanged. Add no new filesystem privilege, content read, cache,
+retry, dependency, schema or bridge contract. Verify available, renamed/replaced, locked,
+unsupported and placeholder boundaries serially. This removes a concrete duplicate operation;
+do not claim it accounts for the complete retained-update delay. The accumulated scan-performance
+and full quality gates remain queued behind the functional repair batch, not repeated per edit.
+
+The old-code owned-file regression fails after rename because the absolute reopen loses the held
+file's identity. The corrected admission passes the renamed and replaced-path cases, the four
+focused admission tests and all 70 local-files adapter tests, with no ignored cases. Independent
+review finds no remaining issue in this boundary. Preserve the separate lifetime and real-cost
+gaps: no new full scan, real-root run or Daily is included. The
+[owning evidence](../acceptance/r2c-retained-runtime.md#discovery-attribute-handle-evidence)
+records source sizes and proving limits. Charge the 60-minute block in full: 12029 charged /
+12154 reserved. The repair is focused-verified, not final-candidate or client-accepted.
+
+#### Accumulated candidate idle-browsing observation
+
+Reserve 60 active minutes, cumulative 12214 reserved: 20 to bind the existing guarded observer to
+the accumulated source, ten independent method review, up to ten native minutes after current
+authorization and 20 evidence/records. The original Retry frames lack location-bound errors;
+the subsequent location-bound pending-read run contains no failed tile. Neither permits guessing
+that old persisted failures or one specific transient error caused every reported Retry.
+
+Reuse the completed retained-update baseline, two logical roots and the existing isolated-catalog
+preparer, native read observer, visible feedback observer, resource monitor and owned process
+runner. Bind the current position, indexed-query and attribute-admission repairs in one Debug
+artifact. Source roots stay read-only; no import, manual update, viewer, hydration or cache/profile
+mutation is admitted. Baseline copying/building are preparation only; the previous one-off
+real-root lifetime is consumed and a new client needs a fresh bounded scope and artifact binding.
+
+Select cloud-primary, wait for synchronization to settle, click the middle rail, wait for actual
+loaded pixels and idle status, then scroll upward by the earlier small and large deltas and reverse.
+Bind each delivered input, every sampled Retry location/code/source generation, query publication
+and rendered position. Distinguish terminal unsupported media from transient preview failure and
+decode feedback. Preserve any unsampled or unbound error gap. If the original sequence passes,
+use only the remaining lifetime for one pending-read upward/reverse sequence; do not repeat a
+successful unchanged target. Require normal close after fresh window observation before writing
+the close receipt. Existing 600-second lifetime, four-GiB launch floor, two-GiB client/host bounds,
+recovery stop and six-second close bounds remain. Retain all prior failed lifetimes. This is a
+diagnostic/user-path checkpoint before full gates, not a claim that all real-library issues close.
+
+Method review confirms the reused helper byte identities but finds that a freshly resolved tile
+status does not prove which branch rendered Retry. Before launch, the read-only observer now
+records the feedback's actual Image ancestry, stopping at its owning photo tile, and separates
+retry progress, image-error feedback, asset-failure feedback and unbound feedback. Tile source/code
+fields remain current sampled provider evidence, not the original error's captured identity.
+Retain the first 43.8-second build and rebuild only for this observer delta. The strict copied
+closed-catalog verifier retains its immutable-metadata comparison; legitimate source revision or
+generation adoption must be reported separately and cannot be silently labeled an aggregate pass.
+
+Preparation and the scoped observer recheck are complete for run
+`025bb2d43b6c48eba0e9fb413c3d2646`; the nine-file Debug entry and 654-file product closure are
+bound to the source at that checkpoint. At preparation, the concrete run awaited authorization
+under the then-current policy, with its existing limits and root allowlist. The
+[preparation record](../acceptance/r2c-retained-runtime.md#current-idle-browsing-candidate-preparation)
+retains both builds and their diagnostic distinction. This block remains reserved rather than
+claiming its native work executed.
+
+#### Staging page-cache cost isolation
+
+While native authorization is pending, reserve 30 active minutes, cumulative 12244 reserved, for
+one different owning-cost comparison. The earlier preparation-cache probe leaves the actual
+insertion at roughly three seconds per 4096 generated records. Production connection configuration
+does not select a page-cache size. Compare the unchanged source-bound location INSERT under the
+default versus 16-MiB SQLite page-cache target, with identical statement caching, journal settings,
+starting database and 4096 bindings. Use fresh disposable copies of the existing generated catalog;
+all staged records roll back. Bound each subprocess to 20 seconds and its row loop to 15 seconds;
+record actual cache/journal settings and equal result digests. No source media, native process,
+product edit or full scan is admitted. This distinguishes write-page pressure from SQL preparation;
+it does not accept end-to-end cost or authorize increased application-wide memory. Negligible or
+unexplained improvement ends this method without another unchanged replay. Preserve the already
+bound native candidate and continue its pending real-root authorization separately.
+
+The two arms complete with identical staged payloads: 3133.242 ms at the default target versus
+2196.054 ms at 16 MiB. This limited improvement does not establish the retained update's dominant
+cost, and filesystem-cache warmth and bundled-engine behavior remain unmeasured. End the method
+without a production cache-policy edit or replay. Charge its 30-minute block: 12059 charged /
+12244 reserved. The [cost comparison](../acceptance/r2c-retained-runtime.md#staging-page-cache-cost-comparison)
+preserves the measurement and limits; the prepared native candidate is unchanged.
 
 #### M04 bounded implementation method
 
@@ -4754,7 +5467,7 @@ If a core failure reproduces, retain the first failed stage and diagnose its own
 admitted repair limits; do not patch feedback or add retries to make the observation pass.
 Release decoding/input, real signed broker/downtime catch-up, pending-call shutdown and other frozen
 interleavings retain their own exits. Ordinary Release storage excludes the Debug override, so
-launching it on the user's configured catalog requires separately prepared current authorization.
+launching it requires a separately prepared read-only scope and protection of the original catalog.
 
 The core session ends normally after its 300-second bulk-removal assertion fails. C04 is a
 distinct functional finding: 1500 expected removals remain published, with twelve exhausted
@@ -5204,10 +5917,10 @@ Nonblocking evidence collection may continue only inside the already frozen rost
   retained-library behavior, signing, service installation, or real broker FSCTL.
 - Before retained-library client acceptance, prepare a separate concrete run description: logical
   roots, bounded scenarios/sample counts, read types, duration/resource limits, isolated derived
-  storage, artifact identity, source/placeholder checks, and stop/cleanup behavior. Obtain the
-  existing required current authorization only after that description is reviewable. Prior
-  authorization or the local root mapping does not authorize a new run. If unavailable, report
-  controlled verification and client acceptance separately; keep the latter pending.
+  storage, artifact identity, source/placeholder checks, and stop/cleanup behavior. Execute known-root
+  read-only verification under the standing repository policy without repeated per-run confirmation.
+  A local root mapping does not replace scope or artifact validation. If execution is unavailable,
+  report controlled verification and client acceptance separately; keep the latter pending.
 
 The controlled cycle exits only when every frozen variant has current passing or justified reused
 evidence, all admitted root-cause regressions pass, no known S0/S1 remains in existing R2c core

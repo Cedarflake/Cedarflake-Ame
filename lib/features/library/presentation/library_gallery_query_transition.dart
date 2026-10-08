@@ -136,7 +136,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         return outcome;
       }
     }
-    final position = _resolvePosition(readState(), frozen);
+    final position = _resolvePosition(readState(), frozen, anchor);
     _pendingPosition = null;
     onPublished((
       generation: generation,
@@ -157,6 +157,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
   LibraryGalleryVisiblePosition? _resolvePosition(
     LibraryState state,
     LibraryGalleryVisiblePosition? frozen,
+    LibraryQueryAnchor? requestedAnchor,
   ) {
     final revision = state.catalogRevision;
     if (revision == null || state.assets.isEmpty) {
@@ -186,6 +187,24 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
         locationId: resolution.locationId!,
         assetId: _assetAt(state, resolution.locationId!)?.assetId,
         globalItemIndex: resolution.ordinal!,
+        itemFraction: frozen.itemFraction,
+        viewportFraction: frozen.viewportFraction,
+      );
+    }
+    // A viewer-centered read may resolve a different anchor while still loading
+    // the wall's location. Its new ordinal comes from the accepted window.
+    if (frozen != null &&
+        requestedAnchor != null &&
+        requestedAnchor.requestedLocationId != frozen.locationId &&
+        loadedIndex >= 0) {
+      final asset = state.assets[loadedIndex];
+      return LibraryGalleryVisiblePosition(
+        queryId: state.queryId,
+        revision: revision,
+        monthKey: null,
+        locationId: asset.locationId,
+        assetId: asset.assetId,
+        globalItemIndex: state.windowStartItemOffset + loadedIndex,
         itemFraction: frozen.itemFraction,
         viewportFraction: frozen.viewportFraction,
       );

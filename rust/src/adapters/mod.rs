@@ -22,6 +22,8 @@ pub(crate) use local_files::open_viewer_source_guard;
 pub use local_files::{
     FileDiscovery, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
 };
+#[cfg(windows)]
+pub(crate) use local_files::{LocatedLibraryRoot, locate_library_root};
 pub(crate) use local_files::{
     PreviewCacheNamespace, PreviewPublicationGuard, PublicationGuardedFileDiscovery,
     open_catalog_identity_guard, open_preview_publication_guard, open_preview_source,

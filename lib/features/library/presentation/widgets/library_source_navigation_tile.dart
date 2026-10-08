@@ -27,6 +27,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
     required this.onSelect,
     required this.onToggleExpansion,
     required this.onUpdate,
+    this.onRelocate,
     required this.onOpen,
     required this.onRemove,
     this.focusNode,
@@ -45,6 +46,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
   final VoidCallback onSelect;
   final VoidCallback onToggleExpansion;
   final VoidCallback onUpdate;
+  final VoidCallback? onRelocate;
   final VoidCallback onOpen;
   final VoidCallback onRemove;
   final FocusNode? focusNode;
@@ -223,6 +225,7 @@ class _LibrarySourceNavigationTileState
   Future<void> _showMenu(RelativeRect position) async {
     const labels = [
       LibraryStrings.updateLibrary,
+      LibraryStrings.relocateLibrary,
       LibraryStrings.openInExplorer,
       LibraryStrings.removeFromAme,
     ];
@@ -249,6 +252,17 @@ class _LibrarySourceNavigationTileState
             label: LibraryStrings.openInExplorer,
           ),
         ),
+        PopupMenuItem(
+          value: _LibrarySourceMenuAction.relocate,
+          enabled:
+              !widget.isBrowseDisabled &&
+              !widget.isUpdating &&
+              widget.onRelocate != null,
+          child: const AmeMenuItemContent(
+            icon: Symbols.folder_open_rounded,
+            label: LibraryStrings.relocateLibrary,
+          ),
+        ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         PopupMenuItem(
           value: _LibrarySourceMenuAction.remove,
@@ -266,6 +280,8 @@ class _LibrarySourceNavigationTileState
     switch (action) {
       case _LibrarySourceMenuAction.update:
         widget.onUpdate();
+      case _LibrarySourceMenuAction.relocate:
+        widget.onRelocate?.call();
       case _LibrarySourceMenuAction.open:
         widget.onOpen();
       case _LibrarySourceMenuAction.remove:
@@ -375,7 +391,7 @@ class _LibrarySourceNavigationTileState
   }
 }
 
-enum _LibrarySourceMenuAction { update, open, remove }
+enum _LibrarySourceMenuAction { update, open, relocate, remove }
 
 class PendingLibrarySourceTile extends StatelessWidget {
   const PendingLibrarySourceTile({

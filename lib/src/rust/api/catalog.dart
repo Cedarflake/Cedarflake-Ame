@@ -17,6 +17,16 @@ Stream<ScanEvent> scanLibrary({required ScanRequest request}) =>
 Stream<ScanEvent> resumeLibraryScan({required ScanRequest request}) =>
     RustLib.instance.api.crateApiCatalogResumeLibraryScan(request: request);
 
+Stream<ScanEvent> relocateLibraryRoot({
+  required String rootId,
+  required String expectedRootPath,
+  required ScanRequest request,
+}) => RustLib.instance.api.crateApiCatalogRelocateLibraryRoot(
+  rootId: rootId,
+  expectedRootPath: expectedRootPath,
+  request: request,
+);
+
 Future<CatalogSnapshot> loadLibraryCatalog({
   required int maxItems,
   required GalleryQuery query,

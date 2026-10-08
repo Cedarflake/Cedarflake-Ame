@@ -88,6 +88,111 @@ void main() {
     expect(position.itemFraction, 0);
   });
 
+  for (final hasResolution in [false, true]) {
+    test(
+      "unresolved wall anchor uses the fallback even when its location is loaded, resolution=$hasResolution",
+      () async {
+        final fixture = _Fixture();
+        await fixture.transition.run((anchor) async {
+          expect(anchor?.requestedLocationId, "old-location");
+          fixture.state = LibraryState.fromSnapshot(
+            LibrarySnapshot(
+              catalogPath: "controlled.sqlite3",
+              queryId: "new-query",
+              revision: BigInt.two,
+              roots: const [],
+              assets: [_asset("window-first"), _asset("old-location")],
+              queryAnchorResolution: hasResolution
+                  ? const LibraryQueryAnchorResolution(
+                      requestedLocationId: "old-location",
+                      locationId: null,
+                      ordinal: null,
+                      windowStartItemOffset: 500,
+                    )
+                  : null,
+            ),
+          ).copyWith(windowStartItemOffset: 500);
+          return LibraryQueryUpdateOutcome.applied;
+        });
+        final position = fixture.published.single.position!;
+        expect(position.locationId, "window-first");
+        expect(position.globalItemIndex, 500);
+        expect(position.itemFraction, 0);
+        expect(position.viewportFraction, 0);
+      },
+    );
+  }
+
+  for (final closeViewerDuringRead in [false, true]) {
+    test(
+      "viewer ${closeViewerDuringRead ? 'closed during' : 'open through'} refresh preserves the separate wall position",
+      () async {
+        final fixture = _Fixture();
+        final wallAsset = _asset("old-location");
+        final viewerAsset = _asset("viewer-location");
+        fixture.viewer = viewerAsset;
+        fixture.state = fixture.state.copyWith(
+          assets: [wallAsset, viewerAsset],
+          windowStartItemOffset: 24,
+        );
+        final read = Completer<LibraryQueryUpdateOutcome>();
+        final result = fixture.transition.publish((anchor) {
+          expect(anchor?.requestedLocationId, viewerAsset.locationId);
+          expect(anchor?.fallbackGlobalItemIndex, 25);
+          return read.future;
+        });
+
+        if (closeViewerDuringRead) {
+          fixture.viewer = null;
+        }
+        fixture.state = _state(revision: 2, resolved: false).copyWith(
+          assets: [_asset("window-first"), viewerAsset, wallAsset],
+          windowStartItemOffset: 520,
+          queryAnchorResolution: LibraryQueryAnchorResolution(
+            requestedLocationId: viewerAsset.locationId,
+            locationId: viewerAsset.locationId,
+            ordinal: 521,
+            windowStartItemOffset: 520,
+          ),
+        );
+        read.complete(LibraryQueryUpdateOutcome.applied);
+        expect(await result, LibraryQueryUpdateOutcome.applied);
+
+        final position = fixture.published.single.position!;
+        expect(position.locationId, wallAsset.locationId);
+        expect(position.assetId, wallAsset.assetId);
+        expect(position.globalItemIndex, 522);
+        expect(position.revision, BigInt.two);
+        expect(position.itemFraction, 0.3);
+        expect(position.viewportFraction, 0.5);
+        expect(fixture.transition.pendingPosition, isNull);
+      },
+    );
+  }
+
+  test("viewer refresh does not revive a removed wall anchor", () async {
+    final fixture = _Fixture();
+    final viewerAsset = _asset("viewer-location");
+    fixture.viewer = viewerAsset;
+    await fixture.transition.publish((_) async {
+      fixture.state = _state(revision: 2, resolved: false).copyWith(
+        assets: [_asset("window-first"), viewerAsset],
+        queryAnchorResolution: LibraryQueryAnchorResolution(
+          requestedLocationId: viewerAsset.locationId,
+          locationId: viewerAsset.locationId,
+          ordinal: 501,
+          windowStartItemOffset: 500,
+        ),
+      );
+      return LibraryQueryUpdateOutcome.applied;
+    });
+    final position = fixture.published.single.position!;
+    expect(position.locationId, "window-first");
+    expect(position.globalItemIndex, 500);
+    expect(position.itemFraction, 0);
+    expect(position.viewportFraction, 0);
+  });
+
   for (final obsoleteFails in [false, true]) {
     test(
       "late ${obsoleteFails ? 'failure' : 'completion'} cannot clear a newer position",
@@ -169,7 +274,7 @@ class _Fixture {
     transition = LibraryGalleryQueryTransition(
       readState: () => state,
       capturePosition: (_) => position,
-      readViewerAnchor: () => null,
+      readViewerAnchor: () => viewer,
       reconcileViewer: () async {
         reconciles += 1;
         await pendingReconciliation?.future;
@@ -180,6 +285,7 @@ class _Fixture {
   }
 
   LibraryState state = _state(revision: 1, resolved: false);
+  LibraryAsset? viewer;
   final position = LibraryGalleryVisiblePosition(
     queryId: "query",
     revision: BigInt.one,
@@ -196,6 +302,23 @@ class _Fixture {
   int failures = 0;
   Completer<void>? pendingReconciliation;
 }
+
+LibraryAsset _asset(String locationId) => LibraryAsset(
+  assetId: "asset-$locationId",
+  locationId: locationId,
+  rootId: "root",
+  activeScanId: "scan",
+  sourcePath: "$locationId.png",
+  displayPath: "$locationId.png",
+  relativePath: "$locationId.png",
+  previewPath: "",
+  fileSize: BigInt.one,
+  modifiedUnixMs: 1,
+  sourceRevision: null,
+  sourceGeneration: BigInt.one,
+  width: 32,
+  height: 24,
+);
 
 LibraryState _state({required int revision, required bool resolved}) =>
     LibraryState.fromSnapshot(

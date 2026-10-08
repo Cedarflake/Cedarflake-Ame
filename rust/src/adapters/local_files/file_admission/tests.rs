@@ -5,11 +5,77 @@ use tempfile::tempdir;
 
 use super::*;
 use crate::adapters::local_files::{
+    FILE_READ_ATTRIBUTES, file_identity_from_handle, open_root_relative_handle,
     reset_source_content_open_instrumentation, source_content_open_count,
+    source_revision_from_handle,
 };
 use crate::adapters::media_inspector::LocalMediaInspector;
 use crate::domain::ExpectedFileState;
 use crate::media_fixtures::{MediaFixtureFormat, encode_rgb_quadrants};
+
+#[test]
+fn discovery_keeps_opened_file_evidence_when_its_path_is_renamed_or_replaced() {
+    for replace_path in [false, true] {
+        let root = tempdir().expect("isolated source");
+        let name = "image.png";
+        let path = root.path().join(name);
+        let moved_path = root.path().join("moved.png");
+        let bytes = encode_rgb_quadrants(MediaFixtureFormat::Png, 32, 24).expect("valid pixels");
+        fs::write(&path, &bytes).expect("owned fixture");
+        let discovery = FileDiscovery::new(&root.path().to_string_lossy()).expect("discovery");
+        let handle = open_root_relative_handle(
+            &discovery.root_proof.handle,
+            Path::new(name),
+            FILE_READ_ATTRIBUTES,
+            None,
+        )
+        .expect("production attribute handle");
+        let metadata = handle.metadata().expect("metadata from the opened file");
+        let identity = file_identity_from_handle(&handle).expect("opened identity");
+        fs::rename(&path, &moved_path).expect("rename only the owned fixture");
+        if replace_path {
+            fs::write(&path, b"a different owned file").expect("replace the owned path");
+        }
+        let revision = source_revision_from_handle(&handle).expect("opened file after rename");
+
+        let visit = discovery.visit_relative_path_with_metadata(
+            name.to_owned(),
+            path,
+            metadata,
+            ReparseKind::None,
+            MetadataInventoryPlaceholderState::Available,
+            Some(&handle),
+        );
+        let FileVisitOutcome::File(file) = visit.outcome else {
+            panic!("the admitted attribute handle still owns an ordinary file");
+        };
+        assert_eq!(
+            file.file_identity, identity,
+            "do not reopen a different path owner"
+        );
+        assert_eq!(file.source_revision, Some(revision));
+        assert!(file.issues.is_empty());
+        assert!(
+            discovery
+                .revalidate_relative_file_state(
+                    name,
+                    &ExpectedFileState {
+                        absolute_path: file.absolute_path,
+                        file_size: file.file_size,
+                        modified_unix_ms: file.modified_unix_ms,
+                        file_identity: file.file_identity,
+                        source_revision: file.source_revision,
+                    },
+                )
+                .is_err(),
+            "held discovery evidence cannot authorize publication at a changed path"
+        );
+        assert_eq!(
+            fs::read(&moved_path).expect("original fixture bytes"),
+            bytes
+        );
+    }
+}
 
 #[test]
 fn locked_discovery_admission_retains_available_file_identity_for_exact_retry() {

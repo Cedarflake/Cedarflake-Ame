@@ -5,6 +5,7 @@ import "package:flutter/foundation.dart";
 import "../domain/library_models.dart";
 import "library_preview_failure.dart";
 import "library_preview_order.dart";
+import "library_preview_root_failures.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
 
@@ -40,13 +41,6 @@ class LibraryPreviewQueue {
     if (maxActive < 1) {
       throw ArgumentError.value(maxActive, "maxActive", "must be positive");
     }
-    if (rootUnavailableCooldown.isNegative) {
-      throw ArgumentError.value(
-        rootUnavailableCooldown,
-        "rootUnavailableCooldown",
-        "must not be negative",
-      );
-    }
     return LibraryPreviewQueue._(
       previewer,
       previewEdge,
@@ -54,7 +48,10 @@ class LibraryPreviewQueue {
       onResult,
       onCompleted,
       canPublishResult,
-      rootUnavailableCooldown,
+      LibraryPreviewRootFailures(
+        unavailableCooldown: rootUnavailableCooldown,
+        isCurrentSource: canPublishResult ?? (_) => true,
+      ),
     );
   }
 
@@ -65,7 +62,7 @@ class LibraryPreviewQueue {
     this._onResult,
     this._onCompleted,
     this._canPublishResult,
-    this._rootUnavailableCooldown,
+    this._rootFailures,
   );
 
   final LibraryPreviewer _previewer;
@@ -74,12 +71,10 @@ class LibraryPreviewQueue {
   final void Function(LibraryAsset asset) _onResult;
   final void Function(LibraryPreviewCompletion completion)? _onCompleted;
   final bool Function(LibraryAsset asset)? _canPublishResult;
-  final Duration _rootUnavailableCooldown;
-  final Stopwatch _rootFailureClock = Stopwatch()..start();
+  final LibraryPreviewRootFailures _rootFailures;
   final Map<String, _PreviewRequest> _pending = {};
   final Map<String, _PreviewRequest> _active = {};
   final Map<String, int> _latestGeneration = {};
-  final Map<String, _BlockedPreviewRoot> _blockedRoots = {};
   Map<String, LibraryPreviewPriority> _demandPriorities = const {};
   Map<String, int> _demandRanks = const {};
   int _nextSequence = 0;
@@ -181,15 +176,10 @@ class LibraryPreviewQueue {
       completion?.complete(LibraryPreviewRequestOutcome.disposed);
       return;
     }
-    final blockedRoot = _blockedRoots[asset.rootId];
-    if (blockedRoot != null && blockedRoot.activeScanId != asset.activeScanId) {
-      _blockedRoots.remove(asset.rootId);
-    } else if (blockedRoot != null &&
-        (retry || blockedRoot.hasCooledDown(_rootFailureClock.elapsed))) {
-      _blockedRoots.remove(asset.rootId);
-    } else if (blockedRoot != null) {
-      _publishBlockedAsset(asset, blockedRoot.failure);
-      completion?.complete(_rootFailureOutcome(blockedRoot.failure));
+    final rootFailure = _rootFailures.failureFor(asset, explicitRetry: retry);
+    if (rootFailure != null) {
+      _publishBlockedAsset(asset, rootFailure);
+      completion?.complete(_rootFailureOutcome(rootFailure));
       return;
     }
     if (asset.previewStatus == LibraryPreviewStatus.ready &&
@@ -260,7 +250,7 @@ class LibraryPreviewQueue {
 
   void invalidateAll() {
     _contextGeneration++;
-    _blockedRoots.clear();
+    _rootFailures.clear();
     _demandPriorities = const {};
     _demandRanks = const {};
     _clearPendingWithOutcome(LibraryPreviewRequestOutcome.contextInvalidated);
@@ -274,7 +264,7 @@ class LibraryPreviewQueue {
 
   void clearBlockedRoot(String rootId) {
     if (!_isDisposed) {
-      _blockedRoots.remove(rootId);
+      _rootFailures.clearRoot(rootId);
     }
   }
 
@@ -348,7 +338,7 @@ class LibraryPreviewQueue {
       _completeRequest(request, LibraryPreviewRequestOutcome.disposed);
     }
     _latestGeneration.clear();
-    _blockedRoots.clear();
+    _rootFailures.clear();
   }
 
   void _drain() {
@@ -474,13 +464,10 @@ class LibraryPreviewQueue {
     _PreviewRequest request,
     LibraryPreviewFailure failure,
   ) {
-    _blockedRoots[request.asset.rootId] = _BlockedPreviewRoot(
-      activeScanId: request.asset.activeScanId,
-      failure: failure,
-      retryAt: failure.code == "preview_root_unavailable"
-          ? _rootFailureClock.elapsed + _rootUnavailableCooldown
-          : null,
-    );
+    if (!_rootFailures.record(request.asset, failure)) {
+      _completeRequest(request, LibraryPreviewRequestOutcome.superseded);
+      return;
+    }
     _publishBlockedAsset(request.asset, failure);
     final outcome = _rootFailureOutcome(failure);
     _completeRequest(request, outcome, failure: failure);
@@ -692,21 +679,4 @@ class _PreviewRequest {
   Duration? activeStartedAt;
   LibraryPreviewRequestOutcome? terminalOutcome;
   final List<Completer<LibraryPreviewRequestOutcome>> completions = [];
-}
-
-class _BlockedPreviewRoot {
-  const _BlockedPreviewRoot({
-    required this.activeScanId,
-    required this.failure,
-    required this.retryAt,
-  });
-
-  final String activeScanId;
-  final LibraryPreviewFailure failure;
-  final Duration? retryAt;
-
-  bool hasCooledDown(Duration now) {
-    final retryAt = this.retryAt;
-    return retryAt != null && now >= retryAt;
-  }
 }

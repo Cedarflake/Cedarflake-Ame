@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-09-25
+Last planning update: 2026-10-09
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -78,7 +78,14 @@ Item 3 selects functional synchronization and browsing. **R2C-C04 now has focuse
 verification** for fresh bulk changes and recovery of retained terminal work. The new
 [retained-library runtime findings](acceptance/r2c-retained-runtime.md) retain completed but slow
 recovery and a reported middle-timeline scroll jump with Retry feedback; the browsing incident
-takes current functional priority under its bounded execution method. The subsequent first-import
+takes current functional priority under its bounded execution method. First-import resumption now
+retains completed inspection work while proving current namespace membership. Its selected real-source
+continuation and local candidate gates are recorded in the same runtime evidence; the complete native
+lifetime and the separate browsing/update exits remain open. The supplied destination
+combines two former directories and requires automatic source continuity; a one-root manual
+relocation is only a fallback. The execution plan owns the corrected per-file identity, discovery
+and publication boundary, with both former sources retained until reconciliation establishes their
+disposition. Preserve the original idle browsing and slow-update obligations. The subsequent first-import
 Pause/capture correction now passes connected native Pause and complete local Daily, with current
 hosted required gates; its original failure and completed verification are preserved in the
 same runtime record. Continue the remaining functional variants without replaying unchanged gates.
@@ -246,9 +253,10 @@ invariant, failure, race, source-safety, and acceptance checklist. The
   safety, and final accumulated independent audit obligations must close. A controlled-cycle pass
   does not waive unresolved findings required by ADR 0024's final audit.
 - Signed bundle/publisher, installed-service lifecycle, real broker FSCTL, retained roots, and real
-  Cloud Files acceptance retain their existing inputs and current authorization. Prepare each
-  concrete bounded run before seeking missing authorization. Hosted Server CI, unsigned artifacts,
-  and controlled fixtures do not substitute for those gates.
+  Cloud Files acceptance retain their existing inputs and safety boundaries. Prepare concrete bounded
+  read-only real-library runs under the standing repository policy without per-run approval. Service
+  installation and source mutation retain their separate authorization requirements. Hosted Server CI,
+  unsigned artifacts and controlled fixtures do not substitute for those gates.
 - R3 remains paused. No source-media operation, release publication, or merge into `main` is
   authorized by this roadmap or a historical acceptance record.
 

@@ -284,13 +284,22 @@ admission remains synchronous; catalog opening, validation, and queries run on t
 
 Explicit Continue may retain its directory checkpoint only when persistent change coverage also
 proves the observation gap. The current resume adapter does not acquire that fresh proof, so it
-rebuilds every unfinished first inventory on explicit continuation. A live-only observer cannot
-provide that proof after pause or process
-exit: a previously visited directory could have gained files. In that case the explicit continuation
-re-establishes the first inventory from its root behind the same observer-first boundary. Rebuildable
-preview data may be reused, but an old frontier or validation of known files cannot stand in for
-missing namespace coverage. This cost belongs to the explicitly resumed first import, never to an
-automatic startup scan or ordinary synchronization.
+reconciles the first inventory's namespace from its root behind the same observer-first boundary.
+A live-only observer cannot prove the detached interval: a previously visited directory could have
+gained files. An old frontier or validation of known files cannot replace that namespace coverage.
+This reconciliation belongs to the explicitly resumed first import, never to an automatic startup
+scan or ordinary synchronization.
+
+Namespace reconciliation preserves completed, unpublished inspections. Schema v33 records their
+locations in a scan-owned pending roster without duplicating the media or metadata payload. Current
+file identity, source revision and metadata-engine compatibility govern reuse; missing or changed
+evidence requires fresh inspection. Successful staging clears that location's pending membership
+in the same transaction. Repeated interruption re-enrolls the retained staging, including records
+not revisited by the interrupted execution. After traversal, unobserved retained locations and only
+their unreferenced assets retire before final validation. The publication transaction cannot complete
+while pending membership remains. Cancellation retires this derived state through the existing
+scoped staging cleanup. Retained inspections grant neither current membership nor freshness and do
+not remove the existing final file-state, namespace, control or atomic-publication checks.
 
 ### Journal broker boundary
 
@@ -537,6 +546,84 @@ the active root generation and the persisted v29 publication-namespace identity 
 inspection and again immediately before its catalog transaction. A missing proof is not repaired
 from the configured path: the operation fails closed to `RecoveryRequired` or `LiveOnly` and keeps
 the prior catalog authoritative.
+
+An explicit source-location selection is a separate foreground admission. It retains the logical
+root identifier, verifies the prior path and root generation in the scan-start transaction, rejects
+another registered root's path and running/paused scans, and retires the former generation before
+binding the new scan. Selecting a new path never rewrites old published file identities or grants
+old workers the replacement namespace. A completed scan atomically publishes newly inspected
+locations; failure/cancellation retains the previous published snapshot and the explicit new root
+path. Ordinary updates and checkpoint resumes resolve that path to the registered logical root.
+Same-volume file identity may be reused only under the existing revision checks; a cross-volume
+copy receives new asset/source identity. This does not infer content equality or move source files.
+
+Ordinary scan admission first resolves an already registered path. For a newly observed path, a
+unique complete directory identity in the current active publication namespaces can instead
+recover that published logical root. The admission transaction repeats identity uniqueness and
+expected path/generation checks before retiring the former namespace; conflicting, ambiguous or
+changed evidence cannot pick a root by ordering or create another registration. Both identity
+recovery and explicit source replacement hold the complete target publication namespace guard
+through the binding transaction. Checkpoint resumption uses its registered binding and does not
+substitute another root through this lookup.
+
+This admission rule does not discover unknown destination paths. A directory assembled from
+several roots is not any one of those roots merely because its files match. Per-file reconciliation
+retains the existing platform-identity and revision rules; it cannot retire other source roots or
+infer that their migration is complete. Cross-volume copies and content equality do not confer
+logical-asset identity. Automatic path discovery and any multi-root binding transition must retain
+their own source authorization, complete evidence and atomic publication boundaries.
+
+For a missing published root, the unprivileged local-files adapter may look up its exact retained
+Windows directory identity using `OpenFileById`. The volume hint is an attribute-only handle to
+the registered local DOS drive root, whose complete volume identity must match first. No raw
+volume handle, directory enumeration, content read, privilege adjustment or search of other drives
+is admitted. The returned handle must reproduce the full identity and describe an available,
+non-reparse directory. Its final path is only a candidate; the complete publication namespace
+guard must then bind that same identity before any database operation can use it.
+
+This narrow unsafe adapter owns the hint and returned handles with RAII. The initialized
+`FILE_ID_DESCRIPTOR` uses exactly the extended 128-bit identity kind and its full structure size;
+borrowed pointers live through the synchronous call and are not retained. Invalid returned handles
+are never converted to owning files. Both opens request only `FILE_READ_ATTRIBUTES`, permit
+read/write/delete sharing during lookup and use backup/open-reparse semantics without no-recall.
+Unavailable volumes, unsupported path kinds, regular files, malformed evidence, identity drift,
+reparse directories and unpinnable candidate ancestors cannot authorize a path transition.
+
+Same-directory background recovery transfers the existing publication-namespace record only after
+unique retained identity and the full candidate guard reproduce the same directory. The transaction
+rechecks the expected registered path, generation and published scan, refuses running/paused scans
+and another root's destination, retires old queue and inventory execution, advances generation,
+and rebases only the active snapshot's validated relative locations. Asset, location, source and
+preview identities remain unchanged within this binding transaction. Subsequent watcher-gap
+recovery still advances source generations and invalidates derived owners under the existing
+lost-coverage policy; directory identity alone does not establish uninterrupted file continuity.
+The binding preserves the namespace record's evidence source and
+established revision/time; only generation and updated time change. This is a controlled continuation
+of directory identity, not a new foreground/inventory completion or transferred journal coverage.
+A root-level live evidence gap is committed with the binding, so ordinary bounded recovery owns
+reconciliation before the root can become current. Cancellation or any failed invariant rolls back
+the entire transition. Background discovery uses one joined worker and does not run inside the
+serialized observation poll. Its result belongs to the current runtime epoch; stop cancels and
+drains that worker before releasing the runtime.
+
+Old logical inventory entries, candidate relationships and traversal frontiers are removed in
+indexed 1024-row statements inside that same preemptible transaction. Their run headers, unfinished
+journal baselines and recovery authorities cannot retire through separately committed preparation:
+the source may return to its old path, and historical journal chains must remain valid at every
+committed state. Each page checks cancellation and preemption; interruption restores all deleted
+payload along with the old binding. Raw spools only retire here and remain with the existing bounded
+storage-maintenance owner. The bounded control-record roster is independent of inventory size.
+
+The path rebase uses the existing Recovery write lane with cooperative preemption by Live,
+Journal and interactive writers. The attempt owns its interrupt callback and progress handler;
+retirement disables both before rollback and at the final COMMIT boundary. A cancelled or
+preempted partial rebase cannot leave a changed root binding, generation or subset of paths.
+The complete quiet-period write and the higher-priority admission latency are separate costs.
+Old-generation baseline control rows and journal-gap consumer relationships retire before the
+generation switch; queue, range and checkpoint history remain scoped to the old generation and
+cannot confer coverage on the new one. Related control-row retirement retains a fixed admission
+bound; logical payload size is handled by indexed pages rather than unbounded cascades. Exceeding
+the control-record bound refuses the whole binding transition without partial changes.
 
 Publication normalizes the configured path to canonical long DOS names and validates the local DOS
 volume root plus every existing ancestor and the root as one RAII chain. Each component must be an

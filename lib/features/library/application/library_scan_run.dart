@@ -2,6 +2,7 @@ import "dart:async";
 
 import "../domain/library_models.dart";
 import "library_scan_control.dart";
+import "library_scan_source_admission.dart";
 import "library_scanner.dart";
 
 abstract interface class LibraryScanRunListener {
@@ -15,19 +16,23 @@ class LibraryScanRun {
   LibraryScanRun({
     required this.scanId,
     required this.generation,
+    required this.sourceAdmission,
     required LibraryScanner scanner,
   }) : control = LibraryScanControl(scanId: scanId, scanner: scanner);
 
   final String scanId;
   final int generation;
+  final LibraryScanSourceAdmission sourceAdmission;
   final LibraryScanControl control;
   final Completer<void> _streamDone = Completer<void>();
+  final Completer<void> _retired = Completer<void>();
   StreamSubscription<LibraryScanUpdate>? _subscription;
   bool didStart = false;
   bool didReceiveTerminal = false;
   bool _hasProtocolFailure = false;
 
   Future<void> get streamDone => _streamDone.future;
+  Future<void> get retired => _retired.future;
   bool get isDone => _streamDone.isCompleted;
   bool get hasProtocolFailure => _hasProtocolFailure;
 
@@ -112,5 +117,8 @@ class LibraryScanRun {
     await _subscription?.cancel();
     _subscription = null;
     complete();
+    if (!_retired.isCompleted) {
+      _retired.complete();
+    }
   }
 }

@@ -1116,6 +1116,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               onOpenSettings: _openSettings,
               onUpdateRoot: (root) =>
                   unawaited(_chooseLibraryRootsToUpdate(root)),
+              onRelocateRoot: (root) =>
+                  unawaited(controller.chooseDirectoryAndRelocate(root)),
               onOpenRoot: _openRoot,
               onOpenFolder: _openFolder,
               onRemoveRoot: _confirmRemoveRoot,

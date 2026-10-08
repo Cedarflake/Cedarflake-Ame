@@ -3,6 +3,7 @@ use crate::domain::GalleryQueryAnchor;
 use crate::ports::GalleryQueryRepository;
 
 mod current_snapshot;
+mod location_bounds;
 mod month_bounds;
 
 #[test]

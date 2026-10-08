@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn changed_source_publication_conflict_retires_preview_to_its_durable_retry() {
+fn changed_source_rebases_a_peer_publication_before_preparation() {
     let (fixture, ready) = ready_source_fixture("source-publication-conflict");
     let source_bytes = fs::read(&fixture.source_path).expect("fixture bytes");
     let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
@@ -29,26 +29,27 @@ fn changed_source_publication_conflict_retires_preview_to_its_durable_retry() {
     )
     .expect_err("old source request cannot publish");
     let connection = Connection::open(&fixture.storage.catalog_path).expect("catalog");
-    let (id, status, failure, attempts, retry_at): (i64, String, String, i64, i64) = connection
-        .query_row(
-            "SELECT id, status, last_failure_code, attempt_count, next_retry_unix_ms
+    let (id, status, failure, attempts, retry_at): (i64, String, Option<String>, i64, Option<i64>) =
+        connection
+            .query_row(
+                "SELECT id, status, last_failure_code, attempt_count, next_retry_unix_ms
              FROM library_change_queue WHERE origin = 'consistency_audit'",
-            [],
-            |row| {
-                Ok((
-                    row.get(0)?,
-                    row.get(1)?,
-                    row.get(2)?,
-                    row.get(3)?,
-                    row.get(4)?,
-                ))
-            },
-        )
-        .expect("retained path retry");
-    assert_eq!(status, "retry_wait");
-    assert_eq!(failure, "incremental_catalog_revision_changed");
+                [],
+                |row| {
+                    Ok((
+                        row.get(0)?,
+                        row.get(1)?,
+                        row.get(2)?,
+                        row.get(3)?,
+                        row.get(4)?,
+                    ))
+                },
+            )
+            .expect("completed path reconciliation");
+    assert_eq!(status, "completed");
+    assert_eq!(failure, None);
+    assert_eq!(retry_at, None);
     assert_eq!(attempts, 1);
-    assert_eq!(active_location(&fixture), original);
     assert_eq!(
         fs::read(&fixture.source_path).expect("source bytes"),
         source_bytes
@@ -59,21 +60,6 @@ fn changed_source_publication_conflict_retires_preview_to_its_durable_retry() {
         .expect("end peer publication");
     drop(connection);
 
-    let mut catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone()).expect("catalog");
-    let root = catalog
-        .load_incremental_catalog_root(&original.root_id)
-        .expect("root query")
-        .expect("root");
-    let report = process_ready_library_changes(
-        &mut catalog,
-        &root.root_id,
-        root.root_generation,
-        retry_at,
-        LibraryChangeQueuePolicy::default(),
-    )
-    .expect("original durable path recovers");
-    assert_eq!(report.completed_count, 1);
-    drop(catalog);
     let current = active_location(&fixture);
     assert!(current.source_generation > original.source_generation);
     assert_ne!(current.source_revision, original.source_revision);
@@ -99,7 +85,7 @@ fn changed_source_publication_conflict_retires_preview_to_its_durable_retry() {
         .expect("same path owner completion");
     assert_eq!(count, 1);
     assert_eq!(final_status, "completed");
-    assert_eq!(final_attempts, 2);
+    assert_eq!(final_attempts, 1);
 }
 
 #[test]
@@ -121,6 +107,13 @@ fn failed_durable_retry_is_not_reported_as_retired_preview_work() {
         .expect("peer commit followed by failed retry persistence");
     drop(connection);
     fs::write(&fixture.source_path, &source_bytes).expect("rewrite owned source");
+    let _publication_failure =
+        crate::adapters::set_before_catalog_delta_commit_hook(&ready.root_id, || {
+            Err(ScanError::new(
+                "root_publication_namespace_changed",
+                "fixture publication namespace failure",
+            ))
+        });
     let error = materialize_preview_with_storage(
         preview_request_for(&ready, 256, false),
         fixture.storage.clone(),

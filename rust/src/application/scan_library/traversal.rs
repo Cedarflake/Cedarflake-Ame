@@ -337,6 +337,7 @@ pub(super) fn traverse_scan(
         CheckpointPersistence,
         catalog.checkpoint_scan(&request.scan_id, checkpoint)
     )?;
+    catalog.finish_retained_import_inventory(&request.scan_id)?;
 
     Ok(ScanTraversalOutcome::Traversed {
         visited_entries,

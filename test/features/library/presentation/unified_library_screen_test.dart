@@ -2366,7 +2366,8 @@ void main() {
     expect(find.text("更新图库"), findsOneWidget);
     expect(find.text("在文件资源管理器中打开"), findsOneWidget);
     expect(find.text("从 Ame 中移除"), findsOneWidget);
-    expect(find.byType(AmeMenuItemContent), findsNWidgets(3));
+    expect(find.text(LibraryStrings.relocateLibrary), findsOneWidget);
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
     final updateMenuItem = find.ancestor(
       of: find.text("更新图库"),
       matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),

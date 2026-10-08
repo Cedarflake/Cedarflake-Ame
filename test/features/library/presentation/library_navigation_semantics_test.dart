@@ -26,6 +26,51 @@ void main() {
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
 
   testWidgets(
+    "missing source exposes relocation through the existing source menu",
+    (tester) async {
+      var relocations = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAmeTheme(),
+          home: Scaffold(
+            body: SizedBox(
+              width: 320,
+              child: LibrarySourceNavigationTile(
+                root: const LibraryRoot(
+                  id: "moved",
+                  path: "C:\\Prior",
+                  displayPath: "C:\\Prior",
+                  createdUnixMs: 1,
+                  assetCount: 10,
+                  issueCount: 0,
+                  availability: LibraryRootAvailability.missing,
+                ),
+                isCompact: false,
+                isSelected: true,
+                isExpanded: false,
+                isBrowseDisabled: false,
+                isUpdateDisabled: true,
+                onSelect: _noop,
+                onToggleExpansion: _noop,
+                onUpdate: _noop,
+                onOpen: _noop,
+                onRemove: _noop,
+                onRelocate: () => relocations += 1,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.byKey(const ValueKey("source-more-moved")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(LibraryStrings.relocateLibrary));
+      await tester.pumpAndSettle();
+      expect(relocations, 1);
+      expect(find.text(LibraryStrings.relocateLibrary), findsNothing);
+    },
+  );
+
+  testWidgets(
     "keeps sidebar overlay updates reachable through rebuilds and interactions",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);

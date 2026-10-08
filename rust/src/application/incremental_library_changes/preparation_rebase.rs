@@ -33,22 +33,7 @@ pub(super) fn refresh_preparation(
     reads: PreparationReadSet,
     context: RebaseContext<'_>,
 ) -> RebasedPreparation {
-    let mut previous_root = context.previous_root.clone();
-    previous_root.catalog_revision = context.current_root.catalog_revision;
-    let bindings_match = previous_root == *context.current_root
-        && reads.still_matches(repository, context.cancelled);
-    let sources_match = bindings_match
-        && prepared.iter().all(|change| {
-            !cancellation_requested(context.cancelled)
-                && !change.revalidation.is_empty()
-                && change.revalidation.iter().all(|target| match target {
-                    RevalidationTarget::Present { expected, .. } => {
-                        expected.file_identity.is_some() && expected.source_revision.is_some()
-                    }
-                    RevalidationTarget::CatalogAbsent(_) => true,
-                })
-                && revalidate_change(discovery, change).is_ok()
-        });
+    let sources_match = preparation_is_current(repository, discovery, &prepared, &reads, &context);
     if cancellation_requested(context.cancelled) {
         return RebasedPreparation::Cancelled;
     }
@@ -85,4 +70,29 @@ pub(super) fn refresh_preparation(
         reads: catalog.finish(),
         retries,
     }
+}
+
+pub(super) fn preparation_is_current(
+    repository: &impl IncrementalCatalogRepository,
+    discovery: &PublicationGuardedFileDiscovery,
+    prepared: &[PreparedChange],
+    reads: &PreparationReadSet,
+    context: &RebaseContext<'_>,
+) -> bool {
+    let mut previous_root = context.previous_root.clone();
+    previous_root.catalog_revision = context.current_root.catalog_revision;
+    let bindings_match = previous_root == *context.current_root
+        && reads.still_matches(repository, context.cancelled);
+    bindings_match
+        && prepared.iter().all(|change| {
+            !cancellation_requested(context.cancelled)
+                && !change.revalidation.is_empty()
+                && change.revalidation.iter().all(|target| match target {
+                    RevalidationTarget::Present { expected, .. } => {
+                        expected.file_identity.is_some() && expected.source_revision.is_some()
+                    }
+                    RevalidationTarget::CatalogAbsent(_) => true,
+                })
+                && revalidate_change(discovery, change).is_ok()
+        })
 }

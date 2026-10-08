@@ -1,13 +1,15 @@
-use std::fs::Metadata;
+use std::fs::{File, Metadata};
 use std::path::{Path, PathBuf};
 
-use crate::domain::{
-    DiscoveredFile, FileIdentityEvidence, MetadataInventoryPlaceholderState, ScanIssue,
-};
+use crate::domain::{DiscoveredFile, MetadataInventoryPlaceholderState, ScanIssue};
 
-#[cfg(windows)]
-use super::file_source_evidence;
 use super::media_signature::{has_image_extension, has_supported_magic_from_reader};
+#[cfg(windows)]
+use super::{
+    FILE_READ_ATTRIBUTES, file_attribute_tag_info_from_handle, file_identity_from_handle,
+    file_source_evidence, open_root_relative_handle, path_metadata_issue, relative_path_text,
+    reparse_evidence_from_attribute_tag, root_relative_path_issue, source_revision_from_handle,
+};
 use super::{FileDiscovery, ReparseKind, created_unix_ms, modified_unix_ms, path_text};
 #[cfg(not(windows))]
 use super::{file_identity, open_source_file};
@@ -34,6 +36,72 @@ pub struct FileVisit {
 }
 
 impl FileDiscovery {
+    #[cfg(windows)]
+    pub(super) fn visit_root_relative_path(&self, relative_path: PathBuf) -> FileVisit {
+        let relative_path_text = relative_path_text(&relative_path);
+        let path = self.canonical_root.join(&relative_path);
+        let handle = match open_root_relative_handle(
+            &self.root_proof.handle,
+            &relative_path,
+            FILE_READ_ATTRIBUTES,
+            None,
+        ) {
+            Ok(handle) => handle,
+            Err(error) => {
+                return FileVisit {
+                    relative_path: relative_path_text,
+                    outcome: FileVisitOutcome::Issue(root_relative_path_issue(&path, error)),
+                };
+            }
+        };
+        let metadata = match handle.metadata() {
+            Ok(metadata) => metadata,
+            Err(error) => {
+                return FileVisit {
+                    relative_path: relative_path_text,
+                    outcome: FileVisitOutcome::Issue(path_metadata_issue(&path, error)),
+                };
+            }
+        };
+        let attributes = match file_attribute_tag_info_from_handle(&handle) {
+            Ok(attributes) => attributes,
+            Err(error) => {
+                return FileVisit {
+                    relative_path: relative_path_text,
+                    outcome: FileVisitOutcome::Issue(ScanIssue {
+                        path: Some(path_text(&path)),
+                        code: "file_reparse_evidence_unreadable".to_owned(),
+                        message: error.to_string(),
+                    }),
+                };
+            }
+        };
+        let (reparse_kind, placeholder_state) = match reparse_evidence_from_attribute_tag(
+            attributes.FileAttributes,
+            attributes.ReparseTag,
+        ) {
+            Ok(evidence) => evidence,
+            Err(error) => {
+                return FileVisit {
+                    relative_path: relative_path_text,
+                    outcome: FileVisitOutcome::Issue(ScanIssue {
+                        path: Some(path_text(&path)),
+                        code: "file_reparse_evidence_unreadable".to_owned(),
+                        message: error.to_string(),
+                    }),
+                };
+            }
+        };
+        self.visit_relative_path_with_metadata(
+            relative_path_text,
+            path,
+            metadata,
+            reparse_kind,
+            placeholder_state,
+            Some(&handle),
+        )
+    }
+
     pub(super) fn visit_relative_path_with_metadata(
         &self,
         relative_path: String,
@@ -41,7 +109,7 @@ impl FileDiscovery {
         metadata: Metadata,
         reparse_kind: ReparseKind,
         placeholder_state: MetadataInventoryPlaceholderState,
-        known_identity: Option<FileIdentityEvidence>,
+        source_handle: Option<&File>,
     ) -> FileVisit {
         let file_type = metadata.file_type();
         if placeholder_state != MetadataInventoryPlaceholderState::Available {
@@ -83,12 +151,8 @@ impl FileDiscovery {
             match self.has_supported_magic_for_relative_path(&relative_path, &path) {
                 Ok(true) => {}
                 Ok(false) => {
-                    let file = self.discovered_file(
-                        &relative_path,
-                        &path,
-                        &metadata,
-                        known_identity.clone(),
-                    );
+                    let file =
+                        self.discovered_file(&relative_path, &path, &metadata, source_handle);
                     return FileVisit {
                         relative_path,
                         outcome: FileVisitOutcome::TerminalMedia {
@@ -104,7 +168,7 @@ impl FileDiscovery {
                 }
                 Err(error) => {
                     let file =
-                        self.discovered_file(&relative_path, &path, &metadata, known_identity);
+                        self.discovered_file(&relative_path, &path, &metadata, source_handle);
                     return FileVisit {
                         relative_path,
                         outcome: FileVisitOutcome::RetryableFile {
@@ -120,7 +184,7 @@ impl FileDiscovery {
             }
         }
 
-        let file = self.discovered_file(&relative_path, &path, &metadata, known_identity);
+        let file = self.discovered_file(&relative_path, &path, &metadata, source_handle);
 
         FileVisit {
             relative_path,
@@ -151,15 +215,23 @@ impl FileDiscovery {
         relative_path: &str,
         path: &Path,
         metadata: &Metadata,
-        known_identity: Option<FileIdentityEvidence>,
+        source_handle: Option<&File>,
     ) -> DiscoveredFile {
         #[cfg(windows)]
-        let evidence = file_source_evidence(path)
-            .map(|(identity, revision)| (known_identity.or(identity), Some(revision)));
+        let evidence = match source_handle {
+            // Metadata, file identity and revision must belong to the admitted handle, even if the
+            // directory entry changes before capture. Publication revalidates that path later.
+            Some(handle) => file_identity_from_handle(handle).and_then(|identity| {
+                source_revision_from_handle(handle).map(|revision| (identity, revision))
+            }),
+            None => file_source_evidence(path),
+        }
+        .map(|(identity, revision)| (identity, Some(revision)));
         #[cfg(not(windows))]
-        let evidence = known_identity
-            .map_or_else(|| file_identity(path), |identity| Ok(Some(identity)))
-            .map(|identity| (identity, None));
+        let evidence = {
+            let _ = source_handle;
+            file_identity(path).map(|identity| (identity, None))
+        };
         let (file_identity, source_revision, issues) = match evidence {
             Ok((identity, revision)) => (identity, revision, Vec::new()),
             Err(error) => (

@@ -31,6 +31,26 @@ pub fn resume_library_scan(
     )
 }
 
+pub fn relocate_library_root(
+    root_id: String,
+    expected_root_path: String,
+    request: ScanRequest,
+    sink: StreamSink<ScanEvent>,
+) -> Result<(), ScanError> {
+    scan_library_with(
+        request,
+        |event| sink.add(event).is_ok(),
+        |request, publish| {
+            crate::application::relocate_root_and_scan(
+                request,
+                root_id,
+                expected_root_path,
+                publish,
+            )
+        },
+    )
+}
+
 fn scan_library_with(
     request: ScanRequest,
     mut emit: impl FnMut(ScanEvent) -> bool,

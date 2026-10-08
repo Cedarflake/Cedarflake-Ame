@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/presentation/gallery_view_option
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_reflow.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/gestures.dart";
@@ -511,6 +512,164 @@ void main() {
       );
     },
   );
+
+  for (final timing in [
+    (
+      initialManifest: false,
+      publishedManifest: false,
+      hasResolver: true,
+      name: "pending manifest",
+    ),
+    (
+      initialManifest: false,
+      publishedManifest: true,
+      hasResolver: true,
+      name: "first manifest",
+    ),
+    (
+      initialManifest: true,
+      publishedManifest: true,
+      hasResolver: true,
+      name: "existing manifest",
+    ),
+    (
+      initialManifest: false,
+      publishedManifest: false,
+      hasResolver: false,
+      name: "retired local geometry",
+    ),
+    (
+      initialManifest: false,
+      publishedManifest: true,
+      hasResolver: false,
+      name: "retired first-manifest geometry",
+    ),
+  ]) {
+    testWidgets(
+      "later scrolling retires a queued transition with ${timing.name}",
+      (tester) async {
+        const itemCount = 4000;
+        final state = _state(itemCount);
+        final manifest = _manifest(itemCount);
+        final controller = _RecordingGalleryController();
+        final scroll = ScrollController();
+        final resolver = LibraryGalleryPositionResolver();
+        final configuration = ValueNotifier((
+          manifest: timing.initialManifest ? manifest : null,
+          transition: null as LibraryGalleryLayoutTransition?,
+        ));
+        final applied = <int>[];
+        addTearDown(scroll.dispose);
+        addTearDown(configuration.dispose);
+        LibraryGalleryVisiblePosition? latestPosition;
+        await tester.binding.setSurfaceSize(const Size(1100, 760));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              home: ValueListenableBuilder(
+                valueListenable: configuration,
+                builder: (context, current, child) => Align(
+                  alignment: Alignment.topLeft,
+                  child: SizedBox(
+                    width: 900,
+                    height: 620,
+                    child: LibraryGalleryWall(
+                      state: state,
+                      controller: controller,
+                      scrollController: scroll,
+                      layoutShape: GalleryLayoutShape.equalHeight,
+                      thumbnailSize: GalleryThumbnailSize.medium,
+                      selection: GallerySelection.empty(state.queryId),
+                      isSelecting: false,
+                      layoutManifest: current.manifest,
+                      layoutTransition: current.transition,
+                      initialQueryWidePosition: latestPosition,
+                      positionResolver: resolver,
+                      onLayoutTransitionApplied: applied.add,
+                      onOpen: (_) {},
+                      onToggleSelection: (_) {},
+                      onViewInformation: (_) {},
+                      onCopyPath: (_) {},
+                      onRevealFile: (_) {},
+                      onVisiblePositionChanged: (position) {
+                        latestPosition = position;
+                      },
+                      onLoadPrevious: controller.loadPreviousPage,
+                      onLayoutChanged: (_, _) {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        final targetSnapshot = LibraryGalleryLayoutSnapshot.build(
+          manifest: manifest,
+          availableWidth: 860,
+          thumbnailSize: GalleryThumbnailSize.medium,
+          sortKey: state.query.sortKey,
+        );
+        final originalOffset = timing.initialManifest
+            ? targetSnapshot.metrics.itemOffsets[3100]
+            : 2400.0;
+        scroll.jumpTo(originalOffset);
+        await tester.pump();
+        await tester.pump();
+        final transition = LibraryGalleryLayoutTransition(
+          generation: 1,
+          position: latestPosition!,
+          scrollPosition: scroll.position,
+        );
+        configuration.value = (
+          manifest: timing.publishedManifest ? manifest : null,
+          transition: transition,
+        );
+        scroll.jumpTo(originalOffset - 600);
+        final afterInput = resolver.resolve(
+          queryId: state.queryId,
+          revision: state.catalogRevision,
+          scrollOffset: scroll.offset,
+          viewportDimension: scroll.position.viewportDimension,
+        )!;
+        final targetAnchor = LibraryGalleryViewportAnchor(
+          queryId: afterInput.queryId,
+          revision: afterInput.revision,
+          locationId: afterInput.locationId,
+          globalItemIndex: afterInput.globalItemIndex,
+          itemFraction: afterInput.itemFraction,
+          viewportFraction: afterInput.viewportFraction,
+        );
+        final expected = timing.publishedManifest && timing.hasResolver
+            ? targetAnchor.scrollOffsetFor(targetSnapshot, 620)!
+            : originalOffset - 600;
+        if (!timing.hasResolver) {
+          latestPosition = null;
+          resolver.update(
+            queryId: "retired-query",
+            revision: state.catalogRevision,
+            resolve: (_, _) => fail("Retired geometry was consulted"),
+          );
+        }
+        await tester.pump();
+        await tester.pump();
+        expect(scroll.offset, closeTo(expected, 0.01));
+        if (timing.hasResolver) {
+          final retainedTile = find.byKey(ValueKey(afterInput.locationId));
+          final wall = find.byKey(const Key("library-photo-wall"));
+          expect(retainedTile, findsOneWidget);
+          expect(
+            tester.getTopLeft(retainedTile).dy -
+                tester.getTopLeft(wall).dy +
+                tester.getSize(retainedTile).height * afterInput.itemFraction,
+            closeTo(620 * afterInput.viewportFraction, 0.01),
+          );
+        }
+        expect(applied, [1]);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets("a manifest available before scrolling keeps the native offset", (
     tester,

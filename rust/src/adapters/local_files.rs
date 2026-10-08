@@ -79,9 +79,12 @@ use crate::domain::{
 
 mod catalog_identity;
 mod file_admission;
+mod file_revalidation;
 mod media_signature;
 mod preview_cache_namespace;
 mod preview_source;
+#[cfg(windows)]
+mod root_location;
 #[cfg(all(windows, test))]
 mod source_content_observation;
 #[cfg(windows)]
@@ -90,8 +93,16 @@ mod viewer_source_guard;
 pub(crate) use catalog_identity::catalog_identity_read_count;
 pub(crate) use catalog_identity::{open_catalog_identity_guard, read_catalog_identity};
 pub use file_admission::{FileVisit, FileVisitOutcome};
+pub use file_revalidation::revalidate_file_state;
+#[cfg(windows)]
+use file_revalidation::revalidate_file_state_values;
+#[cfg(not(windows))]
+use file_revalidation::revalidate_file_state_with_metadata;
+pub(crate) use file_revalidation::revalidate_open_preview_source;
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
 pub(crate) use preview_source::open_preview_source;
+#[cfg(windows)]
+pub(crate) use root_location::{LocatedLibraryRoot, locate_library_root};
 #[cfg(all(windows, test))]
 use source_content_observation::record_source_content_open;
 #[cfg(all(windows, test))]
@@ -1756,73 +1767,6 @@ impl FileDiscovery {
         }
     }
 
-    #[cfg(windows)]
-    fn visit_root_relative_path(&self, relative_path: PathBuf) -> FileVisit {
-        let relative_path_text = relative_path_text(&relative_path);
-        let path = self.canonical_root.join(&relative_path);
-        let handle = match open_root_relative_handle(
-            &self.root_proof.handle,
-            &relative_path,
-            FILE_READ_ATTRIBUTES,
-            None,
-        ) {
-            Ok(handle) => handle,
-            Err(error) => {
-                return FileVisit {
-                    relative_path: relative_path_text,
-                    outcome: FileVisitOutcome::Issue(root_relative_path_issue(&path, error)),
-                };
-            }
-        };
-        let metadata = match handle.metadata() {
-            Ok(metadata) => metadata,
-            Err(error) => {
-                return FileVisit {
-                    relative_path: relative_path_text,
-                    outcome: FileVisitOutcome::Issue(path_metadata_issue(&path, error)),
-                };
-            }
-        };
-        let attributes = match file_attribute_tag_info_from_handle(&handle) {
-            Ok(attributes) => attributes,
-            Err(error) => {
-                return FileVisit {
-                    relative_path: relative_path_text,
-                    outcome: FileVisitOutcome::Issue(ScanIssue {
-                        path: Some(path_text(&path)),
-                        code: "file_reparse_evidence_unreadable".to_owned(),
-                        message: error.to_string(),
-                    }),
-                };
-            }
-        };
-        let (reparse_kind, placeholder_state) = match reparse_evidence_from_attribute_tag(
-            attributes.FileAttributes,
-            attributes.ReparseTag,
-        ) {
-            Ok(evidence) => evidence,
-            Err(error) => {
-                return FileVisit {
-                    relative_path: relative_path_text,
-                    outcome: FileVisitOutcome::Issue(ScanIssue {
-                        path: Some(path_text(&path)),
-                        code: "file_reparse_evidence_unreadable".to_owned(),
-                        message: error.to_string(),
-                    }),
-                };
-            }
-        };
-        let identity = file_identity_from_handle(&handle).ok().flatten();
-        self.visit_relative_path_with_metadata(
-            relative_path_text,
-            path,
-            metadata,
-            reparse_kind,
-            placeholder_state,
-            identity,
-        )
-    }
-
     pub(crate) fn visit_directory_entry(&self, entry: CheckedDirectoryEntry) -> FileVisit {
         let relative_path = entry.relative_path;
         let path = self.root.join(Path::new(&relative_path));
@@ -2229,20 +2173,6 @@ fn validated_relative_path(value: &str) -> Result<&Path, ScanIssue> {
     Ok(path)
 }
 
-pub fn revalidate_file_state(expected: &ExpectedFileState) -> Result<(), ScanIssue> {
-    let path = Path::new(&expected.absolute_path);
-    let metadata = path.symlink_metadata().map_err(|error| ScanIssue {
-        path: Some(expected.absolute_path.clone()),
-        code: "source_revalidation_failed".to_owned(),
-        message: error.to_string(),
-    })?;
-    let evidence = checked_directory_entry_from_metadata(String::new(), path, metadata)?;
-    if !evidence.metadata.is_file() || evidence.reparse_kind == ReparseKind::Other {
-        return Err(path_containment_issue(path));
-    }
-    revalidate_file_state_with_metadata(expected, path, &evidence)
-}
-
 pub(crate) struct PreviewPublicationGuard {
     source_file: File,
     #[cfg(windows)]
@@ -2255,41 +2185,6 @@ impl PreviewPublicationGuard {
     pub(crate) fn source_file(&self) -> &File {
         &self.source_file
     }
-}
-
-pub(crate) fn revalidate_open_preview_source(
-    file: &File,
-    expected: &ExpectedFileState,
-) -> Result<Option<SourceRevisionEvidence>, ScanIssue> {
-    let metadata = file.metadata().map_err(|error| ScanIssue {
-        path: Some(expected.absolute_path.clone()),
-        code: "source_revalidation_failed".to_owned(),
-        message: error.to_string(),
-    })?;
-    #[cfg(windows)]
-    let (actual_identity, actual_revision) = (
-        file_identity_from_handle(file).map_err(|error| ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "source_identity_unavailable".to_owned(),
-            message: error.to_string(),
-        })?,
-        Some(
-            source_revision_from_handle(file).map_err(|error| ScanIssue {
-                path: Some(expected.absolute_path.clone()),
-                code: "source_revision_unavailable".to_owned(),
-                message: error.to_string(),
-            })?,
-        ),
-    );
-    #[cfg(not(windows))]
-    let (actual_identity, actual_revision) = (None, None);
-    revalidate_file_state_values(
-        expected,
-        &metadata,
-        actual_identity,
-        actual_revision.clone(),
-    )?;
-    Ok(actual_revision)
 }
 
 #[cfg(windows)]
@@ -2353,81 +2248,6 @@ pub(crate) fn open_preview_publication_guard(
     Ok(PreviewPublicationGuard {
         source_file: opened.file,
     })
-}
-
-fn revalidate_file_state_with_metadata(
-    expected: &ExpectedFileState,
-    path: &Path,
-    evidence: &CheckedDirectoryEntry,
-) -> Result<(), ScanIssue> {
-    if evidence.placeholder_state != MetadataInventoryPlaceholderState::Available {
-        return Err(ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "source_became_unavailable".to_owned(),
-            message: "The file is no longer locally available".to_owned(),
-        });
-    }
-    let actual_identity = if expected.file_identity.is_some() {
-        file_identity(path).map_err(|error| ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "source_identity_unavailable".to_owned(),
-            message: error.to_string(),
-        })?
-    } else {
-        None
-    };
-    #[cfg(windows)]
-    let actual_revision = file_source_evidence(path)
-        .map(|(_, revision)| Some(revision))
-        .map_err(|error| ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "source_revision_unavailable".to_owned(),
-            message: error.to_string(),
-        })?;
-    #[cfg(not(windows))]
-    let actual_revision = None;
-    revalidate_file_state_values(
-        expected,
-        &evidence.metadata,
-        actual_identity,
-        actual_revision,
-    )
-}
-
-fn revalidate_file_state_values(
-    expected: &ExpectedFileState,
-    metadata: &Metadata,
-    actual_identity: Option<FileIdentityEvidence>,
-    actual_revision: Option<SourceRevisionEvidence>,
-) -> Result<(), ScanIssue> {
-    if metadata.len() != expected.file_size
-        || modified_unix_ms(metadata) != expected.modified_unix_ms
-    {
-        return Err(ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "source_changed_during_scan".to_owned(),
-            message: "The file size or modification time changed during the scan".to_owned(),
-        });
-    }
-    if let Some(expected_identity) = &expected.file_identity
-        && actual_identity.as_ref() != Some(expected_identity)
-    {
-        return Err(ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "source_replaced_during_scan".to_owned(),
-            message: "The file identity changed during the scan".to_owned(),
-        });
-    }
-    if let Some(expected_revision) = &expected.source_revision
-        && actual_revision.as_ref() != Some(expected_revision)
-    {
-        return Err(ScanIssue {
-            path: Some(expected.absolute_path.clone()),
-            code: "source_revision_changed_during_scan".to_owned(),
-            message: "The filesystem source revision changed during the scan".to_owned(),
-        });
-    }
-    Ok(())
 }
 
 #[cfg(windows)]
@@ -3963,6 +3783,8 @@ fn metadata_placeholder_state(_metadata: &Metadata) -> MetadataInventoryPlacehol
 #[cfg(test)]
 mod tests {
     mod availability_module_topology;
+    #[cfg(windows)]
+    mod revalidation_cost;
 
     use std::collections::{BTreeMap, BTreeSet, VecDeque};
     use std::fs;
@@ -6234,6 +6056,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "root_location",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "catalog_identity",
             visibility: "",
             attributes: &[],
@@ -6253,6 +6081,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         },
         AvailabilityModuleContract {
             name: "file_admission",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "file_revalidation",
             visibility: "",
             attributes: &[],
             is_inline: false,

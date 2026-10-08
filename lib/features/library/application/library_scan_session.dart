@@ -1,5 +1,6 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
+import "library_scan_target.dart";
 
 const _recentIssueLimit = 20;
 
@@ -17,12 +18,21 @@ class LibraryScanSession {
   String? _activeScanId;
   RecoverableLibraryScan? _activeScan;
   RecoverableLibraryScan? _pausedScan;
+  LibraryScanTarget _target = const LibraryDirectoryScan();
+
+  LibraryScanTarget get target => _target;
 
   String? get activeScanId => _activeScanId;
 
   RecoverableLibraryScan? get pausedScan => _pausedScan;
 
-  void begin(RecoverableLibraryScan scan) {
+  void confirmSourceAdmission() => _target = const LibraryDirectoryScan();
+
+  void begin(
+    RecoverableLibraryScan scan, {
+    LibraryScanTarget target = const LibraryDirectoryScan(),
+  }) {
+    _target = target;
     _activeScanId = scan.scanId;
     _activeScan = scan;
     _pausedScan = null;
@@ -46,6 +56,7 @@ class LibraryScanSession {
         :final entryLimit,
       ):
         _activeScanId = scanId;
+        confirmSourceAdmission();
         return LibraryScanTransition(
           state: state.copyWith(
             status: LibraryStatus.scanning,
@@ -249,6 +260,7 @@ class LibraryScanSession {
   void clear() {
     _clearActive();
     _pausedScan = null;
+    _target = const LibraryDirectoryScan();
   }
 
   void _clearActive() {

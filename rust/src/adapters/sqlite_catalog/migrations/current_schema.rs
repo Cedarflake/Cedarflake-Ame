@@ -57,6 +57,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     // reaches this full proof; ordinary connections retain bounded identity/schema checks.
     validate_pre_live_gap_schema_contract(connection, schema_version)?;
     validate_live_gap_recovery_contract(connection)?;
+    if schema_version >= 33 {
+        super::scan_resume_inventory::validate_rows(connection)?;
+    }
     validate_source_revision_rows(connection)
 }
 
@@ -80,6 +83,9 @@ pub(super) fn validate_schema_structure(
         ContractValidationDepth::StructureOnly,
     )?;
     validate_source_revision_structure_contract(connection)?;
+    if schema_version >= 33 {
+        super::scan_resume_inventory::validate_structure(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

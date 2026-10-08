@@ -79,7 +79,8 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                capture_time_source TEXT,
                capture_raw_value TEXT,
                file_identity_scheme TEXT,
-               file_identity_value TEXT
+               file_identity_value TEXT,
+               PRIMARY KEY(scan_id, location_id)
              );
              CREATE TABLE preview_artifacts (
                artifact_path TEXT NOT NULL,

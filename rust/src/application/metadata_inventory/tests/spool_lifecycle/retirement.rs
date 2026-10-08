@@ -31,7 +31,7 @@ fn current_terminal_trigger_retires_initial_observation_before_reopen() {
         connection
             .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
             .expect("current schema version"),
-        32
+        33
     );
     connection
         .execute(

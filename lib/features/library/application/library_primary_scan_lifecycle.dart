@@ -10,6 +10,8 @@ import "library_scan_restoration.dart";
 import "library_scan_run.dart";
 import "library_scan_session.dart";
 import "library_scan_shutdown.dart";
+import "library_scan_source_admission.dart";
+import "library_scan_target.dart";
 import "library_scanner.dart";
 
 abstract interface class LibraryPrimaryScanHost {
@@ -96,7 +98,17 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
         : LibraryStatus.completed,
   );
 
-  Future<void> chooseDirectoryAndScan() async {
+  Future<void> chooseDirectoryAndScan() =>
+      _chooseDirectory(const LibraryDirectoryScan());
+
+  Future<void> chooseDirectoryAndRelocate(LibraryRoot root) =>
+      _chooseDirectory(LibraryRootRelocation(root));
+
+  Future<void> _chooseDirectory(LibraryScanTarget target) async {
+    final retiring = _run;
+    if (retiring != null && retiring.didReceiveTerminal) {
+      await retiring.retired;
+    }
     if (_isUnavailable ||
         _state.hasRetainedScan ||
         _host.libraryState.isBusy ||
@@ -106,9 +118,9 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     invalidateRestoration();
     final sequence = ++_sequence;
     _publish(
-      const LibraryPrimaryScanSnapshot(
+      LibraryPrimaryScanSnapshot(
         status: LibraryStatus.choosingDirectory,
-        taskKind: LibraryTaskKind.import,
+        taskKind: target.taskKind ?? LibraryTaskKind.import,
       ),
     );
     try {
@@ -119,7 +131,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       if (directory == null) {
         _publish(_idleSnapshot());
       } else {
-        await scanDirectory(directory);
+        await _scanDirectory(directory, target);
       }
     } on Object catch (error) {
       if (!_isUnavailable && sequence == _sequence) {
@@ -132,27 +144,32 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     }
   }
 
-  Future<void> scanDirectory(String rootPath) => _enqueue(
-    allowsPaused: false,
-    start: () {
-      final scanId =
-          "ame-${DateTime.now().microsecondsSinceEpoch}-${++_sequence}";
-      return _start(
-        RecoverableLibraryScan(
-          scanId: scanId,
-          rootPath: rootPath,
-          displayRootPath: rootPath,
-          itemLimit: null,
-          entryLimit: null,
-          previewEdge: _previewEdge,
-          visitedEntries: 0,
-          acceptedItems: 0,
-          issueCount: 0,
-        ),
-        isResuming: false,
+  Future<void> scanDirectory(String rootPath) =>
+      _scanDirectory(rootPath, const LibraryDirectoryScan());
+
+  Future<void> _scanDirectory(String rootPath, LibraryScanTarget target) =>
+      _enqueue(
+        allowsPaused: false,
+        start: () {
+          final scanId =
+              "ame-${DateTime.now().microsecondsSinceEpoch}-${++_sequence}";
+          return _start(
+            RecoverableLibraryScan(
+              scanId: scanId,
+              rootPath: rootPath,
+              displayRootPath: rootPath,
+              itemLimit: null,
+              entryLimit: null,
+              previewEdge: _previewEdge,
+              visitedEntries: 0,
+              acceptedItems: 0,
+              issueCount: 0,
+            ),
+            isResuming: false,
+            target: target,
+          );
+        },
       );
-    },
-  );
 
   Future<void> _enqueue({
     required bool allowsPaused,
@@ -166,7 +183,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       try {
         final run = _run;
         if (run != null && run.didReceiveTerminal) {
-          await run.streamDone;
+          await run.retired;
         }
         final library = _host.libraryState;
         if (_isUnavailable ||
@@ -189,7 +206,14 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   Future<void> _start(
     RecoverableLibraryScan checkpoint, {
     required bool isResuming,
+    LibraryScanTarget target = const LibraryDirectoryScan(),
   }) async {
+    final sourceAdmission = LibraryScanSourceAdmission(
+      scan: checkpoint,
+      roots: _host.libraryState.roots,
+      target: target,
+      isResuming: isResuming,
+    );
     if (!_admission.tryAcquirePrimary(this)) {
       const message = "其他图库更新正在运行，请等待更新结束或先取消更新，然后继续此任务。";
       _publish(
@@ -200,7 +224,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
                 scanId: checkpoint.scanId,
                 rootPath: checkpoint.rootPath,
                 displayRootPath: checkpoint.displayRootPath,
-                taskKind: _taskKindForRoot(checkpoint),
+                taskKind: sourceAdmission.initialTaskKind,
                 errorMessage: message,
               ),
       );
@@ -210,14 +234,17 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     final run = LibraryScanRun(
       scanId: checkpoint.scanId,
       generation: ++_runGeneration,
+      sourceAdmission: sourceAdmission,
       scanner: _scanner,
     );
     _run = run;
     try {
-      final kind = _state.scanId == checkpoint.scanId && _state.taskKind != null
-          ? _state.taskKind!
-          : _taskKindForRoot(checkpoint);
-      _session.begin(checkpoint);
+      final kind =
+          target.taskKind ??
+          (_state.scanId == checkpoint.scanId && _state.taskKind != null
+              ? _state.taskKind!
+              : sourceAdmission.initialTaskKind);
+      _session.begin(checkpoint, target: target);
       _publish(
         LibraryPrimaryScanSnapshot(
           status: LibraryStatus.scanning,
@@ -241,31 +268,13 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
               entryLimit: checkpoint.entryLimit,
               previewEdge: checkpoint.previewEdge,
             )
-          : _scanner.scan(
-              scanId: checkpoint.scanId,
-              rootPath: checkpoint.rootPath,
-              itemLimit: checkpoint.itemLimit,
-              entryLimit: checkpoint.entryLimit,
-              previewEdge: checkpoint.previewEdge,
-            );
+          : target.open(_scanner, checkpoint);
       run.listen(stream, this);
     } on Object catch (error) {
       _release(run);
       _publish(_session.fail(_state, error));
       rethrow;
     }
-  }
-
-  LibraryTaskKind _taskKindForRoot(RecoverableLibraryScan checkpoint) {
-    final hasPublishedRoot = _host.libraryState.roots.any(
-      (root) =>
-          root.activeScanId != null &&
-          (root.path == checkpoint.rootPath ||
-              root.path == checkpoint.displayRootPath ||
-              root.displayPath == checkpoint.rootPath ||
-              root.displayPath == checkpoint.displayRootPath),
-    );
-    return hasPublishedRoot ? LibraryTaskKind.update : LibraryTaskKind.import;
   }
 
   void pause() {
@@ -354,6 +363,10 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   );
 
   Future<void> retry() async {
+    final retiring = _run;
+    if (retiring != null && retiring.didReceiveTerminal) {
+      await retiring.retired;
+    }
     if (_isUnavailable || _state.blocksExecution || _state.hasRetainedScan) {
       return;
     }
@@ -385,7 +398,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
               paused.rootPath == requested.rootPath)) {
         await _resume(paused);
       } else {
-        await scanDirectory(requested.rootPath!);
+        await _scanDirectory(requested.rootPath!, _session.target);
       }
     } on Object catch (error) {
       if (!_isUnavailable && sequence == _sequence) {
@@ -410,6 +423,9 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   void onScanUpdate(LibraryScanRun run, LibraryScanUpdate update) {
     if (!_owns(run)) {
       return;
+    }
+    if (update is LibraryScanStarted && run.sourceAdmission.needsRefresh) {
+      unawaited(_refreshAdmittedSource(run));
     }
     final transition = _session.apply(_state, update);
     final controlStatus = switch (run.control.command) {
@@ -439,6 +455,35 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     }
   }
 
+  Future<void> _refreshAdmittedSource(LibraryScanRun run) async {
+    final sequence = _sequence;
+    try {
+      final applied = await run.sourceAdmission.refresh(
+        _host.reloadPrimaryScanCatalog,
+      );
+      if (!_owns(run) || sequence != _sequence || _state.scanId != run.scanId) {
+        return;
+      }
+      if (!applied) {
+        throw const LibraryCatalogFailure(
+          code: "catalog_source_view_superseded",
+          message: "无法刷新图库位置信息，请重试。",
+        );
+      }
+      if (run.sourceAdmission.hasAdmittedExistingRoot(
+        _host.libraryState.roots,
+        displayRootPath: _state.displayRootPath,
+      )) {
+        _session.confirmSourceAdmission();
+        _publish(_state.copyWith(taskKind: LibraryTaskKind.update));
+      }
+    } on Object catch (error) {
+      if (_owns(run) && sequence == _sequence && _state.scanId == run.scanId) {
+        _publish(_state.copyWith(errorMessage: error.toString()));
+      }
+    }
+  }
+
   @override
   void onScanDone(LibraryScanRun run) {
     if (!_owns(run)) {
@@ -448,10 +493,19 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       if (run.hasProtocolFailure) {
         _publish(_state.copyWith(status: LibraryStatus.failed));
       }
+      if (run.sourceAdmission.needsRefresh) {
+        unawaited(_releaseAfterSourceRefresh(run));
+        return;
+      }
       _release(run);
     } else {
       unawaited(_reconcileEndedScan(run, _sequence));
     }
+  }
+
+  Future<void> _releaseAfterSourceRefresh(LibraryScanRun run) async {
+    await _refreshAdmittedSource(run);
+    _release(run);
   }
 
   bool _owns(LibraryScanRun run) =>

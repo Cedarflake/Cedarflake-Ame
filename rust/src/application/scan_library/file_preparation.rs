@@ -31,11 +31,19 @@ impl<'a> PreparedScanFile<'a> {
         file: DiscoveredFile,
         has_active_locations: bool,
     ) -> Result<Self, ScanError> {
-        let path_prior = if has_active_locations {
+        let mut path_prior = if has_active_locations {
             catalog.load_incremental_location_by_relative_path(root_id, &file.relative_path)?
         } else {
             None
         };
+        if path_prior.is_none() && file.file_identity.is_some() && file.source_revision.is_some() {
+            path_prior = catalog
+                .load_retained_import_location(
+                    scan_id,
+                    &stable_location_id(root_id, &file.relative_path),
+                )?
+                .filter(|prior| prior.file_identity == file.file_identity);
+        }
         let location_id = path_prior.as_ref().map_or_else(
             || stable_location_id(root_id, &file.relative_path),
             |prior| prior.location_id.clone(),

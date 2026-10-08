@@ -2,6 +2,8 @@ use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::domain::{IncrementalCatalogRoot, LibraryRootGeneration, ScanError};
 
+use super::scan_staging::{StagingRetirement, discard_scan_staging};
+
 use super::{
     SqliteCatalog, database_error, restore_explicit_recovery_claims_from_foreground_scan,
     retire_root_change_queue, sqlite_unsigned,
@@ -67,7 +69,7 @@ pub(super) fn abandon_scan_transaction(
             .execute(sql, [scan_id])
             .map_err(database_error)?;
     }
-    discard_scan_staging(transaction, scan_id)?;
+    discard_scan_staging(transaction, scan_id, StagingRetirement::CompleteScan)?;
     Ok(())
 }
 
@@ -180,34 +182,4 @@ impl SqliteCatalog {
         })
         .collect()
     }
-}
-
-pub(super) fn discard_scan_staging(
-    transaction: &Transaction<'_>,
-    scan_id: &str,
-) -> Result<(), ScanError> {
-    transaction.execute_batch(
-        "CREATE TEMP TABLE IF NOT EXISTS ame_scan_discard_assets(asset_id TEXT PRIMARY KEY) WITHOUT ROWID;
-         DELETE FROM temp.ame_scan_discard_assets;",
-    ).map_err(database_error)?;
-    transaction
-        .execute(
-            "INSERT OR IGNORE INTO temp.ame_scan_discard_assets(asset_id)
-         SELECT asset_id FROM asset_locations WHERE scan_id = ?1",
-            [scan_id],
-        )
-        .map_err(database_error)?;
-    transaction
-        .execute("DELETE FROM asset_locations WHERE scan_id = ?1", [scan_id])
-        .map_err(database_error)?;
-    transaction.execute(
-        "DELETE FROM assets WHERE id IN (SELECT asset_id FROM temp.ame_scan_discard_assets)
-           AND NOT EXISTS(SELECT 1 FROM asset_locations WHERE asset_id = assets.id)
-           AND NOT EXISTS(SELECT 1 FROM library_change_catch_up_handoffs WHERE asset_id = assets.id)
-           AND NOT EXISTS(SELECT 1 FROM library_change_scan_handoff_items WHERE asset_id = assets.id)", [],
-    ).map_err(database_error)?;
-    transaction
-        .execute("DELETE FROM temp.ame_scan_discard_assets", [])
-        .map_err(database_error)?;
-    Ok(())
 }

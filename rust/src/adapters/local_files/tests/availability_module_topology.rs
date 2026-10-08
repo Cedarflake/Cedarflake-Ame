@@ -15,6 +15,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "catalog_identity",
         "media_signature",
         "file_admission",
+        "file_revalidation",
         "preview_cache_namespace",
         "preview_source",
     ] {
@@ -35,6 +36,14 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert_eq!(observation[0].visibility, "");
     assert_eq!(observation[0].attributes, ["cfg(all(windows,test))"]);
     assert!(!observation[0].is_inline);
+    let location = LOCAL_MODULE_CONTRACTS
+        .iter()
+        .filter(|contract| contract.name == "root_location")
+        .collect::<Vec<_>>();
+    assert_eq!(location.len(), 1);
+    assert_eq!(location[0].visibility, "");
+    assert_eq!(location[0].attributes, ["cfg(windows)"]);
+    assert!(!location[0].is_inline);
     for module_name in ["gallery_query_snapshot", "gallery_time_snapshot"] {
         let snapshot = DOMAIN_MODULE_CONTRACTS
             .iter()
@@ -65,6 +74,7 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
     let local_source = LOCAL_SOURCE.replace("\r\n", "\n");
     let crate_source = CRATE_SOURCE.replace("\r\n", "\n");
     let signature = "mod media_signature;";
+    let location = "#[cfg(windows)]\nmod root_location;";
     let observation = concat!(
         "#[cfg(all(windows, test))]\n",
         "mod source_content_observation;"
@@ -75,6 +85,23 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
         "pub(crate) mod media_fixtures;"
     );
     for (source, declaration, replacements, source_key, module_name) in [
+        (
+            local_source.as_str(),
+            location,
+            vec![
+                "".to_owned(),
+                format!("{location}\n{location}"),
+                location.replace("mod root_location", "pub mod root_location"),
+                "mod root_location;".to_owned(),
+                location.replace("cfg(windows)", "cfg(test)"),
+                format!("#[path = \"alternate.rs\"]\n{location}"),
+                format!("#[cfg_attr(test, path = \"alternate.rs\")]\n{location}"),
+                location.replace(';', " { mod generated {} }"),
+                "include!(\"alternate.rs\");".to_owned(),
+            ],
+            "local",
+            "root_location",
+        ),
         (
             local_source.as_str(),
             observation,
@@ -226,6 +253,12 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             LOCAL_SOURCE,
             "mod catalog_identity;",
             "pub mod catalog_identity;",
+        ),
+        (
+            "local",
+            LOCAL_SOURCE,
+            "mod file_revalidation;",
+            "pub mod file_revalidation;",
         ),
         (
             "domain",

@@ -87,6 +87,9 @@ mod catalog_scheduling;
 mod inventory_cleanup;
 
 #[cfg(windows)]
+mod root_location;
+
+#[cfg(windows)]
 mod poll_catalog;
 
 #[cfg(windows)]
@@ -102,6 +105,9 @@ use poll_catalog::PollCatalogOwner;
 
 #[cfg(windows)]
 use inventory_cleanup::InventoryCleanupOwner;
+
+#[cfg(windows)]
+use root_location::RootLocationRecoveryOwner;
 
 #[cfg(windows)]
 use poll_diagnostics::{
@@ -252,6 +258,7 @@ struct ProductionSynchronization {
     authoritative_root_cursor: Option<String>,
     legacy_automatic_scans_retired: bool,
     inventory_cleanup: InventoryCleanupOwner,
+    root_location: RootLocationRecoveryOwner,
     is_stopping: bool,
     stop_requested: Arc<AtomicBool>,
     core_stopped: bool,
@@ -1850,6 +1857,12 @@ fn poll_runtime_with_storage_inner(
             .clone(),
         Arc::clone(&runtime.stop_requested),
     )?;
+    runtime.root_location.poll(
+        checkout.session(),
+        admissions.observing_roots(),
+        &mut snapshot,
+        Arc::clone(&runtime.stop_requested),
+    )?;
     timings.stage = "checkout_return";
     let return_started = Instant::now();
     drop(admissions);
@@ -1915,6 +1928,7 @@ fn new_production_synchronization_with_factory(
         authoritative_root_cursor: None,
         legacy_automatic_scans_retired: false,
         inventory_cleanup: InventoryCleanupOwner::default(),
+        root_location: RootLocationRecoveryOwner::default(),
         is_stopping: false,
         stop_requested: Arc::new(AtomicBool::new(false)),
         core_stopped: false,
@@ -1951,6 +1965,7 @@ fn new_production_synchronization_with_connection(
         authoritative_root_cursor: None,
         legacy_automatic_scans_retired: false,
         inventory_cleanup: InventoryCleanupOwner::default(),
+        root_location: RootLocationRecoveryOwner::default(),
         is_stopping: false,
         stop_requested: Arc::new(AtomicBool::new(false)),
         core_stopped: false,
@@ -3660,6 +3675,7 @@ impl ProductionSynchronization {
             task.cancelled.store(true, Ordering::Release);
         }
         self.inventory_cleanup.request_stop();
+        self.root_location.request_stop();
         if let Err(error) = self.runtime.request_stop() {
             self.is_stopping = false;
             return Err(error);
@@ -3783,6 +3799,7 @@ impl ProductionSynchronization {
             self.recovery = None;
         }
         self.inventory_cleanup.finish_stopping_until(deadline)?;
+        self.root_location.finish_stopping_until(deadline)?;
         self.finish_core_shutdown_until(deadline)
     }
 
@@ -3987,6 +4004,9 @@ mod tests {
 
     #[cfg(windows)]
     mod root_availability;
+
+    #[cfg(windows)]
+    mod root_location_recovery;
 
     use super::*;
     #[cfg(windows)]
@@ -9947,6 +9967,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10196,6 +10217,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10278,6 +10300,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10328,6 +10351,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -10525,6 +10549,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -13974,6 +13999,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -14374,6 +14400,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: false,
             stop_requested: Arc::new(AtomicBool::new(false)),
             core_stopped: false,
@@ -14434,6 +14461,7 @@ mod tests {
             authoritative_root_cursor: None,
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
+            root_location: RootLocationRecoveryOwner::default(),
             is_stopping: true,
             stop_requested: Arc::new(AtomicBool::new(true)),
             core_stopped: false,

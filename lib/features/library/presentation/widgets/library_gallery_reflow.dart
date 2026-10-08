@@ -3,6 +3,31 @@ import "package:flutter/widgets.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_layout_snapshot.dart";
 
+class LibraryGalleryAnchorFractions {
+  const LibraryGalleryAnchorFractions._(this.item, this.viewport);
+
+  final double item;
+  final double viewport;
+
+  factory LibraryGalleryAnchorFractions.capture({
+    required double rowOffset,
+    required double rowHeight,
+    required double scrollOffset,
+    required double viewportExtent,
+    required double viewportFraction,
+  }) {
+    assert(rowHeight > 0 && viewportExtent > 0);
+    final requestedOffset = scrollOffset + viewportExtent * viewportFraction;
+    final rowPoint = requestedOffset.clamp(rowOffset, rowOffset + rowHeight);
+    // Both fractions identify the same physical point, including when the
+    // requested point lies in a date heading or between photo rows.
+    return LibraryGalleryAnchorFractions._(
+      (rowPoint - rowOffset) / rowHeight,
+      (rowPoint - scrollOffset) / viewportExtent,
+    );
+  }
+}
+
 class LibraryGalleryViewportAnchor {
   const LibraryGalleryViewportAnchor({
     required this.queryId,
@@ -46,16 +71,20 @@ class LibraryGalleryViewportAnchor {
     if (rowOffset == null) {
       return null;
     }
+    final fractions = LibraryGalleryAnchorFractions.capture(
+      rowOffset: rowOffset,
+      rowHeight: entry.rowHeight,
+      scrollOffset: scrollOffset,
+      viewportExtent: viewportExtent,
+      viewportFraction: viewportFraction,
+    );
     return LibraryGalleryViewportAnchor(
       queryId: snapshot.manifest.queryId,
       revision: snapshot.manifest.revision,
       locationId: snapshot.manifest.locationIdAt(itemIndex),
       globalItemIndex: itemIndex,
-      itemFraction: ((anchorOffset - rowOffset) / entry.rowHeight).clamp(
-        0.0,
-        1.0,
-      ),
-      viewportFraction: viewportFraction,
+      itemFraction: fractions.item,
+      viewportFraction: fractions.viewport,
       monthKey: entry.monthKey,
     );
   }

@@ -48,6 +48,7 @@ abstract final class LibraryStrings {
   static const copyPath = "复制路径";
   static const openInExplorer = "在文件资源管理器中打开";
   static const updateLibrary = "更新图库";
+  static const relocateLibrary = "重新定位文件夹";
   static const removeFromAme = "从 Ame 中移除";
   static const removeFolderFailed = "移除文件夹失败";
   static const removedFolderRefreshFailed = "文件夹已移除，刷新显示失败";

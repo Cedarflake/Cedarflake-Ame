@@ -35,8 +35,37 @@ abstract interface class LibraryScanner {
   bool suspend(String scanId);
 }
 
-class RustLibraryScanner implements LibraryScanner {
+abstract interface class LibraryRootRelocationScanner {
+  Stream<LibraryScanUpdate> relocate({
+    required LibraryRoot root,
+    required String scanId,
+    required String rootPath,
+    required int previewEdge,
+  });
+}
+
+class RustLibraryScanner
+    implements LibraryScanner, LibraryRootRelocationScanner {
   const RustLibraryScanner();
+
+  @override
+  Stream<LibraryScanUpdate> relocate({
+    required LibraryRoot root,
+    required String scanId,
+    required String rootPath,
+    required int previewEdge,
+  }) => _runScan(
+    ({required request}) => rust_api.relocateLibraryRoot(
+      rootId: root.id,
+      expectedRootPath: root.path,
+      request: request,
+    ),
+    scanId: scanId,
+    rootPath: rootPath,
+    itemLimit: null,
+    entryLimit: null,
+    previewEdge: previewEdge,
+  );
 
   @override
   Future<RecoverableLibraryScan?> loadRecoverableScan() async {

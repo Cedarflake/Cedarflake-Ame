@@ -3,6 +3,8 @@ use rusqlite::Connection;
 
 use super::*;
 
+mod membership;
+
 #[test]
 fn explicit_first_import_resume_revisits_completed_directories_and_changed_files() {
     for suspend in [false, true] {
@@ -81,7 +83,7 @@ fn explicit_first_import_resume_revisits_completed_directories_and_changed_files
                 if matches!(event, ScanEvent::Progress { visited_entries: 0, accepted_items: 0, .. }) {
                     let connection = Connection::open(&storage.catalog_path).expect("before any rediscovered asset");
                     let staged: (i64, i64, i64) = connection.query_row("SELECT (SELECT COUNT(*) FROM assets), (SELECT COUNT(*) FROM asset_locations), (SELECT COUNT(*) FROM assets WHERE id = 'unrelated-orphan-sentinel')", [], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))).expect("scoped resume reclamation");
-                    assert_eq!(staged, (1, 0, 1), "resume releases only its old staging assets before publication can clean anything");
+                    assert_eq!(staged, (3, 2, 1), "resume retains completed inspections without publishing the old namespace");
                 }
                 events.push(event);
                 true

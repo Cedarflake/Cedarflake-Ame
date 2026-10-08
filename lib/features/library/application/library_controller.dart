@@ -136,6 +136,9 @@ class LibraryController extends Notifier<LibraryState>
   }
 
   Future<void> chooseDirectoryAndScan() => _primary.chooseDirectoryAndScan();
+
+  Future<void> chooseDirectoryAndRelocate(LibraryRoot root) =>
+      _primary.chooseDirectoryAndRelocate(root);
   Future<void> scanDirectory(String rootPath) =>
       _primary.scanDirectory(rootPath);
   Future<void> cancelScan() => _primary.cancel();

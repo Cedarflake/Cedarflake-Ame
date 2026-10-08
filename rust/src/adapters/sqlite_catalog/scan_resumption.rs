@@ -2,7 +2,8 @@ use rusqlite::{Transaction, params};
 
 use crate::domain::{ScanCheckpoint, ScanError};
 
-use super::scan_lifecycle::{discard_first_import_boundary, discard_scan_staging};
+use super::scan_lifecycle::discard_first_import_boundary;
+use super::scan_resume_inventory::retain_locations;
 use super::{ScanOwner, database_error};
 
 enum ScanResumePlan {
@@ -35,7 +36,7 @@ pub(super) fn resume_checkpoint(
             // A retained opening record cannot prove that its journal still covers the
             // detached interval. Only an explicit resume reaches this rebuilding path.
             discard_first_import_boundary(transaction, scan_id)?;
-            discard_scan_staging(transaction, scan_id)?;
+            retain_locations(transaction, scan_id)?;
             for sql in [
                 "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
                 "DELETE FROM scan_directory_entries WHERE scan_id = ?1",

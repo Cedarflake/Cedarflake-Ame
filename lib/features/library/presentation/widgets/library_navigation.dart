@@ -41,6 +41,7 @@ class LibraryNavigation extends StatefulWidget {
     required this.onAddSource,
     required this.onOpenSettings,
     required this.onUpdateRoot,
+    this.onRelocateRoot,
     required this.onOpenRoot,
     required this.onOpenFolder,
     required this.onRemoveRoot,
@@ -74,6 +75,7 @@ class LibraryNavigation extends StatefulWidget {
   final VoidCallback onAddSource;
   final VoidCallback onOpenSettings;
   final ValueChanged<LibraryRoot> onUpdateRoot;
+  final ValueChanged<LibraryRoot>? onRelocateRoot;
   final ValueChanged<LibraryRoot> onOpenRoot;
   final void Function(LibraryRoot root, LibraryFolder folder) onOpenFolder;
   final ValueChanged<LibraryRoot> onRemoveRoot;
@@ -284,6 +286,11 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       onSelect: () => widget.onSelectRoot(root),
                       onToggleExpansion: () => _toggleBranch(root.id, ""),
                       onUpdate: () => widget.onUpdateRoot(root),
+                      onRelocate:
+                          widget.isAddingSourceDisabled ||
+                              widget.onRelocateRoot == null
+                          ? null
+                          : () => widget.onRelocateRoot!(root),
                       onOpen: () => widget.onOpenRoot(root),
                       onRemove: () => _requestRemoveRoot(root),
                     ),

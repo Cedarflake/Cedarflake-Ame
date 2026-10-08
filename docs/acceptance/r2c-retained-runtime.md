@@ -12,19 +12,860 @@ earlier passing gates do not change the original failed result.
 
 ## Current incident disposition
 
-The 2026-09-26 local gate completion below covers the indexed time-window correction and the
-accumulated current source. It does not mean every reported runtime incident is resolved.
+The 2026-09-26 local gate completion below covers the indexed time-window correction through
+product commit `629da9e`. It does not cover the subsequent viewer-anchor/location-query changes or mean every
+reported runtime incident is resolved.
 
 | Reported behavior | Established correction or observation | Remaining obligation |
 | --- | --- | --- |
-| Middle timeline navigation waits on a blank wall | Indexed month-predecessor lookup reduces the same four native reads from 3.50–4.03 seconds to 0.46–0.64 seconds | Current-head hosted gates; retain the selected-scenario limit |
-| Retry feedback followed by an unsolicited earlier position | Source-reconciliation and passive-publication causes have boundary corrections; the reproduced first-page return has a corrected native result | The original already-idle, non-top Retry/jump combination is not attributed or closed |
-| Upward input during loading leaves a false bottom | Connected pending-read regressions and native held-result delivery preserve downward reachability | Natural executing-database input timing is not established by the later-input native runs |
+| Middle timeline navigation waits on a blank wall | Indexed month-predecessor lookup reduces the same four native reads from 3.50–4.03 seconds to 0.46–0.64 seconds; all required hosted gates pass on `cea18dc` | Retain the selected-scenario limit and the separate cold-preview wait |
+| Retry feedback followed by an unsolicited earlier position | Source-reconciliation and passive-publication causes have boundary corrections; retained viewer-return logs additionally establish a loaded-anchor fallback defect, now corrected with focused and generated native changing-revision evidence | The original already-idle, non-top Retry/jump combination is not attributed or closed; generated evidence does not replace retained-source acceptance |
+| Upward input during loading leaves a false bottom | Two actual native upward inputs during unheld application reads preserve reverse reachability across the preceding window | Their full lifetime fails close admission; application-read timing does not identify an executing SQLite statement |
 | Screenshot arrival reports blocked work; manual update stays busy | Retained exhausted work recovers once in an isolated copy; a local-primary manual update commits in 157532–160969 ms | Original profile state is not repaired by a copy test; retained recovery/update cost is not accepted solely for meeting a deadline |
 
 Keep these incidents as the next functional batch. Existing logs and causal boundaries precede
 another implementation or client lifetime. Focused checks support each proven correction; another
 complete Daily/Windows batch follows the combined functional checkpoint, not each small edit.
+
+## Queued layout transition after later scrolling
+
+The 2026-09-28 widget regression captures a middle-window transition, then scrolls upward by 600
+pixels before its next layout. First-manifest takeover and an already available manifest both
+restore the captured stale position before correction, with 744- and 600-pixel drift. An independent
+review identifies the same unguarded branch while the manifest remains pending; its added regression
+also reproduces an exact 600-pixel reversal. These are causal layout defects, not attribution of the
+complete already-idle retained-library Retry incident.
+
+Visible-position admission now belongs to `library_gallery_position.dart`. Both wall branches
+resolve the current position against the still-displayed geometry after later input, retain query
+and revision checks, and retire an unresolvable transition with a zero correction. The current
+23 layout widget cases and four position-owner cases pass, including detached geometry, changed
+query/revision and exactly-once retirement without movement. Scoped independent review finds no
+further actionable issue. Full lint passes; complete candidate and native results remain separate.
+
+Physical production counts are 1981 lines for the wall and 117 for the new position owner, with no
+inline tests. Dedicated resize and position tests contain 1650 and 149 lines. The wall's existing
+rendering, preview-demand and paging responsibilities are unchanged. No schema, dependency, bridge,
+source-media or catalog mutation is introduced by this correction.
+
+### Generated idle browsing after a completed update
+
+Run `5cdcc2f0ef3342d78bac447f1ac8ada2`, epoch `a210a7a2498f42988b2881f44beede25`,
+uses the existing 10000-image mixed-size/historical corpus, a fresh derived catalog/cache and the
+current Debug client. Its closure binds 685 product paths and 723 product/helper/payload files.
+The actual source-menu update commits in 29424 ms. Both middle jumps and upward inputs occur after
+terminal synchronized feedback, with no pending queue, retry or gap. An unavailable cached menu
+element rejects the first update input; a fresh screenshot-bound click then opens the confirmation.
+The rejected input remains in the receipt and is not an application failure.
+
+| Actual input | First sampled all-ready visible result | Settled pixels |
+| --- | ---: | ---: |
+| First middle jump | 2579.748 ms | 187346 |
+| First upward scroll | 2802.193 ms | 186866 |
+| Reverse scroll beyond the preceding loaded window | 3038.645 ms | 194866 |
+| Second middle jump | 3716.822 ms | 132758 |
+| Second upward scroll | 2729.767 ms | 132278 |
+
+The two upward deltas are exactly the delivered -480 pixels, and the reverse delta is exactly
+8000 pixels. Opening an original and returning retains 194866 pixels. No sampled Retry or failed
+tile occurs. Sampling is every 500 ms with unchanged-frame deduplication, so these observations
+neither prove continuous frame stability nor replace the retained-library source-reconciliation
+case. Neither upward input overlaps a pending application read.
+
+The first closed analyzer rejects one frame at `2026-09-28T10:12:14.498155Z`: reverse navigation
+has one unavailable geometry entry and no classified wall projection or tiles. The retained result
+is therefore `selected-path-with-observation-gap`, with `completeGeometryEvidence = false`.
+Classified frames establish the listed position comparisons; the unclassified frame prevents a
+complete geometry verdict. The original failed assertion remains in the execution evidence.
+
+Actual Alt-F4 produces normal exit zero in 578.7687 ms, with no cleanup failure. Peak working set
+is 934027264 bytes, kernel peak commit 1439891456 and minimum host availability 4502552576. Closed
+integrity/foreign-key checks pass, all 10000 asset/location/source/metadata records are retained,
+and protected baseline/profile catalog and WAL hashes match. This is unchanged recorded source
+evidence, not a new full-media byte audit. No real source is read by this generated lifetime.
+Bindings, receipts and `idle-analysis.json` remain in the ignored run directory. The retained
+22-second wait, original complete Retry/jump and real update cost remain open.
+
+## Source reconciliation across unrelated publications
+
+Offline inspection of run `555db7d7e2b7451d9f73f64353ee2f50` finds 465 completed
+`consistency_audit` rows created during that lifetime: 257 complete on attempt one and 208 on
+attempt two. One additional retained row is in `retry_wait` with
+`incremental_catalog_revision_changed`. The 38 visible locations begin reconciliation before
+nearby demand, but the last visible location starts approximately 16.1 seconds after the input.
+This establishes revision contention as a candidate contributor, not the entire 22-second cause.
+
+A deterministic generated regression publishes another root after path preparation. Old code
+returns zero completed and one retried change despite unchanged preparation and source evidence.
+The new `authoritative_path_set.rs` owner reuses the existing bounded read-set/source proof only
+for one exact `ConsistencyAudit` path with no previous path. At most two rebases permit three
+publication attempts; scope membership, source changes, cancellation and final root/lease/preview
+guards retain their original authority. Broader path sets keep fixed-revision behavior. No schema,
+bridge, dependency, media-write or preview-concurrency change is introduced.
+
+Eight focused path-set cases pass, including the original red/green cause, exhausted rebase,
+changed source, cancellation, excluded scope, newly observed global identity and superseded lease.
+Twelve existing preparation-proof cases retain
+negative path/identity observations, hardlink appearance, same-metadata source rewrites and terminal
+media boundaries. Fourteen preview-reconciliation cases pass, including current pixel recovery and
+failed retry persistence. The admission-before-preparation peer-publication case now completes the
+same queue owner on its first attempt; a real namespace-publication rejection still exercises the
+failed durable-retry transaction. The first broader-scope fixture uses an invalid subtree intent;
+changing it to the domain's `Reconcile` shape preserves its rejection assertion and passes.
+
+The incremental facade now has 1501 production-file lines, the path-set owner 331 and shared rebase
+owner 98, with no inline test bodies. The existing parent test file has 3775 lines; new path-set
+tests have 408 and the preview publication-race tests 140. The earlier generated native lifetime
+predates this Rust correction and cannot supply its performance acceptance.
+
+The first complete Daily invocation stops after 1653 Rust passes, three failures and 22 explicitly
+ignored acceptance tests. Two exact availability module-loading checks omit the newly added
+Windows-only `root_location` module; its precise declaration and positive/negative loading cases
+are added without broadening availability calls. The recovery-status fixture uses a noncanonical
+spelling of its already registered path; it now loads the registered path, retaining the production
+path-replacement rejection. All ten related focused cases pass. Full candidate gates remain separate.
+
+The second complete Daily passes 1662 Rust tests, with 22 explicit acceptance tests ignored, then
+stops at two Flutter assertions. One is the old three-entry source-menu expectation after relocation
+was added. The other exposes a query-transition defect: an unresolved sort anchor uses the separate
+viewer/wall fallback even when the request actually targets the wall itself. That fallback now
+requires a different requested location from the frozen wall location. Null and unresolved anchors
+return to the supplied window's first item; a viewer closing during the request retains the separate
+wall anchor. The 15 query-transition and 43 full-screen tests pass. No loading generation or late
+completion guard is removed. These test files contain 355 and 4110 lines respectively.
+
+## Attribute-handle cost during final source revalidation
+
+Windows path revalidation previously opened one attribute handle for identity, then another for
+identity and revision, discarding the second identity. A generated 64-file diagnostic alternates
+four rounds of 16 passes, totaling 4096 validations per method. Initial separate-handle and
+same-handle measurements are 6518795 and 4226324 microseconds. After the production correction,
+the retained separate-handle comparison takes 5072046 microseconds and production takes 3737735,
+approximately 26 percent lower in that run. These are bounded Debug metadata measurements, not
+whole-scan speedups or real-library acceptance; cache and host variance remain visible.
+
+`file_revalidation.rs` now owns expected state comparison. One no-recall attribute handle supplies
+Windows identity, revision and fresh metadata. Placeholder refusal and open-error classification
+remain intact; changed size/time still precedes identity and revision mismatch. Four new regressions
+cover unchanged source bytes, metadata changing after the initial path check, missing-handle error
+classification and placeholder refusal before opening. Existing replacement, restored-mtime edit,
+cloud and source-namespace tests also pass: 78 local-file tests pass, with the cost diagnostic
+explicitly ignored by ordinary tests and separately executed successfully. No real media is opened.
+
+The filesystem facade has 3783 lines before its inline test module and 3451 inline-test lines.
+The revalidation owner has 159 lines with no inline test bodies, its dedicated tests 91, and the
+ignored cost diagnostic 74. Exact positive and negative module-loading contracts include the new
+private unconditional module. No schema, public bridge or dependency changes accompany this repair.
+Current full quality and native gates remain separate from these focused results.
+
+Scoped static review catches the moved comparator import lacking its Windows condition; its parent
+call and cost-test module are Windows-only. Adding that condition avoids an unused import on other
+targets. The review finds no further behavior blocker in revalidation or query-anchor fallback;
+it does not establish a non-Windows build.
+
+The complete `quality_lint.ps1` subsequently passes, including unchanged formatting, all-target
+and all-feature Clippy with warnings denied, and Dart analysis with no issues. The first log-capture
+attempt stops when Windows PowerShell treats Cargo's normal stderr progress as a terminating error;
+the successful invocation uses direct execution and transcript capture. No product assertion or gate
+is relaxed. The subsequent unsigned Windows gate also passes on this dirty candidate: fresh
+Release application and broker, three runner lifecycle cases, two real engine-retirement cases,
+and the catalog-free Release bridge/native-channel test. Its native process exits normally with
+no cleanup failure. Daily and current-source browsing verification remain pending; these controlled
+lifecycle cases do not establish populated Release restart or signed-service acceptance.
+
+## Retired-source root failure admission
+
+A root error returned by an old preview request previously entered `_blockRootContext` without
+checking the current source publication authority. Its own tile publication could be rejected while
+the same error still completed current same-root pending requests as failed/update-required and
+retained a root fuse for later ordinary demand. This differs from the normal preview-error branch,
+which already rejects source-obsolete results before publication.
+
+Four focused regressions reproduce the defect before correction for unavailable, unproven,
+identity-changed and missing roots. Each old-source completion incorrectly fails the current
+request before its materialization starts. The correction moves the complete root-failure
+admission/cooldown/scan-reset responsibility into `library_preview_root_failures.dart`; admission
+checks current source authority before changing the root map or completing sibling work.
+All four corrected cases pass, together with 29 existing queue and 13 coordinator tests. Current
+root failure, explicit retry, cooldown, authority restoration and scan replacement remain covered.
+Independent scoped static review reports no actionable finding. Queue production size changes
+from 711 to 682 lines, with no inline tests; the new owner has 77 production lines and the new
+regression file has 116 lines. Full candidate and native acceptance remain open; this causal
+regression does not attribute the original non-top jump to root errors.
+Exact-file formatting and analysis also pass without warnings or informational diagnostics.
+
+The separately admitted native run `025bb2d43b6c48eba0e9fb413c3d2646` does not reach the intended
+idle-middle/upward sequence: both retained roots report unavailable immediately after launch.
+The visible first-screen feedback is `asset-failure` with `preview_root_unavailable`; this is not
+evidence of the original already-loaded browsing failure. A host-level directory-existence check
+also returns false for both logical roots, without reading media contents. Actual Alt+F4 retires
+the application normally in 570.145 ms; the complete lifetime is 159481 ms, exit zero, with no
+cleanup failure and protected original catalogs/WALs unchanged. Retain these receipts and source
+availability limits. This executable predates the root-failure correction above.
+
+## Explicit root relocation checkpoint
+
+The supplied destination is accessible. Metadata-only discovery finds both a different volume
+identity and a different directory identity from local-primary's published source. The later
+description establishes that the destination combines two large directories. The earlier
+one-to-one local-primary interpretation is therefore withdrawn; the ignored discovery mapping
+retains the old roots and records the new destination only as an unassigned candidate. Neither
+original catalog nor original media is changed. The required automatic recovery remains open;
+the manual workflow below is fallback evidence, not evidence of automatic discovery or source merging.
+
+The existing source menu now opens a replacement-directory picker. Typed scan-target selection
+retains the logical root, and one SQLite admission transaction verifies its current path/generation,
+retires old generation authority, binds the replacement namespace and starts the foreground scan.
+An interrupted replacement keeps its explicit new path and the previous trustworthy publication.
+Later ordinary updates resolve the registered path rather than deriving a second root from it.
+Same-volume identity reuse retains its existing revision requirements; copied files acquire fresh
+asset/source identities. Reusing the old directory path creates a distinct root without moving the
+retained relocated root back.
+
+Seven Rust cases pass: same-volume rename plus ordinary update, copied-file identity, cancelled
+replacement plus reopened retry, published-update Pause/Cancel plus reopened retry, destination
+conflict, stale/active admission, and reuse of the former path. The initial published-update Pause
+expectation fails because the established policy cancels updates instead of retaining a paused
+checkpoint; the corrected test proves that existing policy and retry without changing it.
+
+The final Flutter group passes 40 cases across relocation, primary control, refresh and workflow.
+Seven relocation cases cover picker cancellation, pre-admission retry, durable new-path retry,
+late picker disposal, cancellation before Started, immediate retry during terminal refresh and
+reentrant picker selection during that refresh. The latter two wait for the old run's complete
+retirement rather than only stream completion. Earlier session and navigation groups pass six
+and 14 cases; the navigation case reaches relocation from a missing root. Scoped independent
+review identifies former-path collision and terminal-refresh races; their corrections and boundary
+cases are included above, and the final static recheck finds no further scoped issue.
+
+Exact-file formatting/analyzers pass. FRB 2.12.0 regenerates the bridge with content hash 244798701;
+the final Windows Debug build includes the run-retirement corrections. There is no schema or
+dependency change. Current physical production sizes are root selection 93, SQLite scan admission
+343, Dart scan target 61, scan run 121 and primary lifecycle 646 lines, with no inline tests; the
+dedicated Rust and Dart relocation files contain 341 and 244 lines. Full accumulated-source gates
+and native acceptance are not established by these checks.
+
+The subsequent canonical lint attempt passes its tool-contract and format stages, then its output
+capture treats Cargo's ordinary stderr status line as a terminating PowerShell native-command error
+after 151932 ms. This is retained as a failed invocation. Running only the unreached compiler and
+analyzer stages under the repository lock passes all-target/all-feature Clippy with warnings denied.
+Full Dart analysis first finds one unnecessary import in the owned viewer-geometry test; removing
+that redundant import and formatting that file gives a warning-free full-project analysis. These
+partition results cover lint's current components without repeating the successful guardrails;
+they do not relabel the initial invocation or establish a Daily/Release pass. Document file-link
+checks and `git diff --check` also pass.
+
+Native fixture preparation contains six generated PNGs with distinct dimensions and isolated
+derived storage. The first attempt is stopped by a physical Escape before launch. The next
+launch is withheld below its four-GiB start condition. For this six-image scenario only, the client
+ceiling is tightened from two to one GiB while retaining the two-GiB system reserve; the large-library
+limits and workload remain unchanged. Run `f3c532afa61e44d0800ed7ac7e31a56c` then opens the empty
+production gallery. The input tool reports a missing cached element, minimized-window state and
+intervening input; recovery still finds the window minimized. No import action is established.
+The owned empty client is stopped after 97229 ms, exit -1. Peak working set is 337657856 bytes,
+peak private memory 298602496 bytes and minimum host availability 2917847040 bytes. This failed
+input lifetime remains unaccepted. The original six files are not renamed or consumed, and no
+real-root scan or hydration is performed. Helpers and receipts remain under ignored
+`.build/r2c-relocation-20260928` and its recorded fixture directory.
+
+Coordinate input subsequently completes the actual native picker import of all six generated
+images in run `f212742b61e04683b4209ac4143d61d1`; all six previews are visible and Alt+F4 exits
+normally. After closing, only that generated directory is renamed. Run
+`4c9372c14a194a82895856ece1a712fe` observes the missing original root and completes the manual
+replacement picker, displaying six images and terminal update feedback. Closed read-only catalog
+comparison retains the one root, all six asset/location/source identities and source hashes,
+advances the root generation from one to two, and finds no unfinished work. Native capture later
+shows the foreground application instead of the selected window; activation recovers Ame once,
+then input interference prevents proving normal UI close. The exact owned process is stopped;
+the 435175-ms lifetime exits -1 and remains failed. This establishes selected manual relocation
+behavior only; populated restart, later ordinary update and automatic combined-source recovery
+are not accepted. No real-root scan or media hydration occurs.
+
+## Discovered directory identity admission
+
+Ordinary registration previously derived a new root from a changed path even when its complete
+directory identity matched one retained published source. Generated rename and ambiguous-identity
+cases fail before the correction: the first creates two roots instead of one, and the second
+admits a new registration despite conflicting identity evidence. The combined-source control
+already preserves both old roots and remains a distinct destination.
+
+The corrected application selects registered paths first, then permits unique retained identity
+recovery only for an explicit ordinary scan without a resume checkpoint. The SQLite admission
+transaction repeats identity uniqueness, path/generation, active-work and destination checks;
+both automatic identity recovery and explicit replacement retain a full publication namespace
+guard through binding. Fifteen relocation cases pass, including cancellation/reopen/retry,
+namespace-guard failure and evidence changing between lookup and commit. The combined-source
+fixture moves one file and copies another into distinct child directories with colliding relative
+names: the moved physical identity retains its asset, the copy acquires a new identity, and both
+old published snapshots remain. No multi-root retirement or merge is inferred.
+
+The initial Flutter wiring refreshes source paths only for an explicit replacement target.
+Four regressions fail for ordinary recovery, Started/terminal refresh overlap and a binding that
+commits before cancellation/Started. The correction makes source admission a per-run owner and
+retains its read through task retirement. Task classification uses roots published before the
+run, so a newly completed import cannot reclassify itself as an update. Late results cannot revive
+dismissed/disposed feedback. Independent review additionally finds that a failed explicit B-to-A
+destination conflict could clear B's intent merely by observing A. The correction restricts
+explicit confirmation to the selected root ID; its dedicated conflict/Retry regression passes.
+The final scoped static recheck finds no remaining blocker in that correction, including an
+explicitly selected registered root that has not yet published. It performs no tests or native run.
+
+Fourteen connected primary/relocation cases and eight source-admission cases pass. The existing
+15 control, three refresh and 15 workflow cases also pass. Strict analysis of all six changed Dart
+source/test files reports no warnings or informational findings after replacing three redundant
+constructor assignments. Rust's admission and resumption groups pass three further cases, and
+all-target/all-feature Clippy passes with warnings denied. The first sandboxed Flutter invocation
+cannot write the SDK lock and never starts a tester; its exact launcher is retired before the
+same scoped command succeeds with SDK-cache access. These results are focused evidence, not a
+complete candidate Daily, Release or native acceptance result.
+
+Physical production line counts are root selection 152, scan admission 299, root binding 138,
+source admission 73, primary lifecycle 664, scan run 124 and scan session 270, all with no inline
+tests. Dedicated Rust relocation files contain 344/144/185 lines; the Dart relocation and source
+admission files contain 440/127. No schema, dependency or additional generated-bridge change is
+introduced by this boundary. Automatic unknown-path discovery, atomic multi-source reconciliation
+and the original retained browsing/update obligations remain open.
+
+The next Debug build succeeds in 69.5 seconds and binds 547 selected source/entry files unchanged
+across compilation. Generated run `8e12f9236dd547ce95fa8082fe9948c0` starts from the retained
+six-image catalog after its verified generated directory is renamed. The gallery displays six
+cached previews with the missing-root state, and an actual ordinary Add click opens the native
+picker. The path-field coordinate click does not establish the expected focus; the fresh tree's
+settable edit index is then rejected as unavailable in cached app state. Subsequent capture reports
+no foreground process ID, and refreshed discovery finds no Ame window. The process has already
+exited zero after 113675 ms; no close input is established, and the exit cause is not attributed.
+
+Peak working set/private memory are 408702976/328761344 bytes; minimum host availability is
+3024912384 bytes. Stderr contains only four expected missing-root preview records. A closed,
+read-only comparison proves that the root binding and scan roster are unchanged and all six
+generated source hashes match. No source-path submission or identity-recovery scan took place:
+the functional verdict is **not executed**, despite the zero process exit. Helpers, source binding,
+resource receipt and interrupted-input evidence remain under ignored
+`.build/r2c-identity-admission-20260928` and its recorded generated fixture directory. Do not repeat
+this same native method or claim full automatic recovery; a changed input method and a separately
+bounded checkpoint are required. No real source, catalog, media mutation or hydration is involved.
+
+## Automatic directory location
+
+The normal-token metadata-only lookup finds the already-renamed generated directory through its
+complete volume and 128-bit directory identity. It refuses a regular-file identity, malformed
+evidence and a different volume. The prototype takes 2.475 ms, performs no enumeration or media
+read, and opens no raw volume or privileged handle. Production discovery retains the full candidate
+namespace guard; it does not search other volumes or establish provenance for an assembled source.
+
+The production owner admits one worker for a missing published root, retires it on stop and rejects
+late results against changed bindings. The atomic catalog transition preserves the active scan,
+rebases bounded path pages, advances the root generation and commits an explicit freshness gap.
+Old inventory/baseline dependencies and journal consumer relationships retire in that transaction,
+while historical queue/range/checkpoint records remain scoped to the old generation. The initial
+implementation refuses cleanup categories above 256 rows without partial changes. The logical
+payload correction below replaces that inventory-size restriction while retaining the bound for
+control records.
+
+The initial 80002-location transaction takes 3180 ms, and indexed pagination still takes 3375 ms;
+both fail the standalone one-second cost check. A separate 80006-row bulk-SQL probe takes
+3649.659 ms. The revised Recovery-lane attempt uses existing higher-priority preemption, retires its
+callback before rollback/commit, and removes the progress handler on return. In the focused probe,
+an actual Live writer enters after 2 ms once a 128-row page has changed; rollback preserves every
+old path and binding. Quiet complete recovery subsequently takes 3559 ms. This is one preemption
+observation, not a subsecond whole transition or the original 25-sample P0 P95 result.
+
+The initial focused directory-location group passes 18 cases, including guarded lookup, stale work,
+cancellation, unsafe paths, oversized inventory refusal, completed baseline and historical journal
+claim FULL reopen, partial rebase rollback, late callbacks and autonomous runtime convergence.
+The historical offline/peer-publication case now injects an unavailable locator only for its exact
+fixture path and identity, because same-volume directory rename is no longer an offline-volume
+simulation. Its fully qualified case passes once and retains peer publication, cached access and
+restored-root recovery. An earlier short-name invocation with `--exact` selected zero tests and is
+not evidence. Fixture cursor/schema/expected-checkpoint failures remain preceding failures. A
+production-only import of a test helper is corrected to the existing attribute-state policy;
+all-target/all-feature Clippy then passes with warnings denied. The narrow independent static
+review finds no remaining blocker; it does not close the original latency or large-inventory gates.
+
+At that checkpoint, physical owner sizes are 182 lines for platform lookup, 284 for atomic recovery, 96 for inventory
+retirement, 54 for journal-claim retirement, 88 for write-attempt ownership and 229 for the runtime
+owner, all without inline test bodies. Nine dedicated files contain 977 test lines. The remaining
+production-runtime facade is 3986 production-prefix lines and 10500 inline-test lines; its retained
+larger split is still debt. This boundary adds no schema, dependency or generated bridge change.
+
+The current Debug build completes in 121.9 seconds, with the selected source/entry hashes stable
+across compilation. Run `c4a7dc1833ca44f899b15cb872a6f106` starts from the retained six-image catalog
+whose directory has already moved. Without a picker or update click, the actual window displays
+the recovered source name and all six images. Coordinate input opens `sample-5.png`, shows its
+original pixels and returns through Escape. A fresh capture confirms the six-image gallery, and
+the title-bar close exits zero after 116020 ms. Initial capture shows the foreground application;
+activation restores Ame. The first accessibility-index click is rejected as unavailable, then
+fresh window selection and screenshot-bound coordinate input succeed. No unknown input is counted
+as a completed action. Peak working set/private memory are 351330304/324132864 bytes, with minimum
+host availability 5794672640 bytes, within the one-GiB client and two-GiB reserve limits.
+
+The aggregate closed-catalog assertion **fails**: all six source generations advance and preview
+paths change. Independent read-only observation preserves exactly one root, two scan rows, six
+asset/location identities, physical file identities, source-revision tokens and source hashes;
+only absolute paths, source generations and preview paths differ. Root generation advances from
+two to three. All queue rows are completed or superseded, no recovery authority remains active,
+integrity is `ok`, and native logs report `synchronized`, healthy source and zero pending/retry/gaps.
+
+This is an incorrect end-to-end retention expectation, not evidence of media mutation: the durable
+freshness gap invokes ADR 0007/0024's existing `WatcherUncoveredGap` rule, which emits even matching
+files as dirty candidates and advances their invalidation generation. Binding-only preservation
+and post-gap cache invalidation are distinct. The original assertion remains failed; it is not
+weakened, and no product guard is removed to pass it. Selected native recovery/viewer/close behavior
+is established, but complete candidate acceptance, native large-inventory recovery, combined-source
+reconciliation and the original retained-library browsing/update incidents remain open. Helpers,
+build hashes, before/observed snapshots, differences and resource receipt remain under ignored
+`.build/r2c-auto-location-20260928` and its recorded generated fixture. No real source, original
+catalog, media mutation or hydration occurs.
+
+### Large logical-inventory retirement
+
+The first separately committed preparation method passes 22 focused cases but fails independent
+static review. A source returning to its old path can strand a superseded inventory with live
+authority, and removing only the unfinished journal baseline can invalidate a completed
+predecessor's successor chain. Its initial compile also fails because the fixture passes an unsigned
+generation directly to SQLite; the fixture is corrected through the existing checked conversion.
+These failures remain evidence. The preparation state and runtime continuation method are removed;
+no validator is relaxed to admit an intermediate state.
+
+The replacement removes logical entries, candidate ownership and frontiers in indexed 1024-row
+statements within the existing preemptible recovery transaction. Binding validation precedes that
+work; run, baseline and authority retirement and all path updates commit together. Cancellation or
+priority preemption restores the entire old state. Raw spool storage remains for existing bounded
+maintenance, and the separate control-record limits remain enforced.
+
+The serial `root_location` group passes 22 cases in 59.53 seconds with no ignored tests. A fixture
+with 3073 logical/raw entries and 2305 candidate relationships reopens with FULL validation after
+recovery; logical payload retires, superseded queue history survives, and one maintenance call
+removes exactly 128 raw entries. Cancellation immediately after a deleted page rolls back every
+entry. Returning the generated directory to its old path then permits ordinary inventory resumption
+and comparison; a subsequent move and recovery also reopen successfully. Stale bindings reject
+before any payload change. The original directory lookup and runtime-convergence cases still pass.
+The source-byte assertion is subsequently corrected to retain a pre-operation byte snapshot rather
+than compare two paths to the same current file. That exact case passes alone in 3.49 seconds with
+zero ignored tests, including the before/after byte comparison. The unchanged 22-case group is not
+replayed for this assertion-only correction.
+
+An actual Live writer preempts after partial deletion in a 4096-entry, 80002-location fixture and
+waits 2 ms. All entries and old paths survive rollback; quiet complete recovery takes 3714 ms.
+The separate path-only sample waits 2 ms and completes quiet recovery in 3824 ms. These are two
+selected measurements, not subsecond complete recovery or the original 25-sample P0 P95 gate.
+The final scoped static review finds no new blocker and runs no tests or builds. The generated
+native checkpoint below subsequently covers this changed payload boundary. Full candidate gates
+and combined-source reconciliation remain open; the earlier automatic-location lifetime predates
+this correction.
+
+Production owner sizes at that checkpoint are 182 lines for platform lookup, 286 for atomic recovery,
+91 for inventory retirement, 64 for logical-payload cleanup, 54 for journal claims, 88 for write-attempt
+ownership, 152 for shared root-binding validation/retirement and 229 for the runtime owner. These
+owners contain no inline test bodies; ten dedicated files contain 1302 test lines. The larger
+production-runtime facade is unchanged by this correction. No schema, dependency or generated
+bridge change is introduced.
+
+The current accumulated working tree passes `quality_lint.ps1`: its script/fixture contracts,
+non-mutating format check, all-target/all-feature Clippy with warnings denied, and Dart analysis
+all complete successfully. `git diff --check` also passes. These results do not constitute a new
+Daily, Windows Release or native-client acceptance run; those current-candidate obligations remain
+open. Existing unrelated repair files are preserved, and this checkpoint creates no commit or push.
+
+### Generated native large-inventory recovery
+
+The dedicated 162-line test-only fixture prepares six generated PNGs spanning 32-by-32 through
+6000-by-4000 pixels, with displayed years 2010, 2012, 2015, 2018, 2021 and 2024. It uses the existing
+scan and inventory fixture owners to persist 3073 logical entries, 3073 raw entries and 2305
+candidate relationships before renaming its fresh source directory. Both preparation and closed
+verification are explicitly selected ignored test endpoints; ordinary test runs do not launch a
+client or prepare this fixture. No production behavior, schema or dependency changes here.
+
+Initial preparation sets only modification times, leaving every displayed file date in 2026.
+The pre-launch admission catches this mismatch. That fixture and its unlaunched build are retained;
+the corrected fresh fixture also sets creation times and passes preparation in 10.40 seconds.
+Independent read-only checks confirm all six years, dimensions and old payload counts. The current
+source-bound Debug build completes in 39.6 seconds. Scoped static review finds no preparation
+blocker while explicitly leaving actual interaction and exit evidence for the native lifetime.
+
+The native process starts with the old unavailable binding and 2306 pending queue rows. Production
+automatically recovers the renamed directory, performs ordinary gap recovery and reaches
+`synchronized` with zero pending work, retries or gaps. Six distinct locations reach preview-ready
+in the runtime log. Actual window observation shows the recovered root, six-image total, historical
+rail and the upper previews; it does not observe all six images in the viewport.
+
+The attempted original-image input fails with `element 37 is not available in cached app state`.
+The following observation fails with `foreground window did not report a process id`; fresh window
+selection then finds no Ame window. The owned process receipt records exit code zero after 56462 ms,
+with no deadline, memory or forced-retirement failure. Peak working set is 443.24 MiB, sampled peak
+private memory 378.53 MiB, and minimum available host memory 4.12 GiB. No close input was requested,
+so the exit cause and input-to-exit timing are unestablished. Original-viewer open/return, all-six
+visible pixels and the complete interaction/close verdict remain open. This consumed lifetime is
+not replayed unchanged, and exit code zero is not substituted for those missing observations.
+
+The initial offline check rejects equivalent ordinary and extended Windows path representations.
+A read-only identity comparison establishes the exact generated directory is the same object. The
+observer now admits only the expected ordinary or extended path and also requires physical identity;
+its original failing version remains retained. The corrected closed check verifies unchanged source
+SHA-256 values, six asset/location/full file identities, sizes, modification times and scan roster,
+with the single root rebound and generation advanced once. Old logical/raw payload, candidate
+ownership, live authority and unfinished queue counts are all zero. All six source generations
+advance under the existing post-gap contract. The exact Rust closed verification passes in 0.16
+seconds with FULL catalog validation. These establish the changed payload's connected recovery and
+retention boundaries, not complete native interaction, combined-source continuity or final gates.
+Ignored helpers, before/after snapshots, build/artifact hashes and the process logs/receipt remain
+under `.build/r2c-large-inventory-native-20260928` and its generated fixture. No real source is read.
+
+The changed input continuation activates the selected window before each initial capture and uses
+current screenshot-bound coordinates instead of cached element indexes. Its fresh fixture passes
+preparation in 9.29 seconds; it reuses the unchanged source-bound client. Actual input opens
+`sample-5.png` in the viewer, shows its fitted pixels, returns with Escape to the same upper gallery,
+then scrolls through the remaining years. All six colored previews are observed in the actual
+window. Synchronization reaches zero pending work, retries and gaps. Explicit window-close input
+is paired with the same epoch's exit-code-zero receipt 686.8 ms later. This lifetime lasts 131955 ms;
+peak working set is 586.26 MiB, sampled peak private memory 541.65 MiB and minimum host availability
+4.31 GiB. The two lifetimes consume 188417 ms of the original ten-minute client allowance.
+
+Closed checks again preserve all six source hashes, asset/location/full file identities and the
+scan roster, with one root-generation transition and zero old payload, authority or unfinished
+work. FULL reopen passes in 0.15 seconds. The corrected path observer separately accepts ordinary
+and extended aliases and rejects a different generated file. The first input failure is retained
+under `first-cached-input-attempt`; it is not erased by the successful changed method. This completes
+selected native Debug verification of the large-inventory recovery path, including viewer return
+and explicit normal close. It does not establish real combined-source matching, the original idle
+Retry/jump correction, Release or complete candidate acceptance.
+
+The accumulated `quality_lint.ps1` invocation now completes successfully without output-pipeline
+capture: repository guardrails, unchanged formatting, all-target/all-feature warnings-denied Clippy
+and Dart analysis pass. No product source changes after that invocation. This closes the pending
+combined lint execution, while preserving the preceding interrupted invocations below. No new
+Daily or Release pass is claimed for this checkpoint.
+
+Final scoped read-only review confirms the path observer still requires the expected location and
+physical identity, pairs the same-epoch close timing, and agrees with the retained snapshots. It
+finds no expanded acceptance claim and performs no further test, build or source operation.
+
+## Combined-source publication boundary
+
+The supplied destination combines two former source directories. Its pathname, directory name,
+image count and timestamps do not establish either former root's identity or complete migration.
+Same-directory recovery is therefore insufficient evidence for this incident. Existing scans can
+preserve an observed matching physical file identity, but changed physical identity remains a new
+observation. No content-fingerprint baseline exists to establish cross-volume continuity.
+
+The clarified transformation includes cross-volume moves, reorganized paths and partial deletion,
+without preserving the original directory structure. This explains why directory-root identity alone
+cannot identify the destination and why unmatched records cannot be resolved by relative names.
+It does not identify which old records were deleted or establish continuity for new physical IDs.
+
+Two connected generated-fixture tests now cover the existing publication behavior. Each fixture
+starts with two published roots and four images, moves one file into a shared destination and
+copies another there under colliding original filenames. Cancellation after staging reaches the
+real finalization event; reopening the catalog retains both old publications, and a subsequent
+ordinary retry publishes the destination. The moved file retains its asset and physical identity;
+the copy inherits neither. A second case replaces that copy with equal bytes, size and modification
+time but a different physical identity. A deliberately incomplete replacement scan leaves every
+published root unchanged; complete retry assigns the replacement new asset and source identities.
+Every arranged source byte is checked after the workflow. No real source is accessed.
+
+The first compile attempt fails because the snapshot root view does not implement equality.
+The assertions are corrected to compare root count, identity, path and active publication explicitly;
+the production type is unchanged. The focused serial invocation then passes both cases in 4.50
+seconds, with zero ignored tests. The added dedicated test file contains 266 lines and adds no
+production or inline-test code. Scoped independent static review finds no blocker in cancellation,
+reopen, incomplete publication or replacement identity assertions; it runs no additional tests.
+
+A third generated case rearranges the surviving destination paths and removes both emptied source
+directories after preparing a retained-ID move, a new-ID observation and partial deletion. It proves
+the surviving matching identity is retained, the new identity becomes a new asset, and neither old
+publication is silently retired. The new-ID fixture models the observation after a cross-volume
+move; it does not perform an actual cross-volume operation. All three cases pass, and the dedicated
+file now has 325 lines. Original source-byte assertions remain intact.
+
+These results prove preservation and conservative matching only. The final projection deliberately
+retains the two old roots plus the destination, including old unmatched locations. It does not
+automatically discover an assembled destination, prove complete migration, retire old roots, or
+establish a native process restart. Automatic combined-source recovery and the original browsing
+incidents remain open. No production behavior, schema, dependency or source binding is changed by
+these tests, and no new real-library run is admitted.
+
+### Metadata-only combined-source identity audit
+
+The prepared diagnostic reads only the two retained active publications and the supplied candidate's
+directory attributes through the existing pinned metadata enumerator. It reports unique physical
+identity observations, old or new hardlink ambiguity, unknown identity, changed revision metadata
+and unobserved old locations. Unobserved rows are not proof of deletion or complete migration. It
+does not assign a root, retire a publication, read media bytes, hydrate placeholders or infer content
+identity. The test-only owner has 276 lines and its dedicated generated tests have 159; production
+behavior, schema and dependencies are unchanged.
+
+The first compile fails on an unsupported unsigned SQLite conversion; checked signed conversion
+corrects it. The initial three generated cases fail before the audit because fixture root selection
+compares different Windows path representations. Selection now uses the fixture's publication
+identity. Static review then identifies opaque reparse entries being omitted from completeness;
+they now retain a skipped-entry count and prevent a complete result. The final four cases pass in
+5.83 seconds, with zero failures and zero ignored tests. They cover movement versus copies,
+hardlink ambiguity, exact revision comparison, limited traversal and a real generated junction;
+the junction is not followed and source/catalog bytes remain unchanged.
+
+A read-only SQLite backup of the prior isolated retained catalog contains 30659 local-primary and
+48624 cloud-primary locations. Protected catalog/WAL hashes are unchanged; preparation enumerates
+zero real-source entries. The launcher now binds 408 inputs including the tested executable, runs under
+the repository lock and an owned kill-on-close process job, and retains exclusive-create results.
+Its inner deadline is 120 seconds and parent deadline 150 seconds, with at most 120000 entries and
+10000 directories. Process memory is observed against 512 MiB, with a two-GiB host reserve and
+2.5-GiB startup requirement; this is sampled enforcement, not a kernel allocation limit.
+
+Scoped review identifies missing binding requirements, post-exit deadline validation, independent
+cleanup, pre-backup path validation and a pre-lock fresh-result race. These are corrected before
+source admission. Final static review finds no further blocker in that scope. Missing authorization,
+consumed results and insufficient memory reject without launch; validation-only admission passes.
+The generated checks and prepared backup do not authorize a real-source run. The subsequent explicit
+authorization admits one bounded attribute-only lifetime. Run `cf62d67e395449ff8355ce6c9328d648`
+completes on 2026-09-28 in 6070 ms: 70113 entries, 3384 directories and 66730 files, with no skipped
+entries or unknown physical identities. Of 48624 cloud-primary records, 33955 have a unique physical
+identity observation and 14669 are unobserved. All 30659 local-primary identities are unobserved.
+All 33955 matches have changed or unknown revision metadata; none proves unchanged derived evidence.
+Another 32775 observed file identities do not match either retained publication. No ambiguous match
+is reported. This is complete traversal within the admitted scope, not proof of complete migration.
+
+The receipt reports zero requested source-content reads, peak working set/private bytes
+67760128/57196544, minimum free host bytes 4807204864, exit zero and no cleanup failure. Protected
+catalog/WAL hashes match before and after. The single-use authorization is consumed. Both former
+root bindings and unmatched publications remain retained; neither root may be rebound to the
+combined directory from this result. Automatic combined-source recovery remains unfinished.
+
+The accumulated lint entrypoint first stops under the restricted token before the intended compiler
+fault injection: a held-parent relative directory reopen returns `NTSTATUS=0xC0000022`. The same
+guardrails complete under the ordinary token, followed by unchanged formatting, but the caller's
+PowerShell stderr-to-pipeline capture terminates on Cargo's normal checking message. No lint script
+or assertion is weakened. The remaining canonical all-target/all-feature Clippy command completes
+with warnings denied in 36.94 seconds. Dart reports no issues but initially exits on an SDK telemetry
+timestamp permission error; the ordinary-token repeat exits successfully with no issues. These are
+passing component checks, not a successfully completed combined lint invocation, Daily, Release or
+native-client acceptance. Preserve both interrupted logs. The later complete lint invocation is
+recorded in the generated-native checkpoint above; Daily and Release remain pending. The input
+binding is refreshed after the new test helper and current executable settle, preserving its prior
+version. Validation-only admission passes without a source run. `git diff --check` passes, and no
+original source or binding is changed.
+
+### Prepared combined-directory browsing observation
+
+Run `688dc3e1d2ad45c58f52926543235efb` has a fresh empty isolated catalog and unchanged protected
+catalog/WAL hashes. Preparation reads only prior configuration and catalog state, with zero source
+files opened or source directories enumerated. It does not transplant the former roots or infer
+cross-volume asset identity. Source admission was deferred while the desktop was reserved for other
+work. The same prepared payload was subsequently admitted on 2026-10-08 after renewed authorization
+and revalidation; its failed lifetime is recorded below.
+
+The diagnostic composes production startup, catalog reads, synchronization and the real picker.
+The scanner admits at most one import and one update of the exact prepared source, each limited
+to 120000 items/entries. A scan-ID deadline requests cancellation at 300 seconds, and the host
+checks retirement while its read-only SQLite sampler runs. The complete lifetime is 1200 seconds;
+these cancellation and sampled host limits are not operating-system hard-real-time guarantees.
+Preview work follows production demand; a reader and buffer budget permits one original read.
+Source files, placeholders and original catalog bindings are not mutated.
+
+Review identifies an unbounded original reader, missing pre-build diagnostic-source binding and
+post-hoc scan deadlines. The corrected entry binds every diagnostic Dart source before and after
+compilation, records scan-ID and original-read consumption, bounds empty-catalog initialization to
+30 seconds, and independently checks source/run/epoch/process receipts. Path component case is
+preserved. Generated Python checks pass 30 cases, host deadline checks nine, Dart admission checks
+11, geometry/metric checks 14 and source-budget checks 18. Both Flutter source-boundary tests pass.
+The first helper analysis flags missing braces and `print`; both are corrected without suppression,
+and analysis reports no issues. These guard results authorize neither source access nor a browsing
+pass. The run is intended to measure the current combined source, not to replace the unmatched old
+record or retained-catalog obligations.
+
+### Combined-directory import reaches the observation deadline
+
+On 2026-10-08 all 755 bound files, the product source set, HEAD and protected catalog/WAL hashes
+still match preparation. Run `688dc3e1d2ad45c58f52926543235efb`, epoch
+`579eb5503ed546938fe2b16a66997e7e`, starts the isolated Debug client at 15:30:21.207 UTC.
+The actual picker selects the authorized source. A rejected cached accessibility index precedes
+the successful screenshot-based input; it is an input-tool failure, not an application failure.
+
+The scan is admitted at 15:33:17.556 UTC. Its first finalization event arrives 292759 ms later,
+after 70115 visited entries and 64490 accepted images. No validation-complete event is observed.
+At 300008 ms the scan deadline requests cancellation and receives acceptance. The host then retires
+its owned process job, preserving the failed run rather than admitting more reads. Complete client
+lifetime is 477943 ms, with no cleanup failure and unchanged protected catalog/WAL hashes. This is
+not normal-close evidence or proof that application cancellation completed before host retirement.
+
+Closed read-only inspection finds the scan still `running`, with its 64490 staged locations and
+no published root. SQLite quick-check returns `ok`, with zero foreign-key violations. The 955
+retained issues comprise 678 unsupported-format results, 181 invalid capture-time results and 96
+metadata-parse failures. None of these counts alone establishes the scan-cost cause. Peak working
+set is 370339840 bytes, sampled private bytes 357363712, kernel peak commit 431902720 and minimum
+host available memory 5329653760 bytes. Original-image acquisition and buffer reads both remain zero.
+
+The observation fails before import publication; update, middle navigation, preview readiness,
+viewer return and normal close are unreached. The 300-second bound is this diagnostic's execution
+budget, not a newly introduced product performance threshold. The broad traversal phase combines
+discovery, prior selection, media inspection and catalog staging, so its duration cannot attribute
+the cost to any one operation. It also cannot measure the previously reported warm update or
+22-second preview wait. Preserve the isolated checkpoint and original failed receipts. Any resumed
+source-backed method requires a newly prepared scope and authorization; do not replay this consumed
+one-shot run or silently extend its deadline.
+
+### Accumulated Daily verification on 2026-10-09
+
+The serial `quality_verify_daily.ps1` invocation completes with exit code zero after the failed
+source-backed observation. It includes repository guardrails, formatting, warnings-denied Clippy,
+Dart analysis and the complete regular Rust invocation. Explicitly ignored acceptance and performance
+tests retain their separate entrypoints; this pass does not execute or waive them.
+
+All 106 Flutter test files pass. The controlled Windows scan run
+`f339c36f7faf4c118b791486863a50c1` passes three cases in a 56910-ms lifetime, with no run or cleanup
+failure. Windows accessibility completes all ten native phases, exits normally and closes its owned
+Job without cleanup failures. All 16 asynchronous bridge contracts and matching content hashes pass,
+followed by tracked-diff whitespace validation. No product source changes during this invocation.
+The transcript and retained native receipts remain under `.build/r2c-ux-repair-20261008` and the
+canonical integration evidence locations.
+
+This closes the pending accumulated Daily gate for the current repairs. It does not close the
+failed source-backed import, unreached update/browsing sequence, combined-source recovery, populated
+Release restart, signed service, real journal or Cloud Files acceptance.
+
+### Prepared checkpoint continuation
+
+Run `4151c9354fcc44dc946c3148c0dfa2e0` contains a SQLite backup of the closed predecessor's unpublished
+64490-image checkpoint. Preparation reads derived catalogs only. Protected catalog/WAL and predecessor
+hashes remain unchanged; no source file is opened or directory enumerated. The original failed run
+is retained separately.
+
+The new entry admits only one continuation of the exact retained scan, followed by one ordinary
+update after successful completion. Each execution has its own 300-second cancellation deadline and
+120000-entry/item limit; the complete client lifetime remains 1200 seconds, with production previews
+and one bounded original-image read. The old native start timestamp is preserved and cannot be used
+to report a fast initial import. Scope observation binds the retained checkpoint to the current
+execution receipt and rejects changed state before admission, foreign scans and overlapping updates.
+
+Generated observer checks pass 34 cases; Dart admission checks pass 12, geometry/metric checks 14,
+source-budget checks 21 and continuation-transition checks 16. Three Flutter source-boundary tests
+pass, including rejection before native dispatch. Analysis reports no issues and the Debug build
+completes. Final preflight matches all 760 bound payload/source entries, HEAD, the source set, copied
+catalog and protected hashes. The prepared entry was subsequently admitted under the standing
+read-only policy on 2026-10-09.
+
+The native continuation resets the unpublished first inventory and discards its staged locations.
+Its deadline expires after 300010 ms and cancellation is accepted; the host retires its owned job.
+The closed catalog contains 63232 visited entries, 58940 accepted images, 836 issues and no published
+root. `quick_check` is `ok`, foreign-key violations are zero, and all four protected catalog/WAL
+hashes remain unchanged. The complete lifetime is 458390 ms, cleanup reports no failure, peak
+working set is 344514560 bytes, and minimum available host memory is 4530135040 bytes. Original-image
+acquisition and buffer-read counts are both zero. No update or browsing result was reached.
+
+The preparation incorrectly assumed that the retained first-import checkpoint avoided cold
+inspection. ADR 0024 and `scan_resumption::resume_checkpoint` instead rebuild every unpublished
+first import because the adapter obtains no fresh proof of the detached namespace interval. The
+following repair must preserve reusable inspection work without granting an old frontier coverage
+authority. The unchanged-file catalog-reopen regression reproduces two inspector calls where one
+is required. A presentation-only label correction was withdrawn; its focused checks and interrupted
+Daily run do not establish recovery acceptance. The earlier complete accumulated Daily remains
+evidence for its preceding source, not the forthcoming recovery implementation.
+
+### Retained first-import work preservation
+
+The 2026-10-09 correction preserves unpublished image inspections while rebuilding namespace
+coverage. The v33 migration adds a pending-membership roster referencing staged locations; it does
+not duplicate metadata or change the active projection. File identity, source revision, physical
+state and metadata-engine compatibility govern reuse. Successful staging removes the pending entry
+in the same transaction. Repeated interruption re-enrolls retained records, and final traversal
+retires unobserved records before existing source revalidation and atomic publication. Outstanding
+membership blocks publication, and cancellation retires only the unfinished scan's derived records.
+
+The catalog-reopen regression fails on the preceding implementation with two inspector calls for
+one unchanged image and passes with one after the correction. Ten resumption-filtered tests pass,
+including repeated interruption, changed or missing evidence, engine mismatch, publication rejection,
+cancellation and a failed-write/atomic-retry boundary. A generated native scan pauses twice across
+added, modified, deleted and unvisited files; it publishes exactly the five current members, preserves
+the unchanged asset identity and source bytes, empties pending membership and reopens successfully.
+All 126 migration tests pass. The strengthened v32 upgrade case additionally preserves every staged
+location column and its checkpoint; its three-test group passes. Complete repository lint passes.
+These results do not substitute for the new candidate's Daily, performance, packaging or real-source
+workflow evidence.
+
+The responsibility split keeps membership in `scan_resume_inventory.rs` (118 production lines),
+batch persistence and scoped retirement in `scan_staging.rs` (99), resumption policy in
+`scan_resumption.rs` (77), and lifecycle in `scan_lifecycle.rs` (185), all without inline test bodies.
+The v33 migration contains 120 production-prefix lines and 16 test-helper/module lines, with 149
+dedicated test lines. The focused reuse/transaction suite has 235 dedicated lines and the generated
+membership workflow 143. Traversal and file preparation contain 347 and 186 production lines with
+no inline test bodies. The SQLite facade remains 4532 physical lines with separate tests; its new
+change delegates complete batch persistence instead of extending that responsibility. The migration
+facade remains 9925 production/helper-prefix and 5267 inline-test lines; this correction adds only
+version dispatch and the compatibility range, keeping the new migration outside that debt area.
+
+Run `e6af7d0c486048d3a1ab803b792131bc` is prepared from the original closed 64490-image checkpoint,
+without modifying either predecessor run. All retained locations have file-identity and source-
+revision evidence and the current metadata-engine version. Preparation checks pass 34 cases and
+open no source image. The bound Debug payload contains 766 program/helper/source entries.
+
+The native continuation completes in 155993 ms: traversal reaches finalization at 137270 ms and
+source validation completes at 149098 ms. During traversal all 64490 retained locations remain
+present while pending membership decreases. The subsequent ordinary update completes in 234882 ms,
+including 198114 ms to finalization and 210964 ms to validation completion. Both scans visit 70115
+entries and publish 64490 images. These elapsed observations do not establish the separate retained
+update-performance obligation or a controlled speedup benchmark. The completed update retains 678
+`image_format_unsupported` issues; a read-only grouped query finds no other issue code in that scan.
+
+After update completion, a middle time-anchor read finishes in 318 ms. Its 21 visible previews are
+ready in approximately 2.4 seconds. The next upward input exposes 22 previews, all ready within
+1706 ms; their scroll position remains fixed for the following minute, with no Retry feedback.
+Subsequent opposite 536-pixel inputs move the viewport exactly 536 pixels up and back, and viewer
+return preserves the same position. One original is acquired, read, displayed and released with no
+additional-read attempt. All observed wheel inputs arrive after the time-anchor request completes;
+this does not prove the separate pending-read race on the real source.
+
+The application exits with code zero after the actual close click; its catalog observer retires
+76.974 ms after that input, with no cleanup failure. The host marks the lifetime failed because the
+driver omitted its required pre-close `close.json` receipt. The host's completion file is written
+1571.914 ms after the observed close input, after verifying process exit; this bounds the observed
+exit but does not recreate the missing pre-close receipt. Preserve that failure and do not synthesize
+the missing receipt or label the entire native gate passed. The observed lifetime is 677752 ms;
+peak working set is 466161664 bytes and minimum available host memory is 5274267648 bytes.
+
+An independent post-close read-only audit confirms quick-check `ok`, zero foreign-key violations,
+zero pending resume members and zero unfinished path work. All 64490 current locations retain their
+predecessor location IDs, asset IDs, source generations and physical identity/revision evidence.
+All six protected original/predecessor catalog and WAL components match preparation. This audit
+opens no media and leaves the original failed receipts intact.
+
+The canonical generated 10000-image performance gate passes with a 32362496-byte peak working set:
+cold 53109 ms, warm 28791 ms, pause 9 ms, resume 50749 ms and cancellation 130 ms. The benchmark pauses
+near the initial boundary and is not a large-retained-checkpoint reuse measurement. Complete Daily
+and current unsigned Windows packaging remain pending at this checkpoint.
+
+The first complete Daily reaches 1673 passing Rust cases, six failures and 23 opt-in ignored cases,
+then stops before Flutter and native integration. Two current-schema assertions still expect v32.
+Four reduced v13-v16 migration fixtures omit the `(scan_id, location_id)` primary key retained by
+the production schema since v2, causing the new foreign-key check to reject them. The fixtures now
+include that historical key and the current-version assertions expect v33. No production constraint
+or preservation assertion is weakened. Focused migration and lifecycle checks precede the corrected
+Daily and unsigned Windows run; the original failed run remains retained.
+The corrected migration filter passes all 153 cases, and the separate current terminal-trigger
+lifecycle case passes. Those overlapping migration categories are not added to the earlier 126-case
+count as distinct tests.
+The fixture-only edits touch dedicated test files of 8005 lines (`sqlite_catalog/tests.rs`), 6147
+(`sqlite_catalog/change_queue/tests.rs`), 5512 (`scan_library/tests.rs`) and 314
+(`metadata_inventory/tests/spool_lifecycle/retirement.rs`), with no production or inline-test lines
+in those files. Their surrounding historical test responsibilities are unchanged.
+
+The corrected complete Daily passes from 19:54:37 to 20:28:36 UTC on 2026-10-08. The Rust library
+reports 1679 passed, zero failed and 23 opt-in ignored cases; the broker's three cases also pass.
+All 106 Flutter test files pass. Windows scan run `55947d48f0f34e13a52b4a2ae14414f0` completes its
+three controlled cases in 50553 ms with exit code zero and no cleanup failure. Native accessibility
+passes all ten ordered UIA phases, confirms process exit and Job closure, and records no cleanup
+failure. The gate also passes lint, formatting, all 16 asynchronous bridge contracts and whitespace.
+
+Current unsigned Windows verification then passes from 20:28:36.948 to 20:33:42.961 UTC. It builds
+the Release application and broker, binds 20 payload files and 206 Rust dependencies, passes three
+native-window and two real-engine retirement cases, and passes the catalog-free Release bridge
+smoke. Its receipt binds dirty `5de4f8d`; that commit contains only the read-only verification policy.
+The product changes remain frozen through verification. All 696 bound product files differ from the
+real-source run only in the four corrected test fixtures; all 696 current hashes and the 102 owned
+code/test hashes remain unchanged after both gates. Commit packaging requires no repeated product run.
+
+The ignored evidence owner `.build/r2c-ux-repair-20261008` retains both complete gate transcripts,
+the partial live-output capture, source manifests and a frozen unsigned receipt. These local passes
+do not convert the earlier missing close-input receipt into a passed lifetime or close the separate
+real-source pending-read, update-cost, combined-source, populated Release and platform acceptance
+obligations.
 
 ## Existing recovery after startup
 
@@ -1188,7 +2029,332 @@ constant cost for every filter, and offset selection still grows within a large 
 Additional direct cross-month capture/file fallback fixtures are a coverage suggestion, not a
 reproduced defect; existing gallery fallback and anchor cases remain in the complete Rust gate.
 
-### Current-source local gate completion
+## Natural pending-read input and retained preview cost
+
+Run `555db7d7e2b7451d9f73f64353ee2f50` uses product commit `629da9e` at documentation
+head `cea18dc`, with the bound 652-file product source and 692-file source/helper/Debug closure.
+Its catalog observer forwards production time reads without delaying their completion. Native
+pointer events bind the actual run, epoch and PID. The first six delivered inputs match the six
+planned actions; subsequent unmatched input begins at 03:22:10.124041 UTC and is excluded from
+the selected planned-sequence conclusions.
+
+| Selected sequence | First target | Second target |
+| --- | ---: | ---: |
+| Upward input after real read dispatch | 131.880 ms | 178.007 ms |
+| Original read duration | 574.386 ms | 688.399 ms |
+| Settled window before reverse input | 52432 + 500 items | 36059 + 160 items |
+| Settled window after reverse input | 52986 + 500 items | 36376 + 160 items |
+| First all-ready visible sample after upward input | 22719.714 ms | 2180.102 ms |
+| First all-ready visible sample after reverse input | 22348.550 ms | 2258.824 ms |
+
+Both reverse movements cross the preceding loaded window, retain both paging cursors and reach
+visible ready tiles with no sampled Retry or failed tile. No additional input is required for the
+second reverse result to settle; it remains sampled through 03:22:06 UTC before unmatched input.
+This supplies actual pending application-read input evidence. It does not identify an executing
+SQLite statement, establish continuous pixel stability or reproduce the original non-top Retry/jump.
+The first target's 22-second visible readiness cost remains an adverse experience result.
+
+Closed comparison preserves all 79283 location/asset/path identities. local-primary metadata is
+unchanged. cloud-primary changes 465 source-revision tokens and generations, while its size, ordinary
+modification time, dates and dimensions remain unchanged. Four sampled visible locations replace
+September 8 revision evidence with September 9 evidence: these observations predate this run rather
+than establish source writes by it. This is bounded evidence adoption, not proof of source-byte
+equality. There are no new failed previews; the existing 104 unsupported and six invalid media
+failures remain. No new foreground scan or inventory is recorded. Both protected baseline/profile
+catalog and WAL hashes match at exit and at the September 28 offline check. The analyzer opens no
+source media and does not perform a complete source-byte audit.
+
+The lifetime **does not pass**. The close receipt is written at 03:24:35.417 UTC, but Computer Use
+rejects the attempted Alt-F4 because intervening window input requires re-observation. The parent
+then records `Normal close exceeded six seconds` at 522621 ms and retires its owned processes,
+without cleanup failure. This is failed close admission, not proof that Ame received a close command
+and hung. No normal exit code or close latency is claimed. The resource monitor remains within the
+original ceilings: 614862848-byte peak working set, 842047488-byte peak commit, and
+5558886400-byte minimum system availability. Neither the aggregate failure nor the changed source
+evidence is overwritten to obtain a passing label.
+
+Original logs, receipts and `recorded-input-analysis.json` remain in the run directory, with the
+offline analyzer under `.build/r2c-immediate-scroll-20260926`. The original strict lifetime verifier
+cannot pass this receipt. No additional client or full gate is run to replace the result.
+
+The existing [hosted run on `cea18dc`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36213816680)
+completes all ten required jobs and the aggregate gate successfully; three signing-only jobs remain
+skipped. This updates that frozen head's gate evidence only. C01's historical intermittent failure,
+complete client lifetime and the remaining incidents retain their separate obligations.
+
+## Viewer refresh and independent gallery position
+
+Two later, unmatched-input sequences in run `555db7d7e2b7451d9f73f64353ee2f50` provide diagnostic
+evidence, without attributing their inputs or counting them as the planned scenario. At 03:23:26 UTC,
+the revision-1289 read resolves viewer ordinal 56582 while the wall retains ordinal 56580. The next
+refresh instead requests ordinal 56332, the first item of that read window, and the wall moves from
+pixels 6490 to 58. At 03:24:13, the same pattern resolves viewer ordinal 56511 instead of wall ordinal
+56524; the next refresh requests window start 56261 and moves pixels 6586 to 58. No intervening wheel
+event explains either displacement. These are two approximately 250-item movements, not evidence
+that every earlier Retry/jump has the same cause.
+
+`LibraryGalleryQueryTransition` previously retained the loaded wall identity only for an unchanged
+revision. A viewer-centered refresh can resolve a different identity while still containing that
+wall item. Position resolution now accepts that loaded identity after explicit resolved-identity
+precedence and before the existing missing-anchor fallback, updates its ordinal/revision, and keeps
+its row/viewport fractions. Query, publication and viewer ownership remain independent.
+
+The connected regression then exposes a separate 13-pixel displacement: a center in a date heading
+or row gap is clamped to a photo edge, but its viewport fraction still refers to the old center.
+The existing reflow owner now captures both fractions at the same physical point and supplies that
+policy to both loaded-window and manifest capture. Exact pixel assertions remain unchanged.
+
+The old policy fails the two new loaded-anchor examples. After correction, 45 focused cases pass:
+13 query-transition, four connected viewer geometry, five layout snapshots, four committed-position,
+18 resize and one stale-page case. The first connected attempt contains a test-helper async-expect
+guard failure; after correcting that helper, the 13-pixel failure becomes visible and is corrected
+in production. Neither failure is relabeled as a passing run. One independent read-only review finds
+no actionable issue in the six-file diff. Production owner sizes are 228 / 267 / 2032 lines for query
+transition / reflow / wall; their three changed dedicated suites have 320 / 185 / 376 lines, with no
+inline tests. Complete lint/Daily/Release for this changed candidate have not run.
+
+Generated native run `7311c6f1ae29421faaac466016c46685` binds 652 product files and a 689-file
+source/payload/helper closure. Actual middle-rail, non-center viewer entry and return preserve
+pixels 187346 and all 16 sampled tile rectangles. There are no sampled failed tiles. It closes
+normally in 375.102 ms within its 171963-ms lifetime, with no cleanup failure. Peak working set is
+500789248 bytes, peak commit 539869184 bytes and minimum host availability 5894275072 bytes.
+Closed comparison preserves all 10000 generated location/source records, the baseline/profile
+catalog hashes and the scan/queue rosters. The analyzer opens no source media.
+
+**This native run does not verify the changing-revision race:** revision remains two throughout.
+Cold preview generation alone did not cause a catalog revision. The ordinary viewer-return result
+cannot replace a real refresh while the viewer is open, and the unchanged method is not replayed.
+Raw observations and `closed-analysis.json` remain in the isolated run directory; the helper is
+`.build/r2c-viewer-anchor-20260928`.
+
+## Retained update database cost exclusions
+
+The original manual update finishes traversal at 140338 ms and is first observed committed at
+160780 ms. A closed derived copy isolates selected database costs with rollback-only mutations:
+4096 matching identity updates take 27.954 ms, versus 21.811 ms when unchanged rows are excluded;
+retiring the previous 30659-location snapshot takes 4096.473 ms. Orphan retirement takes 440.895 ms,
+and unused-preview marking 0.267 ms. These results do not establish redundant writes as the dominant
+cause, so no publication SQL or identity guard is changed.
+
+The same 4096 identity reads take 97.151 / 83.174 ms with statement caching disabled, versus
+51.702 / 49.982 ms with a 16-statement cache; all four result digests agree. These Python SQLite
+3.50.4 probes are not timings of the bundled Rust engine or complete scan. Protected catalog hashes
+are unchanged and no source media is opened. Receipts remain under
+`.build/r2c-publication-write-cost-20260928`; the original recovery/update cost remains unresolved.
+Production polling is 250 ms; five-second unchanged-status logging and six-second observed
+publication intervals do not establish a five-second scheduler delay.
+
+## Refresh query cost during source reconciliation
+
+The exact first two selected input intervals in run `555db7d7e2b7451d9f73f64353ee2f50` contain
+38 and 40 visible locations. All eventually become ready, and their source generations change.
+For the last first-window item, observed pending time is 21580 ms while its logged successful
+request takes 697 ms (246 ms queued, 450 ms active). The next window's last successful request
+takes 1057 ms. Long queued requests elsewhere in the log therefore cannot by themselves establish
+visible-demand starvation. Accepted query refreshes arrive at 3.2–3.6-second intervals.
+
+The actual requested location anchors select a costly database path: ordinal counting and reverse
+predecessor selection use the scan-ID index across active rows. A read-only comparison retains the
+exact original cursor predicate and adds its equivalent known-date range:
+
+| Exact retained anchor | Original count / predecessor | Bounded count / predecessor |
+| --- | ---: | ---: |
+| First upward result | 2603.018 / 530.642 ms | 437.190 / 82.109 ms |
+| First reverse result | 529.931 / 529.621 ms | 38.889 / 80.387 ms |
+
+Both counts and complete predecessor payloads match. The bounded plans use the existing covering
+date index. First-sample/cache costs differ, and Python SQLite 3.50.4 is not the bundled Rust engine;
+these numbers do not predict complete native wall readiness. `preview-wait-analysis.json` and
+`refresh-anchor-cost.json` retain the correlations and plans in the run directory. No source media
+is opened and no catalog is modified by these probes.
+
+The complete location/asset anchor owner now lives in `gallery/location_anchor.rs`, including
+preferred identity, stable-asset fallback, surviving ordinal and centered predecessor selection.
+Known capture/creation dates add non-missing and inclusive primary-date bounds after the original
+exact cursor condition. Unknown dates and other sort keys keep their existing path. Source access,
+schema, protocol, queue concurrency, failures and consistent-read ownership are unchanged.
+
+The bundled-Rust causal regression fails on old code at 197600 virtual-machine steps for a six-item
+preceding range within 2012 records. Corrected code passes the unchanged bound of fewer than 4000
+steps. All 19 selected anchor tests pass, including filtered ascending/descending windows, missing
+dates, cross-root ties, renamed assets, removed-anchor fallback and concurrent snapshot changes.
+An initial compile after extraction misses the existing month owner's shared import; that import
+is restored before this passing run. No full gate or new native latency result is claimed.
+Physical production size changes from 819 lines in `gallery.rs` to 519 in the facade and 332 in the
+location owner, with no inline tests; dedicated new boundary tests contain 118 lines and their
+existing parent contains 211. The previous Dart position corrections remain part of the same
+unaccepted functional batch.
+
+Independent review of the four Rust files finds no actionable scoped finding. The inclusive bound
+is implied by the original cursor predicate, extraction otherwise preserves the implementation,
+and anchor resolution/page loading retain one read transaction. No additional build or test was
+run during review; actual native latency and the original retained incident remain unverified.
+
+## Native publication during viewer return
+
+The preceding cold-preview lifetime did not change catalog revision. The changed method uses the
+same 10000-image generated mixed-size/historical corpus with a fresh derived catalog/cache, one
+actual foreground update, a viewer opened before publication, return after publication, upward
+and reverse input, and normal exit. No original media or fixture is modified.
+
+The first run `aff10ce26fe54d04aa2790677f654590` is stopped by a faulty scope observer after
+87698 ms, with owned cleanup and protected catalogs intact. It incorrectly requires
+`requires_previous_snapshot = 1` for an existing-root update. Source and the actual retained row
+show that this flag instead records preservation after discovery/inspection failure; the correct
+foreground scan is running with zero. The attempted viewer click occurs after owned termination
+and is not delivered. This is a harness failure, not an application crash or a passing variant.
+Its original helper bytes and receipts remain intact.
+
+The corrected observer checks the exact published baseline until the single admitted foreground
+scan commits, then requires that scan's active identity. It retains receipt/root/epoch ownership,
+300-second update timing, no new inventory, final closed-scope validation and resource limits.
+Its 22 scope checks pass. Review also corrects a completed-scan deadline bypass and a timestamp
+sampled before its database snapshot; each is resolved before the corrected lifetime. Product,
+nine compiled Dart helpers and all 20 compiled payload files are unchanged; no rebuild is needed.
+
+Run `d5fec63106004f1ab22ff80c85a9063f`, epoch `eece9002c7ab40d08df7d838c0e32476`, confirms update
+at 18:45:18.170 UTC and opens the viewer at 18:45:27.989. Accepted revision changes from 2 to 3 at
+18:45:51.502716, while the viewer remains open. Its requested location is ordinal 4404; the wall's
+independent retained location is ordinal 4409. The new query window starts at 4154 with 500 items.
+Actual Escape at 18:46:24.188 returns to pixels 188960, identical to the preceding wall; all 16
+visible location IDs and complete tile rectangles match exactly. This verifies the changing-
+revision return boundary, not merely ordinary return under an unchanged catalog.
+
+Upward input moves the wall to pixels 188360; 11 visible tiles are observed ready after 858 ms.
+Reverse input moves to pixels 200360, with window 4656+160 extending beyond the prior 4154+500
+window. Both continuation cursors remain available, 16 visible tiles are ready after 4712 ms,
+and position stays stable until close. No failed tile or Retry feedback is sampled. These are
+selected generated observations, not proof of the original retained-source Retry/jump sequence
+or a controlled before/after estimate for the newly bounded location query.
+
+The generated update is still uncommitted at 32389 ms and observed committed at 35903 ms; stored
+scan duration is 29792 ms and excludes final publication. Exactly 10012 entries are visited and
+10000 images published, with no unfinished work or new inventory. Closed comparison allows the
+new scan ID but proves all 10000 asset/source identity and metadata tuples unchanged; its SHA-256
+is `a31b893950c650510036751b049fea89e7cfa83a3fcf8318ad1ac5b58b7fb8b9`. This is catalog evidence,
+not a new full-media byte audit. Protected original/baseline catalogs and WALs remain unchanged.
+
+The lifetime exits zero in 221368 ms, normal close takes 439.556 ms, and cleanup has no failure.
+Peak working set is 550326272 bytes, kernel/private commit 536821760 bytes and minimum host
+availability 5058830336 bytes. Run-local `closed-analysis.json`, native inputs, observations and
+the preserved helpers bind this result. The real-root 157532–160969-ms update cost, prior slow
+recovery, original retained incident and current accumulated-source full gates remain open.
+
+## Staging page-cache cost comparison
+
+The unchanged source-bound location INSERT is compared over 4096 identical generated records in
+two byte-identical fresh catalog copies. Both arms disable statement caching, use 4096-byte pages,
+WAL journaling and `synchronous=2`, and roll back the same diagnostic scan. Each subprocess has a
+20-second external deadline and a 15-second row/query deadline. No source media is opened; the
+closed generated baseline's database/WAL hashes and product source hash remain unchanged.
+
+Python SQLite 3.50.4 reports 3133.242 ms with its default `cache_size=-2000` and 2196.054 ms with
+`cache_size=-16384`. The derived spill thresholds are 483 and 3964 pages respectively. Both arms
+return 4096 rows and payload SHA-256
+`ac7a8bc64aebc63ef42a5539a8612bb0ff9b3b2e48025912e569e18dd03d7667`.
+The helper and raw result remain under ignored `.build/r2c-staging-page-cache-20260928`.
+
+The approximately 30-percent insertion improvement is not a measurement of bundled Rust,
+transaction commits, complete staging, connection-pool memory, real source traversal or final
+update latency. Filesystem-cache warmth is not controlled. This does not justify a global cache
+increase or establish a dominant cause for the retained 140338-ms traversal. The method ends
+without a product change or an unchanged rerun; the current native candidate remains bound and
+pending its separate authorization.
+
+## Current idle-browsing candidate preparation
+
+Run `025bb2d43b6c48eba0e9fb413c3d2646` is prepared from the closed completed-update baseline:
+30659 local-primary plus 48624 cloud-primary records, with isolated catalog/cache and in-memory
+preferences. Preparation preserves original catalog/WAL hashes, opens no media and starts no
+client. Existing unsupported/invalid media classifications remain. Helpers and receipts are under
+ignored `.build/r2c-idle-browse-current-20260928`.
+
+Seventeen helpers initially match the previously reviewed immediate-scroll method byte-for-byte
+after changing only the helper directory name. The first Debug build completes in 43.8 seconds.
+Method review identifies a real diagnostic gap: freshly resolved provider state is not proof of
+the branch that rendered Retry. The observer now reads actual feedback ancestry up to its owning
+photo tile and records `image-error`, `asset-failure`, `retry-progress` or `unbound`. Sampled source
+generation/status/code remain sampled provider evidence, not the captured error's original values.
+The delta introduces no input, rebuild, source read or publication. Its independent recheck finds
+no remaining scoped issue.
+
+The nine admission, eight geometry, six metric and four scope checks pass; a missing-authorization
+invocation rejects before process admission. Dart formatting/analysis pass. The changed observer's
+incremental Debug build completes in 19.6 seconds. The final binding covers 654 product files and
+695 product/helper/runtime files; the product source is unchanged across both builds. This is
+preparation evidence only. No admission or entry receipt exists, and current authorization for this
+new real-root lifetime is pending. The old single-use authorization is not reused. No new Daily,
+native pass or resolution of the original Retry/jump is claimed.
+
+## Discovery attribute-handle evidence
+
+The Windows `visit_root_relative_path` operation already holds a root-relative attribute handle
+for metadata and identity. Its downstream `discovered_file` reopened the mutable absolute path,
+discarded the first handle's revision opportunity, and combined the prior identity with newly
+opened evidence. On a renamed path the second open instead discarded the retained identity.
+This is a concrete redundant operation and evidence-ownership failure; it does not establish the
+entire cause of the retained scan's delay or prove an invalid catalog was published.
+
+The complete root-relative admission now belongs to `local_files/file_admission.rs`. Classification
+borrows the live attribute handle; its metadata, identity and revision refer to that opened object.
+An evidence read error remains `source_revision_unavailable` without reopening a substitute path.
+Directory-entry admission retains its existing path-based fallback. Placeholder/reparse rejection,
+unknown-extension signature handling, terminal/retry outcomes and final source revalidation remain
+intact. No schema, bridge, dependency, extra content read or new unsafe operation is introduced.
+
+One owned-fixture regression deliberately renames the path between production-handle acquisition
+and admission, with and without a replacement file. Old source fails the retained-identity assertion
+in 0.01 seconds after 21.55 seconds compilation. The correction preserves the held evidence and
+requires final revalidation to reject both changed paths; original fixture bytes are checked.
+All four admission cases pass in 0.10 seconds after 17.51 seconds compilation, including exclusive
+content locks, offline placeholder rejection and known/sniffed source-revision stability. The
+complete affected adapter namespace passes 70/70, zero ignored, in 14.48 seconds; its namespace,
+no-recall, root replacement and final publication guard regressions pass. Independent read-only
+review finds no remaining actionable issue in this boundary.
+
+The local-files facade decreases from 3962 production / 3438 inline-test lines to 3895 / 3438.
+File admission changes from 190 to 262 production lines with no inline tests; its dedicated test
+file changes from 137 to 203 lines. The parent module declaration and availability source-loading
+allowlist are unchanged. This is a focused-verified candidate change; full gates and measured
+end-to-end update cost remain open. No real media or original profile was accessed by these tests.
+
+## Retained update metadata reuse
+
+The closed before/after catalogs for retained manual run
+`86a8cc6a946148ee98d669b7363662f4` contain 30659 local-primary and 48624 cloud-primary records.
+The read-only comparison bounds each snapshot to 80000 rows and each query to 15 seconds; it
+opens no media, starts no client, and preserves all protected catalog/WAL hashes. The helper
+and raw result remain under ignored `.build/r2c-retained-reuse-audit-20260928`.
+
+Every record retains its file identity and physical source state. Local-primary has 30640 prior
+records already on `kamadak-exif@0.6.1+ame-orientation-1`; only 19 replace the
+`ame-invalidated-media-metadata@0` marker. Source generations and derived metadata are unchanged.
+The peer's 48501 current-engine, 110 inspection-engine and 13 invalidated records are unchanged.
+
+This establishes warm-reuse eligibility for almost all local-primary items and rules out mass
+engine refresh or recorded physical changes as the explanation for the 140338-ms traversal.
+It does not trace every executed inspection branch or remove final source-validation obligations.
+The real update cost and earlier recovery cost remain open.
+
+## Warm staging statement comparison
+
+The complete `persist_location` insertion SQL is read from current source and exercised over the
+same 4096 generated records in a disposable database copy. Both arms roll back and produce the
+same complete staged payload digest. Cached preparation takes 3149 ms; uncached preparation,
+executed second with any filesystem-cache advantage, takes 3594 ms. Source/bindings and protected
+catalog hashes match, no media is opened, and neither interval includes transaction commit.
+
+The 1000-step progress callback reports 916000 approximate steps for the retained statement but
+zero for uncached executions whose individual statements stay below its interval. These counters
+cannot establish VM-work equivalence. Both completed arms are below their 15-second bound, but
+that callback is not an effective per-statement deadline mechanism for this workload. Preserve
+this observer limitation rather than attributing zero work to uncached SQL. Python SQLite 3.50.4
+also differs from the bundled engine. The roughly 445-ms isolated difference does not select a
+dominant cause for the retained update delay; no production staging or identity policy is changed.
+Receipts remain under `.build/r2c-staging-statement-cost-20260928`. This method ends without another
+unchanged scan or database replay.
+
+## Current-source local gate completion
 
 The existing serial batch runs from 2026-09-26 02:23:36.423 UTC to 03:02:38.342 UTC and exits zero.
 It binds the same 652 product files over dirty `56a9309`, checking their exact hashes before and

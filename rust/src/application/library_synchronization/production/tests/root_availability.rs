@@ -58,6 +58,24 @@ fn production_offline_root_recovery_preserves_catalog_while_peer_changes_publish
     let mut peer_expected = source_snapshot(&peer_source);
     let factory = QueuedSourceFactory::default();
     let mut production = fast_gap_runtime(factory.clone(), test_live_only_connection());
+    let unavailable_identity = catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .unwrap()
+        .unwrap()
+        .publication_root_identity
+        .unwrap();
+    let unavailable_path = root_path.clone();
+    let unavailable_lookups = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed_lookups = Arc::clone(&unavailable_lookups);
+    // A same-volume rename remains discoverable. Model an unavailable volume at the platform
+    // lookup boundary while retaining the real missing-path and peer-publication workflow.
+    production.root_location = RootLocationRecoveryOwner::with_locator(move |path, identity| {
+        if path == unavailable_path && identity == &unavailable_identity {
+            observed_lookups.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+            return Ok(None);
+        }
+        crate::adapters::locate_library_root(path, identity)
+    });
 
     let outcome = catch_unwind(AssertUnwindSafe(|| {
         let ready_deadline = Instant::now() + Duration::from_secs(5);
@@ -192,6 +210,7 @@ fn production_offline_root_recovery_preserves_catalog_while_peer_changes_publish
         }
     };
     stopped.expect("all availability fixture workers retire within the existing stop budget");
+    assert!(unavailable_lookups.load(std::sync::atomic::Ordering::Relaxed) > 0);
     assert!(
         production.live.is_none() && production.journal.is_none() && production.recovery.is_none()
     );

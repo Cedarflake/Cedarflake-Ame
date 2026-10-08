@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-26
+- Last amended: 2026-09-28
 
 ## Context
 
@@ -56,6 +56,24 @@ persistence layers.
   distinct from reuse evidence; source revision, metadata engine and artifact checks remain
   mandatory. The facade composes traversal, final validation and atomic publication. None of these
   boundaries adds per-file catalog reads or grants source mutation.
+- `scan_library/root_selection.rs` owns registered-path precedence, unique published-directory
+  identity recovery and explicit relocation intent. It holds the target namespace capability
+  through a recovered or replaced binding's admission. `sqlite_catalog/scan_admission/root_binding.rs`
+  owns current binding/identity uniqueness, destination conflict and old-namespace retirement
+  within the transaction. `sqlite_catalog/scan_admission.rs` owns atomic source registration, old
+  generation retirement, scan admission, namespace binding and queue enrollment. Its typed
+  relocation input retains the expected root path/generation; registration is never a standalone
+  SQL rewrite followed by an independently admitted scan. `library_scan_target.dart` preserves
+  the selected root through pre-admission failure and dispatches through a separate relocation
+  scanner contract. The primary session retires this intent after a Started event or refreshed
+  catalog proof that the selected root owns the requested path; normal retry/resumption then uses
+  that durable binding. `library_scan_source_admission.dart` owns the pre-run root facts, source
+  refresh policy and retained read. Automatic recovery can recognize only a previously published
+  root; explicit replacement must match its selected root ID, never a peer occupying the target.
+  The primary lifecycle admits feedback only for the current run/task sequence. `library_scan_run.dart` distinguishes
+  native stream completion from complete retirement of terminal source refresh and subscription
+  cleanup. A subsequent retry or picker admission waits for that retirement; old terminal work
+  cannot release the newer operation's admission. Existing controls remain in the primary lifecycle.
 - `application/library_synchronization/production.rs` remains the priority and worker-lifecycle
   coordinator. Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
@@ -63,6 +81,20 @@ persistence layers.
   `journal_baseline/opening.rs` owns opening probe admission, capability/baseline publication and
   its typed recorded/retired outcome. A revoked first-import lease retires only its own work;
   database and broker failures remain errors, and a committed receipt survives later control.
+- `local_files/root_location.rs` owns attribute-only lookup of one retained Windows directory
+  identity and the full namespace capability returned for a candidate. It performs no media
+  enumeration, content read or other-volume search. `production/root_location.rs` owns one
+  background attempt, per-binding admission, current-epoch cancellation and joined shutdown.
+  The locator boundary is injectable for an unavailable-volume fixture without changing the
+  actual missing-path, peer-publication or recovery assertions. `sqlite_catalog/root_location_recovery.rs`
+  owns same-directory binding, active-location rebasing and the durable post-binding gap in one
+  transaction. Its retirement owner handles old inventory/baseline and journal-claim dependencies;
+  `retirement/payload_cleanup.rs` owns indexed logical-entry, candidate and frontier deletion pages
+  within that same cancellable transaction. It grants neither a separately committed preparation
+  state nor permission to delete raw source spools. Root-binding validation remains separate from
+  retirement so stale evidence is rejected before payload work.
+  Its write-attempt owner retires priority callbacks before rollback or final commit. Directory
+  discovery cannot infer provenance for a destination assembled from multiple roots.
 - `production/live_work.rs` owns an admitted Live worker's thread, result, cancellation and bounded
   retirement. `live_work/batch.rs` owns continuation across ready authoritative scopes, bounded by
   the queue lease limit and a monotonic admission quantum. Each scope reloads root/generation and
@@ -88,6 +120,12 @@ persistence layers.
   application command values. `scan_publication/transaction.rs` owns attempt-scoped priority
   preemption, SQLite progress interruption, callback retirement, and the transaction boundary;
   application publication owns retry admission and the pause/cancel/suspend terminal policy.
+- `scan_resume_inventory.rs` owns retained first-import membership and current-run reuse lookup.
+  Its roster is independent of published membership. `scan_staging.rs` owns buffered location
+  persistence, transactional acceptance of retained locations, and scoped orphan retirement. The
+  scan-resumption owner still resets unverified directory coverage, while traversal closes the
+  retained roster before final file validation. The v33 migration and its schema/row checks live in
+  `migrations/scan_resume_inventory.rs`; they do not widen the historical migration facade.
 - `catalog_delta/terminal_evidence_scope.rs` owns normalized terminal-media evidence containment
   and bounded retirement for completed path/subtree/root leases. The delta transaction keeps lease,
   namespace, revision, rollback and source revalidation authority. Too much retained evidence
@@ -115,6 +153,12 @@ persistence layers.
   complete asset validation. Capture/creation dates add equivalent bounds on the existing ordered
   date expression; unknown dates retain their NULL rule. Month bounds narrow database work without
   granting source access, changing schema or weakening revision/query admission in the read facade.
+- `sqlite_catalog/gallery/location_anchor.rs` owns preferred-location and stable-asset resolution,
+  surviving-ordinal fallback and the centered window's predecessor inside the caller's read
+  transaction. A known capture/creation date excludes missing dates from its preceding range and
+  adds an inclusive ordered-date bound; the complete cursor predicate still decides exact ties.
+  Unknown-date and other ordering policies remain distinct. The gallery facade shares query filters
+  and order expressions rather than duplicating anchor fallback or source-access policy.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
@@ -253,13 +297,21 @@ persistence layers.
   root identity are revalidated before any catalog delta. After an admitted attempt, acknowledged
   durable retry or deferral retains completion ownership and retires the stale preview request.
   A failed persistence operation propagates its error and cannot claim that transfer.
-- `local_files/file_admission.rs` owns supported, terminal, and retryable file discovery after
-  local-availability checks. `scan_library/inspection_failure.rs` owns the shared retained-location
-  and precise-retry checkpoint rules for discovery and decoder failures. Incremental terminal-media
+- `local_files/file_admission.rs` owns root-relative attribute admission and supported, terminal,
+  and retryable file discovery after local-availability checks. The admitted handle supplies
+  metadata, identity and revision without reopening its mutable absolute path. Its borrow remains
+  live through classification; failure does not substitute evidence from another file. Final
+  publication still revalidates the root-relative path. `scan_library/inspection_failure.rs` owns
+  the shared retained-location and precise-retry checkpoint rules for discovery and decoder failures. Incremental terminal-media
   classification lives in `incremental_library_changes/terminal_media.rs`, not in the worker loop.
   Evidence-only completion does not create a gallery location. `rename_change.rs` owns paired-path
   composition while preserving the current lease's terminal-evidence boundary and both paths'
   source revalidation; it does not invent a second persistence contract.
+- `local_files/file_revalidation.rs` owns expected-file-state comparison for staged publication
+  and already opened preview sources. Windows path revalidation uses one no-recall attribute handle
+  for identity, revision and final metadata, retaining placeholder admission and the existing
+  identity-versus-revision failure classification. Size/time, identity and revision mismatches keep
+  their ordered outcomes; the shared comparator does not acquire namespace or publication authority.
 - `incremental_library_changes/preparation_catalog.rs` owns the bounded read set used to decide
   whether a prepared delta survives an unrelated catalog revision. It preserves every original
   path and global identity lookup, including negative results and ordered catch-up lineage.
@@ -267,8 +319,14 @@ persistence layers.
   source-version evidence before reuse; otherwise it retires the old proof before preparing again.
   Every observed file is revalidated even when it produces no mutation. An absent path acquiring
   terminal media is a new observation, not equivalent absence. Reuse never replaces the final
-  transaction's revision, root, lease, or preview guards. The authoritative path-set workflow uses
-  the same preparation and source checks without retaining an unused rebase read set.
+  transaction's revision, root, lease, or preview guards.
+- `incremental_library_changes/authoritative_path_set.rs` owns guarded path-set preparation and
+  publication. Only a single exact `ConsistencyAudit` path reconciliation without a previous path
+  retains the bounded read set and may rebase twice through the shared current-preparation proof.
+  A changed proof keeps its original durable retry; cancellation returns its exact lease. Root,
+  subtree, paired-path and other path sets retain fixed-revision publication because per-item reads
+  do not prove their complete scope membership. No rebase reparses a broader lease as a single path,
+  repeats media inspection, or weakens the final transaction's publication authority.
 - `application/storage/preview_activation.rs` owns the cross-database restart obligation for
   switch-and-regenerate. Target initialization and idempotent catalog reset precede pending-intent
   retirement. The storage facade selects this use case; it does not carry compensating SQL or a
@@ -346,6 +404,11 @@ persistence layers.
   The queue owns active-location exclusion, demand/source validity, bounded execution and result
   acceptance; selection order cannot confer publication authority. `LibraryState` separately
   projects explicit removal, query-refresh and primary-scan precedence without owning execution.
+- `library_preview_root_failures.dart` owns admission and lifetime of scan-scoped root failures.
+  Only a source still accepted by the current publication owner may block sibling demand. A late
+  error from a retired source settles as superseded without acquiring root-wide authority. Explicit
+  retry, availability cooldown, scan replacement and authority restoration retain their distinct
+  release rules; pending-request completion and execution slots remain with the queue.
 - `library_folder_tree.dart` owns published folder windows and their cache lifetime. Query revision
   invalidation retires loading authority without hiding retained windows; an accepted page replaces
   or appends atomically. A parent proving a leaf or complete child absence retires corresponding
@@ -364,7 +427,7 @@ persistence layers.
   `library_preview_sizing.dart` separately owns verified sizes and failed exact-source/size attempts
   retained only for current demand. Request completion carries the actual attempted size; failure
   is never successful size verification. Changed demand/source, explicit retry or authority reset
-  releases failed attempts. Root availability retains its separate queue-owned cooldown.
+  releases failed attempts. Root availability retains its separate root-failure owner's cooldown.
 - `LibraryQueryActivity` is a sealed idle/loading/failed projection owned by the viewport. Failure
   retains its requested query separately from the still-visible gallery and primary task error.
   Primary scan publication separately distinguishes uncommitted work, committed display reload,
@@ -466,6 +529,11 @@ persistence layers.
   Query/revision/scroll-position replacement and explicit date/query/layout intent retire the old
   operation; matching cleanup cannot clear a newer prepend owner. The screen composes the page
   request and rendered-frame boundary, while application paging retains read/publication authority.
+- `library_gallery_position.dart` owns visible-position identity, the displayed-geometry resolver
+  and layout-transition position admission. Both local-window layout and first-manifest takeover
+  resolve later scrolling before replacing the displayed resolver. Query and revision must match;
+  detached geometry cannot supply an anchor. A transition without an admissible position retires
+  through the existing generation-bound layout acknowledgement without moving the viewport.
 - `library_synchronization_feedback.dart` owns the immutable message, detail, severity and existing
   manual-action projection of synchronization status. First-import and explicit-manual decisions
   remain distinct; blocked recovery takes precedence over automatic-progress explanations. A

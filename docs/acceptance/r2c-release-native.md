@@ -1283,3 +1283,88 @@ retirement/resource bounds; it does not independently re-observe the screenshots
 This closes the selected current Release layout/more keyboard-return gap while retaining every
 preceding failed attempt. The earlier concurrent finalization/refresh report, exact-deletion
 continuation, other frozen variants and complete R2c acceptance remain open.
+
+### Populated restart preparation checkpoint
+
+The 2026-09-28 UX-01A preparation uses the frozen 10000-image mixed-size/historical corpus and
+normal guest Known Folders. No guest has been launched. The canonical unsigned Windows entrypoint
+started at 07:53:46.455 UTC and passed its Release payload build, three native runner cases, two
+real-engine retirement cases and catalog-free Release bridge smoke. All 567 selected product,
+native, manifest and lockfile inputs match their pre-build hashes. Current and previous gate
+receipts remain distinct in `.build/r2c-release-restart-20260928`; `build-binding.json` connects
+the passing receipt to those current inputs. This is not final accumulated-candidate acceptance.
+
+Fresh generated run `05380912c77846c6bf63f89387f20674` retains 36 bound input files and the verified
+Release payload. The planned two application lifetimes share one normal-profile catalog. Closed
+snapshots include the database, WAL and SHM with exact presence, size and SHA-256; verification
+opens a separate derived copy, preserving the capture. A second lifetime requires exact first
+membership, distinct process identity and the first closed snapshot. New inventory work remains
+observable and cannot be inferred absent merely from a populated wall. No real-source path,
+source enumeration, source mutation, hydration or retained binding change belongs to this run.
+
+Scoped static review found three gaps in the initial helpers. Exit code zero alone did not prove
+requested normal close; the corrected native input now binds the observed screenshot, run, phase,
+PID and start epoch to a matching post-exit receipt within six seconds on the host clock. Catalog
+verification and restart admission require that proof. An already queued request could also bypass
+abort checking; the request owner now rechecks cancellation and both deadlines, and process
+admission checks again before launch. The remaining gap is bounded owned-Sandbox retirement on
+failure: the copied host controller only writes an abort receipt and waits. It cannot prove that
+the guest VM has retired before releasing its lock. The reviewer confirmed the close-proof
+correction while retaining the cancellation and retirement findings; the subsequent cancellation
+correction has focused checks, not another independent review.
+
+The preparation checks pass 3 positive and 25 rejecting PowerShell cases, four Node groups and
+seven Python cases. They cover retained WAL changes, phase/run/PID mismatch, failed cleanup,
+memory/deadline limits, exact membership, cross-language snapshot hashes and requested-close
+timing. These are helper checks, not application behavior evidence. The PowerShell files parse.
+The latest resource probe reports 4.62 GiB available against the unchanged seven-GiB startup floor.
+The official [Sandbox CLI](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-cli)
+documents instance-ID retirement, but this host's existing `wsb.exe` alias cannot execute even
+`--help` (`The file cannot be accessed by the system`); no instance-list or stop operation ran,
+and no installation or host setting changed.
+
+The prepared `run_media.ps1` is explicitly closed to admission until failure retirement has an
+owned, bounded and verified implementation. Its copied guest inputs predate the final abort
+correction and must be refreshed with preserved previous bindings before later use. No native
+verdict, zero-source-call result or UX-01A completion follows from this checkpoint. The passing
+build needs no unchanged replay. Both application lifetimes, final source preservation and complete
+normal retirement remain unexecuted; combined-source correspondence and the original retained
+browsing/update reports remain separate open work.
+
+### Owned Sandbox retirement initialization failure
+
+The single empty Job-owned experiment on 2026-09-28 consumes its admission without starting Ame.
+Its local run is `8c5eb08ecfed45909fcc47c7f89025f3`; it maps only generated helper input and empty
+evidence storage, with no image corpus or catalog. Two earlier resource-only refusals at 6.53 and
+6.51 GiB produce neither a start receipt nor a guest. The admitted attempt follows the subsequent
+7.24-GiB observation and retains the seven-GiB startup floor, 3072-MiB guest and two-GiB host reserve.
+
+Native observation displays Windows Sandbox's initialization error `0x80370106`, reporting that
+the virtual machine or container exited unexpectedly. No guest-ready receipt is produced. The
+parent ends after 151150 ms with `Empty guest readiness expired`; sampled host availability stays
+above the reserve. Final owned-Job disposal and process comparison finish in 432 ms, with no
+remaining Sandbox/VM process epochs and no missing baseline. The baseline and admitted VM roster
+are both empty. Consequently this is **failed initialization**, not successful retirement of a
+running guest. A requested native dismissal reports intervening input; subsequent fresh window
+enumeration finds no Sandbox window. The input is not recorded as a successful delivered click.
+
+The ordinary host token cannot read the Hyper-V Compute/Worker diagnostic channels (`Attempted
+to perform an unauthorized operation`). The initially empty event query therefore does not prove
+absence of a platform error. No event-log permission, host setting, package, service or privilege
+changes. The initialization cause remains unestablished; it is not attributed to Ame, low memory,
+the process Job, or a Windows update without causal evidence.
+
+The prepared Release controller now uses the existing owned process Job, separates primary failure
+from cleanup results, and releases its repository lock even when admission or cleanup fails. A
+dedicated prerequisite owner requires both the empty guest lifetime and observed VM retirement;
+the failed actual record is rejected. One passing and thirteen rejecting focused cases cover
+wrong run, failed readiness, deadline/resource excess, residual or changed VM baselines and missing
+client/VM observation. Actual refused media admission leaves its output untouched and releases the
+repository lock. These checks and PowerShell parsing pass; the later controller integration has
+not yet received independent review or a connected run. The copied populated configuration lacks
+the new host binding and still predates the final guest abort correction, so it cannot launch.
+
+Preserve the original input hashes and receipts. No populated Release test, new build, source
+operation, zero-source-call proof or UX-01A pass is claimed. The failed empty method is closed to
+unchanged replay. This preparation cannot close combined-source continuity or the original retained
+gallery/update incidents.

@@ -15,98 +15,12 @@ import "../library_strings.dart";
 import "library_exact_extent_sliver.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_layout_snapshot.dart";
+import "library_gallery_position.dart";
 import "library_gallery_reflow.dart";
 import "library_photo_tile.dart";
 import "library_virtual_gallery_geometry.dart";
 
-class LibraryGalleryVisiblePosition {
-  const LibraryGalleryVisiblePosition({
-    required this.queryId,
-    required this.revision,
-    required this.monthKey,
-    required this.locationId,
-    this.assetId,
-    required this.globalItemIndex,
-    required this.itemFraction,
-    required this.viewportFraction,
-  });
-
-  final String queryId;
-  final BigInt revision;
-  final String? monthKey;
-  final String locationId;
-  final String? assetId;
-  final int globalItemIndex;
-  final double itemFraction;
-  final double viewportFraction;
-}
-
-class LibraryGalleryPositionResolver {
-  String? _queryId;
-  BigInt? _revision;
-  LibraryGalleryVisiblePosition? Function(
-    double scrollOffset,
-    double viewportDimension,
-  )?
-  _resolve;
-
-  void update({
-    required String queryId,
-    required BigInt? revision,
-    required LibraryGalleryVisiblePosition? Function(
-      double scrollOffset,
-      double viewportDimension,
-    )
-    resolve,
-  }) {
-    _queryId = queryId;
-    _revision = revision;
-    _resolve = resolve;
-  }
-
-  LibraryGalleryVisiblePosition? resolve({
-    required String queryId,
-    required BigInt? revision,
-    required double scrollOffset,
-    required double viewportDimension,
-  }) {
-    if (_queryId != queryId || _revision != revision) {
-      return null;
-    }
-    return _resolve?.call(scrollOffset, viewportDimension);
-  }
-}
-
-class LibraryGalleryLayoutTransition {
-  LibraryGalleryLayoutTransition({
-    required this.generation,
-    required this.position,
-    required ScrollPosition? scrollPosition,
-  }) : _scrollOrigin = LibraryGalleryScrollOrigin(scrollPosition);
-
-  final int generation;
-  final LibraryGalleryVisiblePosition position;
-  final LibraryGalleryScrollOrigin _scrollOrigin;
-
-  bool retainsScrollPosition(ScrollPosition? current) =>
-      _scrollOrigin.matches(current);
-
-  LibraryGalleryViewportAnchor? anchorForScrollPosition(
-    ScrollPosition? current,
-  ) {
-    if (!retainsScrollPosition(current)) {
-      return null;
-    }
-    return LibraryGalleryViewportAnchor(
-      queryId: position.queryId,
-      revision: position.revision,
-      locationId: position.locationId,
-      globalItemIndex: position.globalItemIndex,
-      itemFraction: position.itemFraction,
-      viewportFraction: position.viewportFraction,
-    );
-  }
-}
+export "library_gallery_position.dart";
 
 class LibraryGalleryVisibleRange {
   const LibraryGalleryVisibleRange({
@@ -330,6 +244,8 @@ class LibraryGalleryWall extends StatelessWidget {
           virtualGeometry: virtualGeometry,
           viewportExtent: constraints.maxHeight,
           scrollController: scrollController,
+          positionResolver: positionResolver,
+          fallbackPosition: initialQueryWidePosition,
         );
         positionResolver?.update(
           queryId: state.queryId,
@@ -771,6 +687,13 @@ class LibraryGalleryWall extends StatelessWidget {
       for (final cell in activeEntry.cells) cell.width,
     ], availableWidth);
     final itemIndex = rowStartItemIndex + centerCellIndex;
+    final fractions = LibraryGalleryAnchorFractions.capture(
+      rowOffset: rowOffset,
+      rowHeight: activeEntry.rowHeight,
+      scrollOffset: scrollOffset,
+      viewportExtent: viewportDimension,
+      viewportFraction: 0.5,
+    );
     return LibraryGalleryVisiblePosition(
       queryId: queryId,
       revision: revision,
@@ -778,10 +701,8 @@ class LibraryGalleryWall extends StatelessWidget {
       locationId: activeEntry.cells[centerCellIndex].asset.locationId,
       assetId: activeEntry.cells[centerCellIndex].asset.assetId,
       globalItemIndex: windowStartItemOffset + itemIndex,
-      itemFraction: ((anchorOffset - rowOffset) / activeEntry.rowHeight)
-          .clamp(0.0, 1.0)
-          .toDouble(),
-      viewportFraction: 0.5,
+      itemFraction: fractions.item,
+      viewportFraction: fractions.viewport,
     );
   }
 
@@ -851,6 +772,8 @@ class LibraryGalleryWall extends StatelessWidget {
     required LibraryVirtualGalleryGeometry virtualGeometry,
     required double viewportExtent,
     required ScrollController scrollController,
+    required LibraryGalleryPositionResolver? positionResolver,
+    required LibraryGalleryVisiblePosition? fallbackPosition,
   }) {
     if (transition == null ||
         state.catalogRevision == null ||
@@ -859,14 +782,25 @@ class LibraryGalleryWall extends StatelessWidget {
         entries.isEmpty) {
       return null;
     }
+    final position = transition.resolvePosition(
+      current: scrollController.hasClients ? scrollController.position : null,
+      resolver: positionResolver,
+      fallback: fallbackPosition,
+    );
+    if (position == null) {
+      return LibraryExactExtentLayoutCorrection(
+        generation: (scope: "gallery-transition", value: transition.generation),
+        delta: 0,
+      );
+    }
     final localItemIndex = state.assets.indexWhere(
-      (asset) => asset.locationId == transition.position.locationId,
+      (asset) => asset.locationId == position.locationId,
     );
     if (localItemIndex < 0) {
       return null;
     }
     final globalItemIndex = state.windowStartItemOffset + localItemIndex;
-    if (globalItemIndex != transition.position.globalItemIndex) {
+    if (globalItemIndex != position.globalItemIndex) {
       return null;
     }
     final rowOffset = metrics.offsetForGlobalItemIndex(globalItemIndex);
@@ -891,8 +825,8 @@ class LibraryGalleryWall extends StatelessWidget {
     final target =
         virtualGeometry.leadingExtent +
         rowOffset +
-        entries[entryIndex].rowHeight * transition.position.itemFraction -
-        viewportExtent * transition.position.viewportFraction;
+        entries[entryIndex].rowHeight * position.itemFraction -
+        viewportExtent * position.viewportFraction;
     final maximum = (virtualGeometry.totalContentExtent - viewportExtent)
         .clamp(0, double.infinity)
         .toDouble();
@@ -1602,9 +1536,29 @@ class _ManifestLibraryGalleryWallState
     if (transition != null && !identical(snapshot.manifest, widget.manifest)) {
       return true;
     }
-    final position = transition?.position ?? widget.initialQueryWidePosition;
-    if (position == null ||
-        position.queryId != snapshot.manifest.queryId ||
+    final position = transition == null
+        ? widget.initialQueryWidePosition
+        : transition.resolvePosition(
+            current: widget.scrollController.hasClients
+                ? widget.scrollController.position
+                : null,
+            resolver: widget.positionResolver,
+            fallback: widget.initialQueryWidePosition,
+          );
+    if (position == null) {
+      _didApplyInitialPosition = true;
+      if (transition != null) {
+        _layoutCorrection = LibraryExactExtentLayoutCorrection(
+          generation: (
+            scope: "gallery-transition",
+            value: transition.generation,
+          ),
+          delta: 0,
+        );
+      }
+      return transition != null;
+    }
+    if (position.queryId != snapshot.manifest.queryId ||
         position.revision != snapshot.manifest.revision ||
         snapshot.manifest.itemCount == 0) {
       _didApplyInitialPosition = true;

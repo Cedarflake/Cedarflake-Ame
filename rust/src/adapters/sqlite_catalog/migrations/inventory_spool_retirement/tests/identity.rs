@@ -41,6 +41,7 @@ fn set_header_schema(connection: &Connection, ddl: &str, schema_version: i64) {
 fn v32_header_identity_rejects_null_empty_and_oversized_inserts() {
     let mut connection = Connection::open_in_memory().expect("isolated catalog");
     migrate_schema(&mut connection).expect("production schema");
+    super::super::super::scan_resume_inventory::downgrade_to_v32_for_test(&connection);
     for identity in [
         Value::Null,
         Value::Text(String::new()),
@@ -73,6 +74,7 @@ fn v32_header_identity_full_reopen_rejects_corrupt_rows_without_mutation() {
         let path = storage.path().join("catalog.sqlite3");
         drop(SqliteCatalog::open(path.clone()).expect("initialize production catalog"));
         let connection = Connection::open(&path).expect("owned corruption fixture");
+        super::super::super::scan_resume_inventory::downgrade_to_v32_for_test(&connection);
         let header = super::super::HEADER;
         let relaxed = header.replace(
             "run_id TEXT NOT NULL PRIMARY KEY CHECK(length(run_id) BETWEEN 1 AND 256)",

@@ -49,9 +49,12 @@ mod media_input_tests;
 #[cfg(test)]
 mod operation_cost;
 mod publication;
+#[cfg(all(test, windows))]
+mod relocation_tests;
 #[cfg(test)]
 mod resumption_tests;
 mod retained_cancellation;
+mod root_selection;
 mod traversal;
 
 #[cfg(test)]
@@ -72,6 +75,7 @@ use finalization::{FinalizationContext, FinalizationMode, FinalizationPlan};
 use publication::{
     ForegroundPublicationContext, ForegroundPublicationOutcome, publish_foreground_scan,
 };
+use root_selection::{ScanRootAdmission, ScanRootSelection};
 use traversal::{ScanTraversalContext, ScanTraversalOutcome, traverse_scan};
 
 const CHECKPOINT_INTERVAL: u64 = 128;
@@ -108,6 +112,24 @@ pub fn resume_scan(
     )
 }
 
+pub fn relocate_root_and_scan(
+    request: ScanRequest,
+    root_id: String,
+    expected_path: String,
+    publish: impl FnMut(ScanEvent) -> bool,
+) -> Result<(), ScanError> {
+    run_scan_with_storage_selection(
+        request,
+        publish,
+        storage_paths,
+        FullScanReason::ExplicitUserRequest,
+        ScanRootSelection::Relocate {
+            root_id,
+            expected_path,
+        },
+    )
+}
+
 pub fn load_recoverable_scan() -> Result<Option<RecoverableScan>, ScanError> {
     let storage = storage_paths()?;
     load_recoverable_scan_from_path(&storage.catalog_path)
@@ -133,7 +155,7 @@ fn load_paused_scan_from_path(path: &Path) -> Result<Option<RecoverableScan>, Sc
 }
 
 #[cfg(test)]
-pub(super) fn run_scan_with_storage(
+pub(crate) fn run_scan_with_storage(
     request: ScanRequest,
     publish: impl FnMut(ScanEvent) -> bool,
     storage: StoragePaths,
@@ -162,9 +184,25 @@ pub(super) fn resume_scan_with_storage(
 
 fn run_scan_with_storage_reason(
     request: ScanRequest,
+    publish: impl FnMut(ScanEvent) -> bool,
+    resolve_storage: impl FnOnce() -> Result<StoragePaths, ScanError>,
+    reason: FullScanReason,
+) -> Result<(), ScanError> {
+    run_scan_with_storage_selection(
+        request,
+        publish,
+        resolve_storage,
+        reason,
+        ScanRootSelection::RegisteredPath,
+    )
+}
+
+fn run_scan_with_storage_selection(
+    request: ScanRequest,
     mut publish: impl FnMut(ScanEvent) -> bool,
     resolve_storage: impl FnOnce() -> Result<StoragePaths, ScanError>,
     reason: FullScanReason,
+    root_selection: ScanRootSelection,
 ) -> Result<(), ScanError> {
     validate_request(&request)?;
     let control = register_scan(&request.scan_id)?;
@@ -186,43 +224,30 @@ fn run_scan_with_storage_reason(
                 )
             })?;
     let root_path = canonical_root.to_string_lossy().into_owned();
-    let root_id = stable_id("library-root-v1", &root_path);
     #[cfg(test)]
     let is_authoritative_recovery = reason == FullScanReason::ResumeAuthoritativeCheckpoint;
     #[cfg(not(test))]
     let is_authoritative_recovery = false;
-    let (mut catalog, mut checkpoint, had_published_root) =
-        with_scan_start(&storage, &canonical_root, || {
-            let mut catalog = super::catalog_session::open_catalog_for_foreground_scan(
-                &storage.catalog_path,
-                LibraryChangeLane::Recovery,
-                &request.scan_id,
-            )?;
-            let had_published_root = catalog
-                .load_incremental_catalog_root(&root_id)?
-                .is_some_and(|root| root.active_scan_id.is_some());
-            let checkpoint = match reason {
-                FullScanReason::ExplicitUserRequest => catalog
-                    .begin_scan_with_publication_namespace(
-                        &request,
-                        &root_id,
-                        &root_path,
-                        &publication_root_identity,
-                    )?,
-                FullScanReason::ResumeForegroundCheckpoint => catalog
-                    .resume_scan_with_publication_namespace(
-                        &request,
-                        &root_id,
-                        &root_path,
-                        &publication_root_identity,
-                    )?,
-                #[cfg(test)]
-                FullScanReason::ResumeAuthoritativeCheckpoint => {
-                    catalog.resume_authoritative_scan(&request, &root_id, &root_path)?
-                }
-            };
-            Ok((catalog, checkpoint, had_published_root))
-        })?;
+    let (mut catalog, admission) = with_scan_start(&storage, &canonical_root, || {
+        let mut catalog = super::catalog_session::open_catalog_for_foreground_scan(
+            &storage.catalog_path,
+            LibraryChangeLane::Recovery,
+            &request.scan_id,
+        )?;
+        let admission = root_selection.begin(
+            &mut catalog,
+            &request,
+            &root_path,
+            &publication_root_identity,
+            reason,
+        )?;
+        Ok((catalog, admission))
+    })?;
+    let ScanRootAdmission {
+        root_id,
+        mut checkpoint,
+        had_published_root,
+    } = admission;
     let mut issue_count = checkpoint.issue_count;
     let result = (|| -> Result<(), ScanError> {
         let root_generation = catalog
