@@ -31,10 +31,10 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | Daily | `./tool/quality_verify_daily.ps1` | Format, lint, Rust and Flutter tests, controlled Windows scan and native accessibility integrations, bridge hash plus asynchronous API/wire-mode contracts, tracked diff whitespace | Every material change |
 | Performance | `./tool/performance_benchmark_synthetic_library.ps1` | 10,000 temporary images, cold and warm scans, pause and resume, bounded memory | Scan pipeline, persistence, concurrency, or performance changes |
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
-| Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Explicitly authorized R2b preview closeout only |
-| Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Explicitly authorized source scan, source integrity sampling, retained multi-root catalog validation | Only with current authorization and explicit paths |
-| R2c reliability | `./tool/acceptance_run_r2c_reliability.ps1` | Real watcher latency and coalescing on a disposable root; isolated retained-catalog catch-up, queue, storage, memory, placeholder, metadata, and source-byte evidence | Explicitly authorized R2c-H closeout only |
-| R2c replacement reliability | `./tool/acceptance_run_r2c_replacement_reliability.ps1` | Disposable watcher operation latency, storm and restart recovery; isolated retained-catalog metadata inventory, cached gallery, source metadata, placeholder, full-scan, storage, and memory evidence | Explicitly authorized R2c-M closeout only |
+| Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Prepared read-only R2b preview closeout |
+| Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Bounded read-only source scan, source integrity sampling, retained multi-root catalog validation | Known roots, explicit paths, isolated storage; no separate per-run approval |
+| R2c reliability | `./tool/acceptance_run_r2c_reliability.ps1` | Real watcher latency and coalescing on a disposable root; isolated retained-catalog catch-up, queue, storage, memory, placeholder, metadata, and source-byte evidence | Prepared read-only R2c-H closeout |
+| R2c replacement reliability | `./tool/acceptance_run_r2c_replacement_reliability.ps1` | Disposable watcher operation latency, storm and restart recovery; isolated retained-catalog metadata inventory, cached gallery, source metadata, placeholder, full-scan, storage, and memory evidence | Prepared read-only R2c-M closeout |
 | R2c-R controlled local reliability | `./tool/acceptance_run_r2c_change_driven_reliability.ps1` | Exactly counted production-path live, durable P1, overflow/P2, million-record, no-change, priority, reset/trim, reconnect, cancellation, replacement, placeholder, path, and multi-root evidence using only fixture-owned disposable roots | Manual non-external Windows 11 x64 checkpoint; never retained-library acceptance |
 | Journal broker integration | `./tool/integration_test_windows_journal_broker.ps1` | Exactly counted disposable local NTFS tests for proof framing, two listeners, global eight-worker bounds, active-stop drain, listener readiness, case semantics, root replacement, reparse rejection, root-external filtering, bounded progress through unrelated-volume storms, cancellation, must-close backpressure, identity-probe deadline, restart, and installed-versus-portable activation | Broker transport, service, parser, or lifecycle changes |
 | Journal broker installer guardrails | `./tool/release_test_journal_broker_installer_guardrails.ps1` | Windows 11 x64, signing publisher, fixed destination, service account/SID/privileges/DACL, source/catalog isolation, no journal mutation, the existing eight install/repair/upgrade crash cases, and transaction-level marker-first uninstall/dead-owner recovery across every operation and final cleanup without changing SCM | Broker installer lifecycle changes |
@@ -142,9 +142,16 @@ current gate.
 
 GitHub-hosted workflows never receive real-library paths or authorization tokens and never run the
 real-library gate. Ordinary PR CI runs the five synthetic cases without release permission; retained
-real-library verification remains a separately authorized workstation action. Protected release jobs
+real-library verification remains a separately prepared workstation action. Protected release jobs
 may still show as skipped in a PR: the independent unsigned quality job supplies compilation evidence
 without relaxing their protected-main admission.
+
+Read-only verification of known real-library roots is covered by the repository's standing policy
+and does not require a separate confirmation for each run. Record explicit roots, read scope,
+duration/resource bounds, isolated derived storage and source/placeholder safeguards before execution.
+Existing admission tokens and acknowledgement parameters bind that prepared scope; they do not add
+another user-confirmation step. Source mutation, service installation and external publication retain
+their separate authorization requirements.
 
 ### Hosted coverage boundary
 
@@ -325,7 +332,7 @@ hydration, or a real-library acceptance run.
 
 The retained Profile is not a preview-throughput gate. It cannot measure source decode or preview
 materialization latency, bucket reuse, materialized cache growth, reclamation duration, or
-regeneration churn. Run the dedicated gate only with current authorization for `local-primary`:
+regeneration churn. Prepare the dedicated read-only gate with the known `local-primary` root:
 
 ```powershell
 ./tool/acceptance_run_preview_performance.ps1 `
@@ -360,12 +367,13 @@ catalog through the production loading API:
   -AuthorizationToken "<current authorization token>"
 ```
 
-The presence of a retained catalog or an old token does not authorize a new source scan.
+Each source scan needs a current scope binding; a retained catalog or old token does not replace it.
+Preparing that binding under the standing read-only policy does not require another confirmation.
 
 ## R2c reliability gate
 
-Run the R2c-H gate only after the synthetic performance gate passes and current authorization names
-both logical roots, the retained catalog, and new empty derived storage:
+Run the R2c-H gate after the synthetic performance gate passes, with both logical roots, the retained
+catalog and new empty derived storage explicitly bound to its prepared read-only scope:
 
 ```powershell
 ./tool/acceptance_run_r2c_reliability.ps1 `
@@ -397,8 +405,8 @@ remaining platform limitations.
 
 ## R2c replacement reliability gate
 
-Run the R2c-M gate only with current authorization naming both logical roots, the retained catalog,
-and new empty derived storage:
+Prepare the R2c-M gate with both logical roots, the retained catalog and new empty derived storage
+explicitly bound to its read-only scope:
 
 ```powershell
 ./tool/acceptance_run_r2c_replacement_reliability.ps1 `
@@ -964,8 +972,8 @@ tag ruleset, exact `Windows Gate / Windows Gate` required check, and
 `AME_WINDOWS_EXPECTED_PUBLISHER` variable are provisioned, candidate verification and external
 publication verification fail closed by design.
 
-When current authorization exists and the retained real-library catalog is applicable to the
-release, append its validation explicitly:
+When the retained real-library catalog is applicable to the release, append its prepared read-only
+validation explicitly:
 
 ```powershell
 ./tool/release_verify_candidate.ps1 `
@@ -1081,8 +1089,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   replaces signed candidate, installation, or Windows 11 client acceptance. Payload guardrails run
   in lint; hosted CI requires the complete unsigned job.
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
-  real-library gate. They require current authorization, explicit roots, and storage outside source
-  trees; they never become part of unattended daily verification.
+  real-library gate. They require explicit known roots, bounded read-only scope and isolated storage
+  outside source trees, without separate per-run approval; they never join unattended Daily verification.
 - `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
   production Windows observer against a disposable source root, then backs up the retained catalog
   into pre-created empty isolated storage and measures catch-up against both explicitly authorized
@@ -1093,8 +1101,8 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_run_r2c_replacement_reliability.ps1` is the R2c-M replacement closeout gate.
   It measures production watcher operations against a disposable root, then backs up the retained
   catalog into isolated storage and measures per-root metadata-only continuity without opening
-  media content or publishing a full scan. The retained-root phase requires current explicit
-  authorization.
+  media content or publishing a full scan. The retained-root phase follows the standing scoped
+  read-only verification policy.
 - `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
   cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
   real library.

@@ -23,7 +23,7 @@ live source and evidence.
 Use only `local-primary` and `cloud-primary` for real roots in tracked or user-facing documentation,
 snapshots, publishable logs, and commits. For needed discovery read ignored `.agents/local-context.toml`
 (shape: `.agents/local-context.example.toml`); never copy its paths, account labels, or machine identity.
-The mapping grants no source mutation, hydration, or new real-library run. If missing, retain logical
+The mapping grants no source mutation or hydration. If missing, retain logical
 names and report exact local execution unavailable.
 
 ## 2. Project context
@@ -344,8 +344,12 @@ Use its canonical PowerShell entrypoints and ownership-prefixed script/workflow 
 callers and documentation together when an entrypoint changes. Do not create a second canonical alias.
 
 Keep local heavy work serial under the repository lock. Focused tests do not replace applicable
-Daily, native, performance, release, or acceptance gates. Real-library runs require current explicit
-authorization, roots, and isolated derived storage; they never join unattended Daily verification.
+Daily, native, performance, release, or acceptance gates. Read-only real-library verification of
+known roots is included in project work and does not require separate per-run approval. Define the
+roots, read scope, resource limits, and isolated derived storage before each run; preserve source
+media and original catalogs, and never hydrate placeholders. Real-library runs remain separate
+from unattended Daily verification. Source mutation, service installation, and external publication
+retain their applicable explicit-authorization requirements.
 Hosted workflows use minimal token permissions, full-SHA action pins, no untrusted
 `pull_request_target` execution, and no restored compiled output as trusted build evidence.
 Real-library paths, tokens, catalogs, and scans never enter hosted workflows.
