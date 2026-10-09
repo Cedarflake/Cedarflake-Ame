@@ -184,6 +184,74 @@ Original-profile replacement, automatic destination discovery and native interac
 established by this result. Continue the retained browsing and Release-window obligations without
 replaying this completed observation.
 
+Continue with the selected user's actual profile adoption, followed by retained browsing. The
+initial complete schema/table comparison rejects the older diagnostic input: 17 tables differ in
+derived synchronization, scan and preview state. All 79283 location identities and source payloads
+match; the only changed location fields are scan identity, preview path/status and 21 source
+generations. Preserve this failed preflight and its unchanged original profile.
+
+The revised admission verifies that exact source payload and root registration identity, unchanged
+non-derived tables/contracts, and unchanged state belonging to any unrelated source. Only the
+enumerated runtime fields and derived tables may differ from the two-root input. Recheck the full
+33939/30551 identity classification against the original itself, including retained asset creation
+history and non-regressing publication, source-generation and SQLite sequence counters. Generated
+checks must reject changed source metadata, lost durable data, unrelated source changes and guessed
+identity. Keep the exact original logical proof for backup verification and rollback.
+The next read-only preflight identifies 128 unrelated queue records, with their 128 lane records,
+missing from the older diagnostic snapshot. Preserve that rejected preflight. Restore only those
+missing rows into a new copy of the verified replacement; reject conflicting rows, changed schema,
+different membership or any change outside these two tables. Require the resulting unrelated state
+to equal the original and retain both the immutable replacement and the full original snapshot.
+This changes the recovery candidate only; it performs no source enumeration or media read.
+Reserve a further 30 active minutes for this exact restoration and native handoff if the original
+60-minute preparation allowance is consumed; do not replay either rejected method unchanged.
+
+The already verified schema-v33 replacement must retain its exact closed hash, one current source,
+64490 locations and the proven identity classification. No further import is selected.
+
+Prepare an offline, reversible adoption using SQLite's transactional backup API, not a file copy
+over a potentially journaled database. Hold the same per-user global single-instance mutex as the
+Windows client, reject a running client or changed input, and save a consistent original snapshot
+in a new recovery directory beside the profile catalog before writing. Keep settings and source
+media unchanged. Require full logical equality for the saved snapshot and adopted result, closed
+integrity/foreign-key checks, a one-use receipt and immediate restoration on a failed postcondition.
+Use bounded streaming table digests, at most 2000000 rows and 120 seconds per catalog operation,
+and a four-GiB disk reserve. Generated positive, stale-input, failure and rollback checks must pass
+before profile adoption. This is the selected profile recovery, not permission to overwrite
+unrelated catalogs or bypass source identity rules.
+
+After adoption, use a current-source normal Windows client against that recovered profile. Verify
+startup with one current root and no new scan, middle-timeline navigation, settled upward/reverse
+scrolling, visible previews, one original read, viewer return and normal close. Source access remains
+read-only without placeholder hydration; no import, update, service installation or source mutation
+is selected. Bound the native lifetime to 1200 seconds and retain its failed first stage instead of
+replaying unchanged input. Compare published source identities and metadata after close; new derived
+previews and ordinary synchronization state are expected. Reserve 60 active preparation/analysis
+minutes for adoption and this revised native method, excluding serial builds and quality gates.
+
+The actual adoption and first normal Release lifetime now pass. Complete one distinct populated
+EXE restart from that closed profile, with no navigation or original-image read, a 180-second
+lifetime ceiling and the same two-GiB memory bound. Recheck unchanged source membership, absence
+of new scan/inventory runs, original recovery snapshot and normal close. This host-profile restart
+does not replay or repair the failed isolated Sandbox guest.
+
+The first restart observation is interrupted through physical Escape after reported control-induced
+mouse lag. Preserve that interruption and exact owned-process cleanup; it is not an application
+startup failure. Continue with one lightweight restart observation under the same 180-second and
+two-GiB limits: validate the closed catalog first, use accessibility text without screenshots, send
+only the normal close command after populated-window observation, and verify the closed catalog
+again. Desktop input remains available; the changed method reduces control overhead. Reserve ten
+active minutes for this interrupted restart continuation, without repeating completed browsing.
+
+The [actual-profile recovery and Release restart](../acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart)
+now pass their selected scope. The first normal lifetime completes middle navigation, equal
+upward/reverse input, idle observation, one original read and viewer return. The lightweight
+restart displays the populated gallery and closes normally. Both preserve published source
+payloads and add no scan or inventory; the full original snapshot remains recoverable. Do not
+repeat the recovery, import or either completed lifetime. Carry forward the exact historical
+Retry/jump attribution, pending-load continuation variant, automatic combined-source discovery
+and remaining performance/platform acceptance separately.
+
 The subsequent [queued-layout regression](../acceptance/r2c-retained-runtime.md#queued-layout-transition-after-later-scrolling)
 reproduces old anchors overriding later input with pending, first and existing manifests. Its
 position-admission correction passes the focused boundaries and scoped review. This closes that
@@ -475,11 +543,11 @@ original browsing/update, Release and final-candidate obligations; no unchanged 
 
 | Outcome | Current evidence and unfinished work |
 | --- | --- |
-| Idle browsing stays at the requested position | **Open; a subsequent rerun reports recurrence.** Synchronization is already finished; a middle-timeline click loads successfully; upward scrolling then shows some Retry previews and jumps toward an earlier position, not the top. The expired-cursor, preview-retirement and later-scroll corrections have boundary evidence, but have not established resolution of this complete retained-library sequence. [Owning record](../acceptance/r2c-retained-runtime.md#timeline-navigation-upward-scrolling-and-retry) |
+| Idle browsing stays at the requested position | **Selected actual-profile Release observation now passes.** Middle navigation, upward/reverse input, idle observation and viewer return show no sampled Retry or displacement after the known-source recovery. The earlier complete retained Retry/jump combination remains unattributed, and discrete observations do not prove continuous-frame behavior. [Current observation](../acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart); [original incident](../acceptance/r2c-retained-runtime.md#timeline-navigation-upward-scrolling-and-retry) |
 | Scrolling during a timeline load does not create a false bottom | **Two natural pending-read input sequences now have selected functional evidence.** Delivered upward input precedes the unheld production read's completion; reverse input crosses each preceding loaded window. The full lifetime fails close admission, and the original Retry/jump remains open. This observes an application read, not a running SQLite statement. [Owning record](../acceptance/r2c-retained-runtime.md#natural-pending-read-input-and-retained-preview-cost) |
 | Updating retains the latest visible position | **Selected generated native checks pass, including publication during viewer return.** Old-page success/error regressions retain the newer scroll owner. The later 10000-image run changes the catalog revision while the viewer is open; returning preserves all 16 visible identities and rectangles and the exact scroll offset, then reverse scrolling crosses the preceding window. This does not close the already-idle Retry/jump incident or prove unsampled continuous-frame stability. [Owning record](../acceptance/r2c-retained-runtime.md#native-publication-during-viewer-return) |
 | Retained-root update completes at a usable cost | **Measured, still open.** One isolated local-primary manual update reaches committed completion in 157532–160969 ms and preserves all 79283 items across both roots. Meeting the 300-second bound does not accept its cost or explain the prior 1088.599-second recovery. [Owning record](../acceptance/r2c-retained-runtime.md#retained-manual-update-and-time-window-read-cost) |
-| Screenshot creation converges and manual update reaches a terminal state | **Old-task recovery passes in an isolated copy of the actual retained catalog.** The original eight-attempt P0 row transfers to a distinct completed P2 owner, preserving failure history; scoped inventory completes in 9915 ms. Both roots become synchronized. Original profile state is unchanged, and complete manual-root update cost remains open. [Owning record](../acceptance/r2c-retained-runtime.md#native-retained-exhausted-task-recovery) |
+| Screenshot creation converges and manual update reaches a terminal state | **Old-task recovery passes in an isolated copy; the known consolidation now reaches the actual profile.** The selected recovery installs the completed combined publication, retires both obsolete roots and retains a full original snapshot. Fresh screenshot-arrival convergence and complete manual-update cost retain separate obligations. [Recovery record](../acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart); [old-task boundary](../acceptance/r2c-retained-runtime.md#native-retained-exhausted-task-recovery) |
 | Four required maintenance deliveries | M01–M04 have implemented, verified checkpoints in the [maintenance record](../acceptance/r2c-maintainability.md). Preserve those owners and regression boundaries; do not restart all four implementations. Later functional failures still require correction at their owning boundary. |
 | Remaining R2c completion | The frozen 24 variants, C01/C02 disposition, applicable Release/final gates and external acceptance remain required. The existing roster and evidence owners below retain their individual status. No stage advancement is admitted. |
 

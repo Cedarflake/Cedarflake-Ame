@@ -19,9 +19,9 @@ reported runtime incident is resolved.
 | Reported behavior | Established correction or observation | Remaining obligation |
 | --- | --- | --- |
 | Middle timeline navigation waits on a blank wall | Indexed month-predecessor lookup reduces the same four native reads from 3.50–4.03 seconds to 0.46–0.64 seconds; all required hosted gates pass on `cea18dc` | Retain the selected-scenario limit and the separate cold-preview wait |
-| Retry feedback followed by an unsolicited earlier position | Source-reconciliation and passive-publication causes have boundary corrections; retained viewer-return logs additionally establish a loaded-anchor fallback defect, now corrected with focused and generated native changing-revision evidence | The original already-idle, non-top Retry/jump combination is not attributed or closed; generated evidence does not replace retained-source acceptance |
+| Retry feedback followed by an unsolicited earlier position | Source-reconciliation, passive-publication and loaded-anchor causes have boundary corrections; the recovered actual profile now has a normal Release middle-navigation, upward/reverse, idle and viewer-return observation without sampled Retry or displacement | The historical complete Retry/jump combination remains unattributed; sparse native observations do not establish continuous-frame behavior or pending-read coverage |
 | Upward input during loading leaves a false bottom | Two actual native upward inputs during unheld application reads preserve reverse reachability across the preceding window | Their full lifetime fails close admission; application-read timing does not identify an executing SQLite statement |
-| Screenshot arrival reports blocked work; manual update stays busy | Retained exhausted work recovers once in an isolated copy; a local-primary manual update commits in 157532–160969 ms | Original profile state is not repaired by a copy test; retained recovery/update cost is not accepted solely for meeting a deadline |
+| Screenshot arrival reports blocked work; manual update stays busy | Retained exhausted work recovers in an isolated copy; the selected actual profile now uses the completed combined publication with both obsolete roots retired | The selected profile recovery does not establish fresh screenshot-arrival convergence; retained update cost and remaining synchronization variants retain their separate evidence |
 
 Keep these incidents as the next functional batch. Existing logs and causal boundaries precede
 another implementation or client lifetime. Focused checks support each proven correction; another
@@ -742,6 +742,78 @@ This establishes the composed backend replacement in an isolated retained-catalo
 not change the original profile, discover a cross-volume destination automatically, or exercise
 native source-menu removal. The retained idle-browsing variants and Release-window obligations
 remain open; the source-retirement result does not accept R2c.
+
+### Actual profile recovery and Release restart
+
+On 2026-10-09, the selected recovery is applied to the user's configured catalog at its existing
+storage location. This is a one-time, reversible catalog recovery using the completed combined
+publication; it does not add generic automatic destination discovery or another import.
+
+The original has 79283 locations and two registered sources. Its older diagnostic snapshot differs
+in 17 tables, so a whole-snapshot equality preflight rejects before any original write. All 79283
+location IDs and source payloads nevertheless match; the only differing location fields are scan
+identity, preview path/status and 21 source generations. A narrower source-ownership preflight
+then rejects 128 missing unrelated queue rows and their 128 lane rows. A new recovery candidate
+restores exactly those rows while keeping every other table equal to the verified replacement.
+Existing insertion triggers create the lanes; the first duplicate insertion fails in the isolated
+copy, and the corrected step requires exact equality with the original trigger-generated rows.
+None of these rejected preparations modifies the original catalog.
+
+The final admission preserves unrelated state and non-derived tables/contracts, verifies all 33939
+retained asset identities and their creation history, and refuses identity inheritance for the 30551
+new observations. Publication, source-generation and SQLite sequence counters cannot regress.
+Twenty-six generated checks cover stale inputs, source metadata, unrelated/durable data, identity,
+WAL inclusion, insertion triggers, row bounds, snapshot collision and restoration after failed
+postconditions. A PowerShell JSON parser rejects empty component keys before application; the
+corrected launcher reads the same frozen token through a compatible parser without changing the
+frozen adoption code or its checks.
+
+Adoption holds the production per-user single-instance mutex, saves a consistent SQLite snapshot
+beside the original catalog, verifies its complete logical contents, and transactionally restores
+the verified candidate into the existing catalog. Full result equality, integrity and foreign-key
+checks pass. The application process finishes in 46921 ms with a 29642752-byte peak working set.
+The complete original snapshot remains available outside the active catalog; storage settings and
+source media are unchanged. The resulting catalog has one current root and 64490 locations, with
+no active registration or location belonging to either superseded source.
+
+The normal Release payload is bound to all 20 files from the passing unsigned-Windows manifest.
+Of the preceding 807 source/configuration/test/tool records, 806 are unchanged and the remaining
+change is the dedicated regression module declaration; the added source-retirement test changes
+no production bytes. No Debug storage override, new build, source scan or service installation
+participates in these native observations.
+
+The first actual-profile lifetime shows the complete gallery, navigates to March 2025, scrolls
+upward and reverses by equal wheel inputs, remains stationary during an idle observation, opens
+one resident original image, and returns to the same visible gallery rows. The sampled pending
+and settled upward frames retain the same already-displayed row position while preceding previews
+arrive. No sampled Retry or unsolicited movement occurs. The original is sampled before and after
+viewing; its SHA-256, length and modification time match. Alt-F4 closes normally with exit zero.
+The complete lifetime is 229802 ms and peak working set 190873600 bytes, within its 1200-second and
+two-GiB limits. These are discrete native observations, not continuous-frame or measured preview-
+latency evidence; no input is proved to overlap the earlier time query in this Release lifetime.
+
+The first separate restart observation is interrupted by physical Escape because desktop control
+causes reported mouse lag. Only its exact request-bound worker and owned client are terminated;
+it has no normal-lifetime acceptance. A subsequent closed-catalog check preserves all published
+source payloads and scan history. The changed restart method uses accessibility text without
+screenshots and only a normal close input. It displays the populated 64490-item gallery and exits
+zero in a complete 35390-ms lifetime, with peak working set 172257280 bytes and no remaining Ame
+process. This satisfies the selected actual-profile populated Release restart; the failed Sandbox
+guest and its separate environment boundary remain unchanged.
+
+After both successful lifetimes, all published identity/source fields, roots, assets, scan runs
+and metadata-inventory runs match the adopted baseline. There are zero new scans or inventories;
+unrelated queue history, storage settings, the original recovery snapshot and other recovery inputs
+are preserved. Full integrity and foreign-key checks pass. Preview artifacts grow to 251 after
+the first lifetime and 254 after the final restart; this is derived cache activity. These catalog
+comparisons do not establish zero filesystem calls or a whole-library source-byte audit.
+
+Bindings, preparation failures, recovery receipts, native lifetimes and closed proofs remain under
+ignored `.build/r2c-profile-adoption-20261009/`. The original snapshot and private source paths are
+not committed. Required hosted checks on `a2876836843105c37d49f6364aa66f1902ab3602` also pass:
+eleven successful results, including the aggregate, and three signing-flow jobs skipped by their
+configured admission. This recovery and selected client verification do not accept the remaining
+R2c variants, generic combined-directory discovery, signing or installed-service requirements.
 
 ### Prepared combined-directory browsing observation
 

@@ -89,7 +89,10 @@ relocation is only a fallback. The execution plan owns the corrected per-file id
 and publication boundary. For the identified consolidation, complete the destination publication
 before removing the two superseded source registrations; unmatched old identities do not require
 keeping obsolete sources in the gallery. Temporary source unavailability remains distinct from
-this selected replacement. Preserve the original idle browsing and slow-update obligations. The
+this selected replacement. The [actual-profile recovery](acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart)
+now retires the two obsolete sources and verifies selected normal Release browsing and populated
+restart without another scan. Automatic assembled-destination discovery, the exact historical
+idle incident and slow-update obligations remain separate. The
 subsequent first-import
 Pause/capture correction now passes connected native Pause and complete local Daily, with current
 hosted required gates; its original failure and completed verification are preserved in the
@@ -191,12 +194,13 @@ repair admission, review, verification, stopping rules, and safety cautions.
    matrix. Add negative cases for uncovered transitions and preserve the original ten-phase local
    whole-window UIA path and owned-process exit. Real EXE restart and Release decoding/input
    evidence cannot be inferred from widget remounts, static previews, MSAA, or unsigned bridge smoke.
-   Populated Release restart remains open after the
-   [failed Sandbox admission](acceptance/r2c-closeout-cycle.md#populated-release-startup-admission-failure);
-   window access is now verified, but [empty guest initialization fails](acceptance/r2c-closeout-cycle.md#empty-sandbox-initialization-failure).
-   The software-rendering comparison also fails. The independent
+   Selected populated Release restart now passes against the
+   [recovered actual profile](acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart).
+   The [failed Sandbox admission](acceptance/r2c-closeout-cycle.md#populated-release-startup-admission-failure),
+   [empty guest initialization](acceptance/r2c-closeout-cycle.md#empty-sandbox-initialization-failure)
+   and software-rendering failures retain their separate environment boundary. The independent
    [host-isolated Debug populated restart](acceptance/r2c-closeout-cycle.md#native-debug-populated-restart)
-   now passes; further Release client work still requires guest readiness. Preserve the separate
+   now passes; remaining guest-isolated Release variants still require guest readiness. Preserve the separate
    instrumented no-source-call proof and remaining native variants.
    The four named maintenance implementations have focused and current local Daily evidence,
    including the passing Debug scan-cost gate. Remaining client and final-candidate obligations
