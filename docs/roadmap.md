@@ -92,7 +92,12 @@ keeping obsolete sources in the gallery. Temporary source unavailability remains
 this selected replacement. The [actual-profile recovery](acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart)
 now retires the two obsolete sources and verifies selected normal Release browsing and populated
 restart without another scan. Automatic assembled-destination discovery, the exact historical
-idle incident and slow-update obligations remain separate. The
+idle incident and slow-update obligations remain separate. The subsequent
+[pending-result continuation](acceptance/r2c-retained-runtime.md#pending-result-browsing-beyond-the-first-window)
+now delivers upward input during a held real result, reverses beyond its first window and continues
+downward, with stable settled idle observations, unchanged source records and normal close. This
+completes that selected application-result variant; it does not replace the remaining client and
+platform acceptance. The
 subsequent first-import
 Pause/capture correction now passes connected native Pause and complete local Daily, with current
 hosted required gates; its original failure and completed verification are preserved in the

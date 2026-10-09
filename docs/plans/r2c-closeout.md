@@ -1,8 +1,8 @@
 # R2c closeout execution
 
-Status: **R2c remains unaccepted. The current functional priority is retained-library browsing:
-Retry previews and unsolicited movement after synchronization has ended, plus the newly reported
-false bottom after scrolling during a timeline load. The repair batch is not client-accepted.**
+Status: **R2c remains unaccepted. Selected recovered-profile browsing and pending-result
+cross-window continuation now pass. Historical Retry/jump attribution, retained update cost and
+remaining client/platform variants stay open; the complete repair batch is not client-accepted.**
 
 ### Current execution checkpoint
 
@@ -139,6 +139,26 @@ comparison; the explicit whole-directory update still takes about two and a half
 Retained idle-browsing variants, Release-window timing and automatic combined-source recovery remain
 open. This completed update observation is not authority for an unchanged repeat.
 
+After the pending-result browsing checkpoint, isolate directory-persistence overhead with one
+generated catalog-only diagnostic. Exercise 2048 directories with four recorded names each through
+the current traversal persistence methods, including enqueue, claim, durable enumeration, bounded
+readback and completion. Attribute nested commit time separately from operation totals; do not
+add nested timers or infer the retained cohort's distribution. No source files, real catalogs or
+directory enumeration participate. Limit measured work to 90 seconds, the owned process to 120
+seconds and working set to 512 MiB. Temporarily attach test-only commit observation under the
+repository lock, bind the optimized executable and source hashes, and restore the production file
+byte-for-byte before execution. Reserve 30 active preparation/analysis minutes, excluding the serial
+build. This determines whether directory-only commits justify a further owning-layer correction;
+it does not authorize changing durability, checkpoint bounds or rerunning the full retained update.
+
+The [directory-only attribution](../acceptance/r2c-update-checkpoint.md#generated-directory-persistence-attribution)
+now completes in 5558 ms, with 10240 WAL/FULL commits taking 4889.992 nested milliseconds. All
+8192 names are accounted for and closed integrity passes. The separate enumeration-completion
+commit contributes 896.474 ms across 2048 directories; this alone does not justify a traversal-port
+change for the 147916-ms retained update. Production bytes and all 702 bound inputs are restored
+and unchanged. Keep retained update cost open, preserve the generated-workload limitation, and do
+not replay this consumed diagnostic or relax durability/checkpoint rules on its evidence.
+
 For the identified two-source consolidation, the destination is the current source after complete
 publication. Retire both superseded source registrations through the existing catalog-removal
 workflow, without requiring every old file to match a new identity. Unmatched old locations are
@@ -251,6 +271,29 @@ payloads and add no scan or inventory; the full original snapshot remains recove
 repeat the recovery, import or either completed lifetime. Carry forward the exact historical
 Retry/jump attribution, pending-load continuation variant, automatic combined-source discovery
 and remaining performance/platform acceptance separately.
+
+Continue the missing pending-load variant with one browse-only Debug observation of a fresh,
+isolated copy of the recovered catalog. Admit only the already verified combined directory
+(the retained `local-primary`/`cloud-primary` destination); do not import, update, relocate, resume
+a scan or open an original viewer image. Keep normal guarded visible-preview reads and production
+synchronization. Hold the first completed time-query result for at most 20 seconds, releasing it
+on native wheel input; this observes a pending application future, not an executing SQL statement.
+After upward input during that hold, reverse beyond the returned window and compare visible
+location ordinals, idle position and rendered Retry branches. Bound the client to 600 seconds,
+two GiB working set, four MiB process output and eight MiB per observer; require four GiB free host
+memory at launch. Copy and verify the catalog under the normal single-instance guard, retain
+original catalog/settings hashes, and require normal close with unchanged source payload and no
+new scan/inventory records. Use text/log observations and few native inputs to limit control
+overhead. Reserve 45 active preparation/analysis minutes, excluding the serial diagnostic build;
+do not replay the consumed update or actual-profile recovery.
+
+The [browse-only pending-result continuation](../acceptance/r2c-retained-runtime.md#pending-result-browsing-beyond-the-first-window)
+now passes. Native upward input arrives during the held real result; reverse scrolling crosses the
+first 160-item window, further downward input remains usable, and 97998 ms of settled idle samples
+preserve position and visible identities without rendered Retry. The client closes normally; no
+scan/inventory is added and all protected catalogs remain unchanged. This completes that selected
+application-result variant. Preserve the earlier unheld lifetime's failed close and the distinction
+from an executing SQLite statement; do not replay this consumed browse-only lifetime.
 
 The subsequent [queued-layout regression](../acceptance/r2c-retained-runtime.md#queued-layout-transition-after-later-scrolling)
 reproduces old anchors overriding later input with pending, first and existing manifests. Its
@@ -543,10 +586,10 @@ original browsing/update, Release and final-candidate obligations; no unchanged 
 
 | Outcome | Current evidence and unfinished work |
 | --- | --- |
-| Idle browsing stays at the requested position | **Selected actual-profile Release observation now passes.** Middle navigation, upward/reverse input, idle observation and viewer return show no sampled Retry or displacement after the known-source recovery. The earlier complete retained Retry/jump combination remains unattributed, and discrete observations do not prove continuous-frame behavior. [Current observation](../acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart); [original incident](../acceptance/r2c-retained-runtime.md#timeline-navigation-upward-scrolling-and-retry) |
-| Scrolling during a timeline load does not create a false bottom | **Two natural pending-read input sequences now have selected functional evidence.** Delivered upward input precedes the unheld production read's completion; reverse input crosses each preceding loaded window. The full lifetime fails close admission, and the original Retry/jump remains open. This observes an application read, not a running SQLite statement. [Owning record](../acceptance/r2c-retained-runtime.md#natural-pending-read-input-and-retained-preview-cost) |
+| Idle browsing stays at the requested position | **Selected actual-profile Release and isolated pending-result observations pass.** Middle navigation, upward/reverse input, idle observation and viewer return retain their Release evidence. The subsequent cross-window sequence preserves settled identities, geometry and position for 97998 ms without rendered Retry. The historical complete Retry/jump combination remains unattributed; discrete samples do not prove continuous-frame behavior. [Current pending-result observation](../acceptance/r2c-retained-runtime.md#pending-result-browsing-beyond-the-first-window); [Release observation](../acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart) |
+| Scrolling during a timeline load does not create a false bottom | **Selected pending-result continuation now closes normally.** Upward input overlaps a held real database result; reverse input crosses its first 160-item window and further downward input advances exactly. The earlier natural-read lifetime retains its failed close admission. Application-result timing does not identify an executing SQLite statement. [Current owning record](../acceptance/r2c-retained-runtime.md#pending-result-browsing-beyond-the-first-window) |
 | Updating retains the latest visible position | **Selected generated native checks pass, including publication during viewer return.** Old-page success/error regressions retain the newer scroll owner. The later 10000-image run changes the catalog revision while the viewer is open; returning preserves all 16 visible identities and rectangles and the exact scroll offset, then reverse scrolling crosses the preceding window. This does not close the already-idle Retry/jump incident or prove unsampled continuous-frame stability. [Owning record](../acceptance/r2c-retained-runtime.md#native-publication-during-viewer-return) |
-| Retained-root update completes at a usable cost | **Measured, still open.** One isolated local-primary manual update reaches committed completion in 157532–160969 ms and preserves all 79283 items across both roots. Meeting the 300-second bound does not accept its cost or explain the prior 1088.599-second recovery. [Owning record](../acceptance/r2c-retained-runtime.md#retained-manual-update-and-time-window-read-cost) |
+| Retained-root update completes at a usable cost | **Measured, still open.** The latest optimized headless ordinary update completes in 147916 ms with all 64490 current locations and unchanged source payloads. The earlier two-root manual update and 1088.599-second recovery retain their distinct cohort/runtime evidence. Directory-only attribution does not explain the complete retained update or justify relaxing durability. [Current update](../acceptance/r2c-update-checkpoint.md#optimized-retained-update); [directory attribution](../acceptance/r2c-update-checkpoint.md#generated-directory-persistence-attribution) |
 | Screenshot creation converges and manual update reaches a terminal state | **Old-task recovery passes in an isolated copy; the known consolidation now reaches the actual profile.** The selected recovery installs the completed combined publication, retires both obsolete roots and retains a full original snapshot. Fresh screenshot-arrival convergence and complete manual-update cost retain separate obligations. [Recovery record](../acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart); [old-task boundary](../acceptance/r2c-retained-runtime.md#native-retained-exhausted-task-recovery) |
 | Four required maintenance deliveries | M01–M04 have implemented, verified checkpoints in the [maintenance record](../acceptance/r2c-maintainability.md). Preserve those owners and regression boundaries; do not restart all four implementations. Later functional failures still require correction at their owning boundary. |
 | Remaining R2c completion | The frozen 24 variants, C01/C02 disposition, applicable Release/final gates and external acceptance remain required. The existing roster and evidence owners below retain their individual status. No stage advancement is admitted. |

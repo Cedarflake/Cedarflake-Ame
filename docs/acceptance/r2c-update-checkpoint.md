@@ -329,3 +329,41 @@ Evidence is `.build/r2c-warm-release-20261009/`, including `prepared.json`, `exe
 differ in build mode and runtime participation, so this is not an isolated before/after speedup.
 An explicit whole-directory update still takes about two and a half minutes on this cohort.
 Retained idle-browsing variants, Release-window timing and combined-source disposition remain open.
+
+### Generated directory-persistence attribution
+
+The subsequent generated-only diagnostic isolates directory operations from buffered image writes.
+It creates one empty namespace and a fresh catalog, enqueues 2048 directory names, and persists and
+reads back four names per directory through the current catalog methods. No source enumeration,
+media read or real catalog participates. The optimized build temporarily adds a test-only timer
+around the existing transaction commit and attaches the generated test. Before execution the
+catalog source is restored byte-for-byte; all 702 bound product/tool inputs remain unchanged after
+execution. The 390-second build has no warning.
+
+| Operation | Calls | Total milliseconds | Nested commit milliseconds |
+| --- | ---: | ---: | ---: |
+| Enqueue directory | 2048 | 1104.792 | 1010.557 |
+| Claim directory | 2048 | 1189.342 | 1047.242 |
+| Read enumeration state | 2048 | 67.620 | — |
+| Stage four names | 2048 | 995.310 | 940.677 |
+| Complete enumeration | 2048 | 986.744 | 896.474 |
+| Read bounded name window | 2048 | 121.617 | — |
+| Complete directory | 2048 | 1076.868 | 995.042 |
+
+The complete measured loop takes 5558 ms, with exactly 10240 commits under unchanged WAL/FULL
+durability. Nested commit time totals 4889.992 ms and is already included in the operation totals.
+Closed verification finds all 8192 names accounted for in the checkpoint, no pending directory or
+roster rows, no assets/locations, and passing integrity and foreign-key checks. One explicitly
+selected test passes with no ignored execution; its entire test takes 5.72 seconds, within the
+90-second measured and 120-second owned-process bounds.
+
+This identifies commit cost within the generated directory-only workload. It does not assign the
+retained update's 25941.596-ms directory timer, which also contains buffered image writes, to those
+commits. In particular, the separate enumeration-completion boundary accounts for 896.474 ms of
+commit time across 2048 directories; this result alone does not justify expanding traversal ports
+or changing durability to address the whole 147916-ms retained update. No production policy or
+checkpoint bound is changed. Preserve this single-run and workload-size limitation; the retained
+warm-update cost remains open rather than being closed by an unrelated microbenchmark.
+
+Evidence remains under ignored `.build/r2c-directory-cost-20261009/`, including source/executable
+bindings, the restored-source snapshot, owned build/test receipts and per-operation output.

@@ -19,8 +19,8 @@ reported runtime incident is resolved.
 | Reported behavior | Established correction or observation | Remaining obligation |
 | --- | --- | --- |
 | Middle timeline navigation waits on a blank wall | Indexed month-predecessor lookup reduces the same four native reads from 3.50–4.03 seconds to 0.46–0.64 seconds; all required hosted gates pass on `cea18dc` | Retain the selected-scenario limit and the separate cold-preview wait |
-| Retry feedback followed by an unsolicited earlier position | Source-reconciliation, passive-publication and loaded-anchor causes have boundary corrections; the recovered actual profile now has a normal Release middle-navigation, upward/reverse, idle and viewer-return observation without sampled Retry or displacement | The historical complete Retry/jump combination remains unattributed; sparse native observations do not establish continuous-frame behavior or pending-read coverage |
-| Upward input during loading leaves a false bottom | Two actual native upward inputs during unheld application reads preserve reverse reachability across the preceding window | Their full lifetime fails close admission; application-read timing does not identify an executing SQLite statement |
+| Retry feedback followed by an unsolicited earlier position | Source-reconciliation, passive-publication and loaded-anchor causes have boundary corrections; normal actual-profile Release browsing and the subsequent isolated pending-result sequence show no sampled Retry or displacement | The historical complete Retry/jump combination remains unattributed; discrete native observations do not establish continuous-frame behavior |
+| Upward input during loading leaves a false bottom | Earlier unheld application-read observations retain their failed close admission; the subsequent browse-only observation delivers upward input during a held real result, reverses beyond its first 160-item window, continues downward and closes normally | This completes the selected pending-application-result continuation; it does not identify an executing SQLite statement or replace separate Release/platform acceptance |
 | Screenshot arrival reports blocked work; manual update stays busy | Retained exhausted work recovers in an isolated copy; the selected actual profile now uses the completed combined publication with both obsolete roots retired | The selected profile recovery does not establish fresh screenshot-arrival convergence; retained update cost and remaining synchronization variants retain their separate evidence |
 
 Keep these incidents as the next functional batch. Existing logs and causal boundaries precede
@@ -814,6 +814,56 @@ not committed. Required hosted checks on `a2876836843105c37d49f6364aa66f1902ab36
 eleven successful results, including the aggregate, and three signing-flow jobs skipped by their
 configured admission. This recovery and selected client verification do not accept the remaining
 R2c variants, generic combined-directory discovery, signing or installed-service requirements.
+
+### Pending-result browsing beyond the first window
+
+On 2026-10-09, run `92fa92bd73384cd985cb659660c8a502`, epoch
+`cbbeb2a9d2c14d98bf7da111637c93d9`, uses a fresh isolated copy of the recovered 64490-location
+catalog. Preparation holds the normal per-user instance guard, verifies the single known combined
+source, copies through SQLite backup and compares complete logical proofs. It opens no source
+media or source directory. Six original/settings/recovery catalogs and their WAL components are
+hash-protected. The client uses production startup, catalog, synchronization, viewport and preview
+paths. Diagnostic adapters reject directory selection, import, update, resume, relocation and
+original-image reads before those operations begin; none is attempted.
+
+The Windows Debug entry binds 702 product/tool inputs and 13 diagnostic Dart files to documentation
+head `d2ad7fd`, before and after its 37.9-second build. Explicit Dart analysis has no issues;
+15 admission, 14 visibility/metric and six held-result lifecycle checks pass. The host limits are
+600 seconds, two GiB client working set, four MiB process output and a four-GiB free-memory entry
+floor. Visible observations run at 500-ms idle-frame intervals, with duplicate retention every five
+seconds, an eight-MiB output bound and the existing rendered-feedback branch classifier.
+
+The actual database returns the first 160-item middle result in 408 ms. Delivery remains held for
+16564 ms, and native upward wheel input of -533.333 pixels arrives while request 1 is still pending.
+That input releases delivery and admits the newer time request. This deliberately holds a completed
+database result; it proves pending application-result ownership, not naturally executing SQL.
+
+After the upward result settles, the loaded window starts at global ordinal 30369 with 160 items.
+Native reverse input advances exactly 10000 pixels and the loaded window starts at 30607, beyond
+the preceding window's exclusive end, 30529. Its 15 visible previews become ready. A further native
+800-pixel downward input advances by exactly 800 pixels. The three settled positions are
+1087992.667, 1097992.667 and 1098792.667, against a 2035797.2-pixel maximum extent; this is middle
+continuation, not the real catalog end. Final visible identities are outside the first returned
+result, and subsequent downward input remains usable.
+
+The final nine visible previews remain ready for 97998 ms. Their identities, rectangles and scroll
+position remain equal, and all 77 retained samples contain zero rendered feedback branches. No
+observer or scope guard fails. Normal Alt-F4 closes the same client with exit zero; complete
+lifetime is 266966 ms and peak working set 546693120 bytes. No Ame process remains afterward.
+
+Closed verification matches every published identity/source field except rebuildable preview
+path/status, all roots/assets, scan runs and metadata-inventory runs. There are zero new scans or
+inventories; unrelated queue history and all six protected catalogs/WALs remain unchanged. Full
+integrity and foreign-key checks pass. This is catalog and guarded-path evidence, not a whole-library
+source-byte audit or continuous-frame guarantee. It establishes the selected pending-result
+cross-window/idle sequence with normal close; the earlier unheld lifetime's failed close, historical
+Retry/jump attribution and remaining Release/platform variants remain distinct.
+
+Ignored evidence is under `.build/r2c-pending-continuation-20261009/` and the GUID-bound integration
+storage. The closed verifier records SHA-256
+`bfd4c1ebd98c45ecfffadd9d29699c963fa706456cdd8263404acb1417777aad`.
+Production source is unchanged, so the applicable prior product gates remain valid; this diagnostic
+build and read-only observation do not require replaying an unchanged complete Daily batch.
 
 ### Prepared combined-directory browsing observation
 
