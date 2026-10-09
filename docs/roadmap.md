@@ -86,8 +86,11 @@ pending-result scrolling and preview observation; warm-update and uncached-previ
 remaining retained incidents and final candidate gates stay open. The supplied destination
 combines two former directories and requires automatic source continuity; a one-root manual
 relocation is only a fallback. The execution plan owns the corrected per-file identity, discovery
-and publication boundary, with both former sources retained until reconciliation establishes their
-disposition. Preserve the original idle browsing and slow-update obligations. The subsequent first-import
+and publication boundary. For the identified consolidation, complete the destination publication
+before removing the two superseded source registrations; unmatched old identities do not require
+keeping obsolete sources in the gallery. Temporary source unavailability remains distinct from
+this selected replacement. Preserve the original idle browsing and slow-update obligations. The
+subsequent first-import
 Pause/capture correction now passes connected native Pause and complete local Daily, with current
 hosted required gates; its original failure and completed verification are preserved in the
 same runtime record. Continue the remaining functional variants without replaying unchanged gates.

@@ -1,5 +1,7 @@
 use super::*;
 
+mod source_retirement;
+
 struct CombinedFixture {
     base: Fixture,
     original_snapshot: CatalogSnapshot,

@@ -656,8 +656,92 @@ old roster contains 30659 local-primary and 14685 cloud-primary records, 45344 i
 cover currently published supported locations; the earlier 33955-match audit covered the observed
 directory's ordinary files on its earlier date. Their difference does not prove deletion, loss or
 complete migration. No root binding, identity transfer or old-record disposition is changed.
-Combined-source recovery still needs an explicit disposition rule for the unmatched old history.
+That comparison did not select a disposition rule. The subsequent source-retirement decision below
+supersedes its pending-choice status without reclassifying unmatched records as proven deletions.
 The inputs and result are retained in `.build/r2c-update-cost-20261009/recovery-classification.json`.
+
+### Superseded source index retirement
+
+The two old roots are identified as superseded by the assembled destination. Once its complete
+publication is available, their registrations and derived index entries should leave the active
+catalog through the existing root-removal use case. Matching every historical file is not a
+prerequisite for removing a superseded source. This changes the selected workflow, not the file-
+identity policy: unmatched cross-volume observations do not inherit old asset identities.
+
+Keeping the old registrations active affects experience. Gallery, timeline and layout queries
+select every root's active publication; the two-root generated fixture has six visible locations
+after adding its two-location destination, until the superseded registrations are removed. An
+unavailable old path is not an archive outside those queries.
+
+Microsoft's [change-tracker guidance](https://learn.microsoft.com/en-us/windows/apps/develop/files/change-tracking-filesystem)
+removes confirmed deleted items from the application database and processes subsequent changes
+incrementally. Its [Windows Search index documentation](https://learn.microsoft.com/windows/win32/search/-search-3x-wds-included-in-index)
+separately retains removable-drive index information while a drive is disconnected.
+[Microsoft Photos](https://support.microsoft.com/en-us/windows/apps/photos/manage-photos-and-videos-with-microsoft-photos-app)
+removes a selected source from the app without deleting its disk contents. These public contracts
+support the distinction between a superseded source and temporary unavailability; they do not
+establish Photos' private database implementation or cross-volume identity recovery.
+
+The selected regression verifies the existing import, preview and removal owners together. It does
+not add automatic root retirement based only on failed path access, implement a new archive, or
+change the original profile catalog. Current real-profile replacement and native acceptance remain
+separate execution evidence.
+
+The connected relocation group passes 23 tests with one opt-in real identity audit left unrun.
+The new regression publishes the assembled destination, materializes its two real generated-source
+previews, unregisters each former source and fully reopens the catalog between removals. Repeated
+unregistration is idempotent. Gallery membership changes from six locations across three roots to
+two locations in the current root; timeline totals, layout membership and the synchronization root
+roster agree. Surviving asset/physical identity, source revision/generation, ready preview state and
+both preview/source byte sequences remain intact. Existing cancellation and incomplete-publication
+cases pass in the same group. The new dedicated test contains 132 lines, with no production or
+inline-test implementation added; its parent combined-publication fixture file has 327 dedicated
+test lines. This proves existing composed behavior, not a new automatic source-selection command.
+
+A separate read-only inspection of the already completed optimized 64490-location test catalog
+confirms one current root, no old root registrations and no unfinished scan. Its database/WAL hashes
+remain unchanged, and the inspection enumerates no source directory and opens no media. It does not
+change the original profile. The initial path preflight rejected a wrong expected storage parent
+before opening SQLite; correction binds the exact pre-existing diagnostic catalog, rather than a
+broader allowed directory. The focused transcript and both inspection outcomes are retained under
+`.build/r2c-source-retirement-20261009/`.
+
+Standalone lint and the complete serial Daily invocation pass on this test-only candidate. Daily
+finishes in 1937.159 seconds, including all 107 Flutter test files, the controlled Windows scan,
+all ten Windows accessibility phases with normal process cleanup, and all 16 asynchronous bridge
+contracts. The frozen candidate contains 808 source/configuration/test/tool files: all production
+files match the preceding verified candidate, with only the new dedicated regression and its module
+declaration added. Previous production release and performance evidence therefore remains applicable;
+this regression does not imply that the original profile was migrated or that R2c is accepted.
+
+The subsequent bounded observation starts from a fresh copy of the protected two-root catalog with
+79283 published locations. Its optimized diagnostic binds all 808 candidate files and restores the
+temporary test-module attachment before execution. One ordinary destination import publishes all
+64490 images in 248577 ms, with 955 issues and no item/entry limit reached. Before either old source
+is removed, all 33939 unique matching physical identities retain their original asset identity; the
+other 30551 observations use new identities, with zero ambiguous or unproven inheritance.
+
+The existing root-unregistration transactions then remove the two superseded registrations,
+reopening the catalog after each commit. The connected sequence finishes in 284604 ms; the complete
+owned process exits normally in 291590 ms with peak working set 83161088 bytes. These are one import
+and two removals in the copied retained catalog, not a warm-update comparison or a new product
+latency target. The configured limits are 120000 items/entries, a 300-second scan cancellation
+deadline, a 400-second process deadline and a 768-MiB working-set ceiling.
+
+Independent closed-catalog verification confirms one current root and 64490 locations, with zero
+remaining locations or registrations for the old roots. All 17 source/metadata fields match the
+previous complete destination publication, and the independent identity comparison repeats the
+33939/30551 classification. The 45344 unmatched old locations no longer participate in the catalog;
+this does not establish which underlying files were deleted or moved across volumes. Integrity and
+foreign-key checks pass, with no running or paused scan. All 12 protected original, predecessor and
+input catalog/WAL components remain unchanged. The postcheck opens no source file or directory;
+the import uses the production read-only, no-hydration source adapters. Evidence is retained under
+`.build/r2c-combined-replacement-20261009/`.
+
+This establishes the composed backend replacement in an isolated retained-catalog copy. It does
+not change the original profile, discover a cross-volume destination automatically, or exercise
+native source-menu removal. The retained idle-browsing variants and Release-window obligations
+remain open; the source-retirement result does not accept R2c.
 
 ### Prepared combined-directory browsing observation
 

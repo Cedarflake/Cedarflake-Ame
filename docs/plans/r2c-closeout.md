@@ -128,7 +128,7 @@ no-hydration source adapters and fresh isolated derived storage. Compare all 644
 and source-metadata rows after normal completion and check closed integrity. No viewer, desktop
 input, source mutation or Windows profile change participates. Reserve 30 active minutes for the
 prepared method, result analysis and records; this does not accept Release-window interaction or
-choose the pending combined-source disposition.
+retire either former source.
 
 That optimized ordinary update now completes in 147916 ms with all 64490 images and the same 678
 unsupported-format issues. All 21 identity/source fields match, all eight protected catalog/WAL
@@ -136,8 +136,53 @@ components remain unchanged, and closed integrity passes. The
 [optimized retained result](../acceptance/r2c-update-checkpoint.md#optimized-retained-update)
 owns the complete measurements and limits. Earlier Debug/native runs are not a controlled timing
 comparison; the explicit whole-directory update still takes about two and a half minutes.
-Retained idle-browsing variants, Release-window timing and the pending combined-source decision
-remain open. This completed observation is not authority for an unchanged repeat.
+Retained idle-browsing variants, Release-window timing and automatic combined-source recovery remain
+open. This completed update observation is not authority for an unchanged repeat.
+
+For the identified two-source consolidation, the destination is the current source after complete
+publication. Retire both superseded source registrations through the existing catalog-removal
+workflow, without requiring every old file to match a new identity. Unmatched old locations are
+obsolete derived index entries, not a reason to keep old sources in gallery counts, the timeline,
+preview demand or synchronization. Proven identities may continue; changed identities remain new
+observations. Preserve original media and durable user data. This selected source replacement does
+not authorize treating an arbitrary inaccessible or disconnected root as deleted.
+
+Verify the connected transition with two generated roots and at most four generated images:
+complete the assembled destination, materialize its two previews, unregister each superseded root,
+reopen between removals, and require exact current gallery/timeline/layout membership, surviving
+preview bytes and a single synchronization root. Existing cancellation and incomplete-publication
+checks remain mandatory. Reserve 20 active minutes for this missing regression and source review;
+run the focused relocation group, lint and Daily serially. No new source scan or native real-library
+run is selected by this regression. No further disposition decision is needed for this known
+consolidation.
+
+After those gates, select one retained-catalog source-replacement observation. Copy the protected
+79283-location, two-root identity-audit catalog into fresh isolated storage. Admit the already bound
+assembled destination once through ordinary production scan admission, with 120000 items/entries,
+a 300-second cancellation deadline, a 400-second complete process deadline, a 768-MiB process ceiling
+and two-GiB host reserve. A cancelled, incomplete or failed publication cannot reach root removal.
+After complete destination publication, use existing root-unregistration transactions for exactly
+the two copied registrations. Reopen between removals; require one root and 64490 current locations,
+33939 preserved unique old identities, no inheritance for the 30551 unmatched observations, and no
+remaining old-source gallery or synchronization membership. Compare current source metadata with
+the previous complete destination publication, verify closed database integrity and preserve every
+input/original catalog component. No original profile, media mutation, hydration, viewer read,
+search outside the bound destination or service installation is admitted. The runtime performs one
+destination import in the old-catalog copy; it is not another cold import into an empty catalog or
+an assumption that separate catalogs already establish migration. Reserve 45 active preparation/analysis minutes;
+build and serial gate wall time are separate. Failure retains its checkpoint and does not authorize
+an unchanged replay or an increased deadline.
+
+The generated group, standalone lint and complete Daily now pass. The subsequent
+[retained-catalog replacement](../acceptance/r2c-retained-runtime.md#superseded-source-index-retirement)
+also completes: destination publication takes 248577 ms, and both source removals plus final catalog
+reads finish in 284604 ms. Closed verification finds one current root, 64490 locations, all 33939
+proven old asset identities preserved and 30551 independent new observations. All 17 source/metadata
+fields match the completed destination baseline; all 12 protected catalog/WAL components remain
+unchanged. This closes the selected backend composition check in the isolated old-catalog copy.
+Original-profile replacement, automatic destination discovery and native interaction are not
+established by this result. Continue the retained browsing and Release-window obligations without
+replaying this completed observation.
 
 The subsequent [queued-layout regression](../acceptance/r2c-retained-runtime.md#queued-layout-transition-after-later-scrolling)
 reproduces old anchors overriding later input with pending, first and existing manifests. Its
@@ -195,13 +240,15 @@ the unavailable-root run and do not replace the original incident with its resul
 
 The supplied destination is now identified as the combination of two large directories, not a
 proven one-to-one replacement for local-primary. Automatic recovery is the required outcome;
-the implemented manual picker is a fallback and cannot satisfy that outcome. Retain both old
-source bindings and their published records while the combined destination remains unassigned.
+the implemented manual picker is a fallback and cannot satisfy that outcome. Keep both old
+publications available until the selected destination has completely published; the known-source
+replacement above then retires their superseded registrations and index entries.
 Do not infer which files came from either old root or treat a missing root as authoritative deletion.
 The source transformation includes cross-volume moves, rearranged subdirectories and some deleted
 files; original structure was not preserved. The move history does not identify each unobserved old
 record. With no retained content-fingerprint baseline, changed physical identity remains a new
-observation and unmatched old records remain preserved. This is distinct from same-directory recovery.
+observation. Unmatched old identity is not a reason to keep a superseded source active in the gallery.
+This is distinct from same-directory recovery and does not establish automatic destination discovery.
 Explicit root relocation is implemented through the existing source menu and picker:
 metadata-only namespace admission retires old execution authority, and the ordinary cancellable scan
 reconciles into the retained root rather than adding a duplicate. Seven Rust relocation cases and
