@@ -643,6 +643,22 @@ binding is refreshed after the new test helper and current executable settle, pr
 version. Validation-only admission passes without a source run. `git diff --check` passes, and no
 original source or binding is changed.
 
+### Published-catalog identity comparison
+
+On 2026-10-09, a read-only comparison joins the preserved identity-audit catalog to the normally
+closed 64490-location publication from the [update checkpoint](r2c-update-checkpoint.md). It reads
+at most 120000 rows per catalog with a 30-second SQL deadline, enumerates no source directory and
+opens no source media. All four protected input catalog/WAL components remain unchanged.
+
+The current publication has 33939 unique retained physical-identity matches, all from cloud-primary,
+and 30551 locations without a unique old match. No ambiguous current match is found. The unmatched
+old roster contains 30659 local-primary and 14685 cloud-primary records, 45344 in total. These counts
+cover currently published supported locations; the earlier 33955-match audit covered the observed
+directory's ordinary files on its earlier date. Their difference does not prove deletion, loss or
+complete migration. No root binding, identity transfer or old-record disposition is changed.
+Combined-source recovery still needs an explicit disposition rule for the unmatched old history.
+The inputs and result are retained in `.build/r2c-update-cost-20261009/recovery-classification.json`.
+
 ### Prepared combined-directory browsing observation
 
 Run `688dc3e1d2ad45c58f52926543235efb` has a fresh empty isolated catalog and unchanged protected

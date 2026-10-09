@@ -71,6 +71,74 @@ preserve all original/predecessor catalogs and the observed catalog. This separa
 from the Debug client's nine-second observation; it does not measure Dart queueing or rendering,
 admit another whole-library scan, or establish Release UI acceptance.
 
+The optimized 31-item backend measurement completes in 1694 ms; the exact Debug comparison
+completes in 8194 ms. Each uses an empty isolated cache, the same locations, size buckets, two workers,
+source-byte budget, 180-second deadline and 768-MiB ceiling. All eight protected catalog components
+remain unchanged. Most of the backend difference is in materialization: 1679 versus 14167 accumulated
+milliseconds, with similar catalog-read costs. Preserve the single-pair limit and the separate UI
+queue/rendering obligation. The Release client's normal Known Folders and unresolved guest-startup
+boundary still prevent inheriting the Debug storage override or claiming complete Release-window
+timing from these headless results.
+
+Continue the remaining update-cost diagnosis with one bundled optimized Rust/SQLite staging profile.
+Seed 10000 generated catalog-only identities, then stage 4096 unchanged published locations through
+the existing port in its 128-item batches. Attribute identity capture, transactional identity checks,
+asset/location insertion, retained-membership acceptance, writer admission and commit independently;
+nested timers are not additive. Require all 26 non-scan payload fields to match, unchanged published
+baseline/revision, 32 write batches and closed integrity/foreign-key checks. No source media or real
+catalog is opened. Limit generated setup to 60 seconds, measured work to 30 seconds, the whole owned
+process to 120 seconds and working set to 512 MiB. Restore temporary test instrumentation before
+execution and preserve executable/source bindings. Reserve 45 active minutes for this revised
+diagnostic method and evidence; previous Python statement/cache comparisons remain negative or
+limited evidence, not permission for a cache adjustment. A measured owning cause may select a
+separate narrow correction; an unexplained result ends this method without an unchanged replay.
+
+The bundled profile completes 4096 unchanged rows in 2046 ms: location insertion accounts for
+1567 ms, commits 153 ms, initial identity capture 128 ms and transactional identity decisions 165 ms.
+The complete payload, published baseline and integrity checks pass. This selects one two-arm
+generated-only comparison, retaining the same full staging path, SQL and parameters while enabling
+prepared-statement reuse only for that insertion. Count actual SQL preparations through the SQLite
+authorizer and virtual-machine steps through each statement's resettable counter, rather than the
+earlier coarse progress callback. Require equal complete payload hashes, equal VM work and the same
+32 commits per arm. Each arm retains the 10000-record baseline, 4096 measured rows and 30-second
+measurement limit; bound the complete process to 180 seconds and 512 MiB. Reserve a separate 45
+active minutes for this causal comparison and its disposition. A single ordered timing pair retains
+filesystem/cache-order limits and cannot establish full real-library or client latency.
+
+The two arms execute the same 901120 VM steps and produce the same complete payload hash. Actual
+location-insert preparations fall from 4096 to one, measured preparation time from 299 to two
+milliseconds and full staging time from 2045 to 1703 ms. This selects a narrow row-writing
+correction: extract the typed asset/location serialization owner and reuse only its location-upsert
+statement. Preserve all existing SQL/parameters, identity/source-generation policy, 128-item batch
+bound, writer priority and commit rules. Add preparation-count evidence across committed batches and
+rollback/retry/nullable-binding regressions; run focused catalog tests, lint, Daily and the applicable
+optimized scan/Windows gates once on the resulting candidate. The measured reduction applies to
+this staging workload, not the whole retained update. The focused catalog group and all current
+local candidate gates now pass, with their complete evidence in the update checkpoint. Larger catalog
+responsibilities remain debt.
+
+After this candidate's local gates, admit one optimized headless ordinary update from a fresh copy
+of the normally closed 64490-location publication. This measures the complete current backend after
+the checkpoint and row-writing corrections; earlier Debug/native durations are not an isolated
+causal comparison. Bind the exact previously supplied destination, preserve eight original,
+predecessor and baseline catalog/WAL components, and require no unfinished scan at admission.
+Retain the 120000-entry/item bounds and 300-second cancellation deadline; the complete owned process
+has a 400-second deadline, 768-MiB ceiling and two-GiB entry memory reserve. Use production read-only,
+no-hydration source adapters and fresh isolated derived storage. Compare all 64490 published identity
+and source-metadata rows after normal completion and check closed integrity. No viewer, desktop
+input, source mutation or Windows profile change participates. Reserve 30 active minutes for the
+prepared method, result analysis and records; this does not accept Release-window interaction or
+choose the pending combined-source disposition.
+
+That optimized ordinary update now completes in 147916 ms with all 64490 images and the same 678
+unsupported-format issues. All 21 identity/source fields match, all eight protected catalog/WAL
+components remain unchanged, and closed integrity passes. The
+[optimized retained result](../acceptance/r2c-update-checkpoint.md#optimized-retained-update)
+owns the complete measurements and limits. Earlier Debug/native runs are not a controlled timing
+comparison; the explicit whole-directory update still takes about two and a half minutes.
+Retained idle-browsing variants, Release-window timing and the pending combined-source decision
+remain open. This completed observation is not authority for an unchanged repeat.
+
 The subsequent [queued-layout regression](../acceptance/r2c-retained-runtime.md#queued-layout-transition-after-later-scrolling)
 reproduces old anchors overriding later input with pending, first and existing manifests. Its
 position-admission correction passes the focused boundaries and scoped review. This closes that

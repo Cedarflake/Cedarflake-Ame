@@ -157,3 +157,175 @@ cleanup failure. The owner is `build/quality-unsigned-windows/evidence.json`, wi
 `.build/r2c-update-cost-20261009/checkpoint-progress-unsigned.log`. This verifies the dirty candidate
 over the stated commit; no product source changed between these gates. It does not establish signed
 installation, populated Release restart or the remaining source-backed performance boundaries.
+
+The packaged correction at `146490b36482e27ef9cd87b817f1c1a217c325a2` also completes its hosted
+checks: eleven successful results, including the required Daily, synthetic and unsigned Windows
+jobs, with three signing-flow jobs skipped by their configured admission. No required job fails
+or remains running. This does not provide signing or installed-service evidence.
+
+## Observed viewport backend cost
+
+The separate optimized diagnostic selects exactly the first observed viewport's 31 locations and
+their published preview-size buckets, with two workers and a fresh empty cache. Their source-file
+sizes total 155953835 bytes; no file exceeds 64 MiB. The owned process has a 180-second deadline
+and 768-MiB working-set ceiling. It calls the production active-preview path with explicit isolated
+storage; no full-library scan or original-image viewer acquisition occurs.
+
+Initial preparation rejects the catalog's verbatim DOS path prefix before creating storage or
+reading source media. Read-only inspection proves that removing that prefix yields exactly the
+prepared path, including component case. The corrected guard admits only those two exact spellings;
+it does not case-fold source components. The failed preparation remains in
+`.build/r2c-preview-cost-20261009/prepare-prefix-check.json`.
+
+All 31 cold-cache previews are generated in 1694 ms. Per-request total time has a 93-ms median,
+185-ms P95 and 235-ms maximum. Accumulated stage times are catalog reads 961 ms, materialization
+1679 ms, artifact commit 67 ms and catalog publication 361 ms; two-worker sums are not wall time.
+Source-open timers round below one millisecond per call and do not mean zero source access.
+Peak working set is 87121920 bytes. Closed integrity/foreign-key checks pass and all eight protected
+original, predecessor and observed catalog/WAL components remain unchanged. The temporary test
+module is restored byte-for-byte before execution, and the bound executable has one exact passed
+diagnostic with no selected ignored result.
+
+The exact Debug comparison uses the same locations, size buckets and two workers in another fresh
+derived catalog with an empty cache. All 31 previews complete in 8194 ms; per-request median is
+381 ms, P95 1690 ms and maximum 1887 ms. Accumulated catalog reads take 1009 ms, materialization
+14167 ms, artifact commit 76 ms and catalog publication 425 ms. Peak working set is 112869376 bytes.
+Closed integrity/foreign-key checks pass, all eight protected components remain unchanged, and the
+temporary module is restored before the one exact diagnostic executes successfully.
+
+This pair attributes most of the observed backend difference to Debug media materialization:
+14167 versus 1679 accumulated milliseconds, while catalog reads remain similar. The optimized batch
+is about 4.8 times faster in wall time. One ordered pair over this cohort is not a general benchmark
+or a complete Release-window timing. The Debug native queue also includes bridge/UI execution and
+has only thresholded slow-request logs. Its nine-second visible completion cannot establish
+optimized-client latency. Helpers, executable bindings, per-item metrics and closed summaries
+remain under `.build/r2c-preview-cost-20261009/` and `.build/r2c-preview-cost-debug-20261009/`.
+
+## Bundled staging cost
+
+A generated-only diagnostic seeds 10000 identities and stages 4096 unchanged published locations
+through the production port in 128-item batches. Bundled SQLite 3.53.2 records 2046 ms in total:
+location insertion 1567 ms, initial identity capture 128 ms, transactional identity decisions 165 ms,
+asset insertion 18 ms, retained-membership acceptance 6 ms and 32 commits totaling 153 ms. Writer
+admission totals less than one millisecond. Nested identity/persistence timers are not additive.
+All 26 payload fields beside the scan/location keys match the baseline, the active publication and revision remain
+unchanged, and closed integrity/foreign-key checks pass. Generated setup takes 5127 ms and the whole
+test 7.50 seconds; no real catalog or source media participates. The temporary instrumentation is
+restored byte-for-byte before the bound executable runs. Evidence remains under
+`.build/r2c-staging-profile-20261009/`.
+
+The first diagnostic build reports an existing Release-test-only unused `Duration` import in the
+observation timer. Its import condition is narrowed to the existing Debug logging branch without
+changing runtime statements. The initial diagnostic is successful execution evidence, not a
+warning-free quality gate. The insertion result selects the separately bounded preparation-reuse
+comparison in the execution plan; neither elapsed staging time nor code inspection alone attributes
+that time to SQL compilation.
+
+The two-arm follow-up preserves the complete production staging path, insertion SQL and parameters.
+Actual authorizer observations count 4096 versus one location-insert preparation, with identical
+901120 SQLite VM steps and complete payload BLAKE3
+`6281e89da97819a3e9448fb456accb3ab38a3c54eef68ad747e8b930183ff53a`. Preparation takes 299466 versus
+2049 microseconds; statement execution takes 1236584 versus 1199034 microseconds. Full staging
+takes 2045 versus 1703 ms, with 32 commits per arm and unchanged published baselines. Both closed
+catalogs pass integrity/foreign-key checks. The whole owned test completes in 14.69 seconds, and
+its optimized build has no warning. The earlier preparation attempt rejected a changed formatting
+boundary before creating either helper output or starting a build; its exact marker was corrected.
+Evidence remains under `.build/r2c-staging-cache-profile-20261009/`. The single ordered timing pair
+does not control operating-system cache order or establish whole-library or native-client latency.
+
+### Location row correction
+
+`location_row_write.rs` now owns the typed row binding and both existing insertion statements.
+It reuses only the location-upsert statement through the connection's existing bounded cache;
+asset insertion, transaction ownership, 128-item staging batches and upstream source/generation
+decisions remain unchanged. Both normalized SQL statements and their complete parameter-expression
+lists match the preceding source. The pinned adapter clears bindings when a statement returns to
+the cache, and the borrowed statement retires before the caller commits.
+
+The preparation-count regression first fails on the extracted unchanged implementation with
+256 actual compilations instead of one, while both original 128-item batches commit. The corrected
+case and refused-commit/retry/optional-value replacement case pass in the complete SQLite adapter
+group: 590 passed, zero failed and three existing opt-in cases ignored, in 325.26 seconds. The same
+group retains identity, source revision, alias invalidation, migration, publication and rollback
+coverage. This establishes the focused boundary; current candidate gates follow separately.
+
+Physical reviewability: the catalog facade has 4369 lines including test support and no inline test
+bodies. The row-writing owner has 138 lines including its test-module declaration, no inline test
+bodies, and 169 dedicated test lines containing two cases. Remaining identity-policy responsibilities
+stay explicit in the roadmap. Evidence is `red-regression.log`, `focused-catalog.log` and
+`extraction-proof.json` under `.build/r2c-staging-cache-profile-20261009/`.
+
+The candidate's standalone lint passes, including warnings-denied Clippy and Dart analysis. The
+initial local wrapper then starts Daily in that same PowerShell process and fails its compiler
+ownership fault check before product tests. The first guardrail invocation has already loaded all
+four native types; `Initialize-AmeR2cRNativeTypes` returns for that complete type set before reaching
+the bootstrap fault point. The guardrail expects a fresh type scope, so its second invocation cannot
+observe the requested fault. `candidate-quality.json` retains the passed lint and failed 12.32-second
+Daily attempt. The corrected ignored wrapper admits one canonical gate per fresh PowerShell process,
+rejects an already loaded native type scope, and checks all 807 frozen source/test/tool files before
+and after each gate. Product and quality-tool source remain unchanged during this correction.
+
+The corrected fresh-process Daily passes in 2057.99 seconds: 1685 Rust library cases and three
+broker lifecycle cases, all 107 Flutter test files, controlled Windows scan integration, all ten
+native UIA phases with normal owned-process exit, and 16 asynchronous bridge contracts with matching
+hashes. The Rust suite retains 23 opt-in cases as ignored; explicit performance and external-input
+acceptance remain separate obligations. All 807 candidate source/test/tool files retain their frozen
+hashes. This result is recorded in `candidate-daily-fresh.json` and its transcript.
+
+The optimized 10000-image scan gate also passes: cold import 25469 ms, warm update 15910 ms,
+pause acknowledgement eight milliseconds, resume 24150 ms and cancellation 123 ms. The single
+explicit case completes in 82.34 seconds with no ignored test. Warm staging totals 8967 ms,
+validation 2531 ms and publication 1799 ms; compatible inspection reuse totals about two
+milliseconds. Its fresh optimized build has no warning and the 807 frozen inputs remain unchanged.
+This is generated-fixture performance evidence, not retained-library or Release-window acceptance.
+Evidence is `candidate-synthetic-scan-fresh.json` and its transcript, with raw owned-process receipts
+under `.dart_tool/performance_synthetic/8e4645006ce74858b2cf35b8e2101b4a/`.
+
+The unsigned Windows gate passes in 284.07 seconds: fresh Release application and broker payloads,
+three engine-free native window cases, two actual Debug-engine retirement cases with clean process
+and Job closure, and the isolated Release-DLL/Windows-channel smoke without catalog access. The
+807 frozen inputs remain unchanged. Its source attribution is the dirty candidate over
+`146490b36482e27ef9cd87b817f1c1a217c325a2`; the source-hash binding preserves that distinction from
+an older committed tree. `candidate-unsigned-windows-fresh.json` and `build/quality-unsigned-windows/evidence.json`
+own these results. They do not establish populated Release-window or signed installed-service acceptance.
+
+### Optimized retained update
+
+After those gates, one optimized headless ordinary update uses a fresh copy of the normally closed
+64490-location publication. Admission requires that exact source, one completed root and no running
+or paused scan. The source/test/tool manifest, executable, helper, root scope and initial derived
+catalog are hash-bound. Temporary test attachment is restored byte-for-byte before execution, and
+the 807 candidate inputs remain unchanged before and after the run. Bounds are 120000 items and
+entries, cancellation after 300 seconds, a 400-second owned-process lifetime, 768 MiB working set
+and a two-GiB host memory reserve. This is no new import or unfinished-scan continuation.
+
+The update completes in 147916 ms with all 64490 images and no limit reached. Its 678
+`image_format_unsupported` issues have the same classification/count as the baseline. Finalization
+begins at 122127 ms, all source validation is reported at 130944 ms, and terminal delivery follows
+at 147916 ms. The single test passes in 147.97 seconds; the complete owned process takes 148093 ms,
+exits zero and records a 25321472-byte peak working set.
+
+| Operation timer | Calls | Accumulated milliseconds |
+| --- | ---: | ---: |
+| Source discovery | 146998 | 39356.881 |
+| Prior record selection | 65168 | 5122.056 |
+| Media inspection or reuse | 65168 | 412.940 |
+| Location staging | 64490 | 24709.012 |
+| Directory persistence | 27038 | 25941.596 |
+| Checkpoint persistence | 548 | 12159.905 |
+
+Accounted operations total 107702392 microseconds; the remaining 40240971 microseconds include work
+outside these six timers. Directory/checkpoint timers include their buffered writes. Timer calls
+are not a file-count projection, and these categories do not isolate SQL from filesystem cost.
+
+The closed comparison matches all 64490 rows across all 21 identity/source fields, retaining ordered
+payload SHA256 `2aeebf1731ce31e21c92de245550074a88c1522ba6d928a492ef4426a1118a95` on both sides.
+Integrity and foreign-key checks pass. All eight original, predecessor and baseline catalog/WAL
+components retain their hashes. Postchecks open no source media; the runtime uses the existing
+read-only/no-hydration adapters. No whole-library content hash or Release-window timing is inferred.
+
+Evidence is `.build/r2c-warm-release-20261009/`, including `prepared.json`, `executable.json`,
+`measure.json`, `summary.json` and `issue-summary.json`. The earlier Debug headless/native timings
+differ in build mode and runtime participation, so this is not an isolated before/after speedup.
+An explicit whole-directory update still takes about two and a half minutes on this cohort.
+Retained idle-browsing variants, Release-window timing and combined-source disposition remain open.
