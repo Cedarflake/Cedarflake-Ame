@@ -4,6 +4,19 @@ Status: **R2c remains unaccepted. Selected recovered-profile browsing and pendin
 cross-window continuation now pass. Historical Retry/jump attribution, retained update cost and
 remaining client/platform variants stay open; the complete repair batch is not client-accepted.**
 
+### Acceptance prerequisites
+
+Use unsigned current-source artifacts for the required R2c quality and functional verification.
+Signing credentials, publisher identity, pre-signed bundles, protected signing jobs and the
+signing-dependent installation acceptance path are not required for R2c acceptance or merge.
+Their absence must not block independent work or reappear as an indirect prerequisite under an
+installation/release label. The existing signed distribution channel retains separate deployment
+qualification. Keep its runtime authentication intact and do not report its unexecuted installation
+path as verified. Real journal, broker lifecycle/security, retained-source and Cloud Files assertions
+retain their own evidence duties through applicable unsigned verification. Earlier signed-input
+exclusions describe their recorded runs, not the current merge prerequisites. The roadmap owns
+the resulting stage disposition.
+
 ### Current execution checkpoint
 
 Updated 2026-10-10. Resume from this checkpoint and the linked owning evidence, then verify the
@@ -184,6 +197,36 @@ complete Daily, the optimized 10000-image scan and unsigned Windows gates pass w
 frozen inputs. The complete scan's 16274-ms warm update is not evidence of a whole-scan speedup.
 Keep the narrower preparation result distinct from retained-update latency, source discovery and
 client acceptance. The declared method is complete; no unchanged replay is needed.
+
+After the identity-query correction, admit one current-source optimized ordinary update using a
+fresh copy of the same completed 64490-location publication. Reuse its bound known destination,
+120000-entry/item limits, 300-second cancellation deadline, 400-second process limit, 768-MiB
+working-set ceiling and two-GiB host reserve. Preserve original and predecessor catalog components,
+use production read-only/no-hydration adapters, and verify complete published identity/source fields
+and closed integrity. Bind the current 810 source/test/tool inputs and restore temporary diagnostic
+attachment before execution. This is one post-correction whole-update observation, not a controlled
+before/after speedup claim or another import. Reserve 30 active preparation/analysis minutes,
+excluding the serial optimized build. Retain a failed or changed-cohort result without an unchanged
+replay; use its owning operation measurements to select the next method.
+
+The post-correction update completes in 159127 ms with 64488 locations and the same 678 unsupported
+inputs. Its old 64490-location assertion fails; two former source paths are now absent, consistent
+with their confirmed removal. All 64488 retained rows preserve their 21 identity/source fields,
+the eight protected catalog components are unchanged, and closed integrity passes. Preserve the
+failed diagnostic verdict separately from this membership disposition. No whole-update speedup is
+established. After full source validation, publication still takes 17298 ms.
+
+The [native publication measurement](../acceptance/r2c-update-checkpoint.md#native-publication-phase-attribution)
+locates the largest database phase in previous-projection retirement. Complete active-row comparison,
+integrity and protected-catalog checks pass after diagnostic rollback. The unchanged-identity write
+proposal is withdrawn because its [earlier measured benefit](../acceptance/r2c-retained-runtime.md#retained-update-database-cost-exclusions)
+is negligible. The pinned-engine four-arm comparison also rejects a larger page cache; its slower
+result supersedes the Python probe's apparent improvement. Unshipped extraction/tests are removed,
+all 810 product inputs retain their verified bytes, and no product SQL/cache policy changes.
+Preserve the failed diagnostic and verifier attempts in the owning evidence. These completed
+comparisons are not a retained-update speedup or permission to repeat unchanged runs. The latency
+obligation remains open; next complete the remaining native Release/client variants and platform
+duties in the frozen roster before considering another causal performance method.
 
 For the identified two-source consolidation, the destination is the current source after complete
 publication. Retire both superseded source registrations through the existing catalog-removal
@@ -741,7 +784,7 @@ the roadmap and use the existing 24-variant roster as the functional evidence in
 | M03 scan responsibility | The long scan facade delegates cohesive single-file admission/prior-selection/inspection work to typed owners with real input/output contracts; preserve checkpoint/progress, retained records, identity/metadata/preview reuse, cancellation and final atomic publication; record same-workload costs and owner/test sizes |
 | M04 viewport ownership | Explicit independent query/publication/navigation authority and operation-owned loading/cleanup; move a complete independently testable lifecycle out of the multi-responsibility controller where needed; verify success, failure, cancellation, replacement, disposal and late completion without merging generations or duplicating mutable state |
 | Functional completion | Every frozen UX variant has current or explicitly justified reused passing evidence; C05 transient errors and full batch/source/date/pixel assertions have a disposition; no known core S0/S1 remains |
-| Final verification | Resolve C01/C02's remaining obligations, freeze the candidate, perform the required serial local and hosted gates and independent accumulated-change review, then complete applicable Release/client and separately authorized external acceptance |
+| Final verification | Resolve C01/C02's remaining obligations, freeze the candidate, perform the required serial local and hosted gates and independent accumulated-change review, then complete applicable unsigned Release/client and real-source/platform acceptance; signing-dependent distribution qualification is excluded |
 
 Deliver M01/M02 as distinct reversible policy changes. M03/M04 must include implementation and
 verification: a responsibility diagram, new rules, file moves or a list of debt cannot close them.

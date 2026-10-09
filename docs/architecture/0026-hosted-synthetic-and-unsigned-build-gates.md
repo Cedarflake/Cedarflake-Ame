@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-07
+- Last amended: 2026-10-10
 
 ## Context
 
@@ -13,6 +13,16 @@ isolated hosted runners. An ignored test is not necessarily a runnable benchmark
 entrypoints, historical scenarios, or consumers of private source-library inputs.
 
 ## Decision
+
+Code signing is a distribution-channel choice, not a prerequisite for engineering acceptance or
+merge. R2c uses unsigned current-source artifacts and does not require a certificate, publisher
+identity, pre-signed bundle, protected signing job or signing-dependent deployment acceptance run.
+The existing signed channel retains its explicit admission and authentication checks when selected;
+absence of its inputs cannot fail the unsigned engineering gate. Broker security and lifecycle,
+real journal, source safety and native client assertions retain their applicable verification.
+An unsigned build alone does not establish those behaviors, and unexecuted deployed-service behavior
+must remain explicit. This decision does not remove runtime caller validation or grant installation
+or publication authority.
 
 Ordinary PR, main-push, merge-queue, and manual quality runs require five independent synthetic
 workloads and a credential-free unsigned Windows x64 Release build alongside every Daily component.

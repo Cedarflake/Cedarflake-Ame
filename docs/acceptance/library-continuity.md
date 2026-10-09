@@ -452,11 +452,19 @@ manual cleanup, storage relocation, and restart reconciliation remain R2b-owned 
   normal runtime readiness;
 - journal reset, trimming, broker failure, root replacement, and migration baseline use explicit P2
   recovery without gating independent P0 publication or publishing partial absence;
-- broker caller identity, root containment, pipe access, protocol compatibility, installer lifecycle,
+- broker caller identity, root containment, pipe access, protocol compatibility, installer guardrails,
   portable `LiveOnly` degradation, root-external nondisclosure, and no-journal-mutation gates pass;
 - cached catalog content remains immediately usable while startup continuity runs;
 - development diagnostics expose active phase, elapsed time, bounded counts, and issue code;
 - remaining filesystem limitations and measured performance are recorded honestly.
+
+R2c acceptance and merge use unsigned current-source artifacts. A signing certificate, expected
+publisher, pre-signed application/broker bundle, protected signing job or signing-dependent
+installation run is not an acceptance prerequisite. The existing signed distribution channel's
+deployed install/repair/upgrade qualification is conditional on selecting that channel and is not
+a substitute name for a signing requirement. Broker lifecycle/security, real journal and source
+safety assertions above remain required; unexecuted deployed-service behavior remains a disclosed
+limitation. This changes verification admission, not production authentication or runtime capability.
 
 ## Explicit exclusions and anti-drift constraints
 

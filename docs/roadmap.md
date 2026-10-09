@@ -51,7 +51,10 @@ this overview does not reduce them to navigation shells or compilation milestone
 **R2c-O — constrained broker and installer foundation remains the active acceptance slice.**
 R2c-N admitted the security/protocol foundation. R2c-P and R2c-Q have implementation checkpoints;
 R2c-R has controlled local reliability work. Those facts do not accept the slices or all of R2c.
-Signed installed-service, real journal, retained-library, and real Cloud Files evidence remain open.
+Real journal, retained-library, and real Cloud Files evidence remain open. Code signing, publisher
+credentials, signed-release jobs and the signing-dependent installation acceptance path are not
+R2c acceptance or merge prerequisites. The existing signed distribution channel retains its separate
+deployment qualification; unsigned verification cannot claim that installation path passed.
 ADR [0024](architecture/0024-windows-change-driven-library-continuity.md) owns the current design;
 the former ADR 0023 continuity model and its R2c-I–M results remain historical.
 
@@ -270,11 +273,13 @@ invariant, failure, race, source-safety, and acceptance checklist. The
 - All applicable current-source correctness, performance, native interaction, migration, source-
   safety, and final accumulated independent audit obligations must close. A controlled-cycle pass
   does not waive unresolved findings required by ADR 0024's final audit.
-- Signed bundle/publisher, installed-service lifecycle, real broker FSCTL, retained roots, and real
-  Cloud Files acceptance retain their existing inputs and safety boundaries. Prepare concrete bounded
-  read-only real-library runs under the standing repository policy without per-run approval. Service
-  installation and source mutation retain their separate authorization requirements. Hosted Server CI,
-  unsigned artifacts and controlled fixtures do not substitute for those gates.
+- Unsigned current-source application/broker artifacts are sufficient for R2c acceptance and merge.
+  Do not require a signing certificate, expected publisher, pre-signed bundle, protected signing job,
+  or signing-dependent deployment run. Broker lifecycle/security, real FSCTL, retained-root and real
+  Cloud Files assertions still need their applicable evidence; compilation alone cannot establish
+  them. Prepare bounded read-only real-library runs under the standing policy without per-run approval.
+  Service installation and source mutation retain their separate authorization requirements. The
+  signed distribution channel's installation/upgrade qualification is separate from R2c closeout.
 - R3 remains paused. No source-media operation, release publication, or merge into `main` is
   authorized by this roadmap or a historical acceptance record.
 

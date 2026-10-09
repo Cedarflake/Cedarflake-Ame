@@ -387,6 +387,89 @@ differ in build mode and runtime participation, so this is not an isolated befor
 An explicit whole-directory update still takes about two and a half minutes on this cohort.
 Retained idle-browsing variants, Release-window timing and combined-source disposition remain open.
 
+### Retained update after identity-query reuse
+
+The 2026-10-10 optimized update uses the same bounded method and a new copy of the completed
+64490-location publication. All 810 candidate source/test/tool inputs are bound and unchanged.
+It completes in 159127 ms with 64488 locations, the same 678 unsupported-format issues and no
+limit reached. Finalization begins at 131017 ms, full source validation is reported at 141829 ms,
+and terminal delivery follows 17298 ms later. The owned process takes 159321 ms and records a
+25423872-byte peak working set. This does not establish a whole-update speedup.
+
+The diagnostic's old 64490-location assertion fails and remains a failed result. A bounded read-only
+comparison subsequently finds exactly two omitted baseline paths and no added location. Attribute
+lookups confirm both paths are absent; their deletion was confirmed by the source owner. All 64488
+retained locations preserve all 21 identity/source fields. Closed integrity and foreign-key checks
+pass, and all eight protected original/predecessor catalog components retain their hashes. This
+disposes of the count discrepancy; it does not change the original assertion verdict or require
+another unchanged scan. The next current-source cohort is 64488, subject to subsequent source changes.
+
+| Operation timer | Calls | Accumulated milliseconds |
+| --- | ---: | ---: |
+| Source discovery | 146994 | 43641.608 |
+| Prior record selection | 65166 | 5388.646 |
+| Media inspection or reuse | 65166 | 428.858 |
+| Location staging | 64488 | 23480.035 |
+| Directory persistence | 27038 | 29900.725 |
+| Checkpoint persistence | 548 | 12833.927 |
+
+Accounted operations total 115673801 microseconds; unaccounted work totals 43483715 microseconds.
+Directory/checkpoint timers include their buffered writes. Evidence remains under ignored
+`.build/r2c-warm-release-20261010/`, including `prepared.json`, `executable.json`, `measure.json`,
+the failed test output and `membership-result.json`. Temporary diagnostic source is restored before
+execution. No source content is read by the membership comparison and no source mutation is performed.
+
+### Native publication phase attribution
+
+A catalog-only diagnostic uses a new 443531264-byte copy of the completed 64488-location derivative.
+It admits a new scan in the copied catalog and stages the same existing observations without opening
+source paths or inventing a filesystem-validation proof. Temporary timers surround the existing
+publication phases; the final transaction boundary executes ROLLBACK. Instrumentation is restored
+before execution and all 810 source/test/tool inputs retain their verified hashes.
+
+| Native phase | Milliseconds |
+| --- | ---: |
+| Identity reconciliation | 3195.668 |
+| Staged count | 48.337 |
+| Retained handoffs | 0.701 |
+| Projection replacement, total | 12967.126 |
+| — Preview reference replacement, nested | 975.801 |
+| — Previous projection DELETE, nested | 11322.452 |
+| — Orphan asset cleanup, nested | 668.183 |
+| Final rollback, excluding commit | 1.592 |
+
+The complete publication call takes 16214 ms; nested costs are already included in replacement.
+The owned process passes its one explicit test in 75330 ms with a 23265280-byte peak working set.
+All 64488 active rows match the closed baseline across every location column. Native full integrity,
+closed quick-check and foreign-key checks pass; all 11 protected catalog components are unchanged.
+No publication is committed and no source path/media is opened. This identifies previous-projection
+retirement as the largest measured phase in this catalog workload, not the cause of all 159127 ms
+in the actual source update. Directory traversal state, filesystem proof and commit are not recreated.
+
+The first diagnostic build rejects an attempted consuming rollback through the priority transaction
+wrapper; the corrected diagnostic issues explicit ROLLBACK through that wrapper's connection. Product
+source is restored after both builds. The first postcheck's full-row EXCEPT exceeds its 45-second
+budget. Indexed full-field comparison succeeds, but repeating full integrity afterward exceeds the
+same budget. The final postcheck retains the passing native full-integrity assertion, verifies the
+closed payload through its primary key, and completes closed quick-check/foreign keys in the original
+bound. These verifier failures remain distinct from the passing measured transaction. Receipts,
+timers, source/executable bindings and `verified.json` remain in ignored
+`.build/r2c-publication-phases-20261010/`.
+
+The follow-up rollback-only comparison changes only the connection's page-cache suggestion. SQLite
+3.50.4 in the Python probe reports 21296.747/16974.588 ms for default/16 MiB, with WAL extents of
+295589432/292482952 bytes. The same query is then compiled against the exact rusqlite 0.40.1 and
+bundled SQLite 3.53.2 libraries from the successful native diagnostic build. Four fresh-connection
+arms run in default/16-MiB/16-MiB/default order: **9077.588, 14984.668, 14537.144, 9256.069 ms**.
+Every arm deletes and rolls back exactly 64488 rows with WAL/FULL, foreign keys, enabled spilling,
+4096-byte pages and secure-delete disabled. Both 64488-row projections, the copied database bytes,
+bound input files and all 810 product inputs are unchanged. Closed quick-check and foreign keys pass.
+The first wrapper's empty argument list is refused before measurement; the corrected invocation
+supplies and validates its diagnostic scope argument. No product cache policy is changed: the pinned
+engine rejects the larger-cache hypothesis. Dependency/helper/binary bindings, owned-process receipts
+and all four outputs remain under the same ignored directory. This query experiment cannot establish
+retained-update speedup or close the wider latency and client-acceptance duties.
+
 ### Generated directory-persistence attribution
 
 The subsequent generated-only diagnostic isolates directory operations from buffered image writes.

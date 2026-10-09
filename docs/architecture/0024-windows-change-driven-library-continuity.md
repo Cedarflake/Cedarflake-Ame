@@ -2,9 +2,17 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Last amended: 2026-09-06
+- Last amended: 2026-10-10
 - Supersedes: ADR 0023
 - Historical predecessor: ADR 0022
+
+Engineering verification uses the unsigned acceptance boundary in
+[ADR 0026](0026-hosted-synthetic-and-unsigned-build-gates.md#decision). Signing credentials,
+publisher identity, pre-signed bundles and signing-dependent deployment qualification are not R2c
+acceptance or merge prerequisites. The signed installation and authentication mechanisms documented
+below remain properties of that distribution channel; historical missing-signature observations
+do not impose current merge gates. Broker lifecycle/security, real journal and source-safety claims
+still require their applicable evidence, without claiming an unexecuted installed-service run passed.
 
 ## Context
 
@@ -2890,8 +2898,9 @@ lane capacity, retry policy, or acceptance thresholds.
   P0 remains responsive during it, and the cost must not recur after authority is established.
 - Sharing one volume read reduces I/O, but independent per-root advancement and cross-root handoff
   add persistence and test complexity.
-- A signed installer is necessary for the complete product. The portable ZIP remains useful but has
-  a deliberately weaker synchronization capability.
+- Full closed-process continuity requires an installed compatible broker. The current signed
+  installation channel has separate deployment qualification and does not gate unsigned R2c
+  engineering acceptance. The portable ZIP retains its explicitly weaker synchronization capability.
 
 ## Rollback and replacement strategy
 
