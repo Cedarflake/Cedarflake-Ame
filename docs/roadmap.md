@@ -80,8 +80,10 @@ verification** for fresh bulk changes and recovery of retained terminal work. Th
 recovery and a reported middle-timeline scroll jump with Retry feedback; the browsing incident
 takes current functional priority under its bounded execution method. First-import resumption now
 retains completed inspection work while proving current namespace membership. Its selected real-source
-continuation and local candidate gates are recorded in the same runtime evidence; the complete native
-lifetime and the separate browsing/update exits remain open. The supplied destination
+continuation and local candidate gates are recorded in the same runtime evidence. The subsequent
+[update checkpoint](acceptance/r2c-update-checkpoint.md) has a normally closed source-backed update,
+pending-result scrolling and preview observation; warm-update and uncached-preview latency,
+remaining retained incidents and final candidate gates stay open. The supplied destination
 combines two former directories and requires automatic source continuity; a one-root manual
 relocation is only a fallback. The execution plan owns the corrected per-file identity, discovery
 and publication boundary, with both former sources retained until reconciliation establishes their

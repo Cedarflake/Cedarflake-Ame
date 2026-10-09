@@ -126,6 +126,10 @@ persistence layers.
   scan-resumption owner still resets unverified directory coverage, while traversal closes the
   retained roster before final file validation. The v33 migration and its schema/row checks live in
   `migrations/scan_resume_inventory.rs`; they do not widen the historical migration facade.
+- `scan_checkpoint.rs` owns atomic buffered-location and progress persistence for checkpoint and
+  directory-completion boundaries. It composes the staging transaction without publishing progress
+  ahead of accepted locations or retiring an in-memory batch before commit. Writer admission,
+  checkpoint status rules and current-directory authority remain unchanged.
 - `catalog_delta/terminal_evidence_scope.rs` owns normalized terminal-media evidence containment
   and bounded retirement for completed path/subtree/root leases. The delta transaction keeps lease,
   namespace, revision, rollback and source revalidation authority. Too much retained evidence
@@ -358,6 +362,10 @@ persistence layers.
   multi-responsibility file is not an extraction. `library_scan_execution.dart` remains only the
   mutual-exclusion boundary between a running primary scan and per-root updates. Multi-root update
   selection, bounded scheduling, retry, and cancellation live in `library_update_controller.dart`.
+- `library_update_task.dart` owns immutable per-root update progress projection. Checkpoints,
+  issues and terminal events change the task; individual asset deliveries do not invalidate the
+  update list. Terminal counts remain authoritative, including cancellation between checkpoints.
+  Execution identity, control replay and native stream retirement stay with the update controller.
 - `library_scan_control.dart` owns per-run ordered control intent and native registration replay.
   `library_scan_run.dart` owns stream identity and drain, including protocol failures; a visible
   error is not permission to release a still-running native task.

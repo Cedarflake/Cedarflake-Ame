@@ -5,8 +5,8 @@ use rusqlite::Transaction;
 use crate::domain::ScanError;
 
 use super::{
-    IdentityGenerationExpectation, SqliteCatalog, database_error, persist_location,
-    scan_resume_inventory,
+    IdentityGenerationExpectation, PendingLocation, SqliteCatalog, database_error,
+    persist_location, scan_resume_inventory,
 };
 
 pub(super) fn flush_pending_locations(catalog: &mut SqliteCatalog) -> Result<(), ScanError> {
@@ -15,11 +15,21 @@ pub(super) fn flush_pending_locations(catalog: &mut SqliteCatalog) -> Result<(),
     }
     let pending = catalog.pending_locations.clone();
     let transaction = catalog.begin_write()?;
+    persist_pending_locations(&transaction, &pending)?;
+    transaction.commit().map_err(database_error)?;
+    catalog.pending_locations.clear();
+    Ok(())
+}
+
+pub(super) fn persist_pending_locations(
+    transaction: &Transaction<'_>,
+    pending: &[PendingLocation],
+) -> Result<(), ScanError> {
     let mut active_projection_changed = false;
     let mut identity_generation_batch = HashMap::new();
-    for item in &pending {
+    for item in pending {
         active_projection_changed |= persist_location(
-            &transaction,
+            transaction,
             &item.scan_id,
             &item.root_id,
             &item.location,
@@ -28,7 +38,7 @@ pub(super) fn flush_pending_locations(catalog: &mut SqliteCatalog) -> Result<(),
         )?
         .active_projection_changed;
         scan_resume_inventory::accept_location(
-            &transaction,
+            transaction,
             &item.scan_id,
             &item.location.location_id,
         )?;
@@ -44,8 +54,6 @@ pub(super) fn flush_pending_locations(catalog: &mut SqliteCatalog) -> Result<(),
             ));
         }
     }
-    transaction.commit().map_err(database_error)?;
-    catalog.pending_locations.clear();
     Ok(())
 }
 

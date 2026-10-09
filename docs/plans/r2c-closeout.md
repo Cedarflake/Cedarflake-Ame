@@ -26,6 +26,51 @@ predecessor runs unchanged. The current candidate now passes complete Daily, the
 performance gate and unsigned Windows verification. Continue the separate update-performance,
 pending-read race and combined-source recovery obligations; these passes do not accept R2c.
 
+The next update-cost diagnosis uses a fresh copy of that completed 64490-location catalog,
+one headless warm scan with a 120000-entry/item bound and a 300-second cancellation deadline,
+and existing test-only operation timers. It completes in 192488 ms: source discovery 40584 ms,
+prior selection 9662 ms, inspection 478 ms, location staging 36218 ms, directory persistence
+33900 ms and checkpoint persistence 16953 ms. These categories include nested buffer flushes;
+do not treat all directory/checkpoint time as standalone SQL overhead. The absence of the desktop
+and synchronization runtime prevents attributing their separate costs from this run alone.
+
+The narrow correction now joins buffered locations and their checkpoint/directory completion
+in one durable transaction. The old boundary committed the buffer before separately committing
+progress, requiring two commits and leaving accepted resume membership ahead of a rejected
+checkpoint. Three focused regressions first failed on that behavior. Four corrected boundary
+cases now cover one-commit persistence, SQL rejection, retained-membership rollback and commit
+rejection/retry, each for checkpoints and directory completion. Batch limits, writer priority,
+source/generation checks and cancellation remain unchanged. Per-root update task projection also
+stops invalidating the task for each asset: the failing 100-asset case emitted 104 notifications;
+the correction emits its four checkpoints and retains exact terminal counts. These fixes alone
+do not establish a complete native update-latency improvement.
+
+The next native checkpoint copies the completed 64490-location catalog into fresh isolated derived
+storage and admits exactly one ordinary update, with no import or resume. Its bounds remain 120000
+items/entries, a 300-second scan cancellation deadline and a 1200-second complete lifetime. One
+middle-timeline read holds delivery of the actual database result for at most 20 seconds until a
+native wheel input arrives. This proves application behavior during a pending result, not naturally
+slow database performance. Observe settled upward/reverse scrolling, visible previews, one original
+read and normal close; verify baseline identities and protected original/predecessor catalogs after
+exit. The prior missing close-input receipt remains a failed observation. The corrected
+[native checkpoint](../acceptance/r2c-update-checkpoint.md#native-result) completes its ordinary
+update in 211836 ms, preserves all 64490 identity/source records, admits native upward input during
+a held real query result, and proves subsequent upward/reverse movement, ready previews and normal
+close. Its first scope observer failed on a reproduced receipt/snapshot race; retain that failure
+and the corrected ordering evidence. Warm-update duration and nine-second uncached viewport
+completion remain performance limitations. The complete candidate Daily, optimized synthetic scan
+and unsigned Windows gates now pass; neither this selected source-backed sequence nor its deliberate
+delivery delay accepts every retained incident.
+
+The next preview-cost diagnosis selects exactly the 31 ready locations from that observed viewport.
+Use one fresh derived catalog and empty preview cache, the actual observed size buckets and two
+workers, matching the normal preview setting. An optimized headless run may read only those sources,
+at most 64 MiB each and 512 MiB in total, with a 180-second owned-process deadline and 768-MiB
+working-set ceiling. Compare catalog, guarded-source, materialization and publication timers;
+preserve all original/predecessor catalogs and the observed catalog. This separates backend cost
+from the Debug client's nine-second observation; it does not measure Dart queueing or rendering,
+admit another whole-library scan, or establish Release UI acceptance.
+
 The subsequent [queued-layout regression](../acceptance/r2c-retained-runtime.md#queued-layout-transition-after-later-scrolling)
 reproduces old anchors overriding later input with pending, first and existing manifests. Its
 position-admission correction passes the focused boundaries and scoped review. This closes that
