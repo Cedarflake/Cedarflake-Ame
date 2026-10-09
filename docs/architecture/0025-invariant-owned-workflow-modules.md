@@ -130,6 +130,12 @@ persistence layers.
   directory-completion boundaries. It composes the staging transaction without publishing progress
   ahead of accepted locations or retiring an in-memory batch before commit. Writer admission,
   checkpoint status rules and current-directory authority remain unchanged.
+- `location_row_write.rs` owns the asset/location row binding and insertion SQL inside the caller's
+  transaction. Its typed write carries the already-admitted scan, root, source revision and source
+  generation, and reuses the connection's bounded prepared-statement cache for the location upsert.
+  Statement and binding lifetimes end before commit; rollback and optional-value replacement retain
+  the caller's atomicity. Identity-group comparison, generation allocation and active-alias
+  invalidation remain upstream and cannot be bypassed by row serialization.
 - `catalog_delta/terminal_evidence_scope.rs` owns normalized terminal-media evidence containment
   and bounded retirement for completed path/subtree/root leases. The delta transaction keeps lease,
   namespace, revision, rollback and source revalidation authority. Too much retained evidence

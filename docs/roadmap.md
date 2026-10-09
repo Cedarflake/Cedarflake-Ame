@@ -233,6 +233,10 @@ the live owner before extending it; a forwarding wrapper or lower line count is 
 - Move tests with their owners. Revisit viewer, selection, or sidebar decomposition only when an
   independent lifecycle requires it. Stable migration history, cohesive layout, and shared quality
   or release entrypoints are not split merely for size.
+- The catalog's row serialization has a dedicated owner. Identity-group comparison, generation
+  allocation and active-alias invalidation remain in its persistence facade; any further behavior
+  in that cluster first needs its typed reconciliation boundary. This does not reorder the retained
+  migration and synchronization-runtime split duties.
 - A repair establishes the required typed boundary and records production/inline-test/dedicated-test
   size. If a larger split exceeds the active repair, retain it here as debt and add no further
   behavior to that debt owner until the required split is complete. This does not authorize a broad rewrite
