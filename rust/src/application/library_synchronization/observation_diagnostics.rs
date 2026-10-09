@@ -1,7 +1,9 @@
 #[cfg(debug_assertions)]
 use std::io::Write;
+#[cfg(debug_assertions)]
+use std::time::Duration;
 #[cfg(any(debug_assertions, test))]
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 #[cfg(test)]
 pub(super) mod capture;
