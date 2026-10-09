@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-09-28
+- Last amended: 2026-10-10
 
 ## Context
 
@@ -136,6 +136,13 @@ persistence layers.
   Statement and binding lifetimes end before commit; rollback and optional-value replacement retain
   the caller's atomicity. Identity-group comparison, generation allocation and active-alias
   invalidation remain upstream and cannot be bypassed by row serialization.
+- `identity_group_state.rs` owns physical-identity state aggregation and consistency reads for an
+  active publication or selected scan. Staged state takes precedence only when that scan contains
+  the identity; an empty result falls back to the active publication. The connection's bounded
+  statement cache reuses compiled SQL, never observed state. Each call executes against its current
+  transaction or fresh read snapshot, releases the statement before returning, and retains the
+  existing unknown-revision and conflicting-alias rules. Generation assignment, captured-state
+  comparison and alias invalidation remain separate upstream decisions.
 - `catalog_delta/terminal_evidence_scope.rs` owns normalized terminal-media evidence containment
   and bounded retirement for completed path/subtree/root leases. The delta transaction keeps lease,
   namespace, revision, rollback and source revalidation authority. Too much retained evidence

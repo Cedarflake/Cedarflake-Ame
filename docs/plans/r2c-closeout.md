@@ -6,7 +6,7 @@ remaining client/platform variants stay open; the complete repair batch is not c
 
 ### Current execution checkpoint
 
-Updated 2026-10-09. Resume from this checkpoint and the linked owning evidence, then verify the
+Updated 2026-10-10. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
@@ -158,6 +158,32 @@ commit contributes 896.474 ms across 2048 directories; this alone does not justi
 change for the 147916-ms retained update. Production bytes and all 702 bound inputs are restored
 and unchanged. Keep retained update cost open, preserve the generated-workload limitation, and do
 not replay this consumed diagnostic or relax durability/checkpoint rules on its evidence.
+
+The next cost boundary is repeated preparation of physical-identity group queries. The preceding
+4096-row staging profile executes 16384 such queries; the current row-writing correction still
+prepares each identity query independently. Compare those unchanged queries with prepared-statement
+reuse in one generated-only, optimized two-arm diagnostic. Retain the 10000-row baseline, 4096
+measured rows, 128-row transactions, complete payload equality and exact VM-step comparison; count
+actual query compilation independently from execution. Keep the existing location-upsert cache in
+both arms. Each measurement is bounded to 30 seconds, the process to 180 seconds and 512 MiB;
+no source media or real catalog participates. Restore temporary instrumentation before execution.
+If the comparison supports a correction, extract the identity-state read/consistency owner and
+cache only its statements, never query results. Preserve staged-before-active precedence, NULL and
+conflict semantics, fresh transactional revalidation, rollback and publication authority. Prove
+those boundaries, then run focused catalog checks, lint, Daily, synthetic scan and unsigned Windows
+gates serially on the candidate. Reserve 45 active minutes for preparation, implementation and
+analysis, excluding serial gates. This work neither discovers assembled destinations nor changes
+source enumeration, scan authority, database durability or retained-data policy.
+
+The [identity-query comparison](../acceptance/r2c-update-checkpoint.md#identity-state-query-preparation)
+now verifies identical complete payloads, 696320 VM steps and 32 transactions, with actual query
+preparations reduced from 16384 to two and measured staging from 1689 to 1505 ms. The extracted
+production read owner preserves the original SQL and consistency decisions. Its old-code
+compilation regression fails as expected, then all four current boundary cases, standalone lint,
+complete Daily, the optimized 10000-image scan and unsigned Windows gates pass with unchanged
+frozen inputs. The complete scan's 16274-ms warm update is not evidence of a whole-scan speedup.
+Keep the narrower preparation result distinct from retained-update latency, source discovery and
+client acceptance. The declared method is complete; no unchanged replay is needed.
 
 For the identified two-source consolidation, the destination is the current source after complete
 publication. Retire both superseded source registrations through the existing catalog-removal

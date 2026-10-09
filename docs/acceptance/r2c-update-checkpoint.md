@@ -1,7 +1,7 @@
 # Retained update checkpoint and pending-read observation
 
-Date: 2026-10-09. Scope: atomic scan progress, update task projection, and one bounded native
-update/browsing observation. This record does not accept R2c or combined-source recovery.
+Updated: 2026-10-10. Scope: atomic scan progress, update task projection, identity-query preparation,
+and bounded update/browsing observations. This record does not accept R2c or combined-source recovery.
 The execution owner is [R2c closeout](../plans/r2c-closeout.md).
 
 ## Causal changes
@@ -200,6 +200,63 @@ or a complete Release-window timing. The Debug native queue also includes bridge
 has only thresholded slow-request logs. Its nine-second visible completion cannot establish
 optimized-client latency. Helpers, executable bindings, per-item metrics and closed summaries
 remain under `.build/r2c-preview-cost-20261009/` and `.build/r2c-preview-cost-debug-20261009/`.
+
+## Identity-state query preparation
+
+The subsequent optimized comparison keeps the current location-upsert cache in both arms and
+changes only preparation of the two physical-identity aggregation queries. Each arm seeds 10000
+generated catalog identities and stages 4096 unchanged locations through production admission and
+128-item batches. No real catalog or source media is read. An authorizer counts query compilations;
+per-statement counters separately measure SQLite execution. Both arms perform 696320 VM steps,
+32 durable write batches and produce the same complete staged payload BLAKE3
+`d8607603e3ee4583738b747bb4ddd8eff01176d3711285c5f8e59a4639095353`.
+
+Actual preparations fall from 16384 to two. Accumulated preparation time falls from 180657 to
+3244 microseconds; query execution is 90599 versus 81662 microseconds. Complete staging is 1689
+versus 1505 ms. Published membership/revision remains unchanged, all staged payload fields match,
+and closed integrity/foreign-key checks pass. This single ordered pair establishes the preparation
+mechanism and this generated workload's result, not a whole retained-library latency improvement.
+The owned process exits normally in 12491 ms with a 22081536-byte peak working set, within its
+180-second/512-MiB bounds. All 687 bound inputs match after the temporary instrumentation is
+removed. The optimized build completes without a compiler warning.
+
+The production correction extracts `identity_group_state.rs` from the catalog facade and reuses
+the connection's bounded prepared-statement cache for those two queries. Both SQL strings and all
+remaining query/consistency bodies match the preceding source exactly after removing visibility
+changes and the preparation call. Results are never cached. Source generation assignment,
+captured-observation comparison, alias invalidation, transactions and source access are unchanged.
+
+The compilation regression first fails on the extracted unchanged code with 512 preparations
+instead of two; its three state regressions already pass. After the correction, all four cases pass:
+distinct file/scan parameters and staged precedence, peer commits and transaction rollback with
+snapshot release, empty/retired observations, and conflicting aliases with known/unknown revision
+semantics. The catalog facade has 4263 lines including test support and no inline test bodies.
+The extracted owner has 121 lines including its test-module declaration, no inline test bodies,
+and 245 dedicated test lines containing four cases. Generation/publication policy remains explicit
+decomposition debt rather than moving into the read owner.
+
+Ignored evidence is under `.build/r2c-identity-query-profile-20261009/`: the bound comparison,
+restored source bytes, complete process output, red/green regressions and `extraction-proof.json`.
+Standalone lint passes in 237.45 seconds. The complete fresh-process Daily passes in 2079.15
+seconds: 1690 Rust library cases and three broker lifecycle cases, all 107 Flutter test files,
+the controlled Windows scan, all ten native UIA phases with normal process/Job closure, and 16
+asynchronous bridge contracts with matching hashes. The Rust suite retains 23 separately admitted
+opt-in cases as ignored. All 810 frozen source/test/tool inputs remain unchanged.
+
+On 2026-10-10 the optimized 10000-image scan gate passes: cold import 26818 ms, warm update
+16274 ms, pause acknowledgement 11 ms, resume 25607 ms and cancellation 127 ms. The explicit case
+finishes in 89.91 seconds with no ignored test; the owned process exits normally in 90047 ms with
+a 28459008-byte peak working set. The earlier candidate's 15910-ms warm result is a separate run,
+not a controlled comparison. This complete-workflow observation does not demonstrate a whole-scan
+speedup. The two-arm preparation result above retains its narrower causal evidence.
+
+Unsigned Windows verification passes in 302.68 seconds, including a fresh Release application and
+broker, three engine-free window cases, two actual engine-retirement cases with normal process/Job
+closure, and the catalog-free Release-DLL/Windows-channel smoke. Both gates preserve all 810 frozen
+inputs. The artifact is attributed to the dirty candidate over `892035b`; the retained
+`candidate-*-fresh.json` records, transcripts and `release-evidence.json` bind these results. No
+real-library update, service installation or release publication participates. Retained whole-library
+latency, assembled-destination discovery and the remaining R2c acceptance duties stay open.
 
 ## Bundled staging cost
 
