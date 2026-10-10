@@ -567,3 +567,20 @@ reaches the trigger through observed Tab navigation and verifies Enter/Escape/En
 refocus, with complete source, catalog and normal process retirement evidence. That sequence is
 distinct from the earlier pointer-open experiments. Layout return and more-menu input remain
 unaccepted; no internal focus identity is inferred from Release screenshots.
+
+### Generated host menu return on 2026-10-10
+
+The current-source Debug client and isolated 4032-image catalog from the
+[arrival/update check](r2c-browsing-diagnosis.md#generated-arrival-and-ordinary-update-on-2026-10-10)
+provide actual keyboard input without framework focus injection. Observed Tab traversal reaches
+Sort; Enter, Escape and Enter reopen its menu without pointer refocus. The five-minute controller
+deadline then expires before Layout opens. The owned Job retires the client; preserve that failed
+whole lifetime rather than counting it as normal-close evidence.
+
+A separate ten-minute continuation tests only the remaining Layout and More menus, reports elapsed
+time after each observation and reserves two minutes for retirement. Each trigger is reached by
+observed Tab traversal; each menu opens, dismisses fully and reopens through Enter/Escape/Enter
+without pointer refocus. After final Escape, actual native Close ends the 467694 ms lifetime:
+app and Job exit zero, peak working set 372441088 bytes. The catalog post-check adds no scan or
+inventory. These two Debug menu-return paths and normal retirement pass; Release variants and
+other task-control focus paths remain separate.

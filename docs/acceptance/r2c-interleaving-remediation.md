@@ -32,7 +32,7 @@ follow-up retain their unresolved checkpoints and consumed experiment limits:
 
 | ID | Scenario / severity | Evidence and owning obligation | Blocked exit |
 | --- | --- | --- | --- |
-| R2C-C01 | UX-07A/B / S1 | Queue-work and retained-proof corrections pass their causal bounds and focused regressions. [Current hosted 1b8b2b0](#hosted-rust-failures-on-1b8b2b0) repeats the five-second P0 visibility failure, with 9559 ms in connection destruction. [Retained hosted 9359618](#hosted-mixed-load-recurrence-on-9359618) previously failed this limit during identity-handle retirement; the [later 9c584a0 candidate](r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint) passed without explaining it. The second complete local Daily also retains its unchanged 300-second full-recovery failure with 8960/10000 owners completed; authority, final publication and FULL reopen remain incomplete. Both earlier local lifetime controls pass. The P2 follow-up finds identical plans/work/results for original versus owner-first SQL projection; no causal correction is supported and conditional Daily is unstarted. Earlier native-retirement/SQL-proof outliers and the original native-output gap remain unexplained. Further experimentation requires bounded replanning. | Item 2, candidate readiness |
+| R2C-C01 | UX-07A/B / S1 | Queue-work and retained-proof corrections pass their causal bounds and focused regressions. [Current hosted 8b8053d](#hosted-mixed-load-recurrence-on-8b8053d) fails the P2-page preparation bound with 7662 ms in catalog revalidation, before the next P0 event. [Earlier hosted 1b8b2b0](#hosted-rust-failures-on-1b8b2b0) repeats the five-second P0 visibility failure, with 9559 ms in connection destruction. [Retained hosted 9359618](#hosted-mixed-load-recurrence-on-9359618) previously failed this limit during identity-handle retirement; the [later 9c584a0 candidate](r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint) passed without explaining it. The second complete local Daily also retains its unchanged 300-second full-recovery failure with 8960/10000 owners completed; authority, final publication and FULL reopen remain incomplete. Both earlier local lifetime controls pass. The P2 follow-up finds identical plans/work/results for original versus owner-first SQL projection; no causal correction is supported and conditional Daily is unstarted. Earlier native-retirement/SQL-proof outliers and the original native-output gap remain unexplained. Further experimentation requires bounded replanning. | Item 2, candidate readiness |
 | R2C-C02 | UX-08B / S1 | Current product commit `8cf120f` repeats the hosted `application-ready` deadline failure: parent 8018 ms against 8000 ms, despite a completed 126-element probe; owned retirement succeeds. The [final hosted checkpoint](r2c-browsing-diagnosis.md#final-hosted-source-checkpoint) preserves the complete failed gate. Earlier instrumented ten-phase passes do not erase this recurrence or explain File.Replace error 1175. Preserve the original protocol and deadline; neither C03 nor local Computer Use refusal establishes shared causality. | Item 3, candidate readiness |
 | R2C-C03 | Final-source gate / S1 finding, owner repair verified | The supplement reproduces legacy delete-pending namespace retention under a metadata observer and corrects the native owner. Focused regressions, independent review/recheck, current-source 19-case guardrails, full lint and hosted checks pass. Cleanup preserves the original error and independently retires known resources, with bounded remaining-entry evidence. The second complete local Daily passes this boundary and later fails C01. The original observer remains unidentified; this repair does not explain C02 or make the whole candidate ready. | Owner boundary verified; overall Daily/readiness blocked by C01/C02 |
 | R2C-C04 | UX-03A/06A live bulk removal / S1 finding, focused/client verified | The original 2012-versus-512 failure is preserved. Typed LiveOnly subtree promotion, capacity and retained-debt ownership correct the causal gap without resetting retries or inventing journal continuity. Final 133 focused tests, lint and generated-client old-debt/fresh-burst oracles pass; exact 512 survivors and unchanged 10000 background are verified. The [C04 record](r2c-live-gap-recovery.md) retains all failures, source proofs, resource/cleanup limits and missing final-source gates. | Local count/recovery correction verified; full candidate readiness remains blocked |
@@ -59,6 +59,26 @@ requests return without proving sustained viewport movement. The owners to exami
 status projection and input delivery/viewport observation. Neither observation yet has causal
 evidence of a new functional defect; do not count the wheel calls as accepted interaction or add an
 unchanged native replay. The independently verified recovery and source-safety result remains scoped.
+
+### Hosted mixed-load recurrence on 8b8053d
+
+Hosted run `38040960486`, Static and Rust job `114180995403`, fails with 1690 Rust tests passed,
+one failed and 23 ignored. The other nine required jobs pass; signing jobs remain outside the R2c
+prerequisite set. The failing production mixed-load case completes ten P0 samples, then fails
+sample 10's five-second P2-page preparation bound before admitting that sample's P0 event.
+This is not a measured sample-10 P0 visibility or P95 failure.
+
+The matching thread records identity open/path/file-ID work of 29/47/5 microseconds, followed by
+7661776 microseconds surrounding `drop(file)`. Fresh post-SQL identity proof accounts for 7661 ms
+and catalog revalidation 7662 ms. Logging occurs after the measured close interval. This localizes
+the synchronous poll delay, but does not distinguish native close blocking from descheduling.
+
+Independent read-only review confirms the hosted command already uses `--test-threads=1`; the
+log does not establish heavyweight sibling-test overlap. Fresh same-handle path/file-ID proof and
+the ancestor-junction rejection remain necessary. No causal product or concurrency correction is
+established, and no timeout, identity guard or workload is weakened. Do not add another observation
+framework or replay the unchanged workload. C01 remains unresolved while independent Ame user
+paths continue. Ignored `.build/r2c-ci-8b8053d/static-rust-failure.log` retains the hosted output.
 
 ### Hosted mixed-load recurrence on 9359618
 

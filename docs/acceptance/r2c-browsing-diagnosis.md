@@ -763,3 +763,33 @@ proves a real exclusive-source failure, visible 48-pixel Retry, actual pointer a
 progress and current decoded pixels with unchanged geometry. It preserves two earlier method
 failures and a later parent-script exit-time error. C10's native functional assertions pass; that
 failed aggregate lifetime, the complete accumulated Daily and the rest of R2c remain open.
+
+## Generated arrival and ordinary update on 2026-10-10
+
+Current source at `8b8053d` runs as a Debug desktop client with in-memory preferences and fresh
+isolated storage under ignored `.build/r2c-live-arrival-20261010/`. The generated fixture contains
+4000 small PNGs spanning 40 months. The current-source build, entrypoint analysis and formatting
+pass; no real source or original catalog is accessed. The interactive bound is 900 seconds and
+1 GiB working set, enforced by the existing owned process Job.
+
+Actual folder-picker import completes in 11591 ms. At a middle 2024 viewport, 16 new fixture
+images become visible in the count (4000 to 4016) while the observed viewport remains in place.
+One actual Update Library confirmation starts a scan; a separate fixture writer observes that new
+scan running before creating 16 more images. The scan completes in 5753 ms and the client shows
+4032 images. Subsequent wheel movement exposes decoded pages in both directions. The viewer
+opens `image-24-001.png` at 1631/4032, advances through `image-24-000.png` to `image-23-099.png`,
+and Escape returns to the same observed gallery geometry. These observations do not time keyboard
+or wheel processing against the exact scan-completion instant, or cover historical pending-result races.
+
+The first native Close ends the app before its deadline, with 475377664 peak working-set bytes,
+but the launcher did not retain the process handle and loses its exit code. Preserve that incomplete
+whole-lifetime result. Using the existing native runner's retained-handle pattern, a separate populated
+restart and actual Close complete in 67627 ms: app and Job exit zero, peak working set 362471424.
+No import or update is repeated. A complete post-arrival comparison verifies all 4000 original
+generated files' bytes, creation dates and modified dates; the only additions are the 32 owned images.
+
+After the later [keyboard menu lifetimes](r2c-input-controls.md#generated-host-menu-return-on-2026-10-10),
+read-only SQLite verification still finds exactly 4032 active locations, two completed scans, all
+32 queue rows completed, zero metadata inventory runs and zero unfinished scans. `quick_check`
+passes and foreign-key checks return no violations. This is selected Debug functional evidence;
+it does not establish retained-library update performance, full Release interaction or R2c acceptance.

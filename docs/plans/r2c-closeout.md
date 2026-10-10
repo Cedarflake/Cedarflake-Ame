@@ -27,8 +27,21 @@ Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sa
 and continue functional repairs and native verification through isolated host storage. Environment
 investigation and evidence maintenance do not displace these user workflows.
 
-The [current hosted Rust failure](../acceptance/r2c-interleaving-remediation.md#hosted-rust-failures-on-1b8b2b0)
-admits a bounded independent continuation within the Ame functional repair batch.
+The [generated host arrival/update check](../acceptance/r2c-browsing-diagnosis.md#generated-arrival-and-ordinary-update-on-2026-10-10)
+verifies 4000 initial images plus 32 live arrivals, ordinary update, selected paging/viewer return
+and a separate populated restart with normal Close. The
+[keyboard continuation](../acceptance/r2c-input-controls.md#generated-host-menu-return-on-2026-10-10)
+also verifies Debug Layout/More return and normal retirement. Preserve the first missing exit code
+and the earlier menu controller timeout. Do not repeat these completed generated paths; retained
+update cost, exact historical incidents and remaining Release/client variants stay open.
+
+The [current hosted Rust failure on 8b8053d](../acceptance/r2c-interleaving-remediation.md#hosted-mixed-load-recurrence-on-8b8053d)
+occurs during the next P2 page's preparation, before its P0 event. Independent review finds no
+supported product or test-concurrency correction. Keep C01 unresolved, with the original guards
+and deadlines; no new native diagnostic framework or unchanged workload replay is admitted.
+
+The earlier [hosted Rust failure](../acceptance/r2c-interleaving-remediation.md#hosted-rust-failures-on-1b8b2b0)
+admitted the following bounded continuation within the Ame functional repair batch.
 Use at most 45 active minutes to resolve the offline/available fixture's identity-lookup race:
 prove same-volume rename discovery, place unavailable-volume behavior at its existing injectable
 platform boundary, and preserve exact-generation gap, consumer-lineage and no-full-scan assertions.
@@ -74,7 +87,7 @@ The [self-scoped calibration](../acceptance/r2c-interleaving-remediation.md#self
 passes after an installed-compiler parameter correction, preserving the rejected pre-execution
 attempt. Charge the 25-minute reservation conservatively in full. The held fixture threads do not
 establish lifetime binding for independently ending production workers; no mixed-load replay is
-admitted. Continue guest readiness while retaining that exact gap and the completed hosted results.
+admitted. Retain that exact gap while continuing host functional verification.
 
 The retained first-import continuation exposed destructive retirement of reusable derived
 inspection results: the former explicit resume reset its namespace traversal and deleted all staged
