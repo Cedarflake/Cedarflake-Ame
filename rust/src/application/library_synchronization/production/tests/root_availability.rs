@@ -3,8 +3,102 @@ use std::path::Path;
 
 use super::*;
 use crate::domain::{
-    AssetLocationView, CatalogFreshnessState, GalleryQuery, LibraryRootAvailability,
+    AssetLocationView, CatalogFreshnessState, GalleryQuery, IncrementalCatalogRoot,
+    LibraryRootAvailability,
 };
+
+#[test]
+fn same_volume_rename_remains_discoverable_while_the_registered_path_is_missing() {
+    let fixture = ProductionGapFixture::new("discoverable-offline-control", 0);
+    let catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone())
+        .expect("directory identity control catalog");
+    let root = catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .unwrap()
+        .unwrap();
+    let offline_root = fixture.source_root.with_file_name("source-offline");
+    std::fs::rename(&fixture.source_root, &offline_root).unwrap();
+    assert!(!fixture.source_root.exists());
+
+    let located = crate::adapters::locate_library_root(
+        &root.root_path,
+        root.publication_root_identity.as_ref().unwrap(),
+    )
+    .expect("lookup retained directory identity")
+    .expect("same-volume rename cannot simulate an unavailable volume");
+    assert_eq!(
+        Path::new(located.path()).canonicalize().unwrap(),
+        offline_root.canonicalize().unwrap()
+    );
+}
+
+#[test]
+fn production_offline_then_available_root_preserves_live_gap_lineage_until_consumed() {
+    let fixture = ProductionGapFixture::new("offline-available", 0);
+    let catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone())
+        .expect("availability fixture catalog");
+    let original_root = catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .unwrap()
+        .unwrap();
+    drop(catalog);
+    let mut production =
+        fast_gap_runtime(QueuedSourceFactory::default(), test_live_only_connection());
+    let unavailable_lookups = observe_unavailable_root(&mut production, &original_root);
+    let outcome = catch_unwind(AssertUnwindSafe(|| {
+        poll_runtime_with_storage(&mut production, &fixture.storage)
+            .expect("start availability production observer");
+        let offline_root = fixture.source_root.with_file_name("source-offline");
+        std::fs::rename(&fixture.source_root, &offline_root)
+            .expect("make production root unavailable");
+        let lookup_deadline = Instant::now() + Duration::from_secs(3);
+        loop {
+            let unavailable = poll_runtime_with_storage(&mut production, &fixture.storage)
+                .expect("observe unavailable production root");
+            assert_unavailable(&unavailable, &fixture.root_id);
+            if unavailable_lookups.load(Ordering::Acquire) > 0 {
+                break;
+            }
+            assert!(
+                Instant::now() < lookup_deadline,
+                "directory lookup must run"
+            );
+            thread::sleep(Duration::from_millis(2));
+        }
+        std::fs::rename(&offline_root, &fixture.source_root)
+            .expect("restore production root availability");
+
+        let gap = wait_for_durable_gap(&mut production, &fixture);
+        assert_p0_live_gap(&gap);
+        let snapshot = drive_gap_to_synchronized(&mut production, &fixture);
+        assert_eq!(
+            snapshot.roots[0].freshness,
+            CatalogFreshnessState::Synchronized
+        );
+        assert_eq!(
+            snapshot.roots[0].root_generation,
+            original_root.root_generation.value()
+        );
+        assert_p2_gap_consumer(&fixture, gap.change_id);
+        fixture.assert_no_automatic_full_scan();
+    }));
+    let stopped = production.stop();
+    if let Err(panic) = outcome {
+        if let Err(error) = stopped {
+            eprintln!("availability fixture stop also failed: {error:?}");
+        }
+        resume_unwind(panic);
+    }
+    stopped.expect("stop availability production runtime");
+    let catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone())
+        .expect("reopen after availability recovery");
+    let current = catalog
+        .load_incremental_catalog_root(&fixture.root_id)
+        .unwrap()
+        .unwrap();
+    assert_eq!(current.root_path, original_root.root_path);
+    assert_eq!(current.root_generation, original_root.root_generation);
+}
 
 #[test]
 fn production_offline_root_recovery_preserves_catalog_while_peer_changes_publish() {
@@ -58,24 +152,11 @@ fn production_offline_root_recovery_preserves_catalog_while_peer_changes_publish
     let mut peer_expected = source_snapshot(&peer_source);
     let factory = QueuedSourceFactory::default();
     let mut production = fast_gap_runtime(factory.clone(), test_live_only_connection());
-    let unavailable_identity = catalog
+    let unavailable_root = catalog
         .load_incremental_catalog_root(&fixture.root_id)
         .unwrap()
-        .unwrap()
-        .publication_root_identity
         .unwrap();
-    let unavailable_path = root_path.clone();
-    let unavailable_lookups = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-    let observed_lookups = Arc::clone(&unavailable_lookups);
-    // A same-volume rename remains discoverable. Model an unavailable volume at the platform
-    // lookup boundary while retaining the real missing-path and peer-publication workflow.
-    production.root_location = RootLocationRecoveryOwner::with_locator(move |path, identity| {
-        if path == unavailable_path && identity == &unavailable_identity {
-            observed_lookups.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            return Ok(None);
-        }
-        crate::adapters::locate_library_root(path, identity)
-    });
+    let unavailable_lookups = observe_unavailable_root(&mut production, &unavailable_root);
 
     let outcome = catch_unwind(AssertUnwindSafe(|| {
         let ready_deadline = Instant::now() + Duration::from_secs(5);
@@ -248,6 +329,26 @@ fn production_offline_root_recovery_preserves_catalog_while_peer_changes_publish
     assert_terminal_recovery(&fixture, gap_id);
     assert_eq!(source_snapshot(&fixture.source_root), source_before);
     assert_eq!(source_snapshot(&peer_source), peer_expected);
+}
+
+fn observe_unavailable_root(
+    production: &mut ProductionSynchronization,
+    root: &IncrementalCatalogRoot,
+) -> Arc<std::sync::atomic::AtomicUsize> {
+    let expected_path = root.root_path.clone();
+    let expected_identity = root.publication_root_identity.clone().unwrap();
+    let lookups = Arc::new(std::sync::atomic::AtomicUsize::new(0));
+    let observed = Arc::clone(&lookups);
+    // A same-volume rename remains discoverable. Model an unavailable volume at the platform
+    // lookup boundary while retaining the real missing-path and peer-publication workflow.
+    production.root_location = RootLocationRecoveryOwner::with_locator(move |path, identity| {
+        if path == expected_path && identity == &expected_identity {
+            observed.fetch_add(1, Ordering::Release);
+            return Ok(None);
+        }
+        crate::adapters::locate_library_root(path, identity)
+    });
+    lookups
 }
 
 fn assert_unavailable(snapshot: &LibrarySynchronizationSnapshot, root_id: &str) {

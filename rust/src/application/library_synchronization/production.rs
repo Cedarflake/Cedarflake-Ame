@@ -6007,42 +6007,6 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn production_offline_then_available_root_preserves_live_gap_lineage_until_consumed() {
-        let fixture = ProductionGapFixture::new("offline-available", 0);
-        let factory = QueuedSourceFactory::default();
-        let mut production = fast_gap_runtime(factory, test_live_only_connection());
-        poll_runtime_with_storage(&mut production, &fixture.storage)
-            .expect("start availability production observer");
-        let offline_root = fixture.source_root.with_file_name("source-offline");
-        std::fs::rename(&fixture.source_root, &offline_root)
-            .expect("make production root unavailable");
-        let unavailable = poll_runtime_with_storage(&mut production, &fixture.storage)
-            .expect("observe unavailable production root");
-        assert!(matches!(
-            unavailable.roots[0].availability,
-            crate::domain::LibraryRootAvailability::Offline
-                | crate::domain::LibraryRootAvailability::Missing
-        ));
-        std::fs::rename(&offline_root, &fixture.source_root)
-            .expect("restore production root availability");
-
-        let gap = wait_for_durable_gap(&mut production, &fixture);
-        assert_p0_live_gap(&gap);
-        let snapshot = drive_gap_to_synchronized(&mut production, &fixture);
-
-        assert_eq!(
-            snapshot.roots[0].freshness,
-            crate::domain::CatalogFreshnessState::Synchronized
-        );
-        assert_p2_gap_consumer(&fixture, gap.change_id);
-        fixture.assert_no_automatic_full_scan();
-        production
-            .stop()
-            .expect("stop availability production runtime");
-    }
-
-    #[cfg(windows)]
-    #[test]
     fn production_restart_recovers_an_expired_live_gap_lease_and_retains_its_consumer_lineage() {
         let fixture = ProductionGapFixture::new("restart-expired-gap", 0);
         let factory = QueuedSourceFactory::default();

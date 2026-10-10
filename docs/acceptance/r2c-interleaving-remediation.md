@@ -32,7 +32,7 @@ follow-up retain their unresolved checkpoints and consumed experiment limits:
 
 | ID | Scenario / severity | Evidence and owning obligation | Blocked exit |
 | --- | --- | --- | --- |
-| R2C-C01 | UX-07A/B / S1 | Queue-work and retained-proof corrections pass their causal bounds and focused regressions. [Retained hosted 9359618](#hosted-mixed-load-recurrence-on-9359618) fails the five-second P0 visibility limit during the connection-lifetime control; the [later 9c584a0 candidate](r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint) passes without explaining that failure. The second complete local Daily also retains its unchanged 300-second full-recovery failure with 8960/10000 owners completed; authority, final publication and FULL reopen remain incomplete. Both earlier local lifetime controls pass. The P2 follow-up finds identical plans/work/results for original versus owner-first SQL projection; no causal correction is supported and conditional Daily is unstarted. Earlier native-retirement/SQL-proof outliers and the original native-output gap remain unexplained. Further experimentation requires bounded replanning. | Item 2, candidate readiness |
+| R2C-C01 | UX-07A/B / S1 | Queue-work and retained-proof corrections pass their causal bounds and focused regressions. [Current hosted 1b8b2b0](#hosted-rust-failures-on-1b8b2b0) repeats the five-second P0 visibility failure, with 9559 ms in connection destruction. [Retained hosted 9359618](#hosted-mixed-load-recurrence-on-9359618) previously failed this limit during identity-handle retirement; the [later 9c584a0 candidate](r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint) passed without explaining it. The second complete local Daily also retains its unchanged 300-second full-recovery failure with 8960/10000 owners completed; authority, final publication and FULL reopen remain incomplete. Both earlier local lifetime controls pass. The P2 follow-up finds identical plans/work/results for original versus owner-first SQL projection; no causal correction is supported and conditional Daily is unstarted. Earlier native-retirement/SQL-proof outliers and the original native-output gap remain unexplained. Further experimentation requires bounded replanning. | Item 2, candidate readiness |
 | R2C-C02 | UX-08B / S1 | Current product commit `8cf120f` repeats the hosted `application-ready` deadline failure: parent 8018 ms against 8000 ms, despite a completed 126-element probe; owned retirement succeeds. The [final hosted checkpoint](r2c-browsing-diagnosis.md#final-hosted-source-checkpoint) preserves the complete failed gate. Earlier instrumented ten-phase passes do not erase this recurrence or explain File.Replace error 1175. Preserve the original protocol and deadline; neither C03 nor local Computer Use refusal establishes shared causality. | Item 3, candidate readiness |
 | R2C-C03 | Final-source gate / S1 finding, owner repair verified | The supplement reproduces legacy delete-pending namespace retention under a metadata observer and corrects the native owner. Focused regressions, independent review/recheck, current-source 19-case guardrails, full lint and hosted checks pass. Cleanup preserves the original error and independently retires known resources, with bounded remaining-entry evidence. The second complete local Daily passes this boundary and later fails C01. The original observer remains unidentified; this repair does not explain C02 or make the whole candidate ready. | Owner boundary verified; overall Daily/readiness blocked by C01/C02 |
 | R2C-C04 | UX-03A/06A live bulk removal / S1 finding, focused/client verified | The original 2012-versus-512 failure is preserved. Typed LiveOnly subtree promotion, capacity and retained-debt ownership correct the causal gap without resetting retries or inventing journal continuity. Final 133 focused tests, lint and generated-client old-debt/fresh-burst oracles pass; exact 512 survivors and unchanged 10000 background are verified. The [C04 record](r2c-live-gap-recovery.md) retains all failures, source proofs, resource/cleanup limits and missing final-source gates. | Local count/recovery correction verified; full candidate readiness remains blocked |
@@ -83,6 +83,100 @@ Preserve `.build/r2c-controlled-evidence/ci-35721552835-static-rust.log`, SHA-25
 under `.build/r2c-input-retry-scope/`. This is another C01 failure, not a passing full gate or proof
 that the preceding Dart admission correction caused it; the Rust tree is unchanged from the
 previous passing head. No unchanged retry is admitted and all original deadlines remain.
+
+### Hosted Rust failures on 1b8b2b0
+
+Run [38018629579](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38018629579), Static/Rust
+job [114114510756](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38018629579/job/114114510756),
+reports 1688 passed, two failed and 23 ignored in 1219.16 seconds. Windows scan, accessibility,
+Flutter, all five synthetic jobs and unsigned Release pass; three signing jobs are skipped.
+The complete failed log is retained in ignored `.build/r2c-hosted-static-20261010/`, SHA-256
+`F9BAE6F62FE3FA7CFBB53DD60DB783EA66C32C2F2B99F3B8616037A2C59642DF`.
+
+The connection-lifetime control again fails its five-second P0 visibility assertion in the
+`PerPoll` arm. Four polls total 10.1214139 seconds; the longest is 9.5644042 seconds. The retirement
+diagnostic attributes 9559 ms to connection destruction, with zero measured milliseconds in
+statement-cache flushing, identity-guard disposal, session/admission disposal and pending buffers.
+The connection is in autocommit and owns no identity guard. All three workers remain active,
+with 7545 low-priority writes. This localizes a wall-clock interval; it does not distinguish
+native blocking from descheduling or identify a filesystem driver. The retained visibility,
+progress and competing-writer connections exclude the ordinary last-connection WAL checkpoint
+as a supported explanation for this measured poll close. No close-policy change follows.
+
+`production_offline_then_available_root_preserves_live_gap_lineage_until_consumed` separately
+times out in the existing three-second durable-gap observation. It simulates offline storage by
+renaming a same-volume directory, while production can locate that directory by its retained
+Windows identity and publish a newer root generation. The assertion reads only generation one.
+The failed log does not capture the binding generation, so this is a fixture race to prove,
+not evidence that production lost a durable gap. Its correction must preserve the same original
+generation's gap and recovery lineage when lookup actually reports unavailable; ordinary
+same-volume automatic relocation retains its independent production test.
+
+The focused correction moves the short availability case out of the production facade into
+`production/tests/root_availability.rs`. Both offline fixtures now share a lookup seam scoped to
+the expected path and directory identity; peer lookups still call the actual platform adapter.
+The short case observes that unavailable lookup before restoring the real directory, then proves
+the original three-second gap, original recovery consumer, no automatic scan, unchanged root
+generation and unchanged binding after FULL reopen. Worker stop also runs after a failed assertion.
+An independent direct platform control proves that the renamed directory is discoverable while
+its registered path is missing. The existing automatic-relocation production test remains intact.
+All three availability cases pass in 2.49 seconds, and that automatic-relocation case passes in
+1.13 seconds. This corrects verification semantics, not product synchronization behavior, and
+does not claim to reconstruct the missing generation from the failed hosted run.
+
+Physical reviewability: the production facade remains 3985 lines before its main inline-test
+module, including existing conditional test hooks; inline tests shrink from 10501 to 10465 lines.
+The dedicated availability test owner grows from 409 to 510 lines. No non-test Rust, schema,
+dependency, bridge, UI or original source-media behavior changes. The existing runtime decomposition
+debt remains in the roadmap. C01's close attribution remains unresolved; pinned rusqlite delegates
+through hook retirement and its interrupt-handle mutex to SQLite close, whose Windows path includes
+shared-memory locks and native handle disposal. Static call order alone cannot select one as the
+cause, and no additional workload or close-policy experiment is run in this inspection.
+
+The initial local lint stops before its expected compiler-ownership fault because the restricted
+token cannot reopen a workspace ancestor (`NTSTATUS=0xC0000022`, Win32 5). A scoped call reproduces
+that earlier access failure. Its 17.54-second failed result and unchanged source hashes remain
+under ignored `.build/r2c-offline-gap-20261010/`; ordinary-user validation uses separate receipts.
+Ordinary-user canonical lint subsequently passes in 257.86 seconds, including format, all
+guardrails, warnings-denied Clippy and Dart analysis. Both changed Rust files match their frozen
+hashes at completion. The subsequent complete Daily passes all 1691 Rust cases, with 23 existing
+ignored cases, three broker binary cases and all 107 Flutter test files. Its mixed-load connection
+controls retain both original arms: PerPoll P95 257 ms and PerEpoch P95 158 ms. The separate full
+priority workload passes with P0 P95 189 ms, all 2048 P1 and 10000 P2 entries, closing publication
+and FULL reopen. Those local passes do not explain the preceding hosted connection-close stall.
+
+The host restarts at 04:39:18 UTC while Windows scan is building. The last outer log update is
+04:36:39 UTC, and the scan child log ends at `Building Windows application...`; there is no Daily
+terminal receipt or scan result. This is an interrupted invocation, not a complete Daily pass.
+Both changed Rust hashes still match. Only the unfinished Windows scan, accessibility, bridge and
+whitespace checks continue after restart, with separate results and no replay of completed suites.
+
+That continuation exits zero in 139.34 seconds with both source hashes unchanged. Windows scan
+passes in 64229 ms with no run or cleanup failure; its generated storage is retained as evidence.
+Native accessibility passes its two Dart cases and all ten ordered UIA phases, with normal primary
+process exit, owned Job closure and no cleanup failure. All 16 asynchronous bridge contracts and
+the complete tracked whitespace check pass. The separate terminal receipt is retained in
+`.build/r2c-offline-gap-20261010/remaining-result.json`, SHA-256
+`070689F3ECF3DE86850169E21CA8D34DECAFFC2212B93EC791C0062EAC5997F0`.
+Together these records cover the applicable Daily components on unchanged source; the interrupted
+whole invocation remains interrupted. No source library or original catalog is used in this batch.
+
+The accompanying read-only method review identifies
+[`PssCaptureSnapshot`](https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psscapturesnapshot)
+with [`PSS_CAPTURE_THREADS`](https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/ne-processsnapshot-pss_capture_flags)
+as a documented target-process, thread-ID-only acquisition candidate. It is distinct from the
+rejected `.NET Process.Threads` global enumeration. Its on-host scope, lifetime, permissions,
+overhead and native-thread binding have not been calibrated. Thread names are neither unique nor
+stable, so [`GetThreadDescription`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreaddescription)
+alone cannot grant identity. A held thread handle with matched process and creation identity would
+be required before sampling.
+[`GetThreadIOPendingFlag`](https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getthreadiopendingflag)
+can report outstanding I/O for that thread, but the result is instantaneous and supplies neither
+an operation identity nor a blocking duration. Likewise,
+[`GetThreadWaitChain`](https://learn.microsoft.com/en-us/windows/win32/api/wct/nf-wct-getthreadwaitchain)
+returns one node for both unblocked threads and unsupported waits. Neither a false I/O flag nor
+a one-node wait chain proves runnable descheduling. No sampler, snapshot, privilege change or
+additional workload runs in this method review; these APIs do not close C01 or authorize a replay.
 
 ### Identity-retirement observation preparation
 
