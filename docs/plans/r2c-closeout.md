@@ -101,6 +101,15 @@ retirement first. No system repair is selected from these noncausal host-side er
 and [trace result](../acceptance/r2c-closeout-cycle.md#bounded-hyper-v-trace-result) bind the helpers,
 failed retirement and verification limits. Independent C01/C02 and client obligations remain open.
 
+The subsequent read-only C02 recovery finds a retained direct `ReplaceFileW` failure with code
+1175, distinct from the passing controlled mapping arms. Its parent exit code is missing, so retain
+it as attribution evidence only. The owning record now distinguishes those observations; the
+native failure does not identify its filesystem actor or explain the separate UIA loading timeout.
+Current strong-name assembly loading already predates that hosted timeout. Neither an equivalent
+PowerShell rewrite nor an unchanged UIA/whole-gate replay is admitted by this evidence correction.
+Sandbox's configured guest memory also exceeds its documented boot minimum; do not select an
+arbitrary larger-memory retry as a causal repair. No new experiment allowance is opened here.
+
 While guest resource admission is unavailable, reserve at most 25 active minutes for a minimal
 PSS acquisition calibration. One owned helper may capture only its own thread IDs using
 `PSS_CAPTURE_THREADS`, with no address-space clone, context, handle table, stack, ETW or unrelated

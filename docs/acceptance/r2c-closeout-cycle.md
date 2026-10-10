@@ -593,11 +593,33 @@ in the common facade; no unrelated ownership is added there. The root timing own
 owners are 256/555/378 lines, with 57 timing-owner lines and 37/183 dedicated timing/evidence tests.
 Larger physical decomposition retains the roadmap's existing debt boundary.
 
-C02's file experiment does not reproduce error 1175. A mapping without delete sharing produces 32;
-an explicit delete-shared mapping allows File.Replace. MoveFileEx fails with native error 5 while
+C02's controlled mapping experiment does not reproduce error 1175. A mapping without delete sharing
+produces 32; an explicit delete-shared mapping allows File.Replace. MoveFileEx fails with native error 5 while
 metadata or mapped holders remain and is rejected as a replacement. No evidence-publication
 protocol change follows. The directory finding does not establish shared causality with either
 File.Replace or the native UIA timeout.
+
+Read-only evidence inspection on 2026-10-10 distinguishes that mapping control from the direct-API
+experiment `e05db7320df342e58dca77a5c9064854`. Its 30 production write/read operations complete,
+but native `ReplaceFileW` returns 1175 at zero-based index 27, 874 ms into the helper. The old record
+contains attempt 27 and the retained draft contains attempt 28; both report Archive attributes.
+Restart Manager reports no resource-using process at the subsequent observation. That empty result
+does not exclude a transient handle or filesystem filter. The native wrapper also records
+`0xC0000100` after successful calls, so that value does not identify the failed deletion's cause.
+The parent records process exit and Job closure with no cleanup failure, but its exit-code field is
+null; this is failure-attribution evidence, not a successful gate receipt. The error occurs at the
+Windows API itself, so changing PowerShell overload selection alone is not an established repair.
+This result does not explain the separate UIA assembly-loading timeout.
+
+The retained helper, native wrapper and receipts remain under ignored
+`.build/c02-replacement-attribution/e05db7320df342e58dca77a5c9064854/`. Their SHA-256 values are
+`5D1919CDFBBB6278F716149391D6F960C82109D9638778AC712CB6B7C1B5D5FF` (`experiment.ps1`),
+`A97B74662474736D0827AADCF8F06D138899BB92D694E12A4922B725868585D3` (`NativeObservation.cs`),
+`92E105632AFC5392641C26C3D6CBD3BA61627B2AAA507F450571B297EBEDD3E3` (`parent.json`) and
+`7ECB9F6D64B53EB48C642CEE7DEB14BEEF8170787B87CAE476783D1915522A29` (`result.json`). The earlier
+`build/diagnostics/r2c-uia-file-protocol-diagnosis.md` and context-comparison result are no longer
+present locally; their historical summaries are not freshly inspected raw evidence. No new
+replacement experiment, native UIA run, deadline change or publication fallback follows.
 
 Supplement accounting at this checkpoint: the file-lifecycle lane conservatively charges 61 active
 minutes, including six minutes of subsequent read-only C01 source analysis and its tool/wait time.
@@ -1283,6 +1305,13 @@ under the same ignored trace directory. ETL SHA-256 is
 is `2270C93DD97BE0F1D9AEC65E3E5C3457272C5C9EDA60398471EC6C36ED5A8536`. No trace is uploaded and no
 persistent event-channel, feature, service, language or security setting is changed. This is
 additional startup-failure evidence, not a Sandbox repair or Release-client acceptance.
+
+The unchanged canary configuration assigns 3072 MiB. Microsoft's
+[Sandbox memory contract](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file#memory-in-mb)
+specifies a 2048-MB minimum; its default capacity is not a requirement to assign four GiB to every
+guest. The retained configuration is therefore not below that documented boot minimum. This static
+check neither proves sufficient resources at every boot step nor identifies the reset's cause;
+it supplies no basis for another launch with only an arbitrary memory increase.
 
 ### Native Debug populated restart
 
