@@ -8,23 +8,47 @@ class LibraryPreviewSourceIdentity {
     : assetId = asset.assetId,
       locationId = asset.locationId,
       rootId = asset.rootId,
+      activeScanId = asset.activeScanId,
       sourcePath = asset.fileIdentity == null ? asset.sourcePath : null,
       fileSize = asset.fileSize,
       modifiedUnixMs = asset.modifiedUnixMs,
+      sourceRevisionScheme = asset.sourceRevision?.scheme,
+      sourceRevisionValue = asset.sourceRevision?.value,
+      sourceGeneration = asset.sourceGeneration,
       fileIdentityScheme = asset.fileIdentity?.scheme,
       fileIdentityValue = asset.fileIdentity?.value;
 
   final String assetId;
   final String locationId;
   final String rootId;
+  final String activeScanId;
   final String? sourcePath;
   final BigInt fileSize;
   final int modifiedUnixMs;
+  final String? sourceRevisionScheme;
+  final String? sourceRevisionValue;
+  final BigInt sourceGeneration;
   final String? fileIdentityScheme;
   final String? fileIdentityValue;
 
   bool isCompatibleWith(LibraryAsset asset) {
-    return this == LibraryPreviewSourceIdentity.fromAsset(asset);
+    final other = LibraryPreviewSourceIdentity.fromAsset(asset);
+    final revisionsAreCompatible =
+        sourceRevisionScheme == null ||
+        other.sourceRevisionScheme == null ||
+        (other.sourceRevisionScheme == sourceRevisionScheme &&
+            other.sourceRevisionValue == sourceRevisionValue);
+    return other.assetId == assetId &&
+        other.locationId == locationId &&
+        other.rootId == rootId &&
+        other.activeScanId == activeScanId &&
+        other.sourcePath == sourcePath &&
+        other.fileSize == fileSize &&
+        other.modifiedUnixMs == modifiedUnixMs &&
+        other.sourceGeneration == sourceGeneration &&
+        other.fileIdentityScheme == fileIdentityScheme &&
+        other.fileIdentityValue == fileIdentityValue &&
+        revisionsAreCompatible;
   }
 
   @override
@@ -33,9 +57,13 @@ class LibraryPreviewSourceIdentity {
         other.assetId == assetId &&
         other.locationId == locationId &&
         other.rootId == rootId &&
+        other.activeScanId == activeScanId &&
         other.sourcePath == sourcePath &&
         other.fileSize == fileSize &&
         other.modifiedUnixMs == modifiedUnixMs &&
+        other.sourceRevisionScheme == sourceRevisionScheme &&
+        other.sourceRevisionValue == sourceRevisionValue &&
+        other.sourceGeneration == sourceGeneration &&
         other.fileIdentityScheme == fileIdentityScheme &&
         other.fileIdentityValue == fileIdentityValue;
   }
@@ -45,9 +73,13 @@ class LibraryPreviewSourceIdentity {
     assetId,
     locationId,
     rootId,
+    activeScanId,
     sourcePath,
     fileSize,
     modifiedUnixMs,
+    sourceRevisionScheme,
+    sourceRevisionValue,
+    sourceGeneration,
     fileIdentityScheme,
     fileIdentityValue,
   );
@@ -164,6 +196,30 @@ class LibraryPreviewStore {
     final removedIds = {..._entries.keys, ..._failures.keys};
     _entries.clear();
     _failures.clear();
+    for (final locationId in removedIds) {
+      _channels[locationId]?.add(null);
+    }
+  }
+
+  void invalidateRoot(String rootId) {
+    if (_isDisposed) {
+      return;
+    }
+    final removedIds = <String>{};
+    _entries.removeWhere((locationId, entry) {
+      final shouldRemove = entry.source.rootId == rootId;
+      if (shouldRemove) {
+        removedIds.add(locationId);
+      }
+      return shouldRemove;
+    });
+    _failures.removeWhere((locationId, entry) {
+      final shouldRemove = entry.source.rootId == rootId;
+      if (shouldRemove) {
+        removedIds.add(locationId);
+      }
+      return shouldRemove;
+    });
     for (final locationId in removedIds) {
       _channels[locationId]?.add(null);
     }

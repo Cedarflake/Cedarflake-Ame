@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Amended: 2026-08-10
+- Amended: 2026-09-25
 
 ## Context
 
@@ -61,7 +61,23 @@ slice. An Ame media-inspection adapter obtains dimensions and a bounded raw EXIF
 already admitted `image` decoder without decoding pixels, then passes only those bytes to the
 metadata extractor.
 
-Image decoder allocation remains capped by the existing 256 MiB media-inspection limit. The
+For JPEG, use the identical locked zune decoder directly with a buffered source reader. The
+general `image` JPEG constructor buffers the complete compressed file even when only headers are
+requested. The narrow adapter stops at the first scan header, retains late header EXIF and the
+same tolerant header policy, and does not decode pixels. It maps orientation through the existing
+image/Ame conversion and passes raw EXIF to the same extractor. Other formats retain the general
+decoder. Engine identities remain unchanged because parser versions and successful evidence
+semantics are unchanged; this optimization does not force a root reinspection.
+
+JPEG source reads are bounded by 256 MiB, including a conservative allowance for format-probe
+prefetch. The read budget sits below buffering, and relative header seeks retain prefetched bytes.
+This is an I/O bound rather than a claim about total process memory. An exhausted read
+budget is a terminal resource-limit outcome; a source I/O error retains its original retryability,
+even if a decoder helper suppresses that error. A partial header result cannot override recorded
+source failure. Header validity does not prove complete pixel validity; the preview decoder retains
+that independent responsibility. Source identity/opening/revalidation and cloud policy are unchanged.
+
+General image decoders retain their existing 256 MiB allocation-limit setting. The
 metadata extractor independently refuses to parse a raw EXIF block larger than 4 MiB and limits
 each retained capture-time field to 64 bytes. Oversized metadata becomes a structured issue; it
 does not reject the image or increase the durable evidence size without bound.

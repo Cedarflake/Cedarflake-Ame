@@ -41,6 +41,9 @@ struct AcceptanceConfiguration {
 #[derive(Clone)]
 struct Candidate {
     location_id: String,
+    root_id: String,
+    scan_id: String,
+    source_generation: u64,
     expected: ExpectedFileState,
 }
 
@@ -488,9 +491,11 @@ fn load_candidates(
         .map_err(|_| "the candidate limit exceeds SQLite integer range".to_owned())?;
     let mut statement = connection
         .prepare(
-            "SELECT locations.location_id, locations.absolute_path,
+            "SELECT locations.location_id, locations.root_id, locations.scan_id,
+                    locations.absolute_path,
                     locations.file_size, locations.modified_unix_ms,
-                    locations.file_identity_scheme, locations.file_identity_value
+                    locations.file_identity_scheme, locations.file_identity_value,
+                    locations.source_revision_token, locations.source_generation
              FROM asset_locations AS locations
              JOIN library_roots AS roots
                ON roots.id = locations.root_id
@@ -506,25 +511,45 @@ fn load_candidates(
         .query_map(
             params![root_id, sql_max_source_file_bytes, sql_candidate_limit],
             |row| {
-                let scheme = row.get::<_, Option<String>>(4)?;
-                let value = row.get::<_, Option<String>>(5)?;
+                let scheme = row.get::<_, Option<String>>(6)?;
+                let value = row.get::<_, Option<String>>(7)?;
                 Ok((
                     row.get::<_, String>(0)?,
                     row.get::<_, String>(1)?,
-                    row.get::<_, i64>(2)?,
-                    row.get::<_, i64>(3)?,
+                    row.get::<_, String>(2)?,
+                    row.get::<_, String>(3)?,
+                    row.get::<_, i64>(4)?,
+                    row.get::<_, i64>(5)?,
                     scheme,
                     value,
+                    row.get::<_, Option<String>>(8)?,
+                    row.get::<_, i64>(9)?,
                 ))
             },
         )
         .map_err(|error| format!("could not load preview candidates: {error}"))?;
     let mut candidates = Vec::with_capacity(max_items);
     for row in rows {
-        let (location_id, absolute_path, file_size, modified_unix_ms, scheme, value) =
-            row.map_err(|error| format!("invalid preview candidate: {error}"))?;
+        let (
+            location_id,
+            root_id,
+            scan_id,
+            absolute_path,
+            file_size,
+            modified_unix_ms,
+            scheme,
+            value,
+            source_revision_token,
+            source_generation,
+        ) = row.map_err(|error| format!("invalid preview candidate: {error}"))?;
         let candidate = Candidate {
             location_id,
+            root_id,
+            scan_id,
+            source_generation: u64::try_from(source_generation)
+                .ok()
+                .filter(|generation| *generation > 0)
+                .ok_or_else(|| "a preview candidate has an invalid source generation".to_owned())?,
             expected: ExpectedFileState {
                 absolute_path,
                 file_size: u64::try_from(file_size)
@@ -533,6 +558,7 @@ fn load_candidates(
                 file_identity: scheme
                     .zip(value)
                     .map(|(scheme, value)| crate::domain::FileIdentityEvidence { scheme, value }),
+                source_revision: parse_source_revision(source_revision_token.as_deref())?,
             },
         };
         if candidates.len() >= max_items {
@@ -560,6 +586,10 @@ fn materialize(
     let location = materialize_preview_with_store(
         PreviewRequest {
             location_id: candidate.location_id.clone(),
+            expected_root_id: candidate.root_id.clone(),
+            expected_scan_id: candidate.scan_id.clone(),
+            expected_source_revision: candidate.expected.source_revision.clone(),
+            expected_source_generation: candidate.source_generation,
             preview_edge,
             retry_failed: true,
             protected_location_ids: vec![candidate.location_id.clone()],
@@ -574,6 +604,29 @@ fn materialize(
         cache_bytes_before,
         cache_bytes_after: preview_store.used_bytes(),
     })
+}
+
+fn parse_source_revision(
+    token: Option<&str>,
+) -> Result<Option<crate::domain::SourceRevisionEvidence>, String> {
+    let Some(token) = token else {
+        return Ok(None);
+    };
+    let Some((scheme, value)) = token.rsplit_once(':') else {
+        return Err("a preview candidate has a malformed source revision".to_owned());
+    };
+    if scheme != "windows-file-change-time-100ns-v1"
+        || value.len() != 16
+        || !value
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase())
+    {
+        return Err("a preview candidate has a noncanonical source revision".to_owned());
+    }
+    Ok(Some(crate::domain::SourceRevisionEvidence {
+        scheme: scheme.to_owned(),
+        value: value.to_owned(),
+    }))
 }
 
 fn indexed_preview_artifacts(

@@ -9,9 +9,11 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../application/library_controller.dart";
+import "../../application/library_preview_queue.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_preview_feedback.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
   final requestedWidth = (logicalWidth * devicePixelRatio).round().clamp(
@@ -64,6 +66,9 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   LibraryPreviewSourceIdentity? _previewRepairSource;
   bool _isHovered = false;
   bool _isFocused = false;
+  bool _isRetrying = false;
+  bool _isPreviewUpdateRequired = false;
+  int _retryGeneration = 0;
 
   @override
   void initState() {
@@ -83,11 +88,15 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     if (locationChanged ||
         !libraryPreviewSourcesAreCompatible(oldWidget.asset, widget.asset)) {
       _previewRepairSource = null;
+      _retryGeneration++;
+      _isRetrying = false;
+      _isPreviewUpdateRequired = false;
     }
   }
 
   @override
   void dispose() {
+    _retryGeneration++;
     _focusNode.dispose();
     super.dispose();
   }
@@ -194,26 +203,21 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   }
 
   Widget _buildPreviewAsset(BuildContext context, LibraryAsset asset) {
+    if (_isRetrying) {
+      return LibraryPreviewFeedback.retrying(locationId: asset.locationId);
+    }
     return switch (asset.previewStatus) {
       LibraryPreviewStatus.pending => const SizedBox.expand(
         key: Key("library-preview-pending"),
       ),
-      LibraryPreviewStatus.failed => Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Symbols.broken_image_rounded),
-            const SizedBox(height: 4),
-            TextButton(
-              key: Key("preview-retry-${asset.locationId}"),
-              onPressed: () => _controller.requestPreview(
-                asset,
-                retry: true,
-                previewEdge: _requestedPreviewEdge(context),
-              ),
-              child: const Text(LibraryStrings.retryPreview),
-            ),
-          ],
+      LibraryPreviewStatus.failed => LibraryPreviewFeedback.failed(
+        locationId: asset.locationId,
+        updateRequired:
+            _isPreviewUpdateRequired ||
+            asset.previewIssueCode == "preview_root_identity_unproven",
+        onRetry: () => _startPreviewRetry(
+          asset,
+          previewEdge: _requestedPreviewEdge(context),
         ),
       ),
       LibraryPreviewStatus.ready => _buildReadyPreview(context, asset),
@@ -234,22 +238,17 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       filterQuality: FilterQuality.low,
       errorBuilder: (context, error, stackTrace) {
         _schedulePreviewRepair(asset, cacheWidth, previewEdge);
-        return Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Symbols.broken_image_rounded),
-              const SizedBox(height: 4),
-              TextButton(
-                key: Key("preview-retry-${asset.locationId}"),
-                onPressed: () {
-                  _previewRepairSource = null;
-                  _schedulePreviewRepair(asset, cacheWidth, previewEdge);
-                },
-                child: const Text(LibraryStrings.retryPreview),
-              ),
-            ],
-          ),
+        return LibraryPreviewFeedback.failed(
+          locationId: asset.locationId,
+          updateRequired: _isPreviewUpdateRequired,
+          onRetry: () {
+            _previewRepairSource = null;
+            _startPreviewRetry(
+              asset,
+              cacheWidth: cacheWidth,
+              previewEdge: previewEdge,
+            );
+          },
         );
       },
     );
@@ -279,29 +278,64 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       if (!mounted) {
         return;
       }
-      unawaited(_repairPreview(asset, cacheWidth, previewEdge));
+      _startPreviewRetry(
+        asset,
+        cacheWidth: cacheWidth,
+        previewEdge: previewEdge,
+      );
     });
   }
 
-  Future<void> _repairPreview(
-    LibraryAsset asset,
-    int cacheWidth,
-    int previewEdge,
-  ) async {
-    if (asset.previewPath.isNotEmpty) {
-      final provider = ResizeImage.resizeIfNeeded(
-        cacheWidth,
-        null,
-        FileImage(File(asset.previewPath)),
-      );
-      try {
-        await provider.evict();
-      } on Object {
-        // Cache eviction is best-effort; the backend still owns validation.
-      }
+  void _startPreviewRetry(
+    LibraryAsset asset, {
+    int? cacheWidth,
+    required int previewEdge,
+  }) {
+    if (_isRetrying) {
+      return;
     }
-    if (mounted) {
-      _controller.requestPreview(asset, retry: true, previewEdge: previewEdge);
+    unawaited(
+      _retryPreview(asset, cacheWidth: cacheWidth, previewEdge: previewEdge),
+    );
+  }
+
+  Future<void> _retryPreview(
+    LibraryAsset asset, {
+    int? cacheWidth,
+    required int previewEdge,
+  }) async {
+    final retryGeneration = ++_retryGeneration;
+    setState(() => _isRetrying = true);
+    try {
+      if (cacheWidth != null && asset.previewPath.isNotEmpty) {
+        final provider = ResizeImage.resizeIfNeeded(
+          cacheWidth,
+          null,
+          FileImage(File(asset.previewPath)),
+        );
+        try {
+          await provider.evict();
+        } on Object {
+          // Cache eviction is best-effort; the backend still owns validation.
+        }
+      }
+      if (!mounted || retryGeneration != _retryGeneration) {
+        return;
+      }
+      final outcome = await _controller.retryPreview(
+        asset,
+        previewEdge: previewEdge,
+      );
+      if (mounted && retryGeneration == _retryGeneration) {
+        setState(() {
+          _isPreviewUpdateRequired =
+              outcome == LibraryPreviewRequestOutcome.updateRequired;
+        });
+      }
+    } finally {
+      if (mounted && retryGeneration == _retryGeneration) {
+        setState(() => _isRetrying = false);
+      }
     }
   }
 

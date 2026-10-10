@@ -208,7 +208,7 @@ class _SelectionToolbar extends StatelessWidget {
   }
 }
 
-class _SortMenu extends StatefulWidget {
+class _SortMenu extends StatelessWidget {
   const _SortMenu({
     required this.sortKey,
     required this.direction,
@@ -222,16 +222,8 @@ class _SortMenu extends StatefulWidget {
   final ValueChanged<LibraryGallerySortDirection> onDirectionChanged;
 
   @override
-  State<_SortMenu> createState() => _SortMenuState();
-}
-
-class _SortMenuState extends State<_SortMenu> {
-  final MenuController _controller = MenuController();
-
-  @override
   Widget build(BuildContext context) {
-    final menuWidth = amePopupMenuContentWidth(
-      context: context,
+    return AmePopupMenuButton<_SortMenuAction>(
       labels: const [
         LibraryStrings.captureDate,
         LibraryStrings.createdDate,
@@ -241,81 +233,66 @@ class _SortMenuState extends State<_SortMenu> {
         LibraryStrings.descending,
       ],
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
-    );
-    Widget fixedWidthChoice(Widget choice) {
-      return ameFixedWidthMenuItem(width: menuWidth, child: choice);
-    }
-
-    return AmeMenuAnchor(
-      controller: _controller,
-      style: ameFixedWidthMenuStyle(menuWidth),
-      alignmentOffset: ameMenuBelowEndAlignment(menuWidth: menuWidth),
-      menuChildren: [
-        fixedWidthChoice(
-          _menuChoice(
-            label: LibraryStrings.captureDate,
-            icon: Symbols.calendar_month_rounded,
-            isSelected: widget.sortKey == LibraryGallerySortKey.captureTime,
-            onPressed: () =>
-                widget.onSortKeyChanged(LibraryGallerySortKey.captureTime),
-          ),
+      items: [
+        _menuChoice(
+          value: _SortMenuAction.captureTime,
+          label: LibraryStrings.captureDate,
+          icon: Symbols.calendar_month_rounded,
+          isSelected: sortKey == LibraryGallerySortKey.captureTime,
         ),
-        fixedWidthChoice(
-          _menuChoice(
-            label: LibraryStrings.createdDate,
-            icon: Symbols.create_new_folder_rounded,
-            isSelected: widget.sortKey == LibraryGallerySortKey.createdTime,
-            onPressed: () =>
-                widget.onSortKeyChanged(LibraryGallerySortKey.createdTime),
-          ),
+        _menuChoice(
+          value: _SortMenuAction.createdTime,
+          label: LibraryStrings.createdDate,
+          icon: Symbols.create_new_folder_rounded,
+          isSelected: sortKey == LibraryGallerySortKey.createdTime,
         ),
-        fixedWidthChoice(
-          _menuChoice(
-            label: LibraryStrings.modifiedDate,
-            icon: Symbols.edit_calendar_rounded,
-            isSelected: widget.sortKey == LibraryGallerySortKey.modifiedTime,
-            onPressed: () =>
-                widget.onSortKeyChanged(LibraryGallerySortKey.modifiedTime),
-          ),
+        _menuChoice(
+          value: _SortMenuAction.modifiedTime,
+          label: LibraryStrings.modifiedDate,
+          icon: Symbols.edit_calendar_rounded,
+          isSelected: sortKey == LibraryGallerySortKey.modifiedTime,
         ),
-        fixedWidthChoice(
-          _menuChoice(
-            label: LibraryStrings.fileName,
-            icon: Symbols.text_fields_rounded,
-            isSelected: widget.sortKey == LibraryGallerySortKey.fileName,
-            onPressed: () =>
-                widget.onSortKeyChanged(LibraryGallerySortKey.fileName),
-          ),
+        _menuChoice(
+          value: _SortMenuAction.fileName,
+          label: LibraryStrings.fileName,
+          icon: Symbols.text_fields_rounded,
+          isSelected: sortKey == LibraryGallerySortKey.fileName,
         ),
-        const Divider(height: AmeMenuMetrics.dividerHeight),
-        fixedWidthChoice(
-          _menuChoice(
-            label: LibraryStrings.ascending,
-            icon: Symbols.arrow_upward_rounded,
-            isSelected:
-                widget.direction == LibraryGallerySortDirection.ascending,
-            onPressed: () => widget.onDirectionChanged(
-              LibraryGallerySortDirection.ascending,
-            ),
-          ),
+        const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
+        _menuChoice(
+          value: _SortMenuAction.ascending,
+          label: LibraryStrings.ascending,
+          icon: Symbols.arrow_upward_rounded,
+          isSelected: direction == LibraryGallerySortDirection.ascending,
         ),
-        fixedWidthChoice(
-          _menuChoice(
-            label: LibraryStrings.descending,
-            icon: Symbols.arrow_downward_rounded,
-            isSelected:
-                widget.direction == LibraryGallerySortDirection.descending,
-            onPressed: () => widget.onDirectionChanged(
-              LibraryGallerySortDirection.descending,
-            ),
-          ),
+        _menuChoice(
+          value: _SortMenuAction.descending,
+          label: LibraryStrings.descending,
+          icon: Symbols.arrow_downward_rounded,
+          isSelected: direction == LibraryGallerySortDirection.descending,
         ),
       ],
-      builder: (context, controller, child) => AmeTooltip(
+      onSelected: (action) {
+        switch (action) {
+          case _SortMenuAction.captureTime:
+            onSortKeyChanged(LibraryGallerySortKey.captureTime);
+          case _SortMenuAction.createdTime:
+            onSortKeyChanged(LibraryGallerySortKey.createdTime);
+          case _SortMenuAction.modifiedTime:
+            onSortKeyChanged(LibraryGallerySortKey.modifiedTime);
+          case _SortMenuAction.fileName:
+            onSortKeyChanged(LibraryGallerySortKey.fileName);
+          case _SortMenuAction.ascending:
+            onDirectionChanged(LibraryGallerySortDirection.ascending);
+          case _SortMenuAction.descending:
+            onDirectionChanged(LibraryGallerySortDirection.descending);
+        }
+      },
+      builder: (context, openMenu) => AmeTooltip(
         message: LibraryStrings.sort,
         child: IconButton(
           key: const Key("library-sort-menu"),
-          onPressed: () => toggleAmeMenu(controller),
+          onPressed: openMenu,
           icon: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -329,7 +306,7 @@ class _SortMenuState extends State<_SortMenu> {
   }
 }
 
-class _LayoutMenu extends StatefulWidget {
+class _LayoutMenu extends StatelessWidget {
   const _LayoutMenu({
     required this.shape,
     required this.size,
@@ -343,55 +320,68 @@ class _LayoutMenu extends StatefulWidget {
   final ValueChanged<GalleryThumbnailSize> onSizeChanged;
 
   @override
-  State<_LayoutMenu> createState() => _LayoutMenuState();
-}
-
-class _LayoutMenuState extends State<_LayoutMenu> {
-  final MenuController _controller = MenuController();
-
-  @override
   Widget build(BuildContext context) {
-    return AmeMenuAnchor(
-      controller: _controller,
-      menuChildren: [
+    return AmePopupMenuButton<_LayoutMenuAction>(
+      labels: const [
+        LibraryStrings.equalHeight,
+        LibraryStrings.square,
+        LibraryStrings.small,
+        LibraryStrings.medium,
+        LibraryStrings.large,
+      ],
+      leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
+      items: [
         _menuChoice(
+          value: _LayoutMenuAction.equalHeight,
           label: LibraryStrings.equalHeight,
           icon: Symbols.view_quilt_rounded,
-          isSelected: widget.shape == GalleryLayoutShape.equalHeight,
-          onPressed: () =>
-              widget.onShapeChanged(GalleryLayoutShape.equalHeight),
+          isSelected: shape == GalleryLayoutShape.equalHeight,
         ),
         _menuChoice(
+          value: _LayoutMenuAction.square,
           label: LibraryStrings.square,
           icon: Symbols.grid_view_rounded,
-          isSelected: widget.shape == GalleryLayoutShape.square,
-          onPressed: () => widget.onShapeChanged(GalleryLayoutShape.square),
+          isSelected: shape == GalleryLayoutShape.square,
         ),
-        const Divider(height: AmeMenuMetrics.dividerHeight),
+        const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
         _menuChoice(
+          value: _LayoutMenuAction.small,
           label: LibraryStrings.small,
           icon: Symbols.grid_4x4_rounded,
-          isSelected: widget.size == GalleryThumbnailSize.small,
-          onPressed: () => widget.onSizeChanged(GalleryThumbnailSize.small),
+          isSelected: size == GalleryThumbnailSize.small,
         ),
         _menuChoice(
+          value: _LayoutMenuAction.medium,
           label: LibraryStrings.medium,
           icon: Symbols.grid_view_rounded,
-          isSelected: widget.size == GalleryThumbnailSize.medium,
-          onPressed: () => widget.onSizeChanged(GalleryThumbnailSize.medium),
+          isSelected: size == GalleryThumbnailSize.medium,
         ),
         _menuChoice(
+          value: _LayoutMenuAction.large,
           label: LibraryStrings.large,
           icon: Symbols.crop_square_rounded,
-          isSelected: widget.size == GalleryThumbnailSize.large,
-          onPressed: () => widget.onSizeChanged(GalleryThumbnailSize.large),
+          isSelected: size == GalleryThumbnailSize.large,
         ),
       ],
-      builder: (context, controller, child) => AmeTooltip(
+      onSelected: (action) {
+        switch (action) {
+          case _LayoutMenuAction.equalHeight:
+            onShapeChanged(GalleryLayoutShape.equalHeight);
+          case _LayoutMenuAction.square:
+            onShapeChanged(GalleryLayoutShape.square);
+          case _LayoutMenuAction.small:
+            onSizeChanged(GalleryThumbnailSize.small);
+          case _LayoutMenuAction.medium:
+            onSizeChanged(GalleryThumbnailSize.medium);
+          case _LayoutMenuAction.large:
+            onSizeChanged(GalleryThumbnailSize.large);
+        }
+      },
+      builder: (context, openMenu) => AmeTooltip(
         message: LibraryStrings.layout,
         child: IconButton(
           key: const Key("library-layout-menu"),
-          onPressed: () => toggleAmeMenu(controller),
+          onPressed: openMenu,
           icon: const Row(
             mainAxisSize: MainAxisSize.min,
             children: [
@@ -412,35 +402,26 @@ class _MoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final menuWidth = amePopupMenuContentWidth(
-      context: context,
+    return AmePopupMenuButton<_MoreMenuAction>(
       labels: const [LibraryStrings.selectAll],
       shortcuts: const ["Ctrl+A"],
-    );
-    return AmeMenuAnchor(
-      style: ameFixedWidthMenuStyle(menuWidth),
-      alignmentOffset: ameMenuBelowEndAlignment(
-        menuWidth: menuWidth,
-        endOffset: 8,
-      ),
-      menuChildren: [
-        ameFixedWidthMenuItem(
-          width: menuWidth,
-          child: MenuItemButton(
-            onPressed: onSelectAll,
-            child: const AmeMenuItemContent(
-              icon: Symbols.select_all_rounded,
-              label: LibraryStrings.selectAll,
-              shortcut: "Ctrl+A",
-            ),
+      viewportRightMargin: AmeMenuMetrics.viewportPadding,
+      items: const [
+        PopupMenuItem(
+          value: _MoreMenuAction.selectAll,
+          child: AmeMenuItemContent(
+            icon: Symbols.select_all_rounded,
+            label: LibraryStrings.selectAll,
+            shortcut: "Ctrl+A",
           ),
         ),
       ],
-      builder: (context, controller, child) => AmeTooltip(
+      onSelected: (_) => onSelectAll(),
+      builder: (context, openMenu) => AmeTooltip(
         message: LibraryStrings.more,
         child: IconButton(
           key: const Key("library-more-menu"),
-          onPressed: () => toggleAmeMenu(controller),
+          onPressed: openMenu,
           icon: const Icon(Symbols.more_horiz_rounded),
         ),
       ),
@@ -448,35 +429,55 @@ class _MoreMenu extends StatelessWidget {
   }
 }
 
-Widget _menuChoice({
+PopupMenuItem<T> _menuChoice<T>({
+  required T value,
   required String label,
   required IconData icon,
   required bool isSelected,
-  required VoidCallback onPressed,
 }) {
-  return Semantics(
-    key: ValueKey("menu-choice-$label"),
-    checked: isSelected,
-    inMutuallyExclusiveGroup: true,
-    child: MenuItemButton(
-      onPressed: onPressed,
-      leadingIcon: SizedBox(
-        width: AmeMenuMetrics.selectionIndicatorSlotWidth,
-        child: isSelected
-            ? const ExcludeSemantics(
-                child: Icon(
-                  Symbols.circle_rounded,
-                  size: AmeMenuMetrics.selectionIndicatorSize,
-                  fill: 1,
-                ),
-              )
-            : null,
-      ),
-      child: AmeMenuItemContent(
-        icon: icon,
-        label: label,
-        isSelected: isSelected,
+  return PopupMenuItem<T>(
+    value: value,
+    child: Semantics(
+      key: ValueKey("menu-choice-$label"),
+      checked: isSelected,
+      inMutuallyExclusiveGroup: true,
+      child: Row(
+        children: [
+          SizedBox(
+            width: AmeMenuMetrics.selectionIndicatorSlotWidth,
+            child: isSelected
+                ? const ExcludeSemantics(
+                    child: Icon(
+                      Symbols.circle_rounded,
+                      size: AmeMenuMetrics.selectionIndicatorSize,
+                      fill: 1,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: AmeMenuMetrics.iconLabelGap),
+          Expanded(
+            child: AmeMenuItemContent(
+              icon: icon,
+              label: label,
+              isSelected: isSelected,
+            ),
+          ),
+        ],
       ),
     ),
   );
 }
+
+enum _SortMenuAction {
+  captureTime,
+  createdTime,
+  modifiedTime,
+  fileName,
+  ascending,
+  descending,
+}
+
+enum _LayoutMenuAction { equalHeight, square, small, medium, large }
+
+enum _MoreMenuAction { selectAll }

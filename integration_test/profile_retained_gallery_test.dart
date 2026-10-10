@@ -18,6 +18,8 @@ import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
+import "../test/features/library/support/library_query_snapshot_fixture.dart";
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
@@ -191,7 +193,9 @@ void main() {
   });
 }
 
-class _ProfileCatalog implements LibraryCatalog {
+class _ProfileCatalog
+    with LibraryQuerySnapshotFixture
+    implements LibraryCatalog {
   _ProfileCatalog(this.delegate, this.clock);
 
   final LibraryCatalog delegate;
@@ -253,8 +257,12 @@ class _ReadOnlyProfilePreviewer implements LibraryPreviewer {
   @override
   Future<LibraryAsset> materialize({
     required String locationId,
+    required String expectedRootId,
+    required String expectedScanId,
+    required LibrarySourceRevisionEvidence? expectedSourceRevision,
+    required BigInt expectedSourceGeneration,
     required int previewEdge,
-    bool retry = false,
+    bool force = false,
     Iterable<String> protectedLocationIds = const [],
   }) {
     attemptCount += 1;

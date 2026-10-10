@@ -14,7 +14,7 @@ on:
         default: ""
         type: string
       checkout_ref:
-        description: Optional branch, tag, or commit to check out
+        description: Optional daily-gate branch, tag, or commit to check out
         required: false
         default: ""
         type: string
@@ -23,6 +23,23 @@ on:
         required: false
         default: ""
         type: string
+      expected_broker_publisher:
+        description: Exact Authenticode publisher required by the release gate
+        required: false
+        default: ""
+        type: string
+      trusted_workflow_commit:
+        description: Protected-main commit that owns the calling release workflow
+        required: false
+        default: ""
+        type: string
+    outputs:
+      signed_bundle_artifact:
+        description: Immutable signed Windows bundle artifact produced by the release gate
+        value: ${{ jobs.release_verify_windows.outputs.signed_bundle_artifact }}
+      source_commit:
+        description: Immutable source commit bound into the verified signed artifact
+        value: ${{ jobs.release_verify_windows.outputs.source_commit }}
 
 permissions:
   contents: read
@@ -107,6 +124,14 @@ jobs:
         shell: pwsh
         run: flutter pub get --enforce-lockfile
 
+      - name: Run Windows PowerShell platform compatibility probes
+        if: matrix.component == 'static'
+        shell: powershell
+        run: |
+          ./tool/quality_test_windows_powershell_compatibility.ps1
+          ./tool/release_test_journal_broker_installer_guardrails.ps1
+          ./tool/acceptance_test_windows_journal_broker_guardrails.ps1
+
       - name: Run daily component
         shell: pwsh
         env:
@@ -120,21 +145,71 @@ jobs:
           AME_BASE_REVISION: ${{ inputs.base_revision }}
         run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
 
-  release_windows:
-    name: Release Candidate
-    if: inputs.gate_mode == 'release'
+      - name: Retain controlled scan diagnostics
+        if: always() && matrix.component == 'windows_scan'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: windows-scan-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            build/integration-storage-*/flutter.stdout.log
+            build/integration-storage-*/flutter.stderr.log
+            build/integration-storage-*/completion.json
+          if-no-files-found: warn
+          retention-days: 7
+
+  quality_synthetic_windows:
+    name: Synthetic Workloads
+    if: inputs.gate_mode == 'daily'
+    uses: ./.github/workflows/quality_gate_synthetic_windows.yml
+    with:
+      checkout_ref: ${{ inputs.checkout_ref || github.sha }}
+
+  quality_unsigned_windows:
+    name: Unsigned Release
+    if: inputs.gate_mode == 'daily'
+    uses: ./.github/workflows/quality_gate_unsigned_windows.yml
+    with:
+      checkout_ref: ${{ inputs.checkout_ref || github.sha }}
+
+  release_unsigned_windows:
+    name: Release / Unsigned Build
+    if: >-
+      inputs.gate_mode == 'release' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.ref_protected
     runs-on: windows-2025
     timeout-minutes: 120
     env:
       CI: "true"
+    outputs:
+      source_commit: ${{ steps.release_identity.outputs.source_commit }}
+      unsigned_candidate_artifact: ${{ steps.unsigned_artifact.outputs.name }}
     steps:
       - name: Validate release request
         shell: pwsh
         env:
+          AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
           AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_TRUSTED_WORKFLOW_COMMIT: ${{ inputs.trusted_workflow_commit }}
         run: |
-          if ([string]::IsNullOrWhiteSpace($env:AME_RELEASE_TAG)) {
-            throw "Release gate requires a version tag"
+          $preReleaseIdentifier = (
+            '(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+          )
+          $tagPattern = (
+            '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.' +
+            '(?:0|[1-9][0-9]*)(?:-' +
+            $preReleaseIdentifier +
+            '(?:\.' + $preReleaseIdentifier + ')*)?$'
+          )
+          if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
+            throw "Release gate requires one strict v-prefixed semantic-version tag"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
+            throw "Release gate requires the exact Windows Authenticode publisher"
+          }
+          if ($env:AME_TRUSTED_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$') {
+            throw "Release gate requires one immutable protected-workflow commit"
           }
 
       - name: Check out repository
@@ -142,7 +217,796 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ inputs.checkout_ref || github.sha }}
+          ref: refs/tags/${{ inputs.release_tag }}
+
+      - name: Prove exact release tag identity
+        id: release_identity
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_TRUSTED_WORKFLOW_COMMIT: ${{ inputs.trusted_workflow_commit }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tagRef = "refs/tags/$env:AME_RELEASE_TAG"
+          $tagObject = (git show-ref --verify --hash $tagRef).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagObject)) {
+            throw "The exact release tag ref does not exist: $tagRef"
+          }
+          $tagCommit = (git rev-parse --verify "$tagRef^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+            throw "The exact release tag does not resolve to a commit: $tagRef"
+          }
+          $headCommit = (git rev-parse --verify HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $headCommit -cne $tagCommit) {
+            throw "Release tag commit does not match checked-out HEAD"
+          }
+          git cat-file -e "$env:AME_TRUSTED_WORKFLOW_COMMIT^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Trusted release-workflow commit is unavailable"
+          }
+          git merge-base --is-ancestor $tagCommit $env:AME_TRUSTED_WORKFLOW_COMMIT
+          if ($LASTEXITCODE -ne 0) {
+            throw "Release source is not an ancestor of the trusted workflow commit"
+          }
+          "source_commit=$tagCommit" >> $env:GITHUB_OUTPUT
+
+      - name: Install pinned actionlint
+        id: actionlint
+        shell: pwsh
+        run: |
+          $version = "1.7.12"
+          $archiveName = "actionlint_${version}_windows_amd64.zip"
+          $archivePath = Join-Path $env:RUNNER_TEMP $archiveName
+          $installPath = Join-Path $env:RUNNER_TEMP "actionlint-$version"
+          $expectedHash = "6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9"
+          $downloadUri = (
+            "https://github.com/rhysd/actionlint/releases/download/" +
+            "v$version/$archiveName"
+          )
+          $ProgressPreference = "SilentlyContinue"
+          Invoke-WebRequest -Uri $downloadUri -OutFile $archivePath
+          $actualHash = (
+            Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
+          ).Hash.ToLowerInvariant()
+          if ($actualHash -ne $expectedHash) {
+            throw "actionlint checksum mismatch: $actualHash"
+          }
+          Expand-Archive -LiteralPath $archivePath -DestinationPath $installPath
+          "path=$installPath\actionlint.exe" >> $env:GITHUB_OUTPUT
+
+      - name: Lint GitHub Actions workflows
+        shell: pwsh
+        env:
+          AME_ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
+        run: ./tool/quality_lint_workflows.ps1 -ActionlintPath $env:AME_ACTIONLINT_PATH
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
+        with:
+          channel: stable
+          flutter-version: 3.44.9
+          cache: true
+          pub-cache: true
+
+      - name: Report toolchain
+        shell: pwsh
+        run: |
+          flutter --version
+          dart --version
+          rustc --version
+          cargo --version
+
+      - name: Restore locked Dart dependencies
+        shell: pwsh
+        run: flutter pub get --enforce-lockfile
+
+      - name: Validate release version
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
+
+      - name: Build unsigned Windows bundle
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          flutter build windows --release
+          if ($LASTEXITCODE -ne 0) {
+            throw "Windows Release build failed"
+          }
+          cargo build `
+            --locked `
+            --manifest-path rust\Cargo.toml `
+            --release `
+            --bin cedarflake_ame_journal_broker
+          if ($LASTEXITCODE -ne 0) {
+            throw "Journal broker Release build failed"
+          }
+          $releaseRoot = [System.IO.Path]::GetFullPath(
+            "build\windows\x64\runner\Release"
+          )
+          $applicationPath = Join-Path $releaseRoot "cedarflake_ame.exe"
+          $brokerSource = [System.IO.Path]::GetFullPath(
+            "rust\target\release\cedarflake_ame_journal_broker.exe"
+          )
+          $brokerPath = Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe"
+          foreach ($binary in @($applicationPath, $brokerSource)) {
+            if (-not (Test-Path -LiteralPath $binary -PathType Leaf)) {
+              throw "Unsigned Windows Release binary was not found: $binary"
+            }
+          }
+          Copy-Item -LiteralPath $brokerSource -Destination $brokerPath -Force
+
+      - name: Check committed whitespace
+        shell: pwsh
+        env:
+          AME_BASE_REVISION: ${{ inputs.base_revision }}
+        run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
+
+      - name: Stage manifest-bound unsigned candidate
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_SOURCE_COMMIT: ${{ steps.release_identity.outputs.source_commit }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $releaseRoot = [System.IO.Path]::GetFullPath(
+            "build\windows\x64\runner\Release"
+          )
+          $candidateRoot = [System.IO.Path]::GetFullPath("build\unsigned-candidate")
+          $payloadRoot = Join-Path $candidateRoot "payload"
+          if (Test-Path -LiteralPath $candidateRoot) {
+            throw "Unsigned candidate staging path already exists"
+          }
+          $null = New-Item -ItemType Directory -Path $payloadRoot
+          foreach ($item in @(Get-ChildItem -LiteralPath $releaseRoot -Force)) {
+            Copy-Item -LiteralPath $item.FullName -Destination $payloadRoot -Recurse -Force
+          }
+          $allItems = @(Get-ChildItem -LiteralPath $payloadRoot -Recurse -Force)
+          if ($allItems.Count -eq 0 -or $allItems.Count -gt 4096) {
+            throw "Unsigned candidate item count is outside the release bound"
+          }
+          foreach ($item in $allItems) {
+            if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+              throw "Unsigned candidate contains a reparse point"
+            }
+          }
+          $files = @($allItems | Where-Object { -not $_.PSIsContainer })
+          $totalLength = ($files | Measure-Object -Property Length -Sum).Sum
+          if ($files.Count -eq 0 -or $totalLength -gt 2147483648) {
+            throw "Unsigned candidate file set is outside the release bound"
+          }
+          $manifestFiles = @(
+            foreach ($file in @($files | Sort-Object -Property FullName)) {
+              $relativePath = [System.IO.Path]::GetRelativePath(
+                $payloadRoot,
+                $file.FullName
+              ).Replace("\", "/")
+              [ordered]@{
+                relativePath = $relativePath
+                length = $file.Length
+                sha256 = (Get-FileHash -LiteralPath $file.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
+              }
+            }
+          )
+          $signTargets = @(
+            "cedarflake_ame.exe",
+            "cedarflake_ame_journal_broker.exe"
+          )
+          $manifestPaths = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+          )
+          foreach ($entry in $manifestFiles) {
+            if (-not $manifestPaths.Add($entry.relativePath)) {
+              throw "Unsigned candidate contains duplicate case-insensitive paths"
+            }
+          }
+          foreach ($target in $signTargets) {
+            if (-not $manifestPaths.Contains($target)) {
+              throw "Unsigned candidate is missing fixed signing target: $target"
+            }
+            $signature = Get-AuthenticodeSignature -LiteralPath (Join-Path $payloadRoot $target)
+            if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+              throw "Unsigned candidate signing target was already signed: $target"
+            }
+          }
+          $manifest = [ordered]@{
+            format = "cedarflake-ame-unsigned-v1"
+            tag = $env:AME_RELEASE_TAG
+            sourceCommit = $env:AME_SOURCE_COMMIT
+            signTargets = $signTargets
+            files = $manifestFiles
+          }
+          $manifestPath = Join-Path $candidateRoot "manifest.json"
+          $manifest | ConvertTo-Json -Depth 6 | Set-Content `
+            -LiteralPath $manifestPath `
+            -Encoding utf8NoBOM
+
+      - name: Name unsigned candidate artifact
+        id: unsigned_artifact
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          "name=Cedarflake-Ame-$env:AME_RELEASE_TAG-unsigned-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" >> `
+            $env:GITHUB_OUTPUT
+
+      - name: Upload immutable unsigned candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.unsigned_artifact.outputs.name }}
+          path: build/unsigned-candidate
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+
+  release_sign_windows:
+    name: Release / Protected Signing
+    needs: release_unsigned_windows
+    if: >-
+      inputs.gate_mode == 'release' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.ref_protected
+    runs-on: windows-2025
+    timeout-minutes: 20
+    permissions: {}
+    environment:
+      name: windows-production-signing
+    outputs:
+      signed_candidate_artifact: ${{ steps.signed_artifact.outputs.name }}
+    steps:
+      - name: Download immutable unsigned candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.release_unsigned_windows.outputs.unsigned_candidate_artifact }}
+          path: build/unsigned-candidate
+
+      - name: Validate manifest and sign fixed binaries
+        shell: pwsh
+        env:
+          AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+          AME_SIGNING_PFX_BASE64: ${{ secrets.AME_WINDOWS_SIGNING_PFX_BASE64 }}
+          AME_SIGNING_PFX_PASSWORD: ${{ secrets.AME_WINDOWS_SIGNING_PFX_PASSWORD }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $candidateRoot = [System.IO.Path]::GetFullPath("build\unsigned-candidate")
+          $payloadRoot = Join-Path $candidateRoot "payload"
+          $manifestPath = Join-Path $candidateRoot "manifest.json"
+          $fixedTargets = @(
+            "cedarflake_ame.exe",
+            "cedarflake_ame_journal_broker.exe"
+          )
+          function Read-ManifestBoundCandidate {
+            param([Parameter(Mandatory = $true)][string]$ExpectedFormat)
+            $topItems = @(Get-ChildItem -LiteralPath $candidateRoot -Force)
+            if (
+              $topItems.Count -ne 2 -or
+              @($topItems | Where-Object {
+                $_.Name -ceq "manifest.json" -and -not $_.PSIsContainer
+              }).Count -ne 1 -or
+              @($topItems | Where-Object {
+                $_.Name -ceq "payload" -and $_.PSIsContainer
+              }).Count -ne 1
+            ) {
+              throw "Candidate top-level allowlist must be exactly manifest.json and payload"
+            }
+            $allItems = @(Get-ChildItem -LiteralPath $payloadRoot -Recurse -Force)
+            if ($allItems.Count -eq 0 -or $allItems.Count -gt 4096) {
+              throw "Candidate item count is outside the release bound"
+            }
+            foreach ($item in @($topItems + $allItems)) {
+              if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+                throw "Candidate contains a reparse point"
+              }
+            }
+            $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 |
+              ConvertFrom-Json
+            $requiredProperties = @(
+              "format",
+              "tag",
+              "sourceCommit",
+              "signTargets",
+              "files"
+            )
+            $actualProperties = @($manifest.PSObject.Properties.Name)
+            if (
+              $actualProperties.Count -ne $requiredProperties.Count -or
+              @($requiredProperties | Where-Object {
+                $actualProperties -cnotcontains $_
+              }).Count -ne 0
+            ) {
+              throw "Candidate manifest has an unexpected top-level contract"
+            }
+            if (
+              $manifest.format -cne $ExpectedFormat -or
+              $manifest.tag -cne $env:AME_RELEASE_TAG -or
+              $manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT -or
+              $manifest.sourceCommit -cnotmatch '^[0-9a-f]{40}$'
+            ) {
+              throw "Candidate manifest identity does not match the release request"
+            }
+            $manifestTargets = @($manifest.signTargets)
+            if (
+              $manifestTargets.Count -ne $fixedTargets.Count -or
+              $manifestTargets[0] -cne $fixedTargets[0] -or
+              $manifestTargets[1] -cne $fixedTargets[1]
+            ) {
+              throw "Candidate manifest changed the fixed signing allowlist"
+            }
+            $manifestPaths = [System.Collections.Generic.HashSet[string]]::new(
+              [System.StringComparer]::OrdinalIgnoreCase
+            )
+            $totalLength = 0L
+            foreach ($entry in @($manifest.files)) {
+              $entryProperties = @($entry.PSObject.Properties.Name)
+              if (
+                $entryProperties.Count -ne 3 -or
+                $entryProperties -cnotcontains "relativePath" -or
+                $entryProperties -cnotcontains "length" -or
+                $entryProperties -cnotcontains "sha256"
+              ) {
+                throw "Candidate manifest file entry has an unexpected contract"
+              }
+              $relativePath = [string]$entry.relativePath
+              $segments = @($relativePath.Split('/'))
+              if (
+                [string]::IsNullOrWhiteSpace($relativePath) -or
+                $relativePath.Contains("\") -or
+                $relativePath.Contains(":") -or
+                [System.IO.Path]::IsPathRooted($relativePath) -or
+                @($segments | Where-Object {
+                  [string]::IsNullOrEmpty($_) -or $_ -eq "." -or $_ -eq ".."
+                }).Count -ne 0 -or
+                -not $manifestPaths.Add($relativePath)
+              ) {
+                throw "Candidate manifest contains an unsafe or duplicate path"
+              }
+              $filePath = [System.IO.Path]::GetFullPath(
+                (Join-Path $payloadRoot $relativePath.Replace("/", "\"))
+              )
+              $payloadPrefix = $payloadRoot.TrimEnd("\") + "\"
+              if (
+                -not $filePath.StartsWith(
+                  $payloadPrefix,
+                  [System.StringComparison]::OrdinalIgnoreCase
+                ) -or
+                -not (Test-Path -LiteralPath $filePath -PathType Leaf)
+              ) {
+                throw "Candidate manifest path escapes or is missing from payload"
+              }
+              $file = Get-Item -LiteralPath $filePath -Force
+              $expectedLength = [Convert]::ToInt64($entry.length)
+              $expectedHash = [string]$entry.sha256
+              if (
+                $expectedLength -lt 0 -or
+                $file.Length -ne $expectedLength -or
+                $expectedHash -cnotmatch '^[0-9a-f]{64}$' -or
+                (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne
+                  $expectedHash
+              ) {
+                throw "Candidate manifest hash or length verification failed"
+              }
+              $totalLength += $expectedLength
+            }
+            $payloadFiles = @($allItems | Where-Object { -not $_.PSIsContainer })
+            if (
+              $payloadFiles.Count -ne $manifestPaths.Count -or
+              $payloadFiles.Count -eq 0 -or
+              $totalLength -gt 2147483648
+            ) {
+              throw "Candidate manifest does not exactly cover the bounded payload"
+            }
+            foreach ($file in $payloadFiles) {
+              $relativePath = [System.IO.Path]::GetRelativePath(
+                $payloadRoot,
+                $file.FullName
+              ).Replace("\", "/")
+              if (-not $manifestPaths.Contains($relativePath)) {
+                throw "Candidate payload contains a file outside the manifest allowlist"
+              }
+            }
+            return $manifest
+          }
+
+          $certificates = [System.Security.Cryptography.X509Certificates.X509Certificate2Collection]::new()
+          $pfxBytes = $null
+          $signingCertificate = $null
+          $signingFailure = $null
+          $cleanupFailures = [System.Collections.Generic.List[string]]::new()
+          try {
+            $manifest = Read-ManifestBoundCandidate `
+              -ExpectedFormat "cedarflake-ame-unsigned-v1"
+            foreach ($target in $fixedTargets) {
+              $signature = Get-AuthenticodeSignature -LiteralPath (Join-Path $payloadRoot $target)
+              if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::NotSigned) {
+                throw "Unsigned candidate signing target was already signed: $target"
+              }
+            }
+            if ([string]::IsNullOrWhiteSpace($env:AME_SIGNING_PFX_BASE64) -or
+                [string]::IsNullOrWhiteSpace($env:AME_SIGNING_PFX_PASSWORD)) {
+              throw "Release gate requires production Windows signing credentials"
+            }
+            $pfxBytes = [Convert]::FromBase64String($env:AME_SIGNING_PFX_BASE64)
+            $certificates.Import(
+              $pfxBytes,
+              $env:AME_SIGNING_PFX_PASSWORD,
+              [System.Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet
+            )
+            [Environment]::SetEnvironmentVariable(
+              "AME_SIGNING_PFX_BASE64",
+              $null,
+              [EnvironmentVariableTarget]::Process
+            )
+            [Environment]::SetEnvironmentVariable(
+              "AME_SIGNING_PFX_PASSWORD",
+              $null,
+              [EnvironmentVariableTarget]::Process
+            )
+            $privateKeyCertificates = @($certificates | Where-Object { $_.HasPrivateKey })
+            if ($privateKeyCertificates.Count -ne 1) {
+              throw "Signing PFX must contain exactly one private-key certificate"
+            }
+            $signingCertificate = $privateKeyCertificates[0]
+            $hasCodeSigningUsage = @(
+              $signingCertificate.EnhancedKeyUsageList | Where-Object {
+                $_.ObjectId.Value -eq "1.3.6.1.5.5.7.3.3"
+              }
+            ).Count -gt 0
+            if (
+              $signingCertificate.Subject -cne $env:AME_EXPECTED_PUBLISHER -or
+              -not $hasCodeSigningUsage -or
+              $signingCertificate.NotBefore -gt [DateTime]::UtcNow -or
+              $signingCertificate.NotAfter -lt [DateTime]::UtcNow
+            ) {
+              throw "Signing PFX certificate does not match the required active publisher"
+            }
+            foreach ($target in $fixedTargets) {
+              $binary = Join-Path $payloadRoot $target
+              $signature = Set-AuthenticodeSignature `
+                -LiteralPath $binary `
+                -Certificate $signingCertificate `
+                -HashAlgorithm SHA256 `
+                -TimestampServer "http://timestamp.digicert.com"
+              if ($signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid) {
+                throw "Authenticode signing failed for $target with $($signature.Status)"
+              }
+            }
+            $targetSet = [System.Collections.Generic.HashSet[string]]::new(
+              [System.StringComparer]::OrdinalIgnoreCase
+            )
+            foreach ($target in $fixedTargets) {
+              $null = $targetSet.Add($target)
+            }
+            foreach ($entry in @($manifest.files)) {
+              if ($targetSet.Contains([string]$entry.relativePath)) {
+                $binary = Join-Path $payloadRoot ([string]$entry.relativePath)
+                $entry.length = (Get-Item -LiteralPath $binary -Force).Length
+                $entry.sha256 = (
+                  Get-FileHash -LiteralPath $binary -Algorithm SHA256
+                ).Hash.ToLowerInvariant()
+              }
+            }
+            $manifest.format = "cedarflake-ame-signed-v1"
+            $manifest | ConvertTo-Json -Depth 6 | Set-Content `
+              -LiteralPath $manifestPath `
+              -Encoding utf8NoBOM
+            $null = Read-ManifestBoundCandidate `
+              -ExpectedFormat "cedarflake-ame-signed-v1"
+            foreach ($target in $fixedTargets) {
+              $signature = Get-AuthenticodeSignature -LiteralPath (Join-Path $payloadRoot $target)
+              if (
+                $signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
+                $signature.SignerCertificate.Subject -cne $env:AME_EXPECTED_PUBLISHER
+              ) {
+                throw "Signed candidate verification failed for fixed target: $target"
+              }
+            }
+          } catch {
+            $signingFailure = $_
+          } finally {
+            foreach ($secretName in @(
+              "AME_SIGNING_PFX_BASE64",
+              "AME_SIGNING_PFX_PASSWORD"
+            )) {
+              try {
+                [Environment]::SetEnvironmentVariable(
+                  $secretName,
+                  $null,
+                  [EnvironmentVariableTarget]::Process
+                )
+              } catch {
+                $cleanupFailures.Add($_.Exception.Message)
+              }
+            }
+            foreach ($certificate in @($certificates)) {
+              try {
+                $certificate.Dispose()
+              } catch {
+                $cleanupFailures.Add($_.Exception.Message)
+              }
+            }
+            try {
+              $certificates.Clear()
+            } catch {
+              $cleanupFailures.Add($_.Exception.Message)
+            }
+            if ($null -ne $pfxBytes) {
+              try {
+                [Array]::Clear($pfxBytes, 0, $pfxBytes.Length)
+              } catch {
+                $cleanupFailures.Add($_.Exception.Message)
+              }
+            }
+            $pfxBytes = $null
+            $signingCertificate = $null
+            $privateKeyCertificates = $null
+          }
+          if ($cleanupFailures.Count -gt 0) {
+            $cleanupMessage = $cleanupFailures -join "; "
+            if ($null -ne $signingFailure) {
+              throw "$($signingFailure.Exception.Message); cleanup failures: $cleanupMessage"
+            }
+            throw $cleanupMessage
+          }
+          if ($null -ne $signingFailure) {
+            throw $signingFailure
+          }
+
+      - name: Name signed candidate artifact
+        id: signed_artifact
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          "name=Cedarflake-Ame-$env:AME_RELEASE_TAG-signed-$env:GITHUB_RUN_ID-$env:GITHUB_RUN_ATTEMPT" >> `
+            $env:GITHUB_OUTPUT
+
+      - name: Upload immutable signed candidate
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: ${{ steps.signed_artifact.outputs.name }}
+          path: build/unsigned-candidate
+          if-no-files-found: error
+          include-hidden-files: true
+          retention-days: 1
+
+  release_verify_windows:
+    name: Release / Signed Verification
+    needs:
+      - release_unsigned_windows
+      - release_sign_windows
+    if: >-
+      inputs.gate_mode == 'release' &&
+      github.event_name == 'workflow_dispatch' &&
+      github.ref == 'refs/heads/main' &&
+      github.ref_protected
+    runs-on: windows-2025
+    timeout-minutes: 90
+    env:
+      CI: "true"
+    outputs:
+      signed_bundle_artifact: ${{ steps.verified_artifact.outputs.name }}
+      source_commit: ${{ steps.verified_artifact.outputs.source_commit }}
+    steps:
+      - name: Validate signed-verification request
+        shell: pwsh
+        env:
+          AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_TRUSTED_WORKFLOW_COMMIT: ${{ inputs.trusted_workflow_commit }}
+        run: |
+          $preReleaseIdentifier = (
+            '(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+          )
+          $tagPattern = (
+            '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.' +
+            '(?:0|[1-9][0-9]*)(?:-' +
+            $preReleaseIdentifier +
+            '(?:\.' + $preReleaseIdentifier + ')*)?$'
+          )
+          if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
+            throw "Signed verification requires one strict v-prefixed semantic-version tag"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
+            throw "Signed verification requires the exact Windows Authenticode publisher"
+          }
+          if ($env:AME_TRUSTED_WORKFLOW_COMMIT -cnotmatch '^[0-9a-f]{40}$') {
+            throw "Signed verification requires one immutable protected-workflow commit"
+          }
+
+      - name: Check out exact release tag
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: refs/tags/${{ inputs.release_tag }}
+
+      - name: Prove verifier release tag identity
+        shell: pwsh
+        env:
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+          AME_TRUSTED_WORKFLOW_COMMIT: ${{ inputs.trusted_workflow_commit }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tagRef = "refs/tags/$env:AME_RELEASE_TAG"
+          $tagObject = (git show-ref --verify --hash $tagRef).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagObject)) {
+            throw "The exact release tag ref does not exist: $tagRef"
+          }
+          $tagCommit = (git rev-parse --verify "$tagRef^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+            throw "The exact release tag does not resolve to a commit: $tagRef"
+          }
+          $headCommit = (git rev-parse --verify HEAD).Trim()
+          if (
+            $LASTEXITCODE -ne 0 -or
+            $headCommit -cne $tagCommit -or
+            $headCommit -cne $env:AME_SOURCE_COMMIT
+          ) {
+            throw "Release tag commit does not match checked-out HEAD and unsigned source"
+          }
+          git cat-file -e "$env:AME_TRUSTED_WORKFLOW_COMMIT^{commit}"
+          if ($LASTEXITCODE -ne 0) {
+            throw "Trusted release-workflow commit is unavailable to the verifier"
+          }
+          git merge-base --is-ancestor $headCommit $env:AME_TRUSTED_WORKFLOW_COMMIT
+          if ($LASTEXITCODE -ne 0) {
+            throw "Verified release source is not an ancestor of the trusted workflow commit"
+          }
+
+      - name: Download immutable signed candidate
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: ${{ needs.release_sign_windows.outputs.signed_candidate_artifact }}
+          path: build/signed-candidate
+
+      - name: Verify signed manifest and fixed binaries
+        shell: pwsh
+        env:
+          AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+          AME_RELEASE_TAG: ${{ inputs.release_tag }}
+          AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          $candidateRoot = [System.IO.Path]::GetFullPath("build\signed-candidate")
+          $payloadRoot = Join-Path $candidateRoot "payload"
+          $manifestPath = Join-Path $candidateRoot "manifest.json"
+          $fixedTargets = @(
+            "cedarflake_ame.exe",
+            "cedarflake_ame_journal_broker.exe"
+          )
+          $topItems = @(Get-ChildItem -LiteralPath $candidateRoot -Force)
+          if (
+            $topItems.Count -ne 2 -or
+            @($topItems | Where-Object {
+              $_.Name -ceq "manifest.json" -and -not $_.PSIsContainer
+            }).Count -ne 1 -or
+            @($topItems | Where-Object {
+              $_.Name -ceq "payload" -and $_.PSIsContainer
+            }).Count -ne 1
+          ) {
+            throw "Signed candidate top-level allowlist is not exact"
+          }
+          $allItems = @(Get-ChildItem -LiteralPath $payloadRoot -Recurse -Force)
+          if ($allItems.Count -eq 0 -or $allItems.Count -gt 4096) {
+            throw "Signed candidate item count is outside the release bound"
+          }
+          foreach ($item in @($topItems + $allItems)) {
+            if (($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) -ne 0) {
+              throw "Signed candidate contains a reparse point"
+            }
+          }
+          $manifest = Get-Content -LiteralPath $manifestPath -Raw -Encoding UTF8 |
+            ConvertFrom-Json
+          $requiredProperties = @(
+            "format",
+            "tag",
+            "sourceCommit",
+            "signTargets",
+            "files"
+          )
+          $actualProperties = @($manifest.PSObject.Properties.Name)
+          if (
+            $actualProperties.Count -ne $requiredProperties.Count -or
+            @($requiredProperties | Where-Object {
+              $actualProperties -cnotcontains $_
+            }).Count -ne 0 -or
+            $manifest.format -cne "cedarflake-ame-signed-v1" -or
+            $manifest.tag -cne $env:AME_RELEASE_TAG -or
+            $manifest.sourceCommit -cne $env:AME_SOURCE_COMMIT -or
+            $manifest.sourceCommit -cnotmatch '^[0-9a-f]{40}$'
+          ) {
+            throw "Signed candidate manifest contract or identity is invalid"
+          }
+          $manifestTargets = @($manifest.signTargets)
+          if (
+            $manifestTargets.Count -ne 2 -or
+            $manifestTargets[0] -cne $fixedTargets[0] -or
+            $manifestTargets[1] -cne $fixedTargets[1]
+          ) {
+            throw "Signed candidate changed the fixed signing allowlist"
+          }
+          $manifestPaths = [System.Collections.Generic.HashSet[string]]::new(
+            [System.StringComparer]::OrdinalIgnoreCase
+          )
+          $totalLength = 0L
+          foreach ($entry in @($manifest.files)) {
+            $entryProperties = @($entry.PSObject.Properties.Name)
+            $relativePath = [string]$entry.relativePath
+            $segments = @($relativePath.Split('/'))
+            if (
+              $entryProperties.Count -ne 3 -or
+              $entryProperties -cnotcontains "relativePath" -or
+              $entryProperties -cnotcontains "length" -or
+              $entryProperties -cnotcontains "sha256" -or
+              [string]::IsNullOrWhiteSpace($relativePath) -or
+              $relativePath.Contains("\") -or
+              $relativePath.Contains(":") -or
+              [System.IO.Path]::IsPathRooted($relativePath) -or
+              @($segments | Where-Object {
+                [string]::IsNullOrEmpty($_) -or $_ -eq "." -or $_ -eq ".."
+              }).Count -ne 0 -or
+              -not $manifestPaths.Add($relativePath)
+            ) {
+              throw "Signed candidate manifest contains an unsafe entry"
+            }
+            $filePath = [System.IO.Path]::GetFullPath(
+              (Join-Path $payloadRoot $relativePath.Replace("/", "\"))
+            )
+            $payloadPrefix = $payloadRoot.TrimEnd("\") + "\"
+            if (
+              -not $filePath.StartsWith(
+                $payloadPrefix,
+                [System.StringComparison]::OrdinalIgnoreCase
+              ) -or
+              -not (Test-Path -LiteralPath $filePath -PathType Leaf)
+            ) {
+              throw "Signed candidate manifest path escapes or is missing"
+            }
+            $file = Get-Item -LiteralPath $filePath -Force
+            $expectedLength = [Convert]::ToInt64($entry.length)
+            $expectedHash = [string]$entry.sha256
+            if (
+              $expectedLength -lt 0 -or
+              $file.Length -ne $expectedLength -or
+              $expectedHash -cnotmatch '^[0-9a-f]{64}$' -or
+              (Get-FileHash -LiteralPath $filePath -Algorithm SHA256).Hash.ToLowerInvariant() -cne
+                $expectedHash
+            ) {
+              throw "Signed candidate manifest hash or length verification failed"
+            }
+            $totalLength += $expectedLength
+          }
+          $payloadFiles = @($allItems | Where-Object { -not $_.PSIsContainer })
+          if (
+            $payloadFiles.Count -ne $manifestPaths.Count -or
+            $payloadFiles.Count -eq 0 -or
+            $totalLength -gt 2147483648
+          ) {
+            throw "Signed candidate manifest does not exactly cover the payload"
+          }
+          foreach ($file in $payloadFiles) {
+            $relativePath = [System.IO.Path]::GetRelativePath(
+              $payloadRoot,
+              $file.FullName
+            ).Replace("\", "/")
+            if (-not $manifestPaths.Contains($relativePath)) {
+              throw "Signed candidate payload contains an unlisted file"
+            }
+          }
+          foreach ($target in $fixedTargets) {
+            $signature = Get-AuthenticodeSignature -LiteralPath (Join-Path $payloadRoot $target)
+            if (
+              $signature.Status -ne [System.Management.Automation.SignatureStatus]::Valid -or
+              $signature.SignerCertificate.Subject -cne $env:AME_EXPECTED_PUBLISHER
+            ) {
+              throw "Signed candidate fixed-target verification failed: $target"
+            }
+          }
 
       - name: Install pinned actionlint
         id: actionlint
@@ -202,7 +1066,15 @@ jobs:
 
       - name: Run release candidate gate
         shell: pwsh
-        run: ./tool/release_verify_candidate.ps1
+        env:
+          AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher }}
+        run: |
+          $releaseRoot = [System.IO.Path]::GetFullPath("build\signed-candidate\payload")
+          $brokerPath = Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe"
+          ./tool/release_verify_candidate.ps1 `
+            -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER `
+            -SignedBrokerBinaryPath $brokerPath `
+            -SignedApplicationBundlePath $releaseRoot
 
       - name: Check committed whitespace
         shell: pwsh
@@ -210,32 +1082,48 @@ jobs:
           AME_BASE_REVISION: ${{ inputs.base_revision }}
         run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
 
+      - name: Expose verified immutable artifact
+        id: verified_artifact
+        shell: pwsh
+        env:
+          AME_SIGNED_ARTIFACT: ${{ needs.release_sign_windows.outputs.signed_candidate_artifact }}
+          AME_SOURCE_COMMIT: ${{ needs.release_unsigned_windows.outputs.source_commit }}
+        run: |
+          "name=$env:AME_SIGNED_ARTIFACT" >> $env:GITHUB_OUTPUT
+          "source_commit=$env:AME_SOURCE_COMMIT" >> $env:GITHUB_OUTPUT
+
   quality_windows:
     name: Windows Gate
     if: always()
     needs:
       - daily_components
-      - release_windows
+      - quality_synthetic_windows
+      - quality_unsigned_windows
+      - release_verify_windows
     runs-on: windows-2025
     timeout-minutes: 5
     env:
       AME_DAILY_RESULT: ${{ needs.daily_components.result }}
+      AME_SYNTHETIC_RESULT: ${{ needs.quality_synthetic_windows.result }}
+      AME_UNSIGNED_RESULT: ${{ needs.quality_unsigned_windows.result }}
       AME_GATE_MODE: ${{ inputs.gate_mode }}
-      AME_RELEASE_RESULT: ${{ needs.release_windows.result }}
+      AME_RELEASE_RESULT: ${{ needs.release_verify_windows.result }}
     steps:
       - name: Verify requested gate succeeded
         shell: pwsh
         run: |
           if ($env:AME_GATE_MODE -eq "daily") {
-            if ($env:AME_DAILY_RESULT -ne "success") {
-              throw "One or more hosted daily components failed"
+            if ($env:AME_DAILY_RESULT -ne "success" -or
+                $env:AME_SYNTHETIC_RESULT -ne "success" -or
+                $env:AME_UNSIGNED_RESULT -ne "success") {
+              throw "Daily, synthetic workloads, and unsigned Release must all succeed"
             }
-            exit 0
+            return
           }
           if ($env:AME_GATE_MODE -eq "release") {
             if ($env:AME_RELEASE_RESULT -ne "success") {
               throw "The release candidate gate failed"
             }
-            exit 0
+            return
           }
           throw "Unsupported gate mode: $env:AME_GATE_MODE"

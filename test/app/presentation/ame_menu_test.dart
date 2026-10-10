@@ -1,12 +1,178 @@
+import "dart:async";
+
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
+import "package:cedarflake_ame/app/presentation/ame_overlay_semantics.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
+import "package:flutter/foundation.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
-import "package:flutter/semantics.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 void main() {
+  testWidgets("uses portal-free tooltip semantics on Windows", (tester) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    final semanticsHandle = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: AmeTooltip(
+            message: "完整路径",
+            child: SizedBox(key: Key("tooltip-child"), width: 24, height: 24),
+          ),
+        ),
+      );
+
+      expect(find.byType(Tooltip), findsNothing);
+      expect(
+        tester.getSemantics(find.byKey(const Key("tooltip-child"))),
+        matchesSemantics(tooltip: "完整路径"),
+      );
+    } finally {
+      semanticsHandle.dispose();
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets("shows and dismisses a portal-free Windows tooltip", (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: AmeTooltip(
+                message: "完整路径",
+                waitDuration: Duration.zero,
+                child: SizedBox(
+                  key: Key("visual-tooltip-child"),
+                  width: 24,
+                  height: 24,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer(location: Offset.zero);
+      await mouse.moveTo(
+        tester.getCenter(find.byKey(const Key("visual-tooltip-child"))),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(find.text("完整路径"), findsOneWidget);
+      expect(find.byType(Tooltip), findsNothing);
+
+      await mouse.moveTo(Offset.zero);
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(find.text("完整路径"), findsNothing);
+
+      await mouse.moveTo(
+        tester.getCenter(find.byKey(const Key("visual-tooltip-child"))),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(find.text("完整路径"), findsOneWidget);
+      await mouse.removePointer();
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets("shows the portal-free Windows tooltip for keyboard focus", (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    final focusNode = FocusNode();
+    try {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: AmeTooltip(
+                message: "键盘说明",
+                child: TextButton(
+                  key: const Key("focus-tooltip-child"),
+                  focusNode: focusNode,
+                  onPressed: () {},
+                  child: const Text("操作"),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      focusNode.requestFocus();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(find.text("键盘说明"), findsOneWidget);
+      expect(find.byType(Tooltip), findsNothing);
+
+      focusNode.unfocus();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      expect(find.text("键盘说明"), findsNothing);
+    } finally {
+      await tester.pumpWidget(const SizedBox.shrink());
+      focusNode.dispose();
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets("shows the portal-free Windows tooltip after a touch hold", (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: AmeTooltip(
+                message: "触屏说明",
+                child: SizedBox(
+                  key: Key("touch-tooltip-child"),
+                  width: 48,
+                  height: 48,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      final touch = await tester.startGesture(
+        tester.getCenter(find.byKey(const Key("touch-tooltip-child"))),
+        kind: PointerDeviceKind.touch,
+      );
+      await tester.pump(kLongPressTimeout + const Duration(milliseconds: 1));
+      await tester.pump(const Duration(milliseconds: 150));
+
+      expect(find.text("触屏说明"), findsOneWidget);
+      expect(find.byType(Tooltip), findsNothing);
+
+      await touch.up();
+      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pumpAndSettle();
+
+      expect(find.text("触屏说明"), findsNothing);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
   test("uses one visual contract for anchored and popup menus", () {
     final theme = buildAmeTheme();
     final menuStyle = _require(theme.menuTheme.style, "menu style");
@@ -218,24 +384,19 @@ void main() {
     _expectTextFits(tester, "拍摄日期");
   });
 
-  testWidgets("keeps Flutter 3.44 anchored menus non-animated and clickable", (
-    tester,
-  ) async {
+  testWidgets("animates and activates anchored popup routes", (tester) async {
     var activationCount = 0;
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAmeTheme(),
         home: Scaffold(
-          body: AmeMenuAnchor(
-            menuChildren: [
-              MenuItemButton(
-                onPressed: () => activationCount += 1,
-                child: const Text("打开"),
-              ),
-            ],
-            builder: (context, controller, child) => IconButton(
-              key: const Key("non-animated-menu-button"),
-              onPressed: () => toggleAmeMenu(controller),
+          body: AmePopupMenuButton<int>(
+            labels: const ["打开"],
+            items: const [PopupMenuItem(value: 1, child: Text("打开"))],
+            onSelected: (_) => activationCount += 1,
+            builder: (context, openMenu) => IconButton(
+              key: const Key("animated-menu-button"),
+              onPressed: openMenu,
               icon: const Icon(Symbols.more_horiz_rounded),
             ),
           ),
@@ -243,56 +404,89 @@ void main() {
       ),
     );
 
-    expect(
-      tester.widget<MenuAnchor>(find.byType(MenuAnchor)).animated,
-      isFalse,
-    );
-
-    await tester.tap(find.byKey(const Key("non-animated-menu-button")));
+    await tester.tap(find.byKey(const Key("animated-menu-button")));
     await tester.pump();
     final item = find.ancestor(
       of: find.text("打开"),
-      matching: find.byType(MenuItemButton),
+      matching: find.byType(PopupMenuItem<int>),
     );
     expect(item, findsOneWidget);
+    final route = ModalRoute.of(tester.element(item));
+    expect(
+      AmeMenuTransition.popupAnimationStyle,
+      isNot(AnimationStyle.noAnimation),
+    );
+    expect(route?.transitionDuration, AmeMenuTransition.duration);
+    expect(route?.reverseTransitionDuration, AmeMenuTransition.duration);
+    expect(route?.animation?.isCompleted, isFalse);
+
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(route?.animation?.value, greaterThan(0));
+    expect(route?.animation?.value, lessThan(1));
+    await tester.pumpAndSettle();
     await tester.tapAt(tester.getCenter(item));
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(activationCount, 1);
   });
 
-  testWidgets("keeps non-animated anchored menus keyboard navigable", (
+  testWidgets("uses the same transition contract for direct popup routes", (
     tester,
   ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              key: const Key("popup-menu-button"),
+              onPressed: () {
+                unawaited(
+                  showAmePopupMenu<void>(
+                    context: context,
+                    position: const RelativeRect.fromLTRB(24, 24, 24, 24),
+                    labels: const ["打开"],
+                    items: const [PopupMenuItem<void>(child: Text("打开"))],
+                  ),
+                );
+              },
+              child: const Text("菜单"),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tap(find.byKey(const Key("popup-menu-button")));
+    await tester.pump();
+
+    final route = ModalRoute.of(tester.element(find.text("打开")));
+    expect(route?.transitionDuration, AmeMenuTransition.duration);
+    expect(route?.reverseTransitionDuration, AmeMenuTransition.duration);
+    await tester.pumpAndSettle();
+    await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets("keeps popup-route menus keyboard navigable", (tester) async {
     final anchorFocusNode = FocusNode(debugLabel: "menu anchor");
-    final firstItemFocusNode = FocusNode(debugLabel: "first menu item");
-    final secondItemFocusNode = FocusNode(debugLabel: "second menu item");
     addTearDown(anchorFocusNode.dispose);
-    addTearDown(firstItemFocusNode.dispose);
-    addTearDown(secondItemFocusNode.dispose);
-    var activationCount = 0;
+    int? selected;
 
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAmeTheme(),
         home: Scaffold(
-          body: AmeMenuAnchor(
-            childFocusNode: anchorFocusNode,
-            menuChildren: [
-              MenuItemButton(
-                focusNode: firstItemFocusNode,
-                onPressed: () {},
-                child: const Text("第一项"),
-              ),
-              MenuItemButton(
-                focusNode: secondItemFocusNode,
-                onPressed: () => activationCount += 1,
-                child: const Text("第二项"),
-              ),
+          body: AmePopupMenuButton<int>(
+            labels: const ["第一项", "第二项"],
+            items: const [
+              PopupMenuItem(value: 1, child: Text("第一项")),
+              PopupMenuItem(value: 2, child: Text("第二项")),
             ],
-            builder: (context, controller, child) => IconButton(
+            onSelected: (value) => selected = value,
+            builder: (context, openMenu) => IconButton(
               key: const Key("keyboard-menu-button"),
               focusNode: anchorFocusNode,
-              onPressed: () => toggleAmeMenu(controller),
+              onPressed: openMenu,
               icon: const Icon(Symbols.more_horiz_rounded),
             ),
           ),
@@ -305,38 +499,32 @@ void main() {
     expect(anchorFocusNode.hasFocus, isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text("第一项"), findsOneWidget);
     expect(find.text("第二项"), findsOneWidget);
-    expect(anchorFocusNode.hasFocus, isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
-    expect(firstItemFocusNode.hasFocus, isTrue);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
     await tester.pump();
-    expect(secondItemFocusNode.hasFocus, isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.enter);
-    await tester.pump();
-    expect(activationCount, 1);
+    await tester.pumpAndSettle();
+    expect(selected, 2);
     expect(find.text("第一项"), findsNothing);
     expect(anchorFocusNode.hasFocus, isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.space);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text("第一项"), findsOneWidget);
-    await tester.sendKeyEvent(LogicalKeyboardKey.arrowDown);
-    await tester.pump();
-    expect(firstItemFocusNode.hasFocus, isTrue);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-    await tester.pump();
+    await tester.pumpAndSettle();
     expect(find.text("第一项"), findsNothing);
     expect(anchorFocusNode.hasFocus, isTrue);
   });
 
-  testWidgets("isolates menu and tooltip overlay traversal semantics", (
+  testWidgets("keeps MenuAnchor portals out of anchored popup menus", (
     tester,
   ) async {
     final semanticsHandle = tester.ensureSemantics();
@@ -347,14 +535,14 @@ void main() {
           home: Scaffold(
             body: ListView(
               children: [
-                AmeMenuAnchor(
-                  menuChildren: const [
-                    MenuItemButton(onPressed: null, child: Text("菜单项")),
-                  ],
-                  builder: (context, controller, child) => IconButton(
+                AmePopupMenuButton<int>(
+                  labels: const ["菜单项"],
+                  items: const [PopupMenuItem(value: 1, child: Text("菜单项"))],
+                  onSelected: (_) {},
+                  builder: (context, openMenu) => IconButton(
                     key: const Key("menu-with-tooltip"),
                     tooltip: "更多",
-                    onPressed: () => toggleAmeMenu(controller),
+                    onPressed: openMenu,
                     icon: const Icon(Symbols.more_horiz_rounded),
                   ),
                 ),
@@ -364,45 +552,30 @@ void main() {
         ),
       );
 
-      final traversalBoundaries = find.ancestor(
-        of: find.byKey(const Key("menu-with-tooltip")),
-        matching: find.byWidgetPredicate(
-          (widget) =>
-              widget is Semantics &&
-              widget.container &&
-              widget.explicitChildNodes,
-        ),
-      );
-      expect(traversalBoundaries, findsNWidgets(2));
-
-      var semanticsRoot = tester.getSemantics(
-        find.byKey(const Key("menu-with-tooltip")),
-      );
-      var parent = semanticsRoot.parent;
-      while (parent != null) {
-        semanticsRoot = parent;
-        parent = semanticsRoot.parent;
-      }
-      expect(_countTraversalParents(semanticsRoot), 2);
+      expect(find.byType(MenuAnchor), findsNothing);
+      await tester.tap(find.byKey(const Key("menu-with-tooltip")));
+      await tester.pumpAndSettle();
+      expect(find.text("菜单项"), findsOneWidget);
+      expect(find.byType(MenuAnchor), findsNothing);
     } finally {
       semanticsHandle.dispose();
     }
   });
 
-  testWidgets("toggles anchored menus from the same button", (tester) async {
-    final controller = MenuController();
+  testWidgets("dismisses an anchored popup from its button position", (
+    tester,
+  ) async {
     await tester.pumpWidget(
       MaterialApp(
         theme: buildAmeTheme(),
         home: Scaffold(
-          body: AmeMenuAnchor(
-            controller: controller,
-            menuChildren: const [
-              MenuItemButton(onPressed: null, child: Text("菜单项")),
-            ],
-            builder: (context, controller, child) => IconButton(
-              key: const Key("anchored-menu-button"),
-              onPressed: () => toggleAmeMenu(controller),
+          body: AmePopupMenuButton<int>(
+            labels: const ["菜单项"],
+            items: const [PopupMenuItem(value: 1, child: Text("菜单项"))],
+            onSelected: (_) {},
+            builder: (context, openMenu) => IconButton(
+              key: const Key("popup-anchor-button"),
+              onPressed: openMenu,
               icon: const Icon(Symbols.more_horiz_rounded),
             ),
           ),
@@ -410,11 +583,12 @@ void main() {
       ),
     );
 
-    await tester.tap(find.byKey(const Key("anchored-menu-button")));
+    final button = find.byKey(const Key("popup-anchor-button"));
+    await tester.tap(button);
     await tester.pumpAndSettle();
     expect(find.text("菜单项"), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key("anchored-menu-button")));
+    await tester.tapAt(tester.getCenter(button));
     await tester.pumpAndSettle();
     expect(find.text("菜单项"), findsNothing);
   });
@@ -465,15 +639,6 @@ T _require<T>(T? value, String description) {
     throw TestFailure("Missing $description");
   }
   return value;
-}
-
-int _countTraversalParents(SemanticsNode node) {
-  var count = node.getSemanticsData().traversalParentIdentifier == null ? 0 : 1;
-  node.visitChildren((child) {
-    count += _countTraversalParents(child);
-    return true;
-  });
-  return count;
 }
 
 void _expectTextFits(WidgetTester tester, String label) {

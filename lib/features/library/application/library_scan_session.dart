@@ -1,5 +1,6 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
+import "library_scan_target.dart";
 
 const _recentIssueLimit = 20;
 
@@ -9,7 +10,7 @@ class LibraryScanTransition {
     this.shouldReloadCatalog = false,
   });
 
-  final LibraryState state;
+  final LibraryPrimaryScanSnapshot state;
   final bool shouldReloadCatalog;
 }
 
@@ -17,12 +18,21 @@ class LibraryScanSession {
   String? _activeScanId;
   RecoverableLibraryScan? _activeScan;
   RecoverableLibraryScan? _pausedScan;
+  LibraryScanTarget _target = const LibraryDirectoryScan();
+
+  LibraryScanTarget get target => _target;
 
   String? get activeScanId => _activeScanId;
 
   RecoverableLibraryScan? get pausedScan => _pausedScan;
 
-  void begin(RecoverableLibraryScan scan) {
+  void confirmSourceAdmission() => _target = const LibraryDirectoryScan();
+
+  void begin(
+    RecoverableLibraryScan scan, {
+    LibraryScanTarget target = const LibraryDirectoryScan(),
+  }) {
+    _target = target;
     _activeScanId = scan.scanId;
     _activeScan = scan;
     _pausedScan = null;
@@ -34,7 +44,10 @@ class LibraryScanSession {
     _pausedScan = scan;
   }
 
-  LibraryScanTransition apply(LibraryState state, LibraryScanUpdate update) {
+  LibraryScanTransition apply(
+    LibraryPrimaryScanSnapshot state,
+    LibraryScanUpdate update,
+  ) {
     switch (update) {
       case LibraryScanStarted(
         :final scanId,
@@ -43,6 +56,7 @@ class LibraryScanSession {
         :final entryLimit,
       ):
         _activeScanId = scanId;
+        confirmSourceAdmission();
         return LibraryScanTransition(
           state: state.copyWith(
             status: LibraryStatus.scanning,
@@ -119,16 +133,15 @@ class LibraryScanSession {
       case LibraryScanCompleted(
         :final assetCount,
         :final issueCount,
-        :final catalogPath,
         :final wasLimited,
       ):
         _clearActive();
         return LibraryScanTransition(
           state: state.copyWith(
             status: LibraryStatus.refreshing,
+            publication: LibraryScanPublication.reloadPending,
             stagedAssetCount: assetCount,
             issueCount: issueCount,
-            catalogPath: catalogPath,
             isScanLimited: wasLimited,
             isResumingScan: false,
           ),
@@ -196,7 +209,10 @@ class LibraryScanSession {
     }
   }
 
-  LibraryState fail(LibraryState state, Object error) {
+  LibraryPrimaryScanSnapshot fail(
+    LibraryPrimaryScanSnapshot state,
+    Object error,
+  ) {
     _clearActive();
     return state.copyWith(
       status: LibraryStatus.failed,
@@ -205,7 +221,7 @@ class LibraryScanSession {
     );
   }
 
-  LibraryState finish(LibraryState state) {
+  LibraryPrimaryScanSnapshot finish(LibraryPrimaryScanSnapshot state) {
     if (state.status != LibraryStatus.scanning &&
         state.status != LibraryStatus.pausing &&
         state.status != LibraryStatus.cancelling) {
@@ -239,6 +255,12 @@ class LibraryScanSession {
       acceptedItems: acceptedItems,
       issueCount: issueCount,
     );
+  }
+
+  void clear() {
+    _clearActive();
+    _pausedScan = null;
+    _target = const LibraryDirectoryScan();
   }
 
   void _clearActive() {
