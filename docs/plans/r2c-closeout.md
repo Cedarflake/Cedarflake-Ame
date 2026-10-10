@@ -23,9 +23,12 @@ Updated 2026-10-10. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
+Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sandbox diagnosis
+and continue functional repairs and native verification through isolated host storage. Environment
+investigation and evidence maintenance do not displace these user workflows.
+
 The [current hosted Rust failure](../acceptance/r2c-interleaving-remediation.md#hosted-rust-failures-on-1b8b2b0)
-admits a bounded independent continuation alongside Sandbox readiness work. Keep native Release
-scenarios pending until guest readiness is established; do not repeat Sandbox installation.
+admits a bounded independent continuation within the Ame functional repair batch.
 Use at most 45 active minutes to resolve the offline/available fixture's identity-lookup race:
 prove same-volume rename discovery, place unavailable-volume behavior at its existing injectable
 platform boundary, and preserve exact-generation gap, consumer-lineage and no-full-scan assertions.
@@ -49,68 +52,14 @@ all ten required jobs and the aggregate, including both corrected availability c
 complete Rust workload. Preserve the earlier C01/C02 failures and the interrupted local invocation;
 do not replay a complete gate for the subsequent evidence-only documentation.
 
-The completed restart clears the component-servicing pending marker and supplies a changed
-environment for one fresh empty CLI-owned Sandbox check. Reserve at most 15 active preparation
-minutes and one 180-second guest lifetime, retaining the existing seven-GiB entry floor, three-GiB
-guest, two-GiB reserve, isolated empty mappings, receipt/screenshot binding and exact-ID retirement.
-Reuse the reviewed helper closure with a fresh identity after hash and boundary checks; preserve
-all earlier failed identities. Readiness permits preparation of the remaining Release workflows,
-not acceptance of those workflows. No further installation, feature/service change or restart is
-included. If admission or creation fails, record that specific boundary and continue independent
-work rather than replaying the same guest method.
-
-The post-restart empty check now fails creation with `0x80370106` despite 9.25 GiB available at
-admission. Its 5405-ms lifetime retires its exact identity with no remaining guest; preserve the
-missing readiness and native evidence. Stop unchanged guest retries. The next diagnosis reads only
-the three protected Hyper-V Admin channels for the existing 12-second failure window, at most 16
-entries each, with a 60-second owned worker deadline and one-MiB local output cap. Reserve at most
-15 active minutes for export preparation and classification, excluding user interaction with
-Windows elevation. The first export's empty result is invalidated by a reproduced UTC/local
-`FilterHashtable` defect. The corrected UTC XPath method has positive and negative calibration,
-then records a guest-initiated reset about 99 ms after VM start. Preserve both methods and results;
-this is not yet the reset's cause. Charge that reservation in full and reserve a further 15 active
-minutes for the corrected classification and one prepared read of Compute/Worker Operational
-channels over the same 12-second interval, with the same 16-entry/channel, 60-second worker and
-one-MiB bounds. That extra protected-channel read now completes in 708 ms: ten Compute events and
-two Worker events identify pending operations, unexpected exit and already-stopped termination,
-with no inner reset reason. Both export processes retire. Charge the additional reservation in
-full. These reads include no new guest, trace session, system setting, feature, service or language
-change. Use an actual internal error to select any separate repair; this noncausal result does not
-admit an unchanged retry.
-
-The existing-event method is exhausted without a specific reset cause. Reserve 25 active minutes
-to prepare and check a separate startup-trace method: one GUID-owned ETW session for the installed
-Compute and Worker providers, a 64-MiB circular file, at most 200 seconds of capture and bounded
-owned-command cleanup. Pair it with one fresh empty canary under the unchanged 180-second guest,
-seven-GiB entry and two-GiB reserve limits. Preparation starts neither ETW nor a guest. Execution
-needs a Windows elevation prompt because it enables privileged provider capture; the previous
-approval covers existing-event reads only. Keep all trace data local and ignored, stop only the
-exact owned session, preserve earlier failures, and change no persistent logging, feature, service,
-language or security setting. This method seeks an internal error, not a readiness pass from another
-unchanged launch. A later repair still requires evidence of its owning cause.
-
-That preparation passes its lifecycle, changed-input, receipt and existing canary checks. Following
-approval and restored memory, the trace and fresh empty guest each run once; guest creation still
-fails. Regular trace retirement also fails, requiring exact-session native cleanup. Final queries
-confirm no remaining owned trace or guest. Preserve the failed 200-second capture boundary and
-the 237908-ms complete retirement separately. Charge the preparation reservation in full. The
-two newly visible connection errors occur after guest reset and identify no failing boot component.
-Stop further guest/trace launches under this method; any future trace needs integrated native
-retirement first. No system repair is selected from these noncausal host-side errors. The
-[trace preparation record](../acceptance/r2c-closeout-cycle.md#bounded-hyper-v-trace-preparation)
-and [trace result](../acceptance/r2c-closeout-cycle.md#bounded-hyper-v-trace-result) bind the helpers,
-failed retirement and verification limits. Independent C01/C02 and client obligations remain open.
-
 The subsequent read-only C02 recovery finds a retained direct `ReplaceFileW` failure with code
 1175, distinct from the passing controlled mapping arms. Its parent exit code is missing, so retain
 it as attribution evidence only. The owning record now distinguishes those observations; the
 native failure does not identify its filesystem actor or explain the separate UIA loading timeout.
 Current strong-name assembly loading already predates that hosted timeout. Neither an equivalent
 PowerShell rewrite nor an unchanged UIA/whole-gate replay is admitted by this evidence correction.
-Sandbox's configured guest memory also exceeds its documented boot minimum; do not select an
-arbitrary larger-memory retry as a causal repair. No new experiment allowance is opened here.
 
-While guest resource admission is unavailable, reserve at most 25 active minutes for a minimal
+The retained native-retirement calibration reserves at most 25 active minutes for a minimal
 PSS acquisition calibration. One owned helper may capture only its own thread IDs using
 `PSS_CAPTURE_THREADS`, with no address-space clone, context, handle table, stack, ETW or unrelated
 process acquisition. Bind known fixture threads through their native IDs and creation times before
@@ -425,8 +374,7 @@ minutes for adoption and this revised native method, excluding serial builds and
 The actual adoption and first normal Release lifetime now pass. Complete one distinct populated
 EXE restart from that closed profile, with no navigation or original-image read, a 180-second
 lifetime ceiling and the same two-GiB memory bound. Recheck unchanged source membership, absence
-of new scan/inventory runs, original recovery snapshot and normal close. This host-profile restart
-does not replay or repair the failed isolated Sandbox guest.
+of new scan/inventory runs, original recovery snapshot and normal close.
 
 The first restart observation is interrupted through physical Escape after reported control-induced
 mouse lag. Preserve that interruption and exact owned-process cleanup; it is not an application
@@ -804,76 +752,6 @@ hosted jobs, unsigned Release verification and the selected native bulk workload
 failures and remaining actual client paths, final candidate gates,
 review and external acceptance prerequisites remain explicit; a local pass does not replace them.
 
-### Current Release populated restart preparation
-
-While real-candidate identity authorization is pending, select the remaining UX-01A Release
-populated restart and its connected browsing boundary. Reserve at most 45 active preparation
-minutes, ten native minutes, ten scoped review minutes and five recording minutes; canonical build
-and source-oracle wall time remain separately recorded. Preserve all preceding failed lifetimes
-and allowances. Reuse the frozen 10000-image mixed-size/historical corpus without changing it and
-build the current source through the canonical unsigned Windows entrypoint. This artifact is for
-the selected client check, not a claim that the unfinished repair batch has passed final gates.
-
-Use one fresh Windows Sandbox normal profile with two distinct owned Release application
-lifetimes. Import through the actual picker, wait for exact publication, browse historical dates
-and close normally. Relaunch the identical EXE against that same normal-profile catalog, observe
-the populated wall and actual viewer return, then close normally. Retain the closed catalog after
-each lifetime, unchanged source membership/hashes/dates, distinct PIDs, source/artifact bindings,
-per-lifetime memory and same-host close timing. Record any new recovery/inventory work explicitly;
-visible pixels alone cannot establish zero source calls. Reuse the instrumented no-change boundary
-only where its source and conditions remain applicable.
-
-Keep the existing 3072-MiB guest, seven-GiB host startup floor, two-GiB host reserve and two-GiB app
-ceiling. Preparation does not admit a guest when the host floor is unmet. Retain the 900-second
-outer lifetime, six-second app close and native host-close retirement; both app lifetimes share
-the existing guest deadline. Do not enable Release test-storage overrides, use real media or change
-service, signing or host settings. Prepare and review the phase/receipt checks before admission;
-one failed prerequisite or lifetime stops this method without an unchanged replay.
-
-This preparation checkpoint has produced a passing current unsigned Release build and a bound
-fresh generated payload, but no Sandbox or application lifetime has started. The independent helper
-review exposed unproven requested-close evidence, queued-phase admission after abort, and missing
-bounded Sandbox retirement after failure. The first two now have corrections and focused evidence;
-the last remains open. The new launcher fails closed before admission, and its previously copied
-guest helpers must be rebound after the remaining retirement owner is resolved. Do not launch it,
-repeat the passing build, or interpret its prepared 10000-file mapping as native acceptance.
-Conservatively charge 40 active preparation minutes and the ten-minute review reservation; build
-wall time is separate. The latest host probe also remains below the seven-GiB startup floor.
-The [Release preparation record](../acceptance/r2c-release-native.md#populated-restart-preparation-checkpoint)
-owns the source binding, helper checks and exact unverified gap. Preserve the pending real-source
-audit authorization and both old source bindings; this work does not establish combined-directory
-identity or resolve the original browsing incidents.
-
-Resolve the failed-retirement prerequisite through one bounded ownership experiment before the
-prepared Release workload. Allow at most 25 active implementation minutes, ten review minutes and
-five recording minutes, plus one 180-second empty Sandbox lifetime and at most 30 seconds of
-failure retirement. Reuse the existing kill-on-close process Job; do not kill processes by name,
-repair/install the unavailable Sandbox CLI, broaden host privileges, or touch any source corpus.
-The empty guest uses the same 3072-MiB allocation, read-only input/writable evidence mappings and
-seven-GiB host entry/two-GiB reserve. Capture the baseline and actual Sandbox/VM process epochs,
-wait for the exact guest-ready receipt, then exercise the owned Job's failure disposal. Require
-the new client/VM process epochs to disappear while unrelated baseline processes remain. If the
-platform detaches the instance or ownership/retirement cannot be proved, retain the failure and
-keep the populated launcher closed; no unchanged replay or named-process termination is admitted.
-The normal populated workload still closes through native input. This experiment tests only its
-failure cleanup prerequisite and cannot substitute for either application lifetime or UX-01A.
-
-The single empty experiment is consumed and failed before guest readiness. After resource-only
-refusals without a launch, the fresh admission meets the seven-GiB floor, but Windows reports
-`0x80370106` during Sandbox initialization. The parent ends at 151150 ms with no guest-ready
-receipt. Its 432-ms final cleanup observes no residual Sandbox/VM epochs; because no running VM
-epoch was captured, this does not prove failure retirement of an initialized guest. Preserve that
-distinction and the original receipts. The Release controller now delegates owned Job disposal and
-checks complete prerequisite evidence, but its refreshed host/guest binding and connected lifetime
-remain unverified. Its admission is still closed. No unchanged empty replay, populated launch,
-additional memory request, host repair or elevation follows from this result. Charge the remaining
-five preparation minutes and the 25-minute retirement implementation reservation; the static
-canary review and evidence recording use their existing reservations. The later controller
-integration has focused refusal checks but awaits its scoped review after a viable changed method.
-The [failed empty initialization record](../acceptance/r2c-release-native.md#owned-sandbox-retirement-initialization-failure)
-retains the exact error, resource observations and unverified boundary. Continue independent R2c
-work while preserving the pending real-candidate authorization and unavailable signed inputs.
-
 ### Completion goal and required deliveries
 
 The 2026-09-22 direction explicitly requires completion of the existing R2c plan and all four
@@ -1027,161 +905,6 @@ available in this block.
 The remaining operation-internal cause is not an optimization mandate. Preserve the original
 diagnostic stop boundary and pursue a later repair only with a reproduced cause and a new bounded
 method; do not substitute repeated instrumentation or weaker source guards for that prerequisite.
-
-#### Populated no-change startup method
-
-After recording the current measurement checkpoint, select the still-open UX-01A populated-client
-observation while the separate exact-deletion authorization remains pending. This method is
-admitted on `bdf9fb7`; reserve at most 100 active minutes: 20 for
-the retained source/artifact and lifecycle map, 30 for the two-lifetime fixture, 15 for focused
-guardrails, 15 for one native execution, 15 for independent method/result review and five for records.
-
-Use the retained generated mixed-size/historical-date corpus and the same isolated Release payload
-or a verified current replacement. Keep host mappings read-only and all copies/catalogs inside the
-disposable guest. Import once, settle exact membership and decoded previews, normally close Ame,
-then relaunch that same guest profile without changing its sources, catalog, cache or settings.
-Observe populated cached content, usable root/gallery navigation, correct count and real decoded
-pixels after restart. Bind both distinct application PIDs, both normal exits, the preserved catalog
-identity and final source digests. The first process must retire before the second launches; a
-late first-process receipt/input binding cannot own or close the second lifetime.
-
-The existing guest supervisor accepts one app lifetime and a fresh profile; it cannot be reused by
-weakening that check or treating two PIDs as one. Establish a typed lifecycle owner for the two
-successive runs, reuse the existing process/Job boundary and independently prove late-receipt,
-failed-start and partial-cleanup rejection before launch. Preserve the 7 GiB host admission floor,
-3 GiB guest, 2 GiB client ceiling/host reserve, 900-second complete parent lifetime, 300-second
-import deadline and each six-second normal-close bound. If complete preparation cannot fit those
-existing limits, stop before launch and record the gap; no unchanged native replay is admitted.
-
-Combine the actual populated-client observation with the existing exact no-change source-call and
-inventory regressions only after mapping the same production startup/continuity owners. Catalog
-row/count equality alone is not evidence of zero source opens or enumeration. State which part is
-proved by native observation versus instrumented application tests; never promote a cached-content
-stand-in to populated-client evidence. This scope admits no deletion, real-root access, service
-installation, new media feature or additional M03 diagnostic benchmark.
-
-This method is admitted on `bdf9fb7`: reserve its 100 active minutes, bringing the cumulative
-envelope to 9059 charged / 9194 reserved, including the untouched conditional 35-minute deletion
-admission. Native execution still requires the typed two-lifetime owner, focused checks, source
-and payload binding, independent method review, and fresh resource admission described above.
-
-Preparation establishes two independently owned process lifetimes and passes 59 focused checks.
-The [prepared startup record](../acceptance/r2c-closeout-cycle.md#populated-release-startup-preparation)
-binds the reused Release, source corpus, observer-test boundary and corrected input guards.
-The initial launch guard observed only 6.79 GiB available; releasing the owned UI session left
-6.86 GiB, and a later check remained 6.84 GiB. No Sandbox or application started during those
-resource checks. Their unconsumed configuration was retained for fresh source/resource admission.
-
-Preparation charged 83 minutes for mapping, fixture implementation, focused checks, the first
-13 minutes of review allowance and records: cumulative accounting was 9142 charged / 9194 reserved.
-The 2026-09-25 execution now consumes the final 15-minute native allowance and two-minute evidence
-review. Memory admission and the complete host source checks pass, but Computer Use window access
-times out and no guest preparation or application receipt arrives. The parent expires at its
-unchanged 900-second deadline; its failure and later process disappearance remain separate in the
-[failed startup record](../acceptance/r2c-closeout-cycle.md#populated-release-startup-admission-failure).
-Charge this block's 100 minutes in full: cumulative accounting is 9159 charged / 9194 reserved;
-only the separate conditional 35-minute deletion allowance remains untouched. Resource and tool
-permission waiting are not engineering time. UX-01A remains open, and no unchanged native replay
-is admitted. A further method must first establish current window access and guest readiness with
-an empty Sandbox before reserving another media lifetime; it cannot infer guest execution or source
-safety from missing receipts or extend the original product deadlines.
-
-#### Empty Sandbox control and readiness prerequisite
-
-After the failed populated-startup admission, reserve 20 active minutes: five to prepare a fresh
-identity with the unchanged previously passing empty-Sandbox scripts, five for binding and
-isolation checks, five for one native readiness/close attempt, three for independent evidence
-review and two for records. Cumulative accounting is 9159 charged / 9214 reserved, including the
-untouched conditional 35-minute deletion allowance. This admits preparation now; native launch
-waits for the pending window-access confirmation. It adds no populated-client replay allowance.
-
-Use the existing three-GiB empty guest, seven-GiB host entry floor, two-GiB host reserve and
-180-second whole canary deadline. Map only its fresh read-only script directory and writeable
-receipt directory; include no application payload, catalog, media mapping, service or network.
-Preserve the previous failing lifetime and require a new run identity. Bind the reused helper
-hashes and verify the configuration before launch rather than regenerating or retesting product
-artifacts. The already passing guest checks remain useful method evidence, not proof that this
-guest will start.
-
-The current run must supply both a matching successful guest receipt and a screenshot from the
-returned Sandbox window before observed native close and confirmed process retirement. Neither
-window access alone nor an isolated guest receipt closes this prerequisite. Missing access,
-readiness, isolation or normal retirement ends the one attempt with its original result. Do not
-change permissions or services programmatically, extend the deadline, infer an unseen error, or
-start the media workload in the same lifetime. A successful prerequisite permits preparation of
-the separately bounded populated-client continuation, not retrospective acceptance of UX-01A.
-
-The fresh configuration and unchanged helper bindings now pass preparation and independent review;
-the [readiness preparation record](../acceptance/r2c-closeout-cycle.md#empty-sandbox-readiness-preparation)
-retains their exact identity. No native launch has occurred while tool-access confirmation is
-pending. Charge the 15 preparation/check/review/record minutes conservatively: cumulative accounting
-is 9174 charged / 9214 reserved. The one five-minute readiness attempt and the separate conditional
-35-minute deletion allowance remain unconsumed. No product or full media test is admitted here.
-
-The resumed readiness attempt now obtains the actual Sandbox screenshot and delivers the observed
-dialog's No action. Window access is available. The empty guest instead fails initialization with
-`0x80370106` (virtual machine or container exited unexpectedly), produces no guest receipt and
-retains the original 180-second failed verdict after its windows/processes retire. Memory stays
-above the retained reserve. Charge the remaining five minutes: 9179 charged / 9214 reserved;
-the conditional 35-minute deletion allowance remains untouched. Do not retain a pending window-
-permission question as the current blocker or attribute this empty-guest failure to Ame.
-
-#### Empty Sandbox software-rendering comparison
-
-Reserve one 20-minute follow-up under the standing continuation authority: five for preparation,
-five for one native attempt, five for independent review and five for recording. Cumulative
-accounting is 9179 charged / 9234 reserved. This tests one hypothesis, not a confirmed repair:
-whether avoiding virtual-GPU initialization permits the otherwise identical empty guest to start.
-Microsoft's [WSB configuration contract](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file#vgpu)
-supports `vGPU=Disable`, selecting software rendering. Do not infer that the installed display
-drivers caused the preceding generic initialization error; scoped available event logs do not
-establish its inner cause.
-
-Prepare a new identity and empty input/output using the unchanged canary helper closure, then add
-only `vGPU=Disable` to its WSB and bind the resulting configuration. Compare normalized XML and
-helper hashes against the preceding attempt. Keep the three-GiB guest, seven-GiB host entry,
-two-GiB reserve, 180-second deadline, read-only script mapping, disabled redirection/network,
-matching guest receipt, native screenshot and normal close/retirement requirements. Include no
-media or application payload. One independent review precedes launch. Preserve a failed result;
-this block admits neither another configuration sweep nor host service, feature, account, driver,
-security or profile changes. Success permits preparing a distinct bounded client continuation;
-it neither proves GPU performance nor completes populated restart acceptance.
-
-The independently reviewed comparison also fails with observed `0x80370106`, no guest receipt and
-the unchanged 180-second failed verdict. Native dismissal retires the window/process; disabling
-virtual GPU does not restore readiness. Charge the 20-minute block conservatively in full:
-9199 charged / 9234 reserved, including the untouched conditional 35-minute deletion allowance.
-The comparison's package and event records did not identify a specific offline volume or the
-inner guest-initialization cause. The separately authorized
-[component-restoration checkpoint](../acceptance/r2c-closeout-cycle.md#sandbox-component-restoration-checkpoint)
-binds the former Sandbox packages to an unmounted volume. Both data-preserving Store repairs
-failed with `0x80073D0D`. The subsequently authorized Sandbox-only reset and official reinstall
-now restore the package and all six components to the online system volume; package status is
-`Ok` and bounded CLI help/list succeed. This is an actual environment correction, not evidence
-of guest readiness. Revalidate the seven-GiB host floor before the prepared empty-guest check.
-The restored CLI can enumerate guest identities independently of its resident management server;
-that server alone must not be treated as a running guest or a guest-retirement failure.
-Remaining Release and platform evidence stay open.
-
-The restoration check uses one fresh CLI-owned guest identity. Keep the existing three-GiB guest,
-seven-GiB admission floor, two-GiB reserve, 180-second bound and empty isolated mappings. Require
-the matching guest receipt and native desktop screenshot, then stop only that guest through the
-official CLI. Confirm an empty CLI environment list and retirement of the new VM/client process
-epochs while preserving any baseline VM. The resident management server is excluded from guest
-retirement. This changes the host lifecycle method; it does not claim the earlier native-close or
-Job-based methods passed. Bind the adjusted helper hashes and validate positive and rejecting
-process/identity cases before launch. Missing memory admission permits no guest or media run.
-
-That single CLI attempt now fails during creation with `0x80370106`, before a guest receipt or
-desktop exists. Exact-ID stop, an empty environment list and process-baseline comparison confirm
-no remaining guest; they do not prove retirement of an initialized VM. The
-[restored CLI result](../acceptance/r2c-closeout-cycle.md#restored-sandbox-cli-initialization-failure)
-retains the failed lifetime and helper bindings. Read-only diagnosis finds enabled virtualization
-components and a pending component-servicing reboot, while protected Hyper-V channels remain
-unreadable. The pending restart was a prerequisite to resolve, not a proven cause. A subsequent
-host restart clears that marker; the current execution checkpoint admits one fresh empty check
-after resource admission. Perform no feature/service/locale changes or unchanged failed replay.
-Preserve the separate normal-profile storage and source boundaries throughout readiness work.
 
 #### Host-isolated populated Debug restart
 
@@ -2794,20 +2517,6 @@ infer all Release races from one successful normal sequence.
 The optimized Rust storage owner excludes `CEDARFLAKE_AME_TEST_STORAGE_ROOT`, and its pinned Windows
 directory adapter uses Known Folders rather than process environment aliases. Do not run the Release
 client against the workstation's ordinary profile or modify that profile's storage settings.
-Read-only CIM confirms the existing Windows Sandbox feature is installed. Use its documented
-[configuration and mapped-folder interface](https://learn.microsoft.com/en-us/windows/security/application-security/application-isolation/windows-sandbox/windows-sandbox-configure-using-wsb-file)
-to obtain a fresh guest profile. No feature installation, host security setting, administrator
-account creation, real-root access or service installation is admitted.
-
-First prove one bounded Sandbox start/stop and its output receipt before the media lifetime. Map
-only the exact generated source directories and verified unsigned Release payload as read-only;
-grant write access solely to the new run's output directory. Disable guest networking, clipboard,
-audio, video and printer redirection. Cap guest memory at 3072 MiB, retain at least 2 GiB available
-on the host and the original 2 GiB application ceiling, and admit only with at least 5 GiB host
-availability. Existing Sandbox sessions are never reused or terminated. Any missing input binding,
-mapping, runtime dependency, clean profile or owned shutdown evidence fails admission and requires
-a documented method change before media execution.
-
 Build with the canonical unsigned Windows entrypoint and retain its artifact manifest. The guest
 runs the actual optimized application and DLL using normal profile-owned storage. Drive picker,
 root/search/sort, time rail, viewer navigation/return and keyboard menus only through observed
@@ -2859,25 +2568,6 @@ bounded by a 1300.6344 ms same-host-clock observation. The complete lifetime nev
 guest shutdown leaves a host connection-lost feedback dialog past the unchanged 900-second parent.
 The observed dialog is declined and all Sandbox processes subsequently retire. Charge the full
 100-minute reservation through 4734 minutes; no full-lifetime or complete UX-variant pass follows.
-
-#### Native Sandbox retirement calibration
-
-Reserve 25 active minutes after that failure: ten for the changed diagnostic method, five for one
-empty native lifetime, five for focused review and five for records. Cumulative reservation becomes
-4759 minutes. This admits no application, source corpus, catalog, build or media replay. The guest
-finishes the same fresh-profile/read-only-mapping checks and writes its flushed receipt, then exits
-its helper without calling guest shutdown. Close the observed Sandbox host window normally and
-confirm disposal of this empty guest if prompted. Verify all owned Sandbox processes end within
-the unchanged 180-second empty admission deadline. Use a fresh GUID, 7 GiB host entry, 2 GiB host
-floor and 3072 MiB guest cap; retain any failure. No force-kill, unrelated window or feedback
-submission is admitted. Only a passing changed retirement method can admit a subsequent separately
-bounded media lifetime; neither calibration nor later success rewrites the failed parent above.
-
-The [empty calibration](../acceptance/r2c-release-native.md#normal-host-close-calibration) passes
-in 112801 ms with all Sandbox processes retired. Method review corrects late-completion acceptance
-and original-receipt overwrite before launch; an actual consumed-admission rejection preserves the
-passing receipt and starts no process. Independent result review confirms that limited conclusion.
-Charge 25 minutes in full through 4759 minutes.
 
 #### Complete normal Release lifetime with native host close
 

@@ -282,8 +282,7 @@ does not claim a new isolated Release client run or signed installed-service evi
 
 The final independent evidence recheck confirms the receipt/log bindings, totals and retained
 failure boundaries. At that checkpoint the populated-startup method is still queued; that review
-does not admit or execute its separate workload. Its subsequent preparation has a separate
-[current record](r2c-closeout-cycle.md#populated-release-startup-preparation).
+does not admit or execute its separate workload.
 
 The subsequent [hosted run on `54aa1ed`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/36010904727)
 fails Windows Scan while its other nine required jobs pass. The retained-import case passes;

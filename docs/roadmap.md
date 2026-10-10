@@ -204,12 +204,10 @@ repair admission, review, verification, stopping rules, and safety cautions.
    evidence cannot be inferred from widget remounts, static previews, MSAA, or unsigned bridge smoke.
    Selected populated Release restart now passes against the
    [recovered actual profile](acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart).
-   The [failed Sandbox admission](acceptance/r2c-closeout-cycle.md#populated-release-startup-admission-failure),
-   [empty guest initialization](acceptance/r2c-closeout-cycle.md#empty-sandbox-initialization-failure)
-   and software-rendering failures retain their separate environment boundary. The independent
-   [host-isolated Debug populated restart](acceptance/r2c-closeout-cycle.md#native-debug-populated-restart)
-   now passes; remaining guest-isolated Release variants still require guest readiness. Preserve the separate
-   instrumented no-source-call proof and remaining native variants.
+   The independent [host-isolated Debug populated restart](acceptance/r2c-closeout-cycle.md#native-debug-populated-restart)
+   also passes. Continue Ame's remaining browsing, update and preview workflows using isolated host
+   storage. Sandbox troubleshooting is stopped and is not a prerequisite for this work. Preserve
+   the separate instrumented no-source-call proof and remaining native variants.
    The four named maintenance implementations have focused and current local Daily evidence,
    including the passing Debug scan-cost gate. Remaining client and final-candidate obligations
    retain functional-incident priority. Use one independent reviewer; unrelated physical

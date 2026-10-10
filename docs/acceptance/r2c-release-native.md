@@ -78,51 +78,6 @@ connection; explicit connection closure corrects the diagnostic and the boundary
 Full host source verification passes afterward in 57.728 seconds for all 10516 retained generated
 files, including the unchanged 10000/512/2/2 active catalogs.
 
-## Host retirement failure and evidence limits
-
-Guest source/catalog finalization finishes and requests guest shutdown at 01:14:53.6172709 UTC.
-The interactive Sandbox Client remains at a connection-lost dialog, error `0x80072746`, asking
-whether to submit feedback. Consequently the host parent fails its unchanged 900-second deadline;
-after its cleanup allowance it records 931514 ms and surviving client PID 5768. This is a failed
-complete lifetime even though app exit, catalog and source checks passed. No failed receipt is
-rewritten. Declining feedback through the observed dialog at 01:17:24.061 UTC sends no report;
-at 01:17:44.7675017 UTC all Sandbox processes are confirmed retired.
-
-The screenshots establish selected actual Release pixels, delivered Left/Right/Escape inputs and
-stable observed return geometry. They do not cover every animation frame, all twelve dimensions
-in the original viewer, pending-request reversal, source-slot accounting, cache-key ownership,
-root/search/sort changes or complete menu/Tab focus return. The viewer and rail sequences map to
-partial UX-04A, UX-05A and UX-08A evidence, not blanket acceptance of those variants. Existing
-controlled race/ownership evidence remains separate. This VM does not prove host GPU performance,
-signed-service, real Journal, Cloud Files, retained-library or R2c acceptance.
-
-The 100-minute reservation is charged in full through 4734 minutes. The failed parent is closed;
-another media lifetime needs the recorded changed retirement method rather than an unchanged replay.
-
-## Normal host-close calibration
-
-One empty guest, `f409552af3f142df8e7c23b97da1817d`, verifies the changed ending. The helper writes
-its fresh-profile/read-only checks and exits without shutting down the guest. Native input closes
-the observed Sandbox window and confirms disposal of that empty guest. The host then records no
-surviving Sandbox process and passes in 112801 ms, below the unchanged 180-second deadline.
-Host entry is 7675490304 bytes and minimum availability is 3641511936; guest input denies writes
-with code 5. No application, image source or catalog is mapped in this calibration.
-
-Prelaunch review identifies and corrects two diagnostic evidence bugs: a completion poll could
-accept retirement after the deadline, and rerunning consumed configuration could overwrite the
-first receipt. Completion now rechecks the stopwatch; consumed admission is rejected before launch
-and final output uses `CreateNew`, with lock/wrapper disposal retained even on output failure.
-The actual post-pass rejection check starts no Sandbox and preserves the exact original receipt.
-All three diagnostic scripts parse; guest/preparation/runner sizes are 54/42/91 lines, with no
-product changes. Independent method and result review confirms the bounded calibration only.
-Charge the full 25-minute reservation through 4759 minutes; the earlier media timeout stays failed.
-
-Under that run's ignored fixture root, `host-canary.json`, `native-close.json` and
-`replay-rejection.json` have SHA-256 values
-`A52E558AD4B793196A4E17444E587E2A44F0E0CAE31FEF59BF3AE1BEB6A2935D`,
-`1BD39DCCC592A2ABDCC56828ADEBCB79D788AE81FBA5941D27F7EE4D58BAB7C0` and
-`1CFABDFDDB4B2B1CB934BD88F77F869D15BF1C54DB5C949054CCF4ABBB977EAF` respectively.
-
 ## Complete native lifetime with normal host close
 
 The adapted media method passes independent prelaunch review, but admission
@@ -1330,41 +1285,3 @@ verdict, zero-source-call result or UX-01A completion follows from this checkpoi
 build needs no unchanged replay. Both application lifetimes, final source preservation and complete
 normal retirement remain unexecuted; combined-source correspondence and the original retained
 browsing/update reports remain separate open work.
-
-### Owned Sandbox retirement initialization failure
-
-The single empty Job-owned experiment on 2026-09-28 consumes its admission without starting Ame.
-Its local run is `8c5eb08ecfed45909fcc47c7f89025f3`; it maps only generated helper input and empty
-evidence storage, with no image corpus or catalog. Two earlier resource-only refusals at 6.53 and
-6.51 GiB produce neither a start receipt nor a guest. The admitted attempt follows the subsequent
-7.24-GiB observation and retains the seven-GiB startup floor, 3072-MiB guest and two-GiB host reserve.
-
-Native observation displays Windows Sandbox's initialization error `0x80370106`, reporting that
-the virtual machine or container exited unexpectedly. No guest-ready receipt is produced. The
-parent ends after 151150 ms with `Empty guest readiness expired`; sampled host availability stays
-above the reserve. Final owned-Job disposal and process comparison finish in 432 ms, with no
-remaining Sandbox/VM process epochs and no missing baseline. The baseline and admitted VM roster
-are both empty. Consequently this is **failed initialization**, not successful retirement of a
-running guest. A requested native dismissal reports intervening input; subsequent fresh window
-enumeration finds no Sandbox window. The input is not recorded as a successful delivered click.
-
-The ordinary host token cannot read the Hyper-V Compute/Worker diagnostic channels (`Attempted
-to perform an unauthorized operation`). The initially empty event query therefore does not prove
-absence of a platform error. No event-log permission, host setting, package, service or privilege
-changes. The initialization cause remains unestablished; it is not attributed to Ame, low memory,
-the process Job, or a Windows update without causal evidence.
-
-The prepared Release controller now uses the existing owned process Job, separates primary failure
-from cleanup results, and releases its repository lock even when admission or cleanup fails. A
-dedicated prerequisite owner requires both the empty guest lifetime and observed VM retirement;
-the failed actual record is rejected. One passing and thirteen rejecting focused cases cover
-wrong run, failed readiness, deadline/resource excess, residual or changed VM baselines and missing
-client/VM observation. Actual refused media admission leaves its output untouched and releases the
-repository lock. These checks and PowerShell parsing pass; the later controller integration has
-not yet received independent review or a connected run. The copied populated configuration lacks
-the new host binding and still predates the final guest abort correction, so it cannot launch.
-
-Preserve the original input hashes and receipts. No populated Release test, new build, source
-operation, zero-source-call proof or UX-01A pass is claimed. The failed empty method is closed to
-unchanged replay. This preparation cannot close combined-source continuity or the original retained
-gallery/update incidents.

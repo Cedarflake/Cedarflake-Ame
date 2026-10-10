@@ -798,8 +798,7 @@ it has no normal-lifetime acceptance. A subsequent closed-catalog check preserve
 source payloads and scan history. The changed restart method uses accessibility text without
 screenshots and only a normal close input. It displays the populated 64490-item gallery and exits
 zero in a complete 35390-ms lifetime, with peak working set 172257280 bytes and no remaining Ame
-process. This satisfies the selected actual-profile populated Release restart; the failed Sandbox
-guest and its separate environment boundary remain unchanged.
+process. This satisfies the selected actual-profile populated Release restart.
 
 After both successful lifetimes, all published identity/source fields, roots, assets, scan runs
 and metadata-inventory runs match the adopted baseline. There are zero new scans or inventories;
