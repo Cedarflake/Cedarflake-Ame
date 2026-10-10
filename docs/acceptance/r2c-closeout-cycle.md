@@ -1063,6 +1063,37 @@ Host-start/result SHA-256 values are
 The independent Debug populated-restart method proceeds without reclassifying either failed
 Sandbox run or closing the separate Release requirement.
 
+### Sandbox component restoration checkpoint
+
+On 2026-10-10, explicit authorization admits restoration of the existing Sandbox component from
+Microsoft's official source to an online volume, preserving application data. The valid
+Microsoft-signed system launcher and the official Store lookup independently identify product
+`9NSMXC3NB0HN`, package family `MicrosoftWindows.WindowsSandbox_cw5n1h2txyewy`.
+
+The installed WinGet Store repair fails with `0x80073D0D`. Deployment activity
+`02b43ff8-56e0-000d-46bc-9f04e056dd01` validates the Microsoft Windows bundle signature but fails
+staging before reaching the queued deployment state. A policy-checked second repair explicitly
+sets `AppInstallOptions.TargetVolume` to the verified online system volume, retains `Repair=true`
+and disallows forced application restart. It reaches download progress and fails with the same
+code. Its error identifies the installed volume of existing versions as the update prerequisite.
+The exact-product cancellation leaves no pending Sandbox Store operation.
+
+Per-volume `FindPackagesForUser` now locates the main package, bundle and four resource packages
+on the offline package volume, with none on the online system volume. Its former mount path is
+unavailable and no currently mounted volume has the recorded identity. This establishes the
+previously missing package-to-volume binding. The package remains version `0.8.107.0`, with
+`PackageOffline, DataOffline, NotAvailable` and no install location. It does not establish the
+complete cause of the earlier `0x80370106` guest failures.
+
+The [official deployment-error contract](https://learn.microsoft.com/en-us/windows/win32/appxpkg/troubleshooting)
+defines this offline-volume condition. The [target-volume API](https://learn.microsoft.com/en-us/uwp/api/windows.applicationmodel.store.preview.installcontrol.appinstalloptions.targetvolume?view=winrt-26100)
+selects installation storage; it did not repair the unavailable prior registration in this run.
+Sandbox-only removal and Store reinstallation is prepared, not executed. The Store package is
+removable and is not a development registration; the [data-preservation removal option](https://learn.microsoft.com/en-us/powershell/module/appx/remove-appxpackage?view=windowsserver2025-ps#-preserveapplicationdata)
+does not promise to preserve its preferences. That additional effect is awaiting confirmation.
+No host feature, service, driver, volume mapping, other package, Ame data or media is changed.
+No empty guest or Release application lifetime follows these failed repairs.
+
 ### Native Debug populated restart
 
 The host-isolated method calls production `main` through a Debug-only admission entrypoint, using

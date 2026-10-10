@@ -1047,10 +1047,14 @@ The independently reviewed comparison also fails with observed `0x80370106`, no 
 the unchanged 180-second failed verdict. Native dismissal retires the window/process; disabling
 virtual GPU does not restore readiness. Charge the 20-minute block conservatively in full:
 9199 charged / 9234 reserved, including the untouched conditional 35-minute deletion allowance.
-The Sandbox package reports offline/unavailable state, but the available package and event records
-do not establish its inner failure or a specific offline volume. No further empty-guest sweep or
-host repair follows from this comparison. Tool access is available; the execution goal continues
-through the independent host-isolated functional method below.
+The comparison's package and event records did not identify a specific offline volume or the
+inner guest-initialization cause. The separately authorized
+[component-restoration checkpoint](../acceptance/r2c-closeout-cycle.md#sandbox-component-restoration-checkpoint)
+now binds the existing Sandbox packages to an unmounted volume. Both the ordinary Store repair
+and an explicit online-system-volume repair fail with `0x80073D0D`. Reinstalling only Sandbox is
+prepared but awaits confirmation because it can discard that application's preferences; the
+approved data-preserving repair does not cover that effect. No further empty-guest sweep follows
+from a failed repair. Tool access is available, and independent functional work remains admitted.
 
 #### Host-isolated populated Debug restart
 
