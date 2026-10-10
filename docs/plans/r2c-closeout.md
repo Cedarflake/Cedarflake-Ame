@@ -89,12 +89,17 @@ exact owned session, preserve earlier failures, and change no persistent logging
 language or security setting. This method seeks an internal error, not a readiness pass from another
 unchanged launch. A later repair still requires evidence of its owning cause.
 
-That preparation now passes its lifecycle, changed-input, receipt and existing canary checks,
-without starting ETW or consuming the fresh guest identity. The current 6177988608-byte memory
-reading is below the unchanged seven-GiB floor. Keep the prepared method pending resource admission
-and Windows consent; do not launch or lower the floor to complete this checkpoint. The
+That preparation passes its lifecycle, changed-input, receipt and existing canary checks. Following
+approval and restored memory, the trace and fresh empty guest each run once; guest creation still
+fails. Regular trace retirement also fails, requiring exact-session native cleanup. Final queries
+confirm no remaining owned trace or guest. Preserve the failed 200-second capture boundary and
+the 237908-ms complete retirement separately. Charge the preparation reservation in full. The
+two newly visible connection errors occur after guest reset and identify no failing boot component.
+Stop further guest/trace launches under this method; any future trace needs integrated native
+retirement first. No system repair is selected from these noncausal host-side errors. The
 [trace preparation record](../acceptance/r2c-closeout-cycle.md#bounded-hyper-v-trace-preparation)
-binds the helpers and their verification limits.
+and [trace result](../acceptance/r2c-closeout-cycle.md#bounded-hyper-v-trace-result) bind the helpers,
+failed retirement and verification limits. Independent C01/C02 and client obligations remain open.
 
 While guest resource admission is unavailable, reserve at most 25 active minutes for a minimal
 PSS acquisition calibration. One owned helper may capture only its own thread IDs using

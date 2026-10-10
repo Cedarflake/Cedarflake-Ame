@@ -1248,6 +1248,42 @@ available bytes, below the unchanged seven-GiB floor. This preparation therefore
 guest now. Runtime still requires adequate memory and Windows consent for privileged provider
 capture, a different operation from the completed existing-event exports.
 
+### Bounded Hyper-V trace result
+
+After approval and a successful memory recheck, the prepared trace and empty canary each execute
+once. The canary admits 8194252800 available bytes, returns the same `0x80370106` and retires its
+exact guest identity in a 7831-ms parent lifetime. The baseline and final environment lists are
+empty. No guest-ready receipt, Ame launch, media mapping or native screenshot is produced.
+
+The trace starts successfully. Its regular stop returns `0x80071068`
+(`ERROR_WMI_GUID_NOT_FOUND`) after the canary completes, and the exact session remains active.
+The failed retirement receipt is preserved rather than treated as a successful trace lifetime.
+A separately prepared cleanup uses documented
+[`ControlTraceW`](https://learn.microsoft.com/en-us/windows/win32/api/evntrace/nf-evntrace-controltracew),
+rejecting every other session name and checking the returned output path before stopping. Its
+initial source-extraction check fails before compilation; the corrected check compiles, confirms
+the 120-byte x64 layout and rejects a foreign name before any native call. The actual cleanup
+returns query/stop codes 0/0 and subsequent query code 4201, meaning the owned session is absent.
+An independent `logman` query also finds no such session; all three known helper processes retire.
+
+Actual trace retirement is 237908 ms after helper start. The 200-second capture limit is exceeded
+because regular cleanup fails; the four-minute complete boundary is met only by the native cleanup.
+Do not label the original helper passed or repeat this lifecycle unchanged. The finalized file is
+589824 bytes, below its 64-MiB bound. Offline reading finds 20 events without reaching its 4096-event
+read limit. VM start is 08:40:07.8093032 UTC and guest-initiated reset is 08:40:07.9160114 UTC, a
+106.7082-ms interval. The two newly visible Compute errors occur later: `guestservice.cpp(267)`
+reports `0xC0370106` in `UtilityVm_ConnectToGuestService`; `bridgeserver.cpp(979)` reports
+`0x800703E3` in `SocketTransport_IoComplete/Bridge_Connect`. Their order does not establish either
+as the reset's cause. Neither provider exposes a specific failing guest boot component in this run.
+
+The original helpers, failed receipt, native cleanup source/receipt and offline analysis remain
+under the same ignored trace directory. ETL SHA-256 is
+`ECA5EC2F866B163F810BED145794D637A8258E7058CB02400EAABD7D536B6843`; native cleanup source is
+`8A5C5BE0C20A67C583D23ED362E31B33C40E253C75D052FD647C7D6FA33127D0` and its successful cleanup receipt
+is `2270C93DD97BE0F1D9AEC65E3E5C3457272C5C9EDA60398471EC6C36ED5A8536`. No trace is uploaded and no
+persistent event-channel, feature, service, language or security setting is changed. This is
+additional startup-failure evidence, not a Sandbox repair or Release-client acceptance.
+
 ### Native Debug populated restart
 
 The host-isolated method calls production `main` through a Debug-only admission entrypoint, using
