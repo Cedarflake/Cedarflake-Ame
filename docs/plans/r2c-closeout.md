@@ -59,6 +59,43 @@ not acceptance of those workflows. No further installation, feature/service chan
 included. If admission or creation fails, record that specific boundary and continue independent
 work rather than replaying the same guest method.
 
+The post-restart empty check now fails creation with `0x80370106` despite 9.25 GiB available at
+admission. Its 5405-ms lifetime retires its exact identity with no remaining guest; preserve the
+missing readiness and native evidence. Stop unchanged guest retries. The next diagnosis reads only
+the three protected Hyper-V Admin channels for the existing 12-second failure window, at most 16
+entries each, with a 60-second owned worker deadline and one-MiB local output cap. Reserve at most
+15 active minutes for export preparation and classification, excluding user interaction with
+Windows elevation. The first export's empty result is invalidated by a reproduced UTC/local
+`FilterHashtable` defect. The corrected UTC XPath method has positive and negative calibration,
+then records a guest-initiated reset about 99 ms after VM start. Preserve both methods and results;
+this is not yet the reset's cause. Charge that reservation in full and reserve a further 15 active
+minutes for the corrected classification and one prepared read of Compute/Worker Operational
+channels over the same 12-second interval, with the same 16-entry/channel, 60-second worker and
+one-MiB bounds. That extra protected-channel read now completes in 708 ms: ten Compute events and
+two Worker events identify pending operations, unexpected exit and already-stopped termination,
+with no inner reset reason. Both export processes retire. Charge the additional reservation in
+full. These reads include no new guest, trace session, system setting, feature, service or language
+change. Use an actual internal error to select any separate repair; this noncausal result does not
+admit an unchanged retry.
+
+The existing-event method is exhausted without a specific reset cause. Reserve 25 active minutes
+to prepare and check a separate startup-trace method: one GUID-owned ETW session for the installed
+Compute and Worker providers, a 64-MiB circular file, at most 200 seconds of capture and bounded
+owned-command cleanup. Pair it with one fresh empty canary under the unchanged 180-second guest,
+seven-GiB entry and two-GiB reserve limits. Preparation starts neither ETW nor a guest. Execution
+needs a Windows elevation prompt because it enables privileged provider capture; the previous
+approval covers existing-event reads only. Keep all trace data local and ignored, stop only the
+exact owned session, preserve earlier failures, and change no persistent logging, feature, service,
+language or security setting. This method seeks an internal error, not a readiness pass from another
+unchanged launch. A later repair still requires evidence of its owning cause.
+
+That preparation now passes its lifecycle, changed-input, receipt and existing canary checks,
+without starting ETW or consuming the fresh guest identity. The current 6177988608-byte memory
+reading is below the unchanged seven-GiB floor. Keep the prepared method pending resource admission
+and Windows consent; do not launch or lower the floor to complete this checkpoint. The
+[trace preparation record](../acceptance/r2c-closeout-cycle.md#bounded-hyper-v-trace-preparation)
+binds the helpers and their verification limits.
+
 While guest resource admission is unavailable, reserve at most 25 active minutes for a minimal
 PSS acquisition calibration. One owned helper may capture only its own thread IDs using
 `PSS_CAPTURE_THREADS`, with no address-space clone, context, handle table, stack, ETW or unrelated

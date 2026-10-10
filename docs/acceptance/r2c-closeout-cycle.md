@@ -1160,6 +1160,94 @@ At 05:45:03 UTC, 6840582144 host bytes are available, below the unchanged seven-
 No guest is started, no configuration identity is consumed and no media is mapped. The completed
 Windows integration processes have retired; no leftover test process is selected for cleanup.
 
+### Post-restart Sandbox initialization result
+
+After host memory is released, the prepared identity is consumed once at 07:57:17 UTC on
+2026-10-10. It admits 9938366464 available bytes and the unchanged reviewed helper/configuration
+hashes. Creation again returns `0x80370106`; the complete parent lasts 5405 ms. The empty baseline
+is preserved, exact-ID stop exits zero and the final environment list is empty. There is no
+guest-ready receipt, native screenshot or Ame process. The minimum-memory sentinel remains
+unmeasured because creation never reaches the observation loop. Receipt SHA-256 is
+`7291D4E937832974E414C1FADB98EB48C86C01E5695C9AD784BE7BC0036D256D` in the GUID-owned derived directory.
+This disproves reboot completion and entry-memory availability as sufficient repairs; it does not
+identify the guest's inner failure or establish successful initialized-guest retirement.
+
+The eight helper boundary checks pass before launch. Their outer inspection command incorrectly
+tests `$LASTEXITCODE` after a PowerShell script and reports a separate wrapper failure; no boundary
+assertion fails and that inspection launches no guest. The subsequent canary runs the unchanged
+reviewed parent directly. Windows remains build `26340.9502`, Sandbox `0.8.107.0`, with its main
+registration healthy. Ordinary-token access to Compute, Worker and VMMS Admin channels remains
+denied. An empty ordinary query cannot establish an absence of protected events.
+
+A read-only export is prepared for 07:57:15–07:57:27 UTC, with at most 16 entries from each of
+those three protected channels, a 60-second owned worker deadline and a one-MiB local output cap.
+Both helper parsers and changed-source-hash rejection checks pass. The approved elevated export
+exits zero in 737 ms, but its empty output is invalidated by a reproduced time-filter defect:
+PowerShell 5.1's `FilterHashtable` misses the known Wcifs record 43 with UTC `DateTime` inputs and
+finds it with local-time inputs for the same absolute interval. That first receipt and helper
+remain intact. Explicit UTC `FilterXPath` subsequently finds record 43 and rejects an empty
+interval. A fresh helper changes only that query boundary and its evidence format, preserving the
+same three channels, 12-second interval and runtime/output limits.
+
+The corrected elevated export exits zero in 1020 ms. It records eight Worker events and no Compute
+or VMMS Admin events. Worker event 18500 reports successful VM start at 07:57:20.3206660 UTC;
+event 18515 follows at 07:57:20.4193571 UTC. The installed provider description identifies a reset
+initiated by the guest operating system, not an inner failure code. This narrows the observed
+boundary to guest reset about 99 ms after VM start, without attributing the reset's cause. The
+corrected receipt is retained in `.build/r2c-sandbox-postboot-utc-20261010/`, SHA-256
+`1E5358ABBC4E5D982697CC0AC111BFBC7231A8F42A764E315481E7F05C2F4590`. Corrected UTC queries find no
+related System/Application or Wcifs/BindFlt event. The existing dump directory is empty; readable
+layer specialization metadata lists both `en-US` and `zh-CN`, without a recorded failure reason.
+
+The approved Operational export completes in 708 ms, with its worker completing in 146 ms. Both
+channels are enabled and readable: Compute returns ten events and Worker returns two, below the
+16-entry limits. The parent and worker both retire. Its receipt is retained in
+`.build/r2c-sandbox-postboot-operational-20261010/`, SHA-256
+`25BE7DD226937A7712912D2AF7281C55B0252E2AF7CD312D1C16C88764415D7C`.
+
+Compute records pending creation/start (`0xC0370103`), an unexpected-exit notification
+(`0xC0370106`) after the guest reset, and already-stopped termination (`0xC0370110`). These meanings
+agree with the installed Windows SDK's `winerror.h` and Microsoft's
+[HCS status definitions](https://github.com/microsoft/dotnet-computevirtualization/blob/master/src/Microsoft.Windows.ComputeVirtualization/Hcs.cs).
+Worker records only the operating-system and shared-memory VSmb shares; the OS share is read-only.
+These events add no inner reset reason. The installed CrashDump provider writes to Worker Admin,
+already covered by the corrected export, where no crash-dump event appears in this interval.
+Neither a failed code inside creation nor a guest bugcheck has been established.
+
+No new guest, trace session, service, feature, language, policy or library operation is performed
+for either export. The upstream
+[same-error report](https://github.com/microsoft/Windows-Sandbox/issues/88) contains a language-related
+workaround on a different Windows build; matching an outer error and a non-English host is not
+local causal evidence and does not justify applying that system change.
+
+### Bounded Hyper-V trace preparation
+
+Existing events do not expose the guest reset's inner reason. The next method prepares a private
+ETW session for the installed Compute and Worker provider GUIDs. Microsoft's
+[HCS guidance](https://learn.microsoft.com/en-us/virtualization/windowscontainers/troubleshooting#capturing-hcs-analyticdebug-logs)
+identifies analytic logging as the next diagnostic layer. The prepared implementation uses
+[`logman -ets`](https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/logman-create-trace)
+to avoid persistent channel configuration: one GUID-owned session, a 64-MiB circular file and
+16–64 buffers of 64 KiB. Capture ends at the matching canary's terminal receipt or 200 seconds;
+each owned command has a ten-second deadline and exact-session cleanup runs after failure too.
+The complete trace helper is bounded to 240 seconds, separate from the unchanged 180-second guest.
+No other trace session is stopped, and no trace is uploaded.
+
+Ignored `.build/r2c-sandbox-trace-20261010/` contains the prepared helpers and manifest. Fresh canary
+identity `c7b1a83c2bae4cf5b62442aa780331e0` retains the reviewed empty configuration, three-GiB guest,
+seven-GiB admission, two-GiB reserve and exact-ID retirement. Preparation passes six simulated
+trace-lifecycle controls, two changed-input hash rejection controls, three completion-receipt
+controls and all eight existing canary boundary checks. All three new PowerShell files parse.
+These tests start neither ETW nor a guest and do not establish provider capture or initialization.
+
+The trace launcher SHA-256 is `FE0445602EC0E625F95B98EEAB230F4EF9DFDCC9805D4DCF62707881D053CAFC`;
+its session owner is `8C89CFE2E265E1C1353BA58DAFC646A297820DC364E8DF5CDAC80E7BA64C2829` and its manifest
+is `AE65B352CFB62E9D9636D2829EB7886A2FF0CA50C7D57B6F236CB6157F1F55A2`. No trace-start receipt exists.
+The later ordinary-token memory query is denied; its read-only host retry reports 6177988608
+available bytes, below the unchanged seven-GiB floor. This preparation therefore does not admit a
+guest now. Runtime still requires adequate memory and Windows consent for privileged provider
+capture, a different operation from the completed existing-event exports.
+
 ### Native Debug populated restart
 
 The host-isolated method calls production `main` through a Debug-only admission entrypoint, using
