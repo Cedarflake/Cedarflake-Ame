@@ -12,6 +12,11 @@ The current UI source of truth is the user-confirmed Microsoft Photos-like struc
 this document. Flutter Material 3 supplies components, tokens, focus behavior, and accessibility; it
 does not redefine the information architecture.
 
+The UX reference application is **Microsoft Photos Legacy**, as clarified on 2026-10-10. Compare
+new interaction decisions with that application and the accepted behavior below. Observations of
+the newer Microsoft Photos application retain their recorded version and evidence scope; they do
+not establish Photos Legacy behavior or supersede this contract.
+
 UI implementation follows a reuse-first admission order: Flutter Material and framework widgets,
 repository-owned shared components, mature external packages, then the smallest necessary custom
 layer. A custom control requires a recorded capability gap and must compose around the framework

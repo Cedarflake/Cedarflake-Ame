@@ -23,9 +23,10 @@ Ame treats a personal image collection as one library rather than a collection o
 - file-changing operations are introduced as separate workflows only after they can be proposed,
   reviewed, revalidated, logged, and explicitly authorized.
 
-The interface follows an accepted Microsoft Photos-like information architecture while using
-Flutter Material 3 components and interaction behavior. Sources and albums belong in the sidebar,
-search remains global, and contextual gallery actions replace separate feature pages.
+The interface follows the accepted unified-gallery information architecture, with Microsoft Photos
+Legacy as its UX reference and Flutter Material 3 supplying components and interaction behavior.
+Sources and albums belong in the sidebar, search remains global, and contextual gallery actions
+replace separate feature pages.
 
 ## Design principles
 
