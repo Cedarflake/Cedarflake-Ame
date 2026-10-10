@@ -44,7 +44,10 @@ The frozen source is unchanged. Continue only the unfinished Windows scan, Windo
 bridge and whitespace entrypoints serially under the repository lock; do not replay lint, Rust or
 Flutter. Record component completion separately from the interrupted whole-Daily invocation.
 Those remaining components now pass with unchanged source, covering the applicable local gates.
-Package the fixture correction and obtain current hosted results without another local suite replay.
+The fixture correction is committed and pushed. Hosted run `38028816265` on `ea37227` now passes
+all ten required jobs and the aggregate, including both corrected availability controls and the
+complete Rust workload. Preserve the earlier C01/C02 failures and the interrupted local invocation;
+do not replay a complete gate for the subsequent evidence-only documentation.
 
 The completed restart clears the component-servicing pending marker and supplies a changed
 environment for one fresh empty CLI-owned Sandbox check. Reserve at most 15 active preparation
@@ -71,7 +74,7 @@ The [self-scoped calibration](../acceptance/r2c-interleaving-remediation.md#self
 passes after an installed-compiler parameter correction, preserving the rejected pre-execution
 attempt. Charge the 25-minute reservation conservatively in full. The held fixture threads do not
 establish lifetime binding for independently ending production workers; no mixed-load replay is
-admitted. Continue guest readiness and current hosted results while retaining that exact gap.
+admitted. Continue guest readiness while retaining that exact gap and the completed hosted results.
 
 The retained first-import continuation exposed destructive retirement of reusable derived
 inspection results: the former explicit resume reset its namespace traversal and deleted all staged

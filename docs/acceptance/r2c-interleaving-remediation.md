@@ -161,6 +161,21 @@ the complete tracked whitespace check pass. The separate terminal receipt is ret
 Together these records cover the applicable Daily components on unchanged source; the interrupted
 whole invocation remains interrupted. No source library or original catalog is used in this batch.
 
+The subsequent hosted run
+[38028816265](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38028816265) on
+`ea37227ac3ce64afd6e4a1ccd695bb75d752c837` completes successfully at 06:30:40 UTC on 2026-10-10.
+All ten required jobs and the aggregate pass; the three separate signing-channel jobs are skipped.
+Static/Rust reports 1691 passed, zero failed and 23 ignored in 1772.86 seconds, followed by three
+passing broker binary cases. Both the corrected unavailable-root case and the direct same-volume
+discovery control pass. The mixed-load controls retain PerPoll P95 315 ms and PerEpoch P95 482 ms;
+the separate full priority workload passes with P95 398 ms and all original workload bounds.
+Flutter, Windows scan/accessibility, unsigned Release and all five synthetic workloads pass.
+This establishes the corrected fixture's hosted verification; the earlier C01/C02 attribution and
+remaining native Release obligations remain open. The complete Rust log and run metadata are
+retained in `.build/r2c-hosted-static-20261010/`, with respective SHA-256 hashes
+`A2F3DA825EA26DB19E177ABE4AECE9A1F3ED9962F76A2784108E88C4F7A062CC` and
+`E2AEAD2B5EDE4798509A82D59C4D2BDFDAD4638904068F84DA52206B5F9500AE`.
+
 The accompanying read-only method review identifies
 [`PssCaptureSnapshot`](https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/nf-processsnapshot-psscapturesnapshot)
 with [`PSS_CAPTURE_THREADS`](https://learn.microsoft.com/en-us/windows/win32/api/processsnapshot/ne-processsnapshot-pss_capture_flags)
