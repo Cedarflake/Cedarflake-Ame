@@ -1050,11 +1050,14 @@ virtual GPU does not restore readiness. Charge the 20-minute block conservativel
 The comparison's package and event records did not identify a specific offline volume or the
 inner guest-initialization cause. The separately authorized
 [component-restoration checkpoint](../acceptance/r2c-closeout-cycle.md#sandbox-component-restoration-checkpoint)
-now binds the existing Sandbox packages to an unmounted volume. Both the ordinary Store repair
-and an explicit online-system-volume repair fail with `0x80073D0D`. Reinstalling only Sandbox is
-prepared but awaits confirmation because it can discard that application's preferences; the
-approved data-preserving repair does not cover that effect. No further empty-guest sweep follows
-from a failed repair. Tool access is available, and independent functional work remains admitted.
+binds the former Sandbox packages to an unmounted volume. Both data-preserving Store repairs
+failed with `0x80073D0D`. The subsequently authorized Sandbox-only reset and official reinstall
+now restore the package and all six components to the online system volume; package status is
+`Ok` and bounded CLI help/list succeed. This is an actual environment correction, not evidence
+of guest readiness. Revalidate the seven-GiB host floor before the prepared empty-guest check.
+The restored CLI can enumerate guest identities independently of its resident management server;
+that server alone must not be treated as a running guest or a guest-retirement failure.
+Remaining Release and platform evidence stay open.
 
 #### Host-isolated populated Debug restart
 

@@ -1088,11 +1088,31 @@ complete cause of the earlier `0x80370106` guest failures.
 The [official deployment-error contract](https://learn.microsoft.com/en-us/windows/win32/appxpkg/troubleshooting)
 defines this offline-volume condition. The [target-volume API](https://learn.microsoft.com/en-us/uwp/api/windows.applicationmodel.store.preview.installcontrol.appinstalloptions.targetvolume?view=winrt-26100)
 selects installation storage; it did not repair the unavailable prior registration in this run.
-Sandbox-only removal and Store reinstallation is prepared, not executed. The Store package is
+The Store package is
 removable and is not a development registration; the [data-preservation removal option](https://learn.microsoft.com/en-us/powershell/module/appx/remove-appxpackage?view=windowsserver2025-ps#-preserveapplicationdata)
-does not promise to preserve its preferences. That additional effect is awaiting confirmation.
-No host feature, service, driver, volume mapping, other package, Ame data or media is changed.
-No empty guest or Release application lifetime follows these failed repairs.
+does not promise to preserve its preferences. The user subsequently authorizes resetting the old
+Sandbox and installing the new package. Removing only the exact current-user bundle succeeds;
+the next query finds zero current-user main, bundle or resource registrations. The policy-checked
+official Store installation, with `Repair=false` and the explicit online system volume, reaches
+`Completed` and exits zero within its 300-second deadline.
+
+The restored package is version `0.8.107.0`, status `Ok`, with a valid installed payload. A
+per-volume query locates all six Sandbox components on the online system volume. The bounded
+`wsb --help` and `wsb list --raw` invocations exit zero, and the list contains no environments.
+This restores the existing Store version; it is not evidence of a version upgrade or successful
+guest initialization. No broader feature, service-configuration, driver, volume-mapping or other
+application operation is performed; Ame data and media are outside both package operations.
+
+Fresh empty-canary identity `0b6b8903779840cc981d48645d4abe3d` retains the three previous helper
+hashes, three-GiB guest, disabled network/redirection and exactly one read-only script mapping plus
+one writable receipt mapping. Its WSB SHA-256 is
+`DF282E8F7677BA27C8FBA6665E0C1CF492823F7F8E06926EF497D18F866484FA`.
+Preparation creates no guest. Available host memory fluctuates across the unchanged seven-GiB
+entry floor, so admission requires a fresh successful check. The restored CLI's empty environment
+list also coexists with a resident `WindowsSandboxServer.exe`; the prior process-name-only canary
+cannot treat that management process as an active guest. No empty guest or Release lifetime has
+started at this checkpoint. The private repair/preparation records remain under
+`.build/r2c-environment-20261010/` and `.build/r2c-sandbox-restored-20261010/`.
 
 ### Native Debug populated restart
 
