@@ -56,6 +56,23 @@ not acceptance of those workflows. No further installation, feature/service chan
 included. If admission or creation fails, record that specific boundary and continue independent
 work rather than replaying the same guest method.
 
+While guest resource admission is unavailable, reserve at most 25 active minutes for a minimal
+PSS acquisition calibration. One owned helper may capture only its own thread IDs using
+`PSS_CAPTURE_THREADS`, with no address-space clone, context, handle table, stack, ETW or unrelated
+process acquisition. Bind known fixture threads through their native IDs and creation times before
+querying I/O state. Use one synchronous owned pipe-read control and one event-wait control, at most
+eight snapshots and 128 entries per snapshot, inside a 30-second owned-process deadline. Reject
+wrong process/creation identities and report capture cost. This proves acquisition scope and an
+instantaneous observation only; no absence of pending I/O proves runnable descheduling. It admits
+no product change, library access, privilege change or replay of the mixed-load workload. A later
+real-workload observer still needs its separate method review and admission.
+
+The [self-scoped calibration](../acceptance/r2c-interleaving-remediation.md#self-scoped-pss-acquisition-calibration)
+passes after an installed-compiler parameter correction, preserving the rejected pre-execution
+attempt. Charge the 25-minute reservation conservatively in full. The held fixture threads do not
+establish lifetime binding for independently ending production workers; no mixed-load replay is
+admitted. Continue guest readiness and current hosted results while retaining that exact gap.
+
 The retained first-import continuation exposed destructive retirement of reusable derived
 inspection results: the former explicit resume reset its namespace traversal and deleted all staged
 locations. A reopened unchanged-file regression called the metadata inspector twice instead of once.

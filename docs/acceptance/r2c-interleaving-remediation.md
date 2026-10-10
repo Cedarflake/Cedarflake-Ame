@@ -178,6 +178,37 @@ returns one node for both unblocked threads and unsupported waits. Neither a fal
 a one-node wait chain proves runnable descheduling. No sampler, snapshot, privilege change or
 additional workload runs in this method review; these APIs do not close C01 or authorize a replay.
 
+### Self-scoped PSS acquisition calibration
+
+The bounded helper captures only its own process with `PSS_CAPTURE_THREADS`; it does not acquire a
+system-wide process snapshot, address-space clone, thread context, stack or handle table. Its known
+pipe-reader and event-wait threads remain alive throughout all samples. Snapshot process/native
+thread IDs and creation times must match retained query handles before I/O observation. This
+fixture lifetime prevents the sampled IDs from being recycled during binding; it does not solve
+the corresponding lifetime race for an independently ending Rust worker.
+
+The first parent rejects an unsupported PowerShell 5.1 `Add-Type -CompilerOptions` parameter before
+compilation or process admission. That receipt remains `compiler-parameter-failure.json`. The
+verified installed CodeDOM interface supplies explicit x64 compilation and warnings-as-errors;
+the unchanged helper then executes once inside the existing owned process-tree Job with a
+30-second deadline. It exits zero in 581 ms including parent observation, with no cleanup failure.
+
+Eight snapshots contain at most 11 threads, all belonging to the helper. Capture and identity-bound
+I/O queries take 5 ms for the first sample and less than one measured millisecond for the remaining
+seven. All eight samples identify the synchronous pipe read's pending I/O; all eight event-wait
+samples report no pending I/O. Wrong process and creation identities are rejected before an I/O
+query, all eight snapshot/marker pairs are released, and both fixture threads join normally.
+The event control demonstrates why a false I/O flag cannot establish runnable descheduling.
+
+Ignored `.build/c01-pss-calibration-20261010/` retains the source, compiled helper and receipts.
+Source SHA-256 is `5276BC2DCB32136B370CD2E257AA324D49B202CFC0FA8B21A5BA78E7B5A39EE9`;
+the corrected parent's hash is `D33CD3B75A6C9392D6E82C8BB17CB8926122423AA9271FC6B097B710FF580377`;
+the successful receipt's hash is `B2AD036B8A05306AC4D32F7F13E3756A66E4A7C15532CA31D75D67F053B97F34`.
+This establishes only self-scoped acquisition and the controlled instantaneous I/O signal.
+Production-thread lifetime binding, observer overlap, external-process overhead and causal
+attribution remain unverified. No Ame workload, library read, privilege change or retry of the
+failed mixed-load gate follows from this calibration. C01 remains open.
+
 ### Identity-retirement observation preparation
 
 The 2026-09-22 read-only preparation matches the retained interval to the ephemeral validation
