@@ -23,6 +23,39 @@ Updated 2026-10-10. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
+The [current hosted Rust failure](../acceptance/r2c-interleaving-remediation.md#hosted-rust-failures-on-1b8b2b0)
+admits a bounded independent continuation alongside Sandbox readiness work. Keep native Release
+scenarios pending until guest readiness is established; do not repeat Sandbox installation.
+Use at most 45 active minutes to resolve the offline/available fixture's identity-lookup race:
+prove same-volume rename discovery, place unavailable-volume behavior at its existing injectable
+platform boundary, and preserve exact-generation gap, consumer-lineage and no-full-scan assertions.
+Keep the related tests in the existing root-availability test owner. Separately spend at most
+30 active minutes on the retained C01 close interval: inspect actual connection lifetimes and
+the pinned SQLite close path before selecting any further measurement. No unproved checkpoint,
+retry, lifetime or identity-policy change and no unchanged workload replay is admitted. A supported
+correction gets one focused validation, lint and one complete serial Daily; preserve any new
+failure as evidence instead of rerunning until green. This scope adds no source-library access,
+system change, dependency, schema change or relaxed threshold. Unresolved native attribution
+remains C01 debt, not a reason to withhold an independently proved fixture correction.
+
+The host restart at 04:39:18 UTC interrupts that Daily after all Rust and Flutter cases pass,
+while Windows scan is still building. Preserve its missing terminal receipt and partial logs.
+The frozen source is unchanged. Continue only the unfinished Windows scan, Windows accessibility,
+bridge and whitespace entrypoints serially under the repository lock; do not replay lint, Rust or
+Flutter. Record component completion separately from the interrupted whole-Daily invocation.
+Those remaining components now pass with unchanged source, covering the applicable local gates.
+Package the fixture correction and obtain current hosted results without another local suite replay.
+
+The completed restart clears the component-servicing pending marker and supplies a changed
+environment for one fresh empty CLI-owned Sandbox check. Reserve at most 15 active preparation
+minutes and one 180-second guest lifetime, retaining the existing seven-GiB entry floor, three-GiB
+guest, two-GiB reserve, isolated empty mappings, receipt/screenshot binding and exact-ID retirement.
+Reuse the reviewed helper closure with a fresh identity after hash and boundary checks; preserve
+all earlier failed identities. Readiness permits preparation of the remaining Release workflows,
+not acceptance of those workflows. No further installation, feature/service change or restart is
+included. If admission or creation fails, record that specific boundary and continue independent
+work rather than replaying the same guest method.
+
 The retained first-import continuation exposed destructive retirement of reusable derived
 inspection results: the former explicit resume reset its namespace traversal and deleted all staged
 locations. A reopened unchanged-file regression called the metadata inspector twice instead of once.
@@ -1058,6 +1091,26 @@ of guest readiness. Revalidate the seven-GiB host floor before the prepared empt
 The restored CLI can enumerate guest identities independently of its resident management server;
 that server alone must not be treated as a running guest or a guest-retirement failure.
 Remaining Release and platform evidence stay open.
+
+The restoration check uses one fresh CLI-owned guest identity. Keep the existing three-GiB guest,
+seven-GiB admission floor, two-GiB reserve, 180-second bound and empty isolated mappings. Require
+the matching guest receipt and native desktop screenshot, then stop only that guest through the
+official CLI. Confirm an empty CLI environment list and retirement of the new VM/client process
+epochs while preserving any baseline VM. The resident management server is excluded from guest
+retirement. This changes the host lifecycle method; it does not claim the earlier native-close or
+Job-based methods passed. Bind the adjusted helper hashes and validate positive and rejecting
+process/identity cases before launch. Missing memory admission permits no guest or media run.
+
+That single CLI attempt now fails during creation with `0x80370106`, before a guest receipt or
+desktop exists. Exact-ID stop, an empty environment list and process-baseline comparison confirm
+no remaining guest; they do not prove retirement of an initialized VM. The
+[restored CLI result](../acceptance/r2c-closeout-cycle.md#restored-sandbox-cli-initialization-failure)
+retains the failed lifetime and helper bindings. Read-only diagnosis finds enabled virtualization
+components and a pending component-servicing reboot, while protected Hyper-V channels remain
+unreadable. The pending restart was a prerequisite to resolve, not a proven cause. A subsequent
+host restart clears that marker; the current execution checkpoint admits one fresh empty check
+after resource admission. Perform no feature/service/locale changes or unchanged failed replay.
+Preserve the separate normal-profile storage and source boundaries throughout readiness work.
 
 #### Host-isolated populated Debug restart
 

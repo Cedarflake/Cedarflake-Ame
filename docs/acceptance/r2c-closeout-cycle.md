@@ -1114,6 +1114,52 @@ cannot treat that management process as an active guest. No empty guest or Relea
 started at this checkpoint. The private repair/preparation records remain under
 `.build/r2c-environment-20261010/` and `.build/r2c-sandbox-restored-20261010/`.
 
+### Restored Sandbox CLI initialization failure
+
+The restored client uses a new host lifecycle helper for the prepared identity
+`0b6b8903779840cc981d48645d4abe3d`, with the unchanged WSB configuration above. Its eight focused
+checks accept an unchanged baseline with the resident management server, reject a remaining VM
+or client, reject disappearance or PID reuse of a baseline VM, and reject guest-content or run-ID
+drift. The guest helper changes only its retirement-method label to `owned-cli-stop`; its SHA-256
+is `D139E104801C966CC71FF99FC4C4471E49A53A8B2859D22279DFEC5BB8FBB2A6`. The executed host helper
+SHA-256 is `8F3455CCD545060377A190A65FA534A988E9DBE7A62373E46C7432873C437F44`.
+
+The first resource-waiting invocation is cancelled before admission after interrupted desktop
+control; it creates no host-start or guest receipt. On resumed input, the actual attempt admits
+7527366656 available host bytes, starts only its assigned CLI identity and returns `0x80370106`
+from creation. The complete failed parent lasts 13794 ms. No guest-ready receipt, desktop screenshot
+or Ame workload exists. Exact-ID stop exits zero; the subsequent CLI list is empty and the VM/client
+process comparison preserves the empty baseline. This confirms no remaining guest, not successful
+cleanup of an initialized VM. The raw minimum-memory sentinel is unmeasured because creation fails
+before the observation loop; it is not a host-reserve measurement.
+
+Read-only diagnosis finds the Sandbox, Hyper-V hypervisor and Virtual Machine Platform components
+enabled, with an active hypervisor. Windows component servicing has a pending-reboot marker.
+The protected Compute/Worker/VMMS channel metadata cannot be read with current privileges; a
+filtered query returning no events does not establish that those channels contain no failure.
+The original launch invocation ran with the ordinary token outside the command sandbox. A later
+ordinary-token read of the same three channels, limited to 03:13:20–03:13:50 UTC, also receives
+access denial at channel metadata, so the restricted command token does not explain either result.
+The accessible switch warnings and empty dump/base-image directory listings do not identify the
+guest's inner failure. The user defers rebooting. No reboot, component toggle, service operation,
+locale change or further guest attempt follows. The Store restoration remains verified; guest
+readiness and the dependent Release variants remain open. Raw receipts are retained in the
+GUID-owned `build/integration-storage-0b6b8903779840cc981d48645d4abe3d` directory.
+
+### Post-restart Sandbox preparation
+
+The host restart is confirmed at 2026-10-10 04:39:18 UTC, and the component-servicing pending marker
+is absent. Native window enumeration succeeds. This resolves the pending-restart prerequisite;
+it does not establish that a guest can initialize.
+
+Fresh identity `201a7fd466ff4147aa3e4b9e0324e877` uses the same parent and guest hashes as the restored
+CLI attempt. All eight boundary checks pass, and normalized WSB content differs only by its run
+identity. The new WSB hash is `3199395154999AD055CB82E7E4477B98A93E1DB4E4DB7C0A5918F93F08500051`.
+The scripts and configuration remain in ignored `.build/r2c-sandbox-postboot-20261010/`.
+At 05:45:03 UTC, 6840582144 host bytes are available, below the unchanged seven-GiB admission floor.
+No guest is started, no configuration identity is consumed and no media is mapped. The completed
+Windows integration processes have retired; no leftover test process is selected for cleanup.
+
 ### Native Debug populated restart
 
 The host-isolated method calls production `main` through a Debug-only admission entrypoint, using
