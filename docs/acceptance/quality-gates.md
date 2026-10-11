@@ -533,7 +533,9 @@ owner, and exceptional pre-transfer paths close locally. Source-count admission 
 open. A real case-sensitive NTFS control requires `Safe.ps1` and `safe.ps1` to open as independent
 identities and rejects a forbidden lower-case source; a host that cannot enable the directory flag
 reports an explicit controlled skip. Ordinary duplicate, case-disabled spelling, and exceptional-
-close controls also run. The audit fails closed at 8 sources, dot-source depth 8, 256 KiB per source,
+close controls also run. The audit admits the nine-source guardrail closure and rejects a tenth
+source; extracting Cargo admission and report execution adds two owners to its former seven-source
+closure. The remaining limits stay at dot-source depth 8, 256 KiB per source,
 512 KiB total source bytes, 32,768 AST nodes, 128 functions, 512 scopes, and a 512-entry queue. AST
 nodes are visited without materializing a collection, the root counts once, and the limit-plus-one
 visit throws immediately while recording its attempted high-water. Independent empty and literal
@@ -862,6 +864,25 @@ This is non-external evidence only. Retained roots, real Cloud Files, SCM/servic
 named-pipe/FSCTL journal access, signing, and the final independent full-range audit remain outside
 this gate. R2c-R remains not accepted and R2c-O remains active.
 
+### Worker-report preparation boundary
+
+On 2026-10-12, hosted run `38052664349` on `9a47c70` is confirmed to stop in the exact report
+guardrail's five-minute Cargo child, before the main Rust suite. That invocation includes compilation;
+its discarded child output cannot distinguish a cold build from test execution. The correction
+separates bounded preparation and execution, without attributing the historical timeout to an
+unobserved phase or changing the exact test's deadline.
+
+The shared harness facade shrinks from 3137 to 3102 lines and the dedicated guardrail from 2107 to
+2037. The extracted Cargo admission and report-lifecycle owners are 78 and 110 lines, with no inline
+tests; the new dedicated boundary regression is 204 lines. No Rust/Dart product or inline-test code
+changes. Command admission, held-source closure, independent cleanup, the new source-count boundary
+and the full executable 19-case guardrail pass locally. Standalone lint passes. Independent review's
+single output-bound finding is corrected by counting the truncation suffix within 512 characters;
+the strengthened per-line regression and scoped recheck pass. The serial Daily's Rust main suite
+passes 1691 cases with 23 existing ignores, plus three supplemental cases. Subsequent whole-Daily
+and hosted results retain their own completion requirements; these focused results do not close
+C01, remaining native variants or R2c acceptance.
+
 ## Installed journal broker acceptance
 
 The real SCM and `FSCTL_QUERY_USN_JOURNAL` / `FSCTL_READ_USN_JOURNAL` path is a separate,
@@ -1152,6 +1173,13 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   Cross-version environment deletion uses PowerShell `NullString.Value` and proves every protected
   name is absent before creating a runner process; an empty value is not treated as deletion.
   The lint and Daily paths run only this lightweight guardrail, not the R2c-R acceptance runner.
+  Its worker-report check prepares the locked debug library test target with one Cargo job under
+  a separate fifteen-minute owned-process deadline, then executes the unchanged exact test under
+  its five-minute deadline. Build failure prevents execution; both phases retain source auditing
+  and process-tree ownership. Failure output includes at most 24 lines of 512 characters each
+  before fixture cleanup. `./tool/acceptance_test_r2c_worker_report_guardrail.ps1` checks command
+  admission, phase ordering, deadlines, result rejection, output bounds, environment restoration
+  and independent cleanup with failure preservation; lint runs it before the executable guardrail.
 - `./tool/release_verify_windows.ps1` is the immutable signed Windows bundle and release-bridge
   gate. It also proves that a packaged process rejects a same-user duplicate before runtime
   initialization and that a replacement starts after the original process exits. Run it when

@@ -4,6 +4,7 @@ $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "acceptance_r2c_fixture_cleanup.ps1")
 . (Join-Path $PSScriptRoot "acceptance_r2c_deletion_audit_budget_tests.ps1")
 . (Join-Path $PSScriptRoot "acceptance_r2c_fixture_lifetime_tests.ps1")
+. (Join-Path $PSScriptRoot "acceptance_r2c_worker_report_guardrail.ps1")
 
 function Assert-Contains {
     param([Parameter(Mandatory = $true)][string]$Value, [Parameter(Mandatory = $true)][string]$Expected)
@@ -137,7 +138,7 @@ try {
         [IO.Path]::GetFileName([string]$_.Path)
     } | Sort-Object)
     if (($ordinarySourceNames -join ",") -cne
-        "acceptance_r2c_change_driven_reliability_common.ps1,acceptance_r2c_fixture_cleanup.ps1" -or
+        "acceptance_r2c_cargo_invocation.ps1,acceptance_r2c_change_driven_reliability_common.ps1,acceptance_r2c_fixture_cleanup.ps1" -or
         @($ordinaryAuditState.Sources | Where-Object {
             [string]$_.Identity -notmatch '^[0-9A-F]{8}:[0-9A-F]{8}:[0-9A-F]{8}$'
         }).Count -ne 0) {
@@ -150,7 +151,7 @@ try {
         Close-AmeR2cRDeletionAuditState -State $ordinaryAuditState
     }
 }
-if ($ordinaryAuditSnapshots.Count -ne 2 -or
+if ($ordinaryAuditSnapshots.Count -ne 3 -or
     @($ordinaryAuditSnapshots | Where-Object { -not [bool]$_.AllHandlesClosedForGuardrail }).Count -ne 0) {
     throw "R2c-R ordinary audited-script identity handles did not close"
 }
@@ -1586,78 +1587,7 @@ if ($null -ne $timeoutFixturePath -and [IO.Directory]::Exists($timeoutFixturePat
     throw "R2c-R timeout guardrail did not clean its disposable fixture"
 }
 
-$tamperCase = @(
-    Get-AmeR2cRCaseDefinitions |
-        Where-Object { $_.Label -ceq "worker-report-binding-tamper" }
-)
-if ($tamperCase.Count -ne 1 -or [bool]$tamperCase[0].Ignored) {
-    throw "R2c-R guardrail lost the executable worker-report tamper case"
-}
-$tamperFixture = $null
-$tamperOutputPath = $null
-$tamperToolLock = $null
-$previousCargoJobs = [Environment]::GetEnvironmentVariable("CARGO_BUILD_JOBS", "Process")
-$previousRustThreads = [Environment]::GetEnvironmentVariable("RUST_TEST_THREADS", "Process")
-try {
-    $tamperFixture = New-AmeR2cRGuardrailDisposableRoot `
-        -AnchorPath $toolPath `
-        -Nonce ([Guid]::NewGuid().ToString("N"))
-    $tamperOutputPath = Join-Path ([string]$tamperFixture.Path) "tamper-behavior.log"
-    [Environment]::SetEnvironmentVariable("CARGO_BUILD_JOBS", "1", "Process")
-    [Environment]::SetEnvironmentVariable("RUST_TEST_THREADS", "1", "Process")
-    $tamperToolLock = Enter-AmeRepositoryToolLock
-    $tamperResult = Invoke-AmeR2cROwnedProcess `
-        -ExecutableKind "CargoExactTest" `
-        -FileName ((Get-AmeToolchain).Cargo) `
-        -Arguments @(Get-AmeR2cRCaseArguments -Case $tamperCase[0]) `
-        -WorkingDirectory $repositoryRoot `
-        -OutputPath $tamperOutputPath `
-        -TimeoutMilliseconds 300000
-    if ($tamperResult.TimedOut) {
-        throw "R2c-R worker-report tamper behavior test exceeded its five-minute deadline"
-    }
-    Assert-AmeR2cRCaseResult `
-        -Label "worker-report-binding-tamper-lint" `
-        -Lines $tamperResult.Lines `
-        -ExitCode $tamperResult.ExitCode
-} finally {
-    if ($null -ne $tamperToolLock) { Exit-AmeRepositoryToolLock $tamperToolLock }
-    if ($null -eq $previousCargoJobs) {
-        [Environment]::SetEnvironmentVariable(
-            "CARGO_BUILD_JOBS",
-            $nullEnvironmentValue,
-            [EnvironmentVariableTarget]::Process
-        )
-    } else {
-        [Environment]::SetEnvironmentVariable(
-            "CARGO_BUILD_JOBS",
-            $previousCargoJobs,
-            [EnvironmentVariableTarget]::Process
-        )
-    }
-    if ($null -eq $previousRustThreads) {
-        [Environment]::SetEnvironmentVariable(
-            "RUST_TEST_THREADS",
-            $nullEnvironmentValue,
-            [EnvironmentVariableTarget]::Process
-        )
-    } else {
-        [Environment]::SetEnvironmentVariable(
-            "RUST_TEST_THREADS",
-            $previousRustThreads,
-            [EnvironmentVariableTarget]::Process
-        )
-    }
-    if ($null -ne $tamperFixture) { Remove-AmeR2cRDisposableRoot -Fixture $tamperFixture }
-}
-$restoredCargoJobs = [Environment]::GetEnvironmentVariable("CARGO_BUILD_JOBS", "Process")
-$restoredRustThreads = [Environment]::GetEnvironmentVariable("RUST_TEST_THREADS", "Process")
-if (($null -eq $previousCargoJobs) -ne ($null -eq $restoredCargoJobs) -or
-    ($null -ne $previousCargoJobs -and $previousCargoJobs -cne $restoredCargoJobs) -or
-    ($null -eq $previousRustThreads) -ne ($null -eq $restoredRustThreads) -or
-    ($null -ne $previousRustThreads -and $previousRustThreads -cne $restoredRustThreads)) {
-    throw "R2c-R tamper fixture did not restore the Cargo and Rust process environment"
-}
+Invoke-AmeR2cRWorkerReportGuardrail -AnchorPath $toolPath
 
 $runner = Join-Path $PSScriptRoot "acceptance_run_r2c_change_driven_reliability.ps1"
 $environmentNames = @(Get-AmeR2cRForbiddenEnvironmentNames)
@@ -1872,10 +1802,10 @@ try {
             Sort-Object -Descending |
             Select-Object -First 1
     )
-    if ($runnerClosureState.Sources.Count -ne 4 -or
+    if ($runnerClosureState.Sources.Count -ne 5 -or
         $runnerDepth.Count -ne 1 -or
         [uint64]$runnerDepth[0] -ne 2) {
-        throw "R2c-R real closure lost its four-source, depth-two budget evidence"
+        throw "R2c-R real closure lost its five-source, depth-two budget evidence"
     }
 } finally {
     if ($null -ne $runnerClosureState) {

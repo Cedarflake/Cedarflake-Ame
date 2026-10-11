@@ -19,13 +19,30 @@ the resulting stage disposition.
 
 ### Current execution checkpoint
 
-Updated 2026-10-10. Resume from this checkpoint and the linked owning evidence, then verify the
+Updated 2026-10-12. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
 Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sandbox diagnosis
 and continue functional repairs and native verification through isolated host storage. Environment
 investigation and evidence maintenance do not displace these user workflows.
+
+Current-head hosted run `38052664349` on `9a47c70` fails in the worker-report guardrail before the
+Rust suite starts; the other nine required jobs pass. Its five-minute child deadline currently
+includes a cold Cargo test build, and the timeout drops captured output during cleanup. The log
+does not identify whether compilation or execution timed out. Admit one bounded tool correction:
+extract Cargo command admission and worker-report lifecycle owners, prepare the same test target
+under a separate fifteen-minute owned-process deadline, retain the exact test's five-minute
+deadline, and surface a bounded output tail on failure. Preserve exact-matrix admission, source
+audits, process ownership and independent cleanup. Prove build-failure, timeout, result and cleanup
+boundaries, then run the guardrail, lint and one serial Daily. This changes no product code, source
+access, dependency, schema or acceptance threshold and does not close the earlier C01 incident.
+The extracted owners bring the audited guardrail closure from seven to nine sources: admit exactly
+nine rather than the former eight-source cap, reject the tenth, and preserve all byte, AST, depth,
+function, scope and queue bounds. This source-topology adjustment grants no executable, path,
+mutation or workload admission beyond the fixed preparation command.
+The [worker-report boundary checkpoint](../acceptance/quality-gates.md#worker-report-preparation-boundary)
+records the implementation, focused verification, review correction and remaining whole-gate duties.
 
 The [generated host arrival/update check](../acceptance/r2c-browsing-diagnosis.md#generated-arrival-and-ordinary-update-on-2026-10-10)
 verifies 4000 initial images plus 32 live arrivals, ordinary update, selected paging/viewer return

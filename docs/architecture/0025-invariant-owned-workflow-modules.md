@@ -568,6 +568,14 @@ persistence layers.
 
 ### Native verification boundaries
 
+`acceptance_r2c_cargo_invocation.ps1` owns exact Cargo command admission, including the locked,
+single-job library test preparation command. Its command policy retains digest validation inside
+the existing audited process boundary. `acceptance_r2c_worker_report_guardrail.ps1` owns ordered
+build preparation and report-test execution, distinct deadlines, bounded failure output, and
+independent environment, fixture and repository-lock retirement. Preparation failure prevents test
+execution; it cannot consume or extend the report test's execution deadline. The common process
+facade retains source snapshots, Job Object ownership and cancellation.
+
 `acceptance_r2c_fixture_cleanup.ps1` owns R2c-R fixture retirement, bounded immediate remaining-entry
 evidence and first-error preservation. Each known child, metadata handle, stream and root retires independently;
 one failure cannot skip a later owned resource. Unknown children are retained without traversal.

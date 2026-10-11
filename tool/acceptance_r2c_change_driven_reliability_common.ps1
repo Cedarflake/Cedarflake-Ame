@@ -1,3 +1,5 @@
+. (Join-Path $PSScriptRoot "acceptance_r2c_cargo_invocation.ps1")
+
 $script:AmeR2cRForbiddenEnvironmentNames = @(
     "CEDARFLAKE_AME_R2C_R_CATALOG",
     "CEDARFLAKE_AME_R2C_R_CURRENT_PATH",
@@ -43,13 +45,13 @@ $script:AmeR2cRCaseDefinitions = @(
 
 $script:AmeR2cRCompilerFaultPointForGuardrail = $null
 $script:AmeR2cRCompilerFaultOwnerForGuardrail = $null
-$script:AmeR2cRVerifiedProcessBoundaryDigest = "c4702c1005217d99cb2d0558c7de0c341d98ab8f3e33160677065da7f266b6e7"
+$script:AmeR2cRVerifiedProcessBoundaryDigest = "5a038d883b362986055110431b4e212db60aae223868b798423bc0bf5a5d6202"
 $script:AmeR2cRNativeProcessBoundaryDigest = "4e58cf525fd2f628a38bfefb4b1728fbf6e66632b3c03220d67a2249c3e55860"
 $script:AmeR2cRAuditedScriptSnapshotDigest = "165355dcd5dedbf01a73953547f1b71a7f9503ff3b02ed0d8c9eb15e7e54a0cf"
 $script:AmeR2cRNativeDefinitionDigest = "07e3aaaa4d257669682568a10c9bbb4fb3230c479d501102c6f8d7fe22312426"
-$script:AmeR2cRGuardrailMoveSourceDigest = "4ef40255e3cedbac7609f4ec42593ae08f5339d8aa298e807319e81086cdf79c"
+$script:AmeR2cRGuardrailMoveSourceDigest = "f2487887c31ac0e5a1c5c7133c141bd4c472149883bd1e0eef3316038354aee5"
 $script:AmeR2cRDeletionAuditBudgetLimits = [ordered]@{
-    "source-count" = [uint64]8
+    "source-count" = [uint64]9
     "dot-source-depth" = [uint64]8
     "per-source-bytes" = [uint64](256 * 1024)
     "total-bytes" = [uint64](512 * 1024)
@@ -2216,7 +2218,7 @@ function Invoke-AmeR2cROwnedProcess {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet("CargoExactTest", "PowerShell")]
+        [ValidateSet("CargoExactTest", "CargoTestBuild", "PowerShell")]
         [string]$ExecutableKind,
         [Parameter(Mandatory = $true)][string]$FileName,
         [Parameter(Mandatory = $true)][string[]]$Arguments,
@@ -2252,47 +2254,9 @@ function Invoke-AmeR2cROwnedProcess {
             -SourcePath $boundaryPath `
             -Label "verified process boundary" `
             -RetainSnapshots
-        if ($ExecutableKind -ceq "CargoExactTest") {
-            if ($Detached) {
-                throw "R2c-R verified process boundary cannot detach a Cargo test"
-            }
-            $cargoFallback = Join-Path $env:USERPROFILE ".cargo\bin\cargo.exe"
-            if ([IO.File]::Exists($cargoFallback)) {
-                $expectedExecutable = [IO.Path]::GetFullPath($cargoFallback)
-            } else {
-                $cargoCommand = Microsoft.PowerShell.Core\Get-Command `
-                    "cargo" `
-                    -CommandType Application `
-                    -ErrorAction SilentlyContinue |
-                    Microsoft.PowerShell.Utility\Select-Object -First 1
-                if ($null -eq $cargoCommand) {
-                    throw "R2c-R verified process boundary could not resolve Cargo"
-                }
-                $expectedExecutable = [IO.Path]::GetFullPath($cargoCommand.Source)
-            }
-            $actualExecutable = [IO.Path]::GetFullPath($FileName)
-            if (-not $actualExecutable.Equals(
-                    $expectedExecutable,
-                    [StringComparison]::OrdinalIgnoreCase
-                )) {
-                throw "R2c-R verified process boundary rejected the Cargo executable"
-            }
-            $caseMatches = 0
-            foreach ($case in @(Get-AmeR2cRCaseDefinitions)) {
-                $expectedArguments = @(Get-AmeR2cRCaseArguments -Case $case)
-                if ($expectedArguments.Count -ne $Arguments.Count) { continue }
-                $matches = $true
-                for ($index = 0; $index -lt $Arguments.Count; $index += 1) {
-                    if ([string]$Arguments[$index] -cne [string]$expectedArguments[$index]) {
-                        $matches = $false
-                        break
-                    }
-                }
-                if ($matches) { $caseMatches += 1 }
-            }
-            if ($caseMatches -ne 1) {
-                throw "R2c-R verified process boundary rejected a non-matrix Cargo command"
-            }
+        if ($ExecutableKind -cin @("CargoExactTest", "CargoTestBuild")) {
+            Assert-AmeR2cRCargoInvocation -Kind $ExecutableKind -FileName $FileName `
+                -Arguments $Arguments -Detached:$Detached
         } else {
             $currentProcess = Microsoft.PowerShell.Management\Get-Process -Id $PID
             try { $expectedExecutable = [IO.Path]::GetFullPath($currentProcess.Path) }
@@ -2812,6 +2776,7 @@ function Add-AmeR2cRDeletionAuditScope {
 function Assert-AmeR2cRProcessBoundaryContract {
     param([Parameter(Mandatory = $true)][psobject]$State)
     if (-not $State.Functions.ContainsKey("Invoke-AmeR2cROwnedProcess")) { return }
+    Assert-AmeR2cRCargoBoundaryContract -State $State
     $matches = @($State.Functions["Invoke-AmeR2cROwnedProcess"])
     if ($matches.Count -ne 1) {
         throw "R2c-R process execution boundary was ambiguous"
