@@ -597,6 +597,11 @@ pub enum ScanEvent {
         code: String,
         message: String,
     },
+    AlreadyCovered {
+        scan_id: String,
+        root_id: String,
+        relative_path: String,
+    },
 }
 
 #[derive(Clone, Debug)]

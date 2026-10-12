@@ -54,6 +54,8 @@ mod relocation_tests;
 #[cfg(test)]
 mod resumption_tests;
 mod retained_cancellation;
+#[cfg(all(test, windows))]
+mod root_coverage_tests;
 mod root_selection;
 mod traversal;
 
@@ -243,11 +245,17 @@ fn run_scan_with_storage_selection(
         )?;
         Ok((catalog, admission))
     })?;
-    let ScanRootAdmission {
-        root_id,
-        mut checkpoint,
-        had_published_root,
-    } = admission;
+    let (root_id, mut checkpoint, had_published_root) = match admission {
+        ScanRootAdmission::Started {
+            root_id,
+            checkpoint,
+            had_published_root,
+        } => (root_id, checkpoint, had_published_root),
+        ScanRootAdmission::AlreadyCovered(covered) => {
+            covered.finish(&request, control.load(Ordering::Relaxed), publish);
+            return Ok(());
+        }
+    };
     let mut issue_count = checkpoint.issue_count;
     let result = (|| -> Result<(), ScanError> {
         let root_generation = catalog

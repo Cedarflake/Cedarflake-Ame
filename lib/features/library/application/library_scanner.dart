@@ -300,6 +300,16 @@ class RustLibraryScanner
         ),
       rust_domain.ScanEvent_Failed(:final code, :final message) =>
         LibraryScanFailed(code: code, message: message),
+      rust_domain.ScanEvent_AlreadyCovered(
+        :final scanId,
+        :final rootId,
+        :final relativePath,
+      ) =>
+        LibraryScanAlreadyCovered(
+          scanId: scanId,
+          rootId: rootId,
+          relativePath: relativePath,
+        ),
     };
   }
 }

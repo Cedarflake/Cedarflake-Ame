@@ -2699,6 +2699,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           code: dco_decode_String(raw[2]),
           message: dco_decode_String(raw[3]),
         );
+      case 10:
+        return ScanEvent_AlreadyCovered(
+          scanId: dco_decode_String(raw[1]),
+          rootId: dco_decode_String(raw[2]),
+          relativePath: dco_decode_String(raw[3]),
+        );
       default:
         throw Exception("unreachable");
     }
@@ -4370,6 +4376,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           code: var_code,
           message: var_message,
         );
+      case 10:
+        var var_scanId = sse_decode_String(deserializer);
+        var var_rootId = sse_decode_String(deserializer);
+        var var_relativePath = sse_decode_String(deserializer);
+        return ScanEvent_AlreadyCovered(
+          scanId: var_scanId,
+          rootId: var_rootId,
+          relativePath: var_relativePath,
+        );
       default:
         throw UnimplementedError('');
     }
@@ -5890,6 +5905,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_String(scanId, serializer);
         sse_encode_String(code, serializer);
         sse_encode_String(message, serializer);
+      case ScanEvent_AlreadyCovered(
+        scanId: final scanId,
+        rootId: final rootId,
+        relativePath: final relativePath,
+      ):
+        sse_encode_i_32(10, serializer);
+        sse_encode_String(scanId, serializer);
+        sse_encode_String(rootId, serializer);
+        sse_encode_String(relativePath, serializer);
     }
   }
 

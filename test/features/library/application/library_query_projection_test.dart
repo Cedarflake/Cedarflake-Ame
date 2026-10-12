@@ -67,6 +67,9 @@ class _Projection implements LibraryQueryProjection {
 
   @override
   Future<LibraryQueryUpdateOutcome> publish(
-    LibraryQueryPublication publication,
-  ) => publication(LibraryQueryAnchor(requestedLocationId: location));
+    LibraryQueryPublication publication, {
+    bool preservePosition = true,
+  }) => publication(
+    preservePosition ? LibraryQueryAnchor(requestedLocationId: location) : null,
+  );
 }

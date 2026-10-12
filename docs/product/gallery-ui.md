@@ -102,6 +102,12 @@ The folder-plus icon is a separate hit target from the `图库` navigation row. 
 accessible label are `添加文件夹到图库`; activating it opens the same folder picker as the global
 `导入` action.
 
+Selecting an exact registered source retains its normal update behavior. Selecting an unregistered
+child already covered by a registered parent opens that parent's existing folder scope without
+another source registration or scan. Coverage does not complete an unfinished parent import or
+remove legacy registrations. A primary import or retained paused import still excludes another
+primary import; selecting folders does not create an import queue.
+
 Clicking a source or child folder scopes the same gallery. Clicking its expansion control only
 changes the tree. A source-row overflow action, secondary click, or keyboard context-menu request
 opens the same Material menu containing:

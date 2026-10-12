@@ -78,6 +78,7 @@ use crate::domain::{
 };
 
 mod catalog_identity;
+mod directory_coverage;
 mod file_admission;
 mod file_revalidation;
 mod media_signature;
@@ -6055,6 +6056,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "directory_coverage",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "root_location",
             visibility: "",

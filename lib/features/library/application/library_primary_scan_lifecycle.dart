@@ -4,6 +4,7 @@ import "../adapters/directory_picker.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
+import "library_query_refresh.dart";
 import "library_scan_control.dart";
 import "library_scan_execution.dart";
 import "library_scan_restoration.dart";
@@ -17,7 +18,11 @@ import "library_scanner.dart";
 abstract interface class LibraryPrimaryScanHost {
   LibraryState get libraryState;
   void publishPrimaryScan(LibraryPrimaryScanSnapshot snapshot);
-  void preparePrimaryScanExecution();
+  LibraryQueryIntent preparePrimaryScanExecution();
+  Future<LibraryQueryUpdateOutcome> selectCoveredPrimaryScanFolder(
+    LibraryScanAlreadyCovered folder,
+    LibraryQueryIntent intent,
+  );
   Future<bool> reloadPrimaryScanCatalog();
 }
 
@@ -230,11 +235,12 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       );
       return;
     }
-    _host.preparePrimaryScanExecution();
+    final queryIntent = _host.preparePrimaryScanExecution();
     final run = LibraryScanRun(
       scanId: checkpoint.scanId,
       generation: ++_runGeneration,
       sourceAdmission: sourceAdmission,
+      queryIntent: queryIntent,
       scanner: _scanner,
     );
     _run = run;
@@ -490,6 +496,10 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       return;
     }
     if (run.didReceiveTerminal) {
+      if (run.coveredFolder case final folder?) {
+        unawaited(_selectCoveredFolder(run, folder));
+        return;
+      }
       if (run.hasProtocolFailure) {
         _publish(_state.copyWith(status: LibraryStatus.failed));
       }
@@ -506,6 +516,19 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   Future<void> _releaseAfterSourceRefresh(LibraryScanRun run) async {
     await _refreshAdmittedSource(run);
     _release(run);
+  }
+
+  Future<void> _selectCoveredFolder(
+    LibraryScanRun run,
+    LibraryScanAlreadyCovered folder,
+  ) async {
+    try {
+      if (!_isUnavailable) {
+        await _host.selectCoveredPrimaryScanFolder(folder, run.queryIntent);
+      }
+    } finally {
+      _release(run);
+    }
   }
 
   bool _owns(LibraryScanRun run) =>

@@ -9,6 +9,7 @@ class FixedQueryProjection implements LibraryQueryProjection {
 
   @override
   Future<LibraryQueryUpdateOutcome> publish(
-    LibraryQueryPublication publication,
-  ) => publication(anchor);
+    LibraryQueryPublication publication, {
+    bool preservePosition = true,
+  }) => publication(preservePosition ? anchor : null);
 }

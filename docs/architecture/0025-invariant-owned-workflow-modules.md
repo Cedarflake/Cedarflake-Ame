@@ -74,6 +74,13 @@ persistence layers.
   native stream completion from complete retirement of terminal source refresh and subscription
   cleanup. A subsequent retry or picker admission waits for that retirement; old terminal work
   cannot release the newer operation's admission. Existing controls remain in the primary lifecycle.
+  `root_selection/coverage.rs` resolves an otherwise unregistered child against the nearest active
+  parent. `local_files/directory_coverage.rs` proves its directory identity through the pinned parent
+  using attribute-only, no-follow directory opens and rejects unavailable/reparse entries. The
+  parent binding is rechecked before returning typed `AlreadyCovered`; this outcome does not create
+  a scan, publish incomplete membership, or retire a legacy registration. Exact-path update and
+  explicit/identity relocation keep precedence. The primary run retains terminal folder-selection
+  ownership through stream drain and navigation, without reporting an import completion.
 - `application/library_synchronization/production.rs` remains the priority and worker-lifecycle
   coordinator. Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
@@ -469,6 +476,10 @@ persistence layers.
   proven supersession, not after an arbitrary failure or unchanged busy result. Disposal settles
   every in-flight waiter, including replaced attempts. Catalog revision disagreement remains a
   genuine read failure, and retry cannot repeat the committed source scan.
+  A deferred directory selection captures a separate user-intent generation. A newer user query,
+  including A-B-A replacement, external authority invalidation or disposal retires it; passive
+  refresh does not. A covered-directory result consumes that intent once and uses the existing
+  coherent query read and failure/retry path, with no source-scan authority.
   Passive admission precedes presentation capture, so a rejected request cannot retire an active
   gallery projection. A passive request waiting for a gesture retains its original publication
   authority and revalidates it before reading. Expired paging cursors use the same position-aware
@@ -479,6 +490,8 @@ persistence layers.
   without a mounted gallery it still reads the catalog. Detaching an old registration cannot
   revoke a replacement, and application disposal admits no further read. The viewport retains
   committed admission, coherent query reads, revision checks and catalog-publication authority.
+  Explicit folder selection requests a fresh position through that same projection rather than
+  carrying an anchor from the former folder or waiting for its scroll gesture.
   A read also retains the projection's position generation. A later user scroll retires that
   authority before catalog publication; a committed refresh resumes after the gesture using its
   new position. Query, catalog-publication and position generations remain independent.

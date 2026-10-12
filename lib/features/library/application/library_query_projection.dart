@@ -6,8 +6,9 @@ typedef LibraryQueryPublication =
 
 abstract interface class LibraryQueryProjection {
   Future<LibraryQueryUpdateOutcome> publish(
-    LibraryQueryPublication publication,
-  );
+    LibraryQueryPublication publication, {
+    bool preservePosition = true,
+  });
 }
 
 class LibraryQueryProjectionRegistration {
@@ -59,15 +60,19 @@ class LibraryQueryProjections {
   }
 
   Future<LibraryQueryUpdateOutcome> publish(
-    LibraryQueryPublication publication,
-  ) {
+    LibraryQueryPublication publication, {
+    bool preservePosition = true,
+  }) {
     if (_isDisposed) {
       return Future.value(LibraryQueryUpdateOutcome.superseded);
     }
     final current = _current;
     return current == null
         ? publication(null)
-        : current._projection.publish(publication);
+        : current._projection.publish(
+            publication,
+            preservePosition: preservePosition,
+          );
   }
 
   void dispose() {

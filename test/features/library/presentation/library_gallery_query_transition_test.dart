@@ -9,6 +9,21 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
+    "folder selection resets the old position without waiting for its gesture",
+    () async {
+      final fixture = _Fixture();
+      fixture.transition.setUserScrolling(true);
+      await fixture.transition.publish((anchor) async {
+        expect(anchor, isNull);
+        return LibraryQueryUpdateOutcome.applied;
+      }, preservePosition: false);
+      expect(fixture.published.single.preservePosition, isFalse);
+      expect(fixture.transition.pendingPosition, isNull);
+      fixture.transition.setUserScrolling(false);
+    },
+  );
+
+  test(
     "committed refresh waits for current user scrolling to finish",
     () async {
       final fixture = _Fixture();

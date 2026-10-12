@@ -20,6 +20,7 @@ import "package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:integration_test/integration_test.dart";
 
+import "support/covered_folder_workflow.dart";
 import "support/library_management_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
@@ -275,6 +276,13 @@ void main() {
     final storageStatus = await const RustStorageSettingsGateway().load();
     expect(storageStatus.activeCatalogPath, catalogPath);
     expect(storageStatus.settingsPath, isNotEmpty);
+
+    await verifyCoveredFolderWorkflow(
+      tester,
+      container,
+      childPath: nestedSourceDirectory.path,
+      relativePath: "本地图片",
+    );
 
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pumpAndSettle();

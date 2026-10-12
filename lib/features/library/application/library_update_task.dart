@@ -164,6 +164,10 @@ class LibraryRootUpdateTask {
         phase: LibraryRootUpdatePhase.failed,
         errorMessage: "$code: $message",
       ),
+      LibraryScanAlreadyCovered() => copyWith(
+        phase: LibraryRootUpdatePhase.failed,
+        errorMessage: "待更新的来源已发生变化，请重新选择来源。",
+      ),
       LibraryAssetDiscovered() => null,
       LibraryIssueDiscovered() => copyWith(issueCount: issueCount + 1),
     };

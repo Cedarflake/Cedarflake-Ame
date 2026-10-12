@@ -1051,6 +1051,11 @@ sealed class ScanEvent with _$ScanEvent {
     required String code,
     required String message,
   }) = ScanEvent_Failed;
+  const factory ScanEvent.alreadyCovered({
+    required String scanId,
+    required String rootId,
+    required String relativePath,
+  }) = ScanEvent_AlreadyCovered;
 }
 
 class ScanIssue {

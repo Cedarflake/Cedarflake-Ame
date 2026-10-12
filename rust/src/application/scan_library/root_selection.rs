@@ -8,6 +8,8 @@ use crate::ports::IncrementalCatalogRepository;
 
 use super::{FullScanReason, stable_id};
 
+mod coverage;
+
 pub(super) enum ScanRootSelection {
     RegisteredPath,
     Relocate {
@@ -22,10 +24,23 @@ enum ResolvedScanRoot {
     IdentityRecovered(IncrementalCatalogRoot),
 }
 
-pub(super) struct ScanRootAdmission {
-    pub root_id: String,
-    pub checkpoint: ScanCheckpoint,
-    pub had_published_root: bool,
+enum ResolvedSelection {
+    Scan(ResolvedScanRoot),
+    AlreadyCovered(CoveredRoot),
+}
+
+pub(super) struct CoveredRoot {
+    root_id: String,
+    relative_path: String,
+}
+
+pub(super) enum ScanRootAdmission {
+    Started {
+        root_id: String,
+        checkpoint: ScanCheckpoint,
+        had_published_root: bool,
+    },
+    AlreadyCovered(CoveredRoot),
 }
 
 impl ScanRootSelection {
@@ -37,7 +52,12 @@ impl ScanRootSelection {
         identity: &FileIdentityEvidence,
         reason: FullScanReason,
     ) -> Result<ScanRootAdmission, ScanError> {
-        let target = self.resolve(catalog, request, root_path, identity, reason)?;
+        let target = match self.resolve(catalog, request, root_path, identity, reason)? {
+            ResolvedSelection::Scan(target) => target,
+            ResolvedSelection::AlreadyCovered(covered) => {
+                return Ok(ScanRootAdmission::AlreadyCovered(covered));
+            }
+        };
         let (root_id, had_published_root) = match &target {
             ResolvedScanRoot::Registered(root_id) => {
                 let previous = catalog.load_incremental_catalog_root(root_id)?;
@@ -83,7 +103,7 @@ impl ScanRootSelection {
                 }
             },
         };
-        Ok(ScanRootAdmission {
+        Ok(ScanRootAdmission::Started {
             root_id,
             checkpoint,
             had_published_root,
@@ -97,7 +117,7 @@ impl ScanRootSelection {
         root_path: &str,
         identity: &FileIdentityEvidence,
         reason: FullScanReason,
-    ) -> Result<ResolvedScanRoot, ScanError> {
+    ) -> Result<ResolvedSelection, ScanError> {
         match self {
             Self::Relocate {
                 root_id,
@@ -110,27 +130,37 @@ impl ScanRootSelection {
                         "The selected library root has a different location",
                     ));
                 }
-                Ok(ResolvedScanRoot::ExplicitReplacement(previous))
+                Ok(ResolvedSelection::Scan(
+                    ResolvedScanRoot::ExplicitReplacement(previous),
+                ))
             }
             Self::RegisteredPath => {
                 if let Some(root_id) = catalog.load_registered_root_id(root_path)? {
-                    return Ok(ResolvedScanRoot::Registered(root_id));
+                    return Ok(ResolvedSelection::Scan(ResolvedScanRoot::Registered(
+                        root_id,
+                    )));
                 }
                 if reason == FullScanReason::ExplicitUserRequest
                     && let Some(root_id) = catalog.load_published_root_id_by_identity(identity)?
                 {
-                    return Ok(ResolvedScanRoot::IdentityRecovered(require_root(
-                        catalog, &root_id,
-                    )?));
+                    return Ok(ResolvedSelection::Scan(
+                        ResolvedScanRoot::IdentityRecovered(require_root(catalog, &root_id)?),
+                    ));
+                }
+                if reason == FullScanReason::ExplicitUserRequest
+                    && let Some(covered) = coverage::find(catalog, root_path, identity)?
+                {
+                    return Ok(ResolvedSelection::AlreadyCovered(covered));
                 }
                 let legacy_id = stable_id("library-root-v1", root_path);
                 if !catalog.has_registered_root_id(&legacy_id)? {
-                    return Ok(ResolvedScanRoot::Registered(legacy_id));
+                    return Ok(ResolvedSelection::Scan(ResolvedScanRoot::Registered(
+                        legacy_id,
+                    )));
                 }
                 // The former path's identifier can belong to a source relocated elsewhere.
-                Ok(ResolvedScanRoot::Registered(stable_id(
-                    "library-root-registration-v1",
-                    &request.scan_id,
+                Ok(ResolvedSelection::Scan(ResolvedScanRoot::Registered(
+                    stable_id("library-root-registration-v1", &request.scan_id),
                 )))
             }
         }

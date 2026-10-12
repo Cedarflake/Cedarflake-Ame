@@ -370,6 +370,18 @@ sealed class LibraryScanUpdate {
   const LibraryScanUpdate();
 }
 
+class LibraryScanAlreadyCovered extends LibraryScanUpdate {
+  const LibraryScanAlreadyCovered({
+    required this.scanId,
+    required this.rootId,
+    required this.relativePath,
+  });
+
+  final String scanId;
+  final String rootId;
+  final String relativePath;
+}
+
 class LibraryScanStarted extends LibraryScanUpdate {
   const LibraryScanStarted({
     required this.scanId,

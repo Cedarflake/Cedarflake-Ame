@@ -6,6 +6,69 @@ import "package:cedarflake_ame/features/library/application/library_query_refres
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "deferred selection survives passive refresh but is consumed once",
+    () async {
+      final owner = LibraryQueryRefreshCoordinator(
+        LibraryCatalogPublicationCoordinator(),
+      );
+      addTearDown(owner.dispose);
+      final intent = owner.captureUserIntent();
+      await owner.refreshCommitted(
+        () async => LibraryQueryUpdateOutcome.applied,
+      );
+      expect(
+        await owner.runForIntent(
+          intent,
+          () async => LibraryQueryUpdateOutcome.applied,
+        ),
+        LibraryQueryUpdateOutcome.applied,
+      );
+      expect(
+        await owner.runForIntent(intent, () async => fail("selection reused")),
+        LibraryQueryUpdateOutcome.superseded,
+      );
+    },
+  );
+
+  test(
+    "newer user requests retire deferred selection even when their values repeat",
+    () async {
+      final owner = LibraryQueryRefreshCoordinator(
+        LibraryCatalogPublicationCoordinator(),
+      );
+      addTearDown(owner.dispose);
+      final intent = owner.captureUserIntent();
+      for (var i = 0; i < 2; i += 1) {
+        await owner.runUser(() async => LibraryQueryUpdateOutcome.applied);
+      }
+      expect(
+        await owner.runForIntent(intent, () async => fail("stale selection")),
+        LibraryQueryUpdateOutcome.superseded,
+      );
+    },
+  );
+
+  test("selection requires its live originating owner", () async {
+    final owner = LibraryQueryRefreshCoordinator(
+      LibraryCatalogPublicationCoordinator(),
+    );
+    final other = LibraryQueryRefreshCoordinator(
+      LibraryCatalogPublicationCoordinator(),
+    );
+    addTearDown(other.dispose);
+    final intent = owner.captureUserIntent();
+    expect(
+      await other.runForIntent(intent, () async => fail("foreign selection")),
+      LibraryQueryUpdateOutcome.superseded,
+    );
+    owner.dispose();
+    expect(
+      await owner.runForIntent(intent, () async => fail("disposed selection")),
+      LibraryQueryUpdateOutcome.superseded,
+    );
+  });
+
   test("later position input renews the committed read obligation", () async {
     final projections = LibraryQueryProjections();
     final owner = LibraryQueryRefreshCoordinator(

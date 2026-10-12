@@ -1113,7 +1113,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                     parentRelativePath,
                     loadMore: true,
                   ),
-              onAddSource: controller.chooseDirectoryAndScan,
+              onAddSource: _addSource,
               onOpenSettings: _openSettings,
               onUpdateRoot: (root) =>
                   unawaited(_chooseLibraryRootsToUpdate(root)),
@@ -1795,6 +1795,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       _selection = _selection.clear();
       _isSelecting = false;
     });
+  }
+
+  void _addSource() {
+    setState(() => _destination = _LibraryDestination.gallery);
+    unawaited(_libraryController.chooseDirectoryAndScan());
   }
 
   void _selectLibrary(LibraryState state) {

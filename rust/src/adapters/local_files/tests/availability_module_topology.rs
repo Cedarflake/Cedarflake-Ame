@@ -13,6 +13,7 @@ const CRATE_SOURCE: &str = include_str!("../../../lib.rs");
 fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() {
     for module_name in [
         "catalog_identity",
+        "directory_coverage",
         "media_signature",
         "file_admission",
         "file_revalidation",
@@ -85,6 +86,25 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
         "pub(crate) mod media_fixtures;"
     );
     for (source, declaration, replacements, source_key, module_name) in [
+        (
+            LOCAL_SOURCE,
+            "mod directory_coverage;",
+            vec![
+                "".to_owned(),
+                "mod directory_coverage;\nmod directory_coverage;".to_owned(),
+                "pub mod directory_coverage;".to_owned(),
+                "#[cfg(test)]\nmod directory_coverage;".to_owned(),
+                "#[path = \"alternate.rs\"]\nmod directory_coverage;".to_owned(),
+                "#[cfg_attr(not(test), path = \"alternate.rs\")]\nmod directory_coverage;"
+                    .to_owned(),
+                "#[adversarial_loader]\nmod directory_coverage;".to_owned(),
+                "mod directory_coverage { mod generated {} }".to_owned(),
+                "include!(\"alternate.rs\");".to_owned(),
+                "mod directory_coverage;\nmod unknown_directory_coverage;".to_owned(),
+            ],
+            "local",
+            "directory_coverage",
+        ),
         (
             local_source.as_str(),
             location,

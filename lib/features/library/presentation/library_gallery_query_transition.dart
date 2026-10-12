@@ -42,13 +42,18 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
 
   @override
   Future<LibraryQueryUpdateOutcome> publish(
-    LibraryQueryPublication publication,
-  ) {
+    LibraryQueryPublication publication, {
+    bool preservePosition = true,
+  }) {
     final scrollEnd = _scrollEnd;
-    if (scrollEnd != null) {
+    if (preservePosition && scrollEnd != null) {
       return _publishAfterScroll(publication, scrollEnd.future, _generation);
     }
-    return run(publication, reconcileSelection: true);
+    return run(
+      publication,
+      preservePosition: preservePosition,
+      reconcileSelection: true,
+    );
   }
 
   Future<LibraryQueryUpdateOutcome> _publishAfterScroll(

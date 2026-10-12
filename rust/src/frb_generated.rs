@@ -2896,6 +2896,16 @@ impl SseDecode for crate::domain::ScanEvent {
                     message: var_message,
                 };
             }
+            10 => {
+                let mut var_scanId = <String>::sse_decode(deserializer);
+                let mut var_rootId = <String>::sse_decode(deserializer);
+                let mut var_relativePath = <String>::sse_decode(deserializer);
+                return crate::domain::ScanEvent::AlreadyCovered {
+                    scan_id: var_scanId,
+                    root_id: var_rootId,
+                    relative_path: var_relativePath,
+                };
+            }
             _ => {
                 unimplemented!("");
             }
@@ -4590,6 +4600,17 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 message.into_into_dart().into_dart(),
             ]
             .into_dart(),
+            crate::domain::ScanEvent::AlreadyCovered {
+                scan_id,
+                root_id,
+                relative_path,
+            } => [
+                10.into_dart(),
+                scan_id.into_into_dart().into_dart(),
+                root_id.into_into_dart().into_dart(),
+                relative_path.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -5951,6 +5972,16 @@ impl SseEncode for crate::domain::ScanEvent {
                 <String>::sse_encode(scan_id, serializer);
                 <String>::sse_encode(code, serializer);
                 <String>::sse_encode(message, serializer);
+            }
+            crate::domain::ScanEvent::AlreadyCovered {
+                scan_id,
+                root_id,
+                relative_path,
+            } => {
+                <i32>::sse_encode(10, serializer);
+                <String>::sse_encode(scan_id, serializer);
+                <String>::sse_encode(root_id, serializer);
+                <String>::sse_encode(relative_path, serializer);
             }
             _ => {
                 unimplemented!("");

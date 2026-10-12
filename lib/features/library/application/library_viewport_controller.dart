@@ -155,6 +155,28 @@ class LibraryViewportController {
   Future<bool> refreshPrimaryScanCatalog() =>
       _queryRefresh.refreshCommitted(_refreshCommittedCatalogProjection);
 
+  LibraryQueryIntent prepareDirectorySelection() {
+    supersedeExternalRequests();
+    return _queryRefresh.captureUserIntent();
+  }
+
+  Future<LibraryQueryUpdateOutcome> selectCoveredFolder(
+    LibraryScanAlreadyCovered folder,
+    LibraryQueryIntent intent,
+  ) => _queryRefresh.runForIntent(
+    intent,
+    () => queryProjections.publish(
+      (_) => _updateQueryWithOutcome(
+        _state.query.copyWith(
+          rootId: folder.rootId,
+          folderRelativePath: folder.relativePath,
+          includeDescendants: true,
+        ),
+      ),
+      preservePosition: false,
+    ),
+  );
+
   Future<LibraryQueryUpdateOutcome> _refreshCommittedCatalogProjection() {
     final generation = _publicationGeneration;
     return queryProjections.publish((anchor) {

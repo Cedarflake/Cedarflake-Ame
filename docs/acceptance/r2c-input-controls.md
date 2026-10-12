@@ -9,6 +9,68 @@ presentation correction and regression below. The [complete native checkpoint](#
 uses unchanged product source at `4787c84`. It closes the selected Debug input duties, not Release,
 every UX-08C focus-return variant or all of R2c.
 
+## Nested-source selection
+
+The 2026-10-12 application-boundary reproducer imports a generated parent with one image and a
+child with another. Before correction, selecting the child produces two roots and three gallery
+entries. The corrected admission returns typed `AlreadyCovered` before scan registration, and the
+generated bridge opens the existing root/folder through the normal query lifecycle. Exact-path
+updates and relocation precedence remain intact. It neither consolidates previously registered
+overlaps nor implements an import queue.
+
+Seven focused Rust cases pass: exact root/gallery membership and unchanged source bytes, ordinary
+parent update, sibling name-prefix separation, canonical nested Chinese paths, replaced-parent
+identity rejection, unpublished-parent checkpoint preservation and pre-admission controls.
+The original two-image case now retains one root, two entries and one scan history row; existing
+instrumentation records zero source-entry enumeration and zero media content opens for the second
+selection. Full catalog reopen passes. The initial implementation's file-only inventory identity
+and incompatible native directory option failures are preserved; the corrected directory adapter
+uses ADR 0024's established attribute-only option set and keeps no-follow, placeholder and identity
+checks. Added instrumentation's initial compile error was corrected at the existing public exports.
+
+The four focused Flutter files pass 38 cases, including actual sidebar picker interaction from
+Settings, folder navigation without transient import feedback, A-B-A query supersession, display-only
+Retry, pending-navigation admission retirement, cancellation, invalid stream identity/order and
+disposal. Warning-denied all-target/all-feature Clippy, fatal Dart analysis, generated bridge hash
+and 16 asynchronous contract checks pass. Independent static review finds no actionable issue in
+the admitted registration/navigation scope. Complete candidate verification remains in progress;
+the earlier C01/C02 failures remain separate unresolved gates.
+
+The first complete Rust run finishes in 918.21 seconds with 1710 passing, two failing and 23
+ignored tests. Both failures identify the new `directory_coverage` declaration missing from the
+availability checker's exact module manifest. The manifest now requires its private, unconditional,
+external declaration; negative fixtures reject removal, duplication, broader visibility, conditional
+or alternate loading, generated bodies and extra modules. All 11 availability regressions pass in
+18.42 seconds, and warning-denied Clippy plus fatal Dart analysis pass again. This focused correction
+does not relabel the preceding complete run as successful.
+
+The complete Flutter partition then passes all 109 files and 864 tests. The three Rust broker
+binary tests, not reached after the original library-suite failure, pass separately in 2.36 seconds.
+The final formatting check covers 286 Dart files without changes, and the bridge hashes plus all
+16 asynchronous contracts match. Full lint/Daily still retain the known local C02 report-replacement
+blocker; these successful partitions do not claim a complete local Daily pass.
+
+The canonical Windows scan integration passes all three workflows in a 74165 ms owned lifetime
+(`152b781cb6684b3abfd589ae1e846fc5`), with exit zero and no cleanup failures. The actual Rust bridge
+returns the covered-child selection into the mounted gallery; parent root, active scan, asset and
+location identities remain unchanged, with no retained import or pending source tile. Restoring
+the former gallery query still shows exactly one root and one valid image. The existing wrong-
+extension/corrupt fixtures, retained-import cancellation, native picker, second-root import,
+preview regeneration, viewer and update/removal sequences also pass, including final source-byte
+and exact directory-count checks. This is native Debug evidence, not a Release coverage result.
+
+Ownership accounting after correction: Rust scan facade 773 lines (tests in dedicated modules),
+root selection 182, coverage 84 and directory adapter 56, with no inline test cases in these owners;
+the dedicated coverage suite has 321 lines. Dart primary lifecycle is 687, run 165, query-refresh
+owner 164, viewport facade 1436 and screen 2141 lines, with no inline tests; the dedicated connected
+coverage suite has 297 lines. New coverage/identity policy lives in its own owners; viewport and
+screen additions compose the existing query and sidebar paths. Generated bridge output is excluded
+from handwritten accounting. No schema, dependency, source mutation or new unsafe block is added.
+The local-files facade has 3783 source/support lines and a 3458-line inline test module; its only
+additions are the production module declaration and six manifest lines. The dedicated topology
+suite is 343 lines. Native verification adds a 56-line support workflow to the existing 510-line
+scan integration suite, reusing its generated sources and isolated storage.
+
 ## C06: cancellation while pause is pending
 
 The task surface previously displayed controls only for `scanning`. After Pause changed the

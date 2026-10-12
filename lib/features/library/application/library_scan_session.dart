@@ -49,6 +49,9 @@ class LibraryScanSession {
     LibraryScanUpdate update,
   ) {
     switch (update) {
+      case LibraryScanAlreadyCovered():
+        clear();
+        return const LibraryScanTransition(state: LibraryPrimaryScanSnapshot());
       case LibraryScanStarted(
         :final scanId,
         :final rootPath,

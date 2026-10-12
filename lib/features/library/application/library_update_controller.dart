@@ -478,6 +478,7 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
         update is LibraryScanCancelled ||
         update is LibraryScanPaused ||
         update is LibraryScanStale ||
+        update is LibraryScanAlreadyCovered ||
         update is LibraryScanFailed;
   }
 

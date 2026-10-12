@@ -58,7 +58,8 @@ impl ScanPhaseCost {
             | ScanEvent::Cancelled { scan_id, .. }
             | ScanEvent::Paused { scan_id, .. }
             | ScanEvent::Stale { scan_id, .. }
-            | ScanEvent::Failed { scan_id, .. } => scan_id,
+            | ScanEvent::Failed { scan_id, .. }
+            | ScanEvent::AlreadyCovered { scan_id, .. } => scan_id,
         };
         if scan_id != self.scan_id {
             return Err("foreign scan observation");
@@ -122,7 +123,10 @@ impl ScanPhaseCost {
             ScanEvent::Cancelled { .. }
             | ScanEvent::Paused { .. }
             | ScanEvent::Stale { .. }
-            | ScanEvent::Failed { .. } => return Err("unsuccessful terminal scan observation"),
+            | ScanEvent::Failed { .. }
+            | ScanEvent::AlreadyCovered { .. } => {
+                return Err("unsuccessful terminal scan observation");
+            }
         }
         Ok(())
     }

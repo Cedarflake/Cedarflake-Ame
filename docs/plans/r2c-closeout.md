@@ -60,12 +60,21 @@ bytes after the second selection. Keep that focused run serial under the reposit
 or real-library run is needed to establish this registration defect. A correction must preserve
 exact-path updates, directory identity checks and existing registrations; presentation-only path
 filtering cannot enforce registration policy.
+The [nested-source checkpoint](../acceptance/r2c-input-controls.md#nested-source-selection)
+now retains the original two-image/two-root/three-entry failure and passes seven owning Rust
+regressions plus connected picker/query checks and the actual native Debug bridge/gallery path.
+Coverage returns the existing root/folder without another scan or source enumeration/content read.
+The full Rust run's two precise module-manifest failures have a focused correction and rejection
+checks; preserve that failed run. Complete candidate and Release verification remain in progress;
+preserve exact-path update, cancellation and later-user-query precedence.
 
-Hosted run `38186866675` on `6a252a1` passes eight required jobs but retains a C01 connection-lifetime
-failure in Rust and a distinct C02 UIA assembly-loading timeout. The earlier `82d911c` stop-deadline
-and mixed-load failures remain historical evidence. A passing local run does not explain these
-failures, and no unchanged hosted rerun is admitted as a correction. Finish the concrete feedback
-defect and remaining functional variants before returning to deferred attribution.
+Hosted run `38194585598` on `fa7275c` passes all ten required component jobs and the aggregate gate;
+the separate signing channel remains skipped. This does not cover the uncommitted nested-source
+change. The preceding `38186866675` run on `6a252a1` retains its C01 connection-lifetime failure and
+distinct C02 UIA assembly-loading timeout; the `82d911c` stop-deadline and mixed-load failures also
+remain historical evidence. A later pass does not explain those failures, and no unchanged hosted
+rerun is admitted as a correction. Finish the concrete functional variants before returning to
+deferred attribution.
 The [worker-report boundary checkpoint](../acceptance/quality-gates.md#worker-report-preparation-boundary)
 owns the completed tool correction and its verification; no repeat of that repair is needed.
 

@@ -13,6 +13,7 @@ import "library_preview_queue.dart";
 import "library_preview_store.dart";
 import "library_previewer.dart";
 import "library_query_projection.dart";
+import "library_query_refresh.dart";
 import "library_root_removal_controller.dart";
 import "library_scan_execution.dart";
 import "library_primary_scan_lifecycle.dart";
@@ -66,7 +67,14 @@ class LibraryController extends Notifier<LibraryState>
   }
 
   @override
-  void preparePrimaryScanExecution() => _viewport.supersedeExternalRequests();
+  LibraryQueryIntent preparePrimaryScanExecution() =>
+      _viewport.prepareDirectorySelection();
+
+  @override
+  Future<LibraryQueryUpdateOutcome> selectCoveredPrimaryScanFolder(
+    LibraryScanAlreadyCovered folder,
+    LibraryQueryIntent intent,
+  ) => _viewport.selectCoveredFolder(folder, intent);
 
   @override
   Future<bool> reloadPrimaryScanCatalog() =>

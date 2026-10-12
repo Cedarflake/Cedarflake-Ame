@@ -6,6 +6,13 @@ import "library_query_update.dart";
 
 export "library_query_update.dart";
 
+class LibraryQueryIntent {
+  LibraryQueryIntent._(this._owner, this._generation);
+
+  final LibraryQueryRefreshCoordinator _owner;
+  final int _generation;
+}
+
 class _ActiveQueryAttempt {
   _ActiveQueryAttempt(this.generation);
 
@@ -28,10 +35,28 @@ class LibraryQueryRefreshCoordinator {
   Future<void> _committedTail = Future<void>.value();
   int _committedRequests = 0;
   int _generation = 0;
+  int _userGeneration = 0;
   bool _isDisposed = false;
 
-  Future<LibraryQueryUpdateOutcome> runUser(LibraryQueryAttempt attempt) =>
-      _start(attempt).completion.future;
+  LibraryQueryIntent captureUserIntent() =>
+      LibraryQueryIntent._(this, _userGeneration);
+
+  Future<LibraryQueryUpdateOutcome> runUser(LibraryQueryAttempt attempt) {
+    _userGeneration += 1;
+    return _start(attempt).completion.future;
+  }
+
+  Future<LibraryQueryUpdateOutcome> runForIntent(
+    LibraryQueryIntent intent,
+    LibraryQueryAttempt attempt,
+  ) {
+    if (_isDisposed ||
+        !identical(intent._owner, this) ||
+        intent._generation != _userGeneration) {
+      return Future.value(LibraryQueryUpdateOutcome.superseded);
+    }
+    return runUser(attempt);
+  }
 
   Future<LibraryQueryUpdateOutcome> runPassive(LibraryQueryAttempt attempt) {
     if (_isDisposed) {
@@ -87,7 +112,10 @@ class LibraryQueryRefreshCoordinator {
     }
   }
 
-  void invalidate() => _generation += 1;
+  void invalidate() {
+    _generation += 1;
+    _userGeneration += 1;
+  }
 
   void dispose() {
     _isDisposed = true;
