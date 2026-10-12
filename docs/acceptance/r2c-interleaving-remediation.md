@@ -60,6 +60,29 @@ status projection and input delivery/viewport observation. Neither observation y
 evidence of a new functional defect; do not count the wheel calls as accepted interaction or add an
 unchanged native replay. The independently verified recovery and source-safety result remains scoped.
 
+### Hosted maintenance-preemption observer on 6167ea2
+
+Run [38210714893](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38210714893), Static/Rust
+job `114684010202`, reports 1724 passed, one failed and 23 ignored in 1295.50 seconds. The other
+nine required components pass. The failed admission test observes its callback counter before
+`CatalogMaintenanceControl::preempt` executes, then asserts that interruption already occurred.
+The counter's acquire/release ordering cannot publish work sequenced after that counter update.
+This is a test-observer race; the log does not establish a production preemption failure.
+
+The test now sends the observed lock state through a channel after preemption returns and waits
+for that completion before checking interruption. Callback execution outside the writer mutex,
+late interrupt installation, active-permit retention, eventual Live admission and the original
+one-second and 50-millisecond deadlines remain asserted. The unused counter polling helper is
+removed. The dedicated test owner decreases from 8007 to 7997 lines, with no production or inline
+test lines. The 314-line production admission owner and its maintenance control remain unchanged.
+The focused `write_admission` family passes all 20 cases in 2.45 seconds after 23.78 seconds of
+compilation. `quality_verify_daily.ps1 -Component static` exits zero: full lint passes, 1725 Rust
+library tests pass with 23 intentional ignores in 906.80 seconds, three broker integration tests
+pass in 2.33 seconds, and all 16 asynchronous bridge contracts plus whitespace checks pass.
+This is the applicable static partition, not a new full Daily or local UIA pass. Fresh hosted
+verification follows the changed test; no unchanged hosted rerun is used. The separate C01/C02
+failures remain unattributed.
+
 ### Hosted mixed-load recurrence on 8b8053d
 
 Hosted run `38040960486`, Static and Rust job `114180995403`, fails with 1690 Rust tests passed,

@@ -236,20 +236,18 @@ fn sqlite_write_admission_live_waiter_preempts_maintenance_outside_the_lock_befo
  {
     let admission = Arc::new(SqliteWriteAdmission::new());
     let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
-    let callback_count = Arc::new(AtomicUsize::new(0));
-    let callback_observed_unlocked = Arc::new(AtomicBool::new(false));
+    let (preempt_sender, preempt_receiver) = mpsc::channel();
     let callback_admission = Arc::downgrade(&admission);
     let callback_control = control.clone();
-    let callback_count_for_preempt = Arc::clone(&callback_count);
-    let callback_observed_unlocked_for_preempt = Arc::clone(&callback_observed_unlocked);
     let active_maintenance = admission
         .try_acquire_preemptible_maintenance(Arc::new(move || {
             let was_unlocked = callback_admission
                 .upgrade()
                 .is_some_and(|admission| admission.state.try_lock().is_ok());
-            callback_observed_unlocked_for_preempt.store(was_unlocked, Ordering::Release);
-            callback_count_for_preempt.fetch_add(1, Ordering::AcqRel);
             callback_control.preempt();
+            preempt_sender
+                .send(was_unlocked)
+                .expect("report completed maintenance preemption");
         }))
         .expect("acquire preemptible maintenance writer");
     let (acquired_sender, acquired_receiver) = mpsc::channel();
@@ -259,8 +257,11 @@ fn sqlite_write_admission_live_waiter_preempts_maintenance_outside_the_lock_befo
         acquired_sender.send(()).expect("report live admission");
     });
 
-    wait_for_atomic_count(&callback_count, 1, "maintenance preemption callback");
-    assert!(callback_observed_unlocked.load(Ordering::Acquire));
+    assert!(
+        preempt_receiver
+            .recv_timeout(Duration::from_secs(1))
+            .expect("maintenance preemption completed outside the writer lock")
+    );
     assert!(control.is_interrupted());
     let interrupt_count = Arc::new(AtomicUsize::new(0));
     let interrupt_count_for_callback = Arc::clone(&interrupt_count);
@@ -855,17 +856,6 @@ fn current_v27_rejects_missing_candidate_ownership_index_on_reopen() {
         error.code,
         "catalog_recovery_execution_contract_unverifiable"
     );
-}
-
-fn wait_for_atomic_count(value: &AtomicUsize, expected: usize, description: &str) {
-    let deadline = Instant::now() + Duration::from_secs(1);
-    while value.load(Ordering::Acquire) < expected {
-        assert!(
-            Instant::now() < deadline,
-            "timed out waiting for {description}"
-        );
-        thread::yield_now();
-    }
 }
 
 fn assert_admission_is_idle(admission: &Arc<SqliteWriteAdmission>) {
