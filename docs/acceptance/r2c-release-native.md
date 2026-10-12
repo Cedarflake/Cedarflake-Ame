@@ -1331,9 +1331,24 @@ The initial full Flutter invocation is stopped before source correction, with it
 preserved; it is not a gate pass. The corrected serial Daily Flutter partition passes all 108 files
 and 851 cases against 281 unchanged frozen inputs. Final formatting changes zero of 284 files;
 all 16 bridge contracts and whitespace checks pass. The existing C02 lint failure remains open;
-this component result is not a complete Daily pass. Corrected Release observation remains required.
+this component result is not a complete Daily pass.
 
 The affected presentation owners contain 239 production lines for gallery states, 43 for pending
 source projection, 2136 for the screen, 464 for navigation and 521 for source tiles, with no inline
 tests. The dedicated first-import regression file contains 426 lines. The screen delegates empty
 state selection; neither catalog policy, scan execution nor source admission changes in this fix.
+
+The corrected `fa7275c` unsigned gate passes with 20 payload files, three native window cases,
+two engine-retirement cases and Release bridge smoke. Its first invocation stops when PowerShell
+merged-stream logging treats ordinary Cargo progress as an error. Removing that outer redirection
+allows the unchanged canonical command to complete; the failed summary remains separate.
+
+The corrected native run binds 974 tracked inputs and reuses the same generated corpus. Pause at
+9191 accepted images stops the transient-source spinner and shows incomplete-import feedback.
+A distinct process restores the same paused count and waits for explicit Continue. Completion
+displays 10000 images within 29 seconds of Continue. Closed verification confirms one scan with
+the same ID, exact paths/mtimes and valid catalog integrity. Both processes and their Jobs exit
+normally within a combined 197235 milliseconds, peaking at 196472832 working-set bytes. Original
+profile restoration and catalog/WAL/SHM checks pass; all 10000 source hashes/mtimes and 1005 bound
+inputs remain unchanged. Small receipts are in `.build/r2c-release-first-import-feedback-20261012`.
+This closes the selected Release first-import feedback correction, not the remaining R2c gates.

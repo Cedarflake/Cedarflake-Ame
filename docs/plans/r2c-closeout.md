@@ -41,24 +41,25 @@ the exact same catalog in a new process and completes the same scan after explic
 Preserve the first parent path-comparison failure and its bounded continuation; do not replay the
 completed import correctness or query workload merely for another receipt.
 
-That restart reproduces the next admitted UX-01C defect: the paused task retains 7579 found images
-while the gallery claims an empty folder. The transient source also continues its active spinner
-after Pause. Correct the owning presentation projection without publishing staging, changing scan
-authority or hiding peer-root content. Prove scoped empty-results precedence and primary-task/query
-independence with focused regressions, then validate the corrected Release pause/reopen feedback.
-Reuse existing generated source media and create only isolated catalog/cache storage. The existing
-host profile lease, exact payload binding, per-user mutex, repository lock, 900-second combined
-lifetime, 300-second import bound and two-GiB working-set/available-memory limits remain in force.
-No original-source access, service installation, Sandbox work or broader diagnostic framework is
-part of this correction. Original profile and catalog/WAL/SHM bytes must remain unchanged.
+That restart's misleading empty-folder and paused-spinner feedback now has an owning presentation
+correction, scoped regressions, complete Flutter partition and corrected unsigned Release evidence.
+The native continuation preserves the same paused count, correct feedback, explicit Continue and
+normal two-process retirement, with original profile/catalog and generated sources unchanged.
+Preserve these results; no replay of this selected feedback path is required for documentation.
 
-The subsequent functional follow-up is nested-source admission. Current selection recognizes
+The current functional follow-up is nested-source admission. Current selection recognizes
 an exact registered path or the same directory identity but not a child already covered by a
 registered parent. Independent root/location registration can therefore duplicate the shared
 gallery entries. Reproduce parent-then-child admission with generated sources, then prevent duplicate
 coverage at its application/persistence boundary and preserve access through the existing folder
 scope. Do not silently remove existing registrations, alter originals or turn this into R3 content
 deduplication. Import queuing remains a separate capability, not an existing behavior claim.
+Start with one application-boundary regression using two generated PNGs, one parent and one child,
+and fresh temporary derived storage. Check exact root/gallery membership, scan admission and source
+bytes after the second selection. Keep that focused run serial under the repository lock; no native
+or real-library run is needed to establish this registration defect. A correction must preserve
+exact-path updates, directory identity checks and existing registrations; presentation-only path
+filtering cannot enforce registration policy.
 
 Hosted run `38186866675` on `6a252a1` passes eight required jobs but retains a C01 connection-lifetime
 failure in Rust and a distinct C02 UIA assembly-loading timeout. The earlier `82d911c` stop-deadline
