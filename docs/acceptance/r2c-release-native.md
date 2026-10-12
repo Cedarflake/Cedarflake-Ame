@@ -1587,3 +1587,16 @@ without cleanup errors. Post-checks preserve all source identities, dates, sizes
 peer identities and scan histories remain unchanged; integrity and foreign keys pass. The complete
 reused-source hash check takes 56.16 seconds. The failed lifetime and separate safety result remain
 under `.build/r2c-release-viewer-pending-20261012`. UX-05B Release acceptance stays open.
+
+The changed-method file-trace run `1d6ed0b724174bcca2ccd0f0e712505c` also remains failed. Its 16
+observer/verdict tests, analysis and Release build pass, but the lifetime records only a rail click
+and a completed 160-item historical read; neither previous-page admission nor viewer input occurs.
+The fixture waits for that admission before opening the viewer, while rail navigation alone does
+not request the previous page. The 30-second stop boundary is missed; the later normal close takes
+approximately 231 ms in a 105400-ms lifetime. No product pass or defect is inferred from this method.
+The owned Job retires with zero exit codes and the original profile is restored without errors.
+All 10514 generated sources and 1071 bound inputs are unchanged. The isolated catalog preserves
+exact 10000/512 membership and passes integrity/foreign-key checks. The user subsequently opens the
+ordinary app before the protected-catalog post-check, so this run cannot claim a complete final
+original-catalog hash comparison. Do not overwrite that resumed user state. The source/read and
+retirement observations remain under `.build/r2c-release-viewer-pending-io-20261012`.

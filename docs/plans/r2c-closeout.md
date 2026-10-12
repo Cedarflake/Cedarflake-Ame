@@ -10,9 +10,11 @@ Use unsigned current-source artifacts for the required R2c quality and functiona
 Signing credentials, publisher identity, pre-signed bundles, protected signing jobs and the
 signing-dependent installation acceptance path are not required for R2c acceptance or merge.
 Their absence must not block independent work or reappear as an indirect prerequisite under an
-installation/release label. The existing signed distribution channel retains separate deployment
-qualification. Keep its runtime authentication intact and do not report its unexecuted installation
-path as verified. Real journal, broker lifecycle/security, retained-source and Cloud Files assertions
+installation/release label. Full synchronization must also work with unsigned Debug and Release
+clients without a fixed client installation path. Correct the runtime and installation trust policy
+together; retain Windows caller/root access, protected service identity and bounded read-only work.
+Do not report an unexecuted installation path as verified. Real journal, broker lifecycle/security,
+retained-source and Cloud Files assertions
 retain their own evidence duties through applicable unsigned verification. Earlier signed-input
 exclusions describe their recorded runs, not the current merge prerequisites. The roadmap owns
 the resulting stage disposition.
@@ -22,6 +24,23 @@ the resulting stage disposition.
 Updated 2026-10-12. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
+
+The reported ordinary-client reopen slowdown and missing October entries take immediate priority.
+Current terminal output spends 1.1–2.8 seconds per otherwise idle poll in catalog-session lookup.
+Thirty locally available images in the two user-selected October subtrees are absent from the
+published catalog. LiveOnly queue-idle state cannot establish closed-process coverage. Repair the
+reclamation/session boundary that repeats complete validation after every successful free-page
+batch, preserve structural and identity checks, and expose continuity in development diagnostics.
+Use isolated SQLite boundary regressions, then applicable quality gates and a bounded client update
+to verify the reported membership. The [reclamation checkpoint](../acceptance/r2c-retained-runtime.md#catalog-reclamation-and-reopen-latency)
+owns its current proof and remaining client verification. Separately remove the signing and fixed
+client-path prerequisites under the corrected acceptance boundary above. Verify the actual Windows
+access mechanism before retaining a service requirement; no automatic startup enumeration, source
+mutation, relaxed caller/root authorization or new Debug-specific synchronization mode is admitted.
+The ordinary-token journal probe succeeds through a volume directory handle, but its generated
+create/rename records omit names. This is not a drop-in replacement for the current reconstruction
+contract. Keep that capability result distinct from complete tracking; the immediate unsigned-client
+repair retains the existing reconciliation semantics rather than adding an unverified second path.
 
 The [UX-05B optimized-client attempt](../acceptance/r2c-release-native.md#release-pending-viewer-method-checkpoint)
 is consumed and failed before pending paging was established. Preserve its bound inputs and failed
@@ -35,6 +54,14 @@ selection, actual input and normal-retirement assertions. Any revised lifetime r
 derived storage, unchanged generated sources, a 600-second lifetime, 4-GiB entry availability and
 2-GiB client ceiling/system reserve. This fixture entrypoint does not establish ordinary shipped
 entrypoint or held source-buffer/OS-read coverage. Current CI and other final gates remain separate.
+
+The changed-method lifetime with bounded file traces is also consumed and failed before the paging
+boundary. It records a completed historical read but no previous-page request or viewer input;
+normal close occurred later than the method's 30-second stop bound. Preserve that failure and the
+separate source/restoration checks. The fixture waits for previous-page work before opening the
+viewer, although a rail jump alone does not admit that work. Before another lifetime, change that
+ordering through the actual viewer navigation entrypoint and review the remaining allowance and
+unchanged assertions. This lower-priority fixture stays deferred during the ordinary-client repair.
 
 Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sandbox diagnosis
 and continue functional repairs and native verification through isolated host storage. Environment
