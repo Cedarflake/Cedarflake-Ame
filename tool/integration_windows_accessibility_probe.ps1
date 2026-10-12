@@ -533,7 +533,10 @@ function Assert-AmeWindowsUiaPhase {
 }
 
 $failure = $null
+$assemblyProgress = $null
 try {
+    $assemblyProgress = New-AmeWindowsUiaAssemblyProgress -ResultPath $ResultPath `
+        -Token $Token -Phase $Phase -TargetProcessId $TargetProcessId -Mode "Open"
     Publish-AmeWindowsUiaProbeProgress -Stage "loading-assemblies"
     if ([System.Threading.Thread]::CurrentThread.GetApartmentState() -ne 'MTA') {
         throw "Windows UIA probing requires an MTA thread without an application window"
@@ -542,9 +545,9 @@ try {
         Initialize-AmeWindowsAccessibilityActivation
     } else {
         Publish-AmeWindowsUiaProbeProgress -Stage "loading-uia-types"
-        Import-AmeWindowsUiaAssembly -Name "UIAutomationTypes"
+        Import-AmeWindowsUiaAssembly -Name "UIAutomationTypes" -Progress $assemblyProgress
         Publish-AmeWindowsUiaProbeProgress -Stage "loading-uia-client"
-        Import-AmeWindowsUiaAssembly -Name "UIAutomationClient"
+        Import-AmeWindowsUiaAssembly -Name "UIAutomationClient" -Progress $assemblyProgress
     }
     Assert-AmeWindowsUiaPhase -TargetProcessId $TargetProcessId -Phase $Phase
 } catch {
@@ -552,4 +555,8 @@ try {
 }
 $script:probeRecord.Status = "complete"
 $script:probeRecord.Failure = $failure
-Publish-AmeWindowsUiaProbeProgress -Stage "complete"
+try {
+    Publish-AmeWindowsUiaProbeProgress -Stage "complete"
+} finally {
+    Close-AmeWindowsUiaAssemblyProgress $assemblyProgress
+}

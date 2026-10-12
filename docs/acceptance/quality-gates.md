@@ -311,6 +311,15 @@ part of `integration_test_windows_accessibility_guardrails.ps1`. The existing ei
 deadline, MTA client, owned process tree, and native positive/negative assertions remain unchanged;
 workstation PowerShell evidence does not replace execution in the hosted PowerShell runtime.
 
+Six parent-owned manual-reset event markers distinguish each assembly's load entry, load return
+and completed contract validation independently of progress-file publication. The parent observes
+them only after confirmed probe exit and Job Object closure and retires every handle. They are
+diagnostic milestones,
+not completion evidence; no marker can replace the owned result, deadline, phase or cleanup checks.
+The compiler-free `integration_test_windows_accessibility_assembly_progress.ps1` is included in
+the same guardrail and covers actual loading, rejected ownership, partial acquisition, read failure,
+and identical persisted stages before versus inside a controlled blocked loader.
+
 Validated successful probe records, including traversal counts and timing, are retained in the
 same transcript before acknowledgement; they do not replace the ten ordered phase assertions.
 `integration_test_windows_accessibility_probe_evidence.ps1` exercises completion identity, original

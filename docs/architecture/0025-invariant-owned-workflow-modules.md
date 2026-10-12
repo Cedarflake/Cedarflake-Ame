@@ -653,6 +653,14 @@ cost, which is also accumulated separately. The final record cannot include its 
 exit, so child timing alone never proves compliance with the parent deadline. Timing is diagnostic
 only and does not change phase identity, completion, process retirement or acceptance assertions.
 
+`integration_windows_accessibility_assembly_progress.ps1` owns six fixed cross-process loader
+milestones, fresh named-event ownership, partial-acquisition cleanup and observation after confirmed
+process exit and Job Object closure. The loader signals entry, return and contract verification
+without disk publication.
+The process facade composes that owner with its existing deadline and Job Object; the evidence
+owner includes the snapshot without granting it success authority. Missing or incomplete markers
+cannot establish which native call stalled and cannot bypass complete-result or cleanup checks.
+
 ### Review and roadmap rule
 
 Content-signature admission and decoder failure classification have small adapter owners, separate

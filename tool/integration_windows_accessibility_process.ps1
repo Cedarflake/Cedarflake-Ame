@@ -1,4 +1,5 @@
 . (Join-Path $PSScriptRoot "integration_windows_accessibility_evidence.ps1")
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_assembly_progress.ps1")
 
 function Initialize-AmeWindowsAccessibilityProcessJob {
     if ($null -eq ("AmeWindowsAccessibilityProcessJob" -as [type])) {
@@ -339,9 +340,13 @@ function Invoke-AmeWindowsAccessibilityProbe {
     $probeProcessId = 0
     $exitCode = $null
     $probeFailure = $null
+    $assemblyProgress = $null
+    $assemblySnapshot = $null
     $cleanup = New-AmeWindowsAccessibilityCleanup
     $elapsed = [System.Diagnostics.Stopwatch]::StartNew()
     try {
+        $assemblyProgress = New-AmeWindowsUiaAssemblyProgress -ResultPath $ResultPath `
+            -Token $Token -Phase $Phase -TargetProcessId $TargetProcessId -Mode "Create"
         $job = [AmeWindowsAccessibilityProcessJob]::new()
         $process = $job.Start(
             $hostExecutable,
@@ -369,10 +374,11 @@ function Invoke-AmeWindowsAccessibilityProbe {
         $probeFailure.Data["ameWindowsUiaProbeParentElapsedMilliseconds"] = $elapsed.ElapsedMilliseconds
     } finally {
         Close-AmeWindowsAccessibilityProcess -Cleanup $cleanup -Job $job -Process $process
+        $assemblySnapshot = Complete-AmeWindowsUiaAssemblyProgress -Progress $assemblyProgress -Cleanup $cleanup
         $elapsed.Stop()
     }
     Complete-AmeWindowsUiaProbe `
         -ResultPath $ResultPath -Token $Token -Phase $Phase `
         -TargetProcessId $TargetProcessId -ProbeProcessId $probeProcessId `
-        -ExitCode $exitCode -ProbeFailure $probeFailure -Cleanup $cleanup
+        -ExitCode $exitCode -ProbeFailure $probeFailure -Cleanup $cleanup -AssemblyProgress $assemblySnapshot
 }

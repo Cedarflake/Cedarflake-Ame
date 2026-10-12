@@ -113,7 +113,8 @@ function Complete-AmeWindowsUiaProbe {
         [Parameter(Mandatory = $true)] [int]$ProbeProcessId,
         [AllowNull()] [Nullable[int]]$ExitCode,
         [AllowNull()] [Exception]$ProbeFailure,
-        [Parameter(Mandatory = $true)] [object]$Cleanup
+        [Parameter(Mandatory = $true)] [object]$Cleanup,
+        [AllowNull()] [object]$AssemblyProgress
     )
 
     $cleanupFailure = Get-AmeWindowsAccessibilityCleanupFailure $Cleanup
@@ -150,6 +151,7 @@ function Complete-AmeWindowsUiaProbe {
     if ($null -ne $ProbeFailure) {
         $ProbeFailure.Data["ameWindowsUiaProbeEvidenceStatus"] = $evidenceStatus
         $ProbeFailure.Data["ameWindowsUiaProbeProgress"] = $result
+        $ProbeFailure.Data["ameWindowsUiaAssemblyProgress"] = $AssemblyProgress
         if ($null -ne $cleanupFailure) {
             $ProbeFailure.Data["ameWindowsUiaProbeCleanupFailure"] = $cleanupFailure.Message
             $ProbeFailure.Data["ameWindowsUiaProbeCleanupFailures"] = @(
@@ -157,6 +159,9 @@ function Complete-AmeWindowsUiaProbe {
             )
         }
         throw $ProbeFailure
+    }
+    if ($null -ne $AssemblyProgress) {
+        $result | Add-Member -NotePropertyName "assemblyProgress" -NotePropertyValue $AssemblyProgress
     }
     return $result
 }
@@ -198,6 +203,9 @@ function Get-AmeWindowsAccessibilityCompletionOutput {
             if ($null -ne $RunFailure) {
                 $RunFailure.Data["ameWindowsUiaProbeParentElapsedMilliseconds"]
             } else { $null }
+        )
+        probeAssemblyProgress = $(
+            if ($null -ne $RunFailure) { $RunFailure.Data["ameWindowsUiaAssemblyProgress"] } else { $null }
         )
         probeCleanupFailure = $(
             if ($null -ne $RunFailure) { $RunFailure.Data["ameWindowsUiaProbeCleanupFailure"] } else { $null }

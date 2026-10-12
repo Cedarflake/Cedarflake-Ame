@@ -2865,3 +2865,45 @@ resolution. The run completes with nine required component successes, this acces
 and a failed aggregate gate; the three separate signing-channel jobs remain skipped. No manual
 unchanged rerun is performed. The broker is still absent on the workstation,
 so installation and the ordinary-client October membership check remain unverified.
+
+### Independent UIA loader milestones on 2026-10-13
+
+Hosted run [38304544149](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38304544149)
+on `3ab6a8f` completes successfully with all required checks; the separate signing-channel jobs
+remain skipped. This normal push-triggered run does not establish causal resolution of the
+preceding C01/C02 failures and does not yet contain the following diagnostic change.
+
+The `51364d3` timeout's last record cannot distinguish a still-returning progress-file replacement
+from subsequent assembly loading. Six manual-reset event markers now record entry, return and
+contract validation for the two fixed UIA assemblies without another progress-file write. A fresh
+parent owns the markers; the child opens the same request identity and only signals them. The
+parent samples them after both confirmed process exit and Job Object closure, then retires every
+handle. They add no phase or completion authority and preserve the existing eight-second deadline,
+strong assembly identity, required types, complete record and native assertion checks.
+
+Focused compiler-free verification passes actual assembly loading, a second-owner refusal,
+wrong-token refusal, partial-acquisition cleanup, no snapshot before process/group retirement,
+read-failure cleanup and successful child completion. Two controlled child stalls retain the same
+`loading-uia-client` record but stop before the entry marker or after entry and before return.
+Both fail at the original eight-second parent limit, preserve the distinct markers in completion
+output and retire their owned processes. These injected stalls validate attribution, not the
+cause of either historical native timeout. The existing File.Replace error remains separate.
+
+Complete lint passed before the final process-group snapshot guard; its focused regression also
+passes. The complete Daily on that final source exits zero: complete lint, 1743 Rust library tests
+in 994.96 seconds, three broker tests, all 112 Flutter test files, native scan, native accessibility
+and 16 asynchronous bridge contracts pass. The 23 existing Rust ignores are unchanged. The scan
+lifetime exits zero in 49336 ms with no cleanup failure. Both accessibility cases and all ten
+ordered phases pass with confirmed process exit, Job Object closure and persisted output. All nine
+assembly-using phases retain all six milestones; the activation-only phase correctly retains none.
+The `application-ready` child reports 1180 ms; the original parent deadline remains authoritative.
+Windows PowerShell 5.1 is verified locally; the new hosted PowerShell runtime execution remains
+separate. The ordinary shell's initial policy refusal ran no test; the scoped invocation used the
+existing process-local PowerShell execution flags. No application, source-media, catalog-schema
+or dependency behavior changes in this diagnostic slice.
+
+The marker owner has 142 production lines and no inline tests, with 214 dedicated test lines.
+The assembly, probe, process and evidence facades have 62, 562, 384 and 264 production lines
+respectively, with no new inline tests. The review checks request isolation, first-error precedence,
+partial acquisition and owned retirement; it does not constitute the remaining independent final
+R2c audit. Historical C01/C02 attribution, installation and the other frozen variants remain open.

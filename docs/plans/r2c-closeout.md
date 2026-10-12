@@ -21,6 +21,28 @@ the resulting stage disposition.
 
 ### Current execution checkpoint
 
+The [2026-10-13 C02 follow-up](../acceptance/r2c-retained-runtime.md#independent-uia-loader-milestones-on-2026-10-13)
+now passes focused checks and complete local Daily, including all ten native phases. The conservative
+60-minute preparation/verification and ten-minute inspection reservations below are consumed;
+no unchanged replay is needed. Hosted verification of the new diagnostic source and historical
+causal attribution remain open. The method distinguishes the two operations hidden by the last persisted
+`loading-uia-client` record: returning from progress publication and entering/returning from the
+runtime assembly loader. The preceding record can already be visible while `File.Replace` has not
+returned, so that record alone cannot attribute the eight-second timeout to assembly loading.
+Use six fixed, parent-owned manual-reset event markers for entry, loaded assembly and verified
+contract of the two existing assemblies. The child only signals them; the parent reads them after
+owned-process retirement. They carry no completion authority, add no file writes and cannot replace
+the existing identity, result, phase or cleanup checks. Missing markers remain unknown progress.
+This is an attribution correction, not a runtime repair or closure of historical C02 failures.
+The reservation is 60 active minutes for the narrow owner, bounded positive/negative process fixtures and
+integration, then one normal lint and complete Daily at their existing limits and ten inspection
+minutes. The two controlled timeout fixtures distinguish publication-before-load from
+runtime-load-before-return with the same persisted stage. Preserve the original eight-second
+native deadline, all ten phases, source assertions and first-error precedence. No unchanged rerun,
+deadline increase, real-library access, source change, tracing installation or new dependency is
+admitted. The previous consumed allowances remain consumed; another unexplained native failure
+retains its checkpoint and supplies the new operation markers before any further experiment.
+
 Updated 2026-10-13. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.

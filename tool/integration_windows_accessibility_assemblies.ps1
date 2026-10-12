@@ -1,3 +1,5 @@
+. (Join-Path $PSScriptRoot "integration_windows_accessibility_assembly_progress.ps1")
+
 function Assert-AmeWindowsUiaAssemblyIdentity {
     param(
         [Parameter(Mandatory = $true)] [System.Reflection.AssemblyName]$Identity,
@@ -31,7 +33,9 @@ function Assert-AmeWindowsUiaAssemblyTypes {
 function Import-AmeWindowsUiaAssembly {
     param(
         [Parameter(Mandatory = $true)]
-        [ValidateSet("UIAutomationClient", "UIAutomationTypes")] [string]$Name
+        [ValidateSet("UIAutomationClient", "UIAutomationTypes")] [string]$Name,
+        [AllowNull()]
+        [System.Collections.Generic.Dictionary[string, System.Threading.EventWaitHandle]]$Progress
     )
 
     # Assembly.Load uses the runtime binder, without Add-Type's command initialization
@@ -39,7 +43,9 @@ function Import-AmeWindowsUiaAssembly {
     $identity = [System.Reflection.AssemblyName]::new(
         "$Name, Version=4.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35"
     )
+    Set-AmeWindowsUiaAssemblyProgress -Progress $Progress -Name $Name -Stage "entered"
     $assembly = [System.Reflection.Assembly]::Load($identity)
+    Set-AmeWindowsUiaAssemblyProgress -Progress $Progress -Name $Name -Stage "loaded"
     Assert-AmeWindowsUiaAssemblyIdentity -Identity $assembly.GetName() -Name $Name
     $requiredTypes = if ($Name -ceq "UIAutomationClient") {
         @(
@@ -52,4 +58,5 @@ function Import-AmeWindowsUiaAssembly {
         @("System.Windows.Automation.ControlType", "System.Windows.Automation.TreeScope")
     }
     Assert-AmeWindowsUiaAssemblyTypes -Assembly $assembly -RequiredTypes $requiredTypes
+    Set-AmeWindowsUiaAssemblyProgress -Progress $Progress -Name $Name -Stage "verified"
 }
