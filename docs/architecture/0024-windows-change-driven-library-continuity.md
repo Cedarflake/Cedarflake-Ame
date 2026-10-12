@@ -347,7 +347,11 @@ without following an attacker-controlled escape, and binds the request to an app
 root ID and generation. The R2c-O foundation selects an own-process, demand-start `LocalSystem`
 service because direct volume journal access requires the service boundary; it does not expose
 LocalSystem filesystem or media operations. SCM configures `SERVICE_SID_TYPE_RESTRICTED` and an
-exact required-privileges allowlist containing only `SeManageVolumePrivilege`. The service object
+exact required-privileges allowlist containing `SeManageVolumePrivilege` for journal access and
+`SeImpersonatePrivilege` for checking filesystem access as the authenticated caller. A LocalSystem
+server and an ordinary interactive client have different authenticated identities; the named-pipe
+impersonation API therefore requires the latter privilege. Same-identity console fixtures do not
+prove this service boundary. The service object
 grants SYSTEM and local Administrators lifecycle authority and grants Interactive Users only
 query-config, start, query-status, and interrogate rights. It does not grant change-config, stop,
 delete, or DACL/owner mutation. The protected install-directory and binary ACL allow SYSTEM and
@@ -356,8 +360,18 @@ writable identities are removed. This exact account, privilege, restricted SID, 
 and binary ACL plan must still pass real disposable-root SCM/FSCTL acceptance before release.
 Convenience is not evidence for a broader `LocalSystem` interface.
 
-The production pipe uses an explicit protected DACL for SYSTEM, Administrators, and local
-Interactive Users, rejects remote clients, and keeps exactly two bounded listener instances so one
+Before opening any production pipe, the broker verifies its own primary process token: elevated
+LocalSystem, restricted service SID, and no privilege outside those two required privileges plus the
+`SeChangeNotifyPrivilege` that SCM always retains. Disabled privileges are checked too. A start
+between service creation and security configuration therefore fails closed. This token check does
+not elevate the process or change privileges; disposable console hosts and identity probes keep
+their separate entrypoints. The token adapter owns bounded, unaligned token decoding and SID
+pointer validation for both startup and client-side server authentication.
+
+The production pipe uses an explicit protected DACL for SYSTEM, Administrators, the exact broker
+service SID, and local Interactive Users. The service SID grant admits the additional restricted-token
+access check when creating a second or replacement instance; no other service SID receives that grant.
+The pipe rejects remote clients and keeps exactly two bounded listener instances so one
 connected Interactive User cannot monopolize service admission. The first listener uses
 `FILE_FLAG_FIRST_PIPE_INSTANCE`; the second is another instance of that same protected pipe, not a
 second endpoint or name.

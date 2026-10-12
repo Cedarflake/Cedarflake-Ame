@@ -47,6 +47,7 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | R2c-R controlled local reliability | `./tool/acceptance_run_r2c_change_driven_reliability.ps1` | Exactly counted production-path live, durable P1, overflow/P2, million-record, no-change, priority, reset/trim, reconnect, cancellation, replacement, placeholder, path, and multi-root evidence using only fixture-owned disposable roots | Manual non-external Windows 11 x64 checkpoint; never retained-library acceptance |
 | Journal broker integration | `./tool/integration_test_windows_journal_broker.ps1` | Exactly counted disposable local NTFS tests for proof framing, two listeners, global eight-worker bounds, active-stop drain, listener readiness, case semantics, root replacement, reparse rejection, caller lifetime, revoked directory access, root-external filtering, bounded progress through unrelated-volume storms, cancellation, must-close backpressure, identity-probe deadline, restart, and unsigned watcher-first activation | Broker transport, service, parser, or lifecycle changes |
 | Journal broker installer guardrails | `./tool/release_test_journal_broker_installer_guardrails.ps1` | Windows 11 x64, optional signing policy, V2/V3 identity and rollback compatibility, fixed destination, service account/SID/privileges/DACL, source/catalog isolation, no journal mutation, the existing eight install/repair/upgrade crash cases, and transaction-level marker-first uninstall/dead-owner recovery across every operation and final cleanup without changing SCM | Broker installer lifecycle changes |
+| Journal broker privilege profile | `./tool/release_test_journal_broker_privileges.ps1` | Exact journal-access and caller-impersonation privileges in either order; missing, duplicate and extra privileges are rejected without changing SCM | Broker privilege configuration changes; also part of lint |
 | Installed journal broker acceptance guardrails | `./tool/acceptance_test_windows_journal_broker_guardrails.ps1` | Explicit token, fresh temporary workspace, externally pre-signed protected bundle/publisher, ValidationOnly non-mutation, protected result channel, limited-client replacement rejection, no-follow cleanup, and no certificate, signing, trust-store, or automatic-elevation path | Installed broker acceptance harness changes |
 | Release | `./tool/release_verify_candidate.ps1` | Immutable signed x64 application bundle and broker admission, Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP containing the same signed application and broker artifact, followed by archive-structure and extracted signature/publisher/protocol verification; no service installation | After a release build passes |
@@ -1026,6 +1027,26 @@ validation explicitly:
 This option validates the retained catalog; it does not silently start another full source scan.
 
 ## Repository command reference
+
+The application-and-broker MSI is built by `./tool/release_package_installer_windows.ps1` from
+an exact passing unsigned Release manifest. Supply the version tag, bundle/evidence paths,
+the pinned WiX 7.0.0 SDK, UI-extension and bootstrapper-extension packages with their matching extracted directories,
+the installed CMake executable,
+and a new output directory below repository `build`. `-AcceptWixBinaryEula` requires prior review
+of the build-tool maintenance agreement in ADR 0027; it does not authorize a subscription.
+The builder holds the repository lock, verifies every payload digest, builds/tests the native
+admission module with warnings denied, verifies the emitted MSI's native service, ACL, file,
+upgrade, action-ordering and maintenance-dialog tables, and emits one embedded-payload MSI plus
+its receipt, and a Burn setup executable that opens the MSI interface after early elevation.
+Supply the bootstrapper inputs through `-WixBootstrapperPackagePath` and `-WixBootstrapperDirectory`.
+It also runs the rejecting database-policy cases against modified in-memory models.
+It does not install the package or establish lifecycle acceptance. The compiler-free
+`./tool/release_test_installer_payload.ps1` covers version limits, stable product/component
+identities, unsafe payload paths, shortcut ownership and complete file/directory ACL generation.
+`windows/installer` owns the native path/service admission checks and their bounded CTest fixture.
+`./tool/release_verify_installer_windows.ps1 -PackagePath <msi> -ReceiptPath <receipt>
+-WixSdkPackagePath <pinned-sdk-package> -WixSdkDirectory <matching-sdk-directory>` repeats the
+read-only package/digest/table checks without building, executing custom actions or installing.
 
 Run quality commands from PowerShell. The scripts resolve Cargo from `PATH` or the user's Rustup
 installation and resolve Flutter and Dart from `PATH` or the pinned local SDK location in [the repository contract](../../AGENTS.md#101-local-flutter-toolchain).

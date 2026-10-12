@@ -55,6 +55,9 @@ Real journal, retained-library, and real Cloud Files evidence remain open. Code 
 credentials, signed-release jobs and the signing-dependent installation acceptance path are not
 R2c acceptance or merge prerequisites. The existing signed distribution channel retains its separate
 deployment qualification; unsigned verification cannot claim that installation path passed.
+The unified installation/update workflow uses the versioned MSI boundary in
+[ADR 0027](architecture/0027-windows-installer-lifecycle.md); fresh install, upgrade, repair,
+failed-upgrade rollback and data-preserving uninstall require actual lifecycle verification.
 ADR [0024](architecture/0024-windows-change-driven-library-continuity.md) owns the current design;
 the former ADR 0023 continuity model and its R2c-I–M results remain historical.
 

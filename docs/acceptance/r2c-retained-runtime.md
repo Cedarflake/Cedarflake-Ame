@@ -2740,3 +2740,73 @@ synchronization coordinator has 3962 main-region and 10428 inline-test lines; it
 decomposition duty remains open. Installer common has 3951 lines, with extracted identity and
 uninstall-policy owners of 430 and 21 lines; their dedicated guardrails contain 2056, 188 and 138
 lines, with no inline test modules.
+
+The first authorized combined installation fails before payload publication because exact ACL
+validation omits `Synchronize` from its read/execute mask. Native SDDL and the Windows
+`FileSystemAccessRule` constructor both produce `0x1200A9`; the handwritten guardrail fixture had
+repeated the incorrect `0x200A9` expectation. The ACL owner now compares the exact native mask.
+Descriptor round-trip and real rule-constructor regressions reject write, delete, permission-change,
+ownership-change and incomplete masks. They reproduce the failure before the correction and pass
+after it, together with installer lifecycle guardrails and complete lint. The extracted ACL owner
+contains 427 production lines and no inline tests, with 104 dedicated test lines. Installer common
+has 3532 production lines; its dedicated lifecycle guardrail has 2061 lines.
+
+The second installation passes that boundary and fails at `sc.exe create` with exit code 1639.
+The original combined option/value arguments remain a known failure of the stopped script route.
+Both attempts roll back: no service, Application or Journal Broker directory remains. The current
+delivery direction requires a real versioned installer and upgrade/rollback verification; no further
+PowerShell installation attempt is admitted. Neither attempt changes source media or the retained
+catalog, and neither establishes an ordinary-client continuity pass.
+
+## Native installer startup correction
+
+The first native MSI installs the verified payload and service configuration but its standard
+service-start action waits about 248 seconds before rollback. Cancellation remains behind that
+action. Rollback removes the service, product registration and installed files; only the empty
+product directory remains. Source media and the retained catalog are untouched.
+
+A focused Windows reproduction identifies the pipe boundary: the write-restricted service token
+cannot create a second listener with the former descriptor. Granting the exact broker service SID
+access permits initial and replacement listeners; the old descriptor and an unrelated restricted
+service SID still produce access denied. All three tests pass. The complete focused broker suite
+then passes 54 cases, with one explicitly opt-in performance case ignored. Test debug symbols are
+disabled for this run after the original full compilation exhausts available memory.
+
+The revised native installer owns one service-start request, cancellation-aware readiness and a
+paired rollback stop. Its 57 native policy cases pass, including destination separation and startup
+state precedence. Main-application location and independent shortcut choices are composed from
+stock MSI dialogs; a native WiX bootstrapper supplies elevation before those dialogs. These
+implementation and unit results do not yet establish successful installation, UI interaction,
+upgrade, repair, failed-upgrade rollback or ordinary-client continuity.
+
+The former privilege profile removed `SeImpersonatePrivilege`, although the production server
+uses `ImpersonateNamedPipeClient` with a different authenticated caller identity. The corrected
+profile requires that privilege alongside journal access; it rejects missing, duplicate and extra
+privileges. Native readback validates the bounded multi-string configuration independently of
+privilege order. Focused broker/native cases and full lint pass on this correction. The preceding
+complete static Daily partition passes 1742 library cases, three broker integration cases and
+16 bridge contracts with 23 explicit ignores; the library suite takes 973.20 seconds. That result predates
+the additional privilege requirement. The final current-source static Daily partition then passes
+complete lint, 1743 library cases, three broker binary cases and 16 asynchronous bridge contracts,
+with 23 explicit ignores; the library suite takes 920.39 seconds. Earlier Flutter, scan and native
+accessibility results retain their separate source and failure boundaries.
+
+Fresh unsigned Windows verification passes for the corrected application and broker: three native
+window cases, two decoder-retirement cases and the catalog-free Release bridge smoke. The compiled
+MSI passes its actual-database policy and 19 rejecting mutations. Inspection of the generated native
+bootstrapper confirms the embedded MSI digest, per-machine execution, retained package cache,
+transactional rollback and upstream license payload. Its setup executable is 28.76 MiB, with SHA-256
+`210A18B8CCB2D525AAA906929520993F061715CC0ED05C25D6E9BECBB065507F`.
+
+The revised bootstrapper requests elevation before entering the MSI interface. Windows returns
+`0x800704c7` while starting the elevated engine, before installation begins. The broker remains
+absent and Windows Installer reports no active transaction. This is an uncompleted elevation
+attempt, not an installed-service result; the prepared ordinary-client probe and retained October
+membership verification remain unexecuted.
+
+The pipe owner has 118 production lines and 186 dedicated test lines. The Windows host facade has
+749 main-region lines and 296 inline-test lines. Process-token and service-profile owners have
+284 and 56 production lines, with 128 and 99 dedicated test lines respectively. Native privilege
+decoding has 42 production lines and 51 dedicated test lines; service configuration has 182 lines.
+The script privilege policy has 20 production lines and 18 dedicated test lines; the remaining
+installer common owner has 3526 production lines.

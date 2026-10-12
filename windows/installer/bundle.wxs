@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+     xmlns:bal="http://wixtoolset.org/schemas/v4/wxs/bal">
+  <Bundle Name="Cedarflake Ame" Manufacturer="Cedarflake" Version="$(var.ProductVersion)"
+          UpgradeCode="8F5E140C-695E-45C8-84C5-48F124D1B4AE"
+          IconSourceFile="$(var.ApplicationIcon)" SplashScreenSourceFile="$(var.SplashPath)">
+    <BootstrapperApplication>
+      <bal:WixInternalUIBootstrapperApplication />
+      <Payload Name="licenses\wix.txt" SourceFile="$(var.WixLicense)" />
+    </BootstrapperApplication>
+    <Chain DisableSystemRestore="yes">
+      <MsiPackage Id="AmeProduct" SourceFile="$(var.PackagePath)"
+                  Vital="yes" Visible="no" bal:PrimaryPackageType="default" />
+    </Chain>
+  </Bundle>
+</Wix>

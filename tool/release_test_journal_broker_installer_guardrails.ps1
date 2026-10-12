@@ -1130,7 +1130,7 @@ $provisionalAclFacts = [pscustomobject]@{
         },
         [pscustomobject]@{
             Sid = $script:AmeBrokerUsersSid
-            Rights = [uint64]131241
+            Rights = [uint64]0x1200A9
             AccessControlType = "Allow"
             InheritanceFlags = 3
             PropagationFlags = 0
@@ -1197,7 +1197,7 @@ $applicationAclFacts.Rules[2].Rights = [uint64]2032127
 Assert-Rejected `
     -Action { Assert-AmeApplicationExactAclFacts -Facts $applicationAclFacts -Kind "Directory" } `
     -Message "The application ACL guard accepted writable BUILTIN Users"
-$applicationAclFacts.Rules[2].Rights = [uint64]131241
+$applicationAclFacts.Rules[2].Rights = [uint64]0x1200A9
 $overbroadAclFacts = [pscustomobject]@{
     OwnerSid = $script:AmeBrokerAdministratorsSid
     GroupSid = $script:AmeBrokerAdministratorsSid
@@ -1286,8 +1286,9 @@ if (
     throw "The broker service plan expanded its process, start, account, or SID boundary"
 }
 if (
-    $plan.RequiredPrivileges.Count -ne 1 -or
-    $plan.RequiredPrivileges[0] -cne "SeManageVolumePrivilege"
+    $plan.RequiredPrivileges.Count -ne 2 -or
+    $plan.RequiredPrivileges[0] -cne "SeManageVolumePrivilege" -or
+    $plan.RequiredPrivileges[1] -cne "SeImpersonatePrivilege"
 ) {
     throw "The broker service plan expanded its privilege allowlist"
 }
@@ -1377,6 +1378,14 @@ $commonText += [IO.File]::ReadAllText(
     (Join-Path $PSScriptRoot "release_journal_broker_identity.ps1"),
     [Text.Encoding]::UTF8
 )
+$commonText += [IO.File]::ReadAllText(
+    (Join-Path $PSScriptRoot "release_journal_broker_acl.ps1"),
+    [Text.Encoding]::UTF8
+)
+$commonText += [IO.File]::ReadAllText(
+    (Join-Path $PSScriptRoot "release_journal_broker_privileges.ps1"),
+    [Text.Encoding]::UTF8
+)
 foreach ($requiredContract in @(
     "type= own",
     "start= demand",
@@ -1384,6 +1393,7 @@ foreach ($requiredContract in @(
     "sidtype",
     "restricted",
     "SeManageVolumePrivilege",
+    "SeImpersonatePrivilege",
     "Get-AuthenticodeSignature",
     "AreAccessRulesProtected",
     "SHGetKnownFolderPath",
@@ -2051,6 +2061,7 @@ if (
     throw "Portable release guardrails must reject publisher substitution and artifact tampering"
 }
 
+& (Join-Path $PSScriptRoot "release_test_journal_broker_acl.ps1")
 & (Join-Path $PSScriptRoot "release_test_journal_broker_identity.ps1")
 & (Join-Path $PSScriptRoot "release_test_journal_broker_uninstall_policy.ps1")
 Write-Output "journal_broker_installer_guardrails_passed"

@@ -3,11 +3,8 @@ use std::path::PathBuf;
 use windows_sys::Win32::Security::{TOKEN_TYPE, TokenPrimary};
 
 use super::WindowsTransportError;
+use crate::journal_broker::windows::service_profile::{LOCAL_SYSTEM_SID, SERVICE_SID};
 use crate::journal_broker::{MAX_FRAME_BYTES, PROTOCOL_VERSION};
-
-pub(super) const SERVICE_SID: &str =
-    "S-1-5-80-2098581772-366539847-2170527201-1913264099-3006267874";
-pub(super) const LOCAL_SYSTEM_SID: &str = "S-1-5-18";
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct InstalledBrokerIdentity {

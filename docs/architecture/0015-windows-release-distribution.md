@@ -137,9 +137,11 @@ Owned-tree deletion uses a bounded no-follow walker and rejects any descendant r
 markerless broker directory may be adopted only when it is empty, has the exact protected descriptor,
 and neither the service nor binary exists; a nonempty or differently protected orphan fails closed.
 
-These repository scripts are the lifecycle foundation consumed by a future signed installer
-container; they are not themselves evidence that a production signing identity or installer UI has
-been provisioned. Release-candidate verification requires an already signed broker path and the
+ADR [0027](0027-windows-installer-lifecycle.md) replaces the user-facing script installation route
+with a versioned MSI whose native tables own both application and service lifecycle. The scripts
+remain diagnostic/recovery tools; the MSI neither invokes them nor inherits their separate
+transaction markers. A production signing identity is not implied. Signed release-candidate
+verification requires an already signed broker path and the
 exact expected publisher. The repository currently owns neither signing credentials nor a signed
 candidate, so an unsigned candidate fails closed and cannot be published.
 
@@ -277,7 +279,8 @@ them as disposable cache.
 
 ## Replacement and rollback strategy
 
-The ZIP packager is independent of installer technology. R9 may add an MSI produced from the same
-verified Release directory without changing the application core or portable artifact contract.
+The ZIP packager is independent of installer technology. ADR 0027's MSI and native bootstrapper
+consume the same verified Release directory without changing the application core or portable
+artifact contract.
 If automated publication is unsafe, disable the publishing job while retaining candidate and local
 archive verification; do not publish an unverified artifact manually as a substitute.

@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Package Name="Cedarflake Ame" Manufacturer="Cedarflake" Language="2052"
+           Version="$(var.ProductVersion)" ProductCode="$(var.ProductCode)"
+           UpgradeCode="C284E6B0-1484-4926-A94B-C3EC3840DBBD"
+           Scope="perMachine" InstallerVersion="500" Codepage="65001">
+    <SummaryInformation Description="Cedarflake Ame Windows x64 installer" />
+    <MajorUpgrade Schedule="afterInstallInitialize" AllowSameVersionUpgrades="no"
+                  DowngradeErrorMessage="已安装更新版本的 Ame，请使用更新的安装包。" />
+    <MediaTemplate EmbedCab="yes" CompressionLevel="high" />
+    <Launch Condition="VersionNT64 AND MsiNTProductType = 1 AND AME_WINDOWS_BUILD &gt;= 22000"
+            Message="Ame 需要 Windows 11 x64。" />
+    <Launch Condition="NOT RollbackDisabled AND NOT DISABLEROLLBACK"
+            Message="请启用 Windows Installer 回滚后再安装 Ame。" />
+    <Property Id="AME_WINDOWS_BUILD">
+      <RegistrySearch Id="WindowsBuild" Root="HKLM" Key="SOFTWARE\Microsoft\Windows NT\CurrentVersion"
+                      Name="CurrentBuildNumber" Type="raw" Bitness="always64" />
+    </Property>
+    <Property Id="REBOOT" Value="ReallySuppress" />
+    <Property Id="MSIFASTINSTALL" Value="1" />
+    <Property Id="REINSTALLMODE" Value="amus" />
+    <SetProperty Id="REINSTALLMODE" Value="amus" Before="CostInitialize" Sequence="execute" />
+    <Property Id="MSIRESTARTMANAGERCONTROL" Value="Disable" />
+    <Property Id="ARPPRODUCTICON" Value="AmeIcon" />
+    <Icon Id="AmeIcon" SourceFile="$(var.ApplicationIcon)" />
+    <UIRef Id="AmeInstallerUI" />
+    <SetProperty Id="ARPINSTALLLOCATION" Value="[AMEAPPDIR]" Before="InstallValidate" Sequence="execute" />
+    <Property Id="AMEAPPDIR" Secure="yes" />
+    <Property Id="AME_PREVIOUSAPPDIR">
+      <RegistrySearch Id="PreviousApplicationDirectory" Root="HKLM" Key="SOFTWARE\Cedarflake\Ame\Installer"
+                      Name="InstallFolder" Type="raw" Bitness="always64" />
+    </Property>
+    <SetProperty Id="AMEAPPDIR" Value="[AME_PREVIOUSAPPDIR]" After="AppSearch" Sequence="both"
+                 Condition="NOT AMEAPPDIR AND AME_PREVIOUSAPPDIR" />
+
+    <StandardDirectory Id="ProgramFiles64Folder">
+      <Directory Id="AmeProductFolder" Name="Cedarflake Ame">
+        <Directory Id="AMEAPPDIR" Name="Application" />
+        <Directory Id="AmeBrokerFolder" Name="Journal Broker" />
+      </Directory>
+    </StandardDirectory>
+    <StandardDirectory Id="ProgramMenuFolder" />
+    <StandardDirectory Id="DesktopFolder" />
+
+    <Component Id="AmeInstallationSettings" Directory="AMEAPPDIR"
+               Guid="E783C5AD-9C85-499A-91F5-7D20A8046BA2" Bitness="always64">
+      <RegistryValue Root="HKLM" Key="SOFTWARE\Cedarflake\Ame\Installer" Name="InstallFolder"
+                     Type="string" Value="[AMEAPPDIR]" KeyPath="yes" />
+    </Component>
+
+    <Component Id="AmeProductDirectory" Directory="AmeProductFolder"
+               Guid="45CBB626-4DE0-5E78-84E3-F7609E409723" Bitness="always64">
+      <CreateFolder>
+        <PermissionEx Sddl="O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200A9;;;BU)" />
+      </CreateFolder>
+    </Component>
+    <Component Id="AmeBrokerDirectory" Directory="AmeBrokerFolder"
+               Guid="761EA2D0-5C76-5230-923D-D2CD548C36A9" Bitness="always64">
+      <CreateFolder>
+        <PermissionEx Sddl="O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200A9;;;BU)(A;OICI;0x1200A9;;;S-1-5-80-2098581772-366539847-2170527201-1913264099-3006267874)" />
+      </CreateFolder>
+    </Component>
+    <Component Id="AmeBroker" Directory="AmeBrokerFolder" Guid="*" Bitness="always64">
+      <File Id="AmeBrokerExecutable" Source="$(var.BrokerPath)" KeyPath="yes">
+        <PermissionEx Sddl="O:BAG:BAD:P(A;;FA;;;SY)(A;;FA;;;BA)(A;;0x1200A9;;;BU)(A;;0x1200A9;;;S-1-5-80-2098581772-366539847-2170527201-1913264099-3006267874)" />
+      </File>
+      <ServiceInstall Id="AmeJournalBroker" Name="CedarflakeAmeJournalBroker"
+                      DisplayName="Cedarflake Ame Journal Broker" Description="$(var.BrokerIdentity)"
+                      Type="ownProcess" Start="demand" Account="LocalSystem" ErrorControl="normal"
+                      Vital="yes">
+        <PermissionEx Sddl="O:BAG:BAD:(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;SY)(A;;CCDCLCSWRPWPDTLOCRSDRCWDWO;;;BA)(A;;CCLCRPLO;;;IU)" />
+        <ServiceConfig ServiceSid="restricted" OnInstall="yes" OnReinstall="yes">
+          <RequiredPrivilege Name="SeManageVolumePrivilege" />
+          <RequiredPrivilege Name="SeImpersonatePrivilege" />
+        </ServiceConfig>
+      </ServiceInstall>
+      <ServiceControl Id="AmeJournalBrokerLifecycle" Name="CedarflakeAmeJournalBroker"
+                      Stop="both" Remove="uninstall" Wait="yes" />
+    </Component>
+
+    <Binary Id="AmeInstallerAdmission" SourceFile="$(var.AdmissionDll)" />
+    <CustomAction Id="AmeValidateInstallation" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmeValidateInstallation" Execute="immediate" Return="check" />
+    <CustomAction Id="AmeRequireRollback" Error="Windows Installer 回滚已关闭，无法安全升级 Ame。" />
+    <SetProperty Id="AmeVerifyInstalledService" Value="$(var.BrokerIdentity)"
+                 Before="AmeVerifyInstalledService" Sequence="execute" />
+    <CustomAction Id="AmeVerifyInstalledService" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmeVerifyInstalledService" Execute="deferred" Impersonate="no" Return="check" />
+    <SetProperty Id="AmeStopInstalledService" Value="$(var.BrokerIdentity)"
+                 Before="AmeStopInstalledService" Sequence="execute" />
+    <CustomAction Id="AmeStopInstalledService" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmeStopInstalledService" Execute="rollback" Impersonate="no" Return="check" />
+    <SetProperty Id="AmeStartInstalledService" Value="$(var.BrokerIdentity)"
+                 Before="AmeStartInstalledService" Sequence="execute" />
+    <CustomAction Id="AmeStartInstalledService" BinaryRef="AmeInstallerAdmission"
+                  DllEntry="AmeStartInstalledService" Execute="deferred" Impersonate="no" Return="check" />
+    <InstallExecuteSequence>
+      <Custom Action="AmeValidateInstallation" Before="InstallValidate" />
+      <Custom Action="AmeRequireRollback" Before="RemoveExistingProducts"
+              Condition="RollbackDisabled OR DISABLEROLLBACK" />
+      <Custom Action="AmeVerifyInstalledService" After="MsiConfigureServices" Condition="$AmeBroker = 3" />
+      <Custom Action="AmeStopInstalledService" After="AmeVerifyInstalledService" Condition="$AmeBroker = 3" />
+      <Custom Action="AmeStartInstalledService" After="AmeStopInstalledService" Condition="$AmeBroker = 3" />
+    </InstallExecuteSequence>
+
+    <Feature Id="Ame" Title="Ame 主程序与读取助手" Description="安装 Ame，保留图库和个人设置。"
+             Level="1" AllowAbsent="no" AllowAdvertise="no" ConfigurableDirectory="AMEAPPDIR" Display="expand">
+      <ComponentRef Id="AmeInstallationSettings" />
+      <ComponentRef Id="AmeProductDirectory" />
+      <ComponentRef Id="AmeBrokerDirectory" />
+      <ComponentRef Id="AmeBroker" />
+      <ComponentGroupRef Id="AmeApplicationFiles" />
+      <Feature Id="AmeStartMenuFeature" Title="开始菜单快捷方式" Description="在开始菜单中添加 Ame。"
+               Level="1" AllowAdvertise="no">
+        <ComponentGroupRef Id="AmeStartMenuFiles" />
+      </Feature>
+      <Feature Id="AmeDesktopFeature" Title="桌面快捷方式" Description="在桌面上添加 Ame。"
+               Level="2" AllowAdvertise="no">
+        <ComponentGroupRef Id="AmeDesktopFiles" />
+      </Feature>
+    </Feature>
+  </Package>
+</Wix>

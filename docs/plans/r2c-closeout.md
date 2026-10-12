@@ -21,7 +21,7 @@ the resulting stage disposition.
 
 ### Current execution checkpoint
 
-Updated 2026-10-12. Resume from this checkpoint and the linked owning evidence, then verify the
+Updated 2026-10-13. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
@@ -36,10 +36,19 @@ to verify the reported membership. The [reclamation checkpoint](../acceptance/r2
 owns its current proof and remaining client verification. The unsigned runtime and installer
 correction now has focused Windows broker and complete static Daily verification in the
 [unsigned continuity checkpoint](../acceptance/r2c-retained-runtime.md#unsigned-continuity-runtime).
-Fresh optimized-artifact verification now passes. Complete the separately authorized installation
-and ordinary-client membership check; those paths are not yet verified. Use the existing combined
-application/broker installation entrypoint for the ordinary-client flow, without separate user
-configuration of the components. Verify the actual Windows
+Fresh optimized-artifact verification now passes. The raw PowerShell installation route is stopped.
+Deliver one Windows installer for the application and broker with stable upgrade identity, repair,
+uninstall and failed-upgrade rollback before the installed-client check. Packaging must own both
+components through the same lifecycle; wrapping the current scripts in an executable is insufficient.
+Verify fresh installation, a version upgrade, rollback and retained-profile reopening before claiming
+the installation/update workflow complete. The first MSI installation failed during service startup
+and subsequently rolled back; do not replay it unchanged. The revised method first verifies the
+restricted-service pipe DACL and required caller-impersonation privilege, then tests one bounded
+cancellable start with rollback, early Burn
+elevation, configurable application destination and independent shortcut choices. Use the same
+source-preserving installed-client scope after the changed package passes its native and package
+checks. The separately authorized installation and ordinary-client
+membership check remain unverified. Verify the actual Windows
 access mechanism before retaining a service requirement; no automatic startup enumeration, source
 mutation, relaxed caller/root authorization or new Debug-specific synchronization mode is admitted.
 The ordinary-token journal probe succeeds through a volume directory handle, but its generated

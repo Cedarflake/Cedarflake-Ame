@@ -38,9 +38,11 @@ try {
     & (Join-Path $PSScriptRoot "integration_test_windows_scan_guardrails.ps1")
     & (Join-Path $PSScriptRoot "integration_test_windows_runner_guardrails.ps1")
     & (Join-Path $PSScriptRoot "release_test_version_validation.ps1")
+    & (Join-Path $PSScriptRoot "release_test_installer_payload.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_archive.ps1")
     & (Join-Path $PSScriptRoot "release_test_portable_publication.ps1")
     & (Join-Path $PSScriptRoot "release_test_journal_broker_installer_guardrails.ps1")
+    & (Join-Path $PSScriptRoot "release_test_journal_broker_privileges.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_windows_journal_broker_guardrails.ps1")
     Invoke-AmeJsonSyntaxCheck @(
         (Join-Path $repositoryRoot ".vscode\extensions.json"),

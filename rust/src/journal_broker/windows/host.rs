@@ -1,29 +1,17 @@
-use std::ffi::c_void;
 use std::io::{self, Write};
-use std::mem::size_of;
 use std::process::ExitCode;
-use std::ptr::{null, null_mut};
+use std::ptr::null;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::mpsc::{Receiver, SyncSender, TryRecvError, sync_channel};
 use std::sync::{Arc, Mutex};
 use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
-use windows_sys::Win32::Foundation::{
-    ERROR_IO_PENDING, ERROR_PIPE_CONNECTED, LocalFree, WAIT_OBJECT_0,
-};
-use windows_sys::Win32::Security::Authorization::{
-    ConvertStringSecurityDescriptorToSecurityDescriptorW, SDDL_REVISION_1,
-};
-use windows_sys::Win32::Security::{PSECURITY_DESCRIPTOR, SECURITY_ATTRIBUTES};
-use windows_sys::Win32::Storage::FileSystem::{
-    FILE_FLAG_FIRST_PIPE_INSTANCE, FILE_FLAG_OVERLAPPED, PIPE_ACCESS_DUPLEX,
-};
+use windows_sys::Win32::Foundation::{ERROR_IO_PENDING, ERROR_PIPE_CONNECTED, WAIT_OBJECT_0};
+
 use windows_sys::Win32::System::IO::{CancelIoEx, GetOverlappedResult, OVERLAPPED};
 use windows_sys::Win32::System::Pipes::{
-    ConnectNamedPipe, CreateNamedPipeW, DisconnectNamedPipe, GetNamedPipeClientProcessId,
-    GetNamedPipeClientSessionId, PIPE_READMODE_BYTE, PIPE_REJECT_REMOTE_CLIENTS, PIPE_TYPE_BYTE,
-    PIPE_WAIT,
+    ConnectNamedPipe, DisconnectNamedPipe, GetNamedPipeClientProcessId, GetNamedPipeClientSessionId,
 };
 use windows_sys::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
 
@@ -31,11 +19,14 @@ use super::connection::{
     CLIENT_PROOF_BYTES, ConnectionIdentitySource, ProcessConnectionIdentitySource,
     ServerConnectionIdentity, encode_handshake, encode_server_accept, validate_client_proof,
 };
+use super::pipe_listener::{
+    CONSOLE_PIPE_PREFIX, DISPOSABLE_PIPE_SDDL, MAX_PRODUCTION_CONNECTIONS, create_pipe,
+    production_pipe_sddl,
+};
 use super::transport::{
     OwnedHandle, PRODUCTION_PIPE_NAME, PendingFrameRead, WindowsTransportError, read_exact_bounded,
     write_exact_bounded,
 };
-use crate::journal_broker::MAX_FRAME_BYTES;
 use crate::journal_broker::client::AdapterPoll;
 use crate::journal_broker::framing::decode_frame;
 use crate::journal_broker::service::{
@@ -52,15 +43,6 @@ const PRODUCTION_MAX_LIFETIME: Duration = Duration::from_secs(5 * 60);
 const HOST_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const WORKER_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
 const MAX_HOST_READ_WORKERS: usize = 8;
-const MAX_PRODUCTION_CONNECTIONS: u32 = 2;
-const CONSOLE_PIPE_PREFIX: &str = r"\\.\pipe\CedarflakeAme.JournalBroker.Test.";
-// The disposable host is still fail-closed at authorization. This DACL admits only local
-// Any local disposable-test token may reach only this per-process pipe; remote clients are rejected
-// and the production pipe retains its narrower interactive-user DACL. Root authorization remains
-// fail-closed after the handshake.
-const DISPOSABLE_PIPE_SDDL: &str = "D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGW;;;WD)";
-const PRODUCTION_PIPE_SDDL: &str = "D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;GRGW;;;IU)";
-
 pub(super) fn run_disposable_console_host() -> ExitCode {
     match run_disposable_console_host_inner() {
         Ok(()) => ExitCode::SUCCESS,
@@ -92,6 +74,7 @@ pub(super) fn run_production_service_with_ready(
     stop_requested: &'static AtomicBool,
     ready: SyncSender<()>,
 ) -> Result<(), ()> {
+    super::service_profile::verify_running_service_profile().map_err(|_| ())?;
     run_production_service_inner(stop_requested, ready)
 }
 
@@ -101,7 +84,7 @@ fn run_production_service_inner(
 ) -> Result<(), ()> {
     let first = create_pipe(
         PRODUCTION_PIPE_NAME,
-        PRODUCTION_PIPE_SDDL,
+        &production_pipe_sddl(),
         false,
         true,
         MAX_PRODUCTION_CONNECTIONS,
@@ -109,7 +92,7 @@ fn run_production_service_inner(
     .map_err(|_| ())?;
     let second = create_pipe(
         PRODUCTION_PIPE_NAME,
-        PRODUCTION_PIPE_SDDL,
+        &production_pipe_sddl(),
         false,
         false,
         MAX_PRODUCTION_CONNECTIONS,
@@ -165,7 +148,7 @@ fn run_production_listener(
             Some(initial) => initial,
             None => create_pipe(
                 PRODUCTION_PIPE_NAME,
-                PRODUCTION_PIPE_SDDL,
+                &production_pipe_sddl(),
                 false,
                 false,
                 MAX_PRODUCTION_CONNECTIONS,
@@ -673,58 +656,6 @@ fn drain_worker_handles(workers: &mut Vec<JoinHandle<()>>, deadline: Instant) ->
     true
 }
 
-fn create_pipe(
-    name: &str,
-    sddl: &str,
-    is_disposable: bool,
-    is_first_instance: bool,
-    max_instances: u32,
-) -> Result<OwnedHandle, HostError> {
-    let disposable_policy = is_disposable
-        && (is_first_instance && max_instances == 1
-            || cfg!(test) && max_instances == MAX_PRODUCTION_CONNECTIONS);
-    if (is_disposable && !name.starts_with(CONSOLE_PIPE_PREFIX))
-        || (!is_disposable && name != PRODUCTION_PIPE_NAME)
-        || (is_disposable && !disposable_policy)
-        || (!is_disposable && max_instances != MAX_PRODUCTION_CONNECTIONS)
-        || name.encode_utf16().any(|unit| unit == 0)
-    {
-        return Err(HostError::InvalidPipeName);
-    }
-    let mut name_utf16: Vec<u16> = name.encode_utf16().collect();
-    name_utf16.push(0);
-    let security = SecurityDescriptor::from_sddl(sddl)?;
-    let attributes = SECURITY_ATTRIBUTES {
-        nLength: u32::try_from(size_of::<SECURITY_ATTRIBUTES>())
-            .map_err(|_| HostError::SecurityDescriptor)?,
-        lpSecurityDescriptor: security.raw,
-        bInheritHandle: 0,
-    };
-    let buffer_size = u32::try_from(MAX_FRAME_BYTES + 4).map_err(|_| HostError::MalformedFrame)?;
-    // SAFETY: name is bounded, NUL-terminated, and live for the call; attributes references the
-    // live self-relative descriptor; the checked handle becomes the sole RAII owner.
-    let access = PIPE_ACCESS_DUPLEX
-        | FILE_FLAG_OVERLAPPED
-        | if is_first_instance {
-            FILE_FLAG_FIRST_PIPE_INSTANCE
-        } else {
-            0
-        };
-    let raw = unsafe {
-        CreateNamedPipeW(
-            name_utf16.as_ptr(),
-            access,
-            PIPE_TYPE_BYTE | PIPE_READMODE_BYTE | PIPE_WAIT | PIPE_REJECT_REMOTE_CLIENTS,
-            max_instances,
-            buffer_size,
-            buffer_size,
-            0,
-            &attributes,
-        )
-    };
-    OwnedHandle::new(raw).map_err(HostError::Io)
-}
-
 fn connect_bounded(pipe: &OwnedHandle, deadline: Instant) -> Result<(), HostError> {
     // SAFETY: null attributes and name create a private manual-reset event owned below.
     let event = OwnedHandle::new(unsafe { CreateEventW(null(), 1, 0, null()) })?;
@@ -782,42 +713,8 @@ fn observed_client(pipe: &OwnedHandle) -> Result<(u32, u32), HostError> {
     Ok((process_id, session_id))
 }
 
-struct SecurityDescriptor {
-    raw: *mut c_void,
-}
-
-impl SecurityDescriptor {
-    fn from_sddl(sddl: &str) -> Result<Self, HostError> {
-        let mut sddl_utf16: Vec<u16> = sddl.encode_utf16().collect();
-        sddl_utf16.push(0);
-        let mut raw: PSECURITY_DESCRIPTOR = null_mut();
-        // SAFETY: sddl is NUL-terminated and live, and raw points to an output slot. LocalAlloc
-        // ownership transfers to SecurityDescriptor only after a non-null success result.
-        if unsafe {
-            ConvertStringSecurityDescriptorToSecurityDescriptorW(
-                sddl_utf16.as_ptr(),
-                SDDL_REVISION_1,
-                &mut raw,
-                null_mut(),
-            )
-        } == 0
-            || raw.is_null()
-        {
-            return Err(HostError::SecurityDescriptor);
-        }
-        Ok(Self { raw })
-    }
-}
-
-impl Drop for SecurityDescriptor {
-    fn drop(&mut self) {
-        // SAFETY: raw is the unique non-null allocation returned by the SDDL conversion API.
-        let _ = unsafe { LocalFree(self.raw) };
-    }
-}
-
 #[derive(Debug, thiserror::Error)]
-enum HostError {
+pub(super) enum HostError {
     #[error("invalid disposable pipe name")]
     InvalidPipeName,
     #[error("security descriptor creation failed")]
@@ -854,9 +751,12 @@ impl From<super::connection::ConnectionIdentityError> for HostError {
 mod tests {
     use super::*;
     use std::collections::VecDeque;
+    use std::ptr::null_mut;
     use std::sync::atomic::{AtomicU64, Ordering};
     use windows_sys::Win32::Foundation::{GENERIC_READ, GENERIC_WRITE};
-    use windows_sys::Win32::Storage::FileSystem::{CreateFileW, OPEN_EXISTING};
+    use windows_sys::Win32::Storage::FileSystem::{
+        CreateFileW, FILE_FLAG_OVERLAPPED, OPEN_EXISTING,
+    };
     use windows_sys::Win32::System::Pipes::WaitNamedPipeW;
 
     #[derive(Default)]

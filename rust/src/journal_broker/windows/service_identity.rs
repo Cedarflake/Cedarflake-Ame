@@ -2,7 +2,6 @@ mod installed;
 
 use installed::{InstalledBrokerIdentity, ServerProcessFacts};
 
-use std::ffi::c_void;
 use std::fs;
 use std::io::{self, Read};
 use std::mem::size_of;
@@ -16,16 +15,10 @@ use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use windows_sys::Win32::Foundation::{
-    CloseHandle, ERROR_INSUFFICIENT_BUFFER, ERROR_SERVICE_ALREADY_RUNNING, HANDLE, HLOCAL,
-    LocalFree,
+    CloseHandle, ERROR_INSUFFICIENT_BUFFER, ERROR_SERVICE_ALREADY_RUNNING, HANDLE,
 };
-use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
 use windows_sys::Win32::Security::Cryptography::{
     BCRYPT_SHA256_ALGORITHM, BCryptCloseAlgorithmProvider, BCryptHash, BCryptOpenAlgorithmProvider,
-};
-use windows_sys::Win32::Security::{
-    GetTokenInformation, IsTokenRestricted, TOKEN_ELEVATION, TOKEN_GROUPS, TOKEN_QUERY, TOKEN_TYPE,
-    TOKEN_USER, TokenElevation, TokenRestrictedSids, TokenType, TokenUser,
 };
 use windows_sys::Win32::System::Com::CoTaskMemFree;
 use windows_sys::Win32::System::JobObjects::{
@@ -41,13 +34,13 @@ use windows_sys::Win32::System::Services::{
     SERVICE_START, SERVICE_START_PENDING, SERVICE_STATUS_PROCESS, StartServiceW,
 };
 use windows_sys::Win32::System::Threading::{
-    CREATE_NO_WINDOW, OpenProcess, OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION,
-    QueryFullProcessImageNameW,
+    CREATE_NO_WINDOW, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
 };
 use windows_sys::Win32::UI::Shell::{
     FOLDERID_ProgramFilesX64, KF_FLAG_DEFAULT, SHGetKnownFolderPath,
 };
 
+use super::process_token::ProcessToken;
 use super::service_host::SERVICE_NAME;
 use super::transport::{OwnedHandle, WindowsTransportError};
 use crate::journal_broker::BROKER_EXECUTABLE_NAME;
@@ -136,18 +129,17 @@ pub(super) fn authenticate_pipe_server(
         )
     })?;
     let image_path = process_image_path(&process)?;
-    let token = process_token(&process)?;
+    let token_identity = ProcessToken::open(process.raw())?.identity()?;
     ServerProcessFacts {
         scm_process_id: started_service.process_id,
         pipe_process_id,
         image_path,
         expected_image_path,
-        token_user_sid: token_sid(&token)?,
-        token_type: token_fixed::<TOKEN_TYPE>(&token, TokenType)?,
-        is_elevated: token_fixed::<TOKEN_ELEVATION>(&token, TokenElevation)?.TokenIsElevated != 0,
-        // SAFETY: token is a live process token handle with TOKEN_QUERY access.
-        is_restricted: unsafe { IsTokenRestricted(token.raw()) } != 0,
-        restricted_sids: token_group_sids(&token)?,
+        token_user_sid: token_identity.user_sid,
+        token_type: token_identity.token_type,
+        is_elevated: token_identity.is_elevated,
+        is_restricted: token_identity.is_restricted,
+        restricted_sids: token_identity.restricted_sids,
         manifest: started_service.manifest.clone(),
         actual_binary_sha256: started_service.manifest.binary_sha256,
     }
@@ -239,18 +231,18 @@ fn verify_server_identity(
         OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, scm_process_id)
     })?;
     let image_path = process_image_path(&process)?;
-    let token = process_token(&process)?;
+    let token_identity = ProcessToken::open(process.raw())?.identity()?;
     let expected_image_path = expected_broker_path()?;
     ServerProcessFacts {
         scm_process_id,
         pipe_process_id,
         image_path: image_path.clone(),
         expected_image_path,
-        token_user_sid: token_sid(&token)?,
-        token_type: token_fixed::<TOKEN_TYPE>(&token, TokenType)?,
-        is_elevated: token_fixed::<TOKEN_ELEVATION>(&token, TokenElevation)?.TokenIsElevated != 0,
-        is_restricted: unsafe { IsTokenRestricted(token.raw()) } != 0,
-        restricted_sids: token_group_sids(&token)?,
+        token_user_sid: token_identity.user_sid,
+        token_type: token_identity.token_type,
+        is_elevated: token_identity.is_elevated,
+        is_restricted: token_identity.is_restricted,
+        restricted_sids: token_identity.restricted_sids,
         actual_binary_sha256: binary_sha256(&image_path)?,
         manifest,
     }
@@ -525,156 +517,6 @@ fn process_image_path(process: &OwnedKernelHandle) -> Result<PathBuf, WindowsTra
     )?))
 }
 
-fn process_token(process: &OwnedKernelHandle) -> Result<OwnedKernelHandle, WindowsTransportError> {
-    let mut token = null_mut();
-    // SAFETY: process is live and token is a live output slot.
-    if unsafe { OpenProcessToken(process.raw(), TOKEN_QUERY, &mut token) } == 0 {
-        return Err(WindowsTransportError::Io(io::Error::last_os_error()));
-    }
-    OwnedKernelHandle::new(token)
-}
-
-fn token_sid(token: &OwnedKernelHandle) -> Result<String, WindowsTransportError> {
-    let bytes = token_information(token, TokenUser)?;
-    let sid = token_user_sid_slice(&bytes)?;
-    sid_string(sid.as_ptr().cast_mut().cast())
-}
-
-fn token_user_sid_slice(bytes: &[u8]) -> Result<&[u8], WindowsTransportError> {
-    if bytes.len() < size_of::<TOKEN_USER>() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    // SAFETY: the fixed header fits; read_unaligned does not form a reference with Vec<u8>'s
-    // alignment. No SID memory is accessed until its complete structural length is in `bytes`.
-    let user = unsafe { bytes.as_ptr().cast::<TOKEN_USER>().read_unaligned() };
-    let sid = user.User.Sid.cast::<u8>();
-    if sid.is_null() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let start = bytes.as_ptr() as usize;
-    let end = start
-        .checked_add(bytes.len())
-        .ok_or(WindowsTransportError::ServerIdentityRejected)?;
-    let sid_start = sid as usize;
-    if sid_start < start || sid_start >= end {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let sid_offset = sid_start - start;
-    let sid_header_end = sid_offset
-        .checked_add(8)
-        .ok_or(WindowsTransportError::ServerIdentityRejected)?;
-    if sid_header_end > bytes.len() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let sub_authority_count = usize::from(bytes[sid_offset + 1]);
-    let length = sub_authority_count
-        .checked_mul(size_of::<u32>())
-        .and_then(|value| value.checked_add(8))
-        .ok_or(WindowsTransportError::ServerIdentityRejected)?;
-    let sid_end = sid_offset
-        .checked_add(length)
-        .ok_or(WindowsTransportError::ServerIdentityRejected)?;
-    if sid_end > bytes.len() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let sid_slice = &bytes[sid_offset..sid_end];
-    // SAFETY: the complete length implied by the SID header is inside bytes, so IsValidSid and
-    // GetLengthSid cannot walk beyond the live allocation. The pointer remains live for both calls.
-    if unsafe { windows_sys::Win32::Security::IsValidSid(sid.cast()) } == 0
-        || unsafe { windows_sys::Win32::Security::GetLengthSid(sid.cast()) } as usize != length
-    {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    Ok(sid_slice)
-}
-
-fn token_fixed<T: Copy>(
-    token: &OwnedKernelHandle,
-    information_class: i32,
-) -> Result<T, WindowsTransportError> {
-    let bytes = token_information(token, information_class)?;
-    if bytes.len() != size_of::<T>() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    // SAFETY: GetTokenInformation initialized exactly size_of::<T>() bytes for this fixed class;
-    // read_unaligned avoids imposing Vec<u8> alignment.
-    Ok(unsafe { bytes.as_ptr().cast::<T>().read_unaligned() })
-}
-
-fn token_group_sids(token: &OwnedKernelHandle) -> Result<Vec<String>, WindowsTransportError> {
-    let bytes = token_information(token, TokenRestrictedSids)?;
-    if bytes.len() < size_of::<u32>() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    // SAFETY: count is the first initialized u32 in TOKEN_GROUPS.
-    let count = unsafe { bytes.as_ptr().cast::<u32>().read_unaligned() } as usize;
-    let groups_offset = std::mem::offset_of!(TOKEN_GROUPS, Groups);
-    let entry_size = size_of::<windows_sys::Win32::Security::SID_AND_ATTRIBUTES>();
-    let groups_bytes = count
-        .checked_mul(entry_size)
-        .and_then(|value| value.checked_add(groups_offset))
-        .ok_or(WindowsTransportError::ServerIdentityRejected)?;
-    if groups_bytes > bytes.len() || count > 1024 {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let mut result = Vec::with_capacity(count);
-    for index in 0..count {
-        let offset = groups_offset + index * entry_size;
-        // SAFETY: the checked total above proves this unaligned entry is within bytes.
-        let group = unsafe {
-            bytes
-                .as_ptr()
-                .add(offset)
-                .cast::<windows_sys::Win32::Security::SID_AND_ATTRIBUTES>()
-                .read_unaligned()
-        };
-        result.push(sid_string(group.Sid)?);
-    }
-    Ok(result)
-}
-
-fn token_information(
-    token: &OwnedKernelHandle,
-    information_class: i32,
-) -> Result<Vec<u8>, WindowsTransportError> {
-    let mut required = 0_u32;
-    // SAFETY: this sizing query intentionally supplies no buffer.
-    let _ = unsafe {
-        GetTokenInformation(token.raw(), information_class, null_mut(), 0, &mut required)
-    };
-    if required == 0 || required > 1024 * 1024 {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let mut bytes = vec![0_u8; required as usize];
-    // SAFETY: bytes is exactly the bounded requested size and all output pointers are live.
-    if unsafe {
-        GetTokenInformation(
-            token.raw(),
-            information_class,
-            bytes.as_mut_ptr().cast(),
-            required,
-            &mut required,
-        )
-    } == 0
-    {
-        return Err(WindowsTransportError::Io(io::Error::last_os_error()));
-    }
-    bytes.truncate(required as usize);
-    Ok(bytes)
-}
-
-fn sid_string(sid: *mut c_void) -> Result<String, WindowsTransportError> {
-    let mut raw = null_mut();
-    // SAFETY: sid originates from a validated token information buffer and raw is a live output.
-    if unsafe { ConvertSidToStringSidW(sid, &mut raw) } == 0 || raw.is_null() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let value = copy_bounded_utf16(raw);
-    // SAFETY: raw is the unique LocalAlloc allocation returned above.
-    let _ = unsafe { LocalFree(raw as HLOCAL) };
-    value
-}
-
 fn copy_bounded_utf16(raw: *const u16) -> Result<String, WindowsTransportError> {
     let mut length = 0_usize;
     // SAFETY: callers pass a terminated Windows-owned string. The length cap prevents an
@@ -787,68 +629,5 @@ mod tests {
         assert!(validate_probe_nonce(&nonce).is_ok());
         assert!(validate_probe_nonce(&nonce.to_ascii_lowercase()).is_err());
         assert!(validate_probe_nonce(&nonce[..62]).is_err());
-    }
-
-    fn write_token_user_header(bytes: &mut [u8], sid_offset: usize) {
-        let sid = unsafe { bytes.as_mut_ptr().add(sid_offset) }.cast();
-        let header = TOKEN_USER {
-            User: windows_sys::Win32::Security::SID_AND_ATTRIBUTES {
-                Sid: sid,
-                Attributes: 0,
-            },
-        };
-        // SAFETY: tests reserve a complete TOKEN_USER header and deliberately exercise unaligned
-        // storage; write_unaligned initializes it without forming an unaligned reference.
-        unsafe {
-            bytes
-                .as_mut_ptr()
-                .cast::<TOKEN_USER>()
-                .write_unaligned(header)
-        };
-    }
-
-    fn local_system_sid_bytes() -> [u8; 12] {
-        [1, 1, 0, 0, 0, 0, 0, 5, 18, 0, 0, 0]
-    }
-
-    #[test]
-    fn token_user_sid_parser_accepts_unaligned_complete_buffer() {
-        let sid_offset = size_of::<TOKEN_USER>();
-        let sid = local_system_sid_bytes();
-        let mut allocation = vec![0_u8; 1 + sid_offset + sid.len()];
-        let bytes = &mut allocation[1..];
-        assert_ne!(
-            bytes.as_ptr() as usize % std::mem::align_of::<TOKEN_USER>(),
-            0
-        );
-        bytes[sid_offset..].copy_from_slice(&sid);
-        write_token_user_header(bytes, sid_offset);
-
-        assert_eq!(token_user_sid_slice(bytes).expect("valid SID"), sid);
-    }
-
-    #[test]
-    fn token_user_sid_parser_rejects_out_of_buffer_and_malformed_sid() {
-        let sid_offset = size_of::<TOKEN_USER>();
-        let sid = local_system_sid_bytes();
-        let mut complete = vec![0_u8; sid_offset + sid.len()];
-        complete[sid_offset..].copy_from_slice(&sid);
-        write_token_user_header(&mut complete, sid_offset);
-        assert!(token_user_sid_slice(&complete[..complete.len() - 1]).is_err());
-
-        let mut outside = vec![0_u8; sid_offset + sid.len()];
-        let outside_offset = outside.len();
-        write_token_user_header(&mut outside, outside_offset);
-        assert!(token_user_sid_slice(&outside).is_err());
-
-        let mut short_header = vec![0_u8; sid_offset + 7];
-        write_token_user_header(&mut short_header, sid_offset);
-        assert!(token_user_sid_slice(&short_header).is_err());
-
-        let mut malformed = vec![0_u8; sid_offset + sid.len()];
-        malformed[sid_offset..].copy_from_slice(&sid);
-        malformed[sid_offset] = 0;
-        write_token_user_header(&mut malformed, sid_offset);
-        assert!(token_user_sid_slice(&malformed).is_err());
     }
 }

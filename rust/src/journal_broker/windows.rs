@@ -9,8 +9,11 @@ mod acceptance;
 mod connection;
 mod host;
 pub(super) mod name;
+mod pipe_listener;
+mod process_token;
 mod service_host;
 pub(in crate::journal_broker) mod service_identity;
+mod service_profile;
 pub(super) mod transport;
 mod usn;
 
