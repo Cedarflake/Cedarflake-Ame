@@ -2851,3 +2851,15 @@ revalidation takes 7119 ms. Its matching thread measures identity open/path/file
 These wall-clock observations do not distinguish native blocking from descheduling or waive the
 failed gate; the existing C01 obligation and original deadlines remain. No unchanged rerun is
 performed.
+
+Hosted run [38296019243](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38296019243)
+on `c6f5217` subsequently completes successfully with all required component checks. The next
+documentation-only head `51364d3` retains unchanged product source, but its
+[accessibility job](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38299828803/job/114979757181)
+fails the eight-second `application-ready` parent deadline. The last published record has stage
+`loading-uia-client`, elapsed 883 ms, attempt/window/element counts zero and prior stage durations
+96/787 ms; parent elapsed is 8014 ms. This localizes the last observed preparation boundary, not
+the blocking native call or cause. The application exits zero and owned cleanup succeeds. Preserve
+this C02 recurrence and the existing assertions; the preceding success does not establish causal
+resolution. No manual unchanged rerun is performed. The broker is still absent on the workstation,
+so installation and the ordinary-client October membership check remain unverified.

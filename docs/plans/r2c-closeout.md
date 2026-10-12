@@ -73,8 +73,12 @@ the paging observation. Ordinary shipped-entrypoint, held OS-read, C01/C02 and f
 obligations remain separate. The authorized installation still requires completed Windows consent
 and installer interaction before the ordinary-client October membership check.
 
-Admit one optimized-client UX-06B continuation using the already verified native scanner/catalog
-barriers. The prior ordinary Release attempt missed the active-update interval; this changed method
+The [Release UX-06B continuation](../acceptance/r2c-release-native.md#release-removal-during-publication-and-reimport-on-2026-10-13)
+now passes removal during peer publication, both complete updates and actual picker reimport.
+Source integrity, exact membership, preserved peer identities/history, original-profile/catalog
+preservation and normal owned retirement pass. The 90-minute reservation below is consumed in full;
+do not replay this selected path. Its method uses the already verified native scanner/catalog
+barriers. The prior ordinary Release attempt missed the active-update interval; the changed method
 holds the two real scan calls until native removal enters, then holds the real unregister until the
 512-image publisher is refreshing while the 10000-image peer has accepted real entries and remains
 active. Preserve every existing overlap, reservation, single-removal, reimport and pixel assertion.
@@ -207,7 +211,8 @@ now preserves the medium root's last-window images and rail marker through actua
 small registration. Current-source quality and clean unsigned Release pass except the separately
 retained C02 UIA failure. Exact peer membership, identities and scan histories, unchanged sources,
 restored original profile/catalog and normal retirement also pass. Preserve this selected C15 result
-without replaying the following consumed method; active-update overlap and other variants stay open.
+without replaying the following consumed method; the separate controlled active-update overlap now
+passes in the current checkpoint above, while the remaining variants stay open.
 
 The [Release multi-root observation](../acceptance/r2c-release-native.md#release-multi-root-observation-on-2026-10-12)
 completes ordinary updates and subsequent removal/reimport with source and lifetime checks, but

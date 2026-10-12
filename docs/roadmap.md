@@ -146,7 +146,10 @@ completes ordinary updates and reimport but misses the active-update removal int
 unrelated-root removal exposed a reproduced gallery-position jump; the anchored-display correction
 now has focused, local quality, unsigned Release and
 [native position-retention verification](acceptance/r2c-release-native.md#release-retained-position-after-unrelated-removal).
-That selected defect is closed; the active-update overlap and final candidate duties remain. The
+That selected defect is closed. The subsequent
+[Release publication/removal overlap](acceptance/r2c-release-native.md#release-removal-during-publication-and-reimport-on-2026-10-13)
+also passes actual removal, continuing peer updates and picker reimport with exact membership and
+normal retirement. Physical old-spool reclamation and final candidate duties remain separate. The
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,
 the corrected continuous search input, committed-removal display Retry and focused sidebar position

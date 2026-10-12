@@ -1637,3 +1637,44 @@ SDK's assertion-only `ImmutableBuffer.debugDisposed`; it cannot be copied unchan
 or lose that assertion to manufacture a pass. Ordinary shipped-entrypoint, source-copy, C01/C02,
 installer/client continuity and remaining final/platform duties stay open. Both earlier failed
 lifetimes remain failed; no unchanged native or full-gate replay is used.
+
+### Release removal during publication and reimport on 2026-10-13
+
+The optimized continuation reuses the verified Debug scanner/catalog ordering barriers and all
+overlap assertions. Three focused positive/rejecting cases and fatal-info analysis pass. Compilation
+binds 995 inputs on `51364d3`; the 42.4-second Release build restores the canonical payload against
+its historical `8787093` dirty-source receipt without relabeling it. Final admission binds 1131
+inputs and 18 payload files. Only the closed 66387968-byte three-root catalog is copied; the 10514
+generated sources remain in their existing locations. Diagnostic entry, observer, scanner, catalog
+and run owners have 173/282/169/96/121 lines; the overlap boundary has 21 lines and 50 test lines.
+No production or inline-test changes join this continuation.
+
+Run `6f00ff3dde0747f29652219fe06dea53` starts both updates through the native dialog. Removal of the
+two-image root enters at 170020 ms and releases the actual Rust scans at 170025 ms. At 171460 ms,
+the 512-image publisher is refreshing while the 10000-image peer has accepted 600 of 613 visited
+entries, remains active and retains its execution reservation. One real unregister commits at
+171513 ms. The smaller update retires at 171728 ms and the larger at 192853 ms with exact 512/10000
+counts and zero issues. The removed registration stays absent through both refreshes.
+
+Actual folder-picker reimport starts once at 355136 ms and completes both images at 355217 ms.
+Selecting that source produces both current decoded previews and complete readiness at 367528 ms,
+within the original 180-second reimport interval. The picker is an owned modal under the returned
+application window; its separately enumerated window is unavailable and one cached element click
+is rejected. Fresh screenshot input fills the exact admitted path and submits once. Stale
+accessibility focus metadata is not treated as focus verification. These input-method limits do
+not become a new application defect or evidence of keyboard accessibility.
+
+Normal title-bar Close reaches exit in 368.337 ms. The 394281-ms owned lifetime peaks at 226201600
+working-set bytes, with minimum sampled host availability 5838938112 bytes. Application and Job
+exit zero, the owned group retires and the original profile is restored without cleanup failures.
+Final verification passes all 10514 source identities, bytes and times, 1131 bound inputs, original
+catalog/profile preservation, exact 10000/512/2 membership, unchanged peer asset/location identities
+and prior scan history, one additional completed scan per peer, and one new small-root scan after
+removal. Catalog integrity and foreign-key checks pass. The reused 10000-source hash check takes
+42.011 seconds. Receipts remain under `.build/r2c-release-overlap-20261013`.
+
+This completes the selected Release removal/publication/reimport overlap. The earlier ordinary
+Release attempt still missed that interval. Controlled barriers establish ordering, not unmodified
+backend latency; physical old-spool reclamation, other frozen variants, C01/C02, installed-client
+continuity and final/platform duties retain their separate requirements. No replay is needed for
+this selected passing path.
