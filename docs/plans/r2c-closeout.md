@@ -99,6 +99,24 @@ Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sa
 and continue functional repairs and native verification through isolated host storage. Environment
 investigation and evidence maintenance do not displace these user workflows.
 
+The [ordinary-entrypoint Release UX-02A observation](../acceptance/r2c-release-native.md#ordinary-release-picker-import-on-2026-10-13)
+now passes actual picker import, three current previews, original-image open/return and normal exit.
+Exact membership, issue, source identity and original-profile/catalog preservation pass the corrected
+offline verifier; preserve the initial issue-code/path oracle failure and its two positive/thirteen
+rejecting cases. The production entrypoint has no provider overrides or barriers. The following
+67-minute conservative reservation is consumed; no client replay is needed for this selected path.
+The method builds unchanged `lib/main.dart`, binds its current compilation inputs and preserves
+the separate canonical payload. It reserves 45 active preparation minutes, one 12-minute native lifetime
+and ten inspection minutes. It generates four files in one Chinese-named fixture directory:
+three distinct 256-by-192 PNGs, including one `.jpg` filename, and one damaged PNG; limit encoded
+bytes to 1 MiB and decoded pixels to 4 MiB. Use the existing durable profile lease and fresh isolated
+catalog/cache, with four-GiB entry availability, two-GiB client/system limits and six-second normal
+close. Require actual picker input, three exact published paths, one precise damaged-file issue,
+visible current previews, original-image open/return, unchanged source identities/bytes/timestamps,
+original profile/catalog preservation and complete owned-process retirement. No barriers or provider
+overrides are introduced. This is separate from pending-registration cancellation, display Retry,
+installed-journal coverage, held source-copy/OS-read, C01/C02 and final candidate obligations.
+
 The [hard-link recovery checkpoint](../acceptance/r2c-retained-runtime.md#retained-hard-link-source-state)
 now has the exact failing sequence, atomic retained-alias correction, narrow compatibility repair,
 focused rejection cases, full local Rust and unsigned Release evidence on `6a252a1`. Preserve full

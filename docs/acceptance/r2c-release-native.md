@@ -1678,3 +1678,45 @@ Release attempt still missed that interval. Controlled barriers establish orderi
 backend latency; physical old-spool reclamation, other frozen variants, C01/C02, installed-client
 continuity and final/platform duties retain their separate requirements. No replay is needed for
 this selected passing path.
+
+### Ordinary Release picker import on 2026-10-13
+
+The ordinary production `lib/main.dart` builds on `ead4484` with 979 bound compilation inputs in
+42.1 seconds. The 18-file payload and 1005 admitted inputs retain their exact hashes. The canonical
+payload is restored against its separate historical `8787093` dirty-source receipt. No provider,
+scanner, catalog, decoder or input override joins this executable. The existing durable profile
+lease points it at a fresh isolated catalog/cache while preserving the original catalog.
+
+The actual system picker selects one Chinese-named directory containing three distinct 256-by-192
+PNGs, one of them named `.jpg`, and one generated non-image `.png`. Total encoded size is 2083 bytes.
+The first coordinate/text route does not populate the folder field; a cached element request is
+rejected. Native Ctrl+L, literal address input, Return and the observed Import button reach the exact
+directory. Screenshot confirmation, not stale focus metadata, establishes the selected path.
+One foreground scan visits all four files and publishes exactly the three valid relative paths.
+All three colored previews appear; the `.jpg`-named PNG opens with the expected green original
+pixels, and Escape returns to the same three-image gallery.
+
+The initial catalog oracle fails because it expects `image_decode_invalid` and a non-verbatim path.
+This fixture contains unrecognized bytes, not a recognizable truncated PNG. The existing inspector
+and `mixed_media_scan_and_lazy_previews_use_content_and_isolate_invalid_inputs` contract classify
+that input as `image_format_unsupported`; the catalog also retains Windows' `\\?\` prefix.
+The original frozen helper and failure remain unchanged. A separate offline verifier accepts only
+the exact damaged path, with or without that prefix, the exact format-recognition code/message and
+the owning scan. Two positive and thirteen rejecting cases cover issue absence/duplication, wrong
+path/code/scan, incomplete publication, wrong membership, stale previews and duplicate identities.
+It verifies both the retained live observation and the closed catalog without another client run.
+
+PID 12700 exits zero after 305662 ms, 642.698 ms after the recorded close request and actual title-bar
+input. The sampled peak working set is 193925120 bytes and minimum host availability 5722394624
+bytes across 115 samples. The Job exits zero, its group retires and profile restoration completes
+without cleanup failures. Offline verification preserves all four source identities, bytes and
+times, the original profile/catalog, one completed scan, exact membership, current source versions
+and the single issue. Closed integrity and foreign-key checks pass. The fixture and result remain
+under `.build/r2c-release-picker-20261013`; the separate verifier is
+`.build/r2c-picker-result-check-20261013.py`.
+
+This closes the selected ordinary Release picker path, including malformed input and the original
+viewer. It does not close pending-registration cancellation, committed-display Retry, installed
+journal continuity, held source-copy/OS-read, C01/C02 or the remaining final/platform obligations.
+The initial oracle failure is retained alongside the corrected offline result, not relabeled as
+an initial passing run. No production change or unchanged replay is used.

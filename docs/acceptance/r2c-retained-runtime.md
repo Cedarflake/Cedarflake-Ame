@@ -2861,5 +2861,7 @@ fails the eight-second `application-ready` parent deadline. The last published r
 96/787 ms; parent elapsed is 8014 ms. This localizes the last observed preparation boundary, not
 the blocking native call or cause. The application exits zero and owned cleanup succeeds. Preserve
 this C02 recurrence and the existing assertions; the preceding success does not establish causal
-resolution. No manual unchanged rerun is performed. The broker is still absent on the workstation,
+resolution. The run completes with nine required component successes, this accessibility failure
+and a failed aggregate gate; the three separate signing-channel jobs remain skipped. No manual
+unchanged rerun is performed. The broker is still absent on the workstation,
 so installation and the ordinary-client October membership check remain unverified.
