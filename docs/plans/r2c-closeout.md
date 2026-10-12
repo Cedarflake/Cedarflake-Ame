@@ -23,6 +23,19 @@ Updated 2026-10-12. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
+The [UX-05B optimized-client attempt](../acceptance/r2c-release-native.md#release-pending-viewer-method-checkpoint)
+is consumed and failed before pending paging was established. Preserve its bound inputs and failed
+receipts; the ordinary profile, canonical Release and all source files are verified restored or
+unchanged. Continue diagnosis within the admitted 90 active minutes, including preparation, review,
+input and records; build and complete source-hash wall time remain separate. Before another native
+admission, correct the diagnostic standard-output dependency and establish why the actual rail
+input did not capture a previous-page result. Do not infer a product defect or repeat this method
+unchanged. Preserve the 180-second page hold, 30-second original-pixel deadline, ten-second stable
+selection, actual input and normal-retirement assertions. Any revised lifetime retains isolated
+derived storage, unchanged generated sources, a 600-second lifetime, 4-GiB entry availability and
+2-GiB client ceiling/system reserve. This fixture entrypoint does not establish ordinary shipped
+entrypoint or held source-buffer/OS-read coverage. Current CI and other final gates remain separate.
+
 Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sandbox diagnosis
 and continue functional repairs and native verification through isolated host storage. Environment
 investigation and evidence maintenance do not displace these user workflows.

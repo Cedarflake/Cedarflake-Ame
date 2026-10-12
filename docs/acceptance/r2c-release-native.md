@@ -1562,3 +1562,28 @@ acting; a fresh screenshot supports the subsequent coordinate input. Neither obs
 assigned a product cause. Small local receipts remain in
 `.build/r2c-release-removal-position-20261012`. This closes C15's selected Release position defect;
 the missed active-update overlap, C01/C02 and remaining candidate/platform duties stay separate.
+
+### Release pending-viewer method checkpoint
+
+The optimized fixture on documentation head `ee35608`, with unchanged product source `a609e33`,
+uses the production gallery/viewer and real catalog reads through a bounded paging wrapper.
+Eight positive/rejecting observer cases, explicit Dart analysis and a 38.5-second Release build
+pass. The canonical payload is restored and checked before launch; 1068 inputs bind the separate
+18-file, 77288356-byte client and its helpers. Only the closed 66387968-byte derived catalog is
+copied. The same 10514 generated source files are reused without copying.
+
+Run `3dd6103fd2ce4312a91d67ec01209b34` records one native rail click and visible historical images,
+but no retained previous-page result or viewer input. It remains **failed**. The diagnostic records
+`FileSystemException: writeFrom failed` with Windows error six from standard output, then rejects
+close before complete interaction proof. Its launcher uses an owned Job without inherited standard
+handles or a console, while the fixture traces to `stdout`. Correcting that reporting dependency
+does not by itself explain or close the unobserved paging boundary. No product failure is inferred.
+
+Normal Close reaches observed exit in 336.482 ms. The 171459-ms client lifetime peaks at 167124992
+working-set bytes; minimum sampled host availability is 4625604608 bytes across 66 samples.
+Process/Job exit codes are zero, the owned group retires, and the original profile is restored
+without cleanup errors. Post-checks preserve all source identities, dates, sizes and hashes,
+1068 bound inputs, the canonical payload and original catalog/WAL/SHM. Exact 10000/512 membership,
+peer identities and scan histories remain unchanged; integrity and foreign keys pass. The complete
+reused-source hash check takes 56.16 seconds. The failed lifetime and separate safety result remain
+under `.build/r2c-release-viewer-pending-20261012`. UX-05B Release acceptance stays open.
