@@ -1285,3 +1285,55 @@ verdict, zero-source-call result or UX-01A completion follows from this checkpoi
 build needs no unchanged replay. Both application lifetimes, final source preservation and complete
 normal retirement remain unexecuted; combined-source correspondence and the original retained
 browsing/update reports remain separate open work.
+
+## Host Release continuation on 2026-10-12
+
+The unsigned `6a252a1` payload and 972 tracked inputs are verified before these selected native
+observations. Isolated host storage uses the existing durable configuration/preferences lease,
+per-user mutex and repository lock. Original profile files and catalog/WAL/SHM bytes are restored
+or verified unchanged. No original media, Sandbox or broker installation participates.
+
+The query/publication run imports 4032 generated PNGs and admits two 24-image arrival batches.
+Native search replacement, decoded matching previews, source viewing and query return are
+observed. The final narrow query occurs 5.7 seconds after the second batch's last write; this is
+not deliberately delayed-callback race evidence. Closed membership is exactly 4080, both arrival
+groups have 24 ready previews, and source hashes/mtime match. Creation-time fallback explains the
+2026 gallery dates. Normal Close retires the process and Job within the 900-second lifetime;
+measured working set peaks at 210182144 bytes. The earlier redirected-profile preparation failure
+is retained separately. Local small receipts remain in `.build/r2c-release-query-host-20261012`.
+
+The next run reads the existing frozen 10000-image corpus without copying source files. Import
+pauses with 7592 visited entries and 7579 accepted images. Normal Close and a distinct Release
+process preserve the same catalog and paused scan; no automatic Continue occurs. Explicit Continue
+completes that same scan with 10013 visited entries and exactly 10000 published paths/mtimes.
+Final source verification checks all 10000 hashes and mtimes unchanged. Both application processes
+exit normally. The second owned lifetime peaks at 158588928 bytes and restores the original profile.
+
+The first parent verifier fails because the native picker returns a Windows device-prefixed path.
+The corrected comparison removes only that prefix and also requires physical `samefile` identity.
+After verified restoration, only the unexecuted second lifetime is admitted, retaining the original
+900-second combined deadline. The original failed parent receipt remains; this is not an unqualified
+two-phase harness pass. Bound inputs and terminal receipts remain in
+`.build/r2c-release-pause-restart-20261012`.
+
+This actual restart reproduces misleading feedback: while the retained task reports 7579 found
+images, the gallery says the folder has no displayable images. Before restart, the paused transient
+source also continues to say it is adding and shows a spinner. These are presentation failures,
+not a failed checkpoint or permission to display unpublished records. The correction moves scoped
+empty-gallery selection out of the screen and derives pending-source activity from the primary
+task, separately from query loading. Focused restored/continued/cancelled import, search, peer-root,
+published-content and compact-sidebar boundaries pass. Independent review identifies an already
+committed import whose display reload fails; the correction now prioritizes its scoped publication
+receipt and shows pending display refresh instead of an incomplete import. Two controller-level
+failure/Retry cases prove that Retry does not start another scan, and a peer-root case preserves
+scope isolation. All 11 focused cases and strict Dart analysis pass; the reviewer closes that finding.
+The initial full Flutter invocation is stopped before source correction, with its partial log
+preserved; it is not a gate pass. The corrected serial Daily Flutter partition passes all 108 files
+and 851 cases against 281 unchanged frozen inputs. Final formatting changes zero of 284 files;
+all 16 bridge contracts and whitespace checks pass. The existing C02 lint failure remains open;
+this component result is not a complete Daily pass. Corrected Release observation remains required.
+
+The affected presentation owners contain 239 production lines for gallery states, 43 for pending
+source projection, 2136 for the screen, 464 for navigation and 521 for source tiles, with no inline
+tests. The dedicated first-import regression file contains 426 lines. The screen delegates empty
+state selection; neither catalog policy, scan execution nor source admission changes in this fix.

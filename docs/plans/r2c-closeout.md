@@ -27,40 +27,44 @@ Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sa
 and continue functional repairs and native verification through isolated host storage. Environment
 investigation and evidence maintenance do not displace these user workflows.
 
-The reported hard-link first-import resumption regression takes immediate priority: after a paused
-import retains two aliases, an in-place rewrite and a second pause after revisiting only one alias
-can commit conflicting physical source generations and prevent a full catalog reopen. Prove the
-sequence with generated hard links, then repair atomic staging identity reconciliation without
-weakening full validation, namespace revalidation, captured-observation admission or published
-baselines. A narrowly proved compatibility repair may retire only an unverified older first-import
-alias with a newer, revisited same-asset Windows identity sibling; full validation must pass in the
-same transaction. The [hard-link recovery checkpoint](../acceptance/r2c-retained-runtime.md#retained-hard-link-source-state)
-owns the reproducer, rejection cases and verification. Complete applicable gates before closure.
-This bounded repair admits no original-source access, schema relaxation or additional forced rescan.
-Its lint attempt reaches the unchanged C02 report-replacement failure. Preserve that failure and
-complete the unaffected quality components serially; do not replay lint unchanged or weaken its
-reporting contract. Package the independently verified hard-link correction with that limitation.
+The [hard-link recovery checkpoint](../acceptance/r2c-retained-runtime.md#retained-hard-link-source-state)
+now has the exact failing sequence, atomic retained-alias correction, narrow compatibility repair,
+focused rejection cases, full local Rust and unsigned Release evidence on `6a252a1`. Preserve full
+validation, current-namespace checks, captured-observation admission and published baselines. The
+local lint attempt retains C02's report-replacement failure; unaffected static components pass.
+No unchanged lint replay or reporting-contract relaxation is admitted.
 
-The subsequent host Release observation covers query replacement during live publication. Rebuild
-the optimized payload after the hard-link product correction and verify its source binding.
-Copy the 4032 small generated PNGs into fresh owned storage, import through the native picker,
-then add 24 generated images while replacing the visible search query. Require the final query,
-counts, dates and decoded images to agree, followed by normal Close and exact source verification.
-This host method temporarily substitutes the two default configuration/preferences files so the
-unchanged Release storage resolver uses an isolated catalog and cache. Durable original backups,
-fixed target bindings, Ame's per-user instance mutex, repository lock and independent restoration
-are prerequisites. Original catalog/WAL/SHM bytes must remain unchanged. The owned application has
-a 900-second lifetime, 300-second import/convergence bounds, two-GiB working-set ceiling and
-two-GiB available-memory admission. No original media, broker installation or Sandbox participates.
-This is a bounded functional Release observation, not the frozen mixed-media performance workload
-or proof of a deliberately delayed callback race. Failed preparation never admits profile mutation.
+The [host Release continuation](../acceptance/r2c-release-native.md#host-release-continuation-on-2026-10-12)
+now covers selected query replacement during publication, normal retirement and exact generated
+membership. A second observation pauses the existing 10000-image corpus, closes normally, opens
+the exact same catalog in a new process and completes the same scan after explicit Continue.
+Preserve the first parent path-comparison failure and its bounded continuation; do not replay the
+completed import correctness or query workload merely for another receipt.
 
-Hosted run `38159574848` on `82d911c` passes the worker-report guardrail and nine required jobs,
-but the Rust suite reports 1689 passed, two failed and 23 ignored. One failure exceeds the existing
-two-second synchronization stop limit; the mixed-load connection-lifetime control records PerEpoch
-P95 1.114281 seconds against the unchanged one-second gate. Preserve both failures and the older
-C01 evidence. A passing local run does not explain them, and no unchanged hosted rerun is admitted
-as a correction. Complete the concrete hard-link regression before returning to their attribution.
+That restart reproduces the next admitted UX-01C defect: the paused task retains 7579 found images
+while the gallery claims an empty folder. The transient source also continues its active spinner
+after Pause. Correct the owning presentation projection without publishing staging, changing scan
+authority or hiding peer-root content. Prove scoped empty-results precedence and primary-task/query
+independence with focused regressions, then validate the corrected Release pause/reopen feedback.
+Reuse existing generated source media and create only isolated catalog/cache storage. The existing
+host profile lease, exact payload binding, per-user mutex, repository lock, 900-second combined
+lifetime, 300-second import bound and two-GiB working-set/available-memory limits remain in force.
+No original-source access, service installation, Sandbox work or broader diagnostic framework is
+part of this correction. Original profile and catalog/WAL/SHM bytes must remain unchanged.
+
+The subsequent functional follow-up is nested-source admission. Current selection recognizes
+an exact registered path or the same directory identity but not a child already covered by a
+registered parent. Independent root/location registration can therefore duplicate the shared
+gallery entries. Reproduce parent-then-child admission with generated sources, then prevent duplicate
+coverage at its application/persistence boundary and preserve access through the existing folder
+scope. Do not silently remove existing registrations, alter originals or turn this into R3 content
+deduplication. Import queuing remains a separate capability, not an existing behavior claim.
+
+Hosted run `38186866675` on `6a252a1` passes eight required jobs but retains a C01 connection-lifetime
+failure in Rust and a distinct C02 UIA assembly-loading timeout. The earlier `82d911c` stop-deadline
+and mixed-load failures remain historical evidence. A passing local run does not explain these
+failures, and no unchanged hosted rerun is admitted as a correction. Finish the concrete feedback
+defect and remaining functional variants before returning to deferred attribution.
 The [worker-report boundary checkpoint](../acceptance/quality-gates.md#worker-report-preparation-boundary)
 owns the completed tool correction and its verification; no repeat of that repair is needed.
 

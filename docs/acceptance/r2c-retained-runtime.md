@@ -2639,8 +2639,8 @@ The canonical lint invocation stops in the unchanged native-accessibility guardr
 This is a real gate failure at the existing C02 boundary, after its controlled negative cases.
 No causal tooling change or unchanged lint replay follows. The remaining canonical static owners,
 format check, warnings-denied all-target/all-feature Clippy, Dart analysis and 16 bridge contracts
-pass separately. Full Rust, Flutter, native and unsigned Windows checks remain pending; these
-component results do not turn the interrupted lint or complete Daily into a pass. Logs are retained
+pass separately. These component results do not turn the interrupted lint or complete Daily into
+a pass. Logs are retained
 under `.build/r2c-hard-link-resumption`.
 
 The first full Rust invocation is interrupted after the existing v16 migration fixture reports
@@ -2649,3 +2649,17 @@ roster. After validating that roster's schema, repair admission now returns no w
 empty; the caller still performs the unchanged full catalog validation. All 22 selected migration
 and upgrade-related cases pass, followed by all 12 resumption cases. This is a correction to the
 new compatibility query, not a relaxed legacy fixture or a passing whole-suite result.
+
+The corrected `6a252a1` subsequently passes the full serial Rust suite: 1705 library cases and
+three broker cases, zero failures and 23 opt-in cases ignored, in 903.52 seconds. The fresh unsigned
+Windows gate passes at 00:33:52 UTC, with 20 payload files, three native window cases, two real-engine
+retirement cases and the catalog-free Release bridge smoke. These close the corresponding local
+hard-link gates; they do not establish complete Daily or populated-client acceptance.
+
+Hosted run `38186866675` on that same commit passes eight required jobs, including Flutter and
+unsigned Release. Static/Rust reports 1704 passed, one failed and 23 ignored: the retained C01
+connection-lifetime control records a 15.273-second source-validation-handle close and misses P0's
+existing deadline. Windows accessibility separately misses its eight-second application-ready
+deadline while loading UIA. Neither failure is waived or attributed to the hard-link correction.
+The [Release continuation](r2c-release-native.md#host-release-continuation-on-2026-10-12) records the
+selected functional paths and the newly reproduced first-import feedback defect.
