@@ -42,6 +42,16 @@ const REPAIRABLE_LOCATIONS: &str = "
 
 pub(super) fn repair_needed(connection: &Connection) -> Result<bool, ScanError> {
     scan_resume_inventory::validate_structure(connection)?;
+    let has_retained_locations: bool = connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM scan_resume_pending_locations)",
+            [],
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    if !has_retained_locations {
+        return Ok(false);
+    }
     connection
         .query_row(
             &format!("SELECT EXISTS ({REPAIRABLE_LOCATIONS})"),

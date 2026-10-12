@@ -2629,7 +2629,7 @@ the operations; no real media or retained user catalog is accessed. Review ident
 an extra-colon Windows identity admission error with a rejecting regression. Initial fixture-only
 compile and lookup corrections are not counted as product passes.
 
-The new reconciliation and compatibility owners have 341 and 69 production lines, with no inline
+The new reconciliation and compatibility owners have 341 and 79 production lines, with no inline
 tests. Their focused dedicated files contain 376 adapter lines and 445 application lines. The
 SQLite facade is 4006 physical lines with no inline test module; its main dedicated suite is 8007
 lines. The migration facade retains 9932 main-region lines, including existing test hooks, and
@@ -2642,3 +2642,10 @@ format check, warnings-denied all-target/all-feature Clippy, Dart analysis and 1
 pass separately. Full Rust, Flutter, native and unsigned Windows checks remain pending; these
 component results do not turn the interrupted lint or complete Daily into a pass. Logs are retained
 under `.build/r2c-hard-link-resumption`.
+
+The first full Rust invocation is interrupted after the existing v16 migration fixture reports
+`no such column: current.asset_id`: the new repair query was prepared even with an empty resume
+roster. After validating that roster's schema, repair admission now returns no work when it is
+empty; the caller still performs the unchanged full catalog validation. All 22 selected migration
+and upgrade-related cases pass, followed by all 12 resumption cases. This is a correction to the
+new compatibility query, not a relaxed legacy fixture or a passing whole-suite result.
