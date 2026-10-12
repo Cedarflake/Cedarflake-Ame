@@ -102,9 +102,30 @@ generation after recovery. Confirm exact membership, no additional full scan, un
 original profile/catalog, and normal process/Job retirement. This does not claim a pending-decode
 race, continuous-frame timing, current-source C02 correction or permission for an unchanged replay.
 
-Hosted run `38210714893` on `6167ea2` has nine required component successes; Static and Rust is
-still running at 06:26 UTC. The aggregate verdict remains pending. This includes successful hosted
-Windows accessibility and does not explain or replace the retained local progress-record failure.
+Hosted run `38210714893` on `6167ea2` finishes with nine required component successes and one Rust
+failure: the maintenance-preemption test publishes its callback counter before calling `preempt`,
+so the observing thread can assert interruption too early. The other 1724 library cases pass,
+including parent consolidation and both mixed-load controls. Keep this failed run distinct from
+C01/C02. The bounded test correction now delivers completion after preemption while preserving
+lock-release, late-interrupt, permit-ownership and deadline assertions. All 20 focused admission
+tests and the applicable Daily static partition pass, including full lint, 1725 Rust library tests,
+three broker cases and 16 bridge contracts. Fresh hosted verification remains required. No product,
+schema, dependency, source access or timeout changes. Preserve previously passing native/Release
+workflows; continue the remaining folder run without replaying them for this test-only correction.
+
+The next Release observation covers UX-03B with 201 generated child folders and one later
+`a-new` arrival. Bound the entire 202-image corpus to 1 MiB encoded and 32 MiB decoded. Reuse
+the clean `503aa01` payload after proving that subsequent changes affect only documentation and
+the `cfg(test)` admission test; retain the exact payload hashes and original-profile lease.
+Preparation receives 45 active minutes and result inspection ten. The existing single-instance
+guard, repository lock, 900-second owned lifetime, 2-GiB working-set ceiling and 2-GiB free-memory
+entry requirement remain. Expand the first folder window, reach its last visible row, then admit
+the new first-sorted folder through LiveOnly. Exercise Show More twice across that publication:
+observe replacement ending at `folder-198`, then append `folder-199/200`, without a sidebar jump
+to the beginning. Select the final and newly inserted folders and inspect their distinct pixels.
+Verify one unchanged full scan, exactly 202 current locations, unchanged generated files and
+original profile/catalog, and normal process retirement. Native visible rows prove input and
+position boundaries; do not infer an unobserved complete in-memory roster or cursor from them.
 
 Hosted run `38200650029` on `7c75774` passes all ten required component jobs and the aggregate gate;
 the separate signing channel remains skipped. It covers the forward nested-source selection, not
