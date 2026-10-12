@@ -1390,3 +1390,46 @@ remains in the holding directory. Small local receipts are in
 `.build/r2c-release-source-changes-20261012`. No original real-library images are accessed.
 This closes the selected current Release UX-05C path; pending-read races, other frozen variants,
 historical C01/C02 attribution and remaining final candidate/platform acceptance stay separate.
+
+## Release preview failure recovery on 2026-10-12
+
+The clean `503aa01` unsigned payload and documentation-only candidate `6167ea2` are verified
+against 1021 bound inputs. This selected UX-04C observation uses three generated 1024-by-768 PNGs,
+13222 encoded bytes in total, with fresh isolated catalog/cache storage and the existing original-
+profile lease, repository lock, single-instance guard and owned Job. No large corpus, payload copy,
+original media, Sandbox or service installation participates. The recorded preparation, memory
+and lifetime bounds in the execution plan remain unchanged.
+
+The real picker imports the red target and amber peer. A native filename filter keeps the third
+image outside visible demand while a same-identity move from the owned holding directory admits it
+through LiveOnly. A read-only catalog snapshot proves that new image is published, still pending
+and has no preview artifact reference. An exact exclusive read handle then rejects a concurrent
+source read. Clearing the filter exposes actionable Retry instead of an image; neither a stale
+ready artifact nor another scan is published. The handle retires normally after 75493 ms with its
+source bytes, identity and modification time unchanged. One actual pointer activation shows
+retrying feedback, then the correct green pixels. The same location and generation become ready.
+The Release snapshot retains pending with no persisted issue code during this early open failure;
+it does not independently identify the client's internal error code.
+
+An in-place invalid-byte rewrite of the red target preserves its file ID and modification time.
+The catalog retains all three locations, advances the target generation from 1 to 4, records
+`image_format_unsupported` and detaches its old preview reference. The gallery replaces red pixels
+with Retry while both peers remain visible. Restoring valid blue PNG bytes automatically advances
+the same asset/location to generation 5 and displays blue without a manual scan or retry input.
+This is source-failure recovery, not a deliberately held decode/publication race.
+
+All seven read-only snapshots retain exactly one completed scan and the same active root binding.
+Closed verification proves three ready locations with current managed artifact references, exact
+source membership, stable peer records, unchanged peer files and SQLite integrity/foreign keys.
+Normal title-bar Close reaches observed process exit in 352.366 ms. The complete application
+lifetime is 481905 ms, sampled peak working set is 201302016 bytes, both exit codes are zero and
+the owned group retires without cleanup failures. All bound hashes and original configuration,
+preferences and catalog/WAL/SHM checks pass after restoration; no Ame process remains.
+
+The picker modal is not independently returned by the window inventory; the owning window's
+observed picker accepts screenshot-backed address input. Literal text injection into Flutter
+produces no visible search text; observed numeric/hyphen key input establishes the required filter.
+These tool limitations are retained without assigning a product cause or replaying the lifetime.
+Small local sources and receipts remain in `.build/r2c-release-preview-recovery-20261012`.
+This closes the selected Release exclusive-source and corrupt-source recovery paths. Pending-read
+races, historical C01/C02 attribution and other candidate/platform duties remain separate.

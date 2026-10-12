@@ -81,6 +81,31 @@ UIA progress-record replacement failure. Unsigned Release also passes from clean
 Preserve the failed UIA attempt without unchanged replay and finish final hosted verification;
 this checkpoint does not establish complete R2c acceptance.
 
+The [Release observation](../acceptance/r2c-release-native.md#release-preview-failure-recovery-on-2026-10-12)
+now passes the selected UX-04C exclusive-source and corrupt-source recovery branches. Exact native
+Retry, current pixels, one unchanged scan, source identities and original-profile preservation are
+verified through normal owned-process retirement. Preserve the input-method limitations and the
+separate C01/C02 duties; no replay is needed for documentation. Its bounded method follows.
+
+This Release observation covers the remaining UX-04C exclusive-source and corrupt-source
+recovery branches with three generated PNGs, at most 1 MiB encoded and 16 MiB decoded in total.
+Reuse the clean `503aa01` unsigned payload after verifying its hashes and the documentation-only
+candidate difference. Keep the existing original-profile lease, repository lock, single-instance
+guard, 900-second owned lifetime, 2-GiB working-set ceiling and 2-GiB free-memory entry requirement.
+Preparation is bounded to 45 active minutes and result inspection to ten. Import the visible pair,
+filter to one image, and admit the third from the owned holding directory through LiveOnly. Require
+its catalog publication with no preview artifact before holding that exact file exclusively for
+at most 180 seconds. Native query input then requests the uncached preview; after recording the
+precise failure, release the handle and activate Retry. Separately corrupt and restore only the
+manifest-owned first image, retaining physical identity and inspecting current pixels and source
+generation after recovery. Confirm exact membership, no additional full scan, unchanged peer and
+original profile/catalog, and normal process/Job retirement. This does not claim a pending-decode
+race, continuous-frame timing, current-source C02 correction or permission for an unchanged replay.
+
+Hosted run `38210714893` on `6167ea2` has nine required component successes; Static and Rust is
+still running at 06:26 UTC. The aggregate verdict remains pending. This includes successful hosted
+Windows accessibility and does not explain or replace the retained local progress-record failure.
+
 Hosted run `38200650029` on `7c75774` passes all ten required component jobs and the aggregate gate;
 the separate signing channel remains skipped. It covers the forward nested-source selection, not
 the subsequent parent-import consolidation. The preceding `38186866675` run on `6a252a1` retains its C01 connection-lifetime failure and

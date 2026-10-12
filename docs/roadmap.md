@@ -130,6 +130,8 @@ keyboard controls and Release paths retain their separate frozen duties. The
 now verifies forward covered-folder selection and atomic consolidation after a complete first
 parent import through focused and native Debug paths. Current-source quality retains the separate
 UIA progress-record replacement failure. Unsigned Release passes; final hosted checks remain open.
+Selected [Release exclusive-source and corrupt-source recovery](acceptance/r2c-release-native.md#release-preview-failure-recovery-on-2026-10-12)
+also passes through normal retirement; preserve those results while completing the remaining variants.
 The
 [multi-root record](acceptance/r2c-closeout-cycle.md#native-queued-cancellation-and-real-updates)
 adds queued-task keyboard Cancel, peer publication during removal, actual reimport and
