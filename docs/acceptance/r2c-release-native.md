@@ -1352,3 +1352,41 @@ normally within a combined 197235 milliseconds, peaking at 196472832 working-set
 profile restoration and catalog/WAL/SHM checks pass; all 10000 source hashes/mtimes and 1005 bound
 inputs remain unchanged. Small receipts are in `.build/r2c-release-first-import-feedback-20261012`.
 This closes the selected Release first-import feedback correction, not the remaining R2c gates.
+
+## Release source rewrite, rename and removal on 2026-10-12
+
+The clean unsigned `dad5f0f` payload is reused after verifying all 20 payload hashes and the
+documentation-only difference to `7c75774`. This UX-05C check uses two generated 160-by-120 PNGs,
+115576 source bytes in total, with fresh isolated catalog/cache storage and the existing profile
+lease, repository lock, single-instance guard and owned Job lifecycle. Preparation is bounded to
+45 active minutes, the client to 900 seconds and 2 GiB working set, and result inspection to ten
+minutes; entry requires 2 GiB available. No source corpus or build payload is copied.
+
+The first preparation stops before configuration replacement or application launch because the
+helper assumes the environment-derived default catalog location. The actual configured catalog
+matches the preceding successfully restored profile. The continuation verifies that exact binding,
+untouched profile/backups and generated sources before finishing the previously uninstalled lease.
+The failed preparation remains explicit; no catalog location or product behavior changes.
+
+Actual picker input imports the two files. The red target opens in the original viewer, then an
+in-place blue rewrite preserves its file ID, length and modification time. Without manual Update,
+the viewer displays blue; renaming it to `03-renamed.png` updates the title and retains blue pixels.
+Moving it into the owned holding directory outside the watched root naturally returns to the
+gallery with only the green peer. Two final observations 29.634 seconds apart show the same tile
+and count. These are native screenshots, not continuous frame samples or convergence quantiles.
+
+Read-only snapshots of the isolated catalog verify the same asset and physical file identity
+through rewrite and rename. Generation advances `1 -> 3 -> 4`; only rename changes the location
+ID. The peer retains every selected identity/version field. There is exactly one completed scan
+throughout, with the same active scan ID, and final published membership contains only the peer.
+Closed SQLite integrity and foreign-key checks pass. This does not substitute for Rust FULL-open
+validation or the separate pending-source-read variants.
+
+Title-bar Close reaches the parent's observed exit in 451.667 ms. The application lifetime is
+299666 ms, sampled peak working set is 192782336 bytes, both exit codes are zero and the owned
+group retires without cleanup failures. All 1009 bound input hashes still match. Original settings,
+preferences and catalog/WAL/SHM remain unchanged; the green peer is unchanged and the blue target
+remains in the holding directory. Small local receipts are in
+`.build/r2c-release-source-changes-20261012`. No original real-library images are accessed.
+This closes the selected current Release UX-05C path; pending-read races, other frozen variants,
+historical C01/C02 attribution and remaining final candidate/platform acceptance stay separate.

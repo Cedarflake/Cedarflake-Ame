@@ -143,7 +143,9 @@ Native viewer close/reopen during pending paging
 and an admitted source-copy future now preserves the new selection and original pixels through
 old-work retirement and normal exit; remaining Release boundaries stay open. The
 selected source rewrite/rename/removal path now has native Debug identity, current-pixel and natural
-viewer-return evidence after source reads retire. C12's diagnostic observer correction now has
+viewer-return evidence after source reads retire, plus
+[current Release input, identity continuity and normal retirement](acceptance/r2c-release-native.md#release-source-rewrite-rename-and-removal-on-2026-10-12).
+C12's diagnostic observer correction now has
 warning-free selected Debug workflow evidence; final-source and Release acceptance remain open. The
 [isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
 rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed

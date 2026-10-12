@@ -59,6 +59,14 @@ checks; preserve that failed run. Complete Flutter and clean-source unsigned Rel
 also pass. Final hosted and remaining client verification stay open; preserve exact-path update,
 cancellation and later-user-query precedence.
 
+The [current Release source-change check](../acceptance/r2c-release-native.md#release-source-rewrite-rename-and-removal-on-2026-10-12)
+now passes UX-05C with two generated PNGs: same-identity/length/mtime rewrite, authoritative rename,
+removal from the watched root, current viewer pixels and natural gallery return. It reuses the
+verified `dad5f0f` payload without rebuilding and preserves the original profile/catalog through
+normal owned-process retirement. The initial pre-installation catalog-path assumption failure
+and corrected exact binding remain in that record. Preserve this selected result; it does not
+close pending-read races, other Release variants, C01/C02 or remaining platform/candidate gates.
+
 Hosted run `38194585598` on `fa7275c` passes all ten required component jobs and the aggregate gate;
 the separate signing channel remains skipped. This does not cover the subsequent nested-source
 change. The preceding `38186866675` run on `6a252a1` retains its C01 connection-lifetime failure and
