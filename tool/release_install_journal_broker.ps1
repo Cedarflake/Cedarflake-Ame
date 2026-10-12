@@ -2,10 +2,9 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$BrokerBinaryPath,
-    [Parameter(Mandatory = $true)]
-    [string]$ApplicationBundlePath,
-    [Parameter(Mandatory = $true)]
-    [string]$ExpectedPublisher
+    [string]$ApplicationBundlePath = "",
+    [AllowEmptyString()]
+    [string]$ExpectedPublisher = ""
 )
 
 $ErrorActionPreference = "Stop"
@@ -13,24 +12,29 @@ $ErrorActionPreference = "Stop"
 
 Assert-AmeBrokerPlatform
 Assert-AmeBrokerAdministrator
-$sourceBinary = Assert-AmeBrokerBinary `
+$sourceBinary = Assert-AmeBrokerPayload `
     -Path $BrokerBinaryPath `
     -ExpectedPublisher $ExpectedPublisher
 Assert-AmeBrokerReleaseBinaryName -Path $sourceBinary
-$applicationSource = Assert-AmeApplicationBundleSource `
-    -BundlePath $ApplicationBundlePath `
-    -ExpectedPublisher $ExpectedPublisher
+$applicationSource = if ($ApplicationBundlePath.Length -gt 0) {
+    Assert-AmeApplicationBundleSource `
+        -BundlePath $ApplicationBundlePath `
+        -ExpectedPublisher $ExpectedPublisher
+} else {
+    $null
+}
 $installDirectory = Get-AmeBrokerInstallDirectory
 $applicationInstallDirectory = Get-AmeApplicationInstallDirectory
-$installedClientBinary = Get-AmeApplicationInstalledBinaryPath
 $trustedProgramFilesPath = Get-AmeBrokerProgramFilesX64
 Repair-AmeBrokerInterruptedTransaction
 Assert-AmeBrokerInstallDirectoryFacts `
     -CandidatePath $installDirectory `
     -TrustedProgramFilesPath $trustedProgramFilesPath
 Assert-AmeBrokerFixedInstallTree -InstallDirectory $installDirectory | Out-Null
-Assert-AmeApplicationFixedInstallTree `
-    -InstallDirectory $applicationInstallDirectory | Out-Null
+if ($null -ne $applicationSource) {
+    Assert-AmeApplicationFixedInstallTree `
+        -InstallDirectory $applicationInstallDirectory | Out-Null
+}
 $installedBinary = Join-Path $installDirectory (Get-AmeBrokerServicePlan).BinaryName
 $installDirectoryAlreadyExisted = Test-Path -LiteralPath $installDirectory -PathType Container
 
@@ -48,14 +52,14 @@ if ($installDirectoryAlreadyExisted) {
 $applicationAlreadyInstalled = Test-Path `
     -LiteralPath $applicationInstallDirectory `
     -PathType Container
-if ($applicationAlreadyInstalled) {
+if ($null -ne $applicationSource -and $applicationAlreadyInstalled) {
     Assert-AmeApplicationInstallation `
         -InstallDirectory $applicationInstallDirectory `
         -ExpectedPublisher $ExpectedPublisher | Out-Null
 }
 if (-not $PSCmdlet.ShouldProcess(
     ([IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($installDirectory))),
-    "Install the Ame application and journal broker service"
+    "Install the journal broker service and any explicitly supplied Ame application bundle"
 )) {
     return
 }
@@ -71,7 +75,7 @@ $plannedOwnedDirectories = @(
         $brokerTreeFacts.ExpectedPaths[$index]
     }
 )
-if (-not $applicationAlreadyInstalled) {
+if ($null -ne $applicationSource -and -not $applicationAlreadyInstalled) {
     $applicationTreeFacts = Assert-AmeApplicationFixedInstallTree `
         -InstallDirectory $applicationInstallDirectory
     $plannedOwnedDirectories += @(
@@ -104,7 +108,7 @@ try {
     if (Test-Path -LiteralPath $stagedBinary) {
         throw "The broker install staging path already exists"
     }
-    if (-not $applicationAlreadyInstalled) {
+    if ($null -ne $applicationSource -and -not $applicationAlreadyInstalled) {
         $transaction.ApplicationOwned = $true
         $transaction.Phase = "installing_application"
         Write-AmeBrokerTransactionState -State $transaction
@@ -118,16 +122,20 @@ try {
         )
         Write-AmeBrokerTransactionState -State $transaction
     }
-    Copy-Item -LiteralPath $sourceBinary -Destination $stagedBinary
+    Copy-AmeBrokerStagedPayload `
+        -SourcePath $sourceBinary `
+        -StagedPath $stagedBinary `
+        -IncludeServiceSid $false `
+        -ExpectedPublisher $ExpectedPublisher
     $transaction.Phase = "staged_binary"
     Write-AmeBrokerTransactionState -State $transaction
-    Set-AmeBrokerFileAcl -Path $stagedBinary -IncludeServiceSid $false
-    Assert-AmeBrokerBinary `
-        -Path $stagedBinary `
-        -ExpectedPublisher $ExpectedPublisher | Out-Null
+    $identityManifest = New-AmeBrokerIdentityManifest `
+        -BinaryPath $stagedBinary `
+        -ExpectedPublisher $ExpectedPublisher
     $transaction.ExpectedNewBinary = Get-AmeBrokerTransactionBinaryFacts `
         -Path $stagedBinary `
         -ExpectedPublisher $ExpectedPublisher
+    $transaction.NewIdentityManifest = $identityManifest
     Write-AmeBrokerTransactionState -State $transaction
     Invoke-AmeBrokerWriteAheadMove `
         -State $transaction `
@@ -138,10 +146,6 @@ try {
         -NextPhase installed_binary
     $transaction.InstalledOwned = $true
     Write-AmeBrokerTransactionState -State $transaction
-    $identityManifest = New-AmeBrokerIdentityManifest `
-        -BinaryPath $installedBinary `
-        -ClientBinaryPath $installedClientBinary `
-        -ExpectedPublisher $ExpectedPublisher
     $serviceCreated = $false
     Set-AmeBrokerServiceConfiguration `
         -BinaryPath $installedBinary `
@@ -156,7 +160,6 @@ try {
         -BinaryPath $installedBinary
     Assert-AmeBrokerInstallation `
         -BinaryPath $installedBinary `
-        -ClientBinaryPath $installedClientBinary `
         -ExpectedPublisher $ExpectedPublisher
     $transaction.Phase = "committed"
     Write-AmeBrokerTransactionState -State $transaction

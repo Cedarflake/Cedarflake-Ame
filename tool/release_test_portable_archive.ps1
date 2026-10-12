@@ -20,37 +20,6 @@ $pubspecFixture = Join-Path $scratchRoot "pubspec.yaml"
 $cargoFixture = Join-Path $scratchRoot "Cargo.toml"
 $verifyScript = Join-Path $PSScriptRoot "release_verify_portable_archive.ps1"
 $signatureVerifyScript = Join-Path $PSScriptRoot "release_verify_portable_signatures.ps1"
-$productionSynchronizationSource = Join-Path `
-    $repositoryRoot `
-    "rust\src\application\library_synchronization\production.rs"
-$journalTransportSource = Join-Path `
-    $repositoryRoot `
-    "rust\src\journal_broker\windows\transport.rs"
-$productionSynchronizationText = [IO.File]::ReadAllText(
-    $productionSynchronizationSource,
-    [Text.Encoding]::UTF8
-)
-$journalTransportText = [IO.File]::ReadAllText(
-    $journalTransportSource,
-    [Text.Encoding]::UTF8
-)
-if ($productionSynchronizationText -notmatch 'portable_production_never_invokes_the_journal_factory' -or
-    $productionSynchronizationText -notmatch 'PersistentChangeJournalLiveOnlyReason::PortableDistribution') {
-    throw "Portable production must remain LiveOnly before journal factory activation"
-}
-$portableGuardIndex = $journalTransportText.IndexOf(
-    "current_process_has_installed_client_identity",
-    [StringComparison]::Ordinal
-)
-$serviceStartIndex = $journalTransportText.IndexOf(
-    "let started_service = demand_start_service()?;",
-    [StringComparison]::Ordinal
-)
-if ($portableGuardIndex -lt 0 -or
-    $serviceStartIndex -lt 0 -or
-    $portableGuardIndex -ge $serviceStartIndex) {
-    throw "Portable broker rejection must precede every SCM and pipe activation side effect"
-}
 $tag = "v1.2.3"
 $archiveName = "Cedarflake-Ame-$tag-windows-x64-portable.zip"
 $utf8 = [System.Text.UTF8Encoding]::new($false)

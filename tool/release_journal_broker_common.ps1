@@ -1,3 +1,6 @@
+. (Join-Path $PSScriptRoot "release_journal_broker_identity.ps1")
+. (Join-Path $PSScriptRoot "release_journal_broker_uninstall_policy.ps1")
+
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
@@ -19,7 +22,7 @@ $script:AmeBrokerProtectedDirectorySddl = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA
 $script:AmeApplicationProtectedDirectorySddl = "O:BAG:BAD:P(A;OICI;FA;;;SY)(A;OICI;FA;;;BA)(A;OICI;0x1200A9;;;BU)"
 $script:AmeBrokerProtocolVersion = 5
 $script:AmeBrokerMaximumFrameBytes = 1048576
-$script:AmeBrokerTransactionSchema = 2
+$script:AmeBrokerTransactionSchema = 3
 $script:AmeBrokerTransactionMarkerName = ".cedarflake-ame-journal-broker-transaction-v2.json"
 $script:AmeBrokerTransactionMaximumBytes = 65536
 
@@ -768,8 +771,8 @@ function Get-AmeBrokerTransactionBinaryFacts {
     param(
         [Parameter(Mandatory = $true)]
         [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
+        [AllowEmptyString()]
+        [string]$ExpectedPublisher = ""
     )
 
     $full = [IO.Path]::GetFullPath($Path)
@@ -781,7 +784,7 @@ function Get-AmeBrokerTransactionBinaryFacts {
         throw "A transaction binary became a reparse point"
     }
     Assert-AmeBrokerPhysicalFile -ExpectedPath $full
-    Assert-AmeBrokerBinary -Path $full -ExpectedPublisher $ExpectedPublisher | Out-Null
+    Assert-AmeBrokerPayload -Path $full -ExpectedPublisher $ExpectedPublisher | Out-Null
     $facts = [pscustomobject]@{
         Exists = $true
         Length = [int64]$item.Length
@@ -976,10 +979,10 @@ function Invoke-AmeBrokerWriteAheadMove {
     $State.NextOperationId = [int]$State.NextOperationId + 1
     & $StateWriter $State
     & $AfterPendingAction
-    $sourceBefore = & $FactProbe $intent.SourcePath ([string]$State.ExpectedPublisher)
+    $sourceBefore = & $FactProbe $intent.SourcePath (Get-AmeBrokerRecoveryPublisher -State $State)
     $destinationBefore = & $FactProbe `
         $intent.DestinationPath `
-        ([string]$State.ExpectedPublisher)
+        (Get-AmeBrokerRecoveryPublisher -State $State)
     if ((Resolve-AmeBrokerMoveIntentFacts `
         -Intent $intent `
         -SourceFacts $sourceBefore `
@@ -988,10 +991,10 @@ function Invoke-AmeBrokerWriteAheadMove {
     }
     & $MoveAction $intent.SourcePath $intent.DestinationPath
     & $AfterMoveAction
-    $sourceAfter = & $FactProbe $intent.SourcePath ([string]$State.ExpectedPublisher)
+    $sourceAfter = & $FactProbe $intent.SourcePath (Get-AmeBrokerRecoveryPublisher -State $State)
     $destinationAfter = & $FactProbe `
         $intent.DestinationPath `
-        ([string]$State.ExpectedPublisher)
+        (Get-AmeBrokerRecoveryPublisher -State $State)
     if ((Resolve-AmeBrokerMoveIntentFacts `
         -Intent $intent `
         -SourceFacts $sourceAfter `
@@ -1027,20 +1030,20 @@ function Resolve-AmeBrokerPendingMove {
         return
     }
     $intent = $State.PendingIntent
-    $source = & $FactProbe $intent.SourcePath ([string]$State.ExpectedPublisher)
+    $source = & $FactProbe $intent.SourcePath (Get-AmeBrokerRecoveryPublisher -State $State)
     $destination = & $FactProbe `
         $intent.DestinationPath `
-        ([string]$State.ExpectedPublisher)
+        (Get-AmeBrokerRecoveryPublisher -State $State)
     $resolution = Resolve-AmeBrokerMoveIntentFacts `
         -Intent $intent `
         -SourceFacts $source `
         -DestinationFacts $destination
     if ($resolution -ceq "NotApplied") {
         & $MoveAction $intent.SourcePath $intent.DestinationPath
-        $source = & $FactProbe $intent.SourcePath ([string]$State.ExpectedPublisher)
+        $source = & $FactProbe $intent.SourcePath (Get-AmeBrokerRecoveryPublisher -State $State)
         $destination = & $FactProbe `
             $intent.DestinationPath `
-            ([string]$State.ExpectedPublisher)
+            (Get-AmeBrokerRecoveryPublisher -State $State)
         $resolution = Resolve-AmeBrokerMoveIntentFacts `
             -Intent $intent `
             -SourceFacts $source `
@@ -1062,11 +1065,12 @@ function New-AmeBrokerTransactionState {
         [string]$Operation,
         [Parameter(Mandatory = $true)]
         [psobject]$ParentPrestate,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher,
+        [AllowEmptyString()]
+        [string]$ExpectedPublisher = "",
         [string[]]$OwnedDirectories = @()
     )
 
+    Assert-AmeBrokerPublisherPolicy -ExpectedPublisher $ExpectedPublisher
     $process = [Diagnostics.Process]::GetCurrentProcess()
     $installedBinary = Join-Path `
         (Get-AmeBrokerInstallDirectory) `
@@ -1098,6 +1102,7 @@ function New-AmeBrokerTransactionState {
         ApplicationDirectory = Get-AmeApplicationInstallDirectory
         OwnedDirectories = @($OwnedDirectories)
         ApplicationOwned = $false
+        RemoveApplicationBundle = $false
         InstalledOwned = $false
         BackupCreated = $false
         ServiceCreated = $false
@@ -1168,16 +1173,19 @@ function Assert-AmeBrokerTransactionStateFacts {
             throw "The broker transaction marker is missing $name"
         }
     }
-    if ([int]$State.Schema -ne $script:AmeBrokerTransactionSchema -or
+    if ([int]$State.Schema -notin @(2, $script:AmeBrokerTransactionSchema) -or
         @("install", "repair", "upgrade", "uninstall") -notcontains [string]$State.Operation -or
         [string]$State.TransactionId -notmatch '^[0-9A-F]{32}$' -or
         [int]$State.OwnerProcessId -le 0 -or
         [int64]$State.OwnerStartUtcTicks -le 0 -or
         [int]$State.NextOperationId -le 0 -or
-        [string]::IsNullOrWhiteSpace([string]$State.ExpectedPublisher) -or
+        ([int]$State.Schema -eq 2 -and
+            [string]::IsNullOrWhiteSpace([string]$State.ExpectedPublisher)) -or
         ([string]$State.ExpectedPublisher).Length -gt 512) {
         throw "The broker transaction marker identity is invalid"
     }
+    Assert-AmeBrokerPublisherPolicy -ExpectedPublisher ([string]$State.ExpectedPublisher)
+    $removeApplicationBundle = Test-AmeBrokerUninstallApplicationRemoval -State $State
     $installDirectory = Get-AmeBrokerInstallDirectory
     $expectedInstalled = Join-Path $installDirectory $script:AmeBrokerBinaryName
     foreach ($fixedPathProperty in @("InstalledBinary", "ApplicationDirectory", "ParentPath")) {
@@ -1237,7 +1245,9 @@ function Assert-AmeBrokerTransactionStateFacts {
     $allowedOwnedDirectories = @(
         Get-AmeProductParentDirectory
         Get-AmeBrokerInstallDirectory
-        Get-AmeApplicationInstallDirectory
+        if ([string]$State.Operation -cne "uninstall" -or $removeApplicationBundle) {
+            Get-AmeApplicationInstallDirectory
+        }
     )
     foreach ($directory in @($State.OwnedDirectories)) {
         if ([string]::IsNullOrWhiteSpace([string]$directory)) {
@@ -1700,6 +1710,7 @@ function Complete-AmeBrokerUninstallTransaction {
         throw "Only an uninstall transaction may use uninstall completion"
     }
     Assert-AmeBrokerUninstallProgressFacts -State $State
+    $removeApplicationBundle = Test-AmeBrokerUninstallApplicationRemoval -State $State
     $knownOperations = @(Get-AmeBrokerUninstallStepDefinitions | ForEach-Object {
         [string]$_.Property
     })
@@ -1827,11 +1838,18 @@ function Complete-AmeBrokerUninstallTransaction {
             throw "The installed Application bundle remains after uninstall removal"
         }
     }
-    $applicationActions = Resolve-AmeBrokerUninstallActionPair `
-        -Overrides $ActionOverrides `
-        -CompletionProperty UninstallApplicationRemoved `
-        -DefaultMutationAction $applicationMutation `
-        -DefaultVerifyAction $applicationVerify
+    $applicationActions = if ($removeApplicationBundle) {
+        Resolve-AmeBrokerUninstallActionPair `
+            -Overrides $ActionOverrides `
+            -CompletionProperty UninstallApplicationRemoved `
+            -DefaultMutationAction $applicationMutation `
+            -DefaultVerifyAction $applicationVerify
+    } else {
+        [pscustomobject]@{
+            MutationAction = {}
+            VerifyAction = {}
+        }
+    }
     Invoke-AmeBrokerUninstallWriteAheadStep `
         -State $State `
         -CompletionProperty UninstallApplicationRemoved `
@@ -2390,174 +2408,6 @@ function Remove-AmeCreatedEmptyDirectories {
     return Invoke-AmeBrokerRollbackActions -Actions $actions
 }
 
-function Assert-AmeBrokerSignatureFacts {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Status,
-        [AllowNull()]
-        [string]$SignerSubject,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
-    )
-
-    if ($Status -cne "Valid") {
-        throw "The broker binary must have a valid Authenticode signature"
-    }
-    if ([string]::IsNullOrWhiteSpace($ExpectedPublisher)) {
-        throw "The expected broker publisher must be explicit"
-    }
-    if ([string]::IsNullOrWhiteSpace($SignerSubject) -or -not $SignerSubject.Equals(
-        $ExpectedPublisher,
-        [System.StringComparison]::Ordinal
-    )) {
-        throw "The broker signer does not match the expected publisher"
-    }
-}
-
-function Assert-AmeBrokerMachineFacts {
-    param(
-        [Parameter(Mandatory = $true)]
-        [UInt16]$Machine
-    )
-
-    if ($Machine -ne 0x8664) {
-        throw "The broker binary must be a Windows x64 PE image"
-    }
-}
-
-function Get-AmeBrokerPeMachine {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path
-    )
-
-    $stream = [System.IO.File]::Open(
-        $Path,
-        [System.IO.FileMode]::Open,
-        [System.IO.FileAccess]::Read,
-        [System.IO.FileShare]::Read
-    )
-    try {
-        if ($stream.Length -lt 64) {
-            throw "The broker binary is not a complete PE image"
-        }
-        $reader = [System.IO.BinaryReader]::new($stream)
-        try {
-            if ($reader.ReadUInt16() -ne 0x5A4D) {
-                throw "The broker binary is missing the DOS PE signature"
-            }
-            $stream.Position = 0x3C
-            $peOffset = $reader.ReadUInt32()
-            if ($peOffset -gt $stream.Length - 6) {
-                throw "The broker PE header offset is invalid"
-            }
-            $stream.Position = $peOffset
-            if ($reader.ReadUInt32() -ne 0x00004550) {
-                throw "The broker binary is missing the NT PE signature"
-            }
-            return $reader.ReadUInt16()
-        } finally {
-            $reader.Dispose()
-        }
-    } finally {
-        $stream.Dispose()
-    }
-}
-
-function Assert-AmeSignedX64Binary {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
-    )
-
-    $resolvedPath = [System.IO.Path]::GetFullPath($Path)
-    if (-not (Test-Path -LiteralPath $resolvedPath -PathType Leaf)) {
-        throw "The broker binary was not found: $resolvedPath"
-    }
-    Assert-AmeBrokerMachineFacts -Machine (Get-AmeBrokerPeMachine -Path $resolvedPath)
-    $signature = Get-AuthenticodeSignature -LiteralPath $resolvedPath
-    $signerSubject = if ($null -eq $signature.SignerCertificate) {
-        $null
-    } else {
-        $signature.SignerCertificate.Subject
-    }
-    Assert-AmeBrokerSignatureFacts `
-        -Status ([string]$signature.Status) `
-        -SignerSubject $signerSubject `
-        -ExpectedPublisher $ExpectedPublisher
-    return $resolvedPath
-}
-
-function Assert-AmeBrokerBinary {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
-    )
-
-    $resolvedPath = Assert-AmeSignedX64Binary `
-        -Path $Path `
-        -ExpectedPublisher $ExpectedPublisher
-    Get-AmeBrokerProtocolFacts -Path $resolvedPath | Out-Null
-    return $resolvedPath
-}
-
-function ConvertTo-AmeBrokerUpperHex {
-    param(
-        [Parameter(Mandatory = $true)]
-        [byte[]]$Bytes
-    )
-
-    return ([BitConverter]::ToString($Bytes)).Replace("-", "")
-}
-
-function Get-AmeBrokerProtocolFacts {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Path
-    )
-
-    $resolvedPath = [System.IO.Path]::GetFullPath($Path)
-    $output = @(& $resolvedPath "--protocol-info" 2>&1)
-    $exitCode = $LASTEXITCODE
-    return Assert-AmeBrokerProtocolOutputFacts -Output $output -ExitCode $exitCode
-}
-
-function Assert-AmeBrokerProtocolOutputFacts {
-    param(
-        [AllowEmptyCollection()]
-        [object[]]$Output,
-        [Parameter(Mandatory = $true)]
-        [int]$ExitCode
-    )
-
-    if ($exitCode -ne 0 -or $output.Count -ne 1) {
-        throw "The broker protocol probe did not produce one successful record"
-    }
-    $match = [regex]::Match(
-        [string]$output[0],
-        '^binary=cedarflake_ame_journal_broker protocol=(\d+) max_frame=(\d+)$',
-        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
-    )
-    if (-not $match.Success) {
-        throw "The broker protocol probe output is malformed"
-    }
-    $facts = [pscustomobject]@{
-        Protocol = [int]$match.Groups[1].Value
-        MaximumFrameBytes = [int]$match.Groups[2].Value
-    }
-    if (
-        $facts.Protocol -ne $script:AmeBrokerProtocolVersion -or
-        $facts.MaximumFrameBytes -ne $script:AmeBrokerMaximumFrameBytes
-    ) {
-        throw "The broker protocol probe is incompatible with this installer"
-    }
-    return $facts
-}
-
 function New-AmeBrokerUpgradeOwnership {
     param(
         [Parameter(Mandatory = $true)]
@@ -2594,113 +2444,6 @@ function Remove-AmeBrokerTransactionBackup {
     }
     & $RemoveAction $BackupPath
     $Ownership.BackupCreated = $false
-}
-
-function New-AmeBrokerIdentityManifest {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$BinaryPath,
-        [Parameter(Mandatory = $true)]
-        [string]$ClientBinaryPath,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
-    )
-
-    $resolvedPath = Assert-AmeBrokerBinary `
-        -Path $BinaryPath `
-        -ExpectedPublisher $ExpectedPublisher
-    $protocol = Get-AmeBrokerProtocolFacts -Path $resolvedPath
-    $signature = Get-AuthenticodeSignature -LiteralPath $resolvedPath
-    if ($null -eq $signature.SignerCertificate) {
-        throw "The broker signer certificate is unavailable"
-    }
-    $sha256 = (Get-FileHash -LiteralPath $resolvedPath -Algorithm SHA256).Hash.ToUpperInvariant()
-    $hasher = [Security.Cryptography.SHA256]::Create()
-    try {
-        $signerSha256 = ConvertTo-AmeBrokerUpperHex `
-            -Bytes ($hasher.ComputeHash($signature.SignerCertificate.RawData))
-    } finally {
-        $hasher.Dispose()
-    }
-    $publisherBytes = [Text.Encoding]::Unicode.GetBytes($ExpectedPublisher)
-    $publisherHex = ConvertTo-AmeBrokerUpperHex -Bytes $publisherBytes
-    $expectedClientPath = Get-AmeApplicationInstalledBinaryPath
-    $resolvedClientPath = [System.IO.Path]::GetFullPath($ClientBinaryPath)
-    if (-not $resolvedClientPath.Equals(
-        $expectedClientPath,
-        [System.StringComparison]::OrdinalIgnoreCase
-    )) {
-        throw "The client identity must use the fixed installed Ame executable"
-    }
-    Assert-AmeBrokerPhysicalFile -ExpectedPath $resolvedClientPath
-    Assert-AmeSignedX64Binary `
-        -Path $resolvedClientPath `
-        -ExpectedPublisher $ExpectedPublisher | Out-Null
-    $clientSignature = Get-AuthenticodeSignature -LiteralPath $resolvedClientPath
-    if ($null -eq $clientSignature.SignerCertificate) {
-        throw "The Ame client signer certificate is unavailable"
-    }
-    $clientSha256 = (
-        Get-FileHash -LiteralPath $resolvedClientPath -Algorithm SHA256
-    ).Hash.ToUpperInvariant()
-    $clientHasher = [Security.Cryptography.SHA256]::Create()
-    try {
-        $clientSignerSha256 = ConvertTo-AmeBrokerUpperHex `
-            -Bytes ($clientHasher.ComputeHash($clientSignature.SignerCertificate.RawData))
-    } finally {
-        $clientHasher.Dispose()
-    }
-    $clientPathHex = ConvertTo-AmeBrokerUpperHex `
-        -Bytes ([Text.Encoding]::Unicode.GetBytes($resolvedClientPath))
-    $manifest = "AMEJBID2|protocol=$($protocol.Protocol)|max_frame=" +
-        "$($protocol.MaximumFrameBytes)|sha256=$sha256|signer_sha256=$signerSha256|" +
-        "publisher_utf16le=$publisherHex|client_path_utf16le=$clientPathHex|" +
-        "client_sha256=$clientSha256|client_signer_sha256=$clientSignerSha256"
-    Assert-AmeBrokerIdentityManifestFacts -Manifest $manifest
-    return $manifest
-}
-
-function Assert-AmeBrokerIdentityManifestFacts {
-    param(
-        [Parameter(Mandatory = $true)]
-        [string]$Manifest
-    )
-
-    $match = [regex]::Match(
-        $Manifest,
-        '^AMEJBID2\|protocol=(\d+)\|max_frame=(\d+)\|sha256=([0-9A-F]{64})' +
-            '\|signer_sha256=([0-9A-F]{64})\|publisher_utf16le=([0-9A-F]+)' +
-            '\|client_path_utf16le=([0-9A-F]+)\|client_sha256=([0-9A-F]{64})' +
-            '\|client_signer_sha256=([0-9A-F]{64})$',
-        [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
-    )
-    if (
-        -not $match.Success -or
-        [int]$match.Groups[1].Value -ne $script:AmeBrokerProtocolVersion -or
-        [int]$match.Groups[2].Value -ne $script:AmeBrokerMaximumFrameBytes -or
-        $match.Groups[5].Value.Length % 4 -ne 0 -or
-        $match.Groups[6].Value.Length % 4 -ne 0
-    ) {
-        throw "The broker service identity manifest is invalid or incompatible"
-    }
-    $clientPathHex = $match.Groups[6].Value
-    $clientPathBytes = [byte[]]::new($clientPathHex.Length / 2)
-    for ($index = 0; $index -lt $clientPathBytes.Length; $index += 1) {
-        $clientPathBytes[$index] = [Convert]::ToByte(
-            $clientPathHex.Substring($index * 2, 2),
-            16
-        )
-    }
-    $clientPath = [Text.Encoding]::Unicode.GetString($clientPathBytes)
-    if (
-        $clientPath.IndexOf([char]0) -ge 0 -or
-        -not $clientPath.Equals(
-            (Get-AmeApplicationInstalledBinaryPath),
-            [System.StringComparison]::OrdinalIgnoreCase
-        )
-    ) {
-        throw "The broker service identity manifest does not name the fixed Ame client"
-    }
 }
 
 function Get-AmeBrokerConfiguredIdentityManifest {
@@ -2877,7 +2620,7 @@ function Get-AmeBrokerTransactionServiceFacts {
         -IdentityManifest $manifest
     $binaryFacts = Get-AmeBrokerTransactionBinaryFacts `
         -Path $binaryPath `
-        -ExpectedPublisher ([string]$State.ExpectedPublisher)
+        -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
     if (-not [bool]$binaryFacts.Exists) {
         throw "The interrupted broker service points to a missing binary"
     }
@@ -2887,9 +2630,8 @@ function Get-AmeBrokerTransactionServiceFacts {
     $isNew = Test-AmeBrokerBinaryPayloadFactsMatch `
         -Expected $State.ExpectedNewBinary `
         -Actual $binaryFacts
-    if (($isPrevious -and $manifest -cne [string]$State.PreviousIdentityManifest) -or
-        ($isNew -and $manifest -cne [string]$State.NewIdentityManifest) -or
-        (-not $isPrevious -and -not $isNew)) {
+    if (-not (Test-AmeBrokerTransactionServiceIdentity `
+        -State $State -BinaryFacts $binaryFacts -Manifest $manifest)) {
         throw "The interrupted broker service points to an unknown binary identity"
     }
     return [pscustomobject]@{
@@ -2919,7 +2661,7 @@ function Get-AmeBrokerTransactionLeafFacts {
         }
         $binary = Get-AmeBrokerTransactionBinaryFacts `
             -Path $path `
-            -ExpectedPublisher ([string]$State.ExpectedPublisher)
+            -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
         if ([bool]$binary.Exists -and
             -not (Test-AmeBrokerBinaryPayloadFactsMatch `
                 -Expected $State.ExpectedPreviousBinary `
@@ -2977,7 +2719,7 @@ function Repair-AmeBrokerInterruptedBinaryTransaction {
         if ([string]$State.Operation -ceq "upgrade") {
             $installedFacts = Get-AmeBrokerTransactionBinaryFacts `
                 -Path ([string]$State.InstalledBinary) `
-                -ExpectedPublisher ([string]$State.ExpectedPublisher)
+                -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
             if (-not (Test-AmeBrokerBinaryFactsMatch `
                 -Expected $State.ExpectedPreviousBinary `
                 -Actual $installedFacts)) {
@@ -3000,10 +2742,10 @@ function Repair-AmeBrokerInterruptedBinaryTransaction {
     if ($null -ne $State.PendingIntent) {
         $pendingSource = Get-AmeBrokerTransactionBinaryFacts `
             -Path ([string]$State.PendingIntent.SourcePath) `
-            -ExpectedPublisher ([string]$State.ExpectedPublisher)
+            -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
         $pendingDestination = Get-AmeBrokerTransactionBinaryFacts `
             -Path ([string]$State.PendingIntent.DestinationPath) `
-            -ExpectedPublisher ([string]$State.ExpectedPublisher)
+            -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
         $pendingResolution = Resolve-AmeBrokerMoveIntentFacts `
             -Intent $State.PendingIntent `
             -SourceFacts $pendingSource `
@@ -3064,7 +2806,7 @@ function Repair-AmeBrokerInterruptedBinaryTransaction {
             Set-AmeBrokerFileAcl -Path $holdingPath -IncludeServiceSid $true
             $leafFacts[$holdingPath] = Get-AmeBrokerTransactionBinaryFacts `
                 -Path $holdingPath `
-                -ExpectedPublisher ([string]$State.ExpectedPublisher)
+                -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
         }
         $holdingFacts = $leafFacts[$holdingPath]
         $holdingManifest = if (Test-AmeBrokerBinaryPayloadFactsMatch `
@@ -3085,7 +2827,7 @@ function Repair-AmeBrokerInterruptedBinaryTransaction {
         }
         $targetFacts = Get-AmeBrokerTransactionBinaryFacts `
             -Path $targetPath `
-            -ExpectedPublisher ([string]$State.ExpectedPublisher)
+            -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
         Invoke-AmeBrokerWriteAheadMove `
             -State $State `
             -SourcePath $targetPath `
@@ -3102,7 +2844,7 @@ function Repair-AmeBrokerInterruptedBinaryTransaction {
         -BinaryPath $installedPath
     $finalFacts = Get-AmeBrokerTransactionBinaryFacts `
         -Path $installedPath `
-        -ExpectedPublisher ([string]$State.ExpectedPublisher)
+        -ExpectedPublisher (Get-AmeBrokerRecoveryPublisher -State $State)
     $expectedFinal = if ($shouldRollback) {
         $State.ExpectedPreviousBinary
     } else {
@@ -3870,8 +3612,8 @@ function Assert-AmeApplicationBundleSource {
     param(
         [Parameter(Mandatory = $true)]
         [string]$BundlePath,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
+        [AllowEmptyString()]
+        [string]$ExpectedPublisher = ""
     )
 
     $resolved = [System.IO.Path]::GetFullPath($BundlePath)
@@ -3900,7 +3642,7 @@ function Assert-AmeApplicationBundleSource {
         }
     }
     $clientBinary = Join-Path $resolved $script:AmeApplicationBinaryName
-    Assert-AmeSignedX64Binary `
+    Assert-AmeBrokerPayload `
         -Path $clientBinary `
         -ExpectedPublisher $ExpectedPublisher | Out-Null
     return [pscustomobject]@{
@@ -3974,8 +3716,8 @@ function Assert-AmeApplicationInstallation {
     param(
         [Parameter(Mandatory = $true)]
         [string]$InstallDirectory,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
+        [AllowEmptyString()]
+        [string]$ExpectedPublisher = ""
     )
 
     Assert-AmeApplicationFixedInstallTree `
@@ -4006,7 +3748,7 @@ function Assert-AmeApplicationInstallation {
     }
     $clientBinary = Join-Path $InstallDirectory $script:AmeApplicationBinaryName
     Assert-AmeBrokerPhysicalFile -ExpectedPath $clientBinary
-    Assert-AmeSignedX64Binary `
+    Assert-AmeBrokerPayload `
         -Path $clientBinary `
         -ExpectedPublisher $ExpectedPublisher | Out-Null
     return $clientBinary
@@ -4061,8 +3803,8 @@ function Install-AmeApplicationBundle {
         [string]$SourceBundlePath,
         [Parameter(Mandatory = $true)]
         [string]$InstallDirectory,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
+        [AllowEmptyString()]
+        [string]$ExpectedPublisher = ""
     )
 
     $source = Assert-AmeApplicationBundleSource `
@@ -4176,33 +3918,29 @@ function Assert-AmeBrokerInstallation {
     param(
         [Parameter(Mandatory = $true)]
         [string]$BinaryPath,
-        [Parameter(Mandatory = $true)]
-        [string]$ClientBinaryPath,
-        [Parameter(Mandatory = $true)]
-        [string]$ExpectedPublisher
+        [string]$ClientBinaryPath = "",
+        [AllowEmptyString()]
+        [string]$ExpectedPublisher = ""
     )
 
     $installDirectory = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($BinaryPath))
-    $applicationDirectory = [IO.Path]::GetDirectoryName(
-        [IO.Path]::GetFullPath($ClientBinaryPath)
-    )
-    $verifiedClientBinary = Assert-AmeApplicationInstallation `
-        -InstallDirectory $applicationDirectory `
-        -ExpectedPublisher $ExpectedPublisher
-    if (-not $verifiedClientBinary.Equals(
-        ([System.IO.Path]::GetFullPath($ClientBinaryPath)),
-        [System.StringComparison]::OrdinalIgnoreCase
-    )) {
-        throw "The broker client identity does not match the installed Ame application"
+    if ($ClientBinaryPath.Length -gt 0) {
+        $applicationDirectory = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($ClientBinaryPath))
+        $verifiedClientBinary = Assert-AmeApplicationInstallation `
+            -InstallDirectory $applicationDirectory `
+            -ExpectedPublisher $ExpectedPublisher
+        if (-not $verifiedClientBinary.Equals(
+            ([IO.Path]::GetFullPath($ClientBinaryPath)), [StringComparison]::OrdinalIgnoreCase
+        )) {
+            throw "The optional Ame application path does not match its installation"
+        }
     }
     Assert-AmeBrokerFixedInstallTree `
         -InstallDirectory $installDirectory `
         -RequireInstallDirectory | Out-Null
     Assert-AmeBrokerPhysicalFile -ExpectedPath $BinaryPath
-    Assert-AmeBrokerBinary -Path $BinaryPath -ExpectedPublisher $ExpectedPublisher | Out-Null
     $identityManifest = New-AmeBrokerIdentityManifest `
         -BinaryPath $BinaryPath `
-        -ClientBinaryPath $ClientBinaryPath `
         -ExpectedPublisher $ExpectedPublisher
     Assert-AmeBrokerServiceConfiguration `
         -BinaryPath $BinaryPath `

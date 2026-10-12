@@ -44,11 +44,6 @@ pub(crate) struct WindowsPersistentChangeJournal;
 
 impl PersistentChangeJournal for WindowsPersistentChangeJournal {
     fn connect(&self) -> PersistentChangeJournalConnection {
-        if !super::service_identity::current_process_has_installed_client_identity() {
-            return PersistentChangeJournalConnection::LiveOnly(
-                PersistentChangeJournalLiveOnlyReason::PortableDistribution,
-            );
-        }
         connection_from_result(WindowsNamedPipeTransport::connect(PRODUCTION_PIPE_NAME))
     }
 }
@@ -71,11 +66,6 @@ fn connection_from_result(
                     PersistentChangeJournalLiveOnlyReason::ProtocolMismatch,
                 ),
             }
-        }
-        Err(WindowsTransportError::PortableDistribution) => {
-            PersistentChangeJournalConnection::LiveOnly(
-                PersistentChangeJournalLiveOnlyReason::PortableDistribution,
-            )
         }
         Err(WindowsTransportError::BrokerAbsent) => PersistentChangeJournalConnection::LiveOnly(
             PersistentChangeJournalLiveOnlyReason::BrokerAbsent,
@@ -106,9 +96,6 @@ impl WindowsNamedPipeTransport {
     pub(super) fn connect(
         pipe_name: &str,
     ) -> Result<(Self, ServerConnectionIdentity), WindowsTransportError> {
-        if !super::service_identity::current_process_has_installed_client_identity() {
-            return Err(WindowsTransportError::PortableDistribution);
-        }
         let started_service = demand_start_service()?;
         let pipe_name = nul_terminated(pipe_name)?;
         // SAFETY: pipe_name is bounded, NUL-terminated, and live for the call. This wait does not
@@ -687,8 +674,6 @@ impl Drop for OwnedHandle {
 
 #[derive(Debug, Error)]
 pub(crate) enum WindowsTransportError {
-    #[error("portable distributions cannot activate the installed journal broker")]
-    PortableDistribution,
     #[error("journal broker is not installed or running")]
     BrokerAbsent,
     #[error("journal broker protocol is incompatible")]

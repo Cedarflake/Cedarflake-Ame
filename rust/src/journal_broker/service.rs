@@ -27,9 +27,8 @@ pub(in crate::journal_broker) use windows_security::describe_disposable_root_for
 pub(in crate::journal_broker) use windows_security::open_directory_handle;
 #[cfg(windows)]
 pub(in crate::journal_broker) use windows_security::{
-    ClientBinaryAdmission, ConnectedPipeAdmission, OwnedFileHandle, PinnedRootState,
-    WindowsBrokerSecurity, WindowsPipeAuthorizer, WindowsRootRegistrationBudget,
-    describe_client_root,
+    ConnectedPipeAdmission, OwnedFileHandle, PinnedRootState, WindowsBrokerSecurity,
+    WindowsPipeAuthorizer, WindowsRootRegistrationBudget, describe_client_root,
 };
 
 use super::framing::{decode_frame, encode_frame};

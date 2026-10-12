@@ -2178,7 +2178,7 @@ fn connection(id: u8) -> AuthenticatedConnection {
         1,
         AuthenticatedPipeFacts {
             opaque_token_binding: [id; 32],
-            client_binary_identity: [id.wrapping_add(1); 32],
+            client_process_identity: [id.wrapping_add(1); 32],
             process_id: 100,
             session_id: 2,
             token_type: 2,

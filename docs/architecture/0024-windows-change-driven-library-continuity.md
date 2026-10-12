@@ -9,9 +9,10 @@
 Engineering verification uses the unsigned acceptance boundary in
 [ADR 0026](0026-hosted-synthetic-and-unsigned-build-gates.md#decision). Signing credentials,
 publisher identity, pre-signed bundles and signing-dependent deployment qualification are not R2c
-acceptance or merge prerequisites. The signed installation and authentication mechanisms documented
-below remain properties of that distribution channel; historical missing-signature observations
-do not impose current merge gates. Broker lifecycle/security, real journal and source-safety claims
+acceptance or merge prerequisites. Debug, Release, and movable clients use the same runtime caller
+and root-access contract. Signing is an optional installer distribution policy, never a runtime
+capability gate. Historical missing-signature observations do not impose current merge gates.
+Broker lifecycle/security, real journal and source-safety claims
 still require their applicable evidence, without claiming an unexecuted installed-service run passed.
 
 ## Context
@@ -311,7 +312,7 @@ not remove the existing final file-state, namespace, control or atomic-publicati
 
 ### Journal broker boundary
 
-The broker is an x64 Windows service installed and updated by the signed Ame installer after one
+The broker is an x64 Windows service installed and updated by the Ame installer after one
 explicit administrative authorization. It is demand-started for a bounded request and need not run
 while Ame is closed. Normal desktop startup never requests elevation. Service installation,
 replacement, repair, and removal remain installer operations rather than application-side shell
@@ -339,8 +340,8 @@ The broker must not:
 - persist caller roots, journal records, or media paths after the bounded request ends.
 
 IPC uses a versioned, length-delimited named-pipe protocol with bounded request and response frames,
-timeouts, cancellation, and explicit end-of-range evidence. The pipe DACL and service endpoint admit
-only the intended local Ame client identity. The service obtains and validates the caller token,
+timeouts, cancellation, and explicit end-of-range evidence. The pipe DACL admits local interactive
+callers; executable branding or signature is not an authorization credential. The service validates the caller token,
 verifies that the caller can traverse the requested configured root, resolves the root and volume
 without following an attacker-controlled escape, and binds the request to an application-provided
 root ID and generation. The R2c-O foundation selects an own-process, demand-start `LocalSystem`
@@ -374,25 +375,24 @@ whose `TokenType` and `TokenElevation` are queried separately and bound into the
 supplied process, session, instance, root, volume, and identity claims are only compared with those
 observations and pinned handles; they never establish identity by themselves.
 
-Production admission additionally requires the caller process to be the installed Ame client at
-`FOLDERID_ProgramFilesX64\Cedarflake Ame\Application\cedarflake_ame.exe`. The service reads the
-exact `AMEJBID2` identity manifest from the protected SCM service description, opens the
-server-observed client PID, and independently proves its primary-token user SID, session,
-authentication ID, elevation state, image path, SHA-256, valid Authenticode signature, and
-signer-certificate SHA-256. The installer wrote the manifest only after validating the same exact
-publisher for both broker and client, so the protected signer-certificate hash binds that publisher
-without trusting a process-supplied string. Protocol version, maximum frame size, broker binary
-hash, broker signer, installed client path, client binary hash, and client signer are one manifest
-identity. A missing, legacy, malformed, mismatched, unsigned, movable, or user-writable client fails
-closed before a request is decoded.
+Admission opens the OS-observed pipe process while impersonating its captured caller token and
+retains that process handle for the connection. Primary-token SID, session, authentication ID and
+elevation must agree with the captured impersonation token. Process ID and creation time bind its
+lifetime; later root-handle duplication uses the retained handle, never a reopened numeric PID.
+Exited callers lose request admission and candidate disclosure, including when another process
+still holds the pipe. Clients need no fixed image path, binary hash or Authenticode signature.
 
-SHA-256 and `WinVerifyTrust` are never executed while the application synchronization mutex or
-service connection lifecycle lock is held. Production runs them in the fixed protected broker
+The desktop authenticates the broker through SCM and pipe PID agreement, the fixed protected broker
+path, LocalSystem and restricted-service-SID token evidence, and the protected `AMEJBID3` manifest.
+That exact record contains protocol, maximum frame size and broker SHA-256 only. Missing, malformed,
+legacy or mismatched server identities fail closed. SHA-256 is never computed while the application
+synchronization mutex or service connection lifecycle lock is held. Production runs it in the fixed protected broker
 executable as an identity-probe child, binds the result to a parent-generated 256-bit nonce, and
 requires one exact bounded success record. The child is assigned to a kill-on-close Job Object; a
 three-second absolute deadline terminates the job, waits for process exit, joins the bounded stdout
 reader, and degrades to `LiveOnly`. Timeout never skips SCM PID, pipe PID, LocalSystem/restricted-SID,
-fixed-path, manifest, hash, signature, signer, token, or client checks, so this bound does not weaken
+fixed-path, manifest, hash or token checks. The child rereads the protected manifest, compares its
+digest with the parent's captured digest, then hashes the real broker image. This bound does not weaken
 pipe-squatting resistance.
 
 The duplicated client root directory handle is the registration capability input. The duplicate
@@ -400,7 +400,7 @@ requests only `FILE_READ_ATTRIBUTES`; it cannot enumerate, read content, or muta
 directory type, NTFS volume GUID, 128-bit file ID, canonical path, caller PID/token binding, and
 non-volume-root scope before issuing a server-secret 120-second capability. Each path component is
 compared using the case semantics of its parent directory, beginning with the volume root; the
-declared path and live handle path must match under that exact profile. Capabilities are bound to client binary
+declared path and live handle path must match under that exact profile. Capabilities are bound to client process
 identity, token facts, connection ID, generation, nonce, application client instance, root ID and
 generation, volume and file identity, and the duplicated handle value. Each connection retains at
 most eight registered roots; replacement drops the old pinned handles and disconnect drops the
@@ -413,8 +413,14 @@ service-wide root permits merely by keeping a connection open.
 Before every journal query and before and after every journal read, the service revalidates the live
 pinned handle's final DOS/GUID path, complete file ID, volume, filesystem, and non-reparse state;
 rename or replacement is a continuity discontinuity. Before publishing a candidate, the service
-impersonates the captured caller token again and opens the pinned root, every ancestor, and the
-candidate with metadata-only access plus `FILE_FLAG_OPEN_REPARSE_POINT`. Any reparse point, junction,
+impersonates the captured caller token again. The root and each ancestor must permit
+`FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES`; attributes alone cannot authorize name disclosure.
+An empty relative-name `NtCreateFile` reopens the held directory with `FILE_DIRECTORY_FILE`,
+`FILE_OPEN_REPARSE_POINT`, and `OBJ_DONT_REPARSE`, without backup intent. Directory typing prevents
+the listing bit from becoming regular-file content-read authority. It enumerates no entries and
+reads no content; `FILE_OPEN_NO_RECALL` is not used for this directory-only reopen because that
+option combination is rejected by Windows. Candidate files retain metadata-only, no-follow opens.
+Any reparse point, junction,
 cloud redirection, access denial, uncertain absence, final-handle escape, or containment failure
 suppresses the candidate; only `FILE_NOT_FOUND` or `PATH_NOT_FOUND` after successful parent proof may
 represent a deleted in-root candidate. LocalSystem access never substitutes for caller access and no
@@ -489,10 +495,10 @@ named-pipe, and device-I/O boundary. The following invariants are binding:
   has been read and validated; the primary process token supplies elevation while the impersonation
   token supplies callable impersonation authority, and both tokens must agree on user, session, and
   authentication ID before either can authorize a request;
-- the process image identity is accepted only after the SCM-protected manifest, fixed physical
-  Application path, file hash, Authenticode chain, signer-certificate hash, primary token, and
-  impersonated pipe-token facts agree; the handle and token buffers remain live through each
-  synchronous query and every allocation has one matching owner;
+- a caller process handle is opened under captured impersonation and retained for its lifetime;
+  process creation time, primary-token facts and impersonated pipe-token facts must agree. The
+  broker's separate SCM-protected manifest, fixed physical path, image hash and service-token
+  identity must agree; every handle and token buffer remains live through its synchronous query;
 - cancellation is checked at most every 25 milliseconds during overlapped journal control calls
   and between reconstruction steps. `CancelIoEx` is followed by a terminal completion drain; if
   the NTFS driver does not release the operation within the one-second hard drain, the isolated
@@ -1155,51 +1161,54 @@ supported; partial prerelease v30 shapes remain conflicts and are not silently r
 
 ### Installer and portable distribution
 
-ADR 0015's portable ZIP remains a valid application distribution, but it cannot install or update a
-Windows service or establish the protected installed-client identity. It therefore always runs in
-explicitly presented `LiveOnly` mode, even when a broker is already installed. It must not claim
-closed-process continuity or treat a valid signature in a user-writable portable directory as a
-production code-identity boundary.
+ADR 0015's portable ZIP remains a valid application distribution. Extracting it does not install or
+update a Windows service. Once a compatible broker is installed, an ordinary Debug, Release or
+portable client can use the same full synchronization path without signing or a fixed client path.
+The live watcher starts before broker connection. Missing, incompatible or unverifiable brokers
+fall back to explicit `LiveOnly` without silently starting a complete directory inventory.
 
-Broker activation is admitted before constructing or connecting the production broker factory and
-before any Service Control Manager or named-pipe operation. The client obtains its own image path
-from the current-process handle and compares it with the fixed native
-`FOLDERID_ProgramFilesX64\Cedarflake Ame\Application\cedarflake_ame.exe` identity; it never derives
-that boundary from an environment variable or launch argument. Any mismatch or identity-query
-failure returns the explicit portable `LiveOnly` reason with zero broker-factory connections. The
-Windows transport repeats the same fail-closed check before demand-starting the service, so a
-portable process cannot activate or contact an otherwise valid installed broker through a direct
-transport call.
-
-The complete Windows 11 x64 synchronization product uses a signed installer that installs,
+The complete Windows 11 x64 synchronization product uses an installer that installs,
 repairs, updates, and removes the broker with explicit administrative consent. Installer work is an
 R2c dependency rather than deferred wholesale to R9. General automatic update, downgrade, catalog
 rollback, and broader supply-chain policy may remain later work, but broker and desktop protocol
 compatibility, service lifecycle, safe upgrade, and uninstall behavior are required before this
 decision can ship.
 
-Uninstall removes the service, broker binary, protected Application bundle, and transaction-owned
-install directories without deleting source media. Catalog and durable user-data retention follow
+Uninstall removes the service, broker binary, and transaction-owned broker directories without
+deleting source media. The protected Application bundle is removed only with explicit
+`-RemoveApplicationBundle` intent. Catalog and durable user-data retention follow
 an explicit installer choice; cache cleanup cannot erase those classes. A service protocol mismatch
 fails closed and leaves the cached catalog usable. The desktop never silently installs, replaces,
 disables, or deletes the service.
 
-The lifecycle foundation fixes the service binary and installed Application bundle under the native
+The lifecycle foundation fixes the service binary and any explicitly supplied Application bundle under the native
 `FOLDERID_ProgramFilesX64`, requires Windows 11 client x64 and a native 64-bit installer process,
 and never derives authority from the `ProgramFiles` environment value. It validates the PE machine
-and exact Authenticode publisher before every install/repair/upgrade, uses a same-volume staged
+and, only when an exact publisher was explicitly supplied, Authenticode before install/repair/upgrade.
+An omitted, null or empty publisher selects unsigned-capable policy; whitespace is invalid. The
+Application bundle is optional and is not required for broker installation or upgrade. It uses a same-volume staged
 replacement with rollback, and verifies the SCM registry contract plus service and binary ACLs
-after mutation. Broker validation executes `--protocol-info` and accepts exactly one versioned
-protocol/max-frame record; a signed but incompatible executable is rejected. Upgrade additionally
-requires the old binary's exact ACL, publisher, protocol, hash, signer, installed-client binding,
-and protected SCM manifest to agree before mutation. Install and upgrade maintain an explicit
+after mutation. Source preflight and transaction-fact inspection never execute an image. A held,
+read-shared source stream prevents changes while copying at most 128 MiB into a fresh protected
+staging file. The exact ACL, physical path, and copied hash are verified before `--protocol-info`
+executes there, with a five-second deadline and bounded output. Exactly one compatible protocol/max-frame
+record is required. Upgrade validates the old binary against its own protected manifest: V2 retains
+its original publisher and certificate hash; V3 verifies its image hash without a signer prerequisite.
+Install and upgrade maintain an explicit
 per-invocation ownership journal. Rollback runs every owned action independently in reverse order
 and aggregates failures; it never deletes a pre-existing file or service, retains backup ownership
 after a failed deletion, stops a newly started service before restoration, and treats a
 missing-binary repair as having no backup. Service removal releases controller handles and waits a
 bounded interval for the deleted SCM object to disappear before the fixed binary tree is removed.
 The ownership journal is a protected, bounded, write-through transaction marker written before the
-first owned mutation. Every lifecycle entry recovers a dead or PID-reused owner before proceeding,
+first owned mutation. New transaction records use schema 3; existing schema 2 records retain their
+original mandatory publisher policy. Schema 3 persists an explicit boolean Application-removal
+intent and rejects an Application-owned directory in a broker-only uninstall transaction. Schema-2
+uninstall recovery retains its original bundle-removal semantics. Both remain discoverable at the established transaction marker
+path. New recovery binds previous and replacement files to their previously verified immutable
+facts instead of applying the incoming publisher policy to both. A service identity must match one
+complete payload/manifest pair, including when both payload hashes happen to be equal. Every lifecycle
+entry recovers a dead or PID-reused owner before proceeding,
 preserves and restores the pre-existing Ame parent descriptor, and deletes owned trees only through a
 bounded no-follow walker. A markerless broker tree is adopted only when it is empty, exactly
 protected, and has neither a service nor binary; other orphans fail closed.
@@ -1212,7 +1221,9 @@ flags. Recovery rejects any phase, pending-operation, or flag contradiction. It 
 completed operation unless that operation's postcondition is provably superseded by the persisted
 pending or completed state of a specific later operation. In particular, install-tree deletion may
 supersede protected-tree readiness, while service, binary, Application, ancestor, and parent
-postconditions remain independently verified. Recovery retains a fail-closed recoverable marker
+postconditions remain independently verified. A broker-only transaction advances the Application
+step without probing or deleting that tree, including during recovery and final verification.
+Recovery retains a fail-closed recoverable marker
 until final absence checks and the exact parent prestate have both succeeded. Only a separate
 `final_cleanup_verified` transition permits marker deletion.
 Every existing path ancestor must match its final handle path, be non-reparse, have
@@ -1223,10 +1234,11 @@ exact rule sets. The Application bundle is copied only into the fixed physical A
 its complete bounded, non-reparse tree is reopened and every entry must resolve inside that tree.
 Its protected ACL grants SYSTEM and Administrators full control and BUILTIN Users only read and
 execute. The broker tree remains separately protected for SYSTEM, Administrators, and the restricted
-service SID. Only after both trees pass exact ACL and final-path verification does the installer
-write the `AMEJBID2` manifest to the protected SCM object. The portable archive includes the broker payload for
-installer compatibility but has no SCM operation and does not activate it. The current repository
-has no production signing credential or signed candidate; release-candidate scripts therefore
+service SID. The installer writes only `AMEJBID3` to SCM after protected broker staging verification;
+legacy V2 manifests are read and restored verbatim during rollback. Runtime authentication accepts
+only V3: reverting to a V2 broker leaves a new client in explicit `LiveOnly` until a compatible
+broker is restored, without modifying its catalog. The portable archive includes the broker payload
+for installer compatibility but performs no SCM installation. Separately selected signed release-candidate scripts
 require an immutable signed Application bundle, its exact signed broker path, and the expected
 publisher and fail closed when any input is absent. Hosted release automation accepts production
 PFX material only from the named protected signing Environment. An unsigned build runner first

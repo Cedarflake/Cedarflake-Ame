@@ -39,8 +39,8 @@ use crate::journal_broker::MAX_FRAME_BYTES;
 use crate::journal_broker::client::AdapterPoll;
 use crate::journal_broker::framing::decode_frame;
 use crate::journal_broker::service::{
-    AuthenticatedConnection, BrokerService, ClientBinaryAdmission, ConnectedPipeAdmission,
-    TerminalFrame, TerminalFrameBatch, WindowsPipeAuthorizer, WindowsRootRegistrationBudget,
+    AuthenticatedConnection, BrokerService, ConnectedPipeAdmission, TerminalFrame,
+    TerminalFrameBatch, WindowsPipeAuthorizer, WindowsRootRegistrationBudget,
 };
 use crate::journal_broker::windows::WindowsExistingJournalBackend;
 use crate::journal_broker::wire::{BrokerRequest, BrokerResponse, decode_request, decode_response};
@@ -212,14 +212,6 @@ fn serve_named_pipe(
     )?;
     validate_client_proof(identity, &client_proof).map_err(|_| HostError::ClientProofRejected)?;
     let (process_id, session_id) = observed_client(pipe)?;
-    let client_admission = if stop_requested.is_some() {
-        ClientBinaryAdmission::Production(
-            super::service_identity::authenticate_pipe_client(process_id)
-                .map_err(|_| HostError::AdmissionRejected)?,
-        )
-    } else {
-        ClientBinaryAdmission::DisposableTest
-    };
     let (authenticated, authorizer) = WindowsPipeAuthorizer::from_connected_pipe(
         pipe.raw(),
         ConnectedPipeAdmission::new(
@@ -228,7 +220,6 @@ fn serve_named_pipe(
             identity.connection_nonce,
             process_id,
             session_id,
-            client_admission,
         ),
         root_budget,
     )

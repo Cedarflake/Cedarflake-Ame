@@ -113,8 +113,10 @@ foreach ($requiredIntegration in @(
     "caller_pinned_mixed_name_semantics_cannot_be_downgraded_by_backend",
     "pinned_root_revalidation_rejects_rename_and_old_path_replacement",
     "reparse_attributes_are_always_rejected",
-    "portable_production_never_invokes_the_journal_factory",
-    "installed_production_defers_the_journal_factory_until_after_watcher_start",
+    "unsigned_production_defers_the_journal_factory_until_after_watcher_start",
+    "held_caller_rejects_operations_after_the_process_exits",
+    "attributes_without_listing_cannot_disclose_existing_or_deleted_names",
+    "held_directory_rechecks_revoked_listing_under_captured_impersonation",
     "unrelated_volume_storm_returns_bounded_strictly_advancing_pages"
 )) {
     Assert-Contains -Value $integrationText -Expected $requiredIntegration

@@ -2,8 +2,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$BrokerBinaryPath,
-    [Parameter(Mandatory = $true)]
-    [string]$ExpectedPublisher
+    [AllowEmptyString()]
+    [string]$ExpectedPublisher = ""
 )
 
 $ErrorActionPreference = "Stop"

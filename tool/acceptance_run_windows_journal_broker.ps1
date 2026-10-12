@@ -501,6 +501,7 @@ try {
         }
         try {
             & "$PSScriptRoot\release_uninstall_journal_broker.ps1" `
+                -RemoveApplicationBundle `
                 -ExpectedPublisher $ExpectedPublisher `
                 -Confirm:$false | Out-Null
         } catch {

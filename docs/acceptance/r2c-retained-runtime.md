@@ -2683,8 +2683,15 @@ freshness, so `liveOnly` is visible even when no pending work remains.
 
 Focused reclamation/session and 32 Flutter synchronization cases pass. The serial Daily static
 partition passes lint, warnings-denied Clippy, Dart analysis, 1728 Rust library tests, three broker
-cases and 16 bridge contracts; 23 explicitly opt-in Rust cases remain ignored. The full Flutter
-partition, native/Release verification and ordinary-client latency remain pending at this checkpoint.
+cases and 16 bridge contracts; 23 explicitly opt-in Rust cases remain ignored. The subsequent clean
+`415a383` passes the full Flutter partition, controlled native scan integration and fresh unsigned
+Windows gate, including the three window cases, two real-engine cases and catalog-free Release
+bridge smoke. Native accessibility fails: Escape leaves the photo popup open at fraction 1.0, and
+the populated phase separately fails to replace its UIA progress record. Those failures and
+ordinary-client latency remain open. These results precede the unsigned-continuity changes below.
+Hosted run `38242333687` on `415a383` subsequently passes all ten required workers and the aggregate;
+the separate signed-channel jobs skip as configured. This does not explain or erase the local
+accessibility failures.
 No source-media content or retained catalog was changed by these synthetic tests.
 
 Separate bounded read-only inspection finds 30 locally available October images absent from the
@@ -2697,3 +2704,37 @@ Physical sizes are 137 maintenance-owner lines and 454 reclamation-owner lines, 
 modules; dedicated suites contain 201 and 633 lines respectively. The Dart synchronization owner
 has 799 lines and its dedicated suite 1337. This narrow correction does not expand their other
 lifecycle responsibilities or close the complete R2c acceptance scope.
+
+## Unsigned continuity runtime
+
+The production broker connection no longer requires a signed client or fixed client installation
+path. The watcher still starts first. Windows-observed process lifetime and token identity bind
+each connection; root and ancestor listing rights are checked under the retained caller token.
+The protected service manifest now binds its protocol, frame limit and broker image hash. Installer
+publisher checks are optional, while existing signed-channel and legacy rollback checks remain
+strict. Broker-only installation needs no Application bundle; removal preserves that tree unless
+explicitly selected.
+
+Focused verification passes 146 broker library cases with one opt-in case ignored, the unsigned
+watcher-first regression, all 42 canonical Windows broker integration filters and the current
+unsigned binary's protocol probe. The full lint invocation passes before the final uninstall
+policy addition. Its focused fixture initially passes alone but fails under Daily's nested script
+scope because a dynamic closure cannot resolve its validation functions. The synchronous writer
+now retains the enclosing script scope; the combined installer guardrail passes without removing
+validation. The corrected accumulated static Daily partition then passes complete lint,
+warnings-denied Clippy, Dart analysis, 1731 Rust library cases, three broker binary cases and
+16 asynchronous bridge contracts; 23 explicitly opt-in Rust cases remain ignored. The library
+suite takes 1660.19 seconds. Optimized artifact verification remains pending; the preceding Flutter,
+scan and failed accessibility observations above are not relabeled as current full-Daily success.
+
+No service installation or ordinary-client full-continuity result is established by these tests.
+The retained catalog and source media remain unchanged; the 30 missing October entries still
+require the bounded client update and exact membership check.
+
+Physical sizes are 223 caller-owner lines, 162 disclosure-owner lines and 97 installed-identity
+owner lines, with 590 dedicated test/helper lines. The remaining Windows security facade has 1346
+main-region and 273 inline-test lines; service identity has 756 and 98 respectively. The production
+synchronization coordinator has 3962 main-region and 10428 inline-test lines; its larger existing
+decomposition duty remains open. Installer common has 3951 lines, with extracted identity and
+uninstall-policy owners of 430 and 21 lines; their dedicated guardrails contain 2056, 188 and 138
+lines, with no inline test modules.

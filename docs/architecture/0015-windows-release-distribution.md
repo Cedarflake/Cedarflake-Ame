@@ -88,34 +88,33 @@ this protected candidate chain or claim signing, installation, publication, or c
 
 ### ADR 0024 amendment: service-enabled distribution
 
-The portable ZIP remains a valid Windows x64 artifact, but it cannot establish the protected
-installed-client identity or install/update the constrained journal broker required for complete
-closed-process continuity. Under ADR 0024 it therefore always exposes only an explicit `LiveOnly`
-capability, including on a machine where a broker is installed. It must not claim the complete
-synchronization contract or use a signed executable in a user-writable directory as code identity.
+The portable ZIP remains a valid Windows x64 artifact. It does not install or update the constrained
+journal broker. Under ADR 0024, a portable, Debug or Release client can use an already installed,
+compatible broker without a signature or fixed client path. Missing or unverifiable broker service
+falls back to explicit `LiveOnly`; runtime continuity is determined by actual journal/root evidence.
 
-ADR 0024 moves the minimum signed installer work required to install, repair, upgrade, and remove
+ADR 0024 moves the minimum installer work required to install, repair, upgrade, and remove
 that broker into R2c. This is a narrow amendment to the stage boundary below, not a replacement of
 the portable identity, archive layout, candidate gate, or publication rules in this ADR. General
 automatic update, downgrade, catalog rollback, and broader supply-chain maturity remain deferred.
 
 The verified Release directory and portable archive include
 `cedarflake_ame_journal_broker.exe`, but extracting or running the portable application never
-installs, starts, repairs, upgrades, or removes the service. The desktop negotiates the installed
-service protocol only from the protected Program Files Application identity. The portable desktop
-remains explicitly `LiveOnly`. The bundled executable is installer input, not authority to mutate
-SCM state.
+installs, repairs, upgrades, or removes the service. Any admitted local client may demand-start the
+installed broker and negotiate its protocol under ADR 0024's OS caller and root-access rules.
+The bundled executable alone grants no service-installation authority.
 
 Broker lifecycle entrypoints are fixed to Windows 11 client x64 and the Ame-owned
 `FOLDERID_ProgramFilesX64\Cedarflake Ame\Journal Broker` directory. The lifecycle runs only in a
 native 64-bit process and resolves that known folder through `SHGetKnownFolderPath`; the
 `ProgramFiles` environment value and a WOW64 redirected path have no authority. Install, repair,
-and upgrade reject a non-x64 PE, an invalid or missing Authenticode signature, an empty expected
-publisher, or a valid
-signature whose exact signer subject differs from that expected publisher. Upgrade stages the
-validated replacement on the destination volume only after the installed binary's exact ACL,
-publisher, executable `--protocol-info`, hash, signer-certificate hash, client identity, and
-SCM-protected manifest all agree. The transaction stops the service with a bounded wait, records
+and upgrade reject a non-x64 PE. An optional explicit publisher additionally requires a valid exact
+Authenticode identity; omission permits unsigned payloads. Broker-only installation does not
+require an Application bundle. Upgrade validates the existing binary against its own protected
+manifest before staging the replacement. V2 rollback preserves its original publisher/certificate
+checks; new V3 manifests bind protocol, maximum frame and broker image hash. Source inspection is
+passive and protocol execution follows protected staging, exact ACL and copied-hash verification.
+The transaction stops the service with a bounded wait, records
 only paths and service objects created or moved by this invocation in a protected, write-through
 persistent marker, renames the old binary to a
 rollback name when one exists, and revalidates service and binary ACL state. Every rollback action
@@ -125,6 +124,10 @@ backup ownership and never deletes a pre-existing path. Uninstall first performs
 binary identity checks, removes only the fixed service through a bounded stop/delete/disappearance
 wait, then removes the fixed binary and an empty broker directory; it has no catalog, cache,
 source-root, or USN-journal operation.
+Application removal requires the explicit `-RemoveApplicationBundle` switch. New schema-3
+transactions persist that boolean intent; broker-only uninstall and its recovery do not inspect or
+delete an existing Application tree. Interrupted schema-2 uninstall retains its original bundle
+removal semantics.
 
 Every lifecycle entry first validates and recovers a prior marker. It refuses a live owner identified
 by both PID and process start time, treats PID reuse or a dead owner as interrupted work, and executes

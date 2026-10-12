@@ -1,3 +1,7 @@
+mod installed;
+
+use installed::{InstalledBrokerIdentity, ServerProcessFacts};
+
 use std::ffi::c_void;
 use std::fs;
 use std::io::{self, Read};
@@ -18,19 +22,10 @@ use windows_sys::Win32::Foundation::{
 use windows_sys::Win32::Security::Authorization::ConvertSidToStringSidW;
 use windows_sys::Win32::Security::Cryptography::{
     BCRYPT_SHA256_ALGORITHM, BCryptCloseAlgorithmProvider, BCryptHash, BCryptOpenAlgorithmProvider,
-    CryptHashCertificate2,
-};
-use windows_sys::Win32::Security::WinTrust::{
-    WINTRUST_ACTION_GENERIC_VERIFY_V2, WINTRUST_DATA, WINTRUST_DATA_0, WINTRUST_FILE_INFO,
-    WTD_CACHE_ONLY_URL_RETRIEVAL, WTD_CHOICE_FILE, WTD_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
-    WTD_REVOKE_WHOLECHAIN, WTD_STATEACTION_CLOSE, WTD_STATEACTION_VERIFY, WTD_UI_NONE,
-    WTHelperGetProvCertFromChain, WTHelperGetProvSignerFromChain, WTHelperProvDataFromStateData,
-    WinVerifyTrust,
 };
 use windows_sys::Win32::Security::{
-    GetTokenInformation, IsTokenRestricted, TOKEN_ELEVATION, TOKEN_GROUPS, TOKEN_QUERY,
-    TOKEN_STATISTICS, TOKEN_TYPE, TOKEN_USER, TokenElevation, TokenPrimary, TokenRestrictedSids,
-    TokenSessionId, TokenStatistics, TokenType, TokenUser,
+    GetTokenInformation, IsTokenRestricted, TOKEN_ELEVATION, TOKEN_GROUPS, TOKEN_QUERY, TOKEN_TYPE,
+    TOKEN_USER, TokenElevation, TokenRestrictedSids, TokenType, TokenUser,
 };
 use windows_sys::Win32::System::Com::CoTaskMemFree;
 use windows_sys::Win32::System::JobObjects::{
@@ -55,10 +50,8 @@ use windows_sys::Win32::UI::Shell::{
 
 use super::service_host::SERVICE_NAME;
 use super::transport::{OwnedHandle, WindowsTransportError};
-use crate::journal_broker::{BROKER_EXECUTABLE_NAME, MAX_FRAME_BYTES, PROTOCOL_VERSION};
+use crate::journal_broker::BROKER_EXECUTABLE_NAME;
 
-const SERVICE_SID: &str = "S-1-5-80-2098581772-366539847-2170527201-1913264099-3006267874";
-const LOCAL_SYSTEM_SID: &str = "S-1-5-18";
 const SERVICE_START_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_MANIFEST_BYTES: usize = 16 * 1024;
 const MAX_BINARY_BYTES: u64 = 128 * 1024 * 1024;
@@ -70,120 +63,7 @@ static NEXT_IDENTITY_PROBE_NONCE: AtomicU64 = AtomicU64::new(1);
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct StartedService {
     process_id: u32,
-    manifest: ServiceIdentityManifest,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct ServiceIdentityManifest {
-    protocol: u16,
-    max_frame: usize,
-    binary_sha256: [u8; 32],
-    signer_sha256: [u8; 32],
-    publisher_utf16le: Vec<u8>,
-    client_path_utf16le: Vec<u8>,
-    client_sha256: [u8; 32],
-    client_signer_sha256: [u8; 32],
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-pub(in crate::journal_broker) struct VerifiedClientProcessIdentity {
-    process_id: u32,
-    session_id: u32,
-    user_sid: Vec<u8>,
-    authentication_id: [u8; 8],
-    is_elevated: bool,
-    opaque_binary_identity: [u8; 32],
-}
-
-impl VerifiedClientProcessIdentity {
-    pub(in crate::journal_broker) fn matches_pipe_token(
-        &self,
-        process_id: u32,
-        session_id: u32,
-        user_sid: &[u8],
-        authentication_id: [u8; 8],
-        is_elevated: bool,
-    ) -> bool {
-        self.process_id == process_id
-            && self.session_id == session_id
-            && self.user_sid == user_sid
-            && self.authentication_id == authentication_id
-            && self.is_elevated == is_elevated
-            && self.opaque_binary_identity != [0; 32]
-    }
-
-    pub(in crate::journal_broker) fn opaque_binary_identity(&self) -> [u8; 32] {
-        self.opaque_binary_identity
-    }
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct ServerProcessFacts {
-    scm_process_id: u32,
-    pipe_process_id: u32,
-    image_path: PathBuf,
-    expected_image_path: PathBuf,
-    token_user_sid: String,
-    token_type: TOKEN_TYPE,
-    is_elevated: bool,
-    is_restricted: bool,
-    restricted_sids: Vec<String>,
-    manifest: ServiceIdentityManifest,
-    actual_binary_sha256: [u8; 32],
-    actual_signer_sha256: [u8; 32],
-    signature_valid: bool,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-struct ClientProcessFacts {
-    process_id: u32,
-    image_path: PathBuf,
-    expected_image_path: PathBuf,
-    manifest: ServiceIdentityManifest,
-    actual_binary_sha256: [u8; 32],
-    actual_signer_sha256: [u8; 32],
-    signature_valid: bool,
-}
-
-impl ClientProcessFacts {
-    fn validate(&self) -> Result<(), WindowsTransportError> {
-        if self.process_id == 0
-            || !paths_equal(&self.image_path, &self.expected_image_path)
-            || self.manifest.protocol != PROTOCOL_VERSION
-            || self.manifest.max_frame != MAX_FRAME_BYTES
-            || self.manifest.publisher_utf16le.is_empty()
-            || self.manifest.client_path_utf16le != path_utf16le(&self.expected_image_path)?
-            || self.manifest.client_sha256 != self.actual_binary_sha256
-            || self.manifest.client_signer_sha256 != self.actual_signer_sha256
-            || !self.signature_valid
-        {
-            return Err(WindowsTransportError::ServerIdentityRejected);
-        }
-        Ok(())
-    }
-}
-
-impl ServerProcessFacts {
-    fn validate(&self) -> Result<(), WindowsTransportError> {
-        if self.scm_process_id == 0
-            || self.pipe_process_id != self.scm_process_id
-            || !paths_equal(&self.image_path, &self.expected_image_path)
-            || self.token_user_sid != LOCAL_SYSTEM_SID
-            || self.token_type != TokenPrimary
-            || !self.is_elevated
-            || !self.is_restricted
-            || !self.restricted_sids.iter().any(|sid| sid == SERVICE_SID)
-            || self.manifest.protocol != PROTOCOL_VERSION
-            || self.manifest.max_frame != MAX_FRAME_BYTES
-            || self.manifest.publisher_utf16le.is_empty()
-            || self.manifest.binary_sha256 != self.actual_binary_sha256
-            || self.manifest.signer_sha256 != self.actual_signer_sha256
-            || !self.signature_valid
-        {
-            return Err(WindowsTransportError::ServerIdentityRejected);
-        }
-        Ok(())
-    }
+    manifest: InstalledBrokerIdentity,
 }
 
 pub(super) fn demand_start_service() -> Result<StartedService, WindowsTransportError> {
@@ -231,23 +111,6 @@ pub(super) fn demand_start_service() -> Result<StartedService, WindowsTransportE
     })
 }
 
-pub(in crate::journal_broker) fn current_process_has_installed_client_identity() -> bool {
-    current_process_image_path()
-        .and_then(|image_path| {
-            expected_client_path().map(|expected_path| paths_equal(&image_path, &expected_path))
-        })
-        .unwrap_or(false)
-}
-
-fn current_process_image_path() -> Result<PathBuf, WindowsTransportError> {
-    // SAFETY: the PID is the current process, the handle is non-inheritable, and only bounded
-    // process-image metadata is queried before the handle's unique owner closes it.
-    let process = OwnedKernelHandle::new(unsafe {
-        OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, std::process::id())
-    })?;
-    process_image_path(&process)
-}
-
 pub(super) fn authenticate_pipe_server(
     pipe: &OwnedHandle,
     started_service: &StartedService,
@@ -261,7 +124,7 @@ pub(super) fn authenticate_pipe_server(
         "server".to_owned(),
         started_service.process_id.to_string(),
         pipe_process_id.to_string(),
-        std::process::id().to_string(),
+        identity_digest_hex(&started_service.manifest),
     ])?;
     let expected_image_path = expected_broker_path()?;
     // SAFETY: the PID came from the fixed service's SCM status and no handle is inherited.
@@ -287,85 +150,16 @@ pub(super) fn authenticate_pipe_server(
         restricted_sids: token_group_sids(&token)?,
         manifest: started_service.manifest.clone(),
         actual_binary_sha256: started_service.manifest.binary_sha256,
-        actual_signer_sha256: started_service.manifest.signer_sha256,
-        signature_valid: true,
-    }
-    .validate()?;
-    let client_path = std::env::current_exe().map_err(WindowsTransportError::Io)?;
-    let expected_client_path = expected_client_path()?;
-    ClientProcessFacts {
-        process_id: std::process::id(),
-        image_path: client_path,
-        expected_image_path: expected_client_path,
-        manifest: started_service.manifest.clone(),
-        actual_binary_sha256: started_service.manifest.client_sha256,
-        actual_signer_sha256: started_service.manifest.client_signer_sha256,
-        signature_valid: true,
     }
     .validate()
 }
 
-pub(in crate::journal_broker) fn authenticate_pipe_client(
-    process_id: u32,
-) -> Result<VerifiedClientProcessIdentity, WindowsTransportError> {
-    if process_id == 0 {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let manager = ServiceHandle::new(unsafe { OpenSCManagerW(null(), null(), SC_MANAGER_CONNECT) })
-        .map_err(map_service_open_error)?;
-    let service_name = nul_terminated(SERVICE_NAME)?;
-    // SAFETY: the service name is fixed and terminated; this handle can only read configuration.
-    let service = ServiceHandle::new(unsafe {
-        OpenServiceW(manager.raw(), service_name.as_ptr(), SERVICE_QUERY_CONFIG)
-    })
-    .map_err(map_service_open_error)?;
-    let manifest = query_identity_manifest(&service)?;
-    let expected_image_path = expected_client_path()?;
-    // SAFETY: the PID was observed by GetNamedPipeClientProcessId for the connected pipe and the
-    // returned handle is non-inheritable. Its primary token is bound to the impersonated pipe token
-    // before any request is admitted.
-    let process = OwnedKernelHandle::new(unsafe {
-        OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id)
-    })?;
-    let image_path = process_image_path(&process)?;
-    run_identity_probe(&["client".to_owned(), process_id.to_string()])?;
-    ClientProcessFacts {
-        process_id,
-        image_path: image_path.clone(),
-        expected_image_path,
-        manifest: manifest.clone(),
-        actual_binary_sha256: manifest.client_sha256,
-        actual_signer_sha256: manifest.client_signer_sha256,
-        signature_valid: true,
-    }
-    .validate()?;
-
-    let token = process_token(&process)?;
-    if token_fixed::<TOKEN_TYPE>(&token, TokenType)? != TokenPrimary {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let session_id = token_fixed::<u32>(&token, TokenSessionId)?;
-    let statistics = token_fixed::<TOKEN_STATISTICS>(&token, TokenStatistics)?;
-    let user_sid = token_sid_bytes(&token)?;
-    let is_elevated = token_fixed::<TOKEN_ELEVATION>(&token, TokenElevation)?.TokenIsElevated != 0;
-
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(b"cedarflake-ame-client-process-identity-v1\0");
-    hasher.update(&manifest.client_path_utf16le);
-    hasher.update(&manifest.client_sha256);
-    hasher.update(&manifest.client_signer_sha256);
-    let opaque_binary_identity = *hasher.finalize().as_bytes();
-    if opaque_binary_identity == [0; 32] {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    Ok(VerifiedClientProcessIdentity {
-        process_id,
-        session_id,
-        user_sid,
-        authentication_id: luid_bytes(statistics.AuthenticationId),
-        is_elevated,
-        opaque_binary_identity,
-    })
+fn identity_digest_hex(identity: &InstalledBrokerIdentity) -> String {
+    identity
+        .binary_sha256
+        .iter()
+        .map(|byte| format!("{byte:02X}"))
+        .collect()
 }
 
 pub(super) fn run_identity_probe_process(arguments: &[String]) -> ExitCode {
@@ -374,28 +168,13 @@ pub(super) fn run_identity_probe_process(arguments: &[String]) -> ExitCode {
             mode,
             scm_process_id,
             pipe_process_id,
-            client_process_id,
+            expected_digest,
             nonce,
-        ] if mode == "server" => parse_probe_process_id(scm_process_id)
-            .and_then(|scm_process_id| {
-                parse_probe_process_id(pipe_process_id)
-                    .map(|pipe_process_id| (scm_process_id, pipe_process_id))
-            })
-            .and_then(|(scm_process_id, pipe_process_id)| {
-                parse_probe_process_id(client_process_id).and_then(|client_process_id| {
-                    validate_probe_nonce(nonce)?;
-                    verify_server_and_client_identity(
-                        scm_process_id,
-                        pipe_process_id,
-                        client_process_id,
-                    )?;
-                    Ok(nonce)
-                })
-            }),
-        [mode, client_process_id, nonce] if mode == "client" => {
-            parse_probe_process_id(client_process_id).and_then(|client_process_id| {
+        ] if mode == "server" => {
+            parse_probe_process_id(scm_process_id).and_then(|scm_process_id| {
+                let pipe_process_id = parse_probe_process_id(pipe_process_id)?;
                 validate_probe_nonce(nonce)?;
-                verify_client_identity(client_process_id)?;
+                verify_server_identity(scm_process_id, pipe_process_id, expected_digest)?;
                 Ok(nonce)
             })
         }
@@ -429,10 +208,10 @@ fn validate_probe_nonce(nonce: &str) -> Result<(), WindowsTransportError> {
     Ok(())
 }
 
-fn verify_server_and_client_identity(
+fn verify_server_identity(
     scm_process_id: u32,
     pipe_process_id: u32,
-    client_process_id: u32,
+    expected_digest: &str,
 ) -> Result<(), WindowsTransportError> {
     let manager = ServiceHandle::new(unsafe { OpenSCManagerW(null(), null(), SC_MANAGER_CONNECT) })
         .map_err(map_service_open_error)?;
@@ -453,6 +232,9 @@ fn verify_server_and_client_identity(
         return Err(WindowsTransportError::ServerIdentityRejected);
     }
     let manifest = query_identity_manifest(&service)?;
+    if identity_digest_hex(&manifest) != expected_digest {
+        return Err(WindowsTransportError::ServerIdentityRejected);
+    }
     let process = OwnedKernelHandle::new(unsafe {
         OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, scm_process_id)
     })?;
@@ -470,41 +252,6 @@ fn verify_server_and_client_identity(
         is_restricted: unsafe { IsTokenRestricted(token.raw()) } != 0,
         restricted_sids: token_group_sids(&token)?,
         actual_binary_sha256: binary_sha256(&image_path)?,
-        actual_signer_sha256: verify_signature_and_signer_hash(&image_path)?,
-        signature_valid: true,
-        manifest,
-    }
-    .validate()?;
-    verify_client_identity_with_manifest(client_process_id, query_identity_manifest(&service)?)
-}
-
-fn verify_client_identity(process_id: u32) -> Result<(), WindowsTransportError> {
-    let manager = ServiceHandle::new(unsafe { OpenSCManagerW(null(), null(), SC_MANAGER_CONNECT) })
-        .map_err(map_service_open_error)?;
-    let service_name = nul_terminated(SERVICE_NAME)?;
-    let service = ServiceHandle::new(unsafe {
-        OpenServiceW(manager.raw(), service_name.as_ptr(), SERVICE_QUERY_CONFIG)
-    })
-    .map_err(map_service_open_error)?;
-    verify_client_identity_with_manifest(process_id, query_identity_manifest(&service)?)
-}
-
-fn verify_client_identity_with_manifest(
-    process_id: u32,
-    manifest: ServiceIdentityManifest,
-) -> Result<(), WindowsTransportError> {
-    let expected_image_path = expected_client_path()?;
-    let process = OwnedKernelHandle::new(unsafe {
-        OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id)
-    })?;
-    let image_path = process_image_path(&process)?;
-    ClientProcessFacts {
-        process_id,
-        image_path: image_path.clone(),
-        expected_image_path,
-        actual_binary_sha256: binary_sha256(&image_path)?,
-        actual_signer_sha256: verify_signature_and_signer_hash(&image_path)?,
-        signature_valid: true,
         manifest,
     }
     .validate()
@@ -650,7 +397,7 @@ fn query_status(service: &ServiceHandle) -> Result<SERVICE_STATUS_PROCESS, Windo
 
 fn query_identity_manifest(
     service: &ServiceHandle,
-) -> Result<ServiceIdentityManifest, WindowsTransportError> {
+) -> Result<InstalledBrokerIdentity, WindowsTransportError> {
     let mut required = 0_u32;
     // SAFETY: this is the documented bounded size query for the fixed service description.
     let first = unsafe {
@@ -694,88 +441,7 @@ fn query_identity_manifest(
     if description.lpDescription.is_null() {
         return Err(WindowsTransportError::ServerIdentityRejected);
     }
-    parse_identity_manifest(&copy_bounded_utf16(description.lpDescription)?)
-}
-
-fn parse_identity_manifest(value: &str) -> Result<ServiceIdentityManifest, WindowsTransportError> {
-    let fields: Vec<&str> = value.split('|').collect();
-    if fields.len() != 9 || fields[0] != "AMEJBID2" {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let protocol = parse_manifest_field(fields[1], "protocol=")?
-        .parse::<u16>()
-        .map_err(|_| WindowsTransportError::ServerIdentityRejected)?;
-    let max_frame = parse_manifest_field(fields[2], "max_frame=")?
-        .parse::<usize>()
-        .map_err(|_| WindowsTransportError::ServerIdentityRejected)?;
-    let binary_sha256 = parse_hex_32(parse_manifest_field(fields[3], "sha256=")?)?;
-    let signer_sha256 = parse_hex_32(parse_manifest_field(fields[4], "signer_sha256=")?)?;
-    let publisher_utf16le =
-        parse_hex(parse_manifest_field(fields[5], "publisher_utf16le=")?, 2048)?;
-    let client_path_utf16le = parse_hex(
-        parse_manifest_field(fields[6], "client_path_utf16le=")?,
-        32_768 * 2,
-    )?;
-    let client_sha256 = parse_hex_32(parse_manifest_field(fields[7], "client_sha256=")?)?;
-    let client_signer_sha256 =
-        parse_hex_32(parse_manifest_field(fields[8], "client_signer_sha256=")?)?;
-    if publisher_utf16le.is_empty()
-        || publisher_utf16le.len() % 2 != 0
-        || client_path_utf16le.is_empty()
-        || client_path_utf16le.len() % 2 != 0
-        || path_from_utf16le(&client_path_utf16le).is_err()
-    {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    Ok(ServiceIdentityManifest {
-        protocol,
-        max_frame,
-        binary_sha256,
-        signer_sha256,
-        publisher_utf16le,
-        client_path_utf16le,
-        client_sha256,
-        client_signer_sha256,
-    })
-}
-
-fn parse_manifest_field<'a>(
-    field: &'a str,
-    prefix: &str,
-) -> Result<&'a str, WindowsTransportError> {
-    field
-        .strip_prefix(prefix)
-        .filter(|value| !value.is_empty())
-        .ok_or(WindowsTransportError::ServerIdentityRejected)
-}
-
-fn parse_hex_32(value: &str) -> Result<[u8; 32], WindowsTransportError> {
-    parse_hex(value, 32)?
-        .try_into()
-        .map_err(|_| WindowsTransportError::ServerIdentityRejected)
-}
-
-fn parse_hex(value: &str, maximum_bytes: usize) -> Result<Vec<u8>, WindowsTransportError> {
-    if !value.len().is_multiple_of(2) || value.len() / 2 > maximum_bytes {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    value
-        .as_bytes()
-        .chunks_exact(2)
-        .map(|chunk| {
-            let high = hex_nibble(chunk[0])?;
-            let low = hex_nibble(chunk[1])?;
-            Ok((high << 4) | low)
-        })
-        .collect()
-}
-
-fn hex_nibble(value: u8) -> Result<u8, WindowsTransportError> {
-    match value {
-        b'0'..=b'9' => Ok(value - b'0'),
-        b'A'..=b'F' => Ok(value - b'A' + 10),
-        _ => Err(WindowsTransportError::ServerIdentityRejected),
-    }
+    InstalledBrokerIdentity::parse(&copy_bounded_utf16(description.lpDescription)?)
 }
 
 fn binary_sha256(path: &Path) -> Result<[u8; 32], WindowsTransportError> {
@@ -819,77 +485,6 @@ fn binary_sha256(path: &Path) -> Result<[u8; 32], WindowsTransportError> {
     Ok(digest)
 }
 
-fn verify_signature_and_signer_hash(path: &Path) -> Result<[u8; 32], WindowsTransportError> {
-    let mut path_utf16: Vec<u16> = path.as_os_str().to_string_lossy().encode_utf16().collect();
-    if path_utf16.is_empty() || path_utf16.len() >= 32_768 || path_utf16.contains(&0) {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    path_utf16.push(0);
-    let mut file = WINTRUST_FILE_INFO {
-        cbStruct: u32::try_from(size_of::<WINTRUST_FILE_INFO>())
-            .map_err(|_| WindowsTransportError::ServerIdentityRejected)?,
-        pcwszFilePath: path_utf16.as_ptr(),
-        hFile: null_mut(),
-        pgKnownSubject: null_mut(),
-    };
-    let mut data = WINTRUST_DATA {
-        cbStruct: u32::try_from(size_of::<WINTRUST_DATA>())
-            .map_err(|_| WindowsTransportError::ServerIdentityRejected)?,
-        dwUIChoice: WTD_UI_NONE,
-        fdwRevocationChecks: WTD_REVOKE_WHOLECHAIN,
-        dwUnionChoice: WTD_CHOICE_FILE,
-        Anonymous: WINTRUST_DATA_0 { pFile: &mut file },
-        dwStateAction: WTD_STATEACTION_VERIFY,
-        dwProvFlags: WTD_CACHE_ONLY_URL_RETRIEVAL | WTD_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
-        ..WINTRUST_DATA::default()
-    };
-    let mut action = WINTRUST_ACTION_GENERIC_VERIFY_V2;
-    // SAFETY: all nested structures and the terminated file path remain live until the matching
-    // WTD_STATEACTION_CLOSE call below. UI is disabled and network retrieval is cache-only.
-    let verified = unsafe { WinVerifyTrust(null_mut(), &mut action, (&raw mut data).cast()) } == 0;
-    let signer_hash = if verified {
-        // SAFETY: successful VERIFY populated state data; helper outputs are checked before use.
-        let provider = unsafe { WTHelperProvDataFromStateData(data.hWVTStateData) };
-        let signer = if provider.is_null() {
-            null_mut()
-        } else {
-            unsafe { WTHelperGetProvSignerFromChain(provider, 0, 0, 0) }
-        };
-        let certificate = if signer.is_null() {
-            null_mut()
-        } else {
-            unsafe { WTHelperGetProvCertFromChain(signer, 0) }
-        };
-        if certificate.is_null() || unsafe { (*certificate).pCert }.is_null() {
-            None
-        } else {
-            let context = unsafe { (*certificate).pCert };
-            let mut digest = [0_u8; 32];
-            let mut length = digest.len() as u32;
-            // SAFETY: the certificate context and encoded certificate are owned by WinTrust state
-            // until CLOSE; digest and length are live bounded outputs.
-            let hashed = unsafe {
-                CryptHashCertificate2(
-                    BCRYPT_SHA256_ALGORITHM,
-                    0,
-                    null(),
-                    (*context).pbCertEncoded,
-                    (*context).cbCertEncoded,
-                    digest.as_mut_ptr(),
-                    &mut length,
-                )
-            } != 0;
-            (hashed && length == digest.len() as u32).then_some(digest)
-        }
-    } else {
-        None
-    };
-    data.dwStateAction = WTD_STATEACTION_CLOSE;
-    // SAFETY: this closes only the state created by the matching VERIFY call above.
-    let _ = unsafe { WinVerifyTrust(null_mut(), &mut action, (&raw mut data).cast()) };
-    signer_hash.ok_or(WindowsTransportError::ServerIdentityRejected)
-}
-
 fn expected_broker_path() -> Result<PathBuf, WindowsTransportError> {
     let mut raw = null_mut();
     // SAFETY: the known-folder identifier is fixed and raw is a live output slot. The returned
@@ -912,61 +507,6 @@ fn expected_broker_path() -> Result<PathBuf, WindowsTransportError> {
         .join("Cedarflake Ame")
         .join("Journal Broker")
         .join(BROKER_EXECUTABLE_NAME))
-}
-
-fn expected_client_path() -> Result<PathBuf, WindowsTransportError> {
-    let mut raw = null_mut();
-    // SAFETY: the known-folder identifier is fixed and raw is a live output slot. The returned
-    // CoTaskMem allocation is copied and freed exactly once below.
-    let result = unsafe {
-        SHGetKnownFolderPath(
-            &FOLDERID_ProgramFilesX64,
-            KF_FLAG_DEFAULT as u32,
-            null_mut(),
-            &mut raw,
-        )
-    };
-    if result < 0 || raw.is_null() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let path = copy_bounded_utf16(raw).map(PathBuf::from);
-    // SAFETY: raw is the unique CoTaskMem allocation returned above and is no longer used.
-    unsafe { CoTaskMemFree(raw.cast()) };
-    Ok(path?
-        .join("Cedarflake Ame")
-        .join("Application")
-        .join("cedarflake_ame.exe"))
-}
-
-fn path_utf16le(path: &Path) -> Result<Vec<u8>, WindowsTransportError> {
-    let text = path.as_os_str().to_string_lossy();
-    if text.is_empty() || text.encode_utf16().count() >= 32_768 {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    Ok(text
-        .encode_utf16()
-        .flat_map(u16::to_le_bytes)
-        .collect::<Vec<_>>())
-}
-
-fn path_from_utf16le(bytes: &[u8]) -> Result<PathBuf, WindowsTransportError> {
-    if bytes.is_empty() || !bytes.len().is_multiple_of(2) || bytes.len() / 2 >= 32_768 {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let units: Vec<u16> = bytes
-        .chunks_exact(2)
-        .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
-        .collect();
-    if units.contains(&0) {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    let text =
-        String::from_utf16(&units).map_err(|_| WindowsTransportError::ServerIdentityRejected)?;
-    let path = PathBuf::from(text);
-    if !path.is_absolute() {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
-    Ok(path)
 }
 
 fn process_image_path(process: &OwnedKernelHandle) -> Result<PathBuf, WindowsTransportError> {
@@ -998,11 +538,6 @@ fn token_sid(token: &OwnedKernelHandle) -> Result<String, WindowsTransportError>
     let bytes = token_information(token, TokenUser)?;
     let sid = token_user_sid_slice(&bytes)?;
     sid_string(sid.as_ptr().cast_mut().cast())
-}
-
-fn token_sid_bytes(token: &OwnedKernelHandle) -> Result<Vec<u8>, WindowsTransportError> {
-    let bytes = token_information(token, TokenUser)?;
-    Ok(token_user_sid_slice(&bytes)?.to_vec())
 }
 
 fn token_user_sid_slice(bytes: &[u8]) -> Result<&[u8], WindowsTransportError> {
@@ -1051,13 +586,6 @@ fn token_user_sid_slice(bytes: &[u8]) -> Result<&[u8], WindowsTransportError> {
         return Err(WindowsTransportError::ServerIdentityRejected);
     }
     Ok(sid_slice)
-}
-
-fn luid_bytes(value: windows_sys::Win32::Foundation::LUID) -> [u8; 8] {
-    let mut bytes = [0_u8; 8];
-    bytes[..4].copy_from_slice(&value.LowPart.to_le_bytes());
-    bytes[4..].copy_from_slice(&value.HighPart.to_le_bytes());
-    bytes
 }
 
 fn token_fixed<T: Copy>(
@@ -1164,12 +692,6 @@ fn copy_bounded_utf16(raw: *const u16) -> Result<String, WindowsTransportError> 
         .map_err(|_| WindowsTransportError::ServerIdentityRejected)
 }
 
-fn paths_equal(left: &Path, right: &Path) -> bool {
-    left.as_os_str()
-        .to_string_lossy()
-        .eq_ignore_ascii_case(&right.as_os_str().to_string_lossy())
-}
-
 fn nul_terminated(value: &str) -> Result<Vec<u16>, WindowsTransportError> {
     if value.is_empty() || value.encode_utf16().any(|unit| unit == 0) {
         return Err(WindowsTransportError::ServerIdentityRejected);
@@ -1236,89 +758,6 @@ impl Drop for ServiceHandle {
 mod tests {
     use super::*;
 
-    type ServerFactsMutation = Box<dyn Fn(&mut ServerProcessFacts)>;
-    type ClientFactsMutation = Box<dyn Fn(&mut ClientProcessFacts)>;
-
-    fn valid_facts() -> ServerProcessFacts {
-        let digest = [5; 32];
-        ServerProcessFacts {
-            scm_process_id: 42,
-            pipe_process_id: 42,
-            image_path: PathBuf::from(
-                r"C:\Program Files\Cedarflake Ame\Journal Broker\cedarflake_ame_journal_broker.exe",
-            ),
-            expected_image_path: PathBuf::from(
-                r"c:\PROGRAM FILES\Cedarflake Ame\Journal Broker\cedarflake_ame_journal_broker.exe",
-            ),
-            token_user_sid: LOCAL_SYSTEM_SID.to_owned(),
-            token_type: TokenPrimary,
-            is_elevated: true,
-            is_restricted: true,
-            restricted_sids: vec![SERVICE_SID.to_owned()],
-            manifest: ServiceIdentityManifest {
-                protocol: PROTOCOL_VERSION,
-                max_frame: MAX_FRAME_BYTES,
-                binary_sha256: digest,
-                signer_sha256: digest,
-                publisher_utf16le: vec![67, 0, 78, 0],
-                client_path_utf16le: path_utf16le(&PathBuf::from(
-                    r"C:\Program Files\Cedarflake Ame\Application\cedarflake_ame.exe",
-                ))
-                .expect("client path"),
-                client_sha256: digest,
-                client_signer_sha256: digest,
-            },
-            actual_binary_sha256: digest,
-            actual_signer_sha256: digest,
-            signature_valid: true,
-        }
-    }
-
-    fn valid_client_facts() -> ClientProcessFacts {
-        let manifest = valid_facts().manifest;
-        ClientProcessFacts {
-            process_id: 43,
-            image_path: PathBuf::from(
-                r"c:\PROGRAM FILES\Cedarflake Ame\Application\cedarflake_ame.exe",
-            ),
-            expected_image_path: PathBuf::from(
-                r"C:\Program Files\Cedarflake Ame\Application\cedarflake_ame.exe",
-            ),
-            actual_binary_sha256: manifest.client_sha256,
-            actual_signer_sha256: manifest.client_signer_sha256,
-            signature_valid: true,
-            manifest,
-        }
-    }
-
-    #[test]
-    fn server_identity_requires_scm_pipe_pid_path_and_restricted_service_token() {
-        assert!(valid_facts().validate().is_ok());
-
-        let mutations: Vec<ServerFactsMutation> = vec![
-            Box::new(|facts| facts.pipe_process_id += 1),
-            Box::new(|facts| facts.image_path = PathBuf::from(r"C:\Temp\broker.exe")),
-            Box::new(|facts| facts.token_user_sid = "S-1-5-21-1".to_owned()),
-            Box::new(|facts| facts.token_type = windows_sys::Win32::Security::TokenImpersonation),
-            Box::new(|facts| facts.is_elevated = false),
-            Box::new(|facts| facts.is_restricted = false),
-            Box::new(|facts| facts.restricted_sids.clear()),
-            Box::new(|facts| facts.manifest.protocol += 1),
-            Box::new(|facts| facts.manifest.max_frame += 1),
-            Box::new(|facts| facts.actual_binary_sha256[0] ^= 1),
-            Box::new(|facts| facts.actual_signer_sha256[0] ^= 1),
-            Box::new(|facts| facts.signature_valid = false),
-        ];
-        for mutation in mutations {
-            let mut facts = valid_facts();
-            mutation(&mut facts);
-            assert!(matches!(
-                facts.validate(),
-                Err(WindowsTransportError::ServerIdentityRejected)
-            ));
-        }
-    }
-
     #[test]
     fn expected_broker_executable_name_includes_windows_extension() {
         assert_eq!(BROKER_EXECUTABLE_NAME, "cedarflake_ame_journal_broker.exe");
@@ -1348,73 +787,6 @@ mod tests {
         assert!(validate_probe_nonce(&nonce).is_ok());
         assert!(validate_probe_nonce(&nonce.to_ascii_lowercase()).is_err());
         assert!(validate_probe_nonce(&nonce[..62]).is_err());
-    }
-
-    #[test]
-    fn identity_manifest_parser_is_exact_and_bounded() {
-        let digest = "05".repeat(32);
-        let client_path =
-            ConvertTestPath::new(r"C:\Program Files\Cedarflake Ame\Application\cedarflake_ame.exe");
-        let text = format!(
-            "AMEJBID2|protocol={PROTOCOL_VERSION}|max_frame={MAX_FRAME_BYTES}|sha256={digest}|signer_sha256={digest}|publisher_utf16le=43004E00|client_path_utf16le={}|client_sha256={digest}|client_signer_sha256={digest}",
-            client_path.hex
-        );
-        let parsed = parse_identity_manifest(&text).expect("valid manifest");
-        assert_eq!(parsed.binary_sha256, [5; 32]);
-        assert_eq!(parsed.signer_sha256, [5; 32]);
-        assert_eq!(parsed.publisher_utf16le, vec![67, 0, 78, 0]);
-        assert_eq!(parsed.client_path_utf16le, client_path.bytes);
-        assert_eq!(parsed.client_sha256, [5; 32]);
-        assert_eq!(parsed.client_signer_sha256, [5; 32]);
-
-        for invalid in [
-            text.replace("AMEJBID2", "AMEJBID1"),
-            text.replace("|sha256=", "|extra=1|sha256="),
-            text.replace("43004E00", ""),
-            text.replace(&client_path.hex, "4300"),
-            text.to_ascii_lowercase(),
-        ] {
-            assert!(parse_identity_manifest(&invalid).is_err());
-        }
-    }
-
-    #[test]
-    fn client_identity_requires_fixed_path_hash_signer_and_valid_signature() {
-        assert!(valid_client_facts().validate().is_ok());
-        let mutations: Vec<ClientFactsMutation> = vec![
-            Box::new(|facts| facts.process_id = 0),
-            Box::new(|facts| facts.image_path = PathBuf::from(r"C:\Users\Public\ame.exe")),
-            Box::new(|facts| facts.manifest.client_path_utf16le[0] ^= 1),
-            Box::new(|facts| facts.actual_binary_sha256[0] ^= 1),
-            Box::new(|facts| facts.actual_signer_sha256[0] ^= 1),
-            Box::new(|facts| facts.signature_valid = false),
-        ];
-        for mutation in mutations {
-            let mut facts = valid_client_facts();
-            mutation(&mut facts);
-            assert!(matches!(
-                facts.validate(),
-                Err(WindowsTransportError::ServerIdentityRejected)
-            ));
-        }
-    }
-
-    #[test]
-    fn client_process_identity_is_bound_to_pipe_token_facts() {
-        let identity = VerifiedClientProcessIdentity {
-            process_id: 43,
-            session_id: 3,
-            user_sid: vec![1, 2, 3],
-            authentication_id: [4; 8],
-            is_elevated: false,
-            opaque_binary_identity: [5; 32],
-        };
-        assert!(identity.matches_pipe_token(43, 3, &[1, 2, 3], [4; 8], false));
-        assert!(!identity.matches_pipe_token(44, 3, &[1, 2, 3], [4; 8], false));
-        assert!(!identity.matches_pipe_token(43, 4, &[1, 2, 3], [4; 8], false));
-        assert!(!identity.matches_pipe_token(43, 3, &[1, 2], [4; 8], false));
-        assert!(!identity.matches_pipe_token(43, 3, &[1, 2, 3], [6; 8], false));
-        assert!(!identity.matches_pipe_token(43, 3, &[1, 2, 3], [4; 8], true));
     }
 
     fn write_token_user_header(bytes: &mut [u8], sid_offset: usize) {
@@ -1478,21 +850,5 @@ mod tests {
         malformed[sid_offset] = 0;
         write_token_user_header(&mut malformed, sid_offset);
         assert!(token_user_sid_slice(&malformed).is_err());
-    }
-
-    struct ConvertTestPath {
-        bytes: Vec<u8>,
-        hex: String,
-    }
-
-    impl ConvertTestPath {
-        fn new(value: &str) -> Self {
-            let bytes = value
-                .encode_utf16()
-                .flat_map(u16::to_le_bytes)
-                .collect::<Vec<_>>();
-            let hex = bytes.iter().map(|byte| format!("{byte:02X}")).collect();
-            Self { bytes, hex }
-        }
     }
 }

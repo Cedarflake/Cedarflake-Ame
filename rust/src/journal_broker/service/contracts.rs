@@ -9,7 +9,7 @@ pub(crate) struct AuthenticatedConnection {
     pub(super) connection_id: [u8; 16],
     pub(super) connection_generation: u64,
     pub(super) opaque_token_binding: [u8; 32],
-    pub(super) observed_client_binary_identity: [u8; 32],
+    pub(super) observed_client_process_identity: [u8; 32],
     pub(super) observed_process_id: u32,
     pub(super) observed_session_id: u32,
     pub(super) observed_token_type: i32,
@@ -19,7 +19,7 @@ pub(crate) struct AuthenticatedConnection {
 
 pub(in crate::journal_broker) struct AuthenticatedPipeFacts {
     pub(in crate::journal_broker) opaque_token_binding: [u8; 32],
-    pub(in crate::journal_broker) client_binary_identity: [u8; 32],
+    pub(in crate::journal_broker) client_process_identity: [u8; 32],
     pub(in crate::journal_broker) process_id: u32,
     pub(in crate::journal_broker) session_id: u32,
     pub(in crate::journal_broker) token_type: i32,
@@ -36,7 +36,7 @@ impl AuthenticatedConnection {
         if connection_id == [0; 16]
             || connection_generation == 0
             || facts.opaque_token_binding == [0; 32]
-            || facts.client_binary_identity == [0; 32]
+            || facts.client_process_identity == [0; 32]
             || facts.process_id == 0
             || facts.token_type != 2
             || facts.impersonation_level < 2
@@ -47,7 +47,7 @@ impl AuthenticatedConnection {
             connection_id,
             connection_generation,
             opaque_token_binding: facts.opaque_token_binding,
-            observed_client_binary_identity: facts.client_binary_identity,
+            observed_client_process_identity: facts.client_process_identity,
             observed_process_id: facts.process_id,
             observed_session_id: facts.session_id,
             observed_token_type: facts.token_type,

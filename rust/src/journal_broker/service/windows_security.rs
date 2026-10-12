@@ -1,3 +1,10 @@
+mod caller;
+mod disclosure;
+
+use caller::PipeCallerProcess;
+
+use disclosure::probe_disclosable_scope;
+
 use std::collections::HashMap;
 use std::io;
 use std::mem::size_of;
@@ -8,14 +15,14 @@ use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
 use windows_sys::Win32::Foundation::{
-    CloseHandle, DuplicateHandle, ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND, GENERIC_READ, HANDLE,
+    CloseHandle, ERROR_FILE_NOT_FOUND, ERROR_PATH_NOT_FOUND, GENERIC_READ, HANDLE,
     INVALID_HANDLE_VALUE, LUID,
 };
 use windows_sys::Win32::Security::{
     DuplicateTokenEx, GetLengthSid, GetTokenInformation, ImpersonateLoggedOnUser, IsValidSid,
-    RevertToSelf, SecurityImpersonation, TOKEN_DUPLICATE, TOKEN_ELEVATION, TOKEN_IMPERSONATE,
-    TOKEN_QUERY, TOKEN_STATISTICS, TOKEN_TYPE, TOKEN_USER, TokenElevation, TokenImpersonation,
-    TokenImpersonationLevel, TokenPrimary, TokenSessionId, TokenStatistics, TokenType, TokenUser,
+    RevertToSelf, SecurityImpersonation, TOKEN_DUPLICATE, TOKEN_IMPERSONATE, TOKEN_QUERY,
+    TOKEN_STATISTICS, TOKEN_TYPE, TOKEN_USER, TokenImpersonation, TokenImpersonationLevel,
+    TokenSessionId, TokenStatistics, TokenType, TokenUser,
 };
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_TAG_INFO, FILE_CASE_SENSITIVE_INFO,
@@ -27,17 +34,13 @@ use windows_sys::Win32::Storage::FileSystem::{
 };
 use windows_sys::Win32::System::Pipes::ImpersonateNamedPipeClient;
 use windows_sys::Win32::System::SystemServices::FILE_CS_FLAG_CASE_SENSITIVE_DIR;
-use windows_sys::Win32::System::Threading::{
-    GetCurrentProcess, GetCurrentThread, OpenProcess, OpenProcessToken, OpenThreadToken,
-    PROCESS_DUP_HANDLE, PROCESS_QUERY_LIMITED_INFORMATION,
-};
+use windows_sys::Win32::System::Threading::{GetCurrentThread, OpenThreadToken};
 
 use super::{
     AuthenticatedConnection, AuthenticatedPipeFacts, AuthorizedPinnedRoot, AuthorizerError,
     BackendJournalCandidate, CallerAuthorization, CallerAuthorizer, DeclaredRootAuthorization,
     PinnedBrokerRoot, RequestContext,
 };
-use crate::journal_broker::windows::service_identity::VerifiedClientProcessIdentity;
 use crate::journal_broker::wire::{
     CallerClaim, NameComparisonSemantics, RootAuthorization, RootCapability, RootRelativeScope,
     normalize_backend_path, scope_under_root,
@@ -50,7 +53,6 @@ const MAX_REGISTERED_ROOTS_PER_CONNECTION: usize = 8;
 const MAX_REGISTERED_ROOTS_GLOBAL: usize = 16;
 const ROOT_CAPABILITY_LIFETIME: Duration = Duration::from_secs(120);
 const VOLUME_OPEN_FLAGS: u32 = FILE_FLAG_OVERLAPPED;
-const ROOT_DUPLICATED_ACCESS: u32 = FILE_READ_ATTRIBUTES;
 
 pub(in crate::journal_broker) struct WindowsPipeAuthorizer {
     security: Option<Arc<ConnectionSecurity>>,
@@ -109,18 +111,12 @@ impl Drop for RootRegistrationPermit {
     }
 }
 
-pub(in crate::journal_broker) enum ClientBinaryAdmission {
-    Production(VerifiedClientProcessIdentity),
-    DisposableTest,
-}
-
 pub(in crate::journal_broker) struct ConnectedPipeAdmission {
     connection_id: [u8; 16],
     connection_generation: u64,
     connection_nonce: u64,
     observed_process_id: u32,
     observed_session_id: u32,
-    client_binary: ClientBinaryAdmission,
 }
 
 impl ConnectedPipeAdmission {
@@ -130,7 +126,6 @@ impl ConnectedPipeAdmission {
         connection_nonce: u64,
         observed_process_id: u32,
         observed_session_id: u32,
-        client_binary: ClientBinaryAdmission,
     ) -> Self {
         Self {
             connection_id,
@@ -138,7 +133,6 @@ impl ConnectedPipeAdmission {
             connection_nonce,
             observed_process_id,
             observed_session_id,
-            client_binary,
         }
     }
 }
@@ -155,7 +149,6 @@ impl WindowsPipeAuthorizer {
             connection_nonce,
             observed_process_id,
             observed_session_id,
-            client_binary,
         } = admission;
         if pipe.is_null()
             || connection_id == [0; 16]
@@ -166,32 +159,13 @@ impl WindowsPipeAuthorizer {
             return Err(WindowsSecurityError::CallerRejected);
         }
         let token = capture_named_pipe_client_token(pipe)?;
-        let primary = query_primary_token_evidence(observed_process_id)?;
+        let client_process = token.impersonate(|| PipeCallerProcess::open(observed_process_id))?;
+        let primary = client_process.primary();
         let evidence = query_token_evidence(&token, primary.is_elevated)?;
         if evidence.session_id != observed_session_id || !primary.matches_impersonation(&evidence) {
             return Err(WindowsSecurityError::CallerRejected);
         }
-        let client_binary_identity = match client_binary {
-            ClientBinaryAdmission::Production(identity) => {
-                if !identity.matches_pipe_token(
-                    observed_process_id,
-                    observed_session_id,
-                    &evidence.user_sid,
-                    luid_bytes(evidence.authentication_id),
-                    evidence.is_elevated,
-                ) {
-                    return Err(WindowsSecurityError::CallerRejected);
-                }
-                identity.opaque_binary_identity()
-            }
-            ClientBinaryAdmission::DisposableTest => disposable_client_identity(
-                connection_id,
-                connection_generation,
-                connection_nonce,
-                observed_process_id,
-                observed_session_id,
-            ),
-        };
+        let client_process_identity = client_process.opaque_identity();
         let namespace = token_binding(
             &evidence,
             connection_id,
@@ -199,14 +173,14 @@ impl WindowsPipeAuthorizer {
             connection_nonce,
             observed_process_id,
             observed_session_id,
-            client_binary_identity,
+            client_process_identity,
         );
         let authenticated = AuthenticatedConnection::from_pipe_token(
             connection_id,
             connection_generation,
             AuthenticatedPipeFacts {
                 opaque_token_binding: namespace,
-                client_binary_identity,
+                client_process_identity,
                 process_id: observed_process_id,
                 session_id: observed_session_id,
                 token_type: evidence.token_type,
@@ -220,8 +194,9 @@ impl WindowsPipeAuthorizer {
             Self {
                 security: Some(Arc::new(ConnectionSecurity {
                     token,
+                    client_process,
                     namespace,
-                    client_binary_identity,
+                    client_process_identity,
                     observed_process_id,
                     observed_session_id,
                     root_budget,
@@ -263,8 +238,12 @@ impl CallerAuthorizer for WindowsPipeAuthorizer {
             .security
             .as_ref()
             .ok_or(AuthorizerError::CallerRejected)?;
+        security
+            .client_process
+            .ensure_alive()
+            .map_err(|_| AuthorizerError::CallerRejected)?;
         if authenticated.opaque_token_binding != security.namespace
-            || authenticated.observed_client_binary_identity != security.client_binary_identity
+            || authenticated.observed_client_process_identity != security.client_process_identity
             || authenticated.observed_process_id != security.observed_process_id
             || authenticated.observed_session_id != security.observed_session_id
         {
@@ -310,7 +289,7 @@ impl CallerAuthorizer for WindowsPipeAuthorizer {
         hasher.update(&caller.connection_id);
         hasher.update(&caller.connection_generation.to_le_bytes());
         hasher.update(&caller.client_instance);
-        hasher.update(&security.client_binary_identity);
+        hasher.update(&security.client_process_identity);
         hasher.update(root.root_id.as_bytes());
         hasher.update(&root.root_generation.to_le_bytes());
         hasher.update(root.volume_id.as_bytes());
@@ -446,89 +425,11 @@ impl CallerAuthorizer for WindowsPipeAuthorizer {
     }
 }
 
-fn probe_disclosable_scope(
-    root_path: &str,
-    normalized_root: &crate::journal_broker::wire::NormalizedWindowsPath,
-    root_comparisons: &[NameComparisonSemantics],
-    scope: &RootRelativeScope,
-) -> Result<bool, WindowsSecurityError> {
-    probe_disclosable_scope_with(
-        root_path,
-        scope,
-        |path| {
-            let handle = open_directory_handle(&path.encode_utf16().collect::<Vec<_>>())?;
-            verify_handle_under_root(handle.raw(), normalized_root, root_comparisons)
-        },
-        |path| match open_metadata_handle(&path.encode_utf16().collect::<Vec<_>>()) {
-            Ok(handle) => {
-                verify_handle_under_root(handle.raw(), normalized_root, root_comparisons)?;
-                Ok(CandidateProbe::Accessible)
-            }
-            Err(WindowsSecurityError::PathMissing) => Ok(CandidateProbe::Missing),
-            Err(error) => Err(error),
-        },
-    )
-}
-
-fn verify_handle_under_root(
-    handle: HANDLE,
-    normalized_root: &crate::journal_broker::wire::NormalizedWindowsPath,
-    root_comparisons: &[NameComparisonSemantics],
-) -> Result<(), WindowsSecurityError> {
-    let final_path = strip_extended_dos_prefix(&final_path(handle, FILE_NAME_NORMALIZED)?)?;
-    let normalized =
-        normalize_backend_path(&final_path).map_err(|_| WindowsSecurityError::RootRejected)?;
-    if scope_under_root(&normalized, normalized_root, root_comparisons)
-        .map_err(|_| WindowsSecurityError::RootRejected)?
-        .is_none()
-    {
-        return Err(WindowsSecurityError::RootRejected);
-    }
-    Ok(())
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-enum CandidateProbe {
-    Accessible,
-    Missing,
-}
-
-fn probe_disclosable_scope_with(
-    root_path: &str,
-    scope: &RootRelativeScope,
-    mut probe_ancestor: impl FnMut(&str) -> Result<(), WindowsSecurityError>,
-    mut probe_candidate: impl FnMut(&str) -> Result<CandidateProbe, WindowsSecurityError>,
-) -> Result<bool, WindowsSecurityError> {
-    probe_ancestor(root_path)?;
-    let RootRelativeScope::Relative(relative) = scope else {
-        return Ok(true);
-    };
-    let components: Vec<&str> = relative.split('/').collect();
-    if components.is_empty() || components.iter().any(|component| component.is_empty()) {
-        return Err(WindowsSecurityError::RootRejected);
-    }
-    let mut current = root_path.to_owned();
-    for component in &components[..components.len().saturating_sub(1)] {
-        current.push('\\');
-        current.push_str(component);
-        probe_ancestor(&current)?;
-    }
-    current.push('\\');
-    current.push_str(
-        components
-            .last()
-            .ok_or(WindowsSecurityError::RootRejected)?,
-    );
-    Ok(matches!(
-        probe_candidate(&current)?,
-        CandidateProbe::Accessible | CandidateProbe::Missing
-    ))
-}
-
 struct ConnectionSecurity {
     token: OwnedToken,
+    client_process: PipeCallerProcess,
     namespace: [u8; 32],
-    client_binary_identity: [u8; 32],
+    client_process_identity: [u8; 32],
     observed_process_id: u32,
     observed_session_id: u32,
     root_budget: WindowsRootRegistrationBudget,
@@ -536,6 +437,16 @@ struct ConnectionSecurity {
 }
 
 impl ConnectionSecurity {
+    fn impersonate<T>(
+        &self,
+        action: impl FnOnce() -> Result<T, WindowsSecurityError>,
+    ) -> Result<T, WindowsSecurityError> {
+        self.client_process.ensure_alive()?;
+        let result = self.token.impersonate(action);
+        self.client_process.ensure_alive()?;
+        result
+    }
+
     fn reap_expired(&self, now: Instant) {
         if let Ok(mut registrations) = self.registrations.lock() {
             reap_registrations(&mut registrations, now);
@@ -712,10 +623,23 @@ impl PinnedRootState {
 }
 
 impl ConnectionSecurity {
-    #[allow(
-        dead_code,
-        reason = "R2c-O root pinning uses the captured token in the next admission slice"
-    )]
+    fn duplicate_and_pin_client_root(
+        &self,
+        client_root_handle: u64,
+        root: &RootAuthorization,
+    ) -> Result<PinnedRootState, WindowsSecurityError> {
+        let duplicated = self
+            .client_process
+            .duplicate_root_handle(client_root_handle)?;
+        let pinned = pin_root_handle(root, duplicated)?;
+        self.impersonate(|| disclosure::listable_directory(&pinned.root_handle).map(drop))?;
+        Ok(pinned)
+    }
+}
+
+struct OwnedToken(HANDLE);
+
+impl OwnedToken {
     fn impersonate<T>(
         &self,
         operation: impl FnOnce() -> Result<T, WindowsSecurityError>,
@@ -723,7 +647,7 @@ impl ConnectionSecurity {
         // SAFETY: token is a live impersonation token with TOKEN_IMPERSONATE. The current thread
         // performs no callback while impersonated and the result is not returned until revert is
         // checked below.
-        if unsafe { ImpersonateLoggedOnUser(self.token.raw()) } == 0 {
+        if unsafe { ImpersonateLoggedOnUser(self.raw()) } == 0 {
             return Err(WindowsSecurityError::ImpersonationFailed);
         }
         let result = operation();
@@ -735,45 +659,6 @@ impl ConnectionSecurity {
         result
     }
 
-    fn duplicate_and_pin_client_root(
-        &self,
-        client_root_handle: u64,
-        root: &RootAuthorization,
-    ) -> Result<PinnedRootState, WindowsSecurityError> {
-        let source_handle = client_root_handle as usize as HANDLE;
-        if source_handle.is_null() || source_handle == INVALID_HANDLE_VALUE {
-            return Err(WindowsSecurityError::RootRejected);
-        }
-        // SAFETY: the PID was observed from the connected named pipe, no handle is inherited, and
-        // PROCESS_DUP_HANDLE is the only requested process right.
-        let process = OwnedFileHandle::new(unsafe {
-            OpenProcess(PROCESS_DUP_HANDLE, 0, self.observed_process_id)
-        })?;
-        let mut duplicated = null_mut();
-        // SAFETY: source process is the server-observed pipe client, source_handle is treated only
-        // as an opaque handle value in that process, the target is this broker process, and the
-        // duplicated access is reduced to traverse/attributes and cannot enumerate or read content.
-        if unsafe {
-            DuplicateHandle(
-                process.raw(),
-                source_handle,
-                GetCurrentProcess(),
-                &mut duplicated,
-                ROOT_DUPLICATED_ACCESS,
-                0,
-                0,
-            )
-        } == 0
-        {
-            return Err(WindowsSecurityError::RootRejected);
-        }
-        pin_root_handle(root, OwnedFileHandle::new(duplicated)?)
-    }
-}
-
-struct OwnedToken(HANDLE);
-
-impl OwnedToken {
     fn new(raw: HANDLE) -> Result<Self, WindowsSecurityError> {
         if raw.is_null() {
             Err(WindowsSecurityError::TokenUnavailable)
@@ -798,29 +683,6 @@ unsafe impl Sync for OwnedToken {}
 impl Drop for OwnedToken {
     fn drop(&mut self) {
         // SAFETY: this unique owner was constructed from a non-null token handle and closes once.
-        let _ = unsafe { CloseHandle(self.0) };
-    }
-}
-
-struct OwnedProcessHandle(HANDLE);
-
-impl OwnedProcessHandle {
-    fn new(raw: HANDLE) -> Result<Self, WindowsSecurityError> {
-        if raw.is_null() {
-            Err(WindowsSecurityError::TokenUnavailable)
-        } else {
-            Ok(Self(raw))
-        }
-    }
-
-    fn raw(&self) -> HANDLE {
-        self.0
-    }
-}
-
-impl Drop for OwnedProcessHandle {
-    fn drop(&mut self) {
-        // SAFETY: this unique owner was constructed from a non-null process handle and closes once.
         let _ = unsafe { CloseHandle(self.0) };
     }
 }
@@ -1252,23 +1114,6 @@ struct TokenEvidence {
     is_elevated: bool,
 }
 
-struct PrimaryTokenEvidence {
-    user_sid: Vec<u8>,
-    session_id: u32,
-    authentication_id: LUID,
-    is_elevated: bool,
-}
-
-impl PrimaryTokenEvidence {
-    fn matches_impersonation(&self, evidence: &TokenEvidence) -> bool {
-        self.user_sid == evidence.user_sid
-            && self.session_id == evidence.session_id
-            && self.authentication_id.LowPart == evidence.authentication_id.LowPart
-            && self.authentication_id.HighPart == evidence.authentication_id.HighPart
-            && self.is_elevated == evidence.is_elevated
-    }
-}
-
 fn capture_named_pipe_client_token(pipe: HANDLE) -> Result<OwnedToken, WindowsSecurityError> {
     // SAFETY: pipe is a connected server-side named pipe. Impersonation applies only to the
     // current host thread and is reverted on every path after this succeeds.
@@ -1315,49 +1160,6 @@ fn capture_named_pipe_client_token(pipe: HANDLE) -> Result<OwnedToken, WindowsSe
         return Err(WindowsSecurityError::RevertFailed);
     }
     result
-}
-
-fn query_primary_token_evidence(
-    process_id: u32,
-) -> Result<PrimaryTokenEvidence, WindowsSecurityError> {
-    // SAFETY: the process id came from GetNamedPipeClientProcessId and access is query-only.
-    let process = OwnedProcessHandle::new(unsafe {
-        OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, process_id)
-    })?;
-    let mut raw_token = null_mut();
-    // SAFETY: process is a live query handle and raw_token is a live output slot.
-    if unsafe { OpenProcessToken(process.raw(), TOKEN_QUERY, &mut raw_token) } == 0 {
-        return Err(WindowsSecurityError::TokenUnavailable);
-    }
-    let token = OwnedToken::new(raw_token)?;
-    let token_type = read_token_scalar::<TOKEN_TYPE>(&token, TokenType)
-        .map_err(|_| WindowsSecurityError::TokenEvidenceRejected("primary token type"))?;
-    if token_type != TokenPrimary {
-        return Err(WindowsSecurityError::TokenEvidenceRejected(
-            "primary token type value",
-        ));
-    }
-    let session_id = read_token_scalar::<u32>(&token, TokenSessionId)
-        .map_err(|_| WindowsSecurityError::TokenEvidenceRejected("primary session"))?;
-    let statistics = query_token_information(&token, TokenStatistics)
-        .map_err(|_| WindowsSecurityError::TokenEvidenceRejected("primary statistics"))?;
-    if statistics.len() < size_of::<TOKEN_STATISTICS>() {
-        return Err(WindowsSecurityError::TokenEvidenceRejected(
-            "primary statistics size",
-        ));
-    }
-    // SAFETY: size was checked and read_unaligned avoids assuming Vec<u8> alignment.
-    let statistics =
-        unsafe { std::ptr::read_unaligned(statistics.as_ptr().cast::<TOKEN_STATISTICS>()) };
-    let user_sid = query_token_sid_bytes(&token, "primary user")?;
-    let elevation = read_token_scalar::<TOKEN_ELEVATION>(&token, TokenElevation)
-        .map_err(|_| WindowsSecurityError::TokenEvidenceRejected("primary elevation"))?;
-    Ok(PrimaryTokenEvidence {
-        user_sid,
-        session_id,
-        authentication_id: statistics.AuthenticationId,
-        is_elevated: elevation.TokenIsElevated != 0,
-    })
 }
 
 fn query_token_evidence(
@@ -1492,7 +1294,7 @@ fn token_binding(
     connection_nonce: u64,
     process_id: u32,
     session_id: u32,
-    client_binary_identity: [u8; 32],
+    client_process_identity: [u8; 32],
 ) -> [u8; 32] {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"cedarflake-ame-pipe-token-binding-v1\0");
@@ -1501,7 +1303,7 @@ fn token_binding(
     hasher.update(&connection_nonce.to_le_bytes());
     hasher.update(&process_id.to_le_bytes());
     hasher.update(&session_id.to_le_bytes());
-    hasher.update(&client_binary_identity);
+    hasher.update(&client_process_identity);
     hasher.update(&evidence.user_sid);
     hasher.update(&evidence.authentication_id.LowPart.to_le_bytes());
     hasher.update(&evidence.authentication_id.HighPart.to_le_bytes());
@@ -1510,23 +1312,6 @@ fn token_binding(
     hasher.update(&evidence.token_type.to_le_bytes());
     hasher.update(&evidence.impersonation_level.to_le_bytes());
     hasher.update(&[u8::from(evidence.is_elevated)]);
-    *hasher.finalize().as_bytes()
-}
-
-fn disposable_client_identity(
-    connection_id: [u8; 16],
-    connection_generation: u64,
-    connection_nonce: u64,
-    process_id: u32,
-    session_id: u32,
-) -> [u8; 32] {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(b"cedarflake-ame-disposable-client-identity-v1\0");
-    hasher.update(&connection_id);
-    hasher.update(&connection_generation.to_le_bytes());
-    hasher.update(&connection_nonce.to_le_bytes());
-    hasher.update(&process_id.to_le_bytes());
-    hasher.update(&session_id.to_le_bytes());
     *hasher.finalize().as_bytes()
 }
 
@@ -1570,7 +1355,7 @@ mod tests {
             1,
             AuthenticatedPipeFacts {
                 opaque_token_binding: [2; 32],
-                client_binary_identity: [3; 32],
+                client_process_identity: [3; 32],
                 process_id: 100,
                 session_id: 3,
                 token_type: 2,
@@ -1631,8 +1416,8 @@ mod tests {
 
     #[test]
     fn root_duplicate_access_cannot_enumerate_or_mutate_content() {
-        assert_eq!(ROOT_DUPLICATED_ACCESS & 0x0000_0001, 0);
-        assert_eq!(ROOT_DUPLICATED_ACCESS, FILE_READ_ATTRIBUTES);
+        assert_eq!(caller::ROOT_DUPLICATED_ACCESS & 0x0000_0001, 0);
+        assert_eq!(caller::ROOT_DUPLICATED_ACCESS, FILE_READ_ATTRIBUTES);
     }
 
     #[test]
@@ -1677,7 +1462,7 @@ mod tests {
                 1,
                 AuthenticatedPipeFacts {
                     opaque_token_binding: [2; 32],
-                    client_binary_identity: [3; 32],
+                    client_process_identity: [3; 32],
                     process_id: 100,
                     session_id: 3,
                     token_type: 1,
@@ -1693,7 +1478,7 @@ mod tests {
                 1,
                 AuthenticatedPipeFacts {
                     opaque_token_binding: [2; 32],
-                    client_binary_identity: [3; 32],
+                    client_process_identity: [3; 32],
                     process_id: 100,
                     session_id: 3,
                     token_type: 2,
@@ -1706,7 +1491,7 @@ mod tests {
     }
 
     #[test]
-    fn connection_namespace_and_disposable_identity_bind_client_binary_and_generation() {
+    fn connection_namespace_binds_client_process_and_generation() {
         let evidence = TokenEvidence {
             user_sid: vec![1, 2, 3],
             session_id: 4,
@@ -1726,64 +1511,8 @@ mod tests {
         let second = token_binding(&evidence, [9; 16], 10, 11, 12, 4, [14; 32]);
         assert_ne!(first, second);
         assert_ne!(
-            disposable_client_identity([9; 16], 10, 11, 12, 4),
-            disposable_client_identity([9; 16], 15, 11, 12, 4)
-        );
-    }
-
-    #[test]
-    fn disclosure_probe_requires_every_ancestor_and_never_opens_content() {
-        let mut ancestors = Vec::new();
-        let mut candidates = Vec::new();
-        let visible = probe_disclosable_scope_with(
-            r"C:\Root",
-            &RootRelativeScope::Relative("album/item.jpg".to_owned()),
-            |path| {
-                ancestors.push(path.to_owned());
-                Ok(())
-            },
-            |path| {
-                candidates.push(path.to_owned());
-                Ok(CandidateProbe::Accessible)
-            },
-        )
-        .expect("accessible candidate");
-        assert!(visible);
-        assert_eq!(ancestors, [r"C:\Root", r"C:\Root\album"]);
-        assert_eq!(candidates, [r"C:\Root\album\item.jpg"]);
-
-        assert!(
-            probe_disclosable_scope_with(
-                r"C:\Root",
-                &RootRelativeScope::Relative("deleted.jpg".to_owned()),
-                |_| Ok(()),
-                |_| Ok(CandidateProbe::Missing),
-            )
-            .expect("enumerable parent proves deleted name disclosure")
-        );
-        assert!(
-            probe_disclosable_scope_with(
-                r"C:\Root",
-                &RootRelativeScope::Relative("private/item.jpg".to_owned()),
-                |path| {
-                    if path.ends_with("private") {
-                        Err(WindowsSecurityError::RootRejected)
-                    } else {
-                        Ok(())
-                    }
-                },
-                |_| Ok(CandidateProbe::Accessible),
-            )
-            .is_err()
-        );
-        assert!(
-            probe_disclosable_scope_with(
-                r"C:\Root",
-                &RootRelativeScope::Relative("denied.jpg".to_owned()),
-                |_| Ok(()),
-                |_| Err(WindowsSecurityError::RootRejected),
-            )
-            .is_err()
+            token_binding(&evidence, [9; 16], 10, 11, 12, 4, [13; 32]),
+            token_binding(&evidence, [9; 16], 15, 11, 12, 4, [13; 32])
         );
     }
 

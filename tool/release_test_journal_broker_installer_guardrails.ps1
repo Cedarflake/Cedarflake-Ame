@@ -549,6 +549,7 @@ function New-UninstallTransactionFixture {
         -ParentPrestate $prestate `
         -ExpectedPublisher "CN=Cedarflake Test Publisher" `
         -OwnedDirectories $ownedDirectories
+    $state.RemoveApplicationBundle = $true
     $physical = [pscustomobject]@{
         ProtectedTreeReady = -not $InitiallyMissingTree
         ServiceExists = -not $InitiallyMissingTree
@@ -1372,6 +1373,10 @@ $commonText = [System.IO.File]::ReadAllText(
     (Join-Path $PSScriptRoot "release_journal_broker_common.ps1"),
     [System.Text.Encoding]::UTF8
 )
+$commonText += [IO.File]::ReadAllText(
+    (Join-Path $PSScriptRoot "release_journal_broker_identity.ps1"),
+    [Text.Encoding]::UTF8
+)
 foreach ($requiredContract in @(
     "type= own",
     "start= demand",
@@ -2046,4 +2051,6 @@ if (
     throw "Portable release guardrails must reject publisher substitution and artifact tampering"
 }
 
+& (Join-Path $PSScriptRoot "release_test_journal_broker_identity.ps1")
+& (Join-Path $PSScriptRoot "release_test_journal_broker_uninstall_policy.ps1")
 Write-Output "journal_broker_installer_guardrails_passed"

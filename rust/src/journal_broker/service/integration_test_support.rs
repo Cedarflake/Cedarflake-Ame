@@ -92,7 +92,7 @@ impl PersistentChangeJournal for InProcessJournal {
             1,
             AuthenticatedPipeFacts {
                 opaque_token_binding: [51; 32],
-                client_binary_identity: [52; 32],
+                client_process_identity: [52; 32],
                 process_id: 400,
                 session_id: 9,
                 token_type: 2,

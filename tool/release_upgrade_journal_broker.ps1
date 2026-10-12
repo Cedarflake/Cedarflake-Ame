@@ -2,8 +2,8 @@
 param(
     [Parameter(Mandatory = $true)]
     [string]$BrokerBinaryPath,
-    [Parameter(Mandatory = $true)]
-    [string]$ExpectedPublisher,
+    [AllowEmptyString()]
+    [string]$ExpectedPublisher = "",
     [switch]$Repair
 )
 
@@ -12,18 +12,10 @@ $ErrorActionPreference = "Stop"
 
 Assert-AmeBrokerPlatform
 Assert-AmeBrokerAdministrator
-$sourceBinary = Assert-AmeBrokerBinary `
+$sourceBinary = Assert-AmeBrokerPayload `
     -Path $BrokerBinaryPath `
     -ExpectedPublisher $ExpectedPublisher
 Assert-AmeBrokerReleaseBinaryName -Path $sourceBinary
-$applicationInstallDirectory = Get-AmeApplicationInstallDirectory
-$installedClientBinary = Assert-AmeApplicationInstallation `
-    -InstallDirectory $applicationInstallDirectory `
-    -ExpectedPublisher $ExpectedPublisher
-$newIdentityManifest = New-AmeBrokerIdentityManifest `
-    -BinaryPath $sourceBinary `
-    -ClientBinaryPath $installedClientBinary `
-    -ExpectedPublisher $ExpectedPublisher
 $installDirectory = Get-AmeBrokerInstallDirectory
 $trustedProgramFilesPath = Get-AmeBrokerProgramFilesX64
 Repair-AmeBrokerInterruptedTransaction
@@ -56,16 +48,9 @@ if ($installedBinaryExists) {
         -Facts (Get-AmeBrokerAclFacts -Path $installedBinary) `
         -Kind "File" `
         -IncludeServiceSid $true
-    Assert-AmeBrokerBinary `
-        -Path $installedBinary `
-        -ExpectedPublisher $ExpectedPublisher | Out-Null
-    $installedIdentityManifest = New-AmeBrokerIdentityManifest `
+    Assert-AmeBrokerManifestBinary `
         -BinaryPath $installedBinary `
-        -ClientBinaryPath $installedClientBinary `
-        -ExpectedPublisher $ExpectedPublisher
-    if ($installedIdentityManifest -cne $previousIdentityManifest) {
-        throw "The installed broker identity does not match the protected service manifest"
-    }
+        -Manifest $previousIdentityManifest
 }
 $service = Get-Service -Name (Get-AmeBrokerServicePlan).ServiceName
 try {
@@ -90,9 +75,7 @@ $transaction = New-AmeBrokerTransactionState `
 $transaction.PreviousIdentityManifest = $previousIdentityManifest
 $transaction.WasRunning = $wasRunning
 $transaction.ExpectedPreviousBinary = if ($installedBinaryExists) {
-    Get-AmeBrokerTransactionBinaryFacts `
-        -Path $installedBinary `
-        -ExpectedPublisher $ExpectedPublisher
+    Get-AmeBrokerTransactionBinaryFacts -Path $installedBinary
 } else {
     New-AmeBrokerAbsentBinaryFacts
 }
@@ -103,19 +86,22 @@ if ((Test-Path -LiteralPath $stagedBinary) -or (Test-Path -LiteralPath $backupBi
 }
 Write-AmeBrokerTransactionState -State $transaction
 try {
-    Stop-AmeBrokerServiceBounded
-    Copy-Item -LiteralPath $sourceBinary -Destination $stagedBinary
+    Copy-AmeBrokerStagedPayload `
+        -SourcePath $sourceBinary `
+        -StagedPath $stagedBinary `
+        -IncludeServiceSid $true `
+        -ExpectedPublisher $ExpectedPublisher
     $transaction.Phase = "staged_binary"
     Write-AmeBrokerTransactionState -State $transaction
-    Set-AmeBrokerFileAcl -Path $stagedBinary -IncludeServiceSid $true
-    Assert-AmeBrokerBinary `
-        -Path $stagedBinary `
-        -ExpectedPublisher $ExpectedPublisher | Out-Null
+    $newIdentityManifest = New-AmeBrokerIdentityManifest `
+        -BinaryPath $stagedBinary `
+        -ExpectedPublisher $ExpectedPublisher
     $transaction.ExpectedNewBinary = Get-AmeBrokerTransactionBinaryFacts `
         -Path $stagedBinary `
         -ExpectedPublisher $ExpectedPublisher
     $transaction.NewIdentityManifest = $newIdentityManifest
     Write-AmeBrokerTransactionState -State $transaction
+    Stop-AmeBrokerServiceBounded
     if ($installedBinaryExists) {
         $transaction.ConfigurationChanged = $true
         $transaction.Phase = "service_holds_staged_pending"
@@ -168,7 +154,6 @@ try {
         -BinaryPath $installedBinary
     Assert-AmeBrokerInstallation `
         -BinaryPath $installedBinary `
-        -ClientBinaryPath $installedClientBinary `
         -ExpectedPublisher $ExpectedPublisher
     if ($wasRunning) {
         Start-AmeBrokerServiceBounded

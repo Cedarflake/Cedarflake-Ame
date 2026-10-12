@@ -45,8 +45,8 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | R2c reliability | `./tool/acceptance_run_r2c_reliability.ps1` | Real watcher latency and coalescing on a disposable root; isolated retained-catalog catch-up, queue, storage, memory, placeholder, metadata, and source-byte evidence | Prepared read-only R2c-H closeout |
 | R2c replacement reliability | `./tool/acceptance_run_r2c_replacement_reliability.ps1` | Disposable watcher operation latency, storm and restart recovery; isolated retained-catalog metadata inventory, cached gallery, source metadata, placeholder, full-scan, storage, and memory evidence | Prepared read-only R2c-M closeout |
 | R2c-R controlled local reliability | `./tool/acceptance_run_r2c_change_driven_reliability.ps1` | Exactly counted production-path live, durable P1, overflow/P2, million-record, no-change, priority, reset/trim, reconnect, cancellation, replacement, placeholder, path, and multi-root evidence using only fixture-owned disposable roots | Manual non-external Windows 11 x64 checkpoint; never retained-library acceptance |
-| Journal broker integration | `./tool/integration_test_windows_journal_broker.ps1` | Exactly counted disposable local NTFS tests for proof framing, two listeners, global eight-worker bounds, active-stop drain, listener readiness, case semantics, root replacement, reparse rejection, root-external filtering, bounded progress through unrelated-volume storms, cancellation, must-close backpressure, identity-probe deadline, restart, and installed-versus-portable activation | Broker transport, service, parser, or lifecycle changes |
-| Journal broker installer guardrails | `./tool/release_test_journal_broker_installer_guardrails.ps1` | Windows 11 x64, signing publisher, fixed destination, service account/SID/privileges/DACL, source/catalog isolation, no journal mutation, the existing eight install/repair/upgrade crash cases, and transaction-level marker-first uninstall/dead-owner recovery across every operation and final cleanup without changing SCM | Broker installer lifecycle changes |
+| Journal broker integration | `./tool/integration_test_windows_journal_broker.ps1` | Exactly counted disposable local NTFS tests for proof framing, two listeners, global eight-worker bounds, active-stop drain, listener readiness, case semantics, root replacement, reparse rejection, caller lifetime, revoked directory access, root-external filtering, bounded progress through unrelated-volume storms, cancellation, must-close backpressure, identity-probe deadline, restart, and unsigned watcher-first activation | Broker transport, service, parser, or lifecycle changes |
+| Journal broker installer guardrails | `./tool/release_test_journal_broker_installer_guardrails.ps1` | Windows 11 x64, optional signing policy, V2/V3 identity and rollback compatibility, fixed destination, service account/SID/privileges/DACL, source/catalog isolation, no journal mutation, the existing eight install/repair/upgrade crash cases, and transaction-level marker-first uninstall/dead-owner recovery across every operation and final cleanup without changing SCM | Broker installer lifecycle changes |
 | Installed journal broker acceptance guardrails | `./tool/acceptance_test_windows_journal_broker_guardrails.ps1` | Explicit token, fresh temporary workspace, externally pre-signed protected bundle/publisher, ValidationOnly non-mutation, protected result channel, limited-client replacement rejection, no-follow cleanup, and no certificate, signing, trust-store, or automatic-elevation path | Installed broker acceptance harness changes |
 | Release | `./tool/release_verify_candidate.ps1` | Immutable signed x64 application bundle and broker admission, Daily gate, Windows Release and bridge smoke, synthetic performance gate, optional retained real-library validation | Before a release candidate |
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP containing the same signed application and broker artifact, followed by archive-structure and extracted signature/publisher/protocol verification; no service installation | After a release build passes |
@@ -940,9 +940,9 @@ runtime-specific secure pipe constructor or ACL factory and ACL reader yield one
 with exactly SYSTEM/Administrators `FullControl` and current-user `ReadWrite|Synchronize`; it never
 falls back to an unsecured pipe or repairs access control after creation.
 
-The deterministic prerequisite matrix proves that a portable production identity returns explicit
-`LiveOnly` before constructing or connecting the broker factory, while the fixed installed identity
-may connect exactly once. It also drives volume-wide root-unrelated records through bounded partial
+The deterministic prerequisite matrix verifies unsigned watcher-first broker activation and explicit
+`LiveOnly` on actual broker absence or protocol failure. Native regressions cover retained caller
+process exit and directory-list permission revocation under captured impersonation. It also drives volume-wide root-unrelated records through bounded partial
 pages until the captured end. The installer guardrail retains its eight install/repair/upgrade crash
 cases. Its transaction-level matrix invokes the complete uninstall, injects crashes before and after
 each of seven mutations and after each completion write, and resumes the persisted marker through
@@ -951,6 +951,13 @@ deletion before and after its boundary, exact parent-prestate restoration, and c
 phase/pending-operation failure are covered. Completed postconditions are re-verified unless a
 strict persisted later operation specifically supersedes them. These checks do not invoke real SCM
 or FSCTL operations and do not substitute for the elevated acceptance above.
+
+The installer guardrail also invokes `release_test_journal_broker_identity.ps1` for unsigned and
+explicit-publisher policy, passive inspection, V3 manifests and V2 rollback identity. Its
+`release_test_journal_broker_uninstall_policy.ps1` companion verifies default broker-only removal,
+explicit `-RemoveApplicationBundle`, schema-2 recovery and invalid schema-3 intent. Default removal
+must make zero Application-tree accesses, including after interruption. These focused checks run
+inside the canonical lint invocation as well as independently.
 
 ## Release gate
 
@@ -980,12 +987,10 @@ gate passes; a tag push never obtains signing credentials. The accepted identity
 boundary, and deferred installer decisions are recorded in
 [ADR 0015](../architecture/0015-windows-release-distribution.md).
 
-The portable ZIP contains the broker executable only as signed installer-compatible payload. It
-does not install, start, repair, update, or remove SCM state and always remains `LiveOnly`; a broker
-already installed for the protected Program Files client does not authorize a user-writable
-portable executable. Product admission rejects that portable identity before constructing or
-connecting the broker factory, and transport defense rejects it before any SCM or named-pipe side
-effect. The hosted candidate flow builds once without credentials, transfers a manifest-bound
+The portable ZIP contains the broker executable as installer-compatible payload. Extraction does
+not install, repair, update, or remove SCM state. Debug, Release and portable clients can use an
+already installed compatible broker through the same caller/root access policy; signing and a fixed
+client path are not runtime prerequisites. The hosted signed candidate flow builds once without credentials, transfers a manifest-bound
 unsigned artifact to the protected Environment signer, and transfers the resulting immutable signed
 artifact to a separate credential-free verifier and read-only packager. The signer checks out no
 repository content and signs only the application and broker. The final write-capable publisher

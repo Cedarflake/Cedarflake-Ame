@@ -188,7 +188,7 @@ mod tests {
             1,
             AuthenticatedPipeFacts {
                 opaque_token_binding: [2; 32],
-                client_binary_identity: [3; 32],
+                client_process_identity: [3; 32],
                 process_id: 100,
                 session_id: 3,
                 token_type: 2,

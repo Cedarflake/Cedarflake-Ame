@@ -157,11 +157,6 @@ pub(crate) fn production_persistent_change_journal() -> std::sync::Arc<dyn Persi
 }
 
 #[cfg(windows)]
-pub(crate) fn production_client_allows_broker_activation() -> bool {
-    windows::service_identity::current_process_has_installed_client_identity()
-}
-
-#[cfg(windows)]
 pub(crate) struct ProductionPersistentJournalRoot {
     pub(crate) authorization: RootAuthorization,
     pub(crate) client_root_handle: u64,

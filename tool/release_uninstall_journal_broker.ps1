@@ -1,7 +1,8 @@
 [CmdletBinding(SupportsShouldProcess = $true, ConfirmImpact = "High")]
 param(
-    [Parameter(Mandatory = $true)]
-    [string]$ExpectedPublisher
+    [AllowEmptyString()]
+    [string]$ExpectedPublisher = "",
+    [switch]$RemoveApplicationBundle
 )
 
 $ErrorActionPreference = "Stop"
@@ -32,11 +33,12 @@ if (Test-Path -LiteralPath $installedBinary -PathType Leaf) {
         -Facts (Get-AmeBrokerAclFacts -Path $installedBinary) `
         -Kind "File" `
         -IncludeServiceSid $true
-    Assert-AmeBrokerBinary `
+    Assert-AmeBrokerPayload `
         -Path $installedBinary `
         -ExpectedPublisher $ExpectedPublisher | Out-Null
 }
-if (Test-Path -LiteralPath $applicationInstallDirectory -PathType Container) {
+if ($RemoveApplicationBundle -and
+    (Test-Path -LiteralPath $applicationInstallDirectory -PathType Container)) {
     Assert-AmeApplicationInstallation `
         -InstallDirectory $applicationInstallDirectory `
         -ExpectedPublisher $ExpectedPublisher | Out-Null
@@ -47,19 +49,17 @@ if (Test-AmeBrokerServiceExists) {
         -BinaryPath $installedBinary `
         -IdentityManifest $configuredIdentityManifest
     if (Test-Path -LiteralPath $installedBinary -PathType Leaf) {
-        $installedIdentityManifest = New-AmeBrokerIdentityManifest `
+        Assert-AmeBrokerManifestBinary `
             -BinaryPath $installedBinary `
-            -ClientBinaryPath (Get-AmeApplicationInstalledBinaryPath) `
-            -ExpectedPublisher $ExpectedPublisher
-        if ($installedIdentityManifest -cne $configuredIdentityManifest) {
-            throw "The installed broker identity does not match the protected service manifest"
-        }
+            -Manifest $configuredIdentityManifest
     }
 }
-if (-not $PSCmdlet.ShouldProcess(
-    $installDirectory,
+$removalDescription = if ($RemoveApplicationBundle) {
     "Remove the installed Ame Application bundle and journal broker"
-)) {
+} else {
+    "Remove the installed journal broker"
+}
+if (-not $PSCmdlet.ShouldProcess($installDirectory, $removalDescription)) {
     return
 }
 
@@ -81,6 +81,7 @@ try {
         -ParentPrestate $parentPrestate `
         -ExpectedPublisher $ExpectedPublisher `
         -OwnedDirectories $plannedOwnedDirectories
+    $transaction.RemoveApplicationBundle = [bool]$RemoveApplicationBundle
     Write-AmeBrokerTransactionState -State $transaction
     Complete-AmeBrokerUninstallTransaction -State $transaction
 } catch {

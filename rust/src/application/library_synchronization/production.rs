@@ -68,8 +68,7 @@ use crate::journal_broker::{
     PersistentChangeJournal, PersistentChangeJournalConnection,
     PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalOperationError,
     ProductionPersistentJournalRoot, describe_production_persistent_journal_root,
-    production_client_allows_broker_activation, production_persistent_change_journal,
-    production_persistent_journal_caller_claim,
+    production_persistent_change_journal, production_persistent_journal_caller_claim,
 };
 #[cfg(windows)]
 use crate::ports::{
@@ -1874,46 +1873,24 @@ fn poll_runtime_with_storage_inner(
 
 #[cfg(windows)]
 fn new_production_synchronization() -> ProductionSynchronization {
-    let allows_broker_activation = production_client_allows_broker_activation();
     let factory = production_persistent_change_journal();
-    new_production_synchronization_with_factory(
-        production_library_change_source_factory(),
-        factory,
-        allows_broker_activation,
-    )
+    new_production_synchronization_with_factory(production_library_change_source_factory(), factory)
 }
 
 #[cfg(windows)]
 fn new_production_synchronization_with_factory(
     start_source: LibraryChangeSourceStarter,
     factory: Arc<dyn PersistentChangeJournal>,
-    allows_broker_activation: bool,
 ) -> ProductionSynchronization {
-    let (persistent_change_journal_factory, persistent_change_journal, journal_opened) =
-        if allows_broker_activation {
-            (
-                Some(Arc::clone(&factory)),
-                PersistentChangeJournalConnection::LiveOnly(
-                    PersistentChangeJournalLiveOnlyReason::TransportUnavailable,
-                ),
-                false,
-            )
-        } else {
-            (
-                None,
-                PersistentChangeJournalConnection::LiveOnly(
-                    PersistentChangeJournalLiveOnlyReason::PortableDistribution,
-                ),
-                true,
-            )
-        };
     ProductionSynchronization {
         runtime: LibrarySynchronizationRuntime::new_production(start_source),
         catalog_session: None,
         poll_catalog: PollCatalogOwner::default(),
-        persistent_change_journal_factory,
-        _persistent_change_journal: persistent_change_journal,
-        persistent_change_journal_opened: journal_opened,
+        persistent_change_journal_factory: Some(factory),
+        _persistent_change_journal: PersistentChangeJournalConnection::LiveOnly(
+            PersistentChangeJournalLiveOnlyReason::TransportUnavailable,
+        ),
+        persistent_change_journal_opened: false,
         persistent_change_journal_caller: None,
         journal: None,
         journal_volume_cursor: None,
@@ -8283,7 +8260,6 @@ mod tests {
                 connect_count: Arc::clone(&connect_count),
                 close_count: Arc::clone(&close_count),
             }),
-            true,
         );
         let registry = ready_test_registry(runtime);
         let (epoch, cancelled, runtime) =
@@ -8475,7 +8451,6 @@ mod tests {
         let mut production = new_production_synchronization_with_factory(
             crate::ports::erase_library_change_source_factory(HealthyFactory),
             factory,
-            true,
         );
         production.open_persistent_change_journal_after_watcher();
 
@@ -8502,7 +8477,6 @@ mod tests {
         let mut production = new_production_synchronization_with_factory(
             crate::ports::erase_library_change_source_factory(HealthyFactory),
             factory,
-            true,
         );
         production.open_persistent_change_journal_after_watcher();
 
@@ -8521,7 +8495,7 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn portable_production_never_invokes_the_journal_factory() {
+    fn unsigned_production_defers_the_journal_factory_until_after_watcher_start() {
         let connect_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let factory = Arc::new(CountingJournalFactory {
@@ -8532,45 +8506,12 @@ mod tests {
         let mut production = new_production_synchronization_with_factory(
             crate::ports::erase_library_change_source_factory(HealthyFactory),
             factory,
-            false,
-        );
-
-        assert_eq!(connect_count.load(Ordering::Acquire), 0);
-        assert!(matches!(
-            production._persistent_change_journal,
-            PersistentChangeJournalConnection::LiveOnly(
-                PersistentChangeJournalLiveOnlyReason::PortableDistribution
-            )
-        ));
-        assert_eq!(
-            production.reconnect_persistent_change_journal(),
-            Err(PersistentChangeJournalOperationError::TransportUnavailable)
-        );
-        assert_eq!(connect_count.load(Ordering::Acquire), 0);
-        production.stop().expect("stop portable runtime");
-        assert_eq!(close_count.load(Ordering::Acquire), 0);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn installed_production_defers_the_journal_factory_until_after_watcher_start() {
-        let connect_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let factory = Arc::new(CountingJournalFactory {
-            connect_count: Arc::clone(&connect_count),
-            close_count: Arc::clone(&close_count),
-            close_failures: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-        });
-        let mut production = new_production_synchronization_with_factory(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            factory,
-            true,
         );
 
         assert_eq!(connect_count.load(Ordering::Acquire), 0);
         production.open_persistent_change_journal_after_watcher();
         assert_eq!(connect_count.load(Ordering::Acquire), 1);
-        production.stop().expect("stop installed runtime");
+        production.stop().expect("stop unsigned runtime");
         assert_eq!(close_count.load(Ordering::Acquire), 1);
     }
 
@@ -8615,7 +8556,6 @@ mod tests {
         let mut production = new_production_synchronization_with_factory(
             crate::ports::erase_library_change_source_factory(probe.clone()),
             Arc::new(probe),
-            true,
         );
 
         let snapshot =
