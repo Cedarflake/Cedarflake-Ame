@@ -75,7 +75,18 @@ normal close occurred later than the method's 30-second stop bound. Preserve tha
 separate source/restoration checks. The fixture waits for previous-page work before opening the
 viewer, although a rail jump alone does not admit that work. Before another lifetime, change that
 ordering through the actual viewer navigation entrypoint and review the remaining allowance and
-unchanged assertions. This lower-priority fixture stays deferred during the ordinary-client repair.
+unchanged assertions. While the authorized installation awaits its manual Windows elevation,
+admit one changed-order continuation, bounded to 60 active minutes including preparation and review;
+retain the earlier consumed attempts rather than restarting their allowances. First expose the
+painted historical boundary, open it through native input, and only then deliver Left and wait for
+the real previous-page result. A dedicated admission owner must reject rail-only, wrong-selection,
+duplicate-input and late-result evidence. Preserve the 180-second hold, 30-second pixel deadline,
+ten-second stability and original close/return assertions. A diagnostic failure ends the owned
+process within the existing stop bound. Reuse the generated corpus and copy only its bounded closed
+catalog; bind the current original profile afresh without overwriting its newer state. The fixture
+build must bind its own current source separately from the restored canonical payload's historical
+verification identity. This continuation admits no change to product behavior or another unchanged
+whole-gate replay.
 
 Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sandbox diagnosis
 and continue functional repairs and native verification through isolated host storage. Environment
