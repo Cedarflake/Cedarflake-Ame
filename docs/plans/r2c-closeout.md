@@ -73,6 +73,24 @@ the paging observation. Ordinary shipped-entrypoint, held OS-read, C01/C02 and f
 obligations remain separate. The authorized installation still requires completed Windows consent
 and installer interaction before the ordinary-client October membership check.
 
+Admit one optimized-client UX-06B continuation using the already verified native scanner/catalog
+barriers. The prior ordinary Release attempt missed the active-update interval; this changed method
+holds the two real scan calls until native removal enters, then holds the real unregister until the
+512-image publisher is refreshing while the 10000-image peer has accepted real entries and remains
+active. Preserve every existing overlap, reservation, single-removal, reimport and pixel assertion.
+Reuse all 10514 generated sources unchanged and back up only the previously closed three-root
+derived catalog. The current Release entrypoint uses the existing durable original-profile lease;
+it must reject the Debug storage override, bind its current compilation inputs and restore the
+canonical payload after building. This is controlled operation ordering, not production latency.
+Reserve 60 active minutes for preparation and focused checks, 15 for one native lifetime and 15 for
+inspection and records. Retain the 900-second owned lifetime, 180-second native-removal admission,
+300-second real-work completion, 180-second reimport, six-second normal close, four-GiB available
+entry check and two-GiB client/system reserve. Require exact 10000/512/2 membership, preserved peer
+identities, one new completed scan per peer, one reimport, original-profile/catalog preservation and
+full source integrity. No real source, service installation, source mutation, new synchronization
+path or unchanged retry is admitted. Source-copy/OS-read, ordinary shipped-entrypoint, C01/C02 and
+the remaining platform/candidate obligations stay separate.
+
 Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sandbox diagnosis
 and continue functional repairs and native verification through isolated host storage. Environment
 investigation and evidence maintenance do not displace these user workflows.

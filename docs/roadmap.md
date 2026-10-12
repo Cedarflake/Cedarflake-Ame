@@ -160,9 +160,10 @@ position-stability evidence and selected current Release gallery observations; p
 and remaining final-source/client duties remain explicit.
 Native viewer close/reopen during pending paging
 and an admitted source-copy future now preserves the new selection and original pixels through
-old-work retirement and normal exit; the
-[optimized fixture attempt](acceptance/r2c-release-native.md#release-pending-viewer-method-checkpoint)
-fails before the paging boundary, so remaining Release duties stay open. The
+old-work retirement and normal exit. The selected
+[Release pending-page continuation](acceptance/r2c-release-native.md#release-pending-page-close-and-reopen-on-2026-10-13)
+also passes native replacement, late-result retirement and normal close; preserve the earlier
+failed optimized methods and the separate source-copy, OS-read and shipped-entrypoint duties. The
 selected source rewrite/rename/removal path now has native Debug identity, current-pixel and natural
 viewer-return evidence after source reads retire, plus
 [current Release input, identity continuity and normal retirement](acceptance/r2c-release-native.md#release-source-rewrite-rename-and-removal-on-2026-10-12).
