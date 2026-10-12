@@ -55,6 +55,7 @@ function Read-AmeInstallerDatabase {
             MsiLockPermissionsEx = 'MsiLockPermissionsEx,LockObject,Table,SDDLText,Condition'
             CustomAction = 'Action,Type,Source,Target'
             InstallExecuteSequence = 'Action,Condition,Sequence'
+            InstallUISequence = 'Action,Condition,Sequence'
             LaunchCondition = 'Condition,Description'
             Upgrade = 'UpgradeCode,VersionMin,VersionMax,Attributes,Remove,ActionProperty'
             Media = 'DiskId,LastSequence,Cabinet'
@@ -62,6 +63,8 @@ function Read-AmeInstallerDatabase {
             Shortcut = 'Shortcut,Directory_,Name,Component_,Target,Arguments,WkDir'
             Registry = 'Registry,Root,Key,Name,Value,Component_'
             Dialog = 'Dialog,Control_First,Control_Default,Control_Cancel'
+            Control = 'Dialog_,Control,Type,Attributes,Property,Text,Control_Next'
+            CheckBox = 'Property,Value'
             ControlEvent = 'Dialog_,Control_,Event,Argument,Condition,Ordering'
         }
         $model = [ordered]@{ Tables = $tables; Template = $database.SummaryInfo.Template }

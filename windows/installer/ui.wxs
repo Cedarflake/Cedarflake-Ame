@@ -13,18 +13,15 @@
       <DialogRef Id="FatalError" />
       <DialogRef Id="FilesInUse" />
       <DialogRef Id="MsiRMFilesInUse" />
-      <DialogRef Id="PrepareDlg" />
+      <DialogRef Id="AmeInstallOptionsDlg" />
       <DialogRef Id="ProgressDlg" />
       <DialogRef Id="ResumeDlg" />
       <DialogRef Id="UserExit" />
-      <Publish Dialog="WelcomeDlg" Control="Next" Event="NewDialog" Value="CustomizeDlg" />
-      <Publish Dialog="CustomizeDlg" Control="Back" Event="NewDialog" Value="WelcomeDlg" />
-      <Publish Dialog="CustomizeDlg" Control="Next" Event="NewDialog" Value="VerifyReadyDlg" />
       <Publish Dialog="BrowseDlg" Control="OK" Event="CheckTargetPath" Value="[_BrowseProperty]" Order="1" />
       <Publish Dialog="BrowseDlg" Control="OK" Event="SetTargetPath" Value="[_BrowseProperty]" Order="2" />
       <Publish Dialog="BrowseDlg" Control="OK" Event="EndDialog" Value="Return" Order="3" />
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog"
-               Value="CustomizeDlg" Condition="NOT Installed" />
+               Value="AmeInstallOptionsDlg" Condition="NOT Installed" />
       <Publish Dialog="VerifyReadyDlg" Control="Back" Event="NewDialog"
                Value="MaintenanceTypeDlg" Condition="Installed" />
       <Publish Dialog="MaintenanceWelcomeDlg" Control="Next" Event="NewDialog" Value="MaintenanceTypeDlg" />

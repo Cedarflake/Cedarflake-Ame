@@ -2810,3 +2810,44 @@ The pipe owner has 118 production lines and 186 dedicated test lines. The Window
 decoding has 42 production lines and 51 dedicated test lines; service configuration has 182 lines.
 The script privilege policy has 20 production lines and 18 dedicated test lines; the remaining
 installer common owner has 3526 production lines.
+
+### Direct installation options on 2026-10-13
+
+The preceding elevation result did not mean that the user saw or cancelled a consent prompt;
+the user reports no prompt. An explicitly elevated launch of the same verified bundle then reaches
+the MSI interface. That interaction ends with MSI exit 1602 before service installation. The feature
+tree and launch splash do not meet the requested installation experience.
+
+The options page now opens directly with a native path field, folder browser and independent Start
+Menu/desktop checkboxes. It removes the launch splash and introductory pages while retaining the
+stock confirmation, cancellation, repair and removal dialogs. Feature costing and migration precede
+checkbox initialization; explicit checked/unchecked events precede forward navigation. Back returns
+to the selected values. UI initialization cannot change unattended installation or repair choices.
+
+The rebuilt package passes 57 native installer cases, actual MSI table verification and 26 rejecting
+mutations. Four isolated MSI sessions also pass all 16 combinations of incoming feature states and
+new checkbox values using the native condition evaluator. These sessions execute only costing and
+exact property actions, not installation. The extracted embedded MSI matches its verified digest.
+Setup SHA-256 is `C968F088BC221AC3AC2616DBEE00B1805C80EDAA5DDD23AAB7F46DA52F9DAC93`;
+MSI SHA-256 is `413EF24367A8BFDE8C3627B9FD20784D84979ADC782EBC6B92194333421365BA`.
+The subsequent administrator launch is cancelled by Windows before the new setup starts; no native
+interaction or installed-client pass is claimed for this package.
+
+The applicable current-source static Daily partition exits zero: complete lint, 1743 Rust library
+tests in 991.02 seconds, three broker binary tests and 16 asynchronous bridge contracts pass, with
+23 explicit ignores unchanged. This installer-only change does not rerun Flutter/native application
+interaction or establish a new complete Daily, installed lifecycle or C01/C02 acceptance result.
+
+The UI invariant now has a separate 117-line verification owner; the remaining layout owner has
+124 production lines and no inline tests. Dedicated database-policy and MSI condition tests have
+80 and 71 lines. The options definition has 52 lines and its navigation facade has 36 lines.
+
+Hosted run [38287571044](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38287571044)
+on `608b884` passes nine required components and fails Static/Rust: 1742 pass, one fails and 23
+remain explicitly ignored. Mixed-load sample 22 sees no P1 progress within the existing five-second
+bound, while P2 advances from 2816 to 2944 and P0 becomes visible in 49.1419 ms. One catalog
+revalidation takes 7119 ms. Its matching thread measures identity open/path/file-ID queries at
+25/43/4 microseconds and the interval surrounding handle retirement at 7119186 microseconds.
+These wall-clock observations do not distinguish native blocking from descheduling or waive the
+failed gate; the existing C01 obligation and original deadlines remain. No unchanged rerun is
+performed.

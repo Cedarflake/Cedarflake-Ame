@@ -1,6 +1,7 @@
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 . (Join-Path $PSScriptRoot 'release_installer_layout.ps1')
+. (Join-Path $PSScriptRoot 'release_installer_ui.ps1')
 
 function Assert-AmeInstallerPolicy {
     param([Parameter(Mandatory = $true)]$Model, [Parameter(Mandatory = $true)]$Receipt)
@@ -47,6 +48,8 @@ function Assert-AmeInstallerPolicy {
         SetARPINSTALLLOCATION = @('51', 'ARPINSTALLLOCATION', '[AMEAPPDIR]')
         SetAMEAPPDIR = @('51', 'AMEAPPDIR', '[AME_PREVIOUSAPPDIR]')
         SetREINSTALLMODE = @('51', 'REINSTALLMODE', 'amus')
+        SetAmeStartMenuChoice = @('51', 'AmeStartMenuChoice', '1')
+        SetAmeDesktopChoice = @('51', 'AmeDesktopChoice', '1')
         AmeValidateInstallation = @('1', 'AmeInstallerAdmission', 'AmeValidateInstallation')
         AmeRequireRollback = @('19', '', $null)
         SetAmeVerifyInstalledService = @('51', 'AmeVerifyInstalledService', $Receipt.brokerIdentity)
@@ -102,4 +105,5 @@ function Assert-AmeInstallerPolicy {
     Require (@($Model.LaunchCondition | Where-Object { $_.Condition -ceq 'NOT WIX_DOWNGRADE_DETECTED' }).Count -eq 1) 'downgrade rejection missing'
 
     Assert-AmeInstallerLayout $Model $Receipt
+    Assert-AmeInstallerUi $Model
 }

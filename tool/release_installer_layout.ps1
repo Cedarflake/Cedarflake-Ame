@@ -121,24 +121,4 @@ function Assert-AmeInstallerLayout {
         Require ($permissions.ContainsKey('CreateFolder/' + $component.Directory_)) 'missing directory permissions'
     }
     Require ($permissions.ContainsKey('ServiceInstall/AmeJournalBroker')) 'missing service permissions'
-    foreach ($dialog in @('WelcomeDlg', 'CustomizeDlg', 'BrowseDlg', 'MaintenanceWelcomeDlg', 'MaintenanceTypeDlg', 'VerifyReadyDlg', 'ProgressDlg', 'ExitDialog')) {
-        Require (@($Model.Dialog | Where-Object { $_.Dialog -ceq $dialog }).Count -eq 1) "missing normal workflow dialog $dialog"
-    }
-    Require (@($Model.Dialog | Where-Object { $_.Dialog -match 'License|Eula' }).Count -eq 0) 'unexpected license dialog'
-    foreach ($navigation in @(@('WelcomeDlg', 'CustomizeDlg'), @('CustomizeDlg', 'VerifyReadyDlg'))) {
-        Require (@($Model.ControlEvent | Where-Object {
-            $_.Dialog_ -ceq $navigation[0] -and $_.Control_ -ceq 'Next' -and $_.Event -ceq 'NewDialog' -and
-            $_.Argument -ceq $navigation[1] -and $_.Condition -ceq '1'
-        }).Count -eq 1) 'installation choices are disconnected'
-    }
-    foreach ($mode in @('Repair', 'Remove')) {
-        Require (@($Model.ControlEvent | Where-Object {
-            $_.Dialog_ -ceq 'MaintenanceTypeDlg' -and $_.Control_ -ceq ($mode + 'Button') -and
-            $_.Event -ceq 'NewDialog' -and $_.Argument -ceq 'VerifyReadyDlg' -and $_.Condition -ceq '1'
-        }).Count -eq 1) "maintenance action $mode is disconnected"
-    }
-    Require (@($Model.ControlEvent | Where-Object {
-        $_.Dialog_ -ceq 'VerifyReadyDlg' -and $_.Control_ -ceq 'Repair' -and
-        $_.Event -ceq 'Reinstall' -and $_.Argument -ceq 'All'
-    }).Count -eq 1) 'repair does not select the complete product'
 }

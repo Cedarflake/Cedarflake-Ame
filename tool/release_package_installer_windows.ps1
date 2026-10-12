@@ -83,7 +83,8 @@ try {
     $identity = "AMEJBID3|protocol=5|max_frame=1048576|sha256=" + ([string]$broker.sha256).ToUpperInvariant()
     $productCode = Get-AmeInstallerGuid "product/$version"
     $sources = @((Join-Path $repository "windows/installer/package.wxs"),
-        (Join-Path $repository "windows/installer/ui.wxs"), $generated)
+        (Join-Path $repository "windows/installer/ui.wxs"),
+        (Join-Path $repository "windows/installer/options.wxs"), $generated)
     foreach ($source in $sources) {
         $leases.Add([IO.FileStream]::new($source, [IO.FileMode]::Open, [IO.FileAccess]::Read, [IO.FileShare]::Read))
     }
@@ -115,6 +116,8 @@ try {
         -DtfAssemblyPath (Join-Path $WixSdkDirectory "tools/net472/WixToolset.Dtf.WindowsInstaller.dll")
     Assert-AmeInstallerPolicy $model ([pscustomobject]$receipt)
     Test-AmeInstallerPolicyRegressions $model ([pscustomobject]$receipt)
+    & (Join-Path $PSScriptRoot 'release_test_installer_ui.ps1') -PackagePath $msi `
+        -DtfAssemblyPath (Join-Path $WixSdkDirectory 'tools/net472/WixToolset.Dtf.WindowsInstaller.dll')
     $receipt.databasePolicy = "passed"
     $setup = New-AmeInstallerBundle -Wix $wix -BootstrapperExtension $wixBootstrapper -PackagePath $msi `
         -Version $version -OutputDirectory $output -Repository $repository

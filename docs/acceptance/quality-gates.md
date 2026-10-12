@@ -1036,10 +1036,14 @@ and a new output directory below repository `build`. `-AcceptWixBinaryEula` requ
 of the build-tool maintenance agreement in ADR 0027; it does not authorize a subscription.
 The builder holds the repository lock, verifies every payload digest, builds/tests the native
 admission module with warnings denied, verifies the emitted MSI's native service, ACL, file,
-upgrade, action-ordering and maintenance-dialog tables, and emits one embedded-payload MSI plus
-its receipt, and a Burn setup executable that opens the MSI interface after early elevation.
+upgrade, action-ordering, native options and maintenance-dialog tables, and emits one embedded-payload
+MSI plus its receipt, and a Burn setup executable that opens the MSI interface after early elevation.
 Supply the bootstrapper inputs through `-WixBootstrapperPackagePath` and `-WixBootstrapperDirectory`.
 It also runs the rejecting database-policy cases against modified in-memory models.
+`./tool/release_test_installer_ui.ps1 -PackagePath <msi> -DtfAssemblyPath <pinned-dtf-assembly>`
+uses isolated MSI sessions for costing, exact property initialization and native condition evaluation
+across all four incoming shortcut states and four checkbox combinations. It never executes the
+installation sequence; native dialog interaction and installed shortcuts retain separate checks.
 It does not install the package or establish lifecycle acceptance. The compiler-free
 `./tool/release_test_installer_payload.ps1` covers version limits, stable product/component
 identities, unsafe payload paths, shortcut ownership and complete file/directory ACL generation.

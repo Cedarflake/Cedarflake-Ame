@@ -40,8 +40,8 @@ installation directory is not part of uninstall.
 
 Keep the broker beneath native `FOLDERID_ProgramFilesX64` in fixed `Cedarflake Ame/Journal Broker`
 directories. The application defaults to the sibling `Application` directory and may use another
-local protected installation directory selected through the standard MSI feature tree. Reject
-volume roots, overlap with the protected broker, redirected/reparse destinations, untrusted parent
+local protected installation directory selected through a native MSI path field and folder browser.
+Reject volume roots, overlap with the protected broker, redirected/reparse destinations, untrusted parent
 ownership and writable ACLs before mutation. A new destination must be empty; an existing nonempty
 destination must belong to the registered application component. Preserve ADR 0024's
 LocalSystem own-process demand-start service, restricted SID, exact required privileges and
@@ -87,12 +87,22 @@ WiX 7.0.0 is pinned to upstream source commit
 The matching `WixToolset.UI.wixext` package is pinned to SHA-256
 `1716C2CBED4613A7291B5775630CF4D0DCA597568BA1128CEC5FDA1903F05BD1` at the same source commit.
 Compose its stock localized dialogs for installation, repair and removal; do not display its
-placeholder product license or invent an Ame license agreement. A mandatory core feature owns the
-application and broker. Independent optional features own Start Menu and desktop shortcuts;
-Start Menu is initially selected and desktop is initially unselected. Windows Installer migrates
-feature choices across upgrades. A product-owned HKLM setting restores the selected application
-directory before costing; the cached MSI and registered executable component independently bind
-that location for repair and upgrade admission. No UI extension DLL is installed with the product.
+placeholder product license or invent an Ame license agreement. The first interactive installation
+page contains a `PathEdit`, a stock folder browser and two native `CheckBox` controls; no feature
+tree, welcome page or launch splash precedes these choices. These standard Windows Installer
+controls retain native keyboard and accessibility behavior. The stock feature tree hides ordinary
+directory and shortcut choices behind component-state menus; the composed options page addresses
+that product gap without replacing the install engine or folder picker.
+
+A mandatory core feature owns the application and broker. Independent optional features own
+Start Menu and desktop shortcuts; Start Menu is initially selected and desktop is initially
+unselected. Initialize the checkboxes from costed feature states after `MigrateFeatureStates`;
+publish explicit `AddLocal` or `Remove` decisions before leaving the options page. Returning from
+confirmation preserves the selected values, and UI initialization never runs in the execute
+sequence. Windows Installer migrates feature choices across upgrades. A product-owned HKLM setting
+restores the selected application directory before costing; the cached MSI and registered executable
+component independently bind that location for repair and upgrade admission. No UI extension DLL is
+installed with the product.
 The matching `WixToolset.Bal.wixext` package is pinned to SHA-256
 `0F30C29F9E53A6C6ACDEA2CE0D1F0833153883FA3D16ED8DFF75005EDD7FE876` at the same source commit.
 Its native internal-UI bootstrapper requires no additional runtime and owns the repair payload cache.
@@ -140,3 +150,5 @@ lifecycle fixtures. Reverting a failed package uses MSI rollback, not source or 
 - [WiX internal-UI bootstrapper](https://docs.firegiant.com/wix/schema/bal/wixinternaluibootstrapperapplication/)
 - [MSI optional restore-point creation](https://learn.microsoft.com/en-us/windows/win32/msi/msifastinstall)
 - [Burn chain rollback and restore-point policy](https://docs.firegiant.com/wix/schema/wxs/chain/)
+- [Windows Installer native checkbox behavior](https://learn.microsoft.com/en-us/windows/win32/msi/checkbox-control)
+- [Windows Installer path control](https://learn.microsoft.com/en-us/windows/win32/msi/pathedit-control)

@@ -24,7 +24,44 @@ function Test-AmeInstallerPolicyRegressions {
         missing_maintenance = { param($value) ($value.Dialog | Where-Object Dialog -CEQ 'MaintenanceTypeDlg').Dialog = 'Missing' }
         mandatory_desktop_shortcut = { param($value) ($value.Feature | Where-Object Feature -CEQ 'AmeDesktopFeature').Attributes = '24' }
         foreign_registry_write = { param($value) $value.Registry[0].Key = 'SOFTWARE\OtherProduct' }
-        missing_choice_page = { param($value) ($value.ControlEvent | Where-Object { $_.Dialog_ -ceq 'WelcomeDlg' -and $_.Control_ -ceq 'Next' -and $_.Event -ceq 'NewDialog' }).Argument = 'VerifyReadyDlg' }
+        missing_choice_page = {
+            param($value)
+            ($value.InstallUISequence | Where-Object Action -CEQ 'AmeInstallOptionsDlg').Condition = '0'
+        }
+        uneditable_installation_path = {
+            param($value)
+            ($value.Control | Where-Object { $_.Dialog_ -ceq 'AmeInstallOptionsDlg' -and $_.Control -ceq 'InstallPath' }).Type = 'Text'
+        }
+        missing_shortcut_checkbox = {
+            param($value)
+            ($value.Control | Where-Object { $_.Dialog_ -ceq 'AmeInstallOptionsDlg' -and $_.Control -ceq 'Desktop' }).Type = 'Text'
+        }
+        missing_unchecked_choice = {
+            param($value)
+            ($value.ControlEvent | Where-Object {
+                $_.Dialog_ -ceq 'AmeInstallOptionsDlg' -and $_.Event -ceq 'Remove' -and $_.Argument -ceq 'AmeDesktopFeature'
+            }).Condition = '0'
+        }
+        unconditional_shortcut = {
+            param($value)
+            ($value.ControlEvent | Where-Object {
+                $_.Dialog_ -ceq 'AmeInstallOptionsDlg' -and $_.Event -ceq 'AddLocal' -and $_.Argument -ceq 'AmeStartMenuFeature'
+            }).Condition = '1'
+        }
+        reset_migrated_shortcut = {
+            param($value)
+            ($value.InstallUISequence | Where-Object Action -CEQ 'SetAmeStartMenuChoice').Condition = '1'
+        }
+        initialization_after_choices = {
+            param($value)
+            ($value.InstallUISequence | Where-Object Action -CEQ 'SetAmeDesktopChoice').Sequence = '1399'
+        }
+        next_before_path_validation = {
+            param($value)
+            ($value.ControlEvent | Where-Object {
+                $_.Dialog_ -ceq 'AmeInstallOptionsDlg' -and $_.Event -ceq 'NewDialog'
+            }).Ordering = '0'
+        }
         missing_start_rollback = { param($value) ($value.CustomAction | Where-Object Action -CEQ 'AmeStopInstalledService').Type = '3073' }
     }
     foreach ($name in $rejections.Keys) {
