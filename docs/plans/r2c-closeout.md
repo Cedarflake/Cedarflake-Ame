@@ -36,8 +36,10 @@ to verify the reported membership. The [reclamation checkpoint](../acceptance/r2
 owns its current proof and remaining client verification. The unsigned runtime and installer
 correction now has focused Windows broker and complete static Daily verification in the
 [unsigned continuity checkpoint](../acceptance/r2c-retained-runtime.md#unsigned-continuity-runtime).
-Complete fresh optimized-artifact verification, then the separately authorized service installation
-and ordinary-client membership check; those paths are not yet verified. Verify the actual Windows
+Fresh optimized-artifact verification now passes. Complete the separately authorized installation
+and ordinary-client membership check; those paths are not yet verified. Use the existing combined
+application/broker installation entrypoint for the ordinary-client flow, without separate user
+configuration of the components. Verify the actual Windows
 access mechanism before retaining a service requirement; no automatic startup enumeration, source
 mutation, relaxed caller/root authorization or new Debug-specific synchronization mode is admitted.
 The ordinary-token journal probe succeeds through a volume directory handle, but its generated

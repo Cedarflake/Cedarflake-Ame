@@ -2724,8 +2724,10 @@ now retains the enclosing script scope; the combined installer guardrail passes 
 validation. The corrected accumulated static Daily partition then passes complete lint,
 warnings-denied Clippy, Dart analysis, 1731 Rust library cases, three broker binary cases and
 16 asynchronous bridge contracts; 23 explicitly opt-in Rust cases remain ignored. The library
-suite takes 1660.19 seconds. Optimized artifact verification remains pending; the preceding Flutter,
-scan and failed accessibility observations above are not relabeled as current full-Daily success.
+suite takes 1660.19 seconds. Clean commit `256985b` then passes fresh unsigned Windows verification,
+including the application and broker payload, three native window cases, two real-engine retirement
+cases and the catalog-free Release bridge smoke. The preceding Flutter, scan and failed
+accessibility observations above are not relabeled as current full-Daily success.
 
 No service installation or ordinary-client full-continuity result is established by these tests.
 The retained catalog and source media remain unchanged; the 30 missing October entries still
