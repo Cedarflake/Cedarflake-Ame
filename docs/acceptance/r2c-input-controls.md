@@ -59,6 +59,13 @@ extension/corrupt fixtures, retained-import cancellation, native picker, second-
 preview regeneration, viewer and update/removal sequences also pass, including final source-byte
 and exact directory-count checks. This is native Debug evidence, not a Release coverage result.
 
+Unsigned Windows verification passes from clean commit
+`dad5f0f70f2bceb40e0d31dfae529c68dae74a31` on 2026-10-12: fresh Release application and broker,
+three engine-free window cases, two actual engine-retirement cases and the isolated catalog-free
+Release bridge smoke. The build records matching payload identities and no dirty source tree.
+This packaging result does not replace native Debug's covered-folder path with a Release interaction
+claim. Final hosted and remaining R2c client/attribution duties stay open.
+
 Ownership accounting after correction: Rust scan facade 773 lines (tests in dedicated modules),
 root selection 182, coverage 84 and directory adapter 56, with no inline test cases in these owners;
 the dedicated coverage suite has 321 lines. Dart primary lifecycle is 687, run 165, query-refresh

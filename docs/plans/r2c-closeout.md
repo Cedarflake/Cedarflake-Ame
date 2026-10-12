@@ -47,29 +47,20 @@ The native continuation preserves the same paused count, correct feedback, expli
 normal two-process retirement, with original profile/catalog and generated sources unchanged.
 Preserve these results; no replay of this selected feedback path is required for documentation.
 
-The current functional follow-up is nested-source admission. Current selection recognizes
-an exact registered path or the same directory identity but not a child already covered by a
-registered parent. Independent root/location registration can therefore duplicate the shared
-gallery entries. Reproduce parent-then-child admission with generated sources, then prevent duplicate
-coverage at its application/persistence boundary and preserve access through the existing folder
-scope. Do not silently remove existing registrations, alter originals or turn this into R3 content
-deduplication. Import queuing remains a separate capability, not an existing behavior claim.
-Start with one application-boundary regression using two generated PNGs, one parent and one child,
-and fresh temporary derived storage. Check exact root/gallery membership, scan admission and source
-bytes after the second selection. Keep that focused run serial under the repository lock; no native
-or real-library run is needed to establish this registration defect. A correction must preserve
-exact-path updates, directory identity checks and existing registrations; presentation-only path
-filtering cannot enforce registration policy.
 The [nested-source checkpoint](../acceptance/r2c-input-controls.md#nested-source-selection)
 now retains the original two-image/two-root/three-entry failure and passes seven owning Rust
 regressions plus connected picker/query checks and the actual native Debug bridge/gallery path.
 Coverage returns the existing root/folder without another scan or source enumeration/content read.
+Preserve exact-path updates, directory identity and existing registrations. Legacy overlap
+consolidation, reverse child-to-parent import, import queuing and R3 content deduplication are outside
+this correction; it does not authorize source mutation or silently retire another registration.
 The full Rust run's two precise module-manifest failures have a focused correction and rejection
-checks; preserve that failed run. Complete candidate and Release verification remain in progress;
-preserve exact-path update, cancellation and later-user-query precedence.
+checks; preserve that failed run. Complete Flutter and clean-source unsigned Release verification
+also pass. Final hosted and remaining client verification stay open; preserve exact-path update,
+cancellation and later-user-query precedence.
 
 Hosted run `38194585598` on `fa7275c` passes all ten required component jobs and the aggregate gate;
-the separate signing channel remains skipped. This does not cover the uncommitted nested-source
+the separate signing channel remains skipped. This does not cover the subsequent nested-source
 change. The preceding `38186866675` run on `6a252a1` retains its C01 connection-lifetime failure and
 distinct C02 UIA assembly-loading timeout; the `82d911c` stop-deadline and mixed-load failures also
 remain historical evidence. A later pass does not explain those failures, and no unchanged hosted
