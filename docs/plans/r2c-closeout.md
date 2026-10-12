@@ -56,37 +56,22 @@ create/rename records omit names. This is not a drop-in replacement for the curr
 contract. Keep that capability result distinct from complete tracking; the immediate unsigned-client
 repair retains the existing reconciliation semantics rather than adding an unverified second path.
 
-The [UX-05B optimized-client attempt](../acceptance/r2c-release-native.md#release-pending-viewer-method-checkpoint)
-is consumed and failed before pending paging was established. Preserve its bound inputs and failed
-receipts; the ordinary profile, canonical Release and all source files are verified restored or
-unchanged. Continue diagnosis within the admitted 90 active minutes, including preparation, review,
-input and records; build and complete source-hash wall time remain separate. Before another native
-admission, correct the diagnostic standard-output dependency and establish why the actual rail
-input did not capture a previous-page result. Do not infer a product defect or repeat this method
-unchanged. Preserve the 180-second page hold, 30-second original-pixel deadline, ten-second stable
-selection, actual input and normal-retirement assertions. Any revised lifetime retains isolated
-derived storage, unchanged generated sources, a 600-second lifetime, 4-GiB entry availability and
-2-GiB client ceiling/system reserve. This fixture entrypoint does not establish ordinary shipped
-entrypoint or held source-buffer/OS-read coverage. Current CI and other final gates remain separate.
+The [Release pending-page continuation](../acceptance/r2c-release-native.md#release-pending-page-close-and-reopen-on-2026-10-13)
+now passes actual historical-tile opening, Left admission, pending-page Escape, different-image
+reopening and late result retirement. Current original pixels, ten-second selection stability,
+valid gallery return and normal process retirement pass with unchanged generated sources,
+original profile/catalog, exact membership and scan history. The current fixture build and restored
+canonical payload retain separate source identities. Preserve the two earlier failed methods in
+the [method checkpoint](../acceptance/r2c-release-native.md#release-pending-viewer-method-checkpoint);
+the changed-order allowance is consumed and this selected paging path needs no replay.
 
-The changed-method lifetime with bounded file traces is also consumed and failed before the paging
-boundary. It records a completed historical read but no previous-page request or viewer input;
-normal close occurred later than the method's 30-second stop bound. Preserve that failure and the
-separate source/restoration checks. The fixture waits for previous-page work before opening the
-viewer, although a rail jump alone does not admit that work. Before another lifetime, change that
-ordering through the actual viewer navigation entrypoint and review the remaining allowance and
-unchanged assertions. While the authorized installation awaits its manual Windows elevation,
-admit one changed-order continuation, bounded to 60 active minutes including preparation and review;
-retain the earlier consumed attempts rather than restarting their allowances. First expose the
-painted historical boundary, open it through native input, and only then deliver Left and wait for
-the real previous-page result. A dedicated admission owner must reject rail-only, wrong-selection,
-duplicate-input and late-result evidence. Preserve the 180-second hold, 30-second pixel deadline,
-ten-second stability and original close/return assertions. A diagnostic failure ends the owned
-process within the existing stop bound. Reuse the generated corpus and copy only its bounded closed
-catalog; bind the current original profile afresh without overwriting its newer state. The fixture
-build must bind its own current source separately from the restored canonical payload's historical
-verification identity. This continuation admits no change to product behavior or another unchanged
-whole-gate replay.
+The separate held source-copy Release variant remains open. Its Debug observer reads Flutter's
+`ImmutableBuffer.debugDisposed`, which the installed SDK implements only inside assertions and
+which throws in Release. Establish a Release-valid retirement observation before porting that
+method; do not delete its disposal assertion, probe a disposed engine object, or infer a pass from
+the paging observation. Ordinary shipped-entrypoint, held OS-read, C01/C02 and final candidate
+obligations remain separate. The authorized installation still requires completed Windows consent
+and installer interaction before the ordinary-client October membership check.
 
 Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sandbox diagnosis
 and continue functional repairs and native verification through isolated host storage. Environment

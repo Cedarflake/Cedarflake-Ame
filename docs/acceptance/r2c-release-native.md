@@ -1600,3 +1600,40 @@ exact 10000/512 membership and passes integrity/foreign-key checks. The user sub
 ordinary app before the protected-catalog post-check, so this run cannot claim a complete final
 original-catalog hash comparison. Do not overwrite that resumed user state. The source/read and
 retirement observations remain under `.build/r2c-release-viewer-pending-io-20261012`.
+
+### Release pending-page close and reopen on 2026-10-13
+
+The changed-order fixture opens the painted historical boundary through actual pointer input
+before admitting Left. Its dedicated admission owner rejects rail-only, wrong-selection,
+duplicate-input and late-result evidence. The earlier observer checks remain applicable to the
+unchanged Dart helpers. Current compilation binds 996 inputs on `c6f5217`; the 35.5-second Release
+build and source-binding positive/rejecting checks pass. The canonical payload is restored against
+its original verification identity, without relabeling that historical receipt. Final admission
+binds 1133 inputs and 18 client payload files. Only a 66387968-byte closed generated catalog is
+copied; all 10514 generated source files are reused.
+
+Run `96bff13d6f1c4ea7a7defe7f933c1a1b` establishes the actual historical first tile at offset 4908,
+opens its 8000-by-8000 original and requests the real previous 500-item page with Left. The unchanged
+page result remains held while native Escape closes that viewer and a different tile opens a new
+one. Releasing the old result produces current 1500-by-12000 original pixels after 147 ms. The
+selection remains stable for more than ten seconds, with no stale viewer replacement or error
+notification. A second Escape returns to both current gallery identities and pixels. The observer
+records one rail click, two tile clicks, one Left and two Escape releases, one held previous-page
+read and its completed return. The 180-second hold and 30-second pixel deadlines remain unchanged.
+
+Title-bar Close reaches observed exit in 355.107 ms. The 178504-ms owned client lifetime peaks at
+499187712 working-set bytes; minimum sampled host availability is 5532241920 bytes. Application
+and Job exit codes are zero, the complete owned group retires, and original configuration and
+preferences are restored without cleanup failures. Final checks preserve all source hashes,
+identities, sizes and dates, all 1133 bound inputs, the canonical payload and original catalog
+components. Exact 10000/512 membership, peer asset/location identities and complete scan histories
+remain unchanged; integrity and foreign-key checks pass. The reused-source hash check takes
+47.086 seconds. Small receipts remain under `.build/r2c-release-viewer-current-20261013`.
+
+This closes the selected Release pending-page close/reopen observation, not all UX-05B acceptance.
+It does not hold a native source-copy or OS-read operation and uses a diagnostic entrypoint around
+the production gallery/viewer. The separate source-copy Debug observer depends on the installed
+SDK's assertion-only `ImmutableBuffer.debugDisposed`; it cannot be copied unchanged into Release
+or lose that assertion to manufacture a pass. Ordinary shipped-entrypoint, source-copy, C01/C02,
+installer/client continuity and remaining final/platform duties stay open. Both earlier failed
+lifetimes remain failed; no unchanged native or full-gate replay is used.
