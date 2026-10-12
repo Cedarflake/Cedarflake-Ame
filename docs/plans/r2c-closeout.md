@@ -133,6 +133,23 @@ Verify one unchanged full scan, exactly 202 current locations, unchanged generat
 original profile/catalog, and normal process retirement. Native visible rows prove input and
 position boundaries; do not infer an unobserved complete in-memory roster or cursor from them.
 
+The next Release observation covers the remaining ordinary UX-06B multi-root input path.
+Reuse the verified 10000-image generated source and copy only its closed derived catalog through
+SQLite backup. Add two fresh generated roots containing 512 and two 128-by-96 PNGs, bounded to
+1 MiB encoded and 32 MiB including four decoded bytes per pixel. Preparation receives 45 active
+minutes, interaction 15 and final inspection ten; count the current source/method inspection in
+that allowance. Keep the existing profile lease, single-instance guard, repository lock, 900-second
+owned lifetime and 2-GiB client/free-memory bounds. Verify every reused source against its frozen
+oracle before and after, within 120 seconds per pass; never copy or mutate the reused images.
+Use the actual update dialog for the large and medium roots, remove only the two-image registration
+while a peer update remains active, then reimport that unchanged root after peer completion.
+Require current peer pixels, exact memberships, independent completed updates, no resurrected
+registration, protected original profile/catalog and normal retirement. The existing instrumented
+Debug proof retains the exact publication barrier and old-spool authority boundaries; visible
+Release input cannot claim an unobserved ordering or physical reclamation. Record a missed active
+peer interval instead of replaying unchanged. Directory unavailability remains a separate method:
+current identity lookup can discover a same-volume rename, so renaming alone cannot prove it.
+
 Hosted run `38200650029` on `7c75774` passes all ten required component jobs and the aggregate gate;
 the separate signing channel remains skipped. It covers the forward nested-source selection, not
 the subsequent parent-import consolidation. The preceding `38186866675` run on `6a252a1` retains its C01 connection-lifetime failure and
