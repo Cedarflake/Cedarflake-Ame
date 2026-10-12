@@ -3,6 +3,8 @@ use rusqlite::Connection;
 
 use super::*;
 
+#[cfg(windows)]
+mod hard_links;
 mod membership;
 
 #[test]

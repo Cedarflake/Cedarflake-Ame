@@ -2602,3 +2602,43 @@ installed-service or real-source acceptance.
 collected session stream and a frozen copy of the unsigned receipt. The original source/native
 binding and independent review remain linked above. Local checks establish this correction's
 engineering checkpoint; the incident table and earlier failed evidence retain their separate exits.
+
+## Retained hard-link source state
+
+On 2026-10-12, an actual generated Windows hard-link import reproduces the reported full-open
+failure on the prior writer: pause after both aliases, rewrite in place, resume only the first
+alias, pause again, then reopen. The error is `catalog_source_revision_contract_unverifiable`.
+
+Source reconciliation now updates retained aliases in the same scan and write transaction when
+admitting a new physical generation. Namespace verification remains independent: an unvisited
+alias stays pending, and a deleted alias cannot enter publication. Existing captured-observation
+and batch conflict rules remain intact. Published locations and preview references are unchanged.
+No propagation query is added for a new identity with no stored group.
+
+Already-written mixed checkpoints have a narrow open-time repair: retire only an older pending
+first-import alias whose current root authority, exact Windows identity and newer revisited
+same-asset sibling are proved. The unchanged complete schema and row validation must succeed in
+that same transaction before commit. Equal-generation conflicts, all-pending groups and malformed
+identities still fail closed; a later validation failure restores the removed row and roster.
+
+Final focused verification passes 12 application resumption cases and five adapter transaction
+cases, including actual hard links, continued import, cancellation, namespace removal, legacy
+recovery/idempotence, active-preview isolation, stale observation rejection and rollback of aliases,
+generation allocation and pending membership. Generated source bytes are checked unchanged after
+the operations; no real media or retained user catalog is accessed. Review identifies and closes
+an extra-colon Windows identity admission error with a rejecting regression. Initial fixture-only
+compile and lookup corrections are not counted as product passes.
+
+The new reconciliation and compatibility owners have 341 and 69 production lines, with no inline
+tests. Their focused dedicated files contain 376 adapter lines and 445 application lines. The
+SQLite facade is 4006 physical lines with no inline test module; its main dedicated suite is 8007
+lines. The migration facade retains 9932 main-region lines, including existing test hooks, and
+5267 inline-test-module lines. This scoped extraction does not close its larger readability debt.
+The canonical lint invocation stops in the unchanged native-accessibility guardrail while
+`File.Replace` publishes its sequential progress record: "Unable to remove the file to be replaced."
+This is a real gate failure at the existing C02 boundary, after its controlled negative cases.
+No causal tooling change or unchanged lint replay follows. The remaining canonical static owners,
+format check, warnings-denied all-target/all-feature Clippy, Dart analysis and 16 bridge contracts
+pass separately. Full Rust, Flutter, native and unsigned Windows checks remain pending; these
+component results do not turn the interrupted lint or complete Daily into a pass. Logs are retained
+under `.build/r2c-hard-link-resumption`.

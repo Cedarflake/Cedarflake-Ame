@@ -26,6 +26,7 @@ mod current_schema;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 mod persistent_journal_baseline;
+mod retained_source_state;
 mod retired_root_authority;
 mod scan_resume_inventory;
 
@@ -1016,7 +1017,12 @@ fn repair_and_validate_current_terminal_recovery_state(
         legacy_terminal_metadata_inventory_repair_needed(connection, SCHEMA_VERSION)?;
     let repair_retired_live_gap = retired_live_gap_claim_repair_needed(connection, SCHEMA_VERSION)?;
     let repair_removed_root_authority = retired_root_authority::repair_needed(connection)?;
-    if !repair_terminal_inventory && !repair_retired_live_gap && !repair_removed_root_authority {
+    let repair_retained_source_state = retained_source_state::repair_needed(connection)?;
+    if !repair_terminal_inventory
+        && !repair_retired_live_gap
+        && !repair_removed_root_authority
+        && !repair_retained_source_state
+    {
         return validate_current_schema_contract(connection);
     }
     let transaction = connection
@@ -1025,6 +1031,7 @@ fn repair_and_validate_current_terminal_recovery_state(
     repair_legacy_terminal_metadata_inventory_state_transaction(&transaction, SCHEMA_VERSION)?;
     repair_retired_live_gap_claims_transaction(&transaction, SCHEMA_VERSION)?;
     retired_root_authority::repair_in_transaction(&transaction)?;
+    retained_source_state::repair_in_transaction(&transaction)?;
     validate_current_schema_contract_with_source_revision_rows(&transaction)?;
     transaction.commit().map_err(database_error)
 }

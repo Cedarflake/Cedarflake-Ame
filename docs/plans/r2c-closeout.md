@@ -27,22 +27,42 @@ Prioritize Ame's retained-library update, scrolling and preview defects. Stop Sa
 and continue functional repairs and native verification through isolated host storage. Environment
 investigation and evidence maintenance do not displace these user workflows.
 
-Current-head hosted run `38052664349` on `9a47c70` fails in the worker-report guardrail before the
-Rust suite starts; the other nine required jobs pass. Its five-minute child deadline currently
-includes a cold Cargo test build, and the timeout drops captured output during cleanup. The log
-does not identify whether compilation or execution timed out. Admit one bounded tool correction:
-extract Cargo command admission and worker-report lifecycle owners, prepare the same test target
-under a separate fifteen-minute owned-process deadline, retain the exact test's five-minute
-deadline, and surface a bounded output tail on failure. Preserve exact-matrix admission, source
-audits, process ownership and independent cleanup. Prove build-failure, timeout, result and cleanup
-boundaries, then run the guardrail, lint and one serial Daily. This changes no product code, source
-access, dependency, schema or acceptance threshold and does not close the earlier C01 incident.
-The extracted owners bring the audited guardrail closure from seven to nine sources: admit exactly
-nine rather than the former eight-source cap, reject the tenth, and preserve all byte, AST, depth,
-function, scope and queue bounds. This source-topology adjustment grants no executable, path,
-mutation or workload admission beyond the fixed preparation command.
+The reported hard-link first-import resumption regression takes immediate priority: after a paused
+import retains two aliases, an in-place rewrite and a second pause after revisiting only one alias
+can commit conflicting physical source generations and prevent a full catalog reopen. Prove the
+sequence with generated hard links, then repair atomic staging identity reconciliation without
+weakening full validation, namespace revalidation, captured-observation admission or published
+baselines. A narrowly proved compatibility repair may retire only an unverified older first-import
+alias with a newer, revisited same-asset Windows identity sibling; full validation must pass in the
+same transaction. The [hard-link recovery checkpoint](../acceptance/r2c-retained-runtime.md#retained-hard-link-source-state)
+owns the reproducer, rejection cases and verification. Complete applicable gates before closure.
+This bounded repair admits no original-source access, schema relaxation or additional forced rescan.
+Its lint attempt reaches the unchanged C02 report-replacement failure. Preserve that failure and
+complete the unaffected quality components serially; do not replay lint unchanged or weaken its
+reporting contract. Package the independently verified hard-link correction with that limitation.
+
+The subsequent host Release observation covers query replacement during live publication. Rebuild
+the optimized payload after the hard-link product correction and verify its source binding.
+Copy the 4032 small generated PNGs into fresh owned storage, import through the native picker,
+then add 24 generated images while replacing the visible search query. Require the final query,
+counts, dates and decoded images to agree, followed by normal Close and exact source verification.
+This host method temporarily substitutes the two default configuration/preferences files so the
+unchanged Release storage resolver uses an isolated catalog and cache. Durable original backups,
+fixed target bindings, Ame's per-user instance mutex, repository lock and independent restoration
+are prerequisites. Original catalog/WAL/SHM bytes must remain unchanged. The owned application has
+a 900-second lifetime, 300-second import/convergence bounds, two-GiB working-set ceiling and
+two-GiB available-memory admission. No original media, broker installation or Sandbox participates.
+This is a bounded functional Release observation, not the frozen mixed-media performance workload
+or proof of a deliberately delayed callback race. Failed preparation never admits profile mutation.
+
+Hosted run `38159574848` on `82d911c` passes the worker-report guardrail and nine required jobs,
+but the Rust suite reports 1689 passed, two failed and 23 ignored. One failure exceeds the existing
+two-second synchronization stop limit; the mixed-load connection-lifetime control records PerEpoch
+P95 1.114281 seconds against the unchanged one-second gate. Preserve both failures and the older
+C01 evidence. A passing local run does not explain them, and no unchanged hosted rerun is admitted
+as a correction. Complete the concrete hard-link regression before returning to their attribution.
 The [worker-report boundary checkpoint](../acceptance/quality-gates.md#worker-report-preparation-boundary)
-records the implementation, focused verification, review correction and remaining whole-gate duties.
+owns the completed tool correction and its verification; no repeat of that repair is needed.
 
 The [generated host arrival/update check](../acceptance/r2c-browsing-diagnosis.md#generated-arrival-and-ordinary-update-on-2026-10-10)
 verifies 4000 initial images plus 32 live arrivals, ordinary update, selected paging/viewer return

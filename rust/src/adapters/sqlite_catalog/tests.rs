@@ -22,6 +22,7 @@ mod preview_publication;
 mod query_snapshot;
 mod root_unregistration;
 mod scan_checkpoint;
+mod source_reconciliation;
 mod time_anchor_window;
 
 const TEST_QUERY_ID: &str = "test-default-query";

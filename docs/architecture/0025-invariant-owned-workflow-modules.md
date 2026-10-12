@@ -136,6 +136,13 @@ persistence layers.
   Statement and binding lifetimes end before commit; rollback and optional-value replacement retain
   the caller's atomicity. Identity-group comparison, generation allocation and active-alias
   invalidation remain upstream and cannot be bypassed by row serialization.
+- `source_reconciliation.rs` owns captured source-state admission, generation allocation and
+  physical-alias propagation inside that same write transaction. A staged observation updates only
+  aliases in its scan and retains their independent namespace-verification roster; live observations
+  retain their active and unfinished-scan scope. Staging cannot invalidate active preview ownership.
+  `migrations/retained_source_state.rs` admits only shrink-only retirement of an older unverified
+  first-import alias with a newer verified same-asset sibling. Complete validation before commit
+  preserves rejection and rollback for every other inconsistent catalog state.
 - `identity_group_state.rs` owns physical-identity state aggregation and consistency reads for an
   active publication or selected scan. Staged state takes precedence only when that scan contains
   the identity; an empty result falls back to the active publication. The connection's bounded
