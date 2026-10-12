@@ -1525,9 +1525,40 @@ and those assertions pass unchanged. Final-source lint, the complete Flutter Dai
 native scan integration pass; the scan lifetime is 54817 ms. The UIA partition fails at progress-record
 replacement after three of ten phases, with normal application/Job retirement and cleanup. This
 [C02 recurrence](r2c-interleaving-remediation.md#local-uia-progress-replacement-on-2026-10-12) remains
-separate from the position finding. Unsigned Release and native position verification remain open.
+separate from the position finding. Clean `a609e33` unsigned Release, native window/engine lifecycle
+checks and catalog-free bridge smoke pass. The selected native position check below also passes.
 
 Affected handwritten owners contain 1453 viewport production lines, 297 removal-coordinator lines
 and 77 page-reader lines, with no inline tests. The two dedicated regression files contain 339 and
 111 lines. The broader viewport split remains retained debt; this repair adds no source scan,
 schema, bridge, dependency or media-mutation behavior.
+
+### Release retained position after unrelated removal
+
+Clean candidate and Release payload `a609e33` match all 1029 bound source, payload, helper and
+fixture files. SQLite backup copies only the preceding observation's 66387968-byte closed derived
+catalog. All 10514 generated sources are reused without copying or mutation, with a fresh isolated
+cache and the existing original-profile lease, repository lock and bounded owned Job.
+
+The medium root is selected and actual gallery-wheel input reaches its last window. Before removal,
+accessibility exposes `image-0019..0000`, the header remains 512 images, and current amber pixels
+occupy the final rows. The small root's own menu and confirmation remove only its registration.
+With no intervening gallery scroll, the settled result retains the exact same 20 names, visible row
+positions and time-rail marker; the small sidebar entry disappears. These before/after observations
+verify retained position, not a continuous-frame latency bound or removal during an active update.
+
+Title-bar Close reaches observed process exit in approximately 326 ms. The reported owned client
+lifetime is 483731 ms, sampled peak working set is 160456704 bytes, process/Job exit codes are zero,
+and the owned group retires with no cleanup failures. Closed revision eight contains exactly
+10000/512 locations. SQLite integrity and foreign keys pass; peer root IDs, active scans,
+asset/location identities and complete scan histories match the initial snapshot. All source
+identities, sizes, dates and hashes remain unchanged; the reused-source hash pass takes 49.269
+seconds. All bound files, original configuration/preferences and protected catalog/WAL/SHM checks
+pass after profile restoration.
+
+An initial rail click produces no observed movement, so ordinary gallery-wheel input establishes
+the required baseline. One indexed menu activation is rejected by the automation cache before
+acting; a fresh screenshot supports the subsequent coordinate input. Neither observation is
+assigned a product cause. Small local receipts remain in
+`.build/r2c-release-removal-position-20261012`. This closes C15's selected Release position defect;
+the missed active-update overlap, C01/C02 and remaining candidate/platform duties stay separate.

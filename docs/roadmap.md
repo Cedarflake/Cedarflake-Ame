@@ -140,8 +140,10 @@ directory-loss recovery during a peer update;
 this generated-client result does not establish complete synchronization acceptance. The
 [Release multi-root observation](acceptance/r2c-release-native.md#release-multi-root-observation-on-2026-10-12)
 completes ordinary updates and reimport but misses the active-update removal interval. Its
-unrelated-root removal exposes a reproduced gallery-position jump; the focused anchored-display
-correction requires current-source gates and native verification before closing that finding. The
+unrelated-root removal exposed a reproduced gallery-position jump; the anchored-display correction
+now has focused, local quality, unsigned Release and
+[native position-retention verification](acceptance/r2c-release-native.md#release-retained-position-after-unrelated-removal).
+That selected defect is closed; the active-update overlap and final candidate duties remain. The
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,
 the corrected continuous search input, committed-removal display Retry and focused sidebar position

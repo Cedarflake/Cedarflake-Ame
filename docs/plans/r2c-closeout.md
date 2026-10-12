@@ -134,6 +134,13 @@ Verify one unchanged full scan, exactly 202 current locations, unchanged generat
 original profile/catalog, and normal process retirement. Native visible rows prove input and
 position boundaries; do not infer an unobserved complete in-memory roster or cursor from them.
 
+The [Release position delta](../acceptance/r2c-release-native.md#release-retained-position-after-unrelated-removal)
+now preserves the medium root's last-window images and rail marker through actual removal of the
+small registration. Current-source quality and clean unsigned Release pass except the separately
+retained C02 UIA failure. Exact peer membership, identities and scan histories, unchanged sources,
+restored original profile/catalog and normal retirement also pass. Preserve this selected C15 result
+without replaying the following consumed method; active-update overlap and other variants stay open.
+
 The [Release multi-root observation](../acceptance/r2c-release-native.md#release-multi-root-observation-on-2026-10-12)
 completes ordinary updates and subsequent removal/reimport with source and lifetime checks, but
 misses the active-update removal interval. Do not replay that unchanged workload. Its unrelated-root
