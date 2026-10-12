@@ -37,8 +37,7 @@ class LibraryTaskSurfaceSelection {
         updates.hasFeedback &&
         (!ownsPrimarySurface ||
             state.hasRetainedScan ||
-            state.primaryScanSnapshot.publication ==
-                LibraryScanPublication.reloadPending ||
+            state.primaryScanSnapshot.hasUnresolvedPublication ||
             (primaryStatus == LibraryStatus.removing && updates.hasActive));
   }
 

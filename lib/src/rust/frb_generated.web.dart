@@ -193,6 +193,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot dco_decode_catalog_snapshot(dynamic raw);
 
   @protected
+  ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
+
+  @protected
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
 
   @protected
@@ -299,6 +302,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<AssetLocationView> dco_decode_list_asset_location_view(dynamic raw);
+
+  @protected
+  List<ConsolidatedLibraryRoot> dco_decode_list_consolidated_library_root(
+    dynamic raw,
+  );
 
   @protected
   List<GalleryLayoutDateGroup> dco_decode_list_gallery_layout_date_group(
@@ -661,6 +669,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot sse_decode_catalog_snapshot(SseDeserializer deserializer);
 
   @protected
+  ConsolidatedLibraryRoot sse_decode_consolidated_library_root(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileIdentityEvidence sse_decode_file_identity_evidence(
     SseDeserializer deserializer,
   );
@@ -795,6 +808,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<AssetLocationView> sse_decode_list_asset_location_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ConsolidatedLibraryRoot> sse_decode_list_consolidated_library_root(
     SseDeserializer deserializer,
   );
 
@@ -1234,6 +1252,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_consolidated_library_root(
+    ConsolidatedLibraryRoot self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_file_identity_evidence(
     FileIdentityEvidence self,
     SseSerializer serializer,
@@ -1401,6 +1425,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_asset_location_view(
     List<AssetLocationView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_consolidated_library_root(
+    List<ConsolidatedLibraryRoot> self,
     SseSerializer serializer,
   );
 

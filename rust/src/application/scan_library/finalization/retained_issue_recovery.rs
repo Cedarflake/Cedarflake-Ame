@@ -31,6 +31,24 @@ const NONBLOCKING_CODES: &[&str] = &[
     "capture_time_invalid",
 ];
 
+pub(in crate::application::scan_library) fn require_complete_namespace(
+    catalog: &SqliteCatalog,
+    scan_id: &str,
+) -> Result<(), ScanError> {
+    let classified: Vec<&str> = TERMINAL_CODES
+        .iter()
+        .chain(NONBLOCKING_CODES)
+        .copied()
+        .collect();
+    if retained_scan_has_unclassified_issues(catalog, scan_id, &classified)? {
+        return Err(ScanError::new(
+            "catalog_root_consolidation_incomplete",
+            "A parent import with unresolved source reads cannot replace child sources",
+        ));
+    }
+    Ok(())
+}
+
 pub(super) fn restore(
     plan: &mut FinalizationPlan,
     catalog: &SqliteCatalog,

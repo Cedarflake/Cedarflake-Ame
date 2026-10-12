@@ -538,6 +538,12 @@ pub struct ScanIssue {
     pub message: String,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ConsolidatedLibraryRoot {
+    pub previous_root_id: String,
+    pub relative_path: String,
+}
+
 #[derive(Clone, Debug)]
 pub enum ScanEvent {
     Started {
@@ -575,6 +581,7 @@ pub enum ScanEvent {
         issue_count: u64,
         catalog_path: String,
         was_limited: bool,
+        consolidated_roots: Vec<ConsolidatedLibraryRoot>,
     },
     Cancelled {
         scan_id: String,

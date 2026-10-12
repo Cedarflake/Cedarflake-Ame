@@ -1,5 +1,6 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
+import "library_scan_completion_recovery.dart";
 import "library_scan_target.dart";
 
 const _recentIssueLimit = 20;
@@ -19,6 +20,20 @@ class LibraryScanSession {
   RecoverableLibraryScan? _activeScan;
   RecoverableLibraryScan? _pausedScan;
   LibraryScanTarget _target = const LibraryDirectoryScan();
+  LibraryRootConsolidation? _rootConsolidation;
+  LibraryScanCompletionRecovery? _completionRecovery;
+
+  LibraryRootConsolidation? get rootConsolidation => _rootConsolidation;
+  LibraryScanCompletionRecovery? get completionRecovery => _completionRecovery;
+
+  void retainCompletionRecovery(LibraryScanCompletionRecovery recovery) =>
+      _completionRecovery = recovery;
+
+  void resolveCompletionRecovery(LibraryScanCompletionRecovery recovery) {
+    if (identical(_completionRecovery, recovery)) {
+      _completionRecovery = null;
+    }
+  }
 
   LibraryScanTarget get target => _target;
 
@@ -33,12 +48,16 @@ class LibraryScanSession {
     LibraryScanTarget target = const LibraryDirectoryScan(),
   }) {
     _target = target;
+    _rootConsolidation = null;
+    _completionRecovery = null;
     _activeScanId = scan.scanId;
     _activeScan = scan;
     _pausedScan = null;
   }
 
   void restorePaused(RecoverableLibraryScan scan) {
+    _rootConsolidation = null;
+    _completionRecovery = null;
     _activeScanId = null;
     _activeScan = null;
     _pausedScan = scan;
@@ -137,7 +156,9 @@ class LibraryScanSession {
         :final assetCount,
         :final issueCount,
         :final wasLimited,
+        :final rootConsolidation,
       ):
+        _rootConsolidation = rootConsolidation;
         _clearActive();
         return LibraryScanTransition(
           state: state.copyWith(
@@ -262,6 +283,8 @@ class LibraryScanSession {
 
   void clear() {
     _clearActive();
+    _rootConsolidation = null;
+    _completionRecovery = null;
     _pausedScan = null;
     _target = const LibraryDirectoryScan();
   }

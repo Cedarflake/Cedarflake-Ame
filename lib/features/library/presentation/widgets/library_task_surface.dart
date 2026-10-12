@@ -29,6 +29,9 @@ class LibraryTaskSurface extends StatelessWidget {
   Widget build(BuildContext context) {
     final isLibraryUpdate = state.taskKind == LibraryTaskKind.update;
     final isRootRemoval = state.taskKind == LibraryTaskKind.remove;
+    final isConfirmingPublication =
+        state.primaryScanSnapshot.publication ==
+        LibraryScanPublication.confirmationPending;
     final isPublishedReload =
         state.primaryScanSnapshot.publication ==
         LibraryScanPublication.reloadPending;
@@ -52,10 +55,13 @@ class LibraryTaskSurface extends StatelessWidget {
             : LibraryStrings.removingFromAme(
                 _rootName(state.removingRootDisplayPath),
               ),
+      LibraryStatus.refreshing when isConfirmingPublication => "正在确认扫描结果…",
       LibraryStatus.refreshing => isPublishedReload ? "正在刷新图库显示…" : "正在更新图库…",
       LibraryStatus.cancelled => isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹",
       LibraryStatus.paused => isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹",
       LibraryStatus.stale => "源文件发生变化，需要重新更新",
+      LibraryStatus.failed when isConfirmingPublication =>
+        LibraryStrings.scanConfirmationPending,
       LibraryStatus.failed =>
         isRootRemoval
             ? state.isRemovalCommitted
@@ -80,7 +86,7 @@ class LibraryTaskSurface extends StatelessWidget {
               "已检查 ${state.visitedEntries} 个文件"
         : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
     final detail =
-        state.errorMessage ??
+        LibraryStrings.scanFailureDetail(state.errorMessage) ??
         (state.status == LibraryStatus.removing
             ? state.isRemovalCommitted
                   ? LibraryStrings.refreshingAfterRemovalDetail
@@ -141,7 +147,8 @@ class LibraryTaskSurface extends StatelessWidget {
                       onPressed: onRetry,
                       child: const Text("重试"),
                     ),
-                    if (!state.isCommittedRemovalReloadPending)
+                    if (!state.isCommittedRemovalReloadPending &&
+                        !state.primaryScanSnapshot.hasUnresolvedPublication)
                       TextButton(
                         key: const Key("library-task-dismiss-button"),
                         onPressed: onDismiss,

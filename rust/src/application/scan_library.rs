@@ -54,6 +54,7 @@ mod relocation_tests;
 #[cfg(test)]
 mod resumption_tests;
 mod retained_cancellation;
+mod root_consolidation;
 #[cfg(all(test, windows))]
 mod root_coverage_tests;
 mod root_selection;
@@ -496,6 +497,7 @@ fn run_scan_with_storage_selection(
             return Ok(());
         };
 
+        let mut consolidated_roots = Vec::new();
         if is_authoritative_recovery {
             validated
                 .publication_guard
@@ -537,6 +539,13 @@ fn run_scan_with_storage_selection(
             validated
                 .publication_guard
                 .require_metadata_inventory_root_identity(&publication_root_identity)?;
+            let consolidation = root_consolidation::PreparedRootConsolidation::capture(
+                &catalog,
+                &request.scan_id,
+                &root_id,
+                &validated.publication_guard,
+                was_limited,
+            )?;
             let outcome = publish_foreground_scan(
                 &mut catalog,
                 &finalization,
@@ -552,6 +561,7 @@ fn run_scan_with_storage_selection(
                     visited_entries,
                     issue_count,
                     had_published_root,
+                    root_consolidation: consolidation.plan(),
                     validation_proof: validated.foreground_proof.as_ref().ok_or_else(|| {
                         ScanError::new(
                             "catalog_scan_validation_proof_missing",
@@ -563,8 +573,12 @@ fn run_scan_with_storage_selection(
             )?;
             match outcome {
                 ForegroundPublicationOutcome::Interrupted => return Ok(()),
-                ForegroundPublicationOutcome::Published { asset_count } => {
-                    accepted_items = asset_count
+                ForegroundPublicationOutcome::Published {
+                    asset_count,
+                    consolidated_roots: covered,
+                } => {
+                    accepted_items = asset_count;
+                    consolidated_roots = covered;
                 }
             }
         }
@@ -575,6 +589,7 @@ fn run_scan_with_storage_selection(
             issue_count,
             catalog_path: catalog.catalog_path().to_string_lossy().into_owned(),
             was_limited,
+            consolidated_roots,
         });
         Ok(())
     })();

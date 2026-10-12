@@ -78,6 +78,76 @@ additions are the production module declaration and six manifest lines. The dedi
 suite is 343 lines. Native verification adds a 56-line support workflow to the existing 510-line
 scan integration suite, reusing its generated sources and isolated storage.
 
+## Parent import after child registration
+
+The reverse selection reproducer on 2026-10-12 imports the generated child first, then its parent.
+The original result has two physical images, two roots and three gallery entries. The correction
+holds verified directory namespaces and atomically publishes the complete parent with covered-root
+retirement. Published children keep their original namespace requirement; cancelled unpublished
+registrations require current physical containment. Paused/running children, limited scans,
+unresolved directory reads and changed registrations cannot be retired. Ordinary updates of an
+already published parent remain outside this consolidation.
+
+Twelve focused Rust consolidation cases pass in 8.61 seconds. They cover cancelled and paused child
+registrations, parent Pause/FULL reopen/Continue, cancellation, directory replacement, multiple
+children, corrupt-media isolation, incomplete traversal, and stale generation/registration-set
+rejection. A SQLite trigger aborts retirement only after the first of two children has been removed
+inside the transaction: FULL reopen retains both original child publications, identical asset views,
+ready preview files and exact artifact references. The earlier 13-case root selection/consolidation
+run and seven-case issue-policy extension also pass; these are overlapping focused runs, not additive
+suite totals.
+
+The affected Flutter workflow, refresh, consolidation and feedback files pass 32 cases. Current
+child-folder scope, search, ordering, later navigation and disposal remain coherent. A lost Completed
+event followed by one failed catalog read retains its confirmation context; Retry confirms and
+refreshes without another scan. Both confirmation-pending and display-reload-pending failures retain
+their task surface and prevent dismissal/new-import admission. One independent bounded review
+identified three recovery/registration findings; their corrections and regressions received a scoped
+read-only recheck with no remaining finding.
+
+The subsequent complete Daily execution passes warning-denied Clippy, fatal Dart analysis, all
+1725 Rust library tests and three broker tests; 23 explicit manual acceptance/performance cases are
+ignored. The library suite completes in 1344.86 seconds. The original mixed-load product gate passes
+with all 25 P0 samples, a 107 ms visible P95 and complete background recovery; the earlier unexplained
+C01/C02 failures remain in their owning records. All 110 Flutter files and 876 tests pass.
+
+Native Windows scan run `b7cdcb292a5341d4a79084bea2948da6` passes all four workflows in an 83594 ms
+owned lifetime, with exit zero, empty engine stderr and no cleanup failure. The new parent-folder
+workflow uses two generated PNGs, imports the child, selects its nested folder with search and sort,
+then imports the parent through the real scanner and bridge. The mounted gallery retains that folder
+under the parent with the same logical asset; preview demand reaches Ready, an all-library query has
+exactly two distinct assets and one root, and a fresh catalog read preserves those counts. Both source
+files remain byte-identical before and after registration removal. Existing retained-import, picker,
+viewer and multi-root update/removal workflows also pass.
+
+Daily then fails at the UIA `source-menu-open` phase while replacing its own progress record:
+`File.Replace` reports that the replaced file cannot be deleted. Only the preceding two of ten phases
+complete. The failed probe reports zero windows/elements, a 172 ms operation and 154 ms evidence-write
+time; the application and owned Job retire with no cleanup failure. The original completion and
+transcript remain in `build/windows-accessibility-bridge-test.log`. This C02 recurrence is not a
+product interaction pass, and the complete Daily remains failed. The parent reads a probe record
+after process retirement; current inspection does not establish a concurrent parent-reader cause.
+No unchanged replay or reporting-contract relaxation follows. The unreached final bridge gate runs
+separately and passes all 16 asynchronous contracts with matching generated hashes; `git diff HEAD
+--check` passes. Unsigned Release and final hosted verification remain pending.
+
+The first generated-bridge command completed generation but hit Windows error 1224 while formatting
+an output file; subsequent formatting and compilation pass. One initial test compile omitted the new
+completion field in a phase-cost fixture and was corrected. A lint attempt taken while the recovery
+edits were still in progress stopped at the format gate; the source was then frozen and formatted.
+The next lint reached fatal Dart analysis and reported two missing conditional blocks in the new
+native test. Both were corrected; fatal analysis and the subsequent complete lint pass.
+Transient mapped-file errors for two Dart files were followed by successful exclusive-open probes
+and scoped formatting. None of these attempts is counted as a complete quality pass.
+
+Ownership accounting: the Rust scan facade has 788 lines, catalog facade 3848, transactional root
+unregistration 173, application consolidation 110 and persistence consolidation 198. These owners
+contain no inline test cases; dedicated consolidation tests have 489 application and 111 persistence
+lines, and the coverage suite has 372. Dart primary lifecycle has 696 lines, viewport 1449, completion
+recovery 86 and query consolidation 72, with no inline tests; the dedicated consolidation suite has
+308 lines. Native parent-folder verification uses a 136-line support workflow. Generated bridge
+output is excluded. No migration, dependency, source-media mutation or unsafe block is added.
+
 ## C06: cancellation while pause is pending
 
 The task surface previously displayed controls only for `scanning`. After Pause changed the

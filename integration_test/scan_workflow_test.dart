@@ -22,6 +22,7 @@ import "package:integration_test/integration_test.dart";
 
 import "support/covered_folder_workflow.dart";
 import "support/library_management_workflow.dart";
+import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
 
@@ -79,6 +80,7 @@ void main() {
   tearDownAll(() => synchronizationLifecycle.close());
 
   registerRetainedImportWorkflowTests(() => synchronization);
+  registerParentFolderWorkflowTests(() => synchronization);
 
   testWidgets("opens and cancels the production Windows directory picker", (
     tester,

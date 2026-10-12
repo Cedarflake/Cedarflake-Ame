@@ -100,6 +100,57 @@ fn already_covered_child_does_not_create_another_root_or_scan() {
 }
 
 #[test]
+fn parent_import_absorbs_registered_child_after_complete_publication() {
+    let source = tempdir().expect("generated source");
+    let derived = tempdir().expect("isolated catalog and previews");
+    let child = source.path().join("旅行");
+    fs::create_dir(&child).expect("child directory");
+    let mut original_bytes = Vec::new();
+    for (path, color) in [
+        (source.path().join("root.png"), Rgb([10, 90, 170])),
+        (child.join("child.png"), Rgb([170, 90, 10])),
+    ] {
+        RgbImage::from_pixel(8, 6, color)
+            .save(&path)
+            .expect("generated image");
+        original_bytes.push((path.clone(), fs::read(path).expect("original bytes")));
+    }
+    let storage = storage(derived.path());
+    run_scan_with_storage(request("child", &child), |_| true, storage.clone())
+        .expect("import child");
+    let before = snapshot(&storage);
+    assert_eq!(before.roots.len(), 1);
+    assert_eq!(before.assets.len(), 1);
+    let retained_asset_id = before.assets[0].asset_id.clone();
+
+    run_scan_with_storage(request("parent", source.path()), |_| true, storage.clone())
+        .expect("import parent");
+    let after = snapshot(&storage);
+    for (path, bytes) in original_bytes {
+        assert_eq!(fs::read(path).expect("source remains readable"), bytes);
+    }
+    eprintln!(
+        "Child then parent: roots={}, gallery_items={}",
+        after.roots.len(),
+        after.assets.len()
+    );
+    assert_eq!(
+        after.roots.len(),
+        1,
+        "the complete parent subsumes its child"
+    );
+    assert_eq!(after.assets.len(), 2, "one physical path must appear once");
+    assert_eq!(after.roots[0].active_scan_id.as_deref(), Some("parent"));
+    let retained = after
+        .assets
+        .iter()
+        .find(|asset| asset.relative_path == "旅行/child.png")
+        .expect("child image remains inside the parent");
+    assert_eq!(retained.asset_id, retained_asset_id);
+    SqliteCatalog::open(storage.catalog_path).expect("full reopen after consolidation");
+}
+
+#[test]
 fn exact_parent_selection_still_updates_the_registered_root() {
     let source = tempdir().expect("source");
     let derived = tempdir().expect("derived");

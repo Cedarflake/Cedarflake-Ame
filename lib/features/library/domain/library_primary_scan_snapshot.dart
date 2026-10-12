@@ -4,7 +4,12 @@ enum LibraryScanPhase { discovering, finalizing }
 
 enum LibraryTaskKind { import, update, remove }
 
-enum LibraryScanPublication { unpublished, reloadPending, visible }
+enum LibraryScanPublication {
+  unpublished,
+  confirmationPending,
+  reloadPending,
+  visible,
+}
 
 enum LibraryStatus {
   empty,
@@ -78,6 +83,10 @@ class LibraryPrimaryScanSnapshot {
       status == LibraryStatus.refreshing;
 
   bool get hasFeedback => taskKind != null || scanId != null;
+
+  bool get hasUnresolvedPublication =>
+      publication == LibraryScanPublication.confirmationPending ||
+      publication == LibraryScanPublication.reloadPending;
 
   LibraryPrimaryScanSnapshot copyWith({
     LibraryStatus? status,

@@ -1,3 +1,7 @@
+import "library_root_consolidation.dart";
+
+export "library_root_consolidation.dart";
+
 class LibraryAsset {
   const LibraryAsset({
     required this.assetId,
@@ -442,12 +446,14 @@ class LibraryScanCompleted extends LibraryScanUpdate {
     required this.issueCount,
     required this.catalogPath,
     required this.wasLimited,
+    this.rootConsolidation,
   });
 
   final int assetCount;
   final int issueCount;
   final String catalogPath;
   final bool wasLimited;
+  final LibraryRootConsolidation? rootConsolidation;
 }
 
 class LibraryScanCancelled extends LibraryScanUpdate {

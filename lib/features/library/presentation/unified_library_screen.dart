@@ -1090,10 +1090,16 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               isBrowseDisabled: !LibraryBrowseAdmission(state).canBrowse,
               updatingRootIds: updateState.activeRootIds,
               isAddingSourceDisabled:
-                  updateState.hasActive || state.hasRetainedScan,
-              addingSourceDisabledReason: state.hasRetainedScan
-                  ? "请先继续或取消已暂停的任务"
-                  : null,
+                  updateState.hasActive ||
+                  state.hasRetainedScan ||
+                  state.primaryScanSnapshot.hasUnresolvedPublication,
+              addingSourceDisabledReason: switch (state.primaryScanSnapshot) {
+                LibraryPrimaryScanSnapshot(hasRetainedScan: true) =>
+                  "请先继续或取消已暂停的任务",
+                LibraryPrimaryScanSnapshot(hasUnresolvedPublication: true) =>
+                  "请先在任务面板重试刷新结果",
+                _ => null,
+              },
               retainedScanRootId: state.retainedScanRootId,
               onSelectLibrary: () => _selectLibrary(state),
               onSelectRoot: (root) => _selectRoot(state, root),

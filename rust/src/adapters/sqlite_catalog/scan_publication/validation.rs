@@ -244,6 +244,7 @@ impl ValidatedStagingProof {
         root_id: &str,
         asset_count: u64,
         issue_count: u64,
+        consolidation: Option<&crate::ports::RootConsolidationPlan>,
         control: &crate::ports::ScanPublicationControl,
     ) -> Result<super::ScanPublicationReceipt, ScanError> {
         super::publish_scan_with_proof(
@@ -252,7 +253,10 @@ impl ValidatedStagingProof {
             root_id,
             asset_count,
             issue_count,
-            Some(self),
+            Some(super::ScanPublicationProof {
+                staging: self,
+                consolidation,
+            }),
             control,
         )
     }

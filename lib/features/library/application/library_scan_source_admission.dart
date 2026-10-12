@@ -1,5 +1,6 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
+import "library_root_consolidation.dart";
 import "library_scan_target.dart";
 
 /// Resolves source-binding feedback against the published roots before a run.
@@ -42,6 +43,15 @@ class LibraryScanSourceAdmission {
 
   Future<bool> refresh(Future<bool> Function() reloadCatalog) =>
       _refresh ??= reloadCatalog();
+
+  LibraryRootConsolidation? recoverPublishedConsolidation(
+    LibraryRoot publishedParent,
+    List<LibraryRoot> currentRoots,
+  ) => recoverPublishedRootConsolidation(
+    previousRoots: _roots,
+    currentRoots: currentRoots,
+    publishedParent: publishedParent,
+  );
 
   bool hasAdmittedExistingRoot(
     List<LibraryRoot> roots, {

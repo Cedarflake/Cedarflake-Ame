@@ -8,7 +8,7 @@ use super::super::{
     SqliteCatalog, SqliteWritePreemptCallback, database_error, load_scan_catch_up_lineage,
     sqlite_integer, sqlite_unsigned, unix_time_ms,
 };
-use super::{ScanPublicationReceipt, ValidatedStagingProof};
+use super::{ScanPublicationProof, ScanPublicationReceipt};
 
 const PUBLICATION_PROGRESS_OPERATION_INTERVAL: i32 = 1_000;
 
@@ -109,7 +109,7 @@ pub(crate) fn publish_scan_with_proof(
     root_id: &str,
     asset_count: u64,
     issue_count: u64,
-    proof: Option<&ValidatedStagingProof>,
+    proof: Option<ScanPublicationProof<'_>>,
     control: &ScanPublicationControl,
 ) -> Result<ScanPublicationReceipt, ScanError> {
     let interruption = PublicationInterruption::new(control);
@@ -135,7 +135,7 @@ pub(crate) fn publish_scan_with_proof(
         issue_count,
         &retry_relative_paths,
         &interruption,
-        proof,
+        proof.as_ref(),
     );
     let _handler_cleanup = catalog.connection.progress_handler(0, None::<fn() -> bool>);
 
@@ -157,7 +157,7 @@ fn publish_transaction(
     issue_count: i64,
     retry_relative_paths: &[String],
     interruption: &PublicationInterruption,
-    proof: Option<&ValidatedStagingProof>,
+    proof: Option<&ScanPublicationProof<'_>>,
 ) -> Result<ScanPublicationReceipt, ScanError> {
     interruption.ensure_running()?;
     let interrupt = Arc::new(catalog.connection.get_interrupt_handle());
@@ -176,7 +176,12 @@ fn publish_transaction(
     )?;
     super::ensure_change_queue_is_publishable(&transaction, scan_id, root_id, &authority)?;
     if let Some(proof) = proof {
-        proof.require_current_staging(&transaction, scan_id, root_id)?;
+        proof
+            .staging
+            .require_current_staging(&transaction, scan_id, root_id)?;
+        if let Some(plan) = proof.consolidation {
+            super::root_consolidation::require_current(&transaction, scan_id, root_id, plan)?;
+        }
     }
 
     let completed_unix_ms = unix_time_ms();
@@ -219,8 +224,13 @@ fn publish_transaction(
         completed_unix_ms,
         interruption,
     )?;
+    let consolidated_roots = match proof.and_then(|proof| proof.consolidation) {
+        Some(plan) => super::root_consolidation::retire(&transaction, plan, interruption)?,
+        None => Vec::new(),
+    };
     let receipt = ScanPublicationReceipt {
         asset_count: sqlite_unsigned(asset_count, "published asset count")?,
+        consolidated_roots,
     };
     interruption.ensure_running()?;
     // Admission to COMMIT is the cancellation cutoff; rollback on a COMMIT error also runs

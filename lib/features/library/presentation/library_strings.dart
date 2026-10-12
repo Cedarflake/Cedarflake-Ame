@@ -21,6 +21,8 @@ abstract final class LibraryStrings {
   static const refreshingSourceDisplay = "正在刷新图库显示…";
   static const sourceAdded = "已添加";
   static const sourceDisplayReloadPending = "等待刷新显示";
+  static const scanConfirmationPending = "扫描结果尚未确认";
+  static const scanConfirmationDetail = "请在任务面板点击“重试”确认扫描结果，无需重新扫描。";
   static const galleryDisplayReloadPending = "图库已更新，等待刷新显示";
   static const galleryDisplayReloadDetail = "图库已经更新。请在任务面板中查看刷新进度或重试刷新显示。";
   static const firstImportIncomplete = "尚未完成添加";
@@ -118,6 +120,26 @@ abstract final class LibraryStrings {
   static const synchronizationPhaseSynchronized = "同步完成";
   static const synchronizationPhaseUnavailable = "等待目录恢复";
   static const retry = "重试";
+
+  static String? scanFailureDetail(String? error) {
+    if (error == null) return null;
+    final separator = error.indexOf(":");
+    final code = separator < 0 ? error : error.substring(0, separator);
+    return switch (code) {
+      "scan_terminal_reconciliation_failed" =>
+        "暂时无法确认扫描结果。点击“重试”重新读取结果，不会启动新扫描。",
+      "catalog_root_consolidation_incomplete" =>
+        "尚未完整读取父文件夹，原来的子文件夹已保留。请检查访问状态及扫描数量限制后重试。",
+      "catalog_root_consolidation_busy" => "子文件夹还有未完成的扫描。请先继续或取消该任务，再添加父文件夹。",
+      "catalog_root_consolidation_unpublished" =>
+        "无法确认子文件夹的目录身份，原有内容已保留。请确认该目录可访问后重试。",
+      "catalog_root_consolidation_changed" ||
+      "catalog_root_consolidation_identity_changed" =>
+        "文件夹位置或登记已变化，原来的子文件夹已保留。请确认目录后重试。",
+      _ => error,
+    };
+  }
+
   static const noSearchResults = "没有找到匹配的图片";
   static const noSearchResultsHint = "请尝试其他名称或路径。";
   static const noSourceResults = "此文件夹中没有可显示的图片";

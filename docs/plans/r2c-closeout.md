@@ -67,9 +67,22 @@ normal owned-process retirement. The initial pre-installation catalog-path assum
 and corrected exact binding remain in that record. Preserve this selected result; it does not
 close pending-read races, other Release variants, C01/C02 or remaining platform/candidate gates.
 
-Hosted run `38194585598` on `fa7275c` passes all ten required component jobs and the aggregate gate;
-the separate signing channel remains skipped. This does not cover the subsequent nested-source
-change. The preceding `38186866675` run on `6a252a1` retains its C01 connection-lifetime failure and
+The [reverse child-to-parent selection](../acceptance/r2c-input-controls.md#parent-import-after-child-registration)
+now has an owning atomic-publication correction, focused rollback/recovery regressions, one bounded
+independent review and actual native Debug verification. The two-image reproducer exposed two roots
+and three entries. Diagnosis was bounded to 30 active minutes, one cohesive correction to 90 and the
+review plus delta recheck to 25; the implementation reached source freeze within that allowance.
+Child publications remain authoritative through interruption, held directory identities prove
+containment, and complete parent publication retires covered registrations in the same transaction.
+The current query follows the parent without rescanning after a failed display read. No path-text-only
+retirement, display-only deduplication, source mutation, schema reset or unrelated overlap migration
+is admitted. Complete lint, Rust and Flutter plus native scanning pass; Daily retains the new C02
+UIA progress-record replacement failure. Preserve that attempt without unchanged replay and finish
+unsigned Release and final hosted verification; this checkpoint does not establish complete R2c acceptance.
+
+Hosted run `38200650029` on `7c75774` passes all ten required component jobs and the aggregate gate;
+the separate signing channel remains skipped. It covers the forward nested-source selection, not
+the subsequent parent-import consolidation. The preceding `38186866675` run on `6a252a1` retains its C01 connection-lifetime failure and
 distinct C02 UIA assembly-loading timeout; the `82d911c` stop-deadline and mixed-load failures also
 remain historical evidence. A later pass does not explain those failures, and no unchanged hosted
 rerun is admitted as a correction. Finish the concrete functional variants before returning to

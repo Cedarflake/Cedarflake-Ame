@@ -19,7 +19,7 @@ const RETRY_PATH_LIMIT: usize = LibraryChangeQueuePolicy::MAX_UNRESOLVED_CHANGES
 #[cfg(all(test, windows))]
 mod control_tests;
 mod rejected_inputs;
-mod retained_issue_recovery;
+pub(super) mod retained_issue_recovery;
 use rejected_inputs::{RejectedInputs, validate_rejected_inputs};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

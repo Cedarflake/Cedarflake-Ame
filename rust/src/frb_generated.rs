@@ -1775,6 +1775,18 @@ impl SseDecode for crate::domain::CatalogSnapshot {
     }
 }
 
+impl SseDecode for crate::domain::ConsolidatedLibraryRoot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_previousRootId = <String>::sse_decode(deserializer);
+        let mut var_relativePath = <String>::sse_decode(deserializer);
+        return crate::domain::ConsolidatedLibraryRoot {
+            previous_root_id: var_previousRootId,
+            relative_path: var_relativePath,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::FileIdentityEvidence {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2277,6 +2289,20 @@ impl SseDecode for Vec<crate::domain::AssetLocationView> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<crate::domain::AssetLocationView>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::domain::ConsolidatedLibraryRoot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::domain::ConsolidatedLibraryRoot>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
@@ -2845,6 +2871,8 @@ impl SseDecode for crate::domain::ScanEvent {
                 let mut var_issueCount = <u64>::sse_decode(deserializer);
                 let mut var_catalogPath = <String>::sse_decode(deserializer);
                 let mut var_wasLimited = <bool>::sse_decode(deserializer);
+                let mut var_consolidatedRoots =
+                    <Vec<crate::domain::ConsolidatedLibraryRoot>>::sse_decode(deserializer);
                 return crate::domain::ScanEvent::Completed {
                     scan_id: var_scanId,
                     root_id: var_rootId,
@@ -2852,6 +2880,7 @@ impl SseDecode for crate::domain::ScanEvent {
                     issue_count: var_issueCount,
                     catalog_path: var_catalogPath,
                     was_limited: var_wasLimited,
+                    consolidated_roots: var_consolidatedRoots,
                 };
             }
             6 => {
@@ -3611,6 +3640,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::CatalogSnapshot>
     for crate::domain::CatalogSnapshot
 {
     fn into_into_dart(self) -> crate::domain::CatalogSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::ConsolidatedLibraryRoot {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.previous_root_id.into_into_dart().into_dart(),
+            self.relative_path.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::ConsolidatedLibraryRoot
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::ConsolidatedLibraryRoot>
+    for crate::domain::ConsolidatedLibraryRoot
+{
+    fn into_into_dart(self) -> crate::domain::ConsolidatedLibraryRoot {
         self
     }
 }
@@ -4544,6 +4594,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 issue_count,
                 catalog_path,
                 was_limited,
+                consolidated_roots,
             } => [
                 5.into_dart(),
                 scan_id.into_into_dart().into_dart(),
@@ -4552,6 +4603,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::ScanEvent {
                 issue_count.into_into_dart().into_dart(),
                 catalog_path.into_into_dart().into_dart(),
                 was_limited.into_into_dart().into_dart(),
+                consolidated_roots.into_into_dart().into_dart(),
             ]
             .into_dart(),
             crate::domain::ScanEvent::Cancelled {
@@ -5051,6 +5103,14 @@ impl SseEncode for crate::domain::CatalogSnapshot {
     }
 }
 
+impl SseEncode for crate::domain::ConsolidatedLibraryRoot {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.previous_root_id, serializer);
+        <String>::sse_encode(self.relative_path, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::FileIdentityEvidence {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5440,6 +5500,16 @@ impl SseEncode for Vec<crate::domain::AssetLocationView> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::domain::AssetLocationView>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::domain::ConsolidatedLibraryRoot> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::ConsolidatedLibraryRoot>::sse_encode(item, serializer);
         }
     }
 }
@@ -5922,6 +5992,7 @@ impl SseEncode for crate::domain::ScanEvent {
                 issue_count,
                 catalog_path,
                 was_limited,
+                consolidated_roots,
             } => {
                 <i32>::sse_encode(5, serializer);
                 <String>::sse_encode(scan_id, serializer);
@@ -5930,6 +6001,10 @@ impl SseEncode for crate::domain::ScanEvent {
                 <u64>::sse_encode(issue_count, serializer);
                 <String>::sse_encode(catalog_path, serializer);
                 <bool>::sse_encode(was_limited, serializer);
+                <Vec<crate::domain::ConsolidatedLibraryRoot>>::sse_encode(
+                    consolidated_roots,
+                    serializer,
+                );
             }
             crate::domain::ScanEvent::Cancelled {
                 scan_id,

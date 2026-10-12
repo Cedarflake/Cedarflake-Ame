@@ -11,6 +11,62 @@ import "../support/primary_scan_control_fixture.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  for (final publication in [
+    LibraryScanPublication.confirmationPending,
+    LibraryScanPublication.reloadPending,
+  ]) {
+    testWidgets(
+      "unresolved publication keeps a visible retry obligation: $publication",
+      (tester) async {
+        var retries = 0;
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: LibraryTaskSurface(
+                state: LibraryState(
+                  primaryScan: LibraryPrimaryScanSnapshot(
+                    status: LibraryStatus.failed,
+                    taskKind: LibraryTaskKind.import,
+                    scanId: "parent-import",
+                    publication: publication,
+                    errorMessage:
+                        publication ==
+                            LibraryScanPublication.confirmationPending
+                        ? "scan_terminal_reconciliation_failed: catalog unavailable"
+                        : "显示暂时不可用",
+                  ),
+                ),
+                onPause: () {},
+                onCancel: () {},
+                onResume: () async {},
+                onRetry: () async {
+                  retries += 1;
+                },
+                onDismiss: () {},
+              ),
+            ),
+          ),
+        );
+        expect(
+          find.text(
+            publication == LibraryScanPublication.confirmationPending
+                ? "扫描结果尚未确认"
+                : "图库已更新，刷新显示失败",
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.byKey(const Key("library-task-dismiss-button")),
+          findsNothing,
+        );
+        expect(find.byType(LinearProgressIndicator), findsNothing);
+        await tester.tap(find.byKey(const Key("library-retry-button")));
+        expect(retries, 1);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets(
     "pending pause keeps cancellation available before registration",
     (tester) async {

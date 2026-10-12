@@ -77,8 +77,10 @@ class LibraryController extends Notifier<LibraryState>
   ) => _viewport.selectCoveredFolder(folder, intent);
 
   @override
-  Future<bool> reloadPrimaryScanCatalog() =>
-      _viewport.refreshPrimaryScanCatalog();
+  Future<bool> reloadPrimaryScanCatalog({
+    LibraryRootConsolidation? rootConsolidation,
+  }) =>
+      _viewport.refreshPrimaryScanCatalog(rootConsolidation: rootConsolidation);
 
   LibraryQueryProjections get queryProjections => _viewport.queryProjections;
 

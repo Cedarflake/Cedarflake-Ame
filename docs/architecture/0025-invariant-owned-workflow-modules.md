@@ -81,6 +81,16 @@ persistence layers.
   a scan, publish incomplete membership, or retire a legacy registration. Exact-path update and
   explicit/identity relocation keep precedence. The primary run retains terminal folder-selection
   ownership through stream drain and navigation, without reporting an import completion.
+- `scan_library/root_consolidation.rs` owns complete first-parent import admission and held child
+  directory proofs. Its typed plan crosses into `sqlite_catalog/scan_publication/root_consolidation.rs`,
+  which rechecks the registration set and retires children within the parent publication transaction.
+  `sqlite_catalog/root_unregistration.rs` owns the shared transactional retirement of queues, scan
+  records, locations and unowned previews/assets. The explicit removal facade supplies its own
+  transaction; parent consolidation supplies the publication transaction. The Dart
+  `library_root_consolidation.dart` owner maps the latest query without overriding later navigation.
+  `library_scan_completion_recovery.dart` retains pre-run source facts and resolves a drained stream's
+  durable result. The primary session retains confirmation/refresh obligations through read failures;
+  dismissal or a new import cannot discard them, and Retry performs only the outstanding read.
 - `application/library_synchronization/production.rs` remains the priority and worker-lifecycle
   coordinator. Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a

@@ -12,6 +12,7 @@ import "library_query_projection.dart";
 import "library_query_refresh.dart";
 import "library_query_snapshot_reader.dart";
 import "library_query_transition.dart";
+import "library_root_consolidation.dart";
 import "library_time_navigation_requests.dart";
 import "library_time_snapshot_reader.dart";
 
@@ -152,8 +153,13 @@ class LibraryViewportController {
     }
   }
 
-  Future<bool> refreshPrimaryScanCatalog() =>
-      _queryRefresh.refreshCommitted(_refreshCommittedCatalogProjection);
+  Future<bool> refreshPrimaryScanCatalog({
+    LibraryRootConsolidation? rootConsolidation,
+  }) => _queryRefresh.refreshCommitted(
+    () => _refreshCommittedCatalogProjection(
+      rootConsolidation: rootConsolidation,
+    ),
+  );
 
   LibraryQueryIntent prepareDirectorySelection() {
     supersedeExternalRequests();
@@ -177,7 +183,9 @@ class LibraryViewportController {
     ),
   );
 
-  Future<LibraryQueryUpdateOutcome> _refreshCommittedCatalogProjection() {
+  Future<LibraryQueryUpdateOutcome> _refreshCommittedCatalogProjection({
+    LibraryRootConsolidation? rootConsolidation,
+  }) {
     final generation = _publicationGeneration;
     return queryProjections.publish((anchor) {
       if (!_canPublishGeneration(generation)) {
@@ -185,7 +193,11 @@ class LibraryViewportController {
       }
       final readGeneration = ++_publicationGeneration;
       _supersedeQueryWindowRequests();
-      return _readCatalogProjection(readGeneration, anchor);
+      return _readCatalogProjection(
+        readGeneration,
+        anchor,
+        rootConsolidation: rootConsolidation,
+      );
     });
   }
 
@@ -204,8 +216,9 @@ class LibraryViewportController {
     int generation,
     LibraryQueryAnchor? anchor, {
     LibraryTimeNavigationRequest? passiveTimeNavigation,
+    LibraryRootConsolidation? rootConsolidation,
   }) async {
-    final query = _state.query;
+    final query = resolveConsolidatedRootQuery(_state.query, rootConsolidation);
     final projectionRead = queryProjections.beginRead();
     bool canPublish() {
       if (!_canPublishGeneration(generation) ||

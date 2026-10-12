@@ -5,6 +5,7 @@ import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
 import "library_query_refresh.dart";
+import "library_scan_completion_recovery.dart";
 import "library_scan_control.dart";
 import "library_scan_execution.dart";
 import "library_scan_restoration.dart";
@@ -23,7 +24,9 @@ abstract interface class LibraryPrimaryScanHost {
     LibraryScanAlreadyCovered folder,
     LibraryQueryIntent intent,
   );
-  Future<bool> reloadPrimaryScanCatalog();
+  Future<bool> reloadPrimaryScanCatalog({
+    LibraryRootConsolidation? rootConsolidation,
+  });
 }
 
 /// Owns one primary task, including retained intent when no stream is running.
@@ -116,6 +119,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     }
     if (_isUnavailable ||
         _state.hasRetainedScan ||
+        _state.hasUnresolvedPublication ||
         _host.libraryState.isBusy ||
         !_admission.tryAcquirePrimary(this)) {
       return;
@@ -195,6 +199,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
             _run != null ||
             _state.isScanning ||
             _state.status == LibraryStatus.discarding ||
+            _state.hasUnresolvedPublication ||
             (_state.hasRetainedScan && !allowsPaused) ||
             library.isCommittedRemovalReloadPending ||
             library.status == LibraryStatus.removing) {
@@ -376,6 +381,14 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
     if (_isUnavailable || _state.blocksExecution || _state.hasRetainedScan) {
       return;
     }
+    if (_state.publication == LibraryScanPublication.confirmationPending) {
+      final sequence = ++_sequence;
+      _publish(
+        _state.copyWith(status: LibraryStatus.refreshing, errorMessage: null),
+      );
+      await _resolveEndedScan(sequence);
+      return;
+    }
     if (_state.publication == LibraryScanPublication.reloadPending) {
       final sequence = ++_sequence;
       _publish(
@@ -414,6 +427,9 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   }
 
   void dismiss() {
+    if (_state.hasUnresolvedPublication) {
+      return;
+    }
     if (_state.status != LibraryStatus.completed &&
         _state.status != LibraryStatus.failed &&
         _state.status != LibraryStatus.cancelled) {
@@ -545,72 +561,67 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
   }
 
   Future<void> _reconcileEndedScan(LibraryScanRun run, int sequence) async {
+    _session.retainCompletionRecovery(
+      LibraryScanCompletionRecovery(
+        scanId: run.scanId,
+        didStart: run.didStart,
+        sourceAdmission: run.sourceAdmission,
+        snapshot: _state,
+      ),
+    );
+    _publish(
+      _state.copyWith(publication: LibraryScanPublication.confirmationPending),
+    );
     try {
-      final catalog = await _catalog.load(
-        maxItems: libraryCatalogWindow,
+      await _resolveEndedScan(sequence);
+    } finally {
+      if (_owns(run)) {
+        _release(run);
+      }
+    }
+  }
+
+  Future<void> _resolveEndedScan(int sequence) async {
+    final recovery = _session.completionRecovery;
+    if (recovery == null) {
+      return;
+    }
+    try {
+      final resolution = await recovery.resolve(
+        catalog: _catalog,
+        scanner: _scanner,
         query: _host.libraryState.query,
       );
-      if (!_owns(run) || sequence != _sequence) {
+      if (_isDisposed ||
+          sequence != _sequence ||
+          !identical(_session.completionRecovery, recovery)) {
         return;
       }
-      final published = catalog.roots.where(
-        (root) => root.activeScanId == run.scanId,
+      _session.resolveCompletionRecovery(recovery);
+      final confirmed = _state.copyWith(
+        publication: LibraryScanPublication.unpublished,
       );
-      if (run.didStart && published.isNotEmpty) {
-        final root = published.first;
-        final wasLimited =
-            (_state.itemLimit != null &&
-                root.assetCount >= _state.itemLimit!) ||
-            (_state.entryLimit != null &&
-                _state.visitedEntries >= _state.entryLimit!);
-        _publish(
-          _session
-              .apply(
-                _state,
-                LibraryScanCompleted(
-                  assetCount: root.assetCount,
-                  issueCount: root.issueCount,
-                  catalogPath: catalog.catalogPath,
-                  wasLimited: wasLimited,
-                ),
-              )
-              .state,
-        );
-        await _reloadPublishedCatalog(sequence);
-        return;
-      }
-      final paused = await _scanner.loadPausedScan();
-      if (!_owns(run) || sequence != _sequence) {
-        return;
-      }
-      if (paused != null && paused.scanId == run.scanId) {
-        _session.restorePaused(paused);
-        _publish(
-          _state.copyWith(
-            status: LibraryStatus.paused,
-            visitedEntries: paused.visitedEntries,
-            stagedAssetCount: paused.acceptedItems,
-            issueCount: paused.issueCount,
-            isResumingScan: false,
-          ),
-        );
-      } else if (_state.status == LibraryStatus.cancelling) {
-        _publish(
-          _session
-              .apply(
-                _state,
-                LibraryScanCancelled(
-                  acceptedItems: _state.stagedAssetCount,
-                  issueCount: _state.issueCount,
-                ),
-              )
-              .state,
-        );
-      } else {
-        _publish(_session.finish(_state));
+      switch (resolution) {
+        case LibraryResolvedPausedScan(:final scan):
+          _session.restorePaused(scan);
+          _publish(
+            confirmed.copyWith(
+              status: LibraryStatus.paused,
+              visitedEntries: scan.visitedEntries,
+              stagedAssetCount: scan.acceptedItems,
+              issueCount: scan.issueCount,
+              isResumingScan: false,
+            ),
+          );
+        case LibraryResolvedScanUpdate(:final update):
+          final transition = _session.apply(confirmed, update);
+          _publish(transition.state);
+          if (transition.shouldReloadCatalog) {
+            await _reloadPublishedCatalog(sequence);
+          }
       }
     } on Object catch (error) {
-      if (_owns(run) && sequence == _sequence) {
+      if (!_isDisposed && sequence == _sequence) {
         _publish(
           _session.fail(
             _state,
@@ -621,16 +632,14 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
           ),
         );
       }
-    } finally {
-      if (_owns(run)) {
-        _release(run);
-      }
     }
   }
 
   Future<void> _reloadPublishedCatalog(int sequence) async {
     try {
-      final applied = await _host.reloadPrimaryScanCatalog();
+      final applied = await _host.reloadPrimaryScanCatalog(
+        rootConsolidation: _session.rootConsolidation,
+      );
       if (!applied) {
         throw const LibraryCatalogFailure(
           code: "catalog_publication_view_superseded",

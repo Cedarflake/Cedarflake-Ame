@@ -23,7 +23,12 @@ class EmptyLibraryGallery extends StatelessWidget {
       return const GalleryLoadingState();
     }
     if (_isAwaitingPublishedDisplay) {
-      return const _PendingLibraryGallery(_PendingGalleryReason.displayReload);
+      return _PendingLibraryGallery(
+        state.primaryScanSnapshot.publication ==
+                LibraryScanPublication.confirmationPending
+            ? _PendingGalleryReason.confirmation
+            : _PendingGalleryReason.displayReload,
+      );
     }
     if (_hasUnpublishedSource) {
       return const _PendingLibraryGallery(_PendingGalleryReason.firstImport);
@@ -36,7 +41,7 @@ class EmptyLibraryGallery extends StatelessWidget {
 
   bool get _isAwaitingPublishedDisplay {
     final scan = state.primaryScanSnapshot;
-    if (scan.publication != LibraryScanPublication.reloadPending) {
+    if (!scan.hasUnresolvedPublication) {
       return false;
     }
     final selectedRootId = state.query.rootId;
@@ -77,7 +82,7 @@ class EmptyLibraryGallery extends StatelessWidget {
   }
 }
 
-enum _PendingGalleryReason { firstImport, displayReload }
+enum _PendingGalleryReason { firstImport, confirmation, displayReload }
 
 class _PendingLibraryGallery extends StatelessWidget {
   const _PendingLibraryGallery(this.reason);
@@ -86,13 +91,25 @@ class _PendingLibraryGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDisplayReload = reason == _PendingGalleryReason.displayReload;
-    return Center(
-      key: Key(
-        isDisplayReload
-            ? "library-published-reload-state"
-            : "library-first-import-state",
+    final (key, title, detail) = switch (reason) {
+      _PendingGalleryReason.firstImport => (
+        "library-first-import-state",
+        LibraryStrings.firstImportIncomplete,
+        LibraryStrings.firstImportGalleryDetail,
       ),
+      _PendingGalleryReason.confirmation => (
+        "library-scan-confirmation-state",
+        LibraryStrings.scanConfirmationPending,
+        LibraryStrings.scanConfirmationDetail,
+      ),
+      _PendingGalleryReason.displayReload => (
+        "library-published-reload-state",
+        LibraryStrings.galleryDisplayReloadPending,
+        LibraryStrings.galleryDisplayReloadDetail,
+      ),
+    };
+    return Center(
+      key: Key(key),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: Padding(
@@ -103,19 +120,12 @@ class _PendingLibraryGallery extends StatelessWidget {
               const Icon(Symbols.folder_rounded, size: 48),
               const SizedBox(height: 16),
               Text(
-                isDisplayReload
-                    ? LibraryStrings.galleryDisplayReloadPending
-                    : LibraryStrings.firstImportIncomplete,
+                title,
                 style: Theme.of(context).textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 8),
-              Text(
-                isDisplayReload
-                    ? LibraryStrings.galleryDisplayReloadDetail
-                    : LibraryStrings.firstImportGalleryDetail,
-                textAlign: TextAlign.center,
-              ),
+              Text(detail, textAlign: TextAlign.center),
             ],
           ),
         ),

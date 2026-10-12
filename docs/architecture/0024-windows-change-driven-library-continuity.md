@@ -581,6 +581,21 @@ infer that their migration is complete. Cross-volume copies and content equality
 logical-asset identity. Automatic path discovery and any multi-root binding transition must retain
 their own source authorization, complete evidence and atomic publication boundaries.
 
+An explicit first import of a registered child's parent may consolidate the covered registrations
+only in the complete parent's publication transaction. Attribute-only, no-follow directory guards
+must prove containment from the pinned parent and retain every child's namespace through commit.
+A published child must reproduce its retained publication identity. A cancelled or failed child
+with no published baseline may bind its current directory; running or paused child scans prevent
+retirement. Limited imports and unresolved namespace-read failures cannot retire children, while
+individually rejected media retain the ordinary per-file failure policy. The transaction rechecks
+the complete child registration set, path, publication, generation, activity and identity before
+publishing the parent and applying shared root-unregistration cleanup. Any failure rolls back both
+the parent and all child retirements, including preview references and asset ownership. Ordinary
+updates of an already published parent do not run this consolidation or clean up legacy overlaps.
+The completion receipt carries the retired-root-to-folder mapping for presentation; recovering a
+lost receipt may use the confirmed publication and disappeared pre-run registrations only for view
+continuity, never as database retirement authority.
+
 For a missing published root, the unprivileged local-files adapter may look up its exact retained
 Windows directory identity using `OpenFileById`. The volume hint is an attribute-only handle to
 the registered local DOS drive root, whose complete volume identity must match first. No raw

@@ -108,6 +108,13 @@ another source registration or scan. Coverage does not complete an unfinished pa
 remove legacy registrations. A primary import or retained paused import still excludes another
 primary import; selecting folders does not create an import queue.
 
+Selecting a new parent of registered child folders imports the complete parent and then replaces
+the covered registrations together with that publication. The existing child galleries remain
+available until it succeeds; interruption or failure cannot remove them. The current child-folder
+view follows its corresponding folder under the parent while preserving search, sorting and
+descendant scope. An unresolved completion or failed display refresh retains its Retry action and
+blocks a new import until the result is confirmed and displayed; Retry does not repeat the scan.
+
 Clicking a source or child folder scopes the same gallery. Clicking its expansion control only
 changes the tree. A source-row overflow action, secondary click, or keyboard context-menu request
 opens the same Material menu containing:

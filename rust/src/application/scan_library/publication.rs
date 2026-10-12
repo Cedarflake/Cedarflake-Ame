@@ -9,7 +9,7 @@ use crate::domain::{
 };
 
 use super::finalization::FinalizationPlan;
-use crate::ports::ScanPublicationControl;
+use crate::ports::{RootConsolidationPlan, ScanPublicationControl};
 
 const PUBLICATION_RETRY_WAIT: Duration = Duration::from_millis(250);
 const PUBLICATION_PROGRESS_INTERVAL: Duration = Duration::from_secs(1);
@@ -30,11 +30,15 @@ pub(super) struct ForegroundPublicationContext<'a> {
     pub(super) issue_count: u64,
     pub(super) had_published_root: bool,
     pub(super) validation_proof: &'a ValidatedStagingProof,
+    pub(super) root_consolidation: Option<&'a RootConsolidationPlan>,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) enum ForegroundPublicationOutcome {
-    Published { asset_count: u64 },
+    Published {
+        asset_count: u64,
+        consolidated_roots: Vec<crate::domain::ConsolidatedLibraryRoot>,
+    },
     Interrupted,
 }
 
@@ -67,11 +71,13 @@ pub(super) fn publish_foreground_scan(
             context.root_id,
             context.accepted_items,
             context.issue_count,
+            context.root_consolidation,
             &control,
         ) {
             Ok(receipt) => {
                 return Ok(ForegroundPublicationOutcome::Published {
                     asset_count: receipt.asset_count,
+                    consolidated_roots: receipt.consolidated_roots,
                 });
             }
             Err(error) => {

@@ -1938,6 +1938,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ConsolidatedLibraryRoot(
+      previousRootId: dco_decode_String(arr[0]),
+      relativePath: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -2307,6 +2319,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<ConsolidatedLibraryRoot> dco_decode_list_consolidated_library_root(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_consolidated_library_root)
+        .toList();
+  }
+
+  @protected
   List<GalleryLayoutDateGroup> dco_decode_list_gallery_layout_date_group(
     dynamic raw,
   ) {
@@ -2673,6 +2695,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           issueCount: dco_decode_u_64(raw[4]),
           catalogPath: dco_decode_String(raw[5]),
           wasLimited: dco_decode_bool(raw[6]),
+          consolidatedRoots: dco_decode_list_consolidated_library_root(raw[7]),
         );
       case 6:
         return ScanEvent_Cancelled(
@@ -3328,6 +3351,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ConsolidatedLibraryRoot sse_decode_consolidated_library_root(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_previousRootId = sse_decode_String(deserializer);
+    var var_relativePath = sse_decode_String(deserializer);
+    return ConsolidatedLibraryRoot(
+      previousRootId: var_previousRootId,
+      relativePath: var_relativePath,
+    );
+  }
+
+  @protected
   FileIdentityEvidence sse_decode_file_identity_evidence(
     SseDeserializer deserializer,
   ) {
@@ -3783,6 +3819,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <AssetLocationView>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_asset_location_view(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ConsolidatedLibraryRoot> sse_decode_list_consolidated_library_root(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ConsolidatedLibraryRoot>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_consolidated_library_root(deserializer));
     }
     return ans_;
   }
@@ -4330,6 +4380,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         var var_issueCount = sse_decode_u_64(deserializer);
         var var_catalogPath = sse_decode_String(deserializer);
         var var_wasLimited = sse_decode_bool(deserializer);
+        var var_consolidatedRoots = sse_decode_list_consolidated_library_root(
+          deserializer,
+        );
         return ScanEvent_Completed(
           scanId: var_scanId,
           rootId: var_rootId,
@@ -4337,6 +4390,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           issueCount: var_issueCount,
           catalogPath: var_catalogPath,
           wasLimited: var_wasLimited,
+          consolidatedRoots: var_consolidatedRoots,
         );
       case 6:
         var var_scanId = sse_decode_String(deserializer);
@@ -5005,6 +5059,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_consolidated_library_root(
+    ConsolidatedLibraryRoot self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.previousRootId, serializer);
+    sse_encode_String(self.relativePath, serializer);
+  }
+
+  @protected
   void sse_encode_file_identity_evidence(
     FileIdentityEvidence self,
     SseSerializer serializer,
@@ -5350,6 +5414,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_asset_location_view(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_consolidated_library_root(
+    List<ConsolidatedLibraryRoot> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_consolidated_library_root(item, serializer);
     }
   }
 
@@ -5859,6 +5935,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         issueCount: final issueCount,
         catalogPath: final catalogPath,
         wasLimited: final wasLimited,
+        consolidatedRoots: final consolidatedRoots,
       ):
         sse_encode_i_32(5, serializer);
         sse_encode_String(scanId, serializer);
@@ -5867,6 +5944,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         sse_encode_u_64(issueCount, serializer);
         sse_encode_String(catalogPath, serializer);
         sse_encode_bool(wasLimited, serializer);
+        sse_encode_list_consolidated_library_root(
+          consolidatedRoots,
+          serializer,
+        );
       case ScanEvent_Cancelled(
         scanId: final scanId,
         acceptedItems: final acceptedItems,

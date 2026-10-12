@@ -13,6 +13,10 @@ mod preview_health;
 pub use preview_health::{PreviewHealthObservation, PreviewHealthOutcome, PreviewHealthTarget};
 mod scan_publication_control;
 pub(crate) use scan_publication_control::ScanPublicationControl;
+mod root_consolidation;
+pub(crate) use root_consolidation::{
+    RootConsolidationCandidate, RootConsolidationPlan, RootConsolidationRegistration,
+};
 mod inventory_cleanup_control;
 pub use inventory_cleanup_control::InventoryCleanupControl;
 mod library_change_ingress;

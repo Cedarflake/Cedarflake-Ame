@@ -28,6 +28,7 @@ fn completed() -> ScanEvent {
         issue_count: 0,
         catalog_path: String::new(),
         was_limited: false,
+        consolidated_roots: Vec::new(),
     }
 }
 

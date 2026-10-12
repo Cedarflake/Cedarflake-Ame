@@ -264,16 +264,31 @@ class RustLibraryScanner
         ),
       ),
       rust_domain.ScanEvent_Completed(
+        :final rootId,
         :final assetCount,
         :final issueCount,
         :final catalogPath,
         :final wasLimited,
+        :final consolidatedRoots,
       ) =>
         LibraryScanCompleted(
           assetCount: assetCount.toInt(),
           issueCount: issueCount.toInt(),
           catalogPath: catalogPath,
           wasLimited: wasLimited,
+          rootConsolidation: consolidatedRoots.isEmpty
+              ? null
+              : LibraryRootConsolidation(
+                  destinationRootId: rootId,
+                  roots: List.unmodifiable(
+                    consolidatedRoots.map(
+                      (root) => LibraryConsolidatedRoot(
+                        previousRootId: root.previousRootId,
+                        relativePath: root.relativePath,
+                      ),
+                    ),
+                  ),
+                ),
         ),
       rust_domain.ScanEvent_Cancelled(
         :final acceptedItems,

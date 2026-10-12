@@ -23,6 +23,7 @@ mod pagination_tests;
 mod performance;
 mod rejected_input_validation;
 mod retained_issues;
+mod root_consolidation;
 pub(crate) use retained_issues::{
     load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
 };
@@ -38,7 +39,7 @@ use super::{
     load_scan_identity_group_state, mark_unreferenced_preview_artifacts_stale, revisions_conflict,
     sqlite_integer, sqlite_unsigned,
 };
-use crate::ports::ScanPublicationControl;
+use crate::ports::{RootConsolidationPlan, ScanPublicationControl};
 pub(crate) use rejected_input_validation::RejectedInputValidationRoster;
 use transaction::PublicationInterruption;
 pub(crate) use transaction::publish_scan_with_proof;
@@ -46,9 +47,15 @@ pub(crate) use validation::{
     StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
 };
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(crate) struct ScanPublicationProof<'a> {
+    staging: &'a ValidatedStagingProof,
+    consolidation: Option<&'a RootConsolidationPlan>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub(crate) struct ScanPublicationReceipt {
     pub(crate) asset_count: u64,
+    pub(crate) consolidated_roots: Vec<crate::domain::ConsolidatedLibraryRoot>,
 }
 
 const IDENTITY_RECONCILIATION_WINDOW: i64 = 128;

@@ -351,6 +351,27 @@ class CatalogSnapshot {
           queryAnchorResolution == other.queryAnchorResolution;
 }
 
+class ConsolidatedLibraryRoot {
+  final String previousRootId;
+  final String relativePath;
+
+  const ConsolidatedLibraryRoot({
+    required this.previousRootId,
+    required this.relativePath,
+  });
+
+  @override
+  int get hashCode => previousRootId.hashCode ^ relativePath.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConsolidatedLibraryRoot &&
+          runtimeType == other.runtimeType &&
+          previousRootId == other.previousRootId &&
+          relativePath == other.relativePath;
+}
+
 class FileIdentityEvidence {
   final String scheme;
   final String value;
@@ -1029,6 +1050,7 @@ sealed class ScanEvent with _$ScanEvent {
     required BigInt issueCount,
     required String catalogPath,
     required bool wasLimited,
+    required List<ConsolidatedLibraryRoot> consolidatedRoots,
   }) = ScanEvent_Completed;
   const factory ScanEvent.cancelled({
     required String scanId,
