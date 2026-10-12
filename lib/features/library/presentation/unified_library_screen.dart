@@ -26,6 +26,7 @@ import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
 import "library_gallery_query_transition.dart";
+import "library_pending_source.dart";
 import "library_strings.dart";
 import "library_synchronization_feedback.dart";
 import "library_search_availability.dart";
@@ -1083,7 +1084,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                   _synchronizationSnapshot.lastErrorCode != null,
               selectedRootId: state.query.rootId,
               selectedFolderRelativePath: state.query.folderRelativePath,
-              transientRootPath: _transientRootPath(state),
+              transientSource: LibraryPendingSource.fromState(state),
               folderTree: folderTree,
               isBusy: state.isBusy,
               isBrowseDisabled: !LibraryBrowseAdmission(state).canBrowse,
@@ -1229,13 +1230,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryGalleryLayoutManifest? layoutManifest,
   ) {
     if (state.assets.isEmpty) {
-      if (state.status == LibraryStatus.refreshing || state.isLoadingTimeline) {
-        return const GalleryLoadingState();
-      }
-      if (state.roots.isNotEmpty) {
-        return NoGalleryResults(query: state.query);
-      }
-      return EmptyLibrary(
+      return EmptyLibraryGallery(
         state: state,
         onImport: controller.chooseDirectoryAndScan,
       );
@@ -2109,15 +2104,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       }
     }
     return null;
-  }
-
-  static String? _transientRootPath(LibraryState state) {
-    final rootPath = state.displayRootPath;
-    if (rootPath == null ||
-        state.roots.any((root) => root.displayPath == rootPath)) {
-      return null;
-    }
-    return rootPath;
   }
 }
 

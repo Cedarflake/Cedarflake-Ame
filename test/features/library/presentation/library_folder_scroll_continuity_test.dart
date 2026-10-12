@@ -175,7 +175,7 @@ class _Navigation extends ConsumerWidget {
         roots: const [_root],
         selectedRootId: "root-1",
         selectedFolderRelativePath: null,
-        transientRootPath: null,
+        transientSource: null,
         folderTree: tree,
         isBusy: false,
         isBrowseDisabled: false,

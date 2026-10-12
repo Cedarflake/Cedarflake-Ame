@@ -16,10 +16,19 @@ abstract final class LibraryStrings {
   static const sourceOffline = "当前离线";
   static const sourceUnknown = "状态未知";
   static const addingSource = "正在添加";
+  static const pausingSource = "正在暂停…";
+  static const cancellingSource = "正在取消…";
+  static const refreshingSourceDisplay = "正在刷新图库显示…";
+  static const sourceAdded = "已添加";
+  static const sourceDisplayReloadPending = "等待刷新显示";
+  static const galleryDisplayReloadPending = "图库已更新，等待刷新显示";
+  static const galleryDisplayReloadDetail = "图库已经更新。请在任务面板中查看刷新进度或重试刷新显示。";
   static const firstImportIncomplete = "尚未完成添加";
   static const firstImportAwaitingUser = "等待手动继续或重新添加";
   static const firstImportRequiredDetail =
       "此文件夹尚未完成首次添加，Ame 不会自动继续扫描。有可恢复任务时，请在任务面板点击“继续”；已取消的任务需要重新添加文件夹。";
+  static const firstImportGalleryDetail =
+      "图片会在首次添加完成后显示。请在任务面板中查看进度或继续已暂停的任务；已取消的任务需要重新添加文件夹。";
   static const library = "图库";
   static const import = "导入";
   static const searchHint = "在图库中搜索";

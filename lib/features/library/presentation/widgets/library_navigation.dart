@@ -9,6 +9,7 @@ import "../../application/library_folder_controller.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
+import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "library_folder_navigation_tile.dart";
 import "library_source_navigation_tile.dart";
@@ -25,7 +26,7 @@ class LibraryNavigation extends StatefulWidget {
     this.hasSynchronizationFailure = false,
     required this.selectedRootId,
     required this.selectedFolderRelativePath,
-    required this.transientRootPath,
+    required this.transientSource,
     required this.folderTree,
     required this.isBusy,
     required this.isBrowseDisabled,
@@ -57,7 +58,7 @@ class LibraryNavigation extends StatefulWidget {
   final bool hasSynchronizationFailure;
   final String? selectedRootId;
   final String? selectedFolderRelativePath;
-  final String? transientRootPath;
+  final LibraryPendingSource? transientSource;
   final LibraryFolderTreeState folderTree;
   final bool isBusy;
   final bool isBrowseDisabled;
@@ -252,7 +253,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           : widget.onSelectLibrary,
                     ),
                   const SizedBox(height: 12),
-                  if (widget.roots.isEmpty && widget.transientRootPath == null)
+                  if (widget.roots.isEmpty && widget.transientSource == null)
                     if (widget.isCompact)
                       const AmeTooltip(
                         message: LibraryStrings.noFolder,
@@ -297,9 +298,9 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                     if (!widget.isCompact && _isExpanded(root.id, ""))
                       ..._buildFolderBranch(root, "", 1),
                   ],
-                  if (widget.transientRootPath case final path?)
+                  if (widget.transientSource case final source?)
                     PendingLibrarySourceTile(
-                      path: path,
+                      source: source,
                       isCompact: widget.isCompact,
                     ),
                 ],

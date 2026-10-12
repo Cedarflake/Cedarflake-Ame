@@ -544,6 +544,12 @@ persistence layers.
   the existing Material linear indicator above the unchanged child viewport with framework Stack
   layout and pointer passthrough. The screen supplies the existing loading projection; neither
   owner changes scroll position, query authority or asynchronous loading lifetime to hide movement.
+- `library_gallery_states.dart` owns empty-gallery selection after the screen preserves published
+  items. Query loading precedes a scoped published-result reload, then an incomplete first import;
+  a root without a published baseline cannot prove empty results. `library_pending_source.dart`
+  projects an unlisted source from the primary task snapshot, so query activity cannot animate
+  a paused import. Both are read-only presentation
+  owners; they neither publish staged content nor acquire scan authority.
 - `library_gallery_reflow.dart` owns capture/resolution of a query-bound viewport anchor and the
   pending geometry change. A retained scroll origin binds a framework ScrollPosition and its
   captured offset; later movement invalidates reuse of the old anchor. The wall validates that

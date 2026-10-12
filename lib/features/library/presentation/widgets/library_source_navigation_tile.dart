@@ -10,6 +10,7 @@ import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
+import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "library_path_text.dart";
 
@@ -395,33 +396,34 @@ enum _LibrarySourceMenuAction { update, open, relocate, remove }
 
 class PendingLibrarySourceTile extends StatelessWidget {
   const PendingLibrarySourceTile({
-    required this.path,
+    required this.source,
     required this.isCompact,
     super.key,
   });
 
-  final String path;
+  final LibraryPendingSource source;
   final bool isCompact;
 
   @override
   Widget build(BuildContext context) {
     if (isCompact) {
       return AmeTooltip(
-        message: path,
-        child: const IconButton(
+        message: "${source.path}\n${source.statusLabel}",
+        child: IconButton(
           onPressed: null,
           icon: Stack(
             clipBehavior: Clip.none,
             children: [
-              Icon(Symbols.folder_rounded),
-              Positioned(
-                right: -5,
-                bottom: -5,
-                child: SizedBox.square(
-                  dimension: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2),
+              const Icon(Symbols.folder_rounded),
+              if (source.isProcessing)
+                const Positioned(
+                  right: -5,
+                  bottom: -5,
+                  child: SizedBox.square(
+                    dimension: 12,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
@@ -431,25 +433,27 @@ class PendingLibrarySourceTile extends StatelessWidget {
       key: const Key("pending-source-tile"),
       icon: Symbols.folder_rounded,
       iconKey: const Key("pending-source-icon"),
-      title: librarySourceName(path),
-      path: path,
+      title: librarySourceName(source.path),
+      path: source.path,
       titleKey: const Key("pending-source-title"),
-      subtitle: LibraryStrings.addingSource,
-      trailing: const SizedBox(
+      subtitle: source.statusLabel,
+      trailing: SizedBox(
         width: 96,
-        child: Align(
-          alignment: Alignment.centerRight,
-          child: SizedBox(
-            width: 48,
-            child: Center(
-              child: SizedBox.square(
-                key: Key("pending-source-progress"),
-                dimension: 18,
-                child: CircularProgressIndicator(strokeWidth: 2.5),
-              ),
-            ),
-          ),
-        ),
+        child: source.isProcessing
+            ? const Align(
+                alignment: Alignment.centerRight,
+                child: SizedBox(
+                  width: 48,
+                  child: Center(
+                    child: SizedBox.square(
+                      key: Key("pending-source-progress"),
+                      dimension: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    ),
+                  ),
+                ),
+              )
+            : null,
       ),
     );
   }

@@ -5,6 +5,125 @@ import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../library_strings.dart";
 
+class EmptyLibraryGallery extends StatelessWidget {
+  const EmptyLibraryGallery({
+    required this.state,
+    required this.onImport,
+    super.key,
+  });
+
+  final LibraryState state;
+  final VoidCallback onImport;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.status == LibraryStatus.refreshing ||
+        state.isRefreshingQuery ||
+        state.isLoadingTimeline) {
+      return const GalleryLoadingState();
+    }
+    if (_isAwaitingPublishedDisplay) {
+      return const _PendingLibraryGallery(_PendingGalleryReason.displayReload);
+    }
+    if (_hasUnpublishedSource) {
+      return const _PendingLibraryGallery(_PendingGalleryReason.firstImport);
+    }
+    if (state.roots.isNotEmpty) {
+      return NoGalleryResults(query: state.query);
+    }
+    return EmptyLibrary(state: state, onImport: onImport);
+  }
+
+  bool get _isAwaitingPublishedDisplay {
+    final scan = state.primaryScanSnapshot;
+    if (scan.publication != LibraryScanPublication.reloadPending) {
+      return false;
+    }
+    final selectedRootId = state.query.rootId;
+    if (selectedRootId == null) {
+      return true;
+    }
+    return state.roots.any(
+      (root) =>
+          root.id == selectedRootId &&
+          (root.path == scan.rootPath ||
+              root.displayPath == scan.displayRootPath),
+    );
+  }
+
+  bool get _hasUnpublishedSource {
+    final selectedRootId = state.query.rootId;
+    for (final root in state.roots) {
+      if ((selectedRootId == null || root.id == selectedRootId) &&
+          root.activeScanId == null) {
+        return true;
+      }
+    }
+    if (selectedRootId != null) {
+      return false;
+    }
+    final scan = state.primaryScanSnapshot;
+    if (scan.taskKind != LibraryTaskKind.import ||
+        scan.rootPath == null ||
+        !(scan.isScanning || scan.hasRetainedScan)) {
+      return false;
+    }
+    // A newly admitted import can precede the first registered-root read.
+    return !state.roots.any(
+      (root) =>
+          root.path == scan.rootPath ||
+          root.displayPath == scan.displayRootPath,
+    );
+  }
+}
+
+enum _PendingGalleryReason { firstImport, displayReload }
+
+class _PendingLibraryGallery extends StatelessWidget {
+  const _PendingLibraryGallery(this.reason);
+
+  final _PendingGalleryReason reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDisplayReload = reason == _PendingGalleryReason.displayReload;
+    return Center(
+      key: Key(
+        isDisplayReload
+            ? "library-published-reload-state"
+            : "library-first-import-state",
+      ),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Symbols.folder_rounded, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                isDisplayReload
+                    ? LibraryStrings.galleryDisplayReloadPending
+                    : LibraryStrings.firstImportIncomplete,
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isDisplayReload
+                    ? LibraryStrings.galleryDisplayReloadDetail
+                    : LibraryStrings.firstImportGalleryDetail,
+                textAlign: TextAlign.center,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class GalleryLoadingState extends StatelessWidget {
   const GalleryLoadingState({super.key});
 

@@ -338,7 +338,7 @@ void main() {
                   ? null
                   : currentRoots.first.id,
               selectedFolderRelativePath: null,
-              transientRootPath: null,
+              transientSource: null,
               folderTree: const LibraryFolderTreeState(),
               isBusy: false,
               isBrowseDisabled: false,
@@ -863,7 +863,7 @@ Widget _buildNavigation({
       hasSynchronizationFailure: hasSynchronizationFailure,
       selectedRootId: "root-1",
       selectedFolderRelativePath: null,
-      transientRootPath: null,
+      transientSource: null,
       folderTree: LibraryFolderTreeState(
         revision: BigInt.one,
         branches: {
