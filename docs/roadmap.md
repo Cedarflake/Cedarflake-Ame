@@ -140,8 +140,10 @@ this generated-client result does not establish complete synchronization accepta
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,
 the corrected continuous search input, committed-removal display Retry and focused sidebar position
-continuity, including native position retention across replacement and append. Complete native
-lifetime timing and remaining final-source gates remain open. The
+continuity, including native position retention across replacement and append. Selected
+[Release folder paging](acceptance/r2c-release-native.md#release-folder-paging-on-2026-10-12)
+now passes replacement/append input, position retention, folder pixels and normal retirement;
+preserve the earlier combined lifetime failure and remaining final-source gates. The
 pending time-rail reversal now has exact current-target and stale-result retirement evidence.
 C11's loading-feedback composition preserves the viewport, with focused and selected native Debug
 position-stability evidence and selected current Release gallery observations; preceding failures

@@ -1433,3 +1433,41 @@ These tool limitations are retained without assigning a product cause or replayi
 Small local sources and receipts remain in `.build/r2c-release-preview-recovery-20261012`.
 This closes the selected Release exclusive-source and corrupt-source recovery paths. Pending-read
 races, historical C01/C02 attribution and other candidate/platform duties remain separate.
+
+## Release folder paging on 2026-10-12
+
+Candidate `a737ad0` differs from clean Release `503aa01` only in documentation and the admission
+test excluded by `cfg(test)`. All 1020 bound source, payload and helper hashes match. The fixture
+uses 201 generated child folders and one subsequent `a-new` arrival, each with a 256-by-192 PNG;
+the entire corpus is 148268 encoded bytes. Existing payload/profile/Job owners are reused without
+a build, payload copy, real-library access or service installation.
+
+| Native boundary | Observed result |
+| --- | --- |
+| Initial branch | First rows begin at `folder-000`; scrolling reaches `folder-199` and Show More |
+| LiveOnly arrival | Gallery increases from 201 to 202; old sidebar still ends at `folder-199` |
+| First Show More | Visible window changes from `folder-189..199` to `folder-188..198`; Show More remains at the same bottom position |
+| Second Show More | `folder-199/200` appear in accessibility state, Show More disappears, and the visible first row remains `folder-188` |
+| Select last/new folder | A short downward scroll exposes `folder-200`; selecting it shows one blue image. Returning to the top and selecting `a-new` shows one green image |
+
+The three read-only catalog snapshots prove revisions `1 -> 2 -> 2`, exact 201/202/202 published
+locations, one unchanged completed scan/root binding and unchanged original asset/location IDs.
+Closed SQLite integrity and foreign-key checks pass. This verifies visible replacement/append,
+native selection and absence of a return-to-top jump; it does not serialize the whole in-memory
+folder roster, prove an internal cursor value, continuously measure frames or replace Rust FULL-open.
+
+Title-bar Close reaches observed process exit in 377.027 ms. The 436065-ms application lifetime
+has a sampled peak working set of 221487104 bytes, zero process/Job exit codes, retired owned group
+and no cleanup failures. All 202 source identities, sizes, dates and hashes match their oracle;
+original settings, preferences and catalog/WAL/SHM are preserved, and no Ame process remains.
+The original 32-MiB decoded-corpus estimate counted three RGB bytes per pixel. A four-byte RGBA
+representation would require 39714816 bytes, so that estimate was not a conservative representation
+bound. The actual enforced 2-GiB process ceiling is unchanged and was not approached. Preserve
+this preparation accounting limitation without replaying the verified functional path.
+
+The first indexed import click is rejected by the automation cache before acting. A fresh screenshot
+supports the successful coordinate input. Picker focus text and immediate accessibility results
+can lag the screenshot; settled observations and visible current pixels establish the recorded
+boundaries. Small sources and receipts remain in `.build/r2c-release-folder-paging-20261012`.
+Selected Release UX-03B input and normal retirement pass. Earlier Debug parent-timing failures,
+C01/C02 attribution, other variants and final candidate/platform acceptance remain separate.

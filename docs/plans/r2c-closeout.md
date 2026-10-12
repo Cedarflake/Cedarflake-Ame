@@ -111,10 +111,16 @@ lock-release, late-interrupt, permit-ownership and deadline assertions. All 20 f
 tests and the applicable Daily static partition pass, including full lint, 1725 Rust library tests,
 three broker cases and 16 bridge contracts. Fresh hosted verification remains required. No product,
 schema, dependency, source access or timeout changes. Preserve previously passing native/Release
-workflows; continue the remaining folder run without replaying them for this test-only correction.
+workflows without replaying them for this test-only correction.
 
-The next Release observation covers UX-03B with 201 generated child folders and one later
-`a-new` arrival. Bound the entire 202-image corpus to 1 MiB encoded and 32 MiB decoded. Reuse
+The [Release folder observation](../acceptance/r2c-release-native.md#release-folder-paging-on-2026-10-12)
+now passes selected UX-03B input, sidebar position, current folder pixels and normal retirement.
+Preserve its original preparation method below and the recorded RGB-only memory-estimate limitation;
+no unchanged replay is needed. Continue the remaining frozen variants and fresh hosted verification.
+
+This observation covers UX-03B with 201 generated child folders and one later
+`a-new` arrival. The original method bounds the entire corpus to 1 MiB encoded and estimates
+32 MiB decoded; the result records the nonconservative RGB-only estimate. Reuse
 the clean `503aa01` payload after proving that subsequent changes affect only documentation and
 the `cfg(test)` admission test; retain the exact payload hashes and original-profile lease.
 Preparation receives 45 active minutes and result inspection ten. The existing single-instance
