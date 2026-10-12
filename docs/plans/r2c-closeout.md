@@ -77,8 +77,9 @@ containment, and complete parent publication retires covered registrations in th
 The current query follows the parent without rescanning after a failed display read. No path-text-only
 retirement, display-only deduplication, source mutation, schema reset or unrelated overlap migration
 is admitted. Complete lint, Rust and Flutter plus native scanning pass; Daily retains the new C02
-UIA progress-record replacement failure. Preserve that attempt without unchanged replay and finish
-unsigned Release and final hosted verification; this checkpoint does not establish complete R2c acceptance.
+UIA progress-record replacement failure. Unsigned Release also passes from clean `503aa01`.
+Preserve the failed UIA attempt without unchanged replay and finish final hosted verification;
+this checkpoint does not establish complete R2c acceptance.
 
 Hosted run `38200650029` on `7c75774` passes all ten required component jobs and the aggregate gate;
 the separate signing channel remains skipped. It covers the forward nested-source selection, not

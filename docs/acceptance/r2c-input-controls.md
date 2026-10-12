@@ -128,8 +128,16 @@ transcript remain in `build/windows-accessibility-bridge-test.log`. This C02 rec
 product interaction pass, and the complete Daily remains failed. The parent reads a probe record
 after process retirement; current inspection does not establish a concurrent parent-reader cause.
 No unchanged replay or reporting-contract relaxation follows. The unreached final bridge gate runs
-separately and passes all 16 asynchronous contracts with matching generated hashes; `git diff HEAD
---check` passes. Unsigned Release and final hosted verification remain pending.
+separately and passes all 16 asynchronous contracts with matching generated hashes;
+`git diff HEAD --check` passes. Final hosted verification remains pending.
+
+Unsigned Windows verification passes from clean commit
+`503aa015ea8c8fd8c0bb643799133cf3ac83263f`: fresh Release application and broker, three engine-free
+window cases, two real-engine retirement cases and the catalog-free Release bridge/accent smoke.
+The engine process exits zero and closes its owned Job in 2880 ms without cleanup failures. The
+command completes between 05:58:52 and 06:01:31 UTC on 2026-10-12 and leaves the checkout clean.
+Reverse-folder interaction has the native Debug evidence above; this Release result covers unsigned
+packaging, lifecycle and bridge compatibility. The failed UIA gate and other R2c exits remain open.
 
 The first generated-bridge command completed generation but hit Windows error 1224 while formatting
 an output file; subsequent formatting and compilation pass. One initial test compile omitted the new

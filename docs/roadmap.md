@@ -129,7 +129,7 @@ keyboard controls and Release paths retain their separate frozen duties. The
 [nested-source record](acceptance/r2c-input-controls.md#parent-import-after-child-registration)
 now verifies forward covered-folder selection and atomic consolidation after a complete first
 parent import through focused and native Debug paths. Current-source quality retains the separate
-UIA progress-record replacement failure; unsigned Release and final hosted checks remain open.
+UIA progress-record replacement failure. Unsigned Release passes; final hosted checks remain open.
 The
 [multi-root record](acceptance/r2c-closeout-cycle.md#native-queued-cancellation-and-real-updates)
 adds queued-task keyboard Cancel, peer publication during removal, actual reimport and

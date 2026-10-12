@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Last amended: 2026-10-10
+- Last amended: 2026-10-12
 - Supersedes: ADR 0023
 - Historical predecessor: ADR 0022
 
