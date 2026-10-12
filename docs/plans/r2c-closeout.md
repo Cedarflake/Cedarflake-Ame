@@ -139,6 +139,19 @@ original profile/catalog preservation and complete owned-process retirement. No 
 overrides are introduced. This is separate from pending-registration cancellation, display Retry,
 installed-journal coverage, held source-copy/OS-read, C01/C02 and final candidate obligations.
 
+The [ordinary Release nested-source observation](../acceptance/r2c-release-native.md#ordinary-release-nested-source-import-on-2026-10-13)
+passes child import, parent consolidation with retained logical identity/nested-folder display, and
+covered-child navigation without new scan history. The exact two-image oracle, closed integrity,
+source preservation and original-profile restoration pass. Its missing close-request record keeps
+the combined lifetime failed; preserve that result. The changed process-identity/request admission
+then passes a separate empty-profile close in 530.201 ms, without repeating the imports. That result
+does not fill the preceding measurement gap or change other Release/platform duties. The reserved
+60 preparation, 12 native and ten inspection minutes, plus the separate 15 preparation, five native
+and five inspection minutes for close admission, are consumed. No unchanged replay is admitted.
+Keep the 1-MiB encoded/4-MiB decoded source limits, four-GiB entry availability, two-GiB client/system
+limits and six-second close deadline for this recorded scope. Existing controlled evidence owns
+source-call counts and frame-level assertions; these point observations do not replace it.
+
 The [hard-link recovery checkpoint](../acceptance/r2c-retained-runtime.md#retained-hard-link-source-state)
 now has the exact failing sequence, atomic retained-alias correction, narrow compatibility repair,
 focused rejection cases, full local Rust and unsigned Release evidence on `6a252a1`. Preserve full

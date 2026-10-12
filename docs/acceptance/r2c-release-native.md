@@ -1720,3 +1720,57 @@ viewer. It does not close pending-registration cancellation, committed-display R
 journal continuity, held source-copy/OS-read, C01/C02 or the remaining final/platform obligations.
 The initial oracle failure is retained alongside the corrected offline result, not relabeled as
 an initial passing run. No production change or unchanged replay is used.
+
+### Ordinary Release nested-source import on 2026-10-13
+
+Current `lib/main.dart` on `4ebd10f` builds in 16.0 seconds with 983 frozen compilation inputs,
+13,498,814 input bytes and no provider or input overrides. The prior canonical Release payload is
+restored against its separate manifest. The fixture binds 1009 inputs and uses the existing durable
+original-profile lease with fresh isolated catalog/cache storage. Exactly two generated 256-by-192
+PNGs occupy 1328 bytes under a Chinese-named parent and its child/nested directories.
+
+Actual system-picker input imports the child first. Its one completed foreground scan publishes
+one image without issues; the green preview appears. Native sidebar input selects the nested
+folder. Importing the parent through the picker preserves that folder's displayed title and green
+pixels, publishes two distinct logical images, retains the child's asset identity and retires the
+child registration and scan. The resulting catalog contains exactly one parent root and its one
+completed foreground scan. Selecting the covered child through the picker again navigates to that
+folder without changing the parent root, active scan, scan history, membership or source versions.
+The all-library view then displays exactly the red and green previews.
+
+Five valid checkpoint cases and eighteen rejecting cases validate the offline oracle before the
+client run. Rejections include duplicate roots/assets/locations, missing membership, wrong root or
+publication, incomplete or differently owned scans, lost child identity, wrong folder, missing
+source version/preview, unexpected issues and an otherwise completed replacement scan after covered
+selection. Read-only live checkpoints and the final closed catalog all pass, including integrity
+and foreign-key checks. Source-call counts and frame-level transient-state claims remain with the
+existing controlled tests; screenshots and catalog observations do not independently establish them.
+
+The 204037-ms lifetime exits zero, with peak working set 197775360 bytes and minimum sampled host
+availability 5222440960 bytes. Its owned group retires and the original profile/catalog and exact
+source identities, membership, bytes and times are preserved. However, the complete lifetime receipt
+remains **failed**: the sandboxed pre-close process lookup cannot resolve the external test PID, so
+no close-request record is created. The input caller continues after the failed lookup and closes
+the app. This is a fixture admission error; it leaves the six-second close measurement unavailable
+for this particular lifetime. A cached element request is also rejected before picker input;
+refreshed screenshot input reaches the observed control without an application retry.
+
+The changed close method uses the same hash-bound Release in a separate empty profile, without
+repeating any import. The parent persists PID, process start time and executable identity. The
+request writer validates them in the parent's external execution context; the input caller now
+requires a successful writer exit before native Close. Missing process ownership is rejected
+without creating a request. This separate 32729-ms lifetime passes: close-to-exit 530.201 ms,
+application and Job exit zero, peak working set 123047936 bytes, minimum host availability
+5392834560 bytes and complete owned retirement/profile restoration without cleanup failures.
+The empty catalog contains no roots and passes integrity verification. The populated nested-source
+catalog still matches its final checkpoint afterward. This does not relabel the preceding failed
+receipt or supply its missing measurement.
+
+The functional checkpoints remain under `.build/r2c-release-nested-20261013`; the separate normal
+close is under `.build/r2c-release-close-20261013`. The nested lifetime and closed-catalog records
+have SHA-256 `33422D0F60C3BCEBF27C7ADFC4E369344B11A6E665D0C42CA0C4CD964B2265A4` and
+`790F377A86D8E0F814717D9A9DF02E5CC71B35B914C27720C7C76DB44F31FE95`. The separate successful
+close lifetime is `91DB4CC03A5E9B90FD4C945189EAB572583D39E2A32820159019466EFCDDF2D5`.
+No source media, product code, schema, dependency or service changes. These selected functional
+results leave installed-journal continuity, other frozen Release variants, historical C01/C02
+attribution and final/platform duties separate.

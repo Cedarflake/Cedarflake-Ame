@@ -134,6 +134,10 @@ now verifies forward covered-folder selection and atomic consolidation after a c
 parent import through focused and native Debug paths. Current-source quality retains the separate
 UIA progress-record replacement failure. Unsigned Release and the subsequent required hosted gates
 pass; historical C01/C02 attribution and final candidate duties remain separate.
+The [ordinary Release nested-source observation](acceptance/r2c-release-native.md#ordinary-release-nested-source-import-on-2026-10-13)
+also verifies child-to-parent identity preservation and covered-child navigation without another
+scan. Its close-record failure and the separate passing empty-profile close remain distinct;
+neither changes the outstanding final/client obligations.
 Selected [Release exclusive-source and corrupt-source recovery](acceptance/r2c-release-native.md#release-preview-failure-recovery-on-2026-10-12)
 also passes through normal retirement; preserve those results while completing the remaining variants.
 The
