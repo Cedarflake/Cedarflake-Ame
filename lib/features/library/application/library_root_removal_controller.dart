@@ -2,6 +2,7 @@ import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_catalog.dart";
 import "library_catalog_publication.dart";
+import "library_query_projection.dart";
 import "library_viewport_controller.dart";
 
 class PreparedLibraryRootRemoval {
@@ -89,16 +90,26 @@ class LibraryRootRemovalController {
     }
     _preparedRemoval = null;
     final root = prepared._root;
+    var isCommitted = false;
     try {
       await _catalog.unregisterRoot(root.id);
+      isCommitted = true;
       if (!_owns(generation)) {
         return false;
       }
       _onUnregistered(root);
-      _viewport.publishCommittedRootRemovalProjection(root);
-      final didReload = await _viewport.reloadCommittedRootRemovalFirstPage(
-        removedRootId: root.id,
-      );
+      final didReload = await _publishDisplay(generation, (anchor) async {
+        if (!_owns(generation)) {
+          return LibraryQueryUpdateOutcome.superseded;
+        }
+        _viewport.publishCommittedRootRemovalProjection(root);
+        return await _viewport.reloadCommittedRootRemovalFirstPage(
+              removedRootId: root.id,
+              anchor: anchor,
+            )
+            ? LibraryQueryUpdateOutcome.applied
+            : LibraryQueryUpdateOutcome.superseded;
+      }, preservePosition: _state.query.rootId != root.id);
       if (!_owns(generation) || !didReload) {
         return false;
       }
@@ -106,6 +117,9 @@ class LibraryRootRemovalController {
       return true;
     } on Object catch (error) {
       if (_owns(generation)) {
+        if (isCommitted && !_state.isRemovalCommitted) {
+          _viewport.publishCommittedRootRemovalProjection(root);
+        }
         _state = _state.copyWith(
           status: LibraryStatus.failed,
           errorMessage: error.toString(),
@@ -181,8 +195,15 @@ class LibraryRootRemovalController {
       errorMessage: null,
     );
     try {
-      final didReload = await _viewport.reloadCommittedRootRemovalFirstPage(
-        removedRootId: removedRootId,
+      final didReload = await _publishDisplay(
+        generation,
+        (anchor) async =>
+            await _viewport.reloadCommittedRootRemovalFirstPage(
+              removedRootId: removedRootId,
+              anchor: anchor,
+            )
+            ? LibraryQueryUpdateOutcome.applied
+            : LibraryQueryUpdateOutcome.superseded,
       );
       if (!_owns(generation) || !didReload) {
         return;
@@ -198,6 +219,32 @@ class LibraryRootRemovalController {
     } finally {
       _releasePublication(operation.publication);
     }
+  }
+
+  Future<bool> _publishDisplay(
+    int generation,
+    LibraryQueryPublication publication, {
+    bool preservePosition = true,
+  }) async {
+    final projections = _viewport.queryProjections;
+    while (_owns(generation)) {
+      final positionGeneration = projections.generation;
+      final outcome = await projections.publish(
+        publication,
+        preservePosition: preservePosition,
+      );
+      if (!_owns(generation)) {
+        return false;
+      }
+      if (outcome == LibraryQueryUpdateOutcome.applied) {
+        return true;
+      }
+      if (outcome != LibraryQueryUpdateOutcome.superseded ||
+          projections.generation == positionGeneration) {
+        return false;
+      }
+    }
+    return false;
   }
 
   ({int generation, LibraryCatalogPublicationLease publication})?

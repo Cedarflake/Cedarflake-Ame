@@ -530,6 +530,12 @@ persistence layers.
   Independent root scans continue; their display refresh waits for release and reads the current
   query, rather than superseding the removal generation or restoring a pre-removal transition base.
   Reservation release is explicit on completion, failure, abandonment, and disposal.
+  After the single unregister command, the mounted query projection captures the current visible
+  identity before publishing the removed-root projection. `library_root_removal_page_reader.dart`
+  owns the bounded anchored page and removed-root absence check; the complete timeline remains a
+  separate background read. Later input retires old results and errors. Only a proven position
+  supersession may repeat display publication; neither that continuation nor an explicit display
+  retry repeats the unregister command. Capture failure still projects the committed removal.
 - `CatalogReclamationController` owns reclamation presentation state, polling, command epochs,
   ordered full-storage snapshots, and terminal usage refresh. A snapshot started before or during a
   newer command cannot replace that command's result. Settings persistence and preview cleanup

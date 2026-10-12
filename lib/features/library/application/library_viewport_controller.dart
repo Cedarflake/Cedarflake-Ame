@@ -13,6 +13,7 @@ import "library_query_refresh.dart";
 import "library_query_snapshot_reader.dart";
 import "library_query_transition.dart";
 import "library_root_consolidation.dart";
+import "library_root_removal_page_reader.dart";
 import "library_time_navigation_requests.dart";
 import "library_time_snapshot_reader.dart";
 
@@ -66,6 +67,7 @@ class LibraryViewportController {
     queryProjections,
   );
   late final _querySnapshots = LibraryQuerySnapshotReader(_catalog);
+  late final _rootRemovalPages = LibraryRootRemovalPageReader(_catalog);
   late final _timeSnapshots = LibraryTimeSnapshotReader(_catalog);
 
   late final _timeNavigation = LibraryTimeNavigationRequests(
@@ -1108,20 +1110,22 @@ class LibraryViewportController {
 
   Future<bool> reloadCommittedRootRemovalFirstPage({
     required String removedRootId,
+    LibraryQueryAnchor? anchor,
   }) async {
     final generation = _publicationGeneration;
+    final projectionRead = queryProjections.beginRead();
     final query = _state.query;
-    final snapshot = await _catalog.load(
-      maxItems: libraryCatalogWindow,
+    final snapshot = await _rootRemovalPages.loadCurrent(
+      removedRootId: removedRootId,
       query: query,
+      anchor: anchor,
+      canPublish: () =>
+          _canPublishGeneration(generation) &&
+          queryProjections.accepts(projectionRead),
     );
-    if (snapshot.roots.any((root) => root.id == removedRootId)) {
-      throw const LibraryCatalogFailure(
-        code: "catalog_root_removal_not_visible",
-        message: "The removed library root is still present in the catalog",
-      );
-    }
-    if (!_canPublishGeneration(generation)) {
+    if (snapshot == null ||
+        !_canPublishGeneration(generation) ||
+        !queryProjections.accepts(projectionRead)) {
       return false;
     }
     final shouldLoadTimeline = snapshot.roots.isNotEmpty;

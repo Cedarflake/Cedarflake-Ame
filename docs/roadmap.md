@@ -129,7 +129,8 @@ keyboard controls and Release paths retain their separate frozen duties. The
 [nested-source record](acceptance/r2c-input-controls.md#parent-import-after-child-registration)
 now verifies forward covered-folder selection and atomic consolidation after a complete first
 parent import through focused and native Debug paths. Current-source quality retains the separate
-UIA progress-record replacement failure. Unsigned Release passes; final hosted checks remain open.
+UIA progress-record replacement failure. Unsigned Release and the subsequent required hosted gates
+pass; historical C01/C02 attribution and final candidate duties remain separate.
 Selected [Release exclusive-source and corrupt-source recovery](acceptance/r2c-release-native.md#release-preview-failure-recovery-on-2026-10-12)
 also passes through normal retirement; preserve those results while completing the remaining variants.
 The
@@ -137,6 +138,10 @@ The
 adds queued-task keyboard Cancel, peer publication during removal, actual reimport and
 directory-loss recovery during a peer update;
 this generated-client result does not establish complete synchronization acceptance. The
+[Release multi-root observation](acceptance/r2c-release-native.md#release-multi-root-observation-on-2026-10-12)
+completes ordinary updates and reimport but misses the active-update removal interval. Its
+unrelated-root removal exposes a reproduced gallery-position jump; the focused anchored-display
+correction requires current-source gates and native verification before closing that finding. The
 [query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
 search/sort/root/folder/window interaction during publication, folder-window replacement/append,
 the corrected continuous search input, committed-removal display Retry and focused sidebar position

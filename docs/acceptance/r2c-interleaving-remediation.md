@@ -33,7 +33,7 @@ follow-up retain their unresolved checkpoints and consumed experiment limits:
 | ID | Scenario / severity | Evidence and owning obligation | Blocked exit |
 | --- | --- | --- | --- |
 | R2C-C01 | UX-07A/B / S1 | Queue-work and retained-proof corrections pass their causal bounds and focused regressions. [Current hosted 8b8053d](#hosted-mixed-load-recurrence-on-8b8053d) fails the P2-page preparation bound with 7662 ms in catalog revalidation, before the next P0 event. [Earlier hosted 1b8b2b0](#hosted-rust-failures-on-1b8b2b0) repeats the five-second P0 visibility failure, with 9559 ms in connection destruction. [Retained hosted 9359618](#hosted-mixed-load-recurrence-on-9359618) previously failed this limit during identity-handle retirement; the [later 9c584a0 candidate](r2c-closeout-cycle.md#accumulated-candidate-hosted-checkpoint) passed without explaining it. The second complete local Daily also retains its unchanged 300-second full-recovery failure with 8960/10000 owners completed; authority, final publication and FULL reopen remain incomplete. Both earlier local lifetime controls pass. The P2 follow-up finds identical plans/work/results for original versus owner-first SQL projection; no causal correction is supported and conditional Daily is unstarted. Earlier native-retirement/SQL-proof outliers and the original native-output gap remain unexplained. Further experimentation requires bounded replanning. | Item 2, candidate readiness |
-| R2C-C02 | UX-08B / S1 | Current product commit `8cf120f` repeats the hosted `application-ready` deadline failure: parent 8018 ms against 8000 ms, despite a completed 126-element probe; owned retirement succeeds. The [final hosted checkpoint](r2c-browsing-diagnosis.md#final-hosted-source-checkpoint) preserves the complete failed gate. Earlier instrumented ten-phase passes do not erase this recurrence or explain File.Replace error 1175. Preserve the original protocol and deadline; neither C03 nor local Computer Use refusal establishes shared causality. | Item 3, candidate readiness |
+| R2C-C02 | UX-08B / S1 | The [current local recurrence](#local-uia-progress-replacement-on-2026-10-12) fails `source-menu-closed` while replacing its progress record; three of ten phases complete and owned retirement succeeds. Product commit `8cf120f` also retains its hosted `application-ready` deadline failure: parent 8018 ms against 8000 ms, despite a completed 126-element probe. The [hosted checkpoint](r2c-browsing-diagnosis.md#final-hosted-source-checkpoint) preserves that failed gate. Earlier ten-phase passes do not erase either recurrence or explain File.Replace error 1175. Preserve the original protocol and deadline; neither C03 nor local Computer Use refusal establishes shared causality. | Item 3, candidate readiness |
 | R2C-C03 | Final-source gate / S1 finding, owner repair verified | The supplement reproduces legacy delete-pending namespace retention under a metadata observer and corrects the native owner. Focused regressions, independent review/recheck, current-source 19-case guardrails, full lint and hosted checks pass. Cleanup preserves the original error and independently retires known resources, with bounded remaining-entry evidence. The second complete local Daily passes this boundary and later fails C01. The original observer remains unidentified; this repair does not explain C02 or make the whole candidate ready. | Owner boundary verified; overall Daily/readiness blocked by C01/C02 |
 | R2C-C04 | UX-03A/06A live bulk removal / S1 finding, focused/client verified | The original 2012-versus-512 failure is preserved. Typed LiveOnly subtree promotion, capacity and retained-debt ownership correct the causal gap without resetting retries or inventing journal continuity. Final 133 focused tests, lint and generated-client old-debt/fresh-burst oracles pass; exact 512 survivors and unchanged 10000 background are verified. The [C04 record](r2c-live-gap-recovery.md) retains all failures, source proofs, resource/cleanup limits and missing final-source gates. | Local count/recovery correction verified; full candidate readiness remains blocked |
 | R2C-C05 | UX-03A/04A/05A/08A browsing / S1 finding, selected generated-client paths verified | The [diagnosis and current evidence](r2c-browsing-diagnosis.md) retains original failures and owning corrections for preview demand, capture dates, rail/viewport publication, viewer geometry and missing-source request retirement. The complete generated bulk lifetime passes current pixels, rail/viewer checks and 4506 observed frames without Retry. It does not establish all frozen client paths, Release input or final local gates. | Remaining variants and candidate gates; selected generated browsing path verified |
@@ -51,6 +51,7 @@ follow-up retain their unresolved checkpoints and consumed experiment limits:
 | R2C-C12 | UX-05C graphics diagnostic / S2, selected observer correction verified | [Contextual attribution and corrected complete workflow](r2c-query-interactions.md#c12-raster-observer-and-complete-source-identity-result) localize the warning to the ignored observer's direct pixel readback. Raster-owned sampling preserves current-image assertions and completes rewrite/rename/removal with empty stderr, source integrity and normal exit. Earlier failures remain; product code is unchanged and no global clean-engine claim follows. | Final-source, Release and candidate acceptance |
 | R2C-C13 | UX-07C recovery feedback / S1 finding, focused/native correction verified | [Native exhaustion and restart](r2c-process-lifecycle.md#c13-exhausted-recovery-notification) reproduce an automatic-recovery promise for exhausted work. The extracted feedback policy prioritizes blocked state and describes unfinished work without inventing retry/scan authority. Eight focused cases, 20 existing cases, full lint, independent review and one retained-state native lifetime pass; correct feedback, cached/peer pixels, unchanged failed lineage, source safety and normal exit are preserved. | Final-source, Release, complete UX-07C and candidate acceptance |
 | R2C-C14 | UX-02B first-import Pause / S1 finding, owning correction and connected native path verified | [Opening retirement](r2c-retained-runtime.md#first-import-opening-retirement-correction) reproduces the hosted failure after Pause revokes selected capture work. Typed retirement preserves transaction, generation, execution-permit and unrelated error rules. Focused tests, independent review, lint, complete local Daily, connected native Pause/state restoration/Cancel and all current-source required hosted gates pass. | Final candidate and separate Release/client obligations |
+| R2C-C15 | UX-06B unrelated-root removal / S2, focused correction verified | The [Release observation and item-480 regression](r2c-release-native.md#committed-removal-position-correction) reproduce loss of the retained gallery position after removing another root. Anchored display publication preserves later input, disposal, asynchronous timeline work and single unregister authority. Focused, full Flutter, lint and native scan checks pass. | Native Release position verification and candidate gates |
 
 The [executing-lease restart](r2c-process-lifecycle.md#native-restart-with-an-unexpired-executing-lease)
 retains two unresolved observations for the existing feedback/input verification: blocked wording
@@ -59,6 +60,20 @@ requests return without proving sustained viewport movement. The owners to exami
 status projection and input delivery/viewport observation. Neither observation yet has causal
 evidence of a new functional defect; do not count the wheel calls as accepted interaction or add an
 unchanged native replay. The independently verified recovery and source-safety result remains scoped.
+
+### Local UIA progress replacement on 2026-10-12
+
+The removal-position candidate passes final-source lint, the complete Flutter Daily partition and
+Windows scan integration (`46d57e777b7743d78a21b3252eaabff3`, 54817 ms). Its required UIA partition
+then fails at `source-menu-closed`: `File.Replace` cannot delete the replaced progress file. The
+preceding three of ten phases complete. The failing probe reports a 193-ms operation, zero
+windows/elements and a 172-ms evidence write; earlier successful phases also retain this replacement
+error as their last mismatch. The application exits, its Job closes and scratch cleanup succeeds.
+The current transcript is `build/windows-accessibility-bridge-test.log`.
+
+This is the existing C02 reporting failure, not a completed native gate or an attribution of its
+cause. Preserve the failure without changing its protocol/deadline or replaying it unchanged.
+Continue independent functional Release verification; C02 still blocks final readiness.
 
 ### Hosted maintenance-preemption observer on 6167ea2
 
@@ -80,8 +95,10 @@ compilation. `quality_verify_daily.ps1 -Component static` exits zero: full lint 
 library tests pass with 23 intentional ignores in 906.80 seconds, three broker integration tests
 pass in 2.33 seconds, and all 16 asynchronous bridge contracts plus whitespace checks pass.
 This is the applicable static partition, not a new full Daily or local UIA pass. Fresh hosted
-verification follows the changed test; no unchanged hosted rerun is used. The separate C01/C02
-failures remain unattributed.
+run [38215804510](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38215804510) on `a737ad0`
+passes all ten required components and the aggregate Windows Gate after the test correction.
+The three signing-channel jobs remain skipped. No unchanged hosted rerun is used. The separate
+C01/C02 failures remain unattributed.
 
 ### Hosted mixed-load recurrence on 8b8053d
 

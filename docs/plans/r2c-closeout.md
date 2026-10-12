@@ -109,14 +109,15 @@ including parent consolidation and both mixed-load controls. Keep this failed ru
 C01/C02. The bounded test correction now delivers completion after preemption while preserving
 lock-release, late-interrupt, permit-ownership and deadline assertions. All 20 focused admission
 tests and the applicable Daily static partition pass, including full lint, 1725 Rust library tests,
-three broker cases and 16 bridge contracts. Fresh hosted verification remains required. No product,
+three broker cases and 16 bridge contracts. Hosted run `38215804510` on `a737ad0` passes all ten required
+component jobs and the aggregate gate; three signing-channel jobs remain skipped. No product,
 schema, dependency, source access or timeout changes. Preserve previously passing native/Release
 workflows without replaying them for this test-only correction.
 
 The [Release folder observation](../acceptance/r2c-release-native.md#release-folder-paging-on-2026-10-12)
 now passes selected UX-03B input, sidebar position, current folder pixels and normal retirement.
 Preserve its original preparation method below and the recorded RGB-only memory-estimate limitation;
-no unchanged replay is needed. Continue the remaining frozen variants and fresh hosted verification.
+no unchanged replay is needed. Continue the remaining frozen variants and final candidate gates.
 
 This observation covers UX-03B with 201 generated child folders and one later
 `a-new` arrival. The original method bounds the entire corpus to 1 MiB encoded and estimates
@@ -133,7 +134,25 @@ Verify one unchanged full scan, exactly 202 current locations, unchanged generat
 original profile/catalog, and normal process retirement. Native visible rows prove input and
 position boundaries; do not infer an unobserved complete in-memory roster or cursor from them.
 
-The next Release observation covers the remaining ordinary UX-06B multi-root input path.
+The [Release multi-root observation](../acceptance/r2c-release-native.md#release-multi-root-observation-on-2026-10-12)
+completes ordinary updates and subsequent removal/reimport with source and lifetime checks, but
+misses the active-update removal interval. Do not replay that unchanged workload. Its unrelated-root
+removal also changes the retained medium gallery window. Admit 30 active minutes for a focused
+position regression and causal diagnosis, then at most 90 for a cohesive correction and focused
+verification if reproduced. Preserve publication ownership, committed-only refresh retries,
+asynchronous timeline loading and later input/disposal guards. The item-480 widget case reproduces
+the jump and the bounded anchored-display correction passes its focused boundaries. Complete
+applicable final gates, then one native delta lifetime against a fresh backup of this observation's
+closed derived catalog. Reuse all 10514 generated sources without copying or mutation. Preparation
+is bounded to 30 active minutes, native input to 15 and final inspection to ten, retaining the
+900-second owned lifetime, profile lease and 2-GiB client/free-memory limits. Select the medium
+root near its end, remove only the small registration, and compare the same visible image names
+and rail position before/after without gallery-scroll input between them. Require unchanged peer
+identities/scan histories, exact 10000/512 membership, original-profile/source preservation and
+normal retirement. This changed-product delta does not replay the missed active-update interval
+or establish that variant. The original multi-root native method follows.
+
+This Release observation covers the remaining ordinary UX-06B multi-root input path.
 Reuse the verified 10000-image generated source and copy only its closed derived catalog through
 SQLite backup. Add two fresh generated roots containing 512 and two 128-by-96 PNGs, bounded to
 1 MiB encoded and 32 MiB including four decoded bytes per pixel. Preparation receives 45 active

@@ -1471,3 +1471,63 @@ can lag the screenshot; settled observations and visible current pixels establis
 boundaries. Small sources and receipts remain in `.build/r2c-release-folder-paging-20261012`.
 Selected Release UX-03B input and normal retirement pass. Earlier Debug parent-timing failures,
 C01/C02 attribution, other variants and final candidate/platform acceptance remain separate.
+
+## Release multi-root observation on 2026-10-12
+
+Candidate `761533f` reuses the verified `503aa01` Release payload with 1025 bound files. The existing
+10000-image generated corpus is reused without copying images; SQLite backup copies only its
+32784384-byte closed derived catalog. Two new roots contain 512 amber and two blue 128-by-96 PNGs,
+129528 encoded bytes and a conservative 25264128 decoded bytes. All sources, original profile and
+original catalog remain outside the isolated writable catalog/cache.
+
+Actual picker imports complete both new roots. The update dialog selects the large and medium
+roots, excluding the small root. A read-only snapshot observes the large update running after the
+medium publication; both eventually complete exactly one update with unchanged asset/location
+identities and exact 10000/512 membership. The large update finishes before the small-root removal
+confirmation, so this run does **not** verify removal during an active peer update. The original
+overlap assertion remains unmet; no replacement receipt or unchanged replay supplies a pass.
+
+Actual removal retires only the small registration, and subsequent picker reimport publishes its
+two unchanged blue images under generation two. The medium gallery remains selected with 512
+amber images. However, its accessible window changes from `image-0031..0000` before removal to
+`image-0267..0236` afterward without intervening gallery scroll input; the time-rail position also
+changes. A connected widget regression subsequently reproduces the loss at global item 480:
+completion replaces the visible `location-480..495` with `location-0..15` at the same rectangles.
+The removal projection clears its timeline/window offset before an unanchored page read.
+
+Closed membership is exactly 10000/512/2 at revision seven; integrity and foreign-key checks pass.
+Normal Close reaches observed exit in 398.291 ms. The 693386-ms owned application lifetime peaks
+at 239521792 working-set bytes, exits with process/Job code zero and retires the entire owned group
+without cleanup failures. All 10514 source hashes, identities, dates and sizes remain unchanged;
+the reused-source hash pass takes 42.728 seconds. Original settings, preferences, catalog/WAL/SHM,
+the base derived catalog and all 1025 bound files are preserved. No Ame process remains.
+Small receipts in `.build/r2c-release-multi-root-20261012` record a partial result, never an overall
+UX-06B pass. Exact Debug publication/spool barriers, active Release overlap, directory-unavailability,
+the position correction below and final candidate/platform duties remain separate.
+
+### Committed-removal position correction
+
+The removal coordinator now captures the current visible identity after its single unregister
+command and before the removed-root display projection. A dedicated bounded page reader resolves
+that anchor while retaining the existing removed-root absence check. The timeline still loads
+separately. Later scroll input retires obsolete results/errors and admits a new display read;
+display retries retain their lack of unregister authority. Current-root removal keeps its existing
+gallery fallback, and disposal admits no late page or timeline work.
+
+Five connected widget cases pass for ordinary completion, failed display retry, scroll during the
+page read, a late page failure after scroll, and scroll during unregister. Three reader-boundary
+cases pass for late success/failure after disposal and rejecting a still-present removed root.
+The related 105 controller, update, query, projection and position cases pass. The first test fixture
+omitted its scanner override and ended in bridge-initialization failure; that fixture is corrected.
+An intermediate implementation published a committed flag before removing the root from its state;
+the two existing peer-update assertions rejected it. The corrected projection remains atomic,
+and those assertions pass unchanged. Final-source lint, the complete Flutter Daily partition and
+native scan integration pass; the scan lifetime is 54817 ms. The UIA partition fails at progress-record
+replacement after three of ten phases, with normal application/Job retirement and cleanup. This
+[C02 recurrence](r2c-interleaving-remediation.md#local-uia-progress-replacement-on-2026-10-12) remains
+separate from the position finding. Unsigned Release and native position verification remain open.
+
+Affected handwritten owners contain 1453 viewport production lines, 297 removal-coordinator lines
+and 77 page-reader lines, with no inline tests. The two dedicated regression files contain 339 and
+111 lines. The broader viewport split remains retained debt; this repair adds no source scan,
+schema, bridge, dependency or media-mutation behavior.
