@@ -2663,3 +2663,37 @@ existing deadline. Windows accessibility separately misses its eight-second appl
 deadline while loading UIA. Neither failure is waived or attributed to the hard-link correction.
 The [Release continuation](r2c-release-native.md#host-release-continuation-on-2026-10-12) records the
 selected functional paths and the newly reproduced first-import feedback defect.
+
+## Catalog reclamation and reopen latency
+
+The ordinary Debug client's 2026-10-12 terminal records 1.1–2.8-second catalog-session lookup during
+otherwise idle synchronization polls. Concurrent catalog observations show falling page/freelist
+counts with unchanged schema identity. Each successful incremental reclamation batch discarded the
+validated session, making the next reader repeat the complete schema and row audit. A real SQLite
+regression reproduces that extra audit before the correction. This establishes one delay cause;
+later preview queue/publication delays are not all attributed to it.
+
+The dedicated `reclaim_catalog_pages` boundary retains an existing ready proof only after successful
+incremental reclamation. Structural maintenance, error, interruption, unwind, independent
+invalidation and schema changes retain their prior rejection/revalidation rules. The regression
+reclaims three actual batches, interleaves readers, checks zero repeated full audits, then changes
+the schema and requires stale-proof rejection plus one new audit. Active-scan and contention
+regressions use the same incremental entrypoint. Diagnostics now print continuity alongside queue
+freshness, so `liveOnly` is visible even when no pending work remains.
+
+Focused reclamation/session and 32 Flutter synchronization cases pass. The serial Daily static
+partition passes lint, warnings-denied Clippy, Dart analysis, 1728 Rust library tests, three broker
+cases and 16 bridge contracts; 23 explicitly opt-in Rust cases remain ignored. The full Flutter
+partition, native/Release verification and ordinary-client latency remain pending at this checkpoint.
+No source-media content or retained catalog was changed by these synthetic tests.
+
+Separate bounded read-only inspection finds 30 locally available October images absent from the
+published catalog: nine under one selected subtree and 21 under the other, with no placeholders.
+The catalog retains `live_only` capability/continuity and 64488 active locations. Exact arrival time
+is unproven; queue-idle status cannot prove downtime coverage. Client update and exact membership
+verification remain open, as does unsigned full-continuity delivery.
+
+Physical sizes are 137 maintenance-owner lines and 454 reclamation-owner lines, with no inline test
+modules; dedicated suites contain 201 and 633 lines respectively. The Dart synchronization owner
+has 799 lines and its dedicated suite 1337. This narrow correction does not expand their other
+lifecycle responsibilities or close the complete R2c acceptance scope.

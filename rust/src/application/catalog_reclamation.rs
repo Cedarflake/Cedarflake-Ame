@@ -256,9 +256,12 @@ fn reclaim_batch_with_retry(
     operation: &CatalogReclamationOperation,
 ) -> Result<Option<CatalogSpaceUsage>, ScanError> {
     retry_controlled_maintenance(operation, CatalogReclamationPhase::Reclaiming, |control| {
-        super::catalog_session::with_catalog_maintenance(path, || {
-            maintenance.try_reclaim_incremental(INCREMENTAL_BATCH_PAGES, control)
-        })
+        super::catalog_session::reclaim_catalog_pages(
+            path,
+            maintenance,
+            INCREMENTAL_BATCH_PAGES,
+            control,
+        )
     })
 }
 

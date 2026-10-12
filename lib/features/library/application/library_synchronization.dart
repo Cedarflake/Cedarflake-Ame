@@ -613,6 +613,7 @@ class RustLibrarySynchronization implements LibrarySynchronization {
       debugPrint(
         "[Ame sync] phase=$phase elapsed_ms=${elapsed.inMilliseconds} "
         "root=$root freshness=${status.freshness.name} "
+        "continuity=${status.continuity.name} "
         "root_phase=${status.phase.name} "
         "root_phase_elapsed_ms=${phaseElapsed.isNegative ? 0 : phaseElapsed.inMilliseconds} "
         "source=${status.sourceStatus.name} pending=${status.pendingChangeCount} "

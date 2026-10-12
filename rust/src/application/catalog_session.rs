@@ -11,7 +11,7 @@ use crate::domain::{LibraryChangeLane, ScanError};
 mod maintenance;
 
 use maintenance::CatalogMaintenanceFlight;
-pub(super) use maintenance::with_catalog_maintenance;
+pub(super) use maintenance::{reclaim_catalog_pages, with_catalog_maintenance};
 
 const VALIDATION_FAILURE_BACKOFF: Duration = Duration::from_millis(250);
 

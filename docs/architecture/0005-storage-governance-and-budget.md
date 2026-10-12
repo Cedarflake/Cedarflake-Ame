@@ -377,6 +377,13 @@ waiting for session renewal. Busy attempts preserve the prior proof; completed, 
 or unwound structural attempts retire it before releasing admission. The next catalog request must
 fully validate instead of relying on prepared state from before `VACUUM`. Full validation remains
 forbidden while a protected scan is active; it must not recover that execution's live claim.
+Successful incremental page reclamation preserves the preceding validated session. Its dedicated
+application entrypoint invokes only the bounded free-page operation; arbitrary maintenance and
+auto-vacuum conversion cannot select that retention policy. Interrupted, failed or unwound page
+reclamation still retires the proof, and an independently invalidated reservation cannot restore it.
+All subsequent opens and retained-connection reuse keep fresh file identity and schema-cookie
+checks, so namespace replacement or schema mutation still requires complete validation. A completed
+space-only batch must not make every synchronization poll and preview repeat the complete row audit.
 The session cache owns no live SQLite connection across the maintenance window.
 
 An existing `FULL` catalog switches online to `INCREMENTAL` through SQLite's supported pragma

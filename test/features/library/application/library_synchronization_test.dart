@@ -1090,7 +1090,7 @@ void main() {
   });
 
   test(
-    "development diagnostics include root phase elapsed counts and code",
+    "development diagnostics include continuity root phase counts and code",
     () async {
       final messages = <String>[];
       final priorDebugPrint = debugPrint;
@@ -1104,6 +1104,7 @@ void main() {
         startCall: () async => _snapshot(
           revision: 9,
           freshness: rust_change.CatalogFreshnessState.updating,
+          continuity: rust_journal.PersistentJournalContinuityState.liveOnly,
           lastIssueCode: "metadata_inventory_pending",
         ),
         pollCall: () async => _snapshot(revision: 9),
@@ -1116,6 +1117,7 @@ void main() {
       await synchronization.start();
 
       final diagnostics = messages.join("\n");
+      expect(diagnostics, contains("continuity=liveOnly"));
       expect(diagnostics, contains("root_phase=queuePublication"));
       expect(diagnostics, contains("root_phase_elapsed_ms=0"));
       expect(diagnostics, contains("pending=0 retry=0 gaps=0"));

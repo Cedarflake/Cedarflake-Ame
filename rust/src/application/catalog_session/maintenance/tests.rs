@@ -10,6 +10,8 @@ use crate::application::catalog_session::{
     invalidate_catalog_session, open_catalog_reader, validated_catalog_session,
 };
 
+mod incremental;
+
 #[test]
 fn validation_in_flight_defers_structural_maintenance_without_waiting() {
     let directory = tempdir().expect("catalog directory");

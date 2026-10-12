@@ -290,10 +290,13 @@ persistence layers.
   worker retirement, pending-request handoff, run identity, and attempt control. The worker consumes
   typed transitions instead of separately reading status and appending work that may have lost its
   executor. Its terminal status cannot be overwritten by a delayed preemption notification.
-- `catalog_session/maintenance.rs` owns structural-maintenance admission and retirement alongside
+- `catalog_session/maintenance.rs` owns maintenance admission and proof retention alongside
   the session cache's validation and foreground-scan protection transitions. It releases the
   transition mutex before the operation and wakes waiters on success, failure, interruption, and
-  unwind. Checkpointing remains outside structural invalidation. The reclamation facade selects
+  unwind. Its dedicated bounded page-reclamation entrypoint preserves validated proof only after
+  successful incremental reclamation; structural conversion and uncertain outcomes still retire it.
+  Independent invalidation takes precedence over retention. Checkpointing remains outside structural
+  invalidation. The reclamation facade selects
   these contracts rather than maintaining a second active-scan flag or invalidation protocol.
 - `sqlite_catalog/reusable_connection.rs` owns retained-connection proof. Object/session identity,
   write-admission ownership, autocommit, active statements and pending publication are checked before

@@ -8,6 +8,7 @@ use super::*;
 use crate::adapters::SqliteCatalog;
 
 mod scan_interleaving;
+mod validated_reclamation;
 
 fn usage(page_count: u64, freelist_count: u64) -> CatalogSpaceUsage {
     CatalogSpaceUsage {
@@ -313,13 +314,13 @@ fn busy_conversion_and_incremental_vacuum_preserve_the_validated_signature() {
             .expect("hold SQLite writer");
         let maintenance = SqliteCatalogSpaceMaintenance::new(path.clone());
         let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
-        let attempt = super::super::catalog_session::with_catalog_maintenance(&path, || {
-            if mode == "INCREMENTAL" {
-                maintenance.try_reclaim_incremental(1, &control)
-            } else {
+        let attempt = if mode == "INCREMENTAL" {
+            super::super::catalog_session::reclaim_catalog_pages(&path, &maintenance, 1, &control)
+        } else {
+            super::super::catalog_session::with_catalog_maintenance(&path, || {
                 maintenance.try_convert_to_incremental(&control)
-            }
-        });
+            })
+        };
 
         assert!(
             matches!(

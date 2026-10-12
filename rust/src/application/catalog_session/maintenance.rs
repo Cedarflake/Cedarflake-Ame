@@ -2,7 +2,13 @@ use super::{
     Arc, AtomicBool, CatalogSessionEntry, CatalogSessionState, Condvar, Mutex, Ordering, Path,
     ScanError, catalog_session_entry, registry_unavailable,
 };
-use crate::ports::CatalogMaintenanceAttempt;
+use crate::domain::CatalogSpaceUsage;
+use crate::ports::{CatalogMaintenanceAttempt, CatalogMaintenanceControl, CatalogSpaceRepository};
+
+enum CatalogMaintenanceKind {
+    Structural,
+    IncrementalReclamation,
+}
 
 #[derive(Default)]
 pub(super) struct CatalogMaintenanceFlight {
@@ -71,6 +77,25 @@ pub(in crate::application) fn with_catalog_maintenance<T>(
     path: &Path,
     attempt: impl FnOnce() -> Result<CatalogMaintenanceAttempt<T>, ScanError>,
 ) -> Result<CatalogMaintenanceAttempt<T>, ScanError> {
+    with_reserved_catalog_maintenance(path, CatalogMaintenanceKind::Structural, attempt)
+}
+
+pub(in crate::application) fn reclaim_catalog_pages(
+    path: &Path,
+    maintenance: &impl CatalogSpaceRepository,
+    max_pages: u32,
+    control: &CatalogMaintenanceControl,
+) -> Result<CatalogMaintenanceAttempt<CatalogSpaceUsage>, ScanError> {
+    with_reserved_catalog_maintenance(path, CatalogMaintenanceKind::IncrementalReclamation, || {
+        maintenance.try_reclaim_incremental(max_pages, control)
+    })
+}
+
+fn with_reserved_catalog_maintenance<T>(
+    path: &Path,
+    kind: CatalogMaintenanceKind,
+    attempt: impl FnOnce() -> Result<CatalogMaintenanceAttempt<T>, ScanError>,
+) -> Result<CatalogMaintenanceAttempt<T>, ScanError> {
     let entry = catalog_session_entry(path)?;
     let mut state = entry.state.lock().map_err(|_| registry_unavailable())?;
     if matches!(
@@ -92,7 +117,15 @@ pub(in crate::application) fn with_catalog_maintenance<T>(
         previous: None,
     };
     let result = attempt();
-    if matches!(&result, Ok(CatalogMaintenanceAttempt::Busy)) {
+    let retain_previous = match &result {
+        Ok(CatalogMaintenanceAttempt::Busy) => true,
+        Ok(CatalogMaintenanceAttempt::Completed(_)) => {
+            matches!(kind, CatalogMaintenanceKind::IncrementalReclamation)
+                && matches!(&previous, CatalogSessionState::Ready(_))
+        }
+        Ok(CatalogMaintenanceAttempt::Interrupted) | Err(_) => false,
+    };
+    if retain_previous {
         reservation.previous = Some(previous);
     }
     // On unwind the reservation also clears the prior proof and wakes every waiter.

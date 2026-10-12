@@ -169,9 +169,12 @@ fn checkpoint_preserves_catalog_reads_during_foreground_scan() {
                 CatalogMaintenanceAttempt::Busy
             ));
             assert!(matches!(
-                catalog_session::with_catalog_maintenance(&paths.catalog_path, || {
-                    maintenance.try_reclaim_incremental(256, &control)
-                })
+                catalog_session::reclaim_catalog_pages(
+                    &paths.catalog_path,
+                    &maintenance,
+                    256,
+                    &control,
+                )
                 .expect("reclamation must defer"),
                 CatalogMaintenanceAttempt::Busy
             ));
