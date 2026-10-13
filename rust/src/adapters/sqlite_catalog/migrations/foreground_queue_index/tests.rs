@@ -66,7 +66,10 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
         drop(catalog);
         for _ in 0..2 {
             let catalog = SqliteCatalog::open(path.clone()).expect("migrate and reopen");
-            assert_eq!(versions(&catalog.connection), (34, 34));
+            assert_eq!(
+                versions(&catalog.connection),
+                (super::super::SCHEMA_VERSION, super::super::SCHEMA_VERSION)
+            );
             assert!(
                 schema_object_sql_matches(&catalog.connection, "index", INDEX_NAME, INDEX_DDL)
                     .expect("new index definition")

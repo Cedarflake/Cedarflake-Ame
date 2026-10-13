@@ -40,6 +40,7 @@ pub(super) fn resume_checkpoint(
             for sql in [
                 "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
                 "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
+                "DELETE FROM scan_directory_identities WHERE scan_id = ?1",
                 "DELETE FROM scan_issues WHERE scan_id = ?1",
             ] {
                 transaction

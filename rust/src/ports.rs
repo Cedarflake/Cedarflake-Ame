@@ -937,6 +937,7 @@ pub trait CatalogRepository {
         relative_directory: &str,
         relative_paths: &[String],
     ) -> Result<(), ScanError>;
+    #[cfg(test)]
     fn complete_directory_enumeration(
         &mut self,
         scan_id: &str,

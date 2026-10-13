@@ -56,6 +56,7 @@ mod root_location_recovery;
 mod root_unregistration;
 mod scan_admission;
 mod scan_checkpoint;
+mod scan_directories;
 mod scan_lifecycle;
 mod scan_publication;
 mod scan_resume_inventory;
@@ -108,7 +109,7 @@ pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
 #[cfg(test)]
 pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
-const SCHEMA_VERSION: i64 = 34;
+const SCHEMA_VERSION: i64 = 35;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
@@ -2478,29 +2479,13 @@ impl CatalogRepository for SqliteCatalog {
         transaction.commit().map_err(database_error)
     }
 
+    #[cfg(test)]
     fn complete_directory_enumeration(
         &mut self,
         scan_id: &str,
         relative_directory: &str,
     ) -> Result<(), ScanError> {
-        let transaction = self.begin_write()?;
-        let updated = transaction
-            .execute(
-                "UPDATE scan_runs SET current_directory_enumerated = 1
-                 WHERE id = ?1 AND status = 'running'
-                   AND current_directory_relative_path = ?2
-                   AND current_directory_enumerated = 0",
-                params![scan_id, relative_directory],
-            )
-            .map_err(database_error)?;
-        if updated != 1 {
-            return Err(ScanError::new(
-                "catalog_scan_directory_not_enumerable",
-                "The current directory enumeration could not be completed",
-            ));
-        }
-        transaction.commit().map_err(database_error)?;
-        Ok(())
+        self.complete_directory_with_identity(scan_id, relative_directory, None)
     }
 
     fn has_directory_entry(

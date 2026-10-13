@@ -1,6 +1,8 @@
 # R2c closeout execution
 
-Status: **R2c remains unaccepted. Selected recovered-profile browsing and pending-result
+Status: **R2c merged to main on 2026-10-13; unresolved functional work follows the
+[post-merge queue](../roadmap.md#current-execution-queue), with CI executed by GitHub Actions.
+Historical acceptance gaps below remain recorded. Selected recovered-profile browsing and pending-result
 cross-window continuation now pass. Historical Retry/jump attribution, retained update cost and
 remaining client/platform variants stay open; the complete repair batch is not client-accepted.**
 
@@ -27,8 +29,8 @@ a related correction, a focused pass or a different native scenario cannot close
 
 Follow the [roadmap's functional recovery order](../roadmap.md#current-execution-queue): ordinary
 client synchronization without installation, reported October membership, reopening/update latency, then
-remaining retained browsing/preview incidents. Finish each affected user path before returning to
-the remaining merge-readiness matrix. Prepared Release fixtures and historical diagnostic work
+remaining retained browsing/preview incidents, followed by the first usable R3 slice. Deliver each
+fix independently on main. Prepared Release fixtures and historical diagnostic work
 remain retained work; their preparation does not move them ahead of these incidents.
 
 The selected unified application/broker installation succeeded, but its ordinary-token connection

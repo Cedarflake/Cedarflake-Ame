@@ -113,7 +113,7 @@ redacted journal operation through a volume-directory handle. ADR 0022 is not re
 
 ### Read identity records with the ordinary desktop token
 
-Accepted direction for synchronization without installation. The Windows adapter reads bounded
+Candidate under implementation for synchronization without installation. The Windows adapter reads bounded
 redacted USN records and resolves current metadata/name evidence under the caller's existing access.
 The application combines that evidence with durable, root-generation-bound namespace history before
 enrolling ordinary reconciliation. Current paths are not historical journal names. A parser or
@@ -135,7 +135,11 @@ for an explicit baseline or a proven continuity gap.
 
 ## Decision
 
-### Ordinary-token identity reconstruction
+### Ordinary-token identity reconstruction candidate
+
+These constraints govern the candidate adapter; they do not select it as the production source
+or establish a completed ordinary-client workflow. The current production factory still uses the
+named-record broker adapter.
 
 The byte-decoding owner distinguishes an absent filename from a valid component and malformed
 UTF-16 or record bounds. Existing named-record reconstruction continues to reject redacted records;
@@ -158,6 +162,14 @@ and atomic publication. Baseline construction shares the first import's enumerat
 catalog lacking directory identity coverage must not manufacture it from paths or consume an old
 checkpoint as if that coverage existed. Any new schema uses a forward migration and a separately
 defined, bounded baseline/recovery transition that preserves the last trustworthy catalog.
+
+Schema v35 retains completed foreground directory enumerations in `scan_directory_identities`.
+Entries belong to their scan and become visible through the same active-scan pointer as its asset
+projection. Capture revalidates the directory handle identity and commits with the enumeration
+checkpoint. First-import restart clears old candidate bindings; cancellation and scan deletion retire
+only their owned rows. Migration leaves legacy namespace coverage absent and never starts a scan.
+These bindings are the captured baseline input, not a substitute for journal coverage, directory
+updates during reconciliation, or a completed ordinary-token adapter.
 
 File-by-ID, metadata and hardlink-name operations stay inside the Windows adapter. No media content,
 placeholder hydration, journal creation/reset, privilege enablement, resident helper or ordinary-

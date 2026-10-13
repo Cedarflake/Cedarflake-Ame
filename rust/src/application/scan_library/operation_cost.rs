@@ -54,6 +54,10 @@ impl<I> DiscoveryCostIterator<I> {
     pub(super) fn new(inner: I) -> Self {
         Self { inner }
     }
+
+    pub(super) fn into_inner(self) -> I {
+        self.inner
+    }
 }
 
 impl<I: Iterator> Iterator for DiscoveryCostIterator<I> {

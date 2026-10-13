@@ -63,6 +63,7 @@ pub(super) fn abandon_scan_transaction(
         "DELETE FROM scan_run_catch_up_lineage WHERE scan_id = ?1",
         "DELETE FROM scan_directory_frontier WHERE scan_id = ?1",
         "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
+        "DELETE FROM scan_directory_identities WHERE scan_id = ?1",
         "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
     ] {
         transaction

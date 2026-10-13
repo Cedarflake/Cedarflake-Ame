@@ -86,6 +86,7 @@ mod preview_cache_namespace;
 mod preview_source;
 #[cfg(windows)]
 mod root_location;
+mod scan_enumeration;
 #[cfg(all(windows, test))]
 mod source_content_observation;
 #[cfg(windows)]
@@ -504,13 +505,6 @@ fn classify_root_availability_metadata(
     }
 }
 
-pub struct DirectoryEntryPaths {
-    root: PathBuf,
-    directory_path: PathBuf,
-    entries: ReadDir,
-    index: u64,
-}
-
 pub(crate) struct CheckedDirectoryEntryPaths {
     entries: Vec<CheckedDirectoryEntryPath>,
     next_index: usize,
@@ -597,32 +591,6 @@ impl std::fmt::Display for RootRelativeContainmentViolation {
 
 #[cfg(windows)]
 impl std::error::Error for RootRelativeContainmentViolation {}
-
-impl Iterator for DirectoryEntryPaths {
-    type Item = String;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let entry = self.entries.next()?;
-        let relative_path = match entry {
-            Ok(entry) => entry
-                .path()
-                .strip_prefix(&self.root)
-                .map(relative_path_text)
-                .unwrap_or_else(|_| path_text(entry.path())),
-            Err(_) => {
-                let unresolved = self
-                    .directory_path
-                    .join(format!("<unresolved-entry-{}>", self.index));
-                unresolved
-                    .strip_prefix(&self.root)
-                    .map(relative_path_text)
-                    .unwrap_or_else(|_| path_text(unresolved))
-            }
-        };
-        self.index = self.index.saturating_add(1);
-        Some(relative_path)
-    }
-}
 
 impl Iterator for CheckedDirectoryEntryPaths {
     type Item = Result<CheckedDirectoryEntry, ScanIssue>;
@@ -1474,28 +1442,6 @@ impl FileDiscovery {
                 "The recovery source root no longer matches its durable handle identity",
             ))
         }
-    }
-
-    pub fn entry_paths_in_directory(
-        &self,
-        relative_directory: &str,
-    ) -> Result<DirectoryEntryPaths, ScanIssue> {
-        let relative_directory_path = validated_relative_path(relative_directory)?;
-        let (directory_path, metadata) = self.checked_existing_path(relative_directory_path)?;
-        if !relative_directory_path.as_os_str().is_empty() && is_link_or_reparse_point(&metadata) {
-            return Err(path_containment_issue(&directory_path));
-        }
-        let entries = fs::read_dir(&directory_path).map_err(|error| ScanIssue {
-            path: Some(path_text(&directory_path)),
-            code: "directory_unreadable".to_owned(),
-            message: error.to_string(),
-        })?;
-        Ok(DirectoryEntryPaths {
-            root: self.root.clone(),
-            directory_path,
-            entries,
-            index: 0,
-        })
     }
 
     pub(crate) fn checked_entry_paths_in_directory(

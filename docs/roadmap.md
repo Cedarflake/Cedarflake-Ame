@@ -31,8 +31,8 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R1 | Progressive, resumable, multi-root catalog with source preservation | Accepted foundation |
 | R2a | Accepted unified gallery and connected-control design | Accepted foundation |
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
-| R2c | Change-driven continuity with usable browsing during synchronization | **Active; not accepted** |
-| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Paused until R2c acceptance |
+| R2c | Change-driven continuity with usable browsing during synchronization | Merged to main on 2026-10-13; listed functional fixes continue independently |
+| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Next after the core synchronization and browsing fixes below |
 | R4 | Favorites, virtual albums, durable decisions, and resumable review sessions | Planned after R3 |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
@@ -48,8 +48,9 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**R2c-O remains the active acceptance slice. Synchronization, missing catalog entries, reopening
-latency and browsing recovery are the immediate delivery focus.**
+**PR #12 is merged as `a5ace87`. Synchronization, missing catalog entries, reopening latency and
+browsing recovery are the immediate delivery focus on main.** Merge does not close the retained
+functional gaps. The post-merge queue below supersedes historical merge-readiness ordering.
 R2c-N admitted the security/protocol foundation. R2c-P and R2c-Q have implementation checkpoints;
 R2c-R has controlled local reliability work. Those facts do not accept the slices or all of R2c.
 Real journal, retained-library, and real Cloud Files evidence remain open. Code signing, publisher
@@ -74,7 +75,7 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-Within active item 3 below, execute this functional recovery sequence in order:
+Deliver the following outcomes as individual changes on main, in order:
 
 1. **Restore ordinary-client synchronization without installation.** Connect ordinary-token journal
    reads and file-identity reconstruction to the existing durable queue and catalog publication.
@@ -92,18 +93,21 @@ Within active item 3 below, execute this functional recovery sequence in order:
 4. **Finish the affected browsing and preview paths.** Reproduce and resolve remaining retained
    middle-timeline Retry/jump and slow-preview incidents, keeping the gallery usable during updates.
    Preserve completed regression evidence and verify only the remaining affected variants.
-5. **Resume the remaining merge-readiness duties.** After the four functional outcomes pass, return
-   to the retained client/platform matrix, historical C01/C02 obligations, remaining installer
-   lifecycle qualification, final independent review and current-source local/hosted gates.
+5. **Begin the R3 usable slice.** Deliver exact-duplicate grouping with inspectable physical file
+   locations and source preservation. Remaining independent maintenance items keep their own scope.
 
-Each step requires its owning correction, focused regressions and applicable user-path verification
-before the next step. The [ordinary-token capability checkpoint](acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
+Each correction is committed and pushed before moving to the next independent issue. GitHub Actions
+executes CI, including boundary regressions; local work is limited to diagnosis, formatting/diff
+inspection and affected client workflows. Existing three Rust failures belong to the latency work;
+retain their workloads and assertions. The [ordinary-token capability checkpoint](acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
 establishes native feasibility and a typed parser boundary, not complete client synchronization.
 Step 1 still needs durable directory/path identity reconstruction, atomic enrollment and restart
 verification before October membership can close. The workstation installation remains removed;
 any later system installation retains its explicit-authorization requirement. The full installer
 upgrade/repair/rollback matrix must not precede the missing-image and latency work.
-This sequence changes execution priority, not acceptance assertions or the active R2c stage.
+Historical readiness matrices retain their recorded gaps; they do not reopen the completed merge
+or add prerequisites to unrelated fixes. New ordinary findings join the maintenance queue; source
+safety or an unusable core workflow takes priority.
 
 The current direction prioritizes defects that directly impair functions and user experience.
 The requested rule/document organization is verified. The execution plan's

@@ -115,8 +115,9 @@ pub(super) fn traverse_scan(
             };
             #[cfg(test)]
             let entries = super::operation_cost::DiscoveryCostIterator::new(entries);
+            let mut entries = entries;
             let mut batch = Vec::with_capacity(DIRECTORY_ENTRY_BATCH);
-            for relative_path in entries {
+            for relative_path in entries.by_ref() {
                 batch.push(relative_path);
                 if batch.len() == DIRECTORY_ENTRY_BATCH {
                     measure_scan_operation!(
@@ -145,9 +146,17 @@ pub(super) fn traverse_scan(
                 DirectoryPersistence,
                 catalog.stage_directory_entries(&request.scan_id, &relative_directory, &batch)
             )?;
+            #[cfg(test)]
+            let entries = entries.into_inner();
+            let identity = measure_scan_operation!(SourceDiscovery, entries.finish())
+                .map_err(|issue| ScanError::new(issue.code, issue.message))?;
             measure_scan_operation!(
                 DirectoryPersistence,
-                catalog.complete_directory_enumeration(&request.scan_id, &relative_directory)
+                catalog.complete_directory_with_identity(
+                    &request.scan_id,
+                    &relative_directory,
+                    identity.as_ref(),
+                )
             )?;
         }
 
