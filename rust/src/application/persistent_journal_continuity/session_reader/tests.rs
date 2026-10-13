@@ -592,7 +592,8 @@ fn session_rejects_pending_or_carried_rename_outside_durable_request_evidence() 
     let previous = checkpoint("root-a", 1, 10);
     let previous_page =
         translate_root_outcome(&previous, successful_outcome(&previous, 10, 20), 20, 500)
-            .expect("previous page");
+            .expect("previous page")
+            .expect("nonempty source range");
     let mut previous_outcomes = vec![(
         (previous.root_id.clone(), previous.root_generation),
         Ok(Some(previous_page)),
@@ -645,7 +646,8 @@ fn session_rejects_pending_or_carried_rename_outside_durable_request_evidence() 
     let current = checkpoint("root-b", 2, 12);
     let current_page =
         translate_root_outcome(&current, successful_outcome(&current, 12, 20), 20, 501)
-            .expect("current page");
+            .expect("current page")
+            .expect("nonempty source range");
     let mut current_outcomes = vec![(
         (current.root_id.clone(), current.root_generation),
         Ok(Some(current_page)),
@@ -691,9 +693,11 @@ fn half_lineage_is_rejected_and_successful_endpoints_share_one_identity() {
     let first = checkpoint("root-a", 1, 10);
     let second = checkpoint("root-b", 2, 12);
     let first_page = translate_root_outcome(&first, successful_outcome(&first, 10, 20), 20, 500)
-        .expect("first page");
+        .expect("first page")
+        .expect("nonempty source range");
     let second_page = translate_root_outcome(&second, successful_outcome(&second, 12, 20), 20, 500)
-        .expect("second page");
+        .expect("second page")
+        .expect("nonempty source range");
     let handoff = crate::journal_broker::SharedJournalHandoff {
         previous_binding: first_binding(&first),
         current_binding: first_binding(&second),
@@ -768,6 +772,7 @@ fn durable_range_identity_changes_with_volume_or_root_generation() {
     let original_id =
         translate_root_outcome(&original, successful_outcome(&original, 10, 20), 20, 500)
             .expect("original page")
+            .expect("nonempty source range")
             .0
             .range
             .batch_id;
@@ -780,6 +785,7 @@ fn durable_range_identity_changes_with_volume_or_root_generation() {
         500,
     )
     .expect("changed volume page")
+    .expect("nonempty source range")
     .0
     .range
     .batch_id;
@@ -791,6 +797,7 @@ fn durable_range_identity_changes_with_volume_or_root_generation() {
         500,
     )
     .expect("changed generation page")
+    .expect("nonempty source range")
     .0
     .range
     .batch_id;
@@ -825,14 +832,16 @@ fn attached_lineage_id(
         20,
         500,
     )
-    .expect("previous page");
+    .expect("previous page")
+    .expect("nonempty source range");
     let current_page = translate_root_outcome(
         current,
         successful_outcome(current, current.next_unread_usn.value(), 20),
         20,
         500,
     )
-    .expect("current page");
+    .expect("current page")
+    .expect("nonempty source range");
     let mut outcomes = vec![
         (
             (previous.root_id.clone(), previous.root_generation),

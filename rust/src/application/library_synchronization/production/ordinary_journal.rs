@@ -229,8 +229,8 @@ fn ordinary_client_worker() {
                     loop {
                         poll_production_library_synchronization(ticket)
                             .expect("native first-import capture");
-                        let catalog =
-                            SqliteCatalog::open(&storage.catalog_path).expect("capture catalog");
+                        let catalog = SqliteCatalog::open(storage.catalog_path.clone())
+                            .expect("capture catalog");
                         if catalog
                             .first_import_change_capture_is_ready(
                                 "ordinary-native-first-import",

@@ -26,7 +26,7 @@ use crate::domain::{
 use crate::journal_broker::RootAuthorization;
 use crate::ports::IdentityJournalLocation;
 
-use super::io::{control, native_error};
+use super::io::control;
 mod lookup_errors;
 use lookup_errors::{identity_open_error, metadata_error};
 

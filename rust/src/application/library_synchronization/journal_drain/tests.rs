@@ -48,7 +48,7 @@ fn paired_directory_rename_preserves_assets_in_one_catalog_publication() {
         storage.clone(),
     )
     .unwrap();
-    let mut catalog = SqliteCatalog::open(&storage.catalog_path).unwrap();
+    let mut catalog = SqliteCatalog::open(storage.catalog_path.clone()).unwrap();
     let root = catalog.load_incremental_catalog_roots().unwrap().remove(0);
     let before = catalog
         .load_incremental_locations_in_subtree(&root.root_id, "old", 128)
@@ -106,7 +106,8 @@ fn paired_directory_rename_preserves_assets_in_one_catalog_publication() {
         assert_eq!(current.file_identity, previous.file_identity);
     }
     drop(catalog);
-    SqliteCatalog::open(&storage.catalog_path).expect("full reopen after atomic directory rename");
+    SqliteCatalog::open(storage.catalog_path.clone())
+        .expect("full reopen after atomic directory rename");
 }
 
 #[test]
