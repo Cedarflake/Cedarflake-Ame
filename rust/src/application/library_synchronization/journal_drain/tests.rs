@@ -20,6 +20,96 @@ fn write_image(path: &Path, color: [u8; 3]) {
 }
 
 #[test]
+fn paired_directory_rename_preserves_assets_in_one_catalog_publication() {
+    let source = tempdir().unwrap();
+    let derived = tempdir().unwrap();
+    fs::create_dir(source.path().join("old")).unwrap();
+    for index in 0..20_u8 {
+        write_image(
+            &source.path().join(format!("old/{index:02}.png")),
+            [index, 40, 60],
+        );
+    }
+    let storage = StoragePaths {
+        catalog_path: derived.path().join("catalog/ame.sqlite3"),
+        preview_root: derived.path().join("previews"),
+        preview_budget_bytes: 64 * 1024 * 1024,
+        settings_path: derived.path().join("settings.sqlite3"),
+    };
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "paired-directory-rename".to_owned(),
+            root_path: source.path().to_string_lossy().into_owned(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 64,
+        },
+        |_| true,
+        storage.clone(),
+    )
+    .unwrap();
+    let mut catalog = SqliteCatalog::open(&storage.catalog_path).unwrap();
+    let root = catalog.load_incremental_catalog_roots().unwrap().remove(0);
+    let before = catalog
+        .load_incremental_locations_in_subtree(&root.root_id, "old", 128)
+        .unwrap();
+    fs::rename(source.path().join("old"), source.path().join("new")).unwrap();
+    let intent = LibraryChangeIntent {
+        root_id: root.root_id.clone(),
+        root_generation: root.root_generation,
+        kind: LibraryChangeIntentKind::RenameCandidate,
+        scope: LibraryChangeScope::Subtree,
+        relative_path: "new".to_owned(),
+        previous_relative_path: Some("old".to_owned()),
+        origin: LibraryChangeOrigin::StartupCatchUp,
+        first_observed_unix_ms: 2_000,
+        most_recent_observed_unix_ms: 2_000,
+        first_sequence: 1,
+        most_recent_sequence: 1,
+        coalesced_observation_count: 1,
+    };
+    let policy = LibraryChangeQueuePolicy {
+        debounce_millis: 0,
+        ..Default::default()
+    };
+    catalog
+        .enqueue_library_change_intents(&[intent], 2_000, policy)
+        .unwrap();
+    let report = process_ready(
+        &mut catalog,
+        &root.root_id,
+        root.root_generation,
+        2_000,
+        policy,
+        AuthoritativeRecoveryPolicy::default(),
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    assert_eq!(report.completed_count, 1);
+    let after = catalog
+        .load_incremental_locations_in_subtree(&root.root_id, "new", 128)
+        .unwrap();
+    assert_eq!(after.len(), 20);
+    assert!(
+        catalog
+            .load_incremental_locations_in_subtree(&root.root_id, "old", 128)
+            .unwrap()
+            .is_empty()
+    );
+    for previous in before {
+        let path = previous.relative_path.replacen("old/", "new/", 1);
+        let current = after
+            .iter()
+            .find(|location| location.relative_path == path)
+            .unwrap();
+        assert_eq!(current.asset_id, previous.asset_id);
+        assert_eq!(current.file_identity, previous.file_identity);
+    }
+    drop(catalog);
+    SqliteCatalog::open(&storage.catalog_path).expect("full reopen after atomic directory rename");
+}
+
+#[test]
 fn journal_directory_work_reconciles_membership_and_preserves_live_work() {
     let source = tempdir().unwrap();
     let derived = tempdir().unwrap();

@@ -691,7 +691,9 @@ impl PersistentJournalEnrollmentBatch {
             {
                 if !self.intents.iter().any(|intent| {
                     intent.scope == super::LibraryChangeScope::Subtree
-                        && intent.relative_path == *path
+                        && (intent.relative_path == *path
+                            || (intent.kind == super::LibraryChangeIntentKind::RenameCandidate
+                                && intent.previous_relative_path.as_ref() == Some(path)))
                 }) {
                     return Err(invalid_value(
                         "persistent journal directory queue ownership",

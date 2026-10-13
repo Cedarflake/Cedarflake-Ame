@@ -92,7 +92,16 @@ fn directory_rename_enrolls_only_the_two_affected_subtrees() {
     };
     let (batch, _) =
         translation::translate(&checkpoint(), &page(true), 20, 2, &old, &current).unwrap();
-    assert_eq!(batch.intents.len(), 2);
+    assert_eq!(batch.intents.len(), 1);
+    assert_eq!(batch.intents[0].relative_path, "new");
+    assert_eq!(
+        batch.intents[0].previous_relative_path.as_deref(),
+        Some("old")
+    );
+    assert_eq!(
+        batch.intents[0].kind,
+        crate::domain::LibraryChangeIntentKind::RenameCandidate
+    );
     assert!(
         batch
             .intents
@@ -104,6 +113,12 @@ fn directory_rename_enrolls_only_the_two_affected_subtrees() {
         batch.directory_changes[0].current_relative_path.as_deref(),
         Some("new")
     );
+    let mut unowned_previous = batch.clone();
+    unowned_previous.intents[0].previous_relative_path = None;
+    assert!(unowned_previous.validate().is_err());
+    let mut wrong_kind = batch;
+    wrong_kind.intents[0].kind = crate::domain::LibraryChangeIntentKind::Reconcile;
+    assert!(wrong_kind.validate().is_err());
 }
 
 #[test]

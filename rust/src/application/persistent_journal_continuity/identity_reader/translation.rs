@@ -3,14 +3,15 @@ use std::collections::{BTreeMap, BTreeSet, HashMap};
 use crate::domain::{
     JournalUsn, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
     LibraryChangeScope, PersistentJournalCheckpoint, PersistentJournalContinuityState,
-    PersistentJournalCrossRootLineage, PersistentJournalDirectoryChange,
-    PersistentJournalEnrollmentBatch, PersistentJournalLineageState, PersistentJournalRangeState,
-    PersistentJournalRootReadOutcome, PersistentJournalSourceRange, ScanError,
-    persistent_journal_batch_id,
+    PersistentJournalCrossRootLineage, PersistentJournalEnrollmentBatch,
+    PersistentJournalLineageState, PersistentJournalRangeState, PersistentJournalRootReadOutcome,
+    PersistentJournalSourceRange, ScanError, persistent_journal_batch_id,
 };
 use crate::ports::{
     IdentityJournalLocation, IdentityJournalPage, IdentityJournalResolution, identity_for_reference,
 };
+
+mod directory_change;
 
 type IntentKey = (u8, String, Option<String>);
 type Locations = HashMap<String, (Vec<IdentityJournalLocation>, IdentityJournalResolution)>;
@@ -70,42 +71,20 @@ pub(super) fn translate(
             continue;
         }
         if record.is_directory {
-            for relative_path in old.union(&live).filter(|path| !path.is_empty()) {
-                add_intent(
-                    &mut intents,
-                    previous_checkpoint,
-                    relative_path,
-                    None,
-                    true,
-                    record.usn,
-                    observed_unix_ms,
-                )?;
-            }
-            let unresolved = current
-                .access_denied
-                .iter()
-                .chain(&current.unresolved)
-                .any(|unresolved| unresolved == &identity);
-            if unresolved && !record.is_deleted {
-                continue;
-            }
-            if !old.is_empty() || !live.is_empty() {
-                if live.len() > 1 {
-                    return Err(invalid());
-                }
-                let previous_relative_paths: Vec<_> =
-                    old.into_iter().filter(|path| !path.is_empty()).collect();
-                let current_relative_path = live.into_iter().find(|path| !path.is_empty());
-                if !previous_relative_paths.is_empty() || current_relative_path.is_some() {
-                    directory_changes.insert(
-                        identity.value.clone(),
-                        PersistentJournalDirectoryChange {
-                            identity,
-                            previous_relative_paths,
-                            current_relative_path,
-                        },
-                    );
-                }
+            let evidence = directory_change::DirectoryNamespaceEvidence {
+                identity,
+                previous_paths: &old,
+                current_paths: &live,
+                resolution: current,
+            };
+            if let Some(change) = directory_change::translate(
+                previous_checkpoint,
+                record,
+                evidence,
+                &mut intents,
+                observed_unix_ms,
+            )? {
+                directory_changes.insert(change.identity.value.clone(), change);
             }
             continue;
         }
