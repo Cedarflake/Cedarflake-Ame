@@ -148,6 +148,19 @@ impl ExistingJournalBackend for TargetTranslationBackend {
     ) -> Result<SharedBackendJournalPage, BackendError> {
         let _ = context.bounded_step()?;
         self.physical_reads.fetch_add(1, Ordering::AcqRel);
+        if request.range.start_usn == request.range.end_usn {
+            return Ok(SharedBackendJournalPage {
+                candidates_by_root: (0..request.roots.len()).map(|_| Ok(Vec::new())).collect(),
+                handoffs: Vec::new(),
+                pending_renames: Vec::new(),
+                rename_barriers_by_root: vec![None; request.roots.len()],
+                proof: Some(JournalReadProof::after_read(
+                    request.range.end_usn,
+                    true,
+                    request.journal,
+                )?),
+            });
+        }
         let source = request
             .roots
             .iter()

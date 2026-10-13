@@ -7,6 +7,7 @@
 )]
 mod client;
 mod framing;
+mod read_interval;
 #[cfg(any(windows, test))]
 mod service;
 #[cfg(test)]

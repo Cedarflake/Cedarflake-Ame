@@ -2,10 +2,14 @@ mod active;
 mod contracts;
 #[cfg(test)]
 pub(super) mod integration_test_support;
+mod shared_page_validation;
 #[cfg(windows)]
 mod windows_security;
 
 use std::time::{Duration, Instant};
+
+use super::read_interval::JournalReadInterval;
+use shared_page_validation::validate_shared_backend_page;
 
 #[cfg(test)]
 pub(super) use active::MAX_ACTIVE_REQUESTS_PER_CONNECTION;
@@ -695,7 +699,11 @@ where
                 let Some(proof) = shared.proof else {
                     return Err(BrokerFailure::new(BrokerFailureCode::Internal));
                 };
-                if proof.covered_until_usn <= requested.start_usn {
+                if JournalReadInterval::new(requested.start_usn, request.end_usn).is_none_or(
+                    |interval| {
+                        !interval.admits_coverage(proof.covered_until_usn, proof.is_complete)
+                    },
+                ) {
                     failed_admitted.insert(admitted_index);
                     outcomes[*index] = Some(shared_failure_outcome(
                         &request.caller,
@@ -1169,76 +1177,6 @@ fn shared_failure_outcome(
         candidates: Vec::new(),
         failure: Some(BrokerFailure::new(code)),
     }
-}
-
-fn validate_shared_backend_page(
-    before: ExistingJournalMetadata,
-    range: JournalRange,
-    page: &SharedBackendJournalPage,
-    expected_roots: usize,
-) -> Result<(), BrokerFailure> {
-    if page.candidates_by_root.len() != expected_roots
-        || page.rename_barriers_by_root.len() != expected_roots
-        || page
-            .rename_barriers_by_root
-            .iter()
-            .any(|barrier| barrier.is_some_and(|usn| usn < range.start_usn || usn >= range.end_usn))
-        || page.handoffs.len() > super::wire::MAX_SHARED_HANDOFFS
-        || (page.candidates_by_root.iter().any(Result::is_ok) != page.proof.is_some())
-        || (page.proof.is_none() && !page.handoffs.is_empty())
-        || page.handoffs.iter().any(|handoff| {
-            (handoff.previous_root_index.is_some() == handoff.previous_pending_index.is_some())
-                || handoff
-                    .previous_root_index
-                    .is_some_and(|index| index >= expected_roots)
-                || handoff.current_root_index >= expected_roots
-                || handoff.previous_root_index == Some(handoff.current_root_index)
-                || handoff
-                    .previous_root_index
-                    .is_some_and(|index| page.candidates_by_root[index].is_err())
-                || page.candidates_by_root[handoff.current_root_index].is_err()
-                || !matches!(handoff.file_reference.len(), 8 | 16)
-                || handoff.usn < range.start_usn
-                || page
-                    .proof
-                    .is_none_or(|proof| handoff.usn >= proof.covered_until_usn)
-        })
-        || page.pending_renames.iter().any(|pending| {
-            pending.root_index >= expected_roots
-                || page.candidates_by_root[pending.root_index].is_err()
-        })
-        || page
-            .candidates_by_root
-            .iter()
-            .filter_map(|result| result.as_ref().ok())
-            .any(|candidates| {
-                let mut last = None;
-                candidates.iter().any(|candidate| {
-                    let invalid = candidate.usn < range.start_usn
-                        || page
-                            .proof
-                            .is_none_or(|proof| candidate.usn >= proof.covered_until_usn)
-                        || last.is_some_and(|previous| candidate.usn <= previous);
-                    last = Some(candidate.usn);
-                    invalid
-                })
-            })
-    {
-        return Err(BrokerFailure::new(BrokerFailureCode::JournalDiscontinuous));
-    }
-    if let Some(proof) = page.proof {
-        let after = proof.after.validate().map_err(map_backend_failure)?;
-        if after.journal_id != before.journal_id
-            || after.first_usn > range.start_usn
-            || after.next_usn < range.end_usn
-            || proof.covered_until_usn <= range.start_usn
-            || proof.covered_until_usn > range.end_usn
-            || proof.is_complete != (proof.covered_until_usn == range.end_usn)
-        {
-            return Err(BrokerFailure::new(BrokerFailureCode::JournalDiscontinuous));
-        }
-    }
-    Ok(())
 }
 
 type RootScopedTranslation<T> = (Vec<T>, Vec<(usize, BrokerFailureCode)>, Option<i64>);

@@ -1,6 +1,8 @@
 mod codec;
 mod path;
 
+use super::read_interval::JournalReadInterval;
+
 pub(crate) use codec::{
     decode_request, decode_response, encode_request, encode_response, inspect_request_header,
 };
@@ -189,7 +191,7 @@ impl ReadJournalVolumeRequest {
         for root in &self.roots {
             root.validate()?;
             if &root.root.volume_id != volume_id
-                || root.start_usn >= self.end_usn
+                || JournalReadInterval::new(root.start_usn, self.end_usn).is_none()
                 || !identities.insert((root.root.root_id.as_str(), root.root.root_generation))
             {
                 return Err(WireError::InvalidValue("shared_root_set"));
@@ -549,14 +551,11 @@ impl SharedJournalRootOutcome {
         maximum_records: usize,
     ) -> Result<(), WireError> {
         self.binding.validate()?;
-        if self.requested_start_usn < 0 || self.requested_start_usn >= requested_end_usn {
-            return Err(WireError::InvalidValue("shared_root_range"));
-        }
+        let interval = JournalReadInterval::new(self.requested_start_usn, requested_end_usn)
+            .ok_or(WireError::InvalidValue("shared_root_range"))?;
         match (self.covered_until_usn, self.failure) {
             (Some(covered), None) => {
-                if covered <= self.requested_start_usn
-                    || covered > requested_end_usn
-                    || self.is_complete != (covered == requested_end_usn)
+                if !interval.admits_coverage(covered, self.is_complete)
                     || self.candidates.len() > maximum_records
                 {
                     return Err(WireError::InvalidValue("shared_root_proof"));

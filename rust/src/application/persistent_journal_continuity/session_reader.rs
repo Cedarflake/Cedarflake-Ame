@@ -55,6 +55,15 @@ enum SessionConnection {
 }
 
 impl SessionBackedPersistentJournalVolumeReader {
+    #[cfg(test)]
+    pub(crate) fn with_baselines(
+        mut self,
+        baselines: Vec<crate::domain::PersistentJournalBaseline>,
+    ) -> Result<Self, ScanError> {
+        self.read_windows = super::read_boundary::JournalReadWindows::new(baselines)?;
+        Ok(self)
+    }
+
     pub(crate) fn new(
         journal: Arc<dyn PersistentChangeJournal>,
         caller: CallerClaim,

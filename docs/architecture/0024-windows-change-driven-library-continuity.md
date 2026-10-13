@@ -994,6 +994,16 @@ next request resumes there. Roots whose next-unread USN is already at or beyond 
 exclusive end are successful no-ops and do not enter that read. When all roots are equal to the
 end, startup issues no FSCTL and performs no enumeration or media read.
 
+An unfinished baseline whose opening and closing cursors coincide still requires a successful
+empty replay receipt before absence publication. Only the baseline-bound reader selects that
+explicit shared-volume read; ordinary equal-cursor startup remains a no-op. The broker admits
+equal endpoints, revalidates caller/root and journal continuity, consumes one bounded native
+buffer, and checks the post-read journal facts. The receipt is complete at the same cursor with
+no candidates or fabricated checkpoint advancement. Nonempty reads still require actual progress;
+missing, partial, reset, trimmed, or out-of-range proof cannot grant replay coverage. The v5 frame
+layout is unchanged. Earlier brokers that reject this corrected request return an explicit failure
+and cannot establish baseline completion; the ordinary-token adapter remains the default path.
+
 The broker distributes only root-contained normalized records. Per-root start USNs are passed to the
 backend and applied before candidate or evidence budgeting; retained semantic events are ordered by
 USN rather than request-root order. A root-specific live-handle, caller-access, containment, or

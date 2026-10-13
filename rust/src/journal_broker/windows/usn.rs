@@ -27,6 +27,7 @@ use windows_sys::Win32::System::Ioctl::{
 };
 use windows_sys::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
 
+use crate::journal_broker::read_interval::JournalReadInterval;
 use crate::journal_broker::service::{
     BackendError, BackendJournalCandidate, BackendJournalHandoff, BackendPendingRename,
     BoundedJournalPageBuilder, ExistingJournalMetadata, JournalRange, JournalReadLimits,
@@ -923,6 +924,8 @@ fn read_single_native_journal_buffer_with(
     max_evidence_bytes: usize,
     physical_read: impl FnOnce(i64) -> Result<Vec<u8>, BackendError>,
 ) -> Result<(Vec<ParsedUsnRecord>, i64), BackendError> {
+    let interval =
+        JournalReadInterval::new(start_usn, end_usn).ok_or(BackendError::JournalDiscontinuous)?;
     let output = physical_read(start_usn)?;
     let (next_usn, batch) = parse_shared_journal_buffer(&output).map_err(map_parse_error)?;
     let mut raw_records = Vec::new();
@@ -936,7 +939,9 @@ fn read_single_native_journal_buffer_with(
         max_evidence_bytes.max(MAX_SINGLE_RAW_RECORD_EVIDENCE_BYTES),
     )?;
     let covered_until_usn = first_unretained_usn.unwrap_or(next_usn).min(end_usn);
-    if covered_until_usn <= start_usn {
+    if !interval.admits_coverage(covered_until_usn, covered_until_usn == end_usn)
+        || (interval.is_empty() && !raw_records.is_empty())
+    {
         return Err(BackendError::JournalDiscontinuous);
     }
     Ok((raw_records, covered_until_usn))
@@ -1824,6 +1829,35 @@ mod tests {
         assert_eq!(physical_reads.get(), 1);
         assert_eq!(records.len(), 1);
         assert_eq!(covered_until_usn, 48);
+    }
+
+    #[test]
+    fn empty_closing_read_consumes_one_native_buffer_without_advancing() {
+        let mut buffer = 24_i64.to_le_bytes().to_vec();
+        buffer.extend(v2_record(20, "later.jpg", USN_REASON_FILE_DELETE));
+        let physical_reads = std::cell::Cell::new(0_usize);
+        let (records, covered) =
+            read_single_native_journal_buffer_with(20, 20, 16, 4_096, |start| {
+                assert_eq!(start, 20);
+                physical_reads.set(physical_reads.get() + 1);
+                Ok(buffer)
+            })
+            .expect("successful empty native read");
+        assert_eq!(physical_reads.get(), 1);
+        assert!(records.is_empty());
+        assert_eq!(covered, 20);
+    }
+
+    #[test]
+    fn empty_native_replay_rejects_old_records_and_stale_cursor() {
+        let mut old = 20_i64.to_le_bytes().to_vec();
+        old.extend(v2_record(19, "old.jpg", USN_REASON_FILE_DELETE));
+        for buffer in [old, 19_i64.to_le_bytes().to_vec()] {
+            assert!(matches!(
+                read_single_native_journal_buffer_with(20, 20, 16, 4_096, |_| Ok(buffer)),
+                Err(BackendError::JournalDiscontinuous)
+            ));
+        }
     }
 
     #[test]

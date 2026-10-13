@@ -2755,6 +2755,13 @@ fn assert_target_translation_recovery_preserves_continuity(source_first: bool) {
             },
         )
         .expect("close destination recovery baseline");
+    let reader = reader
+        .with_baselines(
+            catalog
+                .load_persistent_journal_baselines()
+                .expect("active recovery windows"),
+        )
+        .expect("bind the recovery reader to its persisted window");
     assert!(
         !catalog
             .persistent_journal_baseline_closing_is_covered(destination_baseline.change_id)
@@ -2815,6 +2822,30 @@ fn assert_target_translation_recovery_preserves_continuity(source_first: bool) {
         .expect("process recovered cross-root move");
         assert_eq!(report.completed_count, 1);
     }
+    assert!(
+        !catalog
+            .persistent_journal_baseline_closing_is_covered(destination_baseline.change_id)
+            .expect("empty closing window still requires a successful read")
+    );
+    let closing_checkpoint = catalog
+        .load_persistent_journal_checkpoint(
+            "journal-destination-root",
+            LibraryRootGeneration::initial(),
+        )
+        .expect("closing checkpoint")
+        .expect("retained destination checkpoint");
+    let closing = catch_up_persistent_journal_volume(
+        &mut catalog,
+        &reader,
+        &[closing_checkpoint],
+        2_010,
+        policy(),
+        &cancelled,
+    )
+    .expect("read the exact empty closing window");
+    assert_eq!(closing.failed_root_count, 0);
+    assert_eq!(closing.advanced_checkpoint_count, 0);
+    assert_eq!(broker.physical_reads.load(Ordering::Acquire), 3);
     assert!(
         catalog
             .persistent_journal_baseline_closing_is_covered(destination_baseline.change_id)

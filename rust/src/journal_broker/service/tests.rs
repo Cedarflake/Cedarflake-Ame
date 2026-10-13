@@ -6,6 +6,10 @@ use std::time::{Duration, Instant};
 
 use super::contracts::RootNameSemanticsProof;
 use super::*;
+
+#[path = "tests/empty_replay.rs"]
+mod empty_replay;
+
 use crate::journal_broker::client::{
     AdapterPoll, BrokerClientError, BrokerClientTransport, JournalBrokerClient,
     OwnedBrokerConnection, sealed,

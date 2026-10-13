@@ -10,6 +10,10 @@ use super::{
     SharedJournalRootRequest, WireError,
 };
 
+#[cfg(test)]
+#[path = "codec/empty_replay_tests.rs"]
+mod empty_replay_tests;
+
 const REGISTER_ROOT_REQUEST: u16 = 4;
 const READ_VOLUME_REQUEST: u16 = 5;
 const QUERY_REQUEST: u16 = 1;
@@ -794,8 +798,11 @@ fn validate_response(response: &BrokerResponse) -> Result<(), WireError> {
             if client_instance.iter().all(|byte| *byte == 0)
                 || validate_identifier_for_codec(volume_id, super::MAX_VOLUME_ID_BYTES).is_err()
                 || *journal_id == 0
-                || *requested_start_usn < 0
-                || *requested_end_usn <= *requested_start_usn
+                || super::super::read_interval::JournalReadInterval::new(
+                    *requested_start_usn,
+                    *requested_end_usn,
+                )
+                .is_none()
                 || !(1..=MAX_SHARED_ROOTS as u8).contains(root_count)
                 || !(1..=MAX_RECORDS).contains(max_records)
                 || !(1..=MAX_EVIDENCE_BYTES).contains(max_evidence_bytes)
@@ -818,7 +825,7 @@ fn validate_response(response: &BrokerResponse) -> Result<(), WireError> {
             if client_instance.iter().all(|byte| *byte == 0)
                 || validate_identifier_for_codec(volume_id, super::MAX_VOLUME_ID_BYTES).is_err()
                 || *journal_id == 0
-                || *requested_end_usn <= 0
+                || *requested_end_usn < 0
                 || !(1..=MAX_RECORDS).contains(max_records)
                 || !(1..=MAX_EVIDENCE_BYTES).contains(max_evidence_bytes)
                 || !(1..=MAX_SHARED_ROOTS).contains(&outcomes.len())
