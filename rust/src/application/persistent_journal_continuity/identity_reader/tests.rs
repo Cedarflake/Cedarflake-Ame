@@ -125,6 +125,22 @@ fn failed_identity_open_never_removes_directory_history() {
     assert!(batch.directory_changes[0].current_relative_path.is_none());
 }
 
+#[test]
+fn unsupported_alias_enumeration_cannot_retain_current_journal_authority() {
+    let failure = from_error(
+        ScanError::new(
+            "identity_journal_hardlinks_not_supported",
+            "Windows metadata operation failed: 50",
+        ),
+        None,
+    );
+    assert_eq!(
+        failure.kind,
+        PersistentJournalRootFailureKind::NonRecoverable
+    );
+    assert!(failure.kind.recovery_reason().is_none());
+}
+
 struct Source {
     reads: AtomicUsize,
     resolutions: AtomicUsize,

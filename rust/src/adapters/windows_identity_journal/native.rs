@@ -16,9 +16,9 @@ use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, ExtendedFileIdType, FILE_ATTRIBUTE_DIRECTORY, FILE_FLAG_BACKUP_SEMANTICS,
     FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_128, FILE_ID_DESCRIPTOR,
     FILE_ID_DESCRIPTOR_0, FILE_ID_INFO, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, FileIdInfo, FindClose, FindFirstFileNameW, FindNextFileNameW,
-    GetFileInformationByHandleEx, GetFinalPathNameByHandleW, OPEN_EXISTING, OpenFileById,
-    VOLUME_NAME_GUID,
+    FILE_SHARE_WRITE, FILE_STANDARD_INFO, FileIdInfo, FileStandardInfo, FindClose,
+    FindFirstFileNameW, FindNextFileNameW, GetFileInformationByHandleEx, GetFinalPathNameByHandleW,
+    OPEN_EXISTING, OpenFileById, VOLUME_NAME_GUID,
 };
 use windows_sys::Win32::System::Ioctl::FSCTL_QUERY_USN_JOURNAL;
 
@@ -35,6 +35,9 @@ const METADATA_FLAGS: u32 =
     FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_NO_RECALL | FILE_FLAG_OPEN_REPARSE_POINT;
 const MAX_PATH_UNITS: usize = 32_768;
 const MAX_LINKS: usize = 64;
+
+#[cfg(test)]
+mod tests;
 
 pub(super) struct NativeRoot {
     pub(super) authorization: RootAuthorization,
@@ -177,15 +180,25 @@ impl NativeRoot {
         {
             return Err(invalid());
         }
+        let standard = standard_info(&file)?;
+        if standard.DeletePending || standard.NumberOfLinks == 0 {
+            return Ok(None);
+        }
         let path = final_path(&file)?;
         let is_directory = attributes(&file)? & FILE_ATTRIBUTE_DIRECTORY != 0;
-        let candidates = if is_directory {
+        let candidates = if is_directory || standard.NumberOfLinks == 1 {
             vec![path]
         } else {
             link_paths(&path, &self.volume.volume_guid)?
         };
         let mut locations = Vec::new();
         for candidate in candidates {
+            if candidate != self.root_guid_path
+                && !candidate
+                    .starts_with(&format!("{}\\", self.root_guid_path.trim_end_matches('\\')))
+            {
+                continue;
+            }
             let alias = open_path(&candidate, FILE_READ_ATTRIBUTES)?;
             if identity(&file_info(&alias)?) != identity(&info) {
                 return Err(invalid());
@@ -225,7 +238,7 @@ fn open_path(path: &str, access: u32) -> Result<File, ScanError> {
         )
     };
     if raw == INVALID_HANDLE_VALUE {
-        return Err(native_error(
+        return Err(metadata_error(
             "identity_journal_path_unavailable",
             io::Error::last_os_error(),
         ));
@@ -246,7 +259,7 @@ fn file_info(file: &File) -> Result<FILE_ID_INFO, ScanError> {
         )
     } == 0
     {
-        return Err(native_error(
+        return Err(metadata_error(
             "identity_journal_file_identity",
             io::Error::last_os_error(),
         ));
@@ -267,12 +280,32 @@ fn attributes(file: &File) -> Result<u32, ScanError> {
         )
     } == 0
     {
-        return Err(native_error(
+        return Err(metadata_error(
             "identity_journal_file_attributes",
             io::Error::last_os_error(),
         ));
     }
     Ok(info.FileAttributes)
+}
+
+fn standard_info(file: &File) -> Result<FILE_STANDARD_INFO, ScanError> {
+    let mut info = FILE_STANDARD_INFO::default();
+    // SAFETY: the exact SDK structure and its writable storage match FileStandardInfo.
+    if unsafe {
+        GetFileInformationByHandleEx(
+            file.as_raw_handle() as HANDLE,
+            FileStandardInfo,
+            (&mut info as *mut FILE_STANDARD_INFO).cast(),
+            size_of::<FILE_STANDARD_INFO>() as u32,
+        )
+    } == 0
+    {
+        return Err(metadata_error(
+            "identity_journal_file_standard_info",
+            io::Error::last_os_error(),
+        ));
+    }
+    Ok(info)
 }
 
 fn identity(info: &FILE_ID_INFO) -> FileIdentityEvidence {
@@ -298,7 +331,7 @@ fn final_path(file: &File) -> Result<String, ScanError> {
         )
     } as usize;
     if count == 0 || count >= path.len() {
-        return Err(native_error(
+        return Err(metadata_error(
             "identity_journal_final_path",
             io::Error::last_os_error(),
         ));
@@ -321,10 +354,15 @@ fn link_paths(path: &str, volume: &str) -> Result<Vec<String>, ScanError> {
     // SAFETY: all buffers are bounded and live; this enumerates names only, never file data.
     let raw = unsafe { FindFirstFileNameW(path.as_ptr(), 0, &mut count, name.as_mut_ptr()) };
     if raw == INVALID_HANDLE_VALUE {
-        return Err(native_error(
-            "identity_journal_hardlinks",
-            io::Error::last_os_error(),
-        ));
+        let error = io::Error::last_os_error();
+        let code = if error.raw_os_error()
+            == Some(windows_sys::Win32::Foundation::ERROR_NOT_SUPPORTED as i32)
+        {
+            "identity_journal_hardlinks_not_supported"
+        } else {
+            "identity_journal_hardlinks"
+        };
+        return Err(metadata_error(code, error));
     }
     let _search = LinkSearch(raw);
     let mut paths = BTreeSet::new();
@@ -347,13 +385,22 @@ fn link_paths(path: &str, volume: &str) -> Result<Vec<String>, ScanError> {
             {
                 break;
             }
-            return Err(native_error(
+            return Err(metadata_error(
                 "identity_journal_hardlink_next",
                 io::Error::last_os_error(),
             ));
         }
     }
     Ok(paths.into_iter().collect())
+}
+
+fn metadata_error(code: &str, error: io::Error) -> ScanError {
+    let code = match error.raw_os_error() {
+        Some(2 | 3) => "identity_journal_identity_missing",
+        Some(5) => "identity_journal_identity_access_denied",
+        _ => code,
+    };
+    native_error(code, error)
 }
 
 fn terminated(path: &str) -> Result<Vec<u16>, ScanError> {

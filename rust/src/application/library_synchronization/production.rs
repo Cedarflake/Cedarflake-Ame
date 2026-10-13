@@ -2617,11 +2617,16 @@ impl ProductionSynchronization {
             Ok(JournalTaskOutcome::Page(_report)) => {
                 #[cfg(debug_assertions)]
                 eprintln!(
-                    "[Ame sync] journal page finished roots={} failed={} observations={} checkpoints={}",
+                    "[Ame sync] journal page finished roots={} failed={} observations={} checkpoints={} failure_codes={:?}",
                     _report.enrolled_root_count,
                     _report.failed_root_count,
                     _report.observation_count,
                     _report.advanced_checkpoint_count,
+                    _report
+                        .root_failures
+                        .iter()
+                        .map(|failure| failure.failure.code.as_str())
+                        .collect::<Vec<_>>(),
                 );
                 0
             }

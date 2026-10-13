@@ -395,6 +395,9 @@ fn from_error(
     let kind = match error.code.as_str() {
         "identity_journal_cancelled" => PersistentJournalRootFailureKind::Cancelled,
         "identity_journal_discontinuous" => PersistentJournalRootFailureKind::JournalTrim,
+        "identity_journal_hardlinks_not_supported" => {
+            PersistentJournalRootFailureKind::NonRecoverable
+        }
         "identity_journal_identity_invalid"
         | "identity_journal_record_invalid"
         | "persistent_journal_baseline_read_window_invalid" => {

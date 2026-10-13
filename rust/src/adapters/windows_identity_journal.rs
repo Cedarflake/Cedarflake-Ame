@@ -391,6 +391,11 @@ impl PersistentIdentityJournalSource for IdentitySource {
                 Ok(None) => resolution
                     .unresolved
                     .push(identity_for_reference(root.volume.volume_serial, reference)),
+                Err(error) if error.code == "identity_journal_identity_missing" => {
+                    resolution
+                        .unresolved
+                        .push(identity_for_reference(root.volume.volume_serial, reference));
+                }
                 Err(error) if error.code == "identity_journal_identity_access_denied" => {
                     resolution
                         .access_denied
