@@ -633,6 +633,7 @@ fn attach_cross_root_lineage(
                 .as_ref()
                 .ok()
                 .and_then(Option::as_ref)
+                .and_then(PersistentJournalReadPage::as_enrolled)
                 .is_some_and(|(batch, _)| {
                     handoff.usn >= batch.range.requested_start_usn.value()
                         && handoff.usn < batch.range.covered_until_usn.value()
@@ -647,6 +648,7 @@ fn attach_cross_root_lineage(
                 .as_ref()
                 .ok()
                 .and_then(Option::as_ref)
+                .and_then(PersistentJournalReadPage::as_enrolled)
                 .map(|(batch, _)| {
                     (
                         batch.range.requested_start_usn.value(),

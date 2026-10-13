@@ -671,8 +671,8 @@ pub enum PersistentJournalReadPage {
     EmptyReplay(PersistentJournalCheckpoint),
 }
 
-#[cfg(test)]
 impl PersistentJournalReadPage {
+    #[cfg(test)]
     pub(crate) fn into_enrolled(
         self,
     ) -> Option<(
