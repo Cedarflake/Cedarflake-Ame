@@ -109,14 +109,14 @@ impl PersistentChangeJournalSession for IdentitySession {
                 .lock()
                 .map_err(|_| PersistentChangeJournalOperationError::TransportUnavailable)?;
             probed.retain(|_, at| at.elapsed() < Duration::from_secs(60));
-            if probed.len() >= 64 && !probed.contains_key(&key) {
-                if let Some(oldest) = probed
+            if probed.len() >= 64
+                && !probed.contains_key(&key)
+                && let Some(oldest) = probed
                     .iter()
                     .min_by_key(|(_, at)| **at)
                     .map(|(key, _)| key.clone())
-                {
-                    probed.remove(&oldest);
-                }
+            {
+                probed.remove(&oldest);
             }
             probed.insert(key.clone(), Instant::now());
         }
@@ -138,14 +138,13 @@ impl PersistentChangeJournalSession for IdentitySession {
                 }
                 return Err(PersistentChangeJournalOperationError::InvalidRequest);
             }
-            if roots.len() >= MAX_ROOTS {
-                if let Some(oldest) = roots
+            if roots.len() >= MAX_ROOTS
+                && let Some(oldest) = roots
                     .iter()
                     .min_by_key(|(_, entry)| entry.last_used)
                     .map(|(key, _)| key.clone())
-                {
-                    roots.remove(&oldest);
-                }
+            {
+                roots.remove(&oldest);
             }
         }
         let root = Arc::new(
