@@ -1,7 +1,7 @@
 use super::*;
 use crate::application::incremental_library_changes::process_ready_metadata_inventory_recovery_candidates_cancellable;
 use crate::application::metadata_inventory::{
-    MetadataInventoryRecoveryExecution, MetadataInventoryWorkerControl,
+    MetadataInventoryRecoveryExecution,
     process_leased_metadata_inventory_change_with_retained_source,
 };
 
@@ -120,11 +120,11 @@ fn oversized_directory_rename_recovers_only_two_subtrees_across_reopen() {
                 &mut catalog,
                 &current_root,
                 &leased,
-                MetadataInventoryRecoveryExecution::new(
+                MetadataInventoryRecoveryExecution::without_progress(
                     now,
                     32,
                     policy,
-                    MetadataInventoryWorkerControl::without_progress(&cancellation),
+                    &cancellation,
                 ),
                 retained_source.take(),
             )
