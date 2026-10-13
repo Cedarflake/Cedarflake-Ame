@@ -1,5 +1,7 @@
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
+import "library_scan_completion_recovery.dart";
+import "library_scan_target.dart";
 
 const _recentIssueLimit = 20;
 
@@ -9,7 +11,7 @@ class LibraryScanTransition {
     this.shouldReloadCatalog = false,
   });
 
-  final LibraryState state;
+  final LibraryPrimaryScanSnapshot state;
   final bool shouldReloadCatalog;
 }
 
@@ -17,25 +19,58 @@ class LibraryScanSession {
   String? _activeScanId;
   RecoverableLibraryScan? _activeScan;
   RecoverableLibraryScan? _pausedScan;
+  LibraryScanTarget _target = const LibraryDirectoryScan();
+  LibraryRootConsolidation? _rootConsolidation;
+  LibraryScanCompletionRecovery? _completionRecovery;
+
+  LibraryRootConsolidation? get rootConsolidation => _rootConsolidation;
+  LibraryScanCompletionRecovery? get completionRecovery => _completionRecovery;
+
+  void retainCompletionRecovery(LibraryScanCompletionRecovery recovery) =>
+      _completionRecovery = recovery;
+
+  void resolveCompletionRecovery(LibraryScanCompletionRecovery recovery) {
+    if (identical(_completionRecovery, recovery)) {
+      _completionRecovery = null;
+    }
+  }
+
+  LibraryScanTarget get target => _target;
 
   String? get activeScanId => _activeScanId;
 
   RecoverableLibraryScan? get pausedScan => _pausedScan;
 
-  void begin(RecoverableLibraryScan scan) {
+  void confirmSourceAdmission() => _target = const LibraryDirectoryScan();
+
+  void begin(
+    RecoverableLibraryScan scan, {
+    LibraryScanTarget target = const LibraryDirectoryScan(),
+  }) {
+    _target = target;
+    _rootConsolidation = null;
+    _completionRecovery = null;
     _activeScanId = scan.scanId;
     _activeScan = scan;
     _pausedScan = null;
   }
 
   void restorePaused(RecoverableLibraryScan scan) {
+    _rootConsolidation = null;
+    _completionRecovery = null;
     _activeScanId = null;
     _activeScan = null;
     _pausedScan = scan;
   }
 
-  LibraryScanTransition apply(LibraryState state, LibraryScanUpdate update) {
+  LibraryScanTransition apply(
+    LibraryPrimaryScanSnapshot state,
+    LibraryScanUpdate update,
+  ) {
     switch (update) {
+      case LibraryScanAlreadyCovered():
+        clear();
+        return const LibraryScanTransition(state: LibraryPrimaryScanSnapshot());
       case LibraryScanStarted(
         :final scanId,
         :final rootPath,
@@ -43,6 +78,7 @@ class LibraryScanSession {
         :final entryLimit,
       ):
         _activeScanId = scanId;
+        confirmSourceAdmission();
         return LibraryScanTransition(
           state: state.copyWith(
             status: LibraryStatus.scanning,
@@ -119,16 +155,17 @@ class LibraryScanSession {
       case LibraryScanCompleted(
         :final assetCount,
         :final issueCount,
-        :final catalogPath,
         :final wasLimited,
+        :final rootConsolidation,
       ):
+        _rootConsolidation = rootConsolidation;
         _clearActive();
         return LibraryScanTransition(
           state: state.copyWith(
             status: LibraryStatus.refreshing,
+            publication: LibraryScanPublication.reloadPending,
             stagedAssetCount: assetCount,
             issueCount: issueCount,
-            catalogPath: catalogPath,
             isScanLimited: wasLimited,
             isResumingScan: false,
           ),
@@ -196,7 +233,10 @@ class LibraryScanSession {
     }
   }
 
-  LibraryState fail(LibraryState state, Object error) {
+  LibraryPrimaryScanSnapshot fail(
+    LibraryPrimaryScanSnapshot state,
+    Object error,
+  ) {
     _clearActive();
     return state.copyWith(
       status: LibraryStatus.failed,
@@ -205,7 +245,7 @@ class LibraryScanSession {
     );
   }
 
-  LibraryState finish(LibraryState state) {
+  LibraryPrimaryScanSnapshot finish(LibraryPrimaryScanSnapshot state) {
     if (state.status != LibraryStatus.scanning &&
         state.status != LibraryStatus.pausing &&
         state.status != LibraryStatus.cancelling) {
@@ -239,6 +279,14 @@ class LibraryScanSession {
       acceptedItems: acceptedItems,
       issueCount: issueCount,
     );
+  }
+
+  void clear() {
+    _clearActive();
+    _rootConsolidation = null;
+    _completionRecovery = null;
+    _pausedScan = null;
+    _target = const LibraryDirectoryScan();
   }
 
   void _clearActive() {

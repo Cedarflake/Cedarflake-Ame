@@ -10,12 +10,18 @@ void main() {
         assetId: "asset-1",
         locationId: "location-1",
         rootId: "root-1",
+        scanId: "scan-1",
         absolutePath: r"\\?\C:\Pictures\capture.jpg",
         displayPath: "C:\\Pictures\\capture.jpg",
         relativePath: "capture.jpg",
         previewPath: "",
         fileSize: BigInt.from(123),
         modifiedUnixMs: 456,
+        sourceRevision: const rust_domain.SourceRevisionEvidence(
+          scheme: "windows-file-change-time-100ns-v1",
+          value: "000000000000000a",
+        ),
+        sourceGeneration: BigInt.from(7),
         width: 1920,
         height: 1080,
         previewStatus: rust_domain.PreviewStatus.pending,
@@ -35,6 +41,15 @@ void main() {
     );
 
     expect(asset.metadataEngineId, "kamadak-exif");
+    expect(asset.activeScanId, "scan-1");
+    expect(
+      asset.sourceRevision,
+      const LibrarySourceRevisionEvidence(
+        scheme: "windows-file-change-time-100ns-v1",
+        value: "000000000000000a",
+      ),
+    );
+    expect(asset.sourceGeneration, BigInt.from(7));
     expect(asset.sourcePath, r"\\?\C:\Pictures\capture.jpg");
     expect(asset.displayPath, r"C:\Pictures\capture.jpg");
     expect(asset.metadataEngineVersion, "0.6.1");
@@ -58,12 +73,14 @@ void main() {
         assetId: "asset-2",
         locationId: "location-2",
         rootId: "root-1",
+        scanId: "scan-2",
         absolutePath: "C:\\Pictures\\plain.png",
         displayPath: "C:\\Pictures\\plain.png",
         relativePath: "plain.png",
         previewPath: "",
         fileSize: BigInt.from(42),
         modifiedUnixMs: 789,
+        sourceGeneration: BigInt.from(8),
         width: 8,
         height: 6,
         previewStatus: rust_domain.PreviewStatus.pending,

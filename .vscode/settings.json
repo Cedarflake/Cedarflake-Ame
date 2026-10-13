@@ -1,7 +1,7 @@
 {
   "dart.lineLength": 100,
   "editor.rulers": [
-    100
+    120
   ],
   "files.eol": "\n",
   "files.insertFinalNewline": true,

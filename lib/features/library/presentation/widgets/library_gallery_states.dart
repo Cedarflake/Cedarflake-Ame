@@ -5,6 +5,135 @@ import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../library_strings.dart";
 
+class EmptyLibraryGallery extends StatelessWidget {
+  const EmptyLibraryGallery({
+    required this.state,
+    required this.onImport,
+    super.key,
+  });
+
+  final LibraryState state;
+  final VoidCallback onImport;
+
+  @override
+  Widget build(BuildContext context) {
+    if (state.status == LibraryStatus.refreshing ||
+        state.isRefreshingQuery ||
+        state.isLoadingTimeline) {
+      return const GalleryLoadingState();
+    }
+    if (_isAwaitingPublishedDisplay) {
+      return _PendingLibraryGallery(
+        state.primaryScanSnapshot.publication ==
+                LibraryScanPublication.confirmationPending
+            ? _PendingGalleryReason.confirmation
+            : _PendingGalleryReason.displayReload,
+      );
+    }
+    if (_hasUnpublishedSource) {
+      return const _PendingLibraryGallery(_PendingGalleryReason.firstImport);
+    }
+    if (state.roots.isNotEmpty) {
+      return NoGalleryResults(query: state.query);
+    }
+    return EmptyLibrary(state: state, onImport: onImport);
+  }
+
+  bool get _isAwaitingPublishedDisplay {
+    final scan = state.primaryScanSnapshot;
+    if (!scan.hasUnresolvedPublication) {
+      return false;
+    }
+    final selectedRootId = state.query.rootId;
+    if (selectedRootId == null) {
+      return true;
+    }
+    return state.roots.any(
+      (root) =>
+          root.id == selectedRootId &&
+          (root.path == scan.rootPath ||
+              root.displayPath == scan.displayRootPath),
+    );
+  }
+
+  bool get _hasUnpublishedSource {
+    final selectedRootId = state.query.rootId;
+    for (final root in state.roots) {
+      if ((selectedRootId == null || root.id == selectedRootId) &&
+          root.activeScanId == null) {
+        return true;
+      }
+    }
+    if (selectedRootId != null) {
+      return false;
+    }
+    final scan = state.primaryScanSnapshot;
+    if (scan.taskKind != LibraryTaskKind.import ||
+        scan.rootPath == null ||
+        !(scan.isScanning || scan.hasRetainedScan)) {
+      return false;
+    }
+    // A newly admitted import can precede the first registered-root read.
+    return !state.roots.any(
+      (root) =>
+          root.path == scan.rootPath ||
+          root.displayPath == scan.displayRootPath,
+    );
+  }
+}
+
+enum _PendingGalleryReason { firstImport, confirmation, displayReload }
+
+class _PendingLibraryGallery extends StatelessWidget {
+  const _PendingLibraryGallery(this.reason);
+
+  final _PendingGalleryReason reason;
+
+  @override
+  Widget build(BuildContext context) {
+    final (key, title, detail) = switch (reason) {
+      _PendingGalleryReason.firstImport => (
+        "library-first-import-state",
+        LibraryStrings.firstImportIncomplete,
+        LibraryStrings.firstImportGalleryDetail,
+      ),
+      _PendingGalleryReason.confirmation => (
+        "library-scan-confirmation-state",
+        LibraryStrings.scanConfirmationPending,
+        LibraryStrings.scanConfirmationDetail,
+      ),
+      _PendingGalleryReason.displayReload => (
+        "library-published-reload-state",
+        LibraryStrings.galleryDisplayReloadPending,
+        LibraryStrings.galleryDisplayReloadDetail,
+      ),
+    };
+    return Center(
+      key: Key(key),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 520),
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Symbols.folder_rounded, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: Theme.of(context).textTheme.titleLarge,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(detail, textAlign: TextAlign.center),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class GalleryLoadingState extends StatelessWidget {
   const GalleryLoadingState({super.key});
 
@@ -101,10 +230,16 @@ class EmptyLibrary extends StatelessWidget {
               ),
               const SizedBox(height: 24),
               FilledButton.icon(
-                onPressed: state.isBusy ? null : onImport,
+                onPressed: state.isBusy || state.hasRetainedScan
+                    ? null
+                    : onImport,
                 icon: const Icon(Symbols.create_new_folder_rounded),
                 label: const Text(LibraryStrings.import),
               ),
+              if (state.hasRetainedScan) ...[
+                const SizedBox(height: 8),
+                const Text("请先继续或取消已暂停的任务"),
+              ],
             ],
           ),
         ),

@@ -2,14 +2,33 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../src/rust/api/catalog.dart" as rust_api;
 import "../../../src/rust/domain.dart" as rust_domain;
+import "../../../src/rust/domain/gallery_query_snapshot.dart" as rust_query;
+import "../../../src/rust/domain/gallery_time_snapshot.dart" as rust_time;
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
+import "../domain/library_query_snapshot.dart";
+import "../domain/library_time_snapshot.dart";
+
+export "../domain/library_query_snapshot.dart";
+export "../domain/library_time_snapshot.dart";
 
 const libraryCatalogWindow = 500;
 const libraryTimelineWindow = 160;
 const libraryFolderWindow = 200;
 
 abstract interface class LibraryCatalog {
+  Future<LibraryTimeSnapshot> resolveTimeIntent({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeIntent intent,
+  });
+
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  });
+
   Future<LibrarySnapshot> load({
     required int maxItems,
     required LibraryGalleryQuery query,
@@ -36,6 +55,23 @@ abstract interface class LibraryQueryAnchorCatalog {
   });
 }
 
+abstract interface class LibraryStableQueryAnchorCatalog {
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  });
+}
+
+abstract interface class LibraryStableAssetCatalog {
+  Future<LibraryAsset?> loadAssetById({
+    required String assetId,
+    String? preferredLocationId,
+  });
+}
+
 abstract interface class LibraryFolderCatalog {
   Future<LibraryFolderPage> loadFolderPage({
     required String rootId,
@@ -46,8 +82,74 @@ abstract interface class LibraryFolderCatalog {
 }
 
 class RustLibraryCatalog
-    implements LibraryCatalog, LibraryFolderCatalog, LibraryQueryAnchorCatalog {
+    implements
+        LibraryCatalog,
+        LibraryFolderCatalog,
+        LibraryQueryAnchorCatalog,
+        LibraryStableQueryAnchorCatalog,
+        LibraryStableAssetCatalog {
   const RustLibraryCatalog();
+
+  @override
+  Future<LibraryTimeSnapshot> resolveTimeIntent({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required LibraryTimeIntent intent,
+  }) async {
+    try {
+      final result = await rust_api.loadLibraryTimeSnapshot(
+        maxItems: maxItems,
+        query: _mapQuery(query),
+        intent: rust_time.GalleryTimeIntent(
+          monthKey: intent.monthKey,
+          itemOffset: BigInt.from(intent.itemOffset),
+        ),
+      );
+      final anchor = result.anchor;
+      return LibraryTimeSnapshot(
+        snapshot: _mapSnapshot(result.snapshot),
+        timeline: _mapTimeline(result.timeline),
+        anchor: anchor == null
+            ? null
+            : LibraryTimeAnchor(
+                revision: anchor.revision,
+                queryId: anchor.queryId,
+                monthKey: anchor.monthKey,
+                itemOffset: anchor.itemOffset.toInt(),
+              ),
+        windowStartItemOffset: result.windowStartOrdinal.toInt(),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_time_intent_load_failed");
+    }
+  }
+
+  @override
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  }) async {
+    try {
+      final result = await rust_api.loadLibraryQuerySnapshot(
+        maxItems: maxItems,
+        query: _mapQuery(query),
+        anchor: anchor == null
+            ? null
+            : rust_query.GalleryQueryAnchor(
+                requestedLocationId: anchor.requestedLocationId,
+                assetId: anchor.assetId,
+                fallbackOrdinal: BigInt.from(anchor.fallbackGlobalItemIndex),
+              ),
+      );
+      return LibraryQuerySnapshot(
+        snapshot: _mapSnapshot(result.snapshot),
+        timeline: _mapTimeline(result.timeline),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_query_snapshot_load_failed");
+    }
+  }
 
   @override
   Future<LibrarySnapshot> load({
@@ -94,23 +196,10 @@ class RustLibraryCatalog
   @override
   Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
     try {
-      final timeline = rust_api.loadLibraryGalleryTimeline(
+      final timeline = await rust_api.loadLibraryGalleryTimeline(
         query: _mapQuery(query),
       );
-      return LibraryTimeline(
-        revision: timeline.revision,
-        queryId: timeline.queryId,
-        totalItems: timeline.totalItems.toInt(),
-        buckets: List.unmodifiable(
-          timeline.buckets.map(
-            (bucket) => LibraryTimeBucket(
-              monthKey: bucket.monthKey,
-              itemCount: bucket.itemCount.toInt(),
-              aspectRatioSum: bucket.aspectRatioMilliSum.toInt() / 1000,
-            ),
-          ),
-        ),
-      );
+      return _mapTimeline(timeline);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_timeline_load_failed");
     }
@@ -124,24 +213,32 @@ class RustLibraryCatalog
     LibraryFolderCursor? after,
   }) async {
     try {
-      final page = rust_api.loadLibraryFolderPage(
-        rootId: rootId,
-        parentRelativePath: parentRelativePath,
-        maxItems: maxItems,
-        after: after == null
-            ? null
-            : rust_domain.LibraryFolderCursor(
-                revision: after.revision,
-                rootId: after.rootId,
-                parentRelativePath: after.parentRelativePath,
-                relativePath: after.relativePath,
-              ),
-      );
+      final Future<rust_domain.LibraryFolderPage> pendingPage = rust_api
+          .loadLibraryFolderPage(
+            rootId: rootId,
+            parentRelativePath: parentRelativePath,
+            maxItems: maxItems,
+            after: after == null
+                ? null
+                : rust_domain.LibraryFolderCursor(
+                    revision: after.revision,
+                    rootId: after.rootId,
+                    parentRelativePath: after.parentRelativePath,
+                    relativePath: after.relativePath,
+                  ),
+          );
+      final page = await pendingPage;
       final nextCursor = page.nextCursor;
       return LibraryFolderPage(
         revision: page.revision,
         rootId: page.rootId,
         parentRelativePath: page.parentRelativePath,
+        disposition: switch (page.disposition) {
+          rust_domain.LibraryFolderPageDisposition.replace =>
+            LibraryFolderPageDisposition.replace,
+          rust_domain.LibraryFolderPageDisposition.append =>
+            LibraryFolderPageDisposition.append,
+        },
         folders: List.unmodifiable(
           page.folders.map(
             (folder) => LibraryFolder(
@@ -211,9 +308,47 @@ class RustLibraryCatalog
   }
 
   @override
+  Future<LibrarySnapshot> loadAroundAsset({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    required String requestedLocationId,
+    required String anchorAssetId,
+    required int fallbackGlobalItemIndex,
+  }) async {
+    try {
+      final snapshot = await rust_api.loadLibraryCatalogAroundAsset(
+        maxItems: maxItems,
+        query: _mapQuery(query),
+        requestedLocationId: requestedLocationId,
+        anchorAssetId: anchorAssetId,
+        fallbackOrdinal: BigInt.from(fallbackGlobalItemIndex),
+      );
+      return _mapSnapshot(snapshot);
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_asset_anchor_load_failed");
+    }
+  }
+
+  @override
+  Future<LibraryAsset?> loadAssetById({
+    required String assetId,
+    String? preferredLocationId,
+  }) async {
+    try {
+      final asset = await rust_api.loadLibraryAssetById(
+        assetId: assetId,
+        preferredLocationId: preferredLocationId,
+      );
+      return asset == null ? null : mapRustLibraryAsset(asset);
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_asset_identity_load_failed");
+    }
+  }
+
+  @override
   Future<bool> unregisterRoot(String rootId) async {
     try {
-      return rust_api.removeLibraryRoot(rootId: rootId);
+      return await rust_api.removeLibraryRoot(rootId: rootId);
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_root_unregister_failed");
     }
@@ -240,6 +375,23 @@ class RustLibraryCatalog
                   .windowStartOrdinal
                   .toInt(),
             ),
+    );
+  }
+
+  LibraryTimeline _mapTimeline(rust_domain.GalleryTimeline timeline) {
+    return LibraryTimeline(
+      revision: timeline.revision,
+      queryId: timeline.queryId,
+      totalItems: timeline.totalItems.toInt(),
+      buckets: List.unmodifiable(
+        timeline.buckets.map(
+          (bucket) => LibraryTimeBucket(
+            monthKey: bucket.monthKey,
+            itemCount: bucket.itemCount.toInt(),
+            aspectRatioSum: bucket.aspectRatioMilliSum.toInt() / 1000,
+          ),
+        ),
+      ),
     );
   }
 
@@ -324,10 +476,12 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
 LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
   final captureTime = asset.captureTime;
   final fileIdentity = asset.fileIdentity;
+  final sourceRevision = asset.sourceRevision;
   return LibraryAsset(
     assetId: asset.assetId,
     locationId: asset.locationId,
     rootId: asset.rootId,
+    activeScanId: asset.scanId,
     sourcePath: asset.absolutePath,
     displayPath: asset.displayPath,
     relativePath: asset.relativePath,
@@ -335,6 +489,13 @@ LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
     fileSize: asset.fileSize,
     createdUnixMs: asset.createdUnixMs,
     modifiedUnixMs: asset.modifiedUnixMs,
+    sourceRevision: sourceRevision == null
+        ? null
+        : LibrarySourceRevisionEvidence(
+            scheme: sourceRevision.scheme,
+            value: sourceRevision.value,
+          ),
+    sourceGeneration: asset.sourceGeneration,
     width: asset.width,
     height: asset.height,
     previewStatus: switch (asset.previewStatus) {

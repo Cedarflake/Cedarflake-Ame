@@ -79,20 +79,69 @@ void main() {
     expect(store.resolve(first).previewStatus, LibraryPreviewStatus.pending);
     expect(store.resolve(second).previewStatus, LibraryPreviewStatus.failed);
   });
+
+  test(
+    "source identity distinguishes scan, revision, and generation context",
+    () {
+      final original = _asset("identity");
+      final scanChanged = _asset("identity", activeScanId: "scan-2");
+      final revisionChanged = _asset(
+        "identity",
+        sourceRevision: const LibrarySourceRevisionEvidence(
+          scheme: "windows-file-change-time-100ns-v1",
+          value: "0000000000000002",
+        ),
+      );
+      final generationChanged = _asset(
+        "identity",
+        sourceGeneration: BigInt.two,
+      );
+
+      expect(
+        LibraryPreviewSourceIdentity.fromAsset(original),
+        isNot(LibraryPreviewSourceIdentity.fromAsset(scanChanged)),
+      );
+      expect(
+        LibraryPreviewSourceIdentity.fromAsset(original),
+        isNot(LibraryPreviewSourceIdentity.fromAsset(revisionChanged)),
+      );
+      expect(
+        LibraryPreviewSourceIdentity.fromAsset(original),
+        isNot(LibraryPreviewSourceIdentity.fromAsset(generationChanged)),
+      );
+      expect(
+        libraryPreviewSourcesAreCompatible(original, generationChanged),
+        isFalse,
+      );
+    },
+  );
 }
 
-LibraryAsset _asset(String id, {String? sourcePath}) {
+LibraryAsset _asset(
+  String id, {
+  String? sourcePath,
+  String activeScanId = "scan-1",
+  LibrarySourceRevisionEvidence? sourceRevision =
+      const LibrarySourceRevisionEvidence(
+        scheme: "windows-file-change-time-100ns-v1",
+        value: "0000000000000001",
+      ),
+  BigInt? sourceGeneration,
+}) {
   final path = sourcePath ?? "C:\\Pictures\\$id.jpg";
   return LibraryAsset(
     assetId: "asset-$id",
     locationId: "location-$id",
     rootId: "root-1",
+    activeScanId: activeScanId,
     sourcePath: path,
     displayPath: path,
     relativePath: path.split("\\").last,
     previewPath: "",
     fileSize: BigInt.one,
     modifiedUnixMs: 1,
+    sourceRevision: sourceRevision,
+    sourceGeneration: sourceGeneration ?? BigInt.one,
     width: 160,
     height: 90,
     previewStatus: LibraryPreviewStatus.pending,

@@ -1,0 +1,60 @@
+name: Quality / Synthetic Windows
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: Source revision shared with the Daily gate
+        required: false
+        default: ""
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  synthetic:
+    name: Synthetic / ${{ matrix.label }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - case: jpeg
+            label: High Resolution JPEG
+          - case: scan
+            label: Ten Thousand Images
+          - case: usn
+            label: Million Journal Records
+          - case: media
+            label: Seven Supported Media Formats
+          - case: publication
+            label: Fifty Thousand Identity Publication
+    runs-on: windows-2025
+    timeout-minutes: 45
+    env:
+      CI: "true"
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+          ref: ${{ inputs.checkout_ref || github.sha }}
+
+      - name: Run exact synthetic workload
+        shell: pwsh
+        env:
+          AME_SYNTHETIC_CASE: ${{ matrix.case }}
+        run: ./tool/performance_run_synthetic.ps1 -Case $env:AME_SYNTHETIC_CASE
+
+      - name: Preserve synthetic evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: synthetic-${{ matrix.case }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            .dart_tool/performance_synthetic/*/*.json
+            .dart_tool/performance_synthetic/*/*.stdout.log
+            .dart_tool/performance_synthetic/*/*.stderr.log
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7

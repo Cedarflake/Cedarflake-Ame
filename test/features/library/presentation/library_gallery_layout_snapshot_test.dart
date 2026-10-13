@@ -4,6 +4,7 @@ import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.d
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_reflow.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -80,6 +81,49 @@ void main() {
     expect(snapshot.metrics.dateAnchors.first.isUnknown, isTrue);
     expect(snapshot.metrics.dateAnchors.first.year, isNull);
   });
+
+  for (final pointInHeading in [false, true]) {
+    test(
+      "manifest anchor round-trips a ${pointInHeading ? 'date heading' : 'row gap'} without displacement",
+      () {
+        final snapshot = LibraryGalleryLayoutSnapshot.build(
+          manifest: _manifest(
+            locationIds: List.generate(18, (index) => "location-$index"),
+            aspectRatios: List.filled(18, 1),
+            dateKeys: List.generate(
+              18,
+              (index) => index < 9 ? "2026-08-09" : "2012-03-04",
+            ),
+          ),
+          availableWidth: 300,
+          thumbnailSize: GalleryThumbnailSize.small,
+          sortKey: LibraryGallerySortKey.captureTime,
+        );
+        final rows = snapshot.entries
+            .where((entry) => entry.isPhotoRow)
+            .toList();
+        final nextRow = rows[pointInHeading ? 3 : 1];
+        final rowOffset = snapshot.metrics.offsetForGlobalItemIndex(
+          nextRow.startItemIndex,
+        )!;
+        const viewport = 100.0;
+        final pixels = rowOffset - (pointInHeading ? 13 : 2) - viewport * 0.5;
+        final anchor = LibraryGalleryViewportAnchor.capture(
+          snapshot,
+          scrollOffset: pixels,
+          viewportExtent: viewport,
+          viewportFraction: 0.5,
+        )!;
+
+        expect(anchor.itemFraction, inInclusiveRange(0.0, 1.0));
+        expect(anchor.viewportFraction, isNot(0.5));
+        expect(
+          anchor.scrollOffsetFor(snapshot, viewport),
+          closeTo(pixels, 1e-9),
+        );
+      },
+    );
+  }
 }
 
 LibraryGalleryLayoutManifest _manifest({

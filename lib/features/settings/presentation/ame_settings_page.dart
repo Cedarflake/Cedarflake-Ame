@@ -4,14 +4,21 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../app/notifications/ame_notification_controller.dart";
+import "../../../app/notifications/ame_notification_strings.dart";
 import "../application/ame_preferences.dart";
 import "widgets/settings_section.dart";
 import "widgets/storage_settings_section.dart";
 
 class AmeSettingsPage extends ConsumerWidget {
-  const AmeSettingsPage({required this.hasLibraryRoots, super.key});
+  const AmeSettingsPage({
+    required this.hasLibraryRoots,
+    this.libraryRootIds = const <String>{},
+    super.key,
+  });
 
   final bool hasLibraryRoots;
+  final Set<String> libraryRootIds;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -51,15 +58,15 @@ class AmeSettingsPage extends ConsumerWidget {
                             trailing: SettingsChoice<AmeThemePreference>(
                               value: preferences.theme,
                               entries: const [
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: AmeThemePreference.system,
                                   label: "跟随系统",
                                 ),
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: AmeThemePreference.light,
                                   label: "浅色",
                                 ),
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: AmeThemePreference.dark,
                                   label: "深色",
                                 ),
@@ -68,7 +75,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(theme: value),
                                     ),
@@ -90,11 +96,11 @@ class AmeSettingsPage extends ConsumerWidget {
                             trailing: SettingsChoice<ImageViewerWheelBehavior>(
                               value: preferences.viewerWheelBehavior,
                               entries: const [
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: ImageViewerWheelBehavior.zoom,
                                   label: "放大或缩小",
                                 ),
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value:
                                       ImageViewerWheelBehavior.previousOrNext,
                                   label: "上一张或下一张",
@@ -104,7 +110,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(
                                         viewerWheelBehavior: value,
@@ -122,11 +127,11 @@ class AmeSettingsPage extends ConsumerWidget {
                             trailing: SettingsChoice<ImageViewerOpenBehavior>(
                               value: preferences.viewerOpenBehavior,
                               entries: const [
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: ImageViewerOpenBehavior.fitWindow,
                                   label: "适应窗口",
                                 ),
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: ImageViewerOpenBehavior.actualSize,
                                   label: "实际大小",
                                 ),
@@ -135,7 +140,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(
                                         viewerOpenBehavior: value,
@@ -154,15 +158,15 @@ class AmeSettingsPage extends ConsumerWidget {
                             trailing: SettingsChoice<PreviewLoadingSpeed>(
                               value: preferences.previewLoadingSpeed,
                               entries: const [
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: PreviewLoadingSpeed.small,
                                   label: "小",
                                 ),
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: PreviewLoadingSpeed.medium,
                                   label: "中",
                                 ),
-                                DropdownMenuEntry(
+                                SettingsChoiceEntry(
                                   value: PreviewLoadingSpeed.large,
                                   label: "大",
                                 ),
@@ -171,7 +175,6 @@ class AmeSettingsPage extends ConsumerWidget {
                                 if (value != null) {
                                   unawaited(
                                     _savePreferences(
-                                      context,
                                       ref,
                                       preferences.copyWith(
                                         previewLoadingSpeed: value,
@@ -185,7 +188,10 @@ class AmeSettingsPage extends ConsumerWidget {
                         ],
                       ),
                       const SizedBox(height: 28),
-                      StorageSettingsSection(hasLibraryRoots: hasLibraryRoots),
+                      StorageSettingsSection(
+                        hasLibraryRoots: hasLibraryRoots,
+                        libraryRootIds: libraryRootIds,
+                      ),
                       const SizedBox(height: 28),
                       SettingsSection(
                         title: "关于",
@@ -221,7 +227,6 @@ class AmeSettingsPage extends ConsumerWidget {
   }
 
   Future<void> _savePreferences(
-    BuildContext context,
     WidgetRef ref,
     AmePreferences preferences,
   ) async {
@@ -230,11 +235,17 @@ class AmeSettingsPage extends ConsumerWidget {
           .read(amePreferencesControllerProvider.notifier)
           .update(preferences);
     } on Object catch (error) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(content: Text("无法保存设置：$error")));
-      }
+      ref
+          .read(ameNotificationControllerProvider.notifier)
+          .publish(
+            AmeNotificationDraft(
+              title: "无法保存设置",
+              message: AmeNotificationStrings.operationFailed,
+              detail: error.toString(),
+              severity: AmeNotificationSeverity.error,
+              isPersistent: true,
+            ),
+          );
     }
   }
 }

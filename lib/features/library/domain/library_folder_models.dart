@@ -37,6 +37,7 @@ class LibraryFolderPage {
     required this.parentRelativePath,
     required this.folders,
     this.nextCursor,
+    this.disposition = LibraryFolderPageDisposition.replace,
   });
 
   final BigInt revision;
@@ -44,4 +45,7 @@ class LibraryFolderPage {
   final String parentRelativePath;
   final List<LibraryFolder> folders;
   final LibraryFolderCursor? nextCursor;
+  final LibraryFolderPageDisposition disposition;
 }
+
+enum LibraryFolderPageDisposition { replace, append }

@@ -1,9 +1,18 @@
+mod location_anchor;
+mod time_anchor;
+
+pub(super) use location_anchor::{
+    GalleryAssetAnchor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
+};
+
+pub(super) use time_anchor::resolve_gallery_anchor_cursor;
+
 use rusqlite::types::Value;
-use rusqlite::{OptionalExtension, Transaction, params, params_from_iter};
+use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::domain::{
-    AssetLocationView, CatalogCursor, GalleryLocationAnchorResolution, GalleryQuery,
-    GallerySortDirection, GallerySortKey, GalleryTimeAnchor, ScanError,
+    AssetLocationView, CatalogCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
+    GalleryTimeAnchor, ScanError,
 };
 
 use super::{
@@ -13,149 +22,6 @@ use super::{
 pub(super) struct BuiltGalleryQuery {
     pub(super) sql: String,
     pub(super) parameters: Vec<Value>,
-}
-
-pub(super) fn resolve_gallery_location_anchor(
-    transaction: &Transaction<'_>,
-    revision: u64,
-    query: &GalleryQuery,
-    query_id: &str,
-    requested_location_id: &str,
-    max_items: u32,
-) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
-    let mut anchor_clauses = Vec::new();
-    let mut anchor_parameters = Vec::new();
-    push_gallery_filters(query, &mut anchor_clauses, &mut anchor_parameters);
-    anchor_clauses.push("locations.location_id = ?".to_owned());
-    anchor_parameters.push(Value::Text(requested_location_id.to_owned()));
-    let anchor_sql = format!(
-        "SELECT locations.root_id, locations.location_id,
-                {missing}, {text}, {number}
-         FROM library_roots AS roots
-         JOIN asset_locations AS locations
-           ON locations.scan_id = roots.active_scan_id
-         WHERE {where_clause}
-         LIMIT 1",
-        missing = order.missing,
-        text = order.text,
-        number = order.number,
-        where_clause = anchor_clauses.join(" AND "),
-    );
-    let anchor = transaction
-        .query_row(
-            &anchor_sql,
-            params_from_iter(anchor_parameters.iter()),
-            |row| {
-                Ok(CatalogCursor {
-                    revision,
-                    query_id: query_id.to_owned(),
-                    root_id: row.get(0)?,
-                    location_id: row.get(1)?,
-                    primary_missing: row.get::<_, i64>(2)? != 0,
-                    primary_text: row.get(3)?,
-                    primary_number: row.get(4)?,
-                })
-            },
-        )
-        .optional()
-        .map_err(database_error)?;
-    let Some(anchor) = anchor else {
-        return Ok((
-            GalleryLocationAnchorResolution {
-                requested_location_id: requested_location_id.to_owned(),
-                location_id: None,
-                ordinal: None,
-                window_start_ordinal: 0,
-            },
-            None,
-        ));
-    };
-
-    let mut preceding_clauses = Vec::new();
-    let mut preceding_parameters = Vec::new();
-    push_gallery_filters(query, &mut preceding_clauses, &mut preceding_parameters);
-    push_cursor_filter(
-        &anchor,
-        &order,
-        &query.sort_direction,
-        true,
-        &mut preceding_clauses,
-        &mut preceding_parameters,
-    );
-    let preceding_where = preceding_clauses.join(" AND ");
-    let ordinal_i64: i64 = transaction
-        .query_row(
-            &format!(
-                "SELECT COUNT(*)
-                 FROM library_roots AS roots
-                 JOIN asset_locations AS locations
-                   ON locations.scan_id = roots.active_scan_id
-                 WHERE {preceding_where}"
-            ),
-            params_from_iter(preceding_parameters.iter()),
-            |row| row.get(0),
-        )
-        .map_err(database_error)?;
-    let ordinal = u64::try_from(ordinal_i64).map_err(|_| {
-        ScanError::new(
-            "catalog_location_anchor_invalid",
-            "The gallery location anchor ordinal is outside the supported range",
-        )
-    })?;
-    let window_start_ordinal = ordinal.saturating_sub(u64::from(max_items / 2));
-    let start_after = if window_start_ordinal == 0 {
-        None
-    } else {
-        let reverse_offset = ordinal.saturating_sub(window_start_ordinal);
-        let reverse_direction = gallery_window_direction_sql(&query.sort_direction, true);
-        let reverse_offset = sqlite_integer(reverse_offset, "gallery location anchor offset")?;
-        let predecessor_sql = format!(
-            "SELECT locations.root_id, locations.location_id,
-                    {missing}, {text}, {number}
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations
-               ON locations.scan_id = roots.active_scan_id
-             WHERE {preceding_where}
-             ORDER BY {missing} DESC, {text} {reverse_direction},
-                      {number} {reverse_direction},
-                      locations.root_id DESC, locations.location_id DESC
-             LIMIT 1 OFFSET ?",
-            missing = order.missing,
-            text = order.text,
-            number = order.number,
-        );
-        let mut predecessor_parameters = preceding_parameters;
-        predecessor_parameters.push(Value::Integer(reverse_offset));
-        Some(
-            transaction
-                .query_row(
-                    &predecessor_sql,
-                    params_from_iter(predecessor_parameters.iter()),
-                    |row| {
-                        Ok(CatalogCursor {
-                            revision,
-                            query_id: query_id.to_owned(),
-                            root_id: row.get(0)?,
-                            location_id: row.get(1)?,
-                            primary_missing: row.get::<_, i64>(2)? != 0,
-                            primary_text: row.get(3)?,
-                            primary_number: row.get(4)?,
-                        })
-                    },
-                )
-                .map_err(database_error)?,
-        )
-    };
-    Ok((
-        GalleryLocationAnchorResolution {
-            requested_location_id: requested_location_id.to_owned(),
-            location_id: Some(anchor.location_id),
-            ordinal: Some(ordinal),
-            window_start_ordinal,
-        },
-        start_after,
-    ))
 }
 
 struct GalleryOrderExpressions {
@@ -241,6 +107,7 @@ pub(super) fn build_gallery_asset_query(
     Ok(BuiltGalleryQuery {
         sql: format!(
             "SELECT locations.asset_id, locations.location_id, locations.root_id,
+                    locations.scan_id,
                     locations.absolute_path, locations.relative_path,
                     locations.preview_path, locations.file_size,
                     locations.created_unix_ms, locations.modified_unix_ms,
@@ -250,7 +117,8 @@ pub(super) fn build_gallery_asset_query(
                     locations.metadata_engine_version, locations.capture_local_time,
                     locations.capture_offset_minutes, locations.capture_time_source,
                     locations.capture_raw_value, locations.file_identity_scheme,
-                    locations.file_identity_value
+                    locations.file_identity_value, locations.source_revision_token,
+                    locations.source_generation
              FROM library_roots AS roots
              JOIN asset_locations AS locations
                ON locations.scan_id = roots.active_scan_id
@@ -269,82 +137,6 @@ pub(super) fn build_gallery_asset_query(
         ),
         parameters,
     })
-}
-
-pub(super) fn resolve_gallery_anchor_cursor(
-    transaction: &Transaction<'_>,
-    revision: u64,
-    query: &GalleryQuery,
-    query_id: &str,
-    anchor: &GalleryTimeAnchor,
-) -> Result<CatalogCursor, ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
-    let Some(month_expression) = order.month else {
-        return Err(ScanError::new(
-            "catalog_time_anchor_unavailable",
-            "Name-sorted gallery results do not have a chronological time anchor",
-        ));
-    };
-    let mut clauses = Vec::new();
-    let mut parameters = Vec::new();
-    push_gallery_filters(query, &mut clauses, &mut parameters);
-    match &anchor.month_key {
-        Some(month_key) => {
-            validate_month_key_text(month_key)?;
-            clauses.push(format!("{month_expression} = ?"));
-            parameters.push(Value::Text(month_key.clone()));
-        }
-        None if matches!(query.sort_key, GallerySortKey::ModifiedTime) => {
-            return Err(ScanError::new(
-                "catalog_time_anchor_invalid",
-                "Modification-time results do not contain an unknown-date section",
-            ));
-        }
-        None => clauses.push(format!("{month_expression} IS NULL")),
-    }
-    let preceding_offset = sqlite_integer(
-        anchor.item_offset.saturating_sub(1),
-        "gallery time-anchor item offset",
-    )?;
-    parameters.push(Value::Integer(preceding_offset));
-    let direction = gallery_direction_sql(&query.sort_direction);
-    let sql = format!(
-        "SELECT locations.asset_id, locations.location_id, locations.root_id,
-                locations.absolute_path, locations.relative_path,
-                locations.preview_path, locations.file_size,
-                locations.created_unix_ms, locations.modified_unix_ms,
-                locations.width, locations.height,
-                locations.preview_status, locations.preview_issue_code,
-                locations.preview_issue_message, locations.metadata_engine_id,
-                locations.metadata_engine_version, locations.capture_local_time,
-                locations.capture_offset_minutes, locations.capture_time_source,
-                locations.capture_raw_value, locations.file_identity_scheme,
-                locations.file_identity_value
-         FROM library_roots AS roots
-         JOIN asset_locations AS locations
-           ON locations.scan_id = roots.active_scan_id
-         WHERE {where_clause}
-         ORDER BY {missing}, {text} {direction}, {number} {direction},
-                  locations.root_id, locations.location_id
-         LIMIT 1 OFFSET ?",
-        where_clause = clauses.join(" AND "),
-        missing = order.missing,
-        text = order.text,
-        number = order.number,
-    );
-    let mut statement = transaction.prepare(&sql).map_err(database_error)?;
-    let stored = statement
-        .query_row(params_from_iter(parameters.iter()), read_stored_asset)
-        .optional()
-        .map_err(database_error)?
-        .ok_or_else(|| {
-            ScanError::new(
-                "catalog_time_anchor_invalid",
-                "The selected position is outside its gallery time bucket",
-            )
-        })?;
-    let asset = stored_asset_view(stored)?;
-    gallery_cursor_for_asset(transaction, revision, query_id, query, &asset)
 }
 
 pub(super) fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
@@ -708,7 +500,7 @@ fn push_cursor_filter(
     ]);
 }
 
-fn validate_month_key_text(month_key: &str) -> Result<(), ScanError> {
+fn validate_month_key_text(month_key: &str) -> Result<u8, ScanError> {
     let bytes = month_key.as_bytes();
     let valid_shape = bytes.len() == 7
         && bytes[4] == b'-'
@@ -717,8 +509,8 @@ fn validate_month_key_text(month_key: &str) -> Result<(), ScanError> {
     let month = valid_shape
         .then(|| month_key[5..].parse::<u8>().ok())
         .flatten();
-    if matches!(month, Some(1..=12)) {
-        return Ok(());
+    if let Some(month) = month.filter(|month| (1..=12).contains(month)) {
+        return Ok(month);
     }
     Err(ScanError::new(
         "catalog_time_anchor_invalid",

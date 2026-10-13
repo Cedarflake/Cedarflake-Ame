@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <Fragment>
+    <SetProperty Id="AmeStartMenuChoice" Value="1" Before="SetAmeDesktopChoice" Sequence="ui"
+                 Condition="&amp;AmeStartMenuFeature = 3" />
+    <SetProperty Id="AmeDesktopChoice" Value="1" Before="AmeInstallOptionsDlg" Sequence="ui"
+                 Condition="&amp;AmeDesktopFeature = 3" />
+    <UI>
+      <Dialog Id="AmeInstallOptionsDlg" Width="370" Height="270" Title="安装 Ame">
+        <Control Id="InstallPath" Type="PathEdit" X="20" Y="105" Width="266" Height="18"
+                 Property="AMEAPPDIR" />
+        <Control Id="Browse" Type="PushButton" X="294" Y="105" Width="56" Height="18"
+                 Text="浏览(&amp;B)...">
+          <Publish Property="_BrowseProperty" Value="AMEAPPDIR" Order="1" />
+          <Publish Event="SpawnDialog" Value="BrowseDlg" Order="2" />
+        </Control>
+        <Control Id="StartMenu" Type="CheckBox" X="20" Y="152" Width="330" Height="20"
+                 Property="AmeStartMenuChoice" CheckBoxValue="1" Text="添加到开始菜单(&amp;S)" />
+        <Control Id="Desktop" Type="CheckBox" X="20" Y="180" Width="330" Height="20"
+                 Property="AmeDesktopChoice" CheckBoxValue="1" Text="创建桌面快捷方式(&amp;D)" />
+        <Control Id="Next" Type="PushButton" X="218" Y="243" Width="74" Height="17"
+                 Default="yes" Text="下一步(&amp;N) &gt;">
+          <Publish Event="CheckTargetPath" Value="AMEAPPDIR" Order="1" />
+          <Publish Event="SetTargetPath" Value="AMEAPPDIR" Order="2" />
+          <Publish Event="AddLocal" Value="AmeStartMenuFeature" Order="3"
+                   Condition="AmeStartMenuChoice = &quot;1&quot;" />
+          <Publish Event="Remove" Value="AmeStartMenuFeature" Order="4"
+                   Condition="AmeStartMenuChoice &lt;&gt; &quot;1&quot;" />
+          <Publish Event="AddLocal" Value="AmeDesktopFeature" Order="5"
+                   Condition="AmeDesktopChoice = &quot;1&quot;" />
+          <Publish Event="Remove" Value="AmeDesktopFeature" Order="6"
+                   Condition="AmeDesktopChoice &lt;&gt; &quot;1&quot;" />
+          <Publish Event="NewDialog" Value="VerifyReadyDlg" Order="7" />
+        </Control>
+        <Control Id="Cancel" Type="PushButton" X="304" Y="243" Width="56" Height="17"
+                 Cancel="yes" Text="取消(&amp;C)">
+          <Publish Event="SpawnDialog" Value="CancelDlg" />
+        </Control>
+        <Control Id="Title" Type="Text" X="20" Y="18" Width="330" Height="25"
+                 NoPrefix="yes" Text="{\WixUI_Font_Bigger}安装 Ame" />
+        <Control Id="Description" Type="Text" X="20" Y="50" Width="330" Height="20"
+                 NoPrefix="yes" Text="选择安装位置和快捷方式。" />
+        <Control Id="PathLabel" Type="Text" X="20" Y="83" Width="330" Height="17"
+                 NoPrefix="yes" Text="安装位置" />
+        <Control Id="BottomLine" Type="Line" X="0" Y="234" Width="370" Height="0" />
+      </Dialog>
+      <InstallUISequence>
+        <Show Dialog="AmeInstallOptionsDlg" Before="ProgressDlg" Condition="NOT Installed" />
+      </InstallUISequence>
+    </UI>
+  </Fragment>
+</Wix>

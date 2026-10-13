@@ -105,6 +105,17 @@ void main() {
     expect(find.text("sample.png"), findsOneWidget);
     expect(find.text("C:\\Pictures\\sample.png"), findsNothing);
     expect(
+      find.ancestor(
+        of: find.byKey(const Key("viewer-source-path")),
+        matching: find.byWidgetPredicate(
+          (widget) =>
+              widget is Semantics &&
+              widget.properties.tooltip == "C:\\Pictures\\sample.png",
+        ),
+      ),
+      findsOneWidget,
+    );
+    expect(
       tester.getSize(find.byKey(const Key("viewer-source-path"))).width,
       lessThan(200),
     );
@@ -116,20 +127,12 @@ void main() {
       tester.getRect(find.byKey(const Key("window-close"))).right,
       closeTo(992, 0.01),
     );
-    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-    await mouse.addPointer();
-    await mouse.moveTo(
-      tester.getCenter(find.byKey(const Key("viewer-source-path"))),
-    );
-    await tester.pump(const Duration(milliseconds: 600));
-    expect(find.text("C:\\Pictures\\sample.png"), findsOneWidget);
-
     await tester.tap(find.byKey(const Key("viewer-more-menu")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 250));
     final copyPathItem = find.ancestor(
       of: find.text("复制路径"),
-      matching: find.byType(MenuItemButton),
+      matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
     );
     final copyPathItemRect = tester.getRect(copyPathItem);
     expect(find.byType(AmeMenuItemContent), findsNWidgets(2));
@@ -370,7 +373,7 @@ void main() {
     expect(translation.x, closeTo(0, 0.01));
     expect(translation.y, closeTo(0, 0.01));
 
-    final zoomIn = find.byTooltip("放大（+ / Ctrl++）");
+    final zoomIn = find.byKey(const Key("viewer-zoom-in"));
     for (var index = 0; index < 4; index++) {
       await tester.tap(zoomIn);
       await tester.pump();
@@ -424,8 +427,8 @@ void main() {
     final controls = tester.getRect(
       find.byKey(const Key("viewer-zoom-controls")),
     );
-    final zoomOut = tester.getRect(find.byTooltip("缩小（- / Ctrl+-）"));
-    final zoomIn = tester.getRect(find.byTooltip("放大（+ / Ctrl++）"));
+    final zoomOut = tester.getRect(find.byKey(const Key("viewer-zoom-out")));
+    final zoomIn = tester.getRect(find.byKey(const Key("viewer-zoom-in")));
     final fit = tester.getRect(find.byKey(const Key("viewer-fit")));
     final actualSize = tester.getRect(
       find.byKey(const Key("viewer-actual-size")),
@@ -469,7 +472,7 @@ void main() {
     final startScale = interactiveViewer.transformationController!.value
         .getMaxScaleOnAxis();
 
-    await tester.tap(find.byTooltip("放大（+ / Ctrl++）"));
+    await tester.tap(find.byKey(const Key("viewer-zoom-in")));
     await tester.pump();
     final initialScale = interactiveViewer.transformationController!.value
         .getMaxScaleOnAxis();
@@ -602,6 +605,9 @@ LibraryAsset _asset({
     assetId: "asset-1",
     locationId: locationId,
     rootId: "root-1",
+    activeScanId: "scan-1",
+    sourceRevision: null,
+    sourceGeneration: BigInt.one,
     sourcePath: sourcePath,
     displayPath: displayPath ?? sourcePath,
     relativePath: relativePath,

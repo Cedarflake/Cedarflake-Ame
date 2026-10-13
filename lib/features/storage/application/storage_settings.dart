@@ -22,6 +22,14 @@ abstract interface class StorageSettingsGateway {
   });
 
   Future<bool> cancelPreviewCleanup({required String operationId});
+
+  Future<CatalogReclamationModel> startCatalogReclamation({
+    required String operationId,
+  });
+
+  Future<CatalogReclamationModel> loadCatalogReclamation();
+
+  Future<bool> cancelCatalogReclamation({required String operationId});
 }
 
 class RustStorageSettingsGateway implements StorageSettingsGateway {
@@ -30,7 +38,7 @@ class RustStorageSettingsGateway implements StorageSettingsGateway {
   @override
   Future<StorageStatusModel> load() async {
     try {
-      return _mapStatus(rust_api.loadStorageStatus());
+      return _mapStatus(await rust_api.loadStorageStatus());
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_storage_status_failed");
     }
@@ -44,7 +52,7 @@ class RustStorageSettingsGateway implements StorageSettingsGateway {
   }) async {
     try {
       return _mapStatus(
-        rust_api.updateStorageSettings(
+        await rust_api.updateStorageSettings(
           update: rust_domain.StorageSettingsUpdate(
             catalogDirectory: catalogDirectory,
             previewCacheDirectory: previewCacheDirectory,
@@ -111,6 +119,43 @@ class RustStorageSettingsGateway implements StorageSettingsGateway {
     }
   }
 
+  @override
+  Future<CatalogReclamationModel> startCatalogReclamation({
+    required String operationId,
+  }) async {
+    try {
+      return _mapCatalogReclamation(
+        await rust_api.startCatalogDatabaseReclamation(
+          operationId: operationId,
+        ),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_catalog_reclamation_failed");
+    }
+  }
+
+  @override
+  Future<CatalogReclamationModel> loadCatalogReclamation() async {
+    try {
+      return _mapCatalogReclamation(
+        await rust_api.loadCatalogDatabaseReclamation(),
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_catalog_reclamation_status_failed");
+    }
+  }
+
+  @override
+  Future<bool> cancelCatalogReclamation({required String operationId}) async {
+    try {
+      return await rust_api.cancelCatalogDatabaseReclamation(
+        operationId: operationId,
+      );
+    } on Object catch (error) {
+      throw _mapFailure(error, "bridge_catalog_reclamation_cancel_failed");
+    }
+  }
+
   StorageStatusModel _mapStatus(rust_domain.StorageStatus status) {
     return StorageStatusModel(
       settingsPath: status.settingsPath,
@@ -123,6 +168,9 @@ class RustStorageSettingsGateway implements StorageSettingsGateway {
       previewBudgetBytes: status.previewBudgetBytes,
       previewUsedBytes: status.previewUsedBytes,
       catalogUsedBytes: status.catalogUsedBytes,
+      catalogLiveBytes: status.catalogLiveBytes,
+      catalogReclaimableBytes: status.catalogReclaimableBytes,
+      catalogReclamation: _mapCatalogReclamation(status.catalogReclamation),
       requiresRestart: status.requiresRestart,
       retiredPreviewRoots: [
         for (final root in status.retiredPreviewRoots)
@@ -131,6 +179,44 @@ class RustStorageSettingsGateway implements StorageSettingsGateway {
             displayPath: root.displayPath,
           ),
       ],
+    );
+  }
+
+  CatalogReclamationModel _mapCatalogReclamation(
+    rust_domain.CatalogReclamationSnapshot snapshot,
+  ) {
+    return CatalogReclamationModel(
+      operationId: snapshot.operationId,
+      phase: switch (snapshot.phase) {
+        rust_domain.CatalogReclamationPhase.idle =>
+          CatalogReclamationPhase.idle,
+        rust_domain.CatalogReclamationPhase.queued =>
+          CatalogReclamationPhase.queued,
+        rust_domain.CatalogReclamationPhase.inspecting =>
+          CatalogReclamationPhase.inspecting,
+        rust_domain.CatalogReclamationPhase.waitingForIdle =>
+          CatalogReclamationPhase.waitingForIdle,
+        rust_domain.CatalogReclamationPhase.checkingCapacity =>
+          CatalogReclamationPhase.checkingCapacity,
+        rust_domain.CatalogReclamationPhase.converting =>
+          CatalogReclamationPhase.converting,
+        rust_domain.CatalogReclamationPhase.reclaiming =>
+          CatalogReclamationPhase.reclaiming,
+        rust_domain.CatalogReclamationPhase.completed =>
+          CatalogReclamationPhase.completed,
+        rust_domain.CatalogReclamationPhase.cancelled =>
+          CatalogReclamationPhase.cancelled,
+        rust_domain.CatalogReclamationPhase.failed =>
+          CatalogReclamationPhase.failed,
+      },
+      catalogFileBytes: snapshot.catalogFileBytes,
+      liveBytes: snapshot.liveBytes,
+      reclaimableBytes: snapshot.reclaimableBytes,
+      reclaimedBytes: snapshot.reclaimedBytes,
+      requiredTemporaryBytes: snapshot.requiredTemporaryBytes,
+      availableTemporaryBytes: snapshot.availableTemporaryBytes,
+      errorCode: snapshot.errorCode,
+      errorMessage: snapshot.errorMessage,
     );
   }
 

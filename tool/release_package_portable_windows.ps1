@@ -5,11 +5,14 @@ param(
     [string]$ReleaseRoot,
     [string]$OutputDirectory,
     [string]$PubspecPath,
-    [string]$CargoManifestPath
+    [string]$CargoManifestPath,
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedBrokerPublisher
 )
 
 $ErrorActionPreference = "Stop"
 . (Join-Path $PSScriptRoot "quality_common.ps1")
+. (Join-Path $PSScriptRoot "release_journal_broker_common.ps1")
 
 $repositoryRoot = Get-AmeRepositoryRoot
 if ([string]::IsNullOrWhiteSpace($ReleaseRoot)) {
@@ -45,6 +48,7 @@ if (
 
 $requiredSourcePaths = @(
     "cedarflake_ame.exe",
+    "cedarflake_ame_journal_broker.exe",
     "rust_lib_cedarflake_ame.dll",
     "flutter_windows.dll",
     "data\app.so",
@@ -57,6 +61,14 @@ foreach ($requiredSourcePath in $requiredSourcePaths) {
         throw "Windows Release directory is incomplete: $requiredSourcePath"
     }
 }
+$brokerSourcePath = Join-Path $resolvedReleaseRoot (Get-AmeBrokerServicePlan).BinaryName
+$applicationSourcePath = Join-Path $resolvedReleaseRoot $script:AmeApplicationBinaryName
+Assert-AmeSignedX64Binary `
+    -Path $applicationSourcePath `
+    -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
+Assert-AmeBrokerBinary `
+    -Path $brokerSourcePath `
+    -ExpectedPublisher $ExpectedBrokerPublisher | Out-Null
 
 $buildRoot = [System.IO.Path]::GetFullPath((Join-Path $repositoryRoot "build"))
 $scratchRoot = [System.IO.Path]::GetFullPath(
@@ -98,9 +110,10 @@ try {
         $false
     )
 
-    & (Join-Path $PSScriptRoot "release_verify_portable_archive.ps1") `
+    & (Join-Path $PSScriptRoot "release_verify_portable_signatures.ps1") `
         -ArchivePath $archivePath `
         -Tag $Tag `
+        -ExpectedBrokerPublisher $ExpectedBrokerPublisher `
         -PubspecPath $PubspecPath `
         -CargoManifestPath $CargoManifestPath
 } finally {

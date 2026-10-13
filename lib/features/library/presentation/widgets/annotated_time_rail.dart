@@ -28,7 +28,7 @@ class AnnotatedTimeRail extends StatefulWidget {
   final List<TimelineRailBucket> buckets;
   final double? maximumScrollOffset;
   final TimelineLinearProjection? projection;
-  final ValueChanged<double> onChanged;
+  final ValueChanged<double>? onChanged;
   final ValueChanged<double>? onChangeStart;
   final ValueChanged<double>? onChangeEnd;
   final ValueChanged<int>? onStep;
@@ -52,6 +52,15 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
 
   double? _hoverValue;
   bool _isDragging = false;
+
+  @override
+  void didUpdateWidget(covariant AnnotatedTimeRail oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.onChanged == null) {
+      _hoverValue = null;
+      _isDragging = false;
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -140,12 +149,16 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                   return Listener(
                     key: const Key("timeline-hover-region"),
                     behavior: HitTestBehavior.translucent,
-                    onPointerHover: (event) => _updateHover(
-                      event.localPosition,
-                      constraints.maxHeight,
-                    ),
+                    onPointerHover: widget.onChanged == null
+                        ? null
+                        : (event) => _updateHover(
+                            event.localPosition,
+                            constraints.maxHeight,
+                          ),
                     child: MouseRegion(
-                      cursor: SystemMouseCursors.click,
+                      cursor: widget.onChanged == null
+                          ? MouseCursor.defer
+                          : SystemMouseCursors.click,
                       onExit: (_) => setState(() => _hoverValue = null),
                       child: Stack(
                         clipBehavior: Clip.none,
@@ -158,15 +171,21 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                             child: VerticalMaterialTimelineSlider(
                               value: visualProjection.toVisual(widget.value),
                               endpointInset: _endpointInset,
-                              onChangeStart: (visualValue) => _startInteraction(
-                                visualProjection.toLogical(visualValue),
-                              ),
-                              onChanged: (visualValue) => widget.onChanged(
-                                visualProjection.toLogical(visualValue),
-                              ),
-                              onChangeEnd: (visualValue) => _commit(
-                                visualProjection.toLogical(visualValue),
-                              ),
+                              onChangeStart: widget.onChanged == null
+                                  ? null
+                                  : (visualValue) => _startInteraction(
+                                      visualProjection.toLogical(visualValue),
+                                    ),
+                              onChanged: widget.onChanged == null
+                                  ? null
+                                  : (visualValue) => widget.onChanged?.call(
+                                      visualProjection.toLogical(visualValue),
+                                    ),
+                              onChangeEnd: widget.onChanged == null
+                                  ? null
+                                  : (visualValue) => _commit(
+                                      visualProjection.toLogical(visualValue),
+                                    ),
                               semanticLabelFor: (sliderValue) =>
                                   timelineRailBucketAtValue(
                                     anchors,
@@ -255,7 +274,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
           message: tooltip,
           child: IconButton(
             key: key,
-            onPressed: () => _step(direction),
+            onPressed: widget.onChanged == null ? null : () => _step(direction),
             icon: Icon(icon),
           ),
         ),
@@ -434,7 +453,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
       onStep(direction);
       return;
     }
-    widget.onChanged(
+    widget.onChanged?.call(
       (widget.value + (direction * 0.05)).clamp(0.0, 1.0).toDouble(),
     );
   }

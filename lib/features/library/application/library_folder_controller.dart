@@ -1,87 +1,27 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../domain/library_folder_models.dart";
+import "../domain/library_models.dart";
 import "library_catalog.dart";
+import "library_controller.dart";
+import "library_folder_tree.dart";
 
-class LibraryFolderBranchKey {
-  const LibraryFolderBranchKey({
-    required this.rootId,
-    required this.parentRelativePath,
-  });
+export "library_folder_tree.dart";
 
-  final String rootId;
-  final String parentRelativePath;
-
-  @override
-  int get hashCode => Object.hash(rootId, parentRelativePath);
-
-  @override
-  bool operator ==(Object other) {
-    return identical(this, other) ||
-        other is LibraryFolderBranchKey &&
-            rootId == other.rootId &&
-            parentRelativePath == other.parentRelativePath;
-  }
-}
-
-class LibraryFolderBranch {
-  const LibraryFolderBranch({
-    this.folders = const [],
-    this.nextCursor,
-    this.isLoading = false,
-    this.hasLoaded = false,
-    this.errorMessage,
-  });
-
-  static const Object _unchanged = Object();
-
-  final List<LibraryFolder> folders;
-  final LibraryFolderCursor? nextCursor;
-  final bool isLoading;
-  final bool hasLoaded;
-  final String? errorMessage;
-
-  bool get hasMore => nextCursor != null;
-
-  LibraryFolderBranch copyWith({
-    List<LibraryFolder>? folders,
-    Object? nextCursor = _unchanged,
-    bool? isLoading,
-    bool? hasLoaded,
-    Object? errorMessage = _unchanged,
-  }) {
-    return LibraryFolderBranch(
-      folders: folders ?? this.folders,
-      nextCursor: nextCursor == _unchanged
-          ? this.nextCursor
-          : nextCursor as LibraryFolderCursor?,
-      isLoading: isLoading ?? this.isLoading,
-      hasLoaded: hasLoaded ?? this.hasLoaded,
-      errorMessage: errorMessage == _unchanged
-          ? this.errorMessage
-          : errorMessage as String?,
-    );
-  }
-}
-
-class LibraryFolderTreeState {
-  const LibraryFolderTreeState({this.revision, this.branches = const {}});
-
-  final BigInt? revision;
-  final Map<LibraryFolderBranchKey, LibraryFolderBranch> branches;
-
-  LibraryFolderBranch branch(String rootId, String parentRelativePath) {
-    return branches[LibraryFolderBranchKey(
-          rootId: rootId,
-          parentRelativePath: parentRelativePath,
-        )] ??
-        const LibraryFolderBranch();
-  }
-}
+final libraryFolderConfiguredRootsProvider = Provider<List<LibraryRoot>>((ref) {
+  return ref.watch(
+    libraryControllerProvider.select((library) => library.roots),
+  );
+});
 
 class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
   @override
-  LibraryFolderTreeState build() => const LibraryFolderTreeState();
+  LibraryFolderTreeState build() {
+    ref.listen(libraryFolderConfiguredRootsProvider, (_, roots) {
+      state = state.retainRoots(roots.map((root) => root.id).toSet());
+    });
+    return const LibraryFolderTreeState();
+  }
 
   Future<void> loadBranch({
     required BigInt catalogRevision,
@@ -90,20 +30,42 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
     bool loadMore = false,
     bool force = false,
   }) async {
-    _synchronizeRevision(catalogRevision);
+    final roots = ref.read(libraryFolderConfiguredRootsProvider);
+    if (!roots.any((root) => root.id == rootId)) {
+      return;
+    }
+    final invalidationRevision = state.revision;
+    if (invalidationRevision != null &&
+        catalogRevision < invalidationRevision) {
+      return;
+    }
+    state = state.invalidate(catalogRevision);
     final key = LibraryFolderBranchKey(
       rootId: rootId,
       parentRelativePath: parentRelativePath,
     );
     final current = state.branches[key] ?? const LibraryFolderBranch();
-    if (current.isLoading || (!force && !loadMore && current.hasLoaded)) {
+    final hasCurrentWindow =
+        current.hasLoaded &&
+        current.revision != null &&
+        current.revision! >= catalogRevision;
+    if (current.isLoading ||
+        (!force &&
+            !loadMore &&
+            hasCurrentWindow &&
+            current.errorMessage == null)) {
       return;
     }
-    if (loadMore && current.nextCursor == null) {
+    if (loadMore &&
+        hasCurrentWindow &&
+        current.nextCursor == null &&
+        current.errorMessage == null) {
       return;
     }
+    final after = loadMore && hasCurrentWindow ? current.nextCursor : null;
 
-    _replaceBranch(key, current.copyWith(isLoading: true, errorMessage: null));
+    final pending = current.copyWith(isLoading: true, errorMessage: null);
+    state = state.replaceBranch(key, pending);
     try {
       final page = await ref
           .read(libraryFolderCatalogProvider)
@@ -111,12 +73,13 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
             rootId: rootId,
             parentRelativePath: parentRelativePath,
             maxItems: libraryFolderWindow,
-            after: loadMore ? current.nextCursor : null,
+            after: after,
           );
-      if (state.revision != catalogRevision) {
+      if (!_ownsLoading(key, pending, catalogRevision)) {
         return;
       }
-      if (page.revision != catalogRevision) {
+      if (page.revision < catalogRevision ||
+          (current.revision != null && page.revision < current.revision!)) {
         throw const LibraryCatalogFailure(
           code: "catalog_folder_revision_changed",
           message: "图库已更新，请重新展开文件夹",
@@ -129,22 +92,31 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
           message: "目录范围已变化，请重新展开文件夹",
         );
       }
-      final folders = loadMore
-          ? _mergeFolders(current.folders, page.folders)
-          : page.folders;
-      _replaceBranch(
-        key,
-        LibraryFolderBranch(
-          folders: folders,
-          nextCursor: page.nextCursor,
-          hasLoaded: true,
-        ),
-      );
+      final shouldAppend =
+          page.disposition == LibraryFolderPageDisposition.append;
+      if (shouldAppend &&
+          (after == null || page.revision != current.revision)) {
+        throw const LibraryCatalogFailure(
+          code: "catalog_folder_page_inconsistent",
+          message: "目录分页版本不一致，请重新展开文件夹",
+        );
+      }
+      final cursor = page.nextCursor;
+      if (cursor != null &&
+          (cursor.revision != page.revision ||
+              cursor.rootId != rootId ||
+              cursor.parentRelativePath != parentRelativePath)) {
+        throw const LibraryCatalogFailure(
+          code: "catalog_folder_cursor_inconsistent",
+          message: "目录分页范围不一致，请重新展开文件夹",
+        );
+      }
+      state = state.publishPage(key, page);
     } on Object catch (error) {
-      if (state.revision != catalogRevision) {
+      if (!_ownsLoading(key, pending, catalogRevision)) {
         return;
       }
-      _replaceBranch(
+      state = state.replaceBranch(
         key,
         current.copyWith(
           isLoading: false,
@@ -155,30 +127,14 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
     }
   }
 
-  void _synchronizeRevision(BigInt revision) {
-    if (state.revision == revision) {
-      return;
-    }
-    state = LibraryFolderTreeState(revision: revision);
-  }
-
-  void _replaceBranch(LibraryFolderBranchKey key, LibraryFolderBranch branch) {
-    state = LibraryFolderTreeState(
-      revision: state.revision,
-      branches: Map.unmodifiable({...state.branches, key: branch}),
-    );
-  }
-
-  static List<LibraryFolder> _mergeFolders(
-    List<LibraryFolder> existing,
-    List<LibraryFolder> next,
-  ) {
-    final byPath = {for (final folder in existing) folder.relativePath: folder};
-    for (final folder in next) {
-      byPath[folder.relativePath] = folder;
-    }
-    return List.unmodifiable(byPath.values);
-  }
+  bool _ownsLoading(
+    LibraryFolderBranchKey key,
+    LibraryFolderBranch pending,
+    BigInt revision,
+  ) =>
+      ref.mounted &&
+      state.revision == revision &&
+      identical(state.branches[key], pending);
 }
 
 final libraryFolderControllerProvider =

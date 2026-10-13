@@ -17,11 +17,14 @@ if ([string]::IsNullOrWhiteSpace($CargoManifestPath)) {
     $CargoManifestPath = Join-Path $repositoryRoot "rust\Cargo.toml"
 }
 
+$preReleaseIdentifier = (
+    "(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+)
 $semanticVersionPattern = (
     "(?:0|[1-9][0-9]*)\." +
     "(?:0|[1-9][0-9]*)\." +
     "(?:0|[1-9][0-9]*)" +
-    "(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?"
+    "(?:-$preReleaseIdentifier(?:\.$preReleaseIdentifier)*)?"
 )
 $tagMatch = [regex]::Match($Tag, "^v(?<version>$semanticVersionPattern)$")
 if (-not $tagMatch.Success) {

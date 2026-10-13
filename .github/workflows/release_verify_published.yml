@@ -4,10 +4,24 @@ on:
   release:
     types:
       - published
+  workflow_call:
+    inputs:
+      release_tag:
+        description: Published v-prefixed tag to verify
+        required: true
+        type: string
+      expected_broker_publisher:
+        description: Exact Authenticode publisher for the published Windows binaries
+        required: true
+        type: string
   workflow_dispatch:
     inputs:
       release_tag:
         description: Published v-prefixed tag to verify
+        required: true
+        type: string
+      expected_broker_publisher:
+        description: Exact Authenticode publisher for the published Windows binaries
         required: true
         type: string
 
@@ -15,7 +29,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: release-published-${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+  group: release-published-${{ inputs.release_tag || github.event.release.tag_name }}
   cancel-in-progress: false
 
 jobs:
@@ -26,18 +40,57 @@ jobs:
     permissions:
       contents: read
     env:
-      AME_RELEASE_TAG: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+      AME_EXPECTED_PUBLISHER: ${{ inputs.expected_broker_publisher || vars.AME_WINDOWS_EXPECTED_PUBLISHER }}
+      AME_RELEASE_TAG: ${{ inputs.release_tag || github.event.release.tag_name }}
     steps:
+      - name: Validate published-verification request
+        shell: pwsh
+        run: |
+          $preReleaseIdentifier = (
+            '(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)'
+          )
+          $tagPattern = (
+            '^v(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.' +
+            '(?:0|[1-9][0-9]*)(?:-' +
+            $preReleaseIdentifier +
+            '(?:\.' + $preReleaseIdentifier + ')*)?$'
+          )
+          if ($env:AME_RELEASE_TAG -cnotmatch $tagPattern) {
+            throw "Published verification requires one strict v-prefixed semantic-version tag"
+          }
+          if ([string]::IsNullOrWhiteSpace($env:AME_EXPECTED_PUBLISHER)) {
+            throw "Published verification requires the exact Authenticode publisher"
+          }
+
       - name: Check out published tag
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
           persist-credentials: false
-          ref: ${{ github.event.release.tag_name || github.event.inputs.release_tag }}
+          ref: refs/tags/${{ inputs.release_tag || github.event.release.tag_name }}
+
+      - name: Prove published tag identity
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $tagRef = "refs/tags/$env:AME_RELEASE_TAG"
+          $tagObject = (git show-ref --verify --hash $tagRef).Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagObject)) {
+            throw "The exact published tag ref does not exist: $tagRef"
+          }
+          $tagCommit = (git rev-parse --verify "$tagRef^{commit}").Trim()
+          if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($tagCommit)) {
+            throw "The exact published tag does not resolve to a commit: $tagRef"
+          }
+          $headCommit = (git rev-parse --verify HEAD).Trim()
+          if ($LASTEXITCODE -ne 0 -or $headCommit -cne $tagCommit) {
+            throw "Release tag commit does not match checked-out HEAD"
+          }
 
       - name: Validate release version
         shell: pwsh
-        run: ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
+        run: |
+          ./tool/release_validate_version.ps1 -Tag $env:AME_RELEASE_TAG
 
       - name: Download published portable ZIP
         shell: pwsh
@@ -62,6 +115,7 @@ jobs:
       - name: Verify published portable ZIP
         shell: pwsh
         run: |
-          ./tool/release_verify_portable_archive.ps1 `
+          ./tool/release_verify_portable_signatures.ps1 `
             -ArchivePath $env:AME_PORTABLE_ARCHIVE `
-            -Tag $env:AME_RELEASE_TAG
+            -Tag $env:AME_RELEASE_TAG `
+            -ExpectedBrokerPublisher $env:AME_EXPECTED_PUBLISHER

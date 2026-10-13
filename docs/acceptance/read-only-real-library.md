@@ -8,6 +8,10 @@ and instructed the project to continue. Their exact paths remain in the ignored 
 authorization covered the ordered acceptance runs below. It does not authorize source mutation,
 placeholder hydration, or an unrelated future run after this acceptance sequence.
 
+Current executions follow the standing read-only verification policy in `AGENTS.md` section 12.1:
+known roots, explicit bounded scope and isolated derived storage, without separate per-run approval.
+The historical authorization above describes the original acceptance sequence only.
+
 The acceptance harness calls the production Rust discovery, metadata, reconciliation, checkpoint,
 and SQLite publication path without generating previews or modifying source media. It has no item or
 entry limit, so a complete run may take hours.
@@ -39,7 +43,8 @@ The exact token is:
 CEDARFLAKE_AME_READ_ONLY_ACCEPTANCE_V1
 ```
 
-It is a guard against accidental execution, not a substitute for current user authorization.
+It guards against accidental execution and binds deliberate use of the prepared scope. Supplying it
+under the standing read-only policy does not require an additional confirmation.
 
 ## Controlled harness
 
@@ -65,7 +70,7 @@ the assertions complete.
 
 ## One-root command shape
 
-The exact source must be within the current authorization before replacing the placeholders below:
+Bind the exact known source and isolated storage in the prepared scope before replacing these placeholders:
 
 ```powershell
 .\tool\acceptance_run_read_only_library.ps1 `

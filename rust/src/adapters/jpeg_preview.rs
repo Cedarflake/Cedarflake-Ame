@@ -1,61 +1,125 @@
 use std::fs::File;
 use std::io::BufReader;
-use std::path::Path;
 
 use exif::{In, Reader, Tag};
 use image::metadata::Orientation;
 use image::{DynamicImage, GrayImage, RgbImage};
-use jpeg_decoder::{Decoder, PixelFormat};
+use jpeg_decoder::{Decoder, Error, ImageInfo, PixelFormat};
 
 use crate::domain::ImageOrientation;
 
 use super::image_orientation::{apply_image_orientation, from_image_orientation};
 
+#[cfg(test)]
+mod decode_tests;
+
+#[derive(Debug)]
 pub(crate) struct DecodedJpegPreview {
     pub(crate) image: DynamicImage,
     pub(crate) source_width: u32,
     pub(crate) source_height: u32,
 }
 
+#[derive(Debug)]
+pub(crate) enum JpegPreviewDecode {
+    Decoded(DecodedJpegPreview),
+    UnsupportedPixelFormat,
+}
+
+#[derive(Debug)]
+pub(crate) enum JpegPreviewError {
+    Decoder(Error),
+    ResourceLimit,
+    InvalidOutput,
+}
+
+impl From<Error> for JpegPreviewError {
+    fn from(error: Error) -> Self {
+        Self::Decoder(error)
+    }
+}
+
+impl std::fmt::Display for JpegPreviewError {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Decoder(error) => std::fmt::Display::fmt(error, formatter),
+            Self::ResourceLimit => {
+                formatter.write_str("The JPEG decode exceeds its resource limit")
+            }
+            Self::InvalidOutput => {
+                formatter.write_str("The JPEG decoder returned inconsistent output")
+            }
+        }
+    }
+}
+
 pub(crate) fn decode_scaled_jpeg(
-    path: &Path,
+    file: File,
     requested_edge: u32,
     max_decoding_buffer_size: u64,
-) -> Option<DecodedJpegPreview> {
-    let file = File::open(path).ok()?;
+) -> Result<JpegPreviewDecode, JpegPreviewError> {
     let mut decoder = Decoder::new(BufReader::new(file));
-    decoder.set_max_decoding_buffer_size(max_decoding_buffer_size.try_into().ok()?);
-    decoder.read_info().ok()?;
-    let original = decoder.info()?;
+    decoder.set_max_decoding_buffer_size(
+        max_decoding_buffer_size
+            .try_into()
+            .map_err(|_| JpegPreviewError::ResourceLimit)?,
+    );
+    decoder.read_info()?;
+    let original = decoder.info().ok_or(JpegPreviewError::InvalidOutput)?;
     if !matches!(original.pixel_format, PixelFormat::L8 | PixelFormat::RGB24) {
-        return None;
+        // Validate the source before asking the general decoder for a different pixel format.
+        // Its permissive EOF recovery must not turn corrupt CMYK data into a ready preview.
+        validate_output_budget(original, max_decoding_buffer_size)?;
+        drop(decoder.decode()?);
+        return Ok(JpegPreviewDecode::UnsupportedPixelFormat);
     }
-    let requested_edge = u16::try_from(requested_edge).ok()?;
-    decoder.scale(requested_edge, requested_edge).ok()?;
-    let pixels = decoder.decode().ok()?;
-    let decoded = decoder.info()?;
+    let requested_edge =
+        u16::try_from(requested_edge).map_err(|_| JpegPreviewError::ResourceLimit)?;
+    decoder.scale(requested_edge, requested_edge)?;
+    validate_output_budget(
+        decoder.info().ok_or(JpegPreviewError::InvalidOutput)?,
+        max_decoding_buffer_size,
+    )?;
+    let pixels = decoder.decode()?;
+    let decoded = decoder.info().ok_or(JpegPreviewError::InvalidOutput)?;
     let mut image = match decoded.pixel_format {
-        PixelFormat::L8 => DynamicImage::ImageLuma8(GrayImage::from_raw(
-            u32::from(decoded.width),
-            u32::from(decoded.height),
-            pixels,
-        )?),
-        PixelFormat::RGB24 => DynamicImage::ImageRgb8(RgbImage::from_raw(
-            u32::from(decoded.width),
-            u32::from(decoded.height),
-            pixels,
-        )?),
-        PixelFormat::L16 | PixelFormat::CMYK32 => return None,
+        PixelFormat::L8 => DynamicImage::ImageLuma8(
+            GrayImage::from_raw(u32::from(decoded.width), u32::from(decoded.height), pixels)
+                .ok_or(JpegPreviewError::InvalidOutput)?,
+        ),
+        PixelFormat::RGB24 => DynamicImage::ImageRgb8(
+            RgbImage::from_raw(u32::from(decoded.width), u32::from(decoded.height), pixels)
+                .ok_or(JpegPreviewError::InvalidOutput)?,
+        ),
+        PixelFormat::L16 | PixelFormat::CMYK32 => {
+            return Ok(JpegPreviewDecode::UnsupportedPixelFormat);
+        }
     };
     let orientation = exif_orientation(decoder.exif_data());
     apply_image_orientation(&mut image, orientation);
     let (source_width, source_height) =
         orientation.display_dimensions(u32::from(original.width), u32::from(original.height));
-    Some(DecodedJpegPreview {
+    Ok(JpegPreviewDecode::Decoded(DecodedJpegPreview {
         image,
         source_width,
         source_height,
-    })
+    }))
+}
+
+fn validate_output_budget(info: ImageInfo, budget: u64) -> Result<(), JpegPreviewError> {
+    let bytes_per_pixel = match info.pixel_format {
+        PixelFormat::L8 => 1,
+        PixelFormat::L16 => 2,
+        PixelFormat::RGB24 => 3,
+        PixelFormat::CMYK32 => 4,
+    };
+    // jpeg-decoder reports its allocation limit as Format. Establish the bounded raster
+    // first, so that a resource refusal cannot be mistaken for corrupt source content.
+    let bytes = u64::from(info.width) * u64::from(info.height) * bytes_per_pixel;
+    if bytes > budget {
+        return Err(JpegPreviewError::ResourceLimit);
+    }
+    Ok(())
 }
 
 fn exif_orientation(raw_exif: Option<&[u8]>) -> ImageOrientation {
@@ -78,10 +142,13 @@ fn exif_orientation(raw_exif: Option<&[u8]>) -> ImageOrientation {
 
 #[cfg(test)]
 mod tests {
+    use std::fs::File;
+
     use image::codecs::jpeg::JpegEncoder;
     use image::{ExtendedColorType, ImageEncoder, Rgb, RgbImage};
     use tempfile::tempdir;
 
+    use super::super::local_files::canonical_source_root_path;
     use super::*;
 
     #[test]
@@ -97,9 +164,17 @@ mod tests {
         });
         source.save(&source_path).expect("large jpeg fixture");
         drop(source);
+        let source_root = canonical_source_root_path(directory.path()).expect("canonical root");
 
-        let decoded =
-            decode_scaled_jpeg(&source_path, 256, 256 * 1024 * 1024).expect("scaled jpeg decode");
+        let JpegPreviewDecode::Decoded(decoded) = decode_scaled_jpeg(
+            super::super::local_files::open_source_file(&source_path, &source_root)
+                .expect("open source"),
+            256,
+            256 * 1024 * 1024,
+        )
+        .expect("scaled jpeg decode") else {
+            panic!("RGB fixture must use scaled decoding")
+        };
         let scaled_thumbnail = decoded.image.thumbnail(256, 256).to_rgb8();
         let full_thumbnail = image::open(&source_path)
             .expect("full jpeg decode")
@@ -144,6 +219,7 @@ mod tests {
             )
             .expect("benchmark jpeg encoding");
         drop(source);
+        let source_root = canonical_source_root_path(directory.path()).expect("canonical root");
 
         let full_started = std::time::Instant::now();
         let full = image::open(&source_path)
@@ -152,10 +228,16 @@ mod tests {
         let full_elapsed = full_started.elapsed();
 
         let scaled_started = std::time::Instant::now();
-        let scaled = decode_scaled_jpeg(&source_path, 512, 256 * 1024 * 1024)
-            .expect("scaled jpeg decode")
-            .image
-            .thumbnail(512, 512);
+        let JpegPreviewDecode::Decoded(decoded) = decode_scaled_jpeg(
+            super::super::local_files::open_source_file(&source_path, &source_root)
+                .expect("open source"),
+            512,
+            256 * 1024 * 1024,
+        )
+        .expect("scaled jpeg decode") else {
+            panic!("RGB fixture must use scaled decoding")
+        };
+        let scaled = decoded.image.thumbnail(512, 512);
         let scaled_elapsed = scaled_started.elapsed();
 
         assert_eq!(

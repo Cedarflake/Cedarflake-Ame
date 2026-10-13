@@ -1,6 +1,12 @@
 [CmdletBinding()]
 param(
     [UInt64]$MaxPeakWorkingSetBytes = 536870912,
+    [Parameter(Mandatory = $true)]
+    [string]$ExpectedBrokerPublisher,
+    [Parameter(Mandatory = $true)]
+    [string]$SignedBrokerBinaryPath,
+    [Parameter(Mandatory = $true)]
+    [string]$SignedApplicationBundlePath,
     [switch]$IncludeRealLibrary,
     [string]$AcceptanceStorageRoot,
     [string]$RootA,
@@ -31,7 +37,10 @@ if (-not $IncludeRealLibrary -and $hasAnyRealLibraryArgument) {
 
 try {
     & (Join-Path $PSScriptRoot "quality_verify_daily.ps1")
-    & (Join-Path $PSScriptRoot "release_verify_windows.ps1")
+    & (Join-Path $PSScriptRoot "release_verify_windows.ps1") `
+        -ExpectedBrokerPublisher $ExpectedBrokerPublisher `
+        -SignedBrokerBinaryPath $SignedBrokerBinaryPath `
+        -SignedApplicationBundlePath $SignedApplicationBundlePath
     & (Join-Path $PSScriptRoot "performance_benchmark_synthetic_library.ps1") `
         -MaxPeakWorkingSetBytes $MaxPeakWorkingSetBytes
 

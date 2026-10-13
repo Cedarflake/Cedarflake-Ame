@@ -12,6 +12,7 @@ class AssetLocationView {
   final String assetId;
   final String locationId;
   final String rootId;
+  final String scanId;
   final String absolutePath;
   final String displayPath;
   final String relativePath;
@@ -20,6 +21,8 @@ class AssetLocationView {
   final PlatformInt64? createdUnixMs;
   final PlatformInt64 modifiedUnixMs;
   final FileIdentityEvidence? fileIdentity;
+  final SourceRevisionEvidence? sourceRevision;
+  final BigInt sourceGeneration;
   final int width;
   final int height;
   final PreviewStatus previewStatus;
@@ -33,6 +36,7 @@ class AssetLocationView {
     required this.assetId,
     required this.locationId,
     required this.rootId,
+    required this.scanId,
     required this.absolutePath,
     required this.displayPath,
     required this.relativePath,
@@ -41,6 +45,8 @@ class AssetLocationView {
     this.createdUnixMs,
     required this.modifiedUnixMs,
     this.fileIdentity,
+    this.sourceRevision,
+    required this.sourceGeneration,
     required this.width,
     required this.height,
     required this.previewStatus,
@@ -56,6 +62,7 @@ class AssetLocationView {
       assetId.hashCode ^
       locationId.hashCode ^
       rootId.hashCode ^
+      scanId.hashCode ^
       absolutePath.hashCode ^
       displayPath.hashCode ^
       relativePath.hashCode ^
@@ -64,6 +71,8 @@ class AssetLocationView {
       createdUnixMs.hashCode ^
       modifiedUnixMs.hashCode ^
       fileIdentity.hashCode ^
+      sourceRevision.hashCode ^
+      sourceGeneration.hashCode ^
       width.hashCode ^
       height.hashCode ^
       previewStatus.hashCode ^
@@ -81,6 +90,7 @@ class AssetLocationView {
           assetId == other.assetId &&
           locationId == other.locationId &&
           rootId == other.rootId &&
+          scanId == other.scanId &&
           absolutePath == other.absolutePath &&
           displayPath == other.displayPath &&
           relativePath == other.relativePath &&
@@ -89,6 +99,8 @@ class AssetLocationView {
           createdUnixMs == other.createdUnixMs &&
           modifiedUnixMs == other.modifiedUnixMs &&
           fileIdentity == other.fileIdentity &&
+          sourceRevision == other.sourceRevision &&
+          sourceGeneration == other.sourceGeneration &&
           width == other.width &&
           height == other.height &&
           previewStatus == other.previewStatus &&
@@ -175,6 +187,123 @@ class CatalogCursor {
           locationId == other.locationId;
 }
 
+enum CatalogReadRetryCause { fileLockingProtocolFailed }
+
+class CatalogReadRetryDetails {
+  final CatalogReadRetryOperation operation;
+  final int attempts;
+  final BigInt elapsedMs;
+  final CatalogReadRetryCause cause;
+
+  const CatalogReadRetryDetails({
+    required this.operation,
+    required this.attempts,
+    required this.elapsedMs,
+    required this.cause,
+  });
+
+  @override
+  int get hashCode =>
+      operation.hashCode ^
+      attempts.hashCode ^
+      elapsedMs.hashCode ^
+      cause.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CatalogReadRetryDetails &&
+          runtimeType == other.runtimeType &&
+          operation == other.operation &&
+          attempts == other.attempts &&
+          elapsedMs == other.elapsedMs &&
+          cause == other.cause;
+}
+
+enum CatalogReadRetryOperation {
+  sessionValidation,
+  catalogSnapshot,
+  catalogSnapshotAroundLocation,
+  catalogSnapshotAroundAsset,
+  galleryTimeline,
+  galleryLayoutManifest,
+  libraryFolders,
+  catalogAssetById,
+  watcherGapAuthorityCount,
+  activeInventoryRunCount,
+  activeWatcherGapAuthority,
+  incrementalLocation,
+  completedPersistentJournalRange,
+}
+
+enum CatalogReclamationPhase {
+  idle,
+  queued,
+  inspecting,
+  waitingForIdle,
+  checkingCapacity,
+  converting,
+  reclaiming,
+  completed,
+  cancelled,
+  failed,
+}
+
+class CatalogReclamationSnapshot {
+  final String? operationId;
+  final CatalogReclamationPhase phase;
+  final BigInt catalogFileBytes;
+  final BigInt liveBytes;
+  final BigInt reclaimableBytes;
+  final BigInt reclaimedBytes;
+  final BigInt? requiredTemporaryBytes;
+  final BigInt? availableTemporaryBytes;
+  final String? errorCode;
+  final String? errorMessage;
+
+  const CatalogReclamationSnapshot({
+    this.operationId,
+    required this.phase,
+    required this.catalogFileBytes,
+    required this.liveBytes,
+    required this.reclaimableBytes,
+    required this.reclaimedBytes,
+    this.requiredTemporaryBytes,
+    this.availableTemporaryBytes,
+    this.errorCode,
+    this.errorMessage,
+  });
+
+  @override
+  int get hashCode =>
+      operationId.hashCode ^
+      phase.hashCode ^
+      catalogFileBytes.hashCode ^
+      liveBytes.hashCode ^
+      reclaimableBytes.hashCode ^
+      reclaimedBytes.hashCode ^
+      requiredTemporaryBytes.hashCode ^
+      availableTemporaryBytes.hashCode ^
+      errorCode.hashCode ^
+      errorMessage.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is CatalogReclamationSnapshot &&
+          runtimeType == other.runtimeType &&
+          operationId == other.operationId &&
+          phase == other.phase &&
+          catalogFileBytes == other.catalogFileBytes &&
+          liveBytes == other.liveBytes &&
+          reclaimableBytes == other.reclaimableBytes &&
+          reclaimedBytes == other.reclaimedBytes &&
+          requiredTemporaryBytes == other.requiredTemporaryBytes &&
+          availableTemporaryBytes == other.availableTemporaryBytes &&
+          errorCode == other.errorCode &&
+          errorMessage == other.errorMessage;
+}
+
 class CatalogSnapshot {
   final String catalogPath;
   final BigInt revision;
@@ -220,6 +349,27 @@ class CatalogSnapshot {
           previousCursor == other.previousCursor &&
           nextCursor == other.nextCursor &&
           queryAnchorResolution == other.queryAnchorResolution;
+}
+
+class ConsolidatedLibraryRoot {
+  final String previousRootId;
+  final String relativePath;
+
+  const ConsolidatedLibraryRoot({
+    required this.previousRootId,
+    required this.relativePath,
+  });
+
+  @override
+  int get hashCode => previousRootId.hashCode ^ relativePath.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ConsolidatedLibraryRoot &&
+          runtimeType == other.runtimeType &&
+          previousRootId == other.previousRootId &&
+          relativePath == other.relativePath;
 }
 
 class FileIdentityEvidence {
@@ -544,6 +694,7 @@ class LibraryFolderPage {
   final String parentRelativePath;
   final List<LibraryFolderView> folders;
   final LibraryFolderCursor? nextCursor;
+  final LibraryFolderPageDisposition disposition;
 
   const LibraryFolderPage({
     required this.revision,
@@ -551,6 +702,7 @@ class LibraryFolderPage {
     required this.parentRelativePath,
     required this.folders,
     this.nextCursor,
+    required this.disposition,
   });
 
   @override
@@ -559,7 +711,8 @@ class LibraryFolderPage {
       rootId.hashCode ^
       parentRelativePath.hashCode ^
       folders.hashCode ^
-      nextCursor.hashCode;
+      nextCursor.hashCode ^
+      disposition.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -570,8 +723,11 @@ class LibraryFolderPage {
           rootId == other.rootId &&
           parentRelativePath == other.parentRelativePath &&
           folders == other.folders &&
-          nextCursor == other.nextCursor;
+          nextCursor == other.nextCursor &&
+          disposition == other.disposition;
 }
+
+enum LibraryFolderPageDisposition { replace, append }
 
 class LibraryFolderView {
   final String rootId;
@@ -710,12 +866,22 @@ sealed class PreviewCleanupEvent with _$PreviewCleanupEvent {
 
 class PreviewRequest {
   final String locationId;
+  final String expectedRootId;
+  final String expectedScanId;
+  final SourceRevisionEvidence? expectedSourceRevision;
+  final BigInt expectedSourceGeneration;
   final int previewEdge;
+
+  /// An explicit retry is a force-regenerate request, not merely permission to retry a failure.
   final bool retryFailed;
   final List<String> protectedLocationIds;
 
   const PreviewRequest({
     required this.locationId,
+    required this.expectedRootId,
+    required this.expectedScanId,
+    this.expectedSourceRevision,
+    required this.expectedSourceGeneration,
     required this.previewEdge,
     required this.retryFailed,
     required this.protectedLocationIds,
@@ -724,6 +890,10 @@ class PreviewRequest {
   @override
   int get hashCode =>
       locationId.hashCode ^
+      expectedRootId.hashCode ^
+      expectedScanId.hashCode ^
+      expectedSourceRevision.hashCode ^
+      expectedSourceGeneration.hashCode ^
       previewEdge.hashCode ^
       retryFailed.hashCode ^
       protectedLocationIds.hashCode;
@@ -734,6 +904,10 @@ class PreviewRequest {
       other is PreviewRequest &&
           runtimeType == other.runtimeType &&
           locationId == other.locationId &&
+          expectedRootId == other.expectedRootId &&
+          expectedScanId == other.expectedScanId &&
+          expectedSourceRevision == other.expectedSourceRevision &&
+          expectedSourceGeneration == other.expectedSourceGeneration &&
           previewEdge == other.previewEdge &&
           retryFailed == other.retryFailed &&
           protectedLocationIds == other.protectedLocationIds;
@@ -816,11 +990,16 @@ class RetiredPreviewRootView {
 class ScanError implements FrbException {
   final String code;
   final String message;
+  final CatalogReadRetryDetails? retryDetails;
 
-  const ScanError({required this.code, required this.message});
+  const ScanError({
+    required this.code,
+    required this.message,
+    this.retryDetails,
+  });
 
   @override
-  int get hashCode => code.hashCode ^ message.hashCode;
+  int get hashCode => code.hashCode ^ message.hashCode ^ retryDetails.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -828,7 +1007,8 @@ class ScanError implements FrbException {
       other is ScanError &&
           runtimeType == other.runtimeType &&
           code == other.code &&
-          message == other.message;
+          message == other.message &&
+          retryDetails == other.retryDetails;
 }
 
 @freezed
@@ -870,6 +1050,7 @@ sealed class ScanEvent with _$ScanEvent {
     required BigInt issueCount,
     required String catalogPath,
     required bool wasLimited,
+    required List<ConsolidatedLibraryRoot> consolidatedRoots,
   }) = ScanEvent_Completed;
   const factory ScanEvent.cancelled({
     required String scanId,
@@ -892,6 +1073,11 @@ sealed class ScanEvent with _$ScanEvent {
     required String code,
     required String message,
   }) = ScanEvent_Failed;
+  const factory ScanEvent.alreadyCovered({
+    required String scanId,
+    required String rootId,
+    required String relativePath,
+  }) = ScanEvent_AlreadyCovered;
 }
 
 class ScanIssue {
@@ -949,6 +1135,26 @@ class ScanRequest {
           previewEdge == other.previewEdge;
 }
 
+/// Filesystem-owned evidence that the bytes reachable through a file identity may have changed.
+/// Windows ChangeTime is cheap change evidence, not a content fingerprint.
+class SourceRevisionEvidence {
+  final String scheme;
+  final String value;
+
+  const SourceRevisionEvidence({required this.scheme, required this.value});
+
+  @override
+  int get hashCode => scheme.hashCode ^ value.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SourceRevisionEvidence &&
+          runtimeType == other.runtimeType &&
+          scheme == other.scheme &&
+          value == other.value;
+}
+
 class StorageSettingsUpdate {
   final String? catalogDirectory;
   final String? previewCacheDirectory;
@@ -987,6 +1193,9 @@ class StorageStatus {
   final BigInt previewBudgetBytes;
   final BigInt previewUsedBytes;
   final BigInt catalogUsedBytes;
+  final BigInt catalogLiveBytes;
+  final BigInt catalogReclaimableBytes;
+  final CatalogReclamationSnapshot catalogReclamation;
   final bool requiresRestart;
   final List<RetiredPreviewRootView> retiredPreviewRoots;
 
@@ -1001,6 +1210,9 @@ class StorageStatus {
     required this.previewBudgetBytes,
     required this.previewUsedBytes,
     required this.catalogUsedBytes,
+    required this.catalogLiveBytes,
+    required this.catalogReclaimableBytes,
+    required this.catalogReclamation,
     required this.requiresRestart,
     required this.retiredPreviewRoots,
   });
@@ -1017,6 +1229,9 @@ class StorageStatus {
       previewBudgetBytes.hashCode ^
       previewUsedBytes.hashCode ^
       catalogUsedBytes.hashCode ^
+      catalogLiveBytes.hashCode ^
+      catalogReclaimableBytes.hashCode ^
+      catalogReclamation.hashCode ^
       requiresRestart.hashCode ^
       retiredPreviewRoots.hashCode;
 
@@ -1035,6 +1250,9 @@ class StorageStatus {
           previewBudgetBytes == other.previewBudgetBytes &&
           previewUsedBytes == other.previewUsedBytes &&
           catalogUsedBytes == other.catalogUsedBytes &&
+          catalogLiveBytes == other.catalogLiveBytes &&
+          catalogReclaimableBytes == other.catalogReclaimableBytes &&
+          catalogReclamation == other.catalogReclamation &&
           requiresRestart == other.requiresRestart &&
           retiredPreviewRoots == other.retiredPreviewRoots;
 }
