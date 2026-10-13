@@ -21,62 +21,52 @@ the resulting stage disposition.
 
 ### Current execution checkpoint
 
-The [2026-10-13 C02 follow-up](../acceptance/r2c-retained-runtime.md#independent-uia-loader-milestones-on-2026-10-13)
-now passes focused checks and complete local Daily, including all ten native phases. The conservative
-60-minute preparation/verification and ten-minute inspection reservations below are consumed;
-no unchanged replay is needed. Hosted verification of the new diagnostic source and historical
-causal attribution remain open. The method distinguishes the two operations hidden by the last persisted
-`loading-uia-client` record: returning from progress publication and entering/returning from the
-runtime assembly loader. The preceding record can already be visible while `File.Replace` has not
-returned, so that record alone cannot attribute the eight-second timeout to assembly loading.
-Use six fixed, parent-owned manual-reset event markers for entry, loaded assembly and verified
-contract of the two existing assemblies. The child only signals them; the parent reads them after
-owned-process retirement. They carry no completion authority, add no file writes and cannot replace
-the existing identity, result, phase or cleanup checks. Missing markers remain unknown progress.
-This is an attribution correction, not a runtime repair or closure of historical C02 failures.
-The reservation is 60 active minutes for the narrow owner, bounded positive/negative process fixtures and
-integration, then one normal lint and complete Daily at their existing limits and ten inspection
-minutes. The two controlled timeout fixtures distinguish publication-before-load from
-runtime-load-before-return with the same persisted stage. Preserve the original eight-second
-native deadline, all ten phases, source assertions and first-error precedence. No unchanged rerun,
-deadline increase, real-library access, source change, tracing installation or new dependency is
-admitted. The previous consumed allowances remain consumed; another unexplained native failure
-retains its checkpoint and supplies the new operation markers before any further experiment.
-
 Updated 2026-10-13. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-The reported ordinary-client reopen slowdown and missing October entries take immediate priority.
-Current terminal output spends 1.1–2.8 seconds per otherwise idle poll in catalog-session lookup.
-Thirty locally available images in the two user-selected October subtrees are absent from the
-published catalog. LiveOnly queue-idle state cannot establish closed-process coverage. Repair the
-reclamation/session boundary that repeats complete validation after every successful free-page
-batch, preserve structural and identity checks, and expose continuity in development diagnostics.
-Use isolated SQLite boundary regressions, then applicable quality gates and a bounded client update
-to verify the reported membership. The [reclamation checkpoint](../acceptance/r2c-retained-runtime.md#catalog-reclamation-and-reopen-latency)
-owns its current proof and remaining client verification. The unsigned runtime and installer
-correction now has focused Windows broker and complete static Daily verification in the
-[unsigned continuity checkpoint](../acceptance/r2c-retained-runtime.md#unsigned-continuity-runtime).
-Fresh optimized-artifact verification now passes. The raw PowerShell installation route is stopped.
-Deliver one Windows installer for the application and broker with stable upgrade identity, repair,
-uninstall and failed-upgrade rollback before the installed-client check. Packaging must own both
-components through the same lifecycle; wrapping the current scripts in an executable is insufficient.
-Verify fresh installation, a version upgrade, rollback and retained-profile reopening before claiming
-the installation/update workflow complete. The first MSI installation failed during service startup
-and subsequently rolled back; do not replay it unchanged. The revised method first verifies the
-restricted-service pipe DACL and required caller-impersonation privilege, then tests one bounded
-cancellable start with rollback, early Burn
-elevation, configurable application destination and independent shortcut choices. Use the same
-source-preserving installed-client scope after the changed package passes its native and package
-checks. The separately authorized installation and ordinary-client
-membership check remain unverified. Verify the actual Windows
-access mechanism before retaining a service requirement; no automatic startup enumeration, source
-mutation, relaxed caller/root authorization or new Debug-specific synchronization mode is admitted.
+Follow the [roadmap's functional recovery order](../roadmap.md#current-execution-queue): ordinary
+client connection and helper lifetime, reported October membership, reopening/update latency, then
+remaining retained browsing/preview incidents. Finish each affected user path before returning to
+the remaining merge-readiness matrix. Prepared Release fixtures and historical diagnostic work
+remain retained work; their preparation does not move them ahead of these incidents.
+
+The selected unified application/broker installation succeeded, but its ordinary-token connection
+probe returned `TransportUnavailable`. The failure has not yet been attributed to a specific Windows
+operation. The subsequent requested uninstall completed, including service and package removal,
+with the checked catalog, its WAL/SHM files and settings unchanged. Keep that installation removed
+while diagnosing and correcting the source. Any later installation requires the applicable system
+authorization. A necessary corrected-client installation may support the first functional step;
+complete upgrade, repair and failed-upgrade rollback qualification follow the functional recovery.
+
+Resolve the broker connection through the existing authenticated transport and service owners,
+using a focused boundary reproduction before changing policy. Keep ordinary unsigned Debug and
+Release behavior consistent. Demand-start must include safe idle retirement after clients and
+in-flight requests retire; Windows retains the change journal while Ame and its helper are closed.
+Preserve caller/root access, protected service identity, cancellation and bounded reads. No source
+mutation, automatic full scan, relaxed authorization or separate Debug synchronization mode is
+admitted.
+
+Recheck the thirty previously identified local images in the selected October subtrees and verify
+their published membership after incremental catch-up. LiveOnly queue-idle state cannot establish
+closed-process coverage. The reported 1.1–2.8-second idle catalog-session polls and the owning
+reclamation/session correction retain their proof and remaining client verification in the
+[reclamation checkpoint](../acceptance/r2c-retained-runtime.md#catalog-reclamation-and-reopen-latency).
+The [unsigned continuity checkpoint](../acceptance/r2c-retained-runtime.md#unsigned-continuity-runtime)
+retains the preceding focused/static and optimized-artifact results; they do not establish an
+ordinary-client connection or resolve the missing-image incident. The raw PowerShell installation
+route remains stopped. Preserve the versioned unified installer and its transactional rollback.
 The ordinary-token journal probe succeeds through a volume directory handle, but its generated
 create/rename records omit names. This is not a drop-in replacement for the current reconstruction
 contract. Keep that capability result distinct from complete tracking; the immediate unsigned-client
 repair retains the existing reconciliation semantics rather than adding an unverified second path.
+
+The completed [2026-10-13 C02 diagnostic follow-up](../acceptance/r2c-retained-runtime.md#independent-uia-loader-milestones-on-2026-10-13)
+and its 60-minute preparation/verification and ten-minute inspection reservations remain consumed.
+Its focused checks and complete local Daily, including all ten native phases, are retained evidence;
+they do not close historical C01/C02 attribution. Preserve the independent loader markers, original
+eight-second deadline, all native assertions, first-error precedence and owned-process retirement.
+No unchanged replay or further diagnostic expansion precedes the functional recovery sequence.
 
 The [Release pending-page continuation](../acceptance/r2c-release-native.md#release-pending-page-close-and-reopen-on-2026-10-13)
 now passes actual historical-tile opening, Left admission, pending-page Escape, different-image
@@ -92,8 +82,8 @@ The separate held source-copy Release variant remains open. Its Debug observer r
 which throws in Release. Establish a Release-valid retirement observation before porting that
 method; do not delete its disposal assertion, probe a disposed engine object, or infer a pass from
 the paging observation. Ordinary shipped-entrypoint, held OS-read, C01/C02 and final candidate
-obligations remain separate. The authorized installation still requires completed Windows consent
-and installer interaction before the ordinary-client October membership check.
+obligations remain separate. The ordinary-client October membership check follows correction of
+the production connection failure described above.
 
 The [Release UX-06B continuation](../acceptance/r2c-release-native.md#release-removal-during-publication-and-reimport-on-2026-10-13)
 now passes removal during peer publication, both complete updates and actual picker reimport.
@@ -151,6 +141,22 @@ and five inspection minutes for close admission, are consumed. No unchanged repl
 Keep the 1-MiB encoded/4-MiB decoded source limits, four-GiB entry availability, two-GiB client/system
 limits and six-second close deadline for this recorded scope. Existing controlled evidence owns
 source-call counts and frame-level assertions; these point observations do not replace it.
+
+The remaining Release task-control continuation covers UX-02B and the committed-display portion
+of UX-02C. Reserve 90 preparation/verification minutes, one 15-minute native lifetime and 15
+inspection minutes. Adapt the existing frame-based Debug fixture to an optimized diagnostic
+entrypoint using the ordinary storage configuration and durable original-profile lease, with no
+Debug storage override. Retain the actual system picker, one injected committed query-read failure,
+focused Enter retry, the second scan's 120-second pre-registration barrier, exact Pause/Cancel/late
+Started replay and rendered cancellation assertions. Keep the three-image/damaged-image baseline
+and the existing generated 10000-image frozen corpus read-only; bound its full source checks to
+12000 entries, 16 GiB and 180 seconds each, before and after the client lifetime. Decode only through
+the real adapters, retain current baseline pixels and reject a source rescan on display Retry.
+Preserve the four-GiB entry availability, two-GiB client/system limits, six-second normal close,
+owned process group and current compiled-input/payload binding. Verify fixture contracts before
+admission. Failure injection and the registration barrier provide ordering evidence, not production
+latency. Preserve any failed lifetime and stop on a failed assertion; do not replay passed imports
+or introduce a real-root run, service change, production protocol or acceptance relaxation.
 
 The [hard-link recovery checkpoint](../acceptance/r2c-retained-runtime.md#retained-hard-link-source-state)
 now has the exact failing sequence, atomic retained-alias correction, narrow compatibility repair,

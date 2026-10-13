@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-10
+Last planning update: 2026-10-13
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -48,7 +48,8 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**R2c-O — constrained broker and installer foundation remains the active acceptance slice.**
+**R2c-O remains the active acceptance slice. Synchronization, missing catalog entries, reopening
+latency and browsing recovery are the immediate delivery focus.**
 R2c-N admitted the security/protocol foundation. R2c-P and R2c-Q have implementation checkpoints;
 R2c-R has controlled local reliability work. Those facts do not accept the slices or all of R2c.
 Real journal, retained-library, and real Cloud Files evidence remain open. Code signing, publisher
@@ -72,6 +73,32 @@ The accumulated Live worker correction now has complete local Daily evidence in 
 Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
+
+Within active item 3 below, execute this functional recovery sequence in order:
+
+1. **Restore ordinary-client synchronization.** Correct the connection failure between unsigned
+   Debug/Release clients and the broker. Keep caller/root authorization and the protected service
+   identity intact. Complete demand-start and idle retirement through the existing broker owner;
+   closed-process journal coverage must not require a permanently resident helper.
+2. **Verify the reported missing October images.** Recheck the thirty previously identified local
+   images, restore any missing membership through incremental continuity, and prove that displayed
+   synchronization status matches actual journal coverage and published membership.
+3. **Correct reopen and update latency.** Verify populated reopening, no-change reopening and
+   catch-up after closed-process changes. Verify the existing reclamation/session correction and
+   fix remaining owning costs; preserve no-change zero-enumeration and existing latency requirements.
+4. **Finish the affected browsing and preview paths.** Reproduce and resolve remaining retained
+   middle-timeline Retry/jump and slow-preview incidents, keeping the gallery usable during updates.
+   Preserve completed regression evidence and verify only the remaining affected variants.
+5. **Resume the remaining merge-readiness duties.** After the four functional outcomes pass, return
+   to the retained client/platform matrix, historical C01/C02 obligations, remaining installer
+   lifecycle qualification, final independent review and current-source local/hosted gates.
+
+Each step requires its owning correction, focused regressions and applicable user-path verification
+before the next step. Installation needed for a corrected ordinary-client check is a dependency of
+step 1; the full upgrade/repair/rollback matrix must not precede the missing-image and latency work.
+The workstation installation has been removed. Continue source-level correction and isolated
+verification; any later system installation retains its explicit-authorization requirement.
+This sequence changes execution priority, not acceptance assertions or the active R2c stage.
 
 The current direction prioritizes defects that directly impair functions and user experience.
 The requested rule/document organization is verified. The execution plan's
