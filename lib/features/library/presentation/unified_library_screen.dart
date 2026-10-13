@@ -371,58 +371,37 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       final status = entry.value;
       final root = roots[rootId];
       final priorKey = _synchronizationNotificationKeys[rootId];
-      switch (status.freshness) {
-        case LibraryCatalogFreshness.needsReconciliation:
-          final feedback = LibrarySynchronizationFeedback.fromStatus(status);
-          final key = _synchronizationNotificationKey(status);
-          if (priorKey != null && priorKey != key) {
-            _notificationController.resolve(priorKey);
-          }
-          _synchronizationNotificationKeys[rootId] = key;
-          _notificationController.publish(
-            AmeNotificationDraft(
-              title: status.isAwaitingFirstImport
-                  ? LibraryStrings.firstImportRequiredTitle(
-                      _notificationRootName(root, rootId),
-                    )
-                  : LibraryStrings.synchronizationReconciliationTitle(
-                      _notificationRootName(root, rootId),
-                    ),
-              message: feedback.message,
-              severity: feedback.severity,
-              dedupeKey: key,
-              detail: feedback.detail,
-              elapsedStartedAt: status.phaseStartedAt,
-              sourcePath: root?.displayPath,
-              technicalCode: status.lastIssueCode,
-              actionId: feedback.requiresManualLibraryUpdate
-                  ? _refreshBlockedRootNotificationAction
-                  : null,
-              actionLabel: feedback.requiresManualLibraryUpdate
-                  ? LibraryStrings.updateLibrary
-                  : null,
-              isPersistent: true,
-            ),
-          );
-          break;
-        case LibraryCatalogFreshness.synchronized:
-          if (priorKey != null) {
-            _notificationController.resolve(priorKey);
-          }
-          _synchronizationNotificationKeys.remove(rootId);
-          break;
-        case LibraryCatalogFreshness.unavailable:
-          if (priorKey != null) {
-            _notificationController.resolve(priorKey);
-            _synchronizationNotificationKeys.remove(rootId);
-          }
-          break;
-        case LibraryCatalogFreshness.updating:
-          if (priorKey != null) {
-            _notificationController.resolve(priorKey);
-            _synchronizationNotificationKeys.remove(rootId);
-          }
-          break;
+      final feedback = LibrarySynchronizationFeedback.fromStatus(status);
+      if (feedback.shouldNotify) {
+        final key = _synchronizationNotificationKey(status);
+        if (priorKey != null && priorKey != key) {
+          _notificationController.resolve(priorKey);
+        }
+        _synchronizationNotificationKeys[rootId] = key;
+        _notificationController.publish(
+          AmeNotificationDraft(
+            title: feedback.titleForRoot(_notificationRootName(root, rootId)),
+            message: feedback.message,
+            severity: feedback.severity,
+            dedupeKey: key,
+            detail: feedback.detail,
+            elapsedStartedAt: status.phaseStartedAt,
+            sourcePath: root?.displayPath,
+            technicalCode: status.lastIssueCode,
+            actionId: feedback.requiresManualLibraryUpdate
+                ? _refreshBlockedRootNotificationAction
+                : null,
+            actionLabel: feedback.requiresManualLibraryUpdate
+                ? LibraryStrings.updateLibrary
+                : null,
+            isPersistent: true,
+          ),
+        );
+      } else {
+        if (priorKey != null) {
+          _notificationController.resolve(priorKey);
+        }
+        _synchronizationNotificationKeys.remove(rootId);
       }
     }
     _setLiveOnlyCapabilityNotification(

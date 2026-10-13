@@ -34,6 +34,9 @@ void main() {
     expect(feedback.detail, isNot(contains("故障")));
     expect(feedback.detail, isNot(contains("项状态尚未确认")));
     expect(feedback.requiresManualLibraryUpdate, isFalse);
+    expect(feedback.shouldNotify, isFalse);
+    expect(feedback.sourceLabel, LibraryStrings.synchronizing);
+    expect(feedback.titleForRoot("Pictures"), "“Pictures”正在更新图库");
   });
 
   test("unresolved evidence does not claim recovery is already running", () {
@@ -104,7 +107,7 @@ void main() {
     },
   );
 
-  test("eligible automatic retry keeps its existing explanation", () {
+  test("eligible automatic retry is quiet progress with a past failure", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(
       _status(
         recoveryBlocked: false,
@@ -113,9 +116,144 @@ void main() {
         issueCode: "library_reconciliation_failed",
       ),
     );
-    expect(feedback.message, LibraryStrings.synchronizationRecoveryFailed);
+    expect(feedback.message, LibraryStrings.synchronizationAutomaticRetry);
     expect(feedback.detail, contains("1 项等待重试"));
     expect(feedback.requiresManualLibraryUpdate, isFalse);
+    expect(feedback.shouldNotify, isFalse);
+    expect(feedback.severity, AmeNotificationSeverity.info);
+    expect(feedback.sourceLabel, LibraryStrings.synchronizationRetryPending);
+  });
+
+  test("updating freshness cannot hide a blocked or failed operation", () {
+    for (final phase in [
+      LibrarySynchronizationPhase.inventoryEnumeration,
+      LibrarySynchronizationPhase.retryWait,
+      LibrarySynchronizationPhase.queuePublication,
+    ]) {
+      for (final source in [
+        LibraryChangeSourceStatus.healthy,
+        LibraryChangeSourceStatus.failed,
+      ]) {
+        final feedback = LibrarySynchronizationFeedback.fromStatus(
+          _status(
+            freshness: LibraryCatalogFreshness.updating,
+            phase: phase,
+            sourceStatus: source,
+          ),
+        );
+        expect(feedback.shouldNotify, isTrue);
+        expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
+        expect(feedback.titleForRoot("Pictures"), "“Pictures”更新受阻");
+        expect(feedback.detail, contains("阶段：更新受阻"));
+        expect(feedback.detail, isNot(contains("等待重试")));
+        expect(feedback.message, isNot(contains("正在")));
+        expect(feedback.severity, isNot(AmeNotificationSeverity.info));
+      }
+    }
+  });
+
+  test(
+    "failed monitor remains visible during an unrelated automatic attempt",
+    () {
+      final feedback = LibrarySynchronizationFeedback.fromStatus(
+        _status(
+          freshness: LibraryCatalogFreshness.updating,
+          phase: LibrarySynchronizationPhase.inventoryEnumeration,
+          recoveryBlocked: false,
+          sourceStatus: LibraryChangeSourceStatus.failed,
+          issueCode: "change_source_watch_failed",
+        ),
+      );
+      expect(feedback.shouldNotify, isTrue);
+      expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
+      expect(feedback.severity, AmeNotificationSeverity.error);
+      expect(feedback.message, LibraryStrings.synchronizationMonitoringFailed);
+      expect(feedback.detail, contains("阶段：更新受阻"));
+      expect(feedback.detail, isNot(contains("正在核对")));
+    },
+  );
+
+  test("unconfirmed evidence names no failure or scheduled recovery", () {
+    final feedback = LibrarySynchronizationFeedback.fromStatus(
+      _status(recoveryBlocked: false, issueCode: null),
+    );
+    expect(feedback.shouldNotify, isTrue);
+    expect(feedback.titleForRoot("Pictures"), "“Pictures”图库尚未核对");
+    expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
+    expect(feedback.detail, contains("阶段：图库尚未核对"));
+    expect(feedback.detail, isNot(contains("等待重试")));
+    expect(feedback.requiresManualLibraryUpdate, isFalse);
+  });
+
+  test("a retry phase without deferred work does not promise a retry", () {
+    final feedback = LibrarySynchronizationFeedback.fromStatus(
+      _status(
+        recoveryBlocked: false,
+        issueCode: null,
+        freshness: LibraryCatalogFreshness.updating,
+        phase: LibrarySynchronizationPhase.retryWait,
+        retryCount: 0,
+      ),
+    );
+    expect(feedback.detail, isNot(contains("等待重试")));
+    expect(feedback.message, isNot(contains("等待重试")));
+    expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
+  });
+
+  test("an unresolved issue is not cleared by inventory progress alone", () {
+    final feedback = LibrarySynchronizationFeedback.fromStatus(
+      _status(
+        recoveryBlocked: false,
+        issueCode: "catalog_database_busy",
+        freshness: LibraryCatalogFreshness.updating,
+        phase: LibrarySynchronizationPhase.inventoryEnumeration,
+      ),
+    );
+    expect(feedback.shouldNotify, isTrue);
+    expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
+    expect(feedback.message, LibraryStrings.synchronizationPersistenceFailed);
+    expect(feedback.severity, AmeNotificationSeverity.error);
+  });
+
+  test("synchronized text requires continuity and no unresolved work", () {
+    for (final continuity in [
+      LibraryContinuityState.current,
+      LibraryContinuityState.liveOnly,
+      LibraryContinuityState.catchingUp,
+    ]) {
+      final feedback = LibrarySynchronizationFeedback.fromStatus(
+        _status(
+          recoveryBlocked: false,
+          issueCode: null,
+          freshness: LibraryCatalogFreshness.synchronized,
+          phase: LibrarySynchronizationPhase.synchronized,
+          continuity: continuity,
+          retryCount: 0,
+          unknownCount: 0,
+        ),
+      );
+      if (continuity == LibraryContinuityState.catchingUp) {
+        expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
+        expect(
+          feedback.message,
+          isNot(LibraryStrings.synchronizationCompleted),
+        );
+      } else {
+        expect(feedback.shouldNotify, isFalse);
+        expect(feedback.message, LibraryStrings.synchronizationCompleted);
+      }
+    }
+    final unresolved = LibrarySynchronizationFeedback.fromStatus(
+      _status(
+        recoveryBlocked: false,
+        issueCode: null,
+        freshness: LibraryCatalogFreshness.synchronized,
+        phase: LibrarySynchronizationPhase.synchronized,
+        continuity: LibraryContinuityState.current,
+        retryCount: 0,
+      ),
+    );
+    expect(unresolved.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
   });
 
   test("blocked phase alone does not invent exhausted recovery authority", () {
@@ -248,6 +386,49 @@ void main() {
 
       synchronization.publish(
         _status(
+          recoveryBlocked: true,
+          freshness: LibraryCatalogFreshness.updating,
+          phase: LibrarySynchronizationPhase.retryWait,
+        ),
+      );
+      await tester.pump();
+      expect(find.text("“Generated”更新受阻"), findsOneWidget);
+      expect(
+        find.text(LibraryStrings.synchronizationRetryPending),
+        findsNothing,
+      );
+      expect(
+        find.text(LibraryStrings.synchronizationAutomaticProgress),
+        findsNothing,
+      );
+
+      synchronization.publish(
+        _status(
+          recoveryBlocked: false,
+          freshness: LibraryCatalogFreshness.updating,
+          phase: LibrarySynchronizationPhase.retryWait,
+          issueCode: "library_reconciliation_failed",
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text("“Generated”更新受阻"), findsNothing);
+      expect(
+        find.text(LibraryStrings.synchronizationRetryPending),
+        findsOneWidget,
+      );
+      expect(
+        container
+            .read(ameNotificationControllerProvider)
+            .history
+            .single
+            .isActive,
+        isFalse,
+      );
+      expect(scanner.startedRootPaths, isEmpty);
+
+      synchronization.publish(
+        _status(
           recoveryBlocked: false,
           issueCode: null,
           freshness: LibraryCatalogFreshness.updating,
@@ -263,6 +444,28 @@ void main() {
         findsNothing,
       );
       expect(find.textContaining("更新受阻"), findsNothing);
+      expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
+      expect(find.text(LibraryStrings.synchronized), findsNothing);
+      expect(scanner.startedRootPaths, isEmpty);
+
+      synchronization.publish(
+        _status(
+          recoveryBlocked: false,
+          issueCode: null,
+          freshness: LibraryCatalogFreshness.synchronized,
+          phase: LibrarySynchronizationPhase.synchronized,
+          continuity: LibraryContinuityState.current,
+          retryCount: 0,
+          unknownCount: 0,
+        ),
+      );
+      await tester.pump();
+      expect(find.text(LibraryStrings.synchronized), findsOneWidget);
+      expect(find.text(LibraryStrings.synchronizing), findsNothing);
+      expect(
+        container.read(ameNotificationControllerProvider).history,
+        hasLength(1),
+      );
       expect(scanner.startedRootPaths, isEmpty);
     },
   );
@@ -278,6 +481,7 @@ LibraryRootSynchronizationStatus _status({
   LibraryContinuityState continuity = LibraryContinuityState.recoveryRequired,
   LibraryChangeSourceStatus sourceStatus = LibraryChangeSourceStatus.healthy,
   int retryCount = 1,
+  int unknownCount = 1,
 }) => LibraryRootSynchronizationStatus(
   rootId: "root-1",
   rootGeneration: BigInt.one,
@@ -290,7 +494,7 @@ LibraryRootSynchronizationStatus _status({
   sourceStatus: sourceStatus,
   pendingChangeCount: BigInt.zero,
   retryWaitCount: BigInt.from(retryCount),
-  freshnessUnknownCount: BigInt.one,
+  freshnessUnknownCount: BigInt.from(unknownCount),
   recoveryBlocked: recoveryBlocked,
   lastIssueCode: issueCode,
 );

@@ -429,13 +429,18 @@ surface from the queue but cannot change catalog freshness. Scan progress and te
 retain priority over notifications.
 For root reconciliation, the active-condition identity is the root itself: observer-health,
 freshness-cause, and issue-code transitions update one record until the root is synchronized.
-Automatic authoritative recovery and retry remain `正在更新图库` without publishing notifications.
+Automatic authoritative recovery remains `正在更新图库`; an eligible deferred retry displays
+`等待重试更新`. Neither publishes a fault notification.
 Only a failed monitor, exhausted recovery, bridge/catalog refresh failure, or another blocked
 condition that can no longer converge automatically enters the notification queue; successful
 recovery resolves that active error without adding a success notice.
-An active error is not resolved merely because another automatic attempt has started. Its compact
-row state and one deduplicated notification remain stable until a synchronized snapshot proves
-convergence. Short SQLite writer contention during another Ame publication keeps the prior snapshot
+An active error remains visible while the current snapshot still reports blocked recovery or an
+unhealthy monitor, including when unrelated automatic work is running. A healthy, unblocked
+processing or eligible-retry snapshot withdraws that error surface and displays progress in the
+source row; the historical error remains in current-session history. A processing snapshot retains
+an unresolved issue until the issue is cleared; an eligible deferred retry may retain its previous
+attempt's issue. Processing does not imply `已同步`, which requires a synchronized snapshot. Short
+SQLite writer contention during another Ame publication keeps the prior snapshot
 and retries silently for a bounded interval; only contention beyond that interval becomes a
 persistent catalog error.
 SQLite read-modify-write paths acquire an immediate writer transaction before observing mutable

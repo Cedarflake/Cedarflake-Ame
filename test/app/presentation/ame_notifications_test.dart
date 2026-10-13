@@ -242,7 +242,7 @@ AmeNotificationEntry _notification({
   required bool isUnread,
   String id = "notification-1",
   String title = "“Documents”需要重新核对",
-  String message = "检测到无法确认的文件变化，Ame 正在自动重新核对该目录。",
+  String message = "部分文件变化尚未核对，当前仍显示上次确认的图库内容。",
   bool isPersistent = false,
   String? actionLabel,
   DateTime? elapsedStartedAt,

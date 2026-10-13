@@ -3,6 +3,8 @@ abstract final class LibraryStrings {
   static const synchronized = "已同步";
   static const synchronizing = "正在更新图库";
   static const needsReconciliation = "更新受阻";
+  static const synchronizationUnconfirmed = "图库尚未核对";
+  static const synchronizationRetryPending = "等待重试更新";
   static const continuityBaselineRequired = "正在核对图库";
   static const continuityCatchingUp = "正在补齐近期变化";
   static const continuityRecoveryRequired = "需要重新核对";
@@ -88,12 +90,13 @@ abstract final class LibraryStrings {
   static const synchronizationRefreshFailureTitle = "无法显示最新图库内容";
   static const synchronizationRefreshFailureMessage = "图库已经发生变化，但当前页面刷新失败。";
   static const synchronizationSourceUnhealthy = "目录监控已中断，当前仍显示上次确认的图库内容。";
+  static const synchronizationSourceStarting = "目录监控尚未就绪，当前显示上次确认的图库内容。";
   static const synchronizationEvidenceGap = "部分文件变化尚未核对，当前仍显示上次确认的图库内容。";
   static const synchronizationCapacityExceeded = "短时间内的文件变化过多，图库变化尚未完整核对。";
   static const synchronizationMonitoringAccessDenied =
-      "Windows 拒绝了目录监控访问。Ame 会保留上次可信内容，并在恢复后重新核对。";
+      "Windows 拒绝了目录监控访问，当前显示上次确认的图库内容。请检查目录访问权限。";
   static const synchronizationMonitoringPathUnavailable =
-      "监控中的目录暂时不可用。Ame 会保留上次可信内容，并在目录恢复后重新核对。";
+      "监控中的目录暂时不可用，当前显示上次确认的图库内容。请检查目录是否可访问。";
   static const synchronizationMonitoringCapacityExceeded =
       "短时间内的文件变化超出监控可确认范围，图库变化尚未完整核对。";
   static const synchronizationMonitoringEventIncomplete =
@@ -103,17 +106,19 @@ abstract final class LibraryStrings {
   static const synchronizationRecoveryBlocked =
       "自动核对已受阻，Ame 已保留上次图库内容。请检查错误详情，解决后可在文件夹菜单中手动更新图库。";
   static const synchronizationPersistenceFailed = "图库更新记录暂未保存，已保留原有图库内容。";
-  static const synchronizationNeedsReconciliation = "Ame 无法证明当前图库与目录完全一致。";
+  static const synchronizationNeedsReconciliation = "图库变化尚未完整核对，当前显示上次确认的内容。";
+  static const synchronizationCompleted = "图库已更新，当前没有待处理的变化。";
   static const synchronizationAutomaticProgress = "图库正在更新，你可以继续浏览已有图片。";
+  static const synchronizationAutomaticRetry = "上次图库更新未完成，正在等待重试。你可以继续浏览已有图片。";
   static const synchronizationLegacyRecoveryAuthorityMissing =
-      "旧版本留下的核对记录缺少可信授权。请手动更新图库以重新建立连续更新。";
+      "旧版本的更新记录无法直接接续。请手动更新图库以恢复连续更新。";
   static const synchronizationExplicitRecoveryRequired =
       "此图库包含无法自动确认的历史变化，需要手动更新图库后才能恢复连续更新。";
   static const synchronizationPhaseWatcherStartup = "启动目录监控";
   static const synchronizationPhaseInventoryEnumeration = "正在核对文件列表";
   static const synchronizationPhaseInventoryComparison = "正在比较文件变化";
   static const synchronizationPhaseQueuePublication = "发布图库更新";
-  static const synchronizationPhaseRetryWait = "等待自动重试";
+  static const synchronizationPhaseRetryWait = "等待重试更新";
   static const synchronizationPhaseReconciliation = "核对受影响内容";
   static const synchronizationPhaseFullScan = "执行全量扫描";
   static const synchronizationPhaseBlocked = "核对暂未完成";
@@ -148,6 +153,9 @@ abstract final class LibraryStrings {
 
   static String synchronizationReconciliationTitle(String rootName) =>
       "“$rootName”更新受阻";
+
+  static String synchronizationUnconfirmedTitle(String rootName) =>
+      "“$rootName”图库尚未核对";
 
   static String firstImportRequiredTitle(String rootName) =>
       "“$rootName”尚未完成添加";

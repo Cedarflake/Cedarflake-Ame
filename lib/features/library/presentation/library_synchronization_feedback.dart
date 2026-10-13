@@ -1,30 +1,55 @@
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_synchronization_models.dart";
 import "library_strings.dart";
+import "library_synchronization_feedback_state.dart";
 
 class LibrarySynchronizationFeedback {
   factory LibrarySynchronizationFeedback.fromStatus(
     LibraryRootSynchronizationStatus status,
   ) {
+    final state = LibrarySynchronizationFeedbackState.fromStatus(status);
     return LibrarySynchronizationFeedback._(
-      message: _synchronizationNotificationMessage(status),
-      detail: _synchronizationNotificationDetail(status),
-      severity: _synchronizationNotificationSeverity(status),
+      state: state,
+      sourceLabel: _synchronizationSourceLabel(status, state),
+      message: _synchronizationNotificationMessage(status, state),
+      detail: _synchronizationNotificationDetail(status, state),
+      severity: _synchronizationNotificationSeverity(status, state),
       requiresManualLibraryUpdate: _requiresManualLibraryUpdate(status),
     );
   }
 
   const LibrarySynchronizationFeedback._({
+    required this.state,
+    required this.sourceLabel,
     required this.message,
     required this.detail,
     required this.severity,
     required this.requiresManualLibraryUpdate,
   });
 
+  final LibrarySynchronizationFeedbackState state;
+  final String sourceLabel;
   final String message;
   final String? detail;
   final AmeNotificationSeverity severity;
   final bool requiresManualLibraryUpdate;
+
+  bool get shouldNotify => state.shouldNotify;
+
+  String titleForRoot(String rootName) => switch (state) {
+    LibrarySynchronizationFeedbackState.awaitingFirstImport =>
+      LibraryStrings.firstImportRequiredTitle(rootName),
+    LibrarySynchronizationFeedbackState.unconfirmed =>
+      LibraryStrings.synchronizationUnconfirmedTitle(rootName),
+    LibrarySynchronizationFeedbackState.updating ||
+    LibrarySynchronizationFeedbackState.awaitingRetry ||
+    LibrarySynchronizationFeedbackState.synchronized ||
+    LibrarySynchronizationFeedbackState.unavailable =>
+      "“$rootName”$sourceLabel",
+    LibrarySynchronizationFeedbackState.blocked ||
+    LibrarySynchronizationFeedbackState.interrupted =>
+      LibraryStrings.synchronizationReconciliationTitle(rootName),
+  };
 }
 
 bool _requiresManualLibraryUpdate(LibraryRootSynchronizationStatus status) {
@@ -35,6 +60,7 @@ bool _requiresManualLibraryUpdate(LibraryRootSynchronizationStatus status) {
 
 String _synchronizationNotificationMessage(
   LibraryRootSynchronizationStatus status,
+  LibrarySynchronizationFeedbackState state,
 ) {
   if (status.isAwaitingFirstImport) {
     return LibraryStrings.firstImportRequiredDetail;
@@ -48,18 +74,24 @@ String _synchronizationNotificationMessage(
   if (status.recoveryBlocked) {
     return LibraryStrings.synchronizationRecoveryBlocked;
   }
+  if (state == LibrarySynchronizationFeedbackState.awaitingRetry) {
+    return LibraryStrings.synchronizationAutomaticRetry;
+  }
+  if (state == LibrarySynchronizationFeedbackState.updating) {
+    return LibraryStrings.synchronizationAutomaticProgress;
+  }
+  if (state == LibrarySynchronizationFeedbackState.synchronized) {
+    return LibraryStrings.synchronizationCompleted;
+  }
   final issueMessage = _synchronizationIssueMessage(status.lastIssueCode);
   if (issueMessage != null) {
     return issueMessage;
   }
-  if (status.freshness == LibraryCatalogFreshness.updating &&
-      status.sourceStatus == LibraryChangeSourceStatus.healthy &&
-      status.lastIssueCode == null) {
-    return LibraryStrings.synchronizationAutomaticProgress;
-  }
   return switch (status.freshnessCause) {
     LibraryCatalogFreshnessCause.changeSourceUnhealthy =>
-      LibraryStrings.synchronizationSourceUnhealthy,
+      status.sourceStatus == LibraryChangeSourceStatus.starting
+          ? LibraryStrings.synchronizationSourceStarting
+          : LibraryStrings.synchronizationSourceUnhealthy,
     LibraryCatalogFreshnessCause.evidenceGap =>
       LibraryStrings.synchronizationEvidenceGap,
     LibraryCatalogFreshnessCause.boundedCapacityExceeded =>
@@ -119,20 +151,29 @@ String? _synchronizationIssueMessage(String? issueCode) {
 
 String? _synchronizationNotificationDetail(
   LibraryRootSynchronizationStatus status,
+  LibrarySynchronizationFeedbackState state,
 ) {
   if (status.isAwaitingFirstImport) {
     return LibraryStrings.firstImportAwaitingUser;
   }
-  final details = <String>["阶段：${_synchronizationPhaseLabel(status.phase)}"];
+  final phaseLabel = switch (state) {
+    LibrarySynchronizationFeedbackState.blocked ||
+    LibrarySynchronizationFeedbackState.interrupted =>
+      LibraryStrings.needsReconciliation,
+    LibrarySynchronizationFeedbackState.unconfirmed =>
+      LibraryStrings.synchronizationUnconfirmed,
+    _ => _synchronizationPhaseLabel(status.phase),
+  };
+  final details = <String>["阶段：$phaseLabel"];
   if (status.pendingChangeCount > BigInt.zero) {
     details.add("${status.pendingChangeCount} 项等待处理");
   }
   if (status.retryWaitCount > BigInt.zero) {
     // The total includes exhausted work; it does not establish a future retry.
-    if (status.recoveryBlocked) {
-      details.add("${status.retryWaitCount} 项更新尚未完成");
-    } else {
+    if (state == LibrarySynchronizationFeedbackState.awaitingRetry) {
       details.add("${status.retryWaitCount} 项等待重试");
+    } else {
+      details.add("${status.retryWaitCount} 项更新尚未完成");
     }
   }
   if (status.freshnessUnknownCount > BigInt.zero) {
@@ -168,8 +209,12 @@ String _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {
 
 AmeNotificationSeverity _synchronizationNotificationSeverity(
   LibraryRootSynchronizationStatus status,
+  LibrarySynchronizationFeedbackState state,
 ) {
-  if (status.isAwaitingFirstImport) {
+  if (state == LibrarySynchronizationFeedbackState.awaitingFirstImport ||
+      state == LibrarySynchronizationFeedbackState.updating ||
+      state == LibrarySynchronizationFeedbackState.awaitingRetry ||
+      state == LibrarySynchronizationFeedbackState.synchronized) {
     return AmeNotificationSeverity.info;
   }
   final issueCode = status.lastIssueCode;
@@ -179,11 +224,27 @@ AmeNotificationSeverity _synchronizationNotificationSeverity(
       issueCode?.startsWith("database_") == true) {
     return AmeNotificationSeverity.error;
   }
-  if (status.freshness == LibraryCatalogFreshness.updating &&
-      status.sourceStatus == LibraryChangeSourceStatus.healthy &&
-      !status.recoveryBlocked &&
-      issueCode == null) {
-    return AmeNotificationSeverity.info;
-  }
   return AmeNotificationSeverity.warning;
 }
+
+String _synchronizationSourceLabel(
+  LibraryRootSynchronizationStatus status,
+  LibrarySynchronizationFeedbackState state,
+) => switch (state) {
+  LibrarySynchronizationFeedbackState.awaitingFirstImport =>
+    LibraryStrings.firstImportIncomplete,
+  LibrarySynchronizationFeedbackState.unavailable =>
+    LibraryStrings.sourceUnavailable,
+  LibrarySynchronizationFeedbackState.blocked ||
+  LibrarySynchronizationFeedbackState.interrupted =>
+    LibraryStrings.needsReconciliation,
+  LibrarySynchronizationFeedbackState.awaitingRetry =>
+    LibraryStrings.synchronizationRetryPending,
+  LibrarySynchronizationFeedbackState.updating => LibraryStrings.synchronizing,
+  LibrarySynchronizationFeedbackState.unconfirmed =>
+    LibraryStrings.synchronizationUnconfirmed,
+  LibrarySynchronizationFeedbackState.synchronized =>
+    status.continuity == LibraryContinuityState.liveOnly
+        ? LibraryStrings.continuityLiveOnly
+        : LibraryStrings.synchronized,
+};

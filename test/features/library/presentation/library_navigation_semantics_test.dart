@@ -582,7 +582,10 @@ void main() {
       ),
     );
 
-    expect(find.text(LibraryStrings.needsReconciliation), findsOneWidget);
+    expect(
+      find.text(LibraryStrings.synchronizationUnconfirmed),
+      findsOneWidget,
+    );
     expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
     expect(find.text(LibraryStrings.continuityLiveOnlyDetail), findsNothing);
   });

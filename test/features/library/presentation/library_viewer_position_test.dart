@@ -306,7 +306,7 @@ void main() {
 
       expect(find.text("“Pictures”更新受阻"), findsOneWidget);
       expect(
-        find.text("Windows 拒绝了目录监控访问。Ame 会保留上次可信内容，并在恢复后重新核对。"),
+        find.text(LibraryStrings.synchronizationMonitoringAccessDenied),
         findsOneWidget,
       );
       expect(

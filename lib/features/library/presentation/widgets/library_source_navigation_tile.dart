@@ -12,6 +12,7 @@ import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
 import "../library_pending_source.dart";
 import "../library_strings.dart";
+import "../library_synchronization_feedback.dart";
 import "library_path_text.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
@@ -328,43 +329,18 @@ class _LibrarySourceNavigationTileState
         LibraryContinuityState.unavailable) {
       return LibraryStrings.continuityUnavailable;
     }
-    if (isUpdating ||
-        synchronizationStatus?.freshness == LibraryCatalogFreshness.updating) {
+    if (isUpdating) {
       return LibraryStrings.synchronizing;
     }
-    if (hasSynchronizationFailure ||
-        synchronizationStatus?.recoveryBlocked == true ||
-        synchronizationStatus?.freshness ==
-            LibraryCatalogFreshness.needsReconciliation ||
-        synchronizationStatus?.sourceStatus ==
-            LibraryChangeSourceStatus.degraded ||
-        synchronizationStatus?.sourceStatus ==
-            LibraryChangeSourceStatus.failed) {
+    if (hasSynchronizationFailure) {
       return LibraryStrings.needsReconciliation;
     }
-    return switch (synchronizationStatus?.continuity) {
-      LibraryContinuityState.baselineRequired =>
-        LibraryStrings.continuityBaselineRequired,
-      LibraryContinuityState.catchingUp => LibraryStrings.continuityCatchingUp,
-      LibraryContinuityState.recoveryRequired =>
-        LibraryStrings.continuityRecoveryRequired,
-      LibraryContinuityState.liveOnly => LibraryStrings.continuityLiveOnly,
-      LibraryContinuityState.unavailable =>
-        LibraryStrings.continuityUnavailable,
-      LibraryContinuityState.current => switch (synchronizationStatus
-          ?.freshness) {
-        LibraryCatalogFreshness.synchronized => LibraryStrings.synchronized,
-        LibraryCatalogFreshness.updating => LibraryStrings.synchronizing,
-        LibraryCatalogFreshness.needsReconciliation =>
-          LibraryStrings.needsReconciliation,
-        LibraryCatalogFreshness.unavailable => LibraryStrings.sourceUnavailable,
-        null => LibraryStrings.synchronizing,
-      },
-      null =>
-        hasSynchronizationFailure
-            ? LibraryStrings.needsReconciliation
-            : LibraryStrings.synchronizing,
-    };
+    if (synchronizationStatus == null) {
+      return LibraryStrings.synchronizing;
+    }
+    return LibrarySynchronizationFeedback.fromStatus(
+      synchronizationStatus,
+    ).sourceLabel;
   }
 
   static bool _isHealthyLiveOnlySynchronization(
