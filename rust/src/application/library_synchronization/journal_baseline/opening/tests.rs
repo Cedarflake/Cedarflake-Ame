@@ -103,15 +103,24 @@ fn assert_unrecorded(catalog: &SqliteCatalog) {
 #[test]
 fn current_live_only_opening_records_capability_without_publishing_catalog() {
     with_first_import("opening-current", |catalog, work| {
+        let observed_unix_ms = catalog
+            .load_persistent_journal_capabilities()
+            .expect("registered capability")
+            .first()
+            .expect("registered root")
+            .updated_unix_ms
+            .checked_add(1)
+            .expect("observation after registration");
         assert_eq!(
-            persist_unavailable_session(catalog, &work, 2).expect("record live-only capability"),
+            persist_unavailable_session(catalog, &work, observed_unix_ms)
+                .expect("record live-only capability"),
             OpeningCaptureOutcome::Recorded,
         );
         let capability = &catalog
             .load_persistent_journal_capabilities()
             .expect("capability evidence")[0];
         assert_eq!(capability.state, PersistentJournalCapabilityState::LiveOnly);
-        assert_eq!(capability.updated_unix_ms, 2);
+        assert_eq!(capability.updated_unix_ms, observed_unix_ms);
         assert!(
             catalog
                 .load_persistent_journal_baselines()

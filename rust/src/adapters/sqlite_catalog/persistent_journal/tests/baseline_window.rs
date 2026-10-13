@@ -76,7 +76,7 @@ fn stale_live_only_root_generation_cannot_acquire_a_baseline() {
             .begin_persistent_journal_baseline(&request, policy())
             .unwrap_err()
             .code,
-        "persistent_journal_baseline_capability_invalid"
+        "persistent_journal_root_authority_stale"
     );
     assert!(
         catalog

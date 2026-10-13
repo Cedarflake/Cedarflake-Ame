@@ -74,7 +74,12 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 schema_object_sql_matches(&catalog.connection, "index", INDEX_NAME, INDEX_DDL)
                     .expect("new index definition")
             );
-            assert_eq!(retained_rows(&catalog.connection), before);
+            let mut after = retained_rows(&catalog.connection);
+            assert_eq!(
+                after.remove("library_journal_scope_recoveries"),
+                Some(Vec::new()),
+            );
+            assert_eq!(after, before);
         }
     }
 }
