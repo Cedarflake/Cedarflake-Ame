@@ -22,6 +22,7 @@ use super::{
     natural_name_key, parent_relative_path, unix_time_ms,
 };
 
+mod compatibility_repair_shape;
 mod current_schema;
 mod directory_identities;
 mod foreground_queue_index;
@@ -33,6 +34,11 @@ mod persistent_journal_baseline;
 mod retained_source_state;
 mod retired_root_authority;
 mod scan_resume_inventory;
+
+use compatibility_repair_shape::{
+    inventory_shape_matches as legacy_terminal_metadata_inventory_repair_shape_matches,
+    live_gap_shape_matches as retired_live_gap_claim_repair_shape_matches,
+};
 
 use persistent_journal_baseline::{
     validate_persistent_journal_baseline_contract,
@@ -730,39 +736,6 @@ fn repair_prerelease_v31_source_revision_metadata(
     transaction.commit().map_err(database_error)
 }
 
-fn legacy_terminal_metadata_inventory_repair_shape_matches(
-    connection: &Connection,
-    schema_version: i64,
-) -> Result<bool, ScanError> {
-    let spool_contract_version = match schema_version {
-        25 | 26 => None,
-        27 => Some(1),
-        28..=30 => Some(2),
-        31 => Some(3),
-        32..=36 => Some(4),
-        _ => return Ok(false),
-    };
-    let core_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_runs",
-        METADATA_INVENTORY_RUN_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_recovery_authorities",
-        RECOVERY_AUTHORITY_TABLE_DDL,
-    )?;
-    if !core_matches {
-        return Ok(false);
-    }
-    if let Some(version) = spool_contract_version {
-        metadata_inventory_spool_schema_matches(connection, version)
-    } else {
-        Ok(true)
-    }
-}
-
 fn legacy_terminal_metadata_inventory_repair_needed(
     connection: &Connection,
     schema_version: i64,
@@ -842,55 +815,6 @@ fn repair_legacy_terminal_metadata_inventory_state_transaction(
         )
         .map_err(database_error)?;
     Ok(())
-}
-
-fn retired_live_gap_claim_repair_shape_matches(
-    connection: &Connection,
-    schema_version: i64,
-) -> Result<bool, ScanError> {
-    if !matches!(schema_version, 30..=36) {
-        return Ok(false);
-    }
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_live_gap_recovery_contract",
-        LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_live_gap_recovery_claims",
-        LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_live_gap_recovery_claims_root",
-        LIVE_GAP_RECOVERY_ROOT_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_live_gap_recovery_claim_insert_guard",
-        LIVE_GAP_RECOVERY_INSERT_GUARD_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_live_gap_recovery_claim_identity_update_guard",
-        LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL,
-    )?;
-    if !schema_matches {
-        return Ok(false);
-    }
-    let marker_complete = connection
-        .query_row(
-            "SELECT contract_version = 1 AND complete = 1
-             FROM library_live_gap_recovery_contract WHERE singleton = 1",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    Ok(marker_complete)
 }
 
 fn repairable_retired_live_gap_claim_ids(
