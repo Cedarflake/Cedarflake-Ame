@@ -336,21 +336,46 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(AmeApp)),
       );
+      final failureHistory = container
+          .read(ameNotificationControllerProvider)
+          .history;
+      expect(failureHistory, hasLength(2));
+      final monitoringFailure = failureHistory.singleWhere(
+        (entry) =>
+            entry.technicalCode == "change_source_callback_access_denied",
+      );
+      final persistenceFailure = failureHistory.singleWhere(
+        (entry) => entry.technicalCode == "catalog_database_busy",
+      );
+      expect(monitoringFailure.isActive, isFalse);
+      expect(persistenceFailure.isActive, isTrue);
+
+      synchronization.publish(_persistenceFailureSnapshot());
+      await tester.pump();
       expect(
         container.read(ameNotificationControllerProvider).history,
-        hasLength(1),
+        hasLength(2),
       );
       expect(
         container
             .read(ameNotificationControllerProvider)
             .history
-            .single
-            .technicalCode,
-        "catalog_database_busy",
+            .singleWhere(
+              (entry) => entry.technicalCode == "catalog_database_busy",
+            )
+            .id,
+        persistenceFailure.id,
       );
 
       synchronization.publish(_synchronizedRootSnapshot());
       await tester.pump();
+      expect(
+        container
+            .read(ameNotificationControllerProvider)
+            .history
+            .where((entry) => entry.isActive),
+        isEmpty,
+      );
 
       expect(find.text("“Pictures”更新受阻"), findsNothing);
       expect(
@@ -362,11 +387,11 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.byKey(const Key("notification-history-item-ame-notification-2")),
-        findsNothing,
+        find.byKey(Key("notification-history-item-${monitoringFailure.id}")),
+        findsOneWidget,
       );
       await tester.tap(
-        find.byKey(const Key("notification-history-item-ame-notification-1")),
+        find.byKey(Key("notification-history-item-${persistenceFailure.id}")),
       );
       await tester.pumpAndSettle();
 
