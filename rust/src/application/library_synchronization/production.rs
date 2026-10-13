@@ -4282,11 +4282,50 @@ mod tests {
 
         fn begin_read_volume(
             &self,
-            _request: ReadJournalVolumeRequest,
+            request: ReadJournalVolumeRequest,
         ) -> Result<Box<dyn PersistentChangeJournalRead>, PersistentChangeJournalOperationError>
         {
             self.shared_read_count.fetch_add(1, Ordering::AcqRel);
-            Err(PersistentChangeJournalOperationError::InvalidRequest)
+            let root = request
+                .roots
+                .first()
+                .ok_or(PersistentChangeJournalOperationError::InvalidRequest)?;
+            if request
+                .roots
+                .iter()
+                .any(|root| root.start_usn != request.end_usn)
+            {
+                return Err(PersistentChangeJournalOperationError::InvalidRequest);
+            }
+            Ok(Box::new(CompletedJournalRead {
+                response: BrokerResponse::ReadVolume {
+                    request_id: 1,
+                    client_instance: request.caller.client_instance,
+                    volume_id: root.root.volume_id.clone(),
+                    journal_id: request.journal_id,
+                    requested_end_usn: request.end_usn,
+                    max_records: request.max_records,
+                    max_evidence_bytes: request.max_evidence_bytes,
+                    outcomes: request
+                        .roots
+                        .iter()
+                        .map(|root| crate::journal_broker::SharedJournalRootOutcome {
+                            binding: crate::journal_broker::ResponseBinding::from_request(
+                                &request.caller,
+                                &root.root,
+                            ),
+                            requested_start_usn: root.start_usn,
+                            covered_until_usn: Some(request.end_usn),
+                            is_complete: true,
+                            candidates: Vec::new(),
+                            failure: None,
+                        })
+                        .collect(),
+                    handoffs: Vec::new(),
+                    pending_renames: Vec::new(),
+                },
+                release: Arc::new(AtomicBool::new(true)),
+            }))
         }
 
         fn close(&self) -> Result<(), PersistentChangeJournalOperationError> {
@@ -9339,7 +9378,7 @@ mod tests {
         assert!(saw_active_baseline);
         assert!(completed);
         assert!(query_count.load(Ordering::Acquire) >= 2);
-        assert_eq!(shared_read_count.load(Ordering::Acquire), 0);
+        assert_eq!(shared_read_count.load(Ordering::Acquire), 1);
         production.stop().expect("stop production baseline runtime");
         assert_eq!(close_count.load(Ordering::Acquire), 1);
     }
@@ -9620,6 +9659,21 @@ mod tests {
                 ),
             )
             .expect("seed stale LiveOnly capability");
+        // Capability writes keep time monotonic; restore a genuinely older retained observation.
+        let retained = rusqlite::Connection::open(&storage.catalog_path)
+            .expect("open retained capability fixture");
+        assert_eq!(
+            retained
+                .execute(
+                    "UPDATE library_persistent_journal_root_state SET updated_unix_ms = ?1
+                 WHERE root_id = ?2 AND root_generation = 1
+                   AND capability_state = 'live_only' AND continuity_state = 'live_only'",
+                    rusqlite::params![stale_unix_ms, root_id],
+                )
+                .expect("restore retained capability time"),
+            1,
+        );
+        drop(retained);
         assert!(
             !catalog
                 .first_import_change_capture_is_ready(&request.scan_id, &root_id, generation)
