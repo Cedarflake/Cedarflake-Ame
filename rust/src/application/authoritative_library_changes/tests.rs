@@ -34,6 +34,7 @@ use super::*;
 
 #[cfg(windows)]
 mod live_only_bulk;
+mod pageable_closing_replay;
 mod terminal_media;
 
 #[test]
@@ -928,6 +929,7 @@ fn oversized_subtree_continues_with_pageable_inventory_without_starting_a_scan()
                     },
                 )
                 .expect("close pageable recovery baseline");
+            pageable_closing_replay::complete(&mut catalog, &root, 3_010);
         }
         completed_candidates = completed_candidates.saturating_add(
             crate::application::process_ready_library_changes(
