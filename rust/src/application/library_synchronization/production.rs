@@ -53,7 +53,6 @@ use crate::application::{
     defer_authoritative_change, leased_change_requires_metadata_inventory,
     process_leased_authoritative_library_change_cancellable,
     process_leased_metadata_inventory_change_with_retained_source,
-    process_ready_library_changes_in_lane_cancellable,
     process_ready_metadata_inventory_recovery_candidates_cancellable,
     process_ready_unowned_recovery_paths_cancellable, storage_paths,
 };
@@ -2462,6 +2461,11 @@ fn snapshot_has_ready_journal_work(
             root_generation,
             now_unix_ms,
             policy,
+        )? || catalog.has_ready_journal_authoritative_library_change(
+            &root.root_id,
+            root_generation,
+            now_unix_ms,
+            policy,
         )? {
             return Ok(true);
         }
@@ -2888,6 +2892,11 @@ impl ProductionSynchronization {
                 generation,
                 now_unix_ms,
                 self.runtime.queue_policy(),
+            )? || catalog.has_ready_journal_authoritative_library_change(
+                &root.root_id,
+                generation,
+                now_unix_ms,
+                self.runtime.queue_policy(),
             )? {
                 eligible.push(root.root_id.clone());
             }
@@ -3105,6 +3114,7 @@ impl ProductionSynchronization {
         catalog_path: std::path::PathBuf,
     ) -> Result<(), ScanError> {
         let policy = self.runtime.queue_policy();
+        let recovery_policy = self.runtime.recovery_policy();
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
         let catalog_session = self.validated_catalog_session(&catalog_path)?;
@@ -3115,13 +3125,13 @@ impl ProductionSynchronization {
                 let result = catalog_session
                     .open_in_lane(LibraryChangeLane::Journal)
                     .and_then(|mut catalog| {
-                        process_ready_library_changes_in_lane_cancellable(
+                        super::journal_drain::process_ready(
                             &mut catalog,
                             &root_id,
                             root_generation,
-                            LibraryChangeLane::Journal,
                             now_unix_ms,
                             policy,
+                            recovery_policy,
                             &worker_cancelled,
                         )
                         .map(JournalTaskOutcome::Drain)

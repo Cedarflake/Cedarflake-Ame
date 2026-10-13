@@ -322,6 +322,27 @@ impl<'a> ReadinessQuery<'a> {
         )?
         .is_some())
     }
+
+    pub(super) fn has_ready_journal_authoritative_library_change(&self) -> Result<bool, ScanError> {
+        self.connection.query_row(
+            "SELECT EXISTS(
+               SELECT 1 FROM library_change_queue AS queue
+               JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+               WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                 AND lane.lane = 'p1_journal' AND queue.scope <> 'path'
+                 AND (
+                   (queue.attempt_count < ?3 AND queue.status = 'pending' AND queue.ready_unix_ms <= ?4)
+                   OR (queue.attempt_count < ?3 AND queue.status = 'retry_wait'
+                     AND queue.next_retry_unix_ms IS NOT NULL AND queue.next_retry_unix_ms <= ?4)
+                   OR (queue.status = 'leased' AND queue.lease_expires_unix_ms IS NOT NULL
+                     AND queue.lease_expires_unix_ms <= ?4)
+                 )
+             )",
+            params![self.root_id, sqlite_integer(self.root_generation.value(), "root generation")?,
+                i64::from(self.policy.max_attempts), self.now_unix_ms],
+            |row| row.get(0),
+        ).map_err(database_error)
+    }
 }
 
 pub(super) fn has_unresolved_metadata_inventory_recovery_candidates(

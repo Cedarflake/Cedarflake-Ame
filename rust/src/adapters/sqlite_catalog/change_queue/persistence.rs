@@ -465,6 +465,9 @@ pub(super) fn recover_expired_leases(
                      ?4 = 0
                      OR (?4 = 1 AND scope = 'path' AND intent_kind <> 'freshness_unknown')
                      OR (?4 = 2 AND (scope <> 'path' OR intent_kind = 'freshness_unknown'))
+                     OR (?4 = 10 AND scope <> 'path'
+                       AND EXISTS(SELECT 1 FROM library_change_queue_lanes AS lane
+                         WHERE lane.change_id = library_change_queue.id AND lane.lane = 'p1_journal'))
                      OR (?4 BETWEEN 3 AND 5 AND scope = 'path'
                        AND intent_kind <> 'freshness_unknown'
                        AND EXISTS(

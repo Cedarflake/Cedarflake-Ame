@@ -25,6 +25,8 @@ use super::{AuthoritativeRecoveryPolicy, process_ready_library_changes_in_lane};
 mod admission;
 #[cfg(windows)]
 mod journal_baseline;
+#[cfg(windows)]
+mod journal_drain;
 mod observation_diagnostics;
 mod observer_handoff;
 mod production;
