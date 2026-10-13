@@ -409,7 +409,10 @@ fn empty_baseline_replay_reads_its_boundary_without_resolving_source_names() {
             &AtomicBool::new(false),
         )
         .unwrap();
-    assert!(matches!(outcomes[0].page, Ok(None)));
+    assert!(matches!(
+        &outcomes[0].page,
+        Ok(Some(PersistentJournalReadPage::EmptyReplay(receipt))) if receipt == &checkpoint
+    ));
     assert_eq!(source.reads.load(Ordering::Relaxed), 1);
     assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
     assert_eq!(*source.request.lock().unwrap(), Some(10));

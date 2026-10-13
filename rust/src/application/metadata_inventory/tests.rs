@@ -3266,6 +3266,13 @@ fn baseline_blocks_absence_until_closing_and_completes_atomically_after_restart(
             },
         )
         .expect("capture closing boundary");
+    assert!(
+        !fixture
+            .catalog
+            .persistent_journal_baseline_closing_is_covered(baseline.change_id)
+            .expect("an unread empty replay does not establish coverage")
+    );
+    record_successful_empty_baseline_replay(&mut fixture, 1_200);
     let catalog_path = fixture._storage.path().join("catalog.sqlite3");
     fixture.catalog = SqliteCatalog::open(catalog_path).expect("restart baseline catalog");
 
@@ -3393,6 +3400,7 @@ fn replacement_before_finalizer_preserves_catalog_checkpoint_and_authority() {
     let (change_id, root, volume) =
         prepare_baseline_closing_wait(&mut fixture, "finalizer-root-rebinding", 9_000);
     capture_baseline_closing_boundary(&mut fixture, change_id, volume, 9_100);
+    record_successful_empty_baseline_replay(&mut fixture, 9_100);
     let original = fixture.source.path().to_path_buf();
     let moved = original.with_file_name("finalizer-root-rebinding-moved");
     set_before_metadata_inventory_finalization_hook({
@@ -3576,6 +3584,20 @@ fn capture_baseline_closing_boundary(
             },
         )
         .expect("capture closing boundary");
+}
+
+fn record_successful_empty_baseline_replay(fixture: &mut InventoryFixture, observed_unix_ms: i64) {
+    let checkpoint = fixture
+        .catalog
+        .load_persistent_journal_checkpoint(&fixture.root_id, LibraryRootGeneration::initial())
+        .expect("load empty replay checkpoint")
+        .expect("captured empty replay checkpoint");
+    assert!(
+        fixture
+            .catalog
+            .record_persistent_journal_empty_replay(&checkpoint, observed_unix_ms)
+            .expect("record successful empty replay")
+    );
 }
 
 fn assert_no_current_journal_authority(fixture: &InventoryFixture) {

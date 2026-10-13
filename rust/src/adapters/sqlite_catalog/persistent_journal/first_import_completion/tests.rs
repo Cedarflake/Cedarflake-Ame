@@ -157,7 +157,7 @@ fn assert_candidate_rechecked(enqueue_live: bool) {
         assert_eq!(
             state,
             (
-                "replay".into(),
+                "absence".into(),
                 "pending".into(),
                 "catching_up".into(),
                 "catching_up".into(),
