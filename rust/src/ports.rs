@@ -6,7 +6,7 @@ mod gallery_query;
 pub use gallery_query::GalleryQueryRepository;
 mod source_reconciliation;
 pub(crate) use source_reconciliation::{
-    SourceReconciliationAdmission, SourceReconciliationRepository,
+    SourceReconciliationAdmission, SourceReconciliationRepository, SourceReconciliationScope,
 };
 
 mod preview_health;

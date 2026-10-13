@@ -3,9 +3,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::adapters::PublicationGuardedFileDiscovery;
 use crate::domain::{
-    AssetLocationView, IncrementalLibraryChangeReport, LibraryChangeIntent,
-    LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, PreviewRequest, ScanError, ScanIssue,
+    AssetLocationView, IncrementalLibraryChangeReport, LibraryChangeLane, LibraryChangeQueuePolicy,
+    LibraryRootGeneration, PreviewRequest, ScanError, ScanIssue,
 };
 use crate::ports::{
     IncrementalCatalogRepository, SourceReconciliationAdmission, SourceReconciliationRepository,
@@ -15,6 +14,8 @@ use super::super::incremental_library_changes::{
     AuthoritativePathSetContext, process_authoritative_path_set,
 };
 use super::super::{StoragePaths, catalog_session};
+mod path_plan;
+use path_plan::ReconciliationPaths;
 
 enum SourceReconciliationOutcome {
     RequestRetired,
@@ -58,7 +59,7 @@ pub(super) fn recover_source_mismatch(
     ) {
         return ScanError::new(issue.code, issue.message);
     }
-    match reconcile_source(storage, request, location, root_generation) {
+    match reconcile_source(storage, request, location, root_generation, &issue) {
         Ok(SourceReconciliationOutcome::RequestRetired) => ScanError::new(
             "preview_request_superseded",
             format!(
@@ -89,10 +90,14 @@ fn reconcile_source(
     request: &PreviewRequest,
     location: &AssetLocationView,
     root_generation: LibraryRootGeneration,
+    issue: &ScanIssue,
 ) -> Result<SourceReconciliationOutcome, ScanError> {
-    let mut catalog =
-        catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
-    let Some(root) = catalog.load_incremental_catalog_root(&location.root_id)? else {
+    let root = {
+        let catalog =
+            catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
+        catalog.load_incremental_catalog_root(&location.root_id)?
+    };
+    let Some(root) = root else {
         return Ok(SourceReconciliationOutcome::RequestRetired);
     };
     if root.root_generation != root_generation
@@ -107,6 +112,7 @@ fn reconcile_source(
         &root.root_path,
         identity,
     )?;
+    let paths = ReconciliationPaths::discover(&root, location, issue)?;
     let now = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .ok()
@@ -122,20 +128,9 @@ fn reconcile_source(
         max_lease_batch: 1,
         ..LibraryChangeQueuePolicy::default()
     };
-    let intent = LibraryChangeIntent {
-        root_id: location.root_id.clone(),
-        root_generation,
-        kind: LibraryChangeIntentKind::Reconcile,
-        scope: LibraryChangeScope::Path,
-        relative_path: location.relative_path.clone(),
-        previous_relative_path: None,
-        origin: LibraryChangeOrigin::ConsistencyAudit,
-        first_observed_unix_ms: now,
-        most_recent_observed_unix_ms: now,
-        first_sequence: 0,
-        most_recent_sequence: 0,
-        coalesced_observation_count: 1,
-    };
+    let (intent, relative_paths) = paths.into_work(&root, now);
+    let mut catalog =
+        catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Recovery)?;
     let leased = match catalog.admit_source_reconciliation(request, &intent, now, policy)? {
         SourceReconciliationAdmission::Leased(leased) => leased,
         SourceReconciliationAdmission::RequestSuperseded
@@ -154,7 +149,7 @@ fn reconcile_source(
             expected_catalog_revision: root.catalog_revision,
             expected_root_identity: identity,
             leased: &leased,
-            relative_paths: std::slice::from_ref(&location.relative_path),
+            relative_paths: &relative_paths,
             now_unix_ms: now,
             queue_policy: policy,
             cancellation: &AtomicBool::new(false),

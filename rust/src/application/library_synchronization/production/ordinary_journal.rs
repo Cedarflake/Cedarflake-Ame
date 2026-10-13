@@ -269,10 +269,10 @@ fn ordinary_client_worker() {
     let fence = reserve_production_library_synchronization_stop_fence().expect("stop fence");
     stop_production_library_synchronization(fence).expect("ordinary process shutdown");
     let connection = Connection::open(&storage.catalog_path).expect("closed catalog");
-    let scans: u64 = connection
+    let scans: i64 = connection
         .query_row("SELECT COUNT(*) FROM scan_runs", [], |row| row.get(0))
         .expect("scan count");
-    let inventories: u64 = connection
+    let inventories: i64 = connection
         .query_row(
             "SELECT COUNT(*) FROM library_metadata_inventory_runs",
             [],

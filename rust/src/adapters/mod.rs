@@ -12,6 +12,8 @@ mod storage_settings;
 #[cfg(windows)]
 mod windows_identity_journal;
 #[cfg(windows)]
+pub(crate) use windows_identity_journal::current_identity_paths;
+#[cfg(windows)]
 pub(crate) use windows_identity_journal::production_factory as production_identity_journal_factory;
 #[cfg(windows)]
 mod windows_library_change_source;

@@ -1,10 +1,12 @@
 use rusqlite::params;
 
 use crate::domain::{
-    LeasedLibraryChange, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
-    LibraryChangeOrigin, LibraryChangeQueuePolicy, LibraryChangeScope, PreviewRequest, ScanError,
+    LeasedLibraryChange, LibraryChangeIntent, LibraryChangeLane, LibraryChangeQueuePolicy,
+    LibraryChangeScope, PreviewRequest, ScanError,
 };
-use crate::ports::{SourceReconciliationAdmission, SourceReconciliationRepository};
+use crate::ports::{
+    SourceReconciliationAdmission, SourceReconciliationRepository, SourceReconciliationScope,
+};
 
 use super::super::{
     SqliteCatalog, database_error, load_catalog_revision, source_revision_token, sqlite_integer,
@@ -27,12 +29,13 @@ impl SourceReconciliationRepository for SqliteCatalog {
     ) -> Result<SourceReconciliationAdmission, ScanError> {
         validate_policy(policy)?;
         validate_intent_batch(std::slice::from_ref(intent), intent)?;
-        if intent.root_id != request.expected_root_id
-            || intent.origin != LibraryChangeOrigin::ConsistencyAudit
-            || intent.scope != LibraryChangeScope::Path
-            || intent.kind != LibraryChangeIntentKind::Reconcile
-            || intent.previous_relative_path.is_some()
-        {
+        let scope = SourceReconciliationScope::from_intent(intent).ok_or_else(|| {
+            ScanError::new(
+                "source_reconciliation_scope_invalid",
+                "Source reconciliation requires a guarded existing catalog path",
+            )
+        })?;
+        if intent.root_id != request.expected_root_id {
             return Err(ScanError::new(
                 "source_reconciliation_scope_invalid",
                 "Source reconciliation requires one existing catalog path",
@@ -59,7 +62,7 @@ impl SourceReconciliationRepository for SqliteCatalog {
                         .as_ref()
                         .map(source_revision_token)
                         .transpose()?,
-                    intent.relative_path
+                    scope.previous_path()
                 ],
                 |row| row.get::<_, bool>(0),
             )
@@ -78,8 +81,11 @@ impl SourceReconciliationRepository for SqliteCatalog {
         if active.iter().any(|change| {
             change.intent.scope == LibraryChangeScope::Path
                 && (change.intent.relative_path == intent.relative_path
+                    || change.intent.relative_path == scope.previous_path()
                     || change.intent.previous_relative_path.as_deref()
-                        == Some(&intent.relative_path))
+                        == Some(&intent.relative_path)
+                    || change.intent.previous_relative_path.as_deref()
+                        == Some(scope.previous_path()))
         }) {
             return Ok(SourceReconciliationAdmission::ExistingPathWork);
         }
@@ -106,7 +112,7 @@ impl SourceReconciliationRepository for SqliteCatalog {
                  next_retry_unix_ms = NULL, lease_generation = lease_generation + 1,
                  lease_expires_unix_ms = ?1, updated_unix_ms = ?2
              WHERE id = ?3 AND root_id = ?4 AND relative_path = ?5
-               AND scope = 'path' AND intent_kind = 'reconcile'
+               AND scope = 'path' AND intent_kind IN ('reconcile', 'rename_candidate')
                AND origin = 'consistency_audit' AND status = 'pending'
                AND ready_unix_ms <= ?2 AND attempt_count < ?6
                AND NOT EXISTS(SELECT 1 FROM library_metadata_inventory_candidate_owners WHERE change_id = ?3)

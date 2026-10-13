@@ -4,10 +4,9 @@ use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{
     CatalogDeltaBatch, CatalogDeltaPublicationStatus, FileIdentityEvidence,
     IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeCompletion,
-    LibraryChangeIntentKind, LibraryChangeLane, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRootGeneration, ScanError,
+    LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRootGeneration, ScanError,
 };
-use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue};
+use crate::ports::{IncrementalCatalogRepository, LibraryChangeQueue, SourceReconciliationScope};
 
 use super::preparation_catalog::PreparationCatalog;
 use super::preparation_rebase::{RebaseContext, preparation_is_current};
@@ -117,7 +116,7 @@ where
         return Ok(report);
     }
     let inspector = LocalMediaInspector::new();
-    let mut preparation = if is_single_source_reconciliation(&request) {
+    let mut preparation = if is_source_reconciliation(&request) {
         PreparationCatalog::new(repository)
     } else {
         PreparationCatalog::untracked(repository)
@@ -305,13 +304,9 @@ where
     }
 }
 
-fn is_single_source_reconciliation(request: &AuthoritativePathSetRequest<'_>) -> bool {
-    let intent = &request.leased.change.intent;
-    intent.origin == LibraryChangeOrigin::ConsistencyAudit
-        && intent.scope == LibraryChangeScope::Path
-        && intent.kind == LibraryChangeIntentKind::Reconcile
-        && intent.previous_relative_path.is_none()
-        && matches!(request.relative_paths, [path] if *path == intent.relative_path)
+fn is_source_reconciliation(request: &AuthoritativePathSetRequest<'_>) -> bool {
+    SourceReconciliationScope::from_intent(&request.leased.change.intent)
+        .is_some_and(|scope| scope.admits_paths(request.relative_paths))
 }
 
 fn defer_authoritative_path_set<Repository>(

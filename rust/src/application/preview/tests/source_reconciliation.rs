@@ -19,6 +19,7 @@ use rusqlite::{Connection, params};
 use super::*;
 
 mod publication_race;
+mod relocated_source;
 
 fn ready_source_fixture(suffix: &str) -> (PreviewFixture, AssetLocationView) {
     let fixture = preview_fixture(suffix);
