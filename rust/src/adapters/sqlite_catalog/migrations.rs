@@ -23,6 +23,7 @@ use super::{
 };
 
 mod current_schema;
+mod foreground_queue_index;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 mod persistent_journal_baseline;
@@ -86,6 +87,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         migrate_v30_to_v31_transaction(&transaction)?;
         inventory_spool_retirement::migrate_transaction(&transaction)?;
         scan_resume_inventory::migrate_transaction(&transaction)?;
+        foreground_queue_index::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -158,6 +160,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             30 => migrate_v30_to_v31(connection)?,
             31 => inventory_spool_retirement::migrate(connection)?,
             32 => scan_resume_inventory::migrate(connection)?,
+            33 => foreground_queue_index::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -727,7 +730,7 @@ fn legacy_terminal_metadata_inventory_repair_shape_matches(
         27 => Some(1),
         28..=30 => Some(2),
         31 => Some(3),
-        32 | 33 => Some(4),
+        32..=34 => Some(4),
         _ => return Ok(false),
     };
     let core_matches = schema_object_sql_matches(
@@ -836,7 +839,7 @@ fn retired_live_gap_claim_repair_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if !matches!(schema_version, 30..=33) {
+    if !matches!(schema_version, 30..=34) {
         return Ok(false);
     }
     let schema_matches = schema_object_sql_matches(

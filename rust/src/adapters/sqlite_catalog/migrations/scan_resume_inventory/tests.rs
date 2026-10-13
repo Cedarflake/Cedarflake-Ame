@@ -88,7 +88,10 @@ fn v32_migration_preserves_unpublished_checkpoint_and_retained_assets() {
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .expect("preserved values");
-    assert_eq!(result, (33, 12, 1));
+    assert_eq!(
+        result,
+        (crate::adapters::sqlite_catalog::SCHEMA_VERSION, 12, 1)
+    );
     assert_eq!(location_evidence(&connection), retained_location);
     validate_structure(&connection).expect("current resume schema");
 }

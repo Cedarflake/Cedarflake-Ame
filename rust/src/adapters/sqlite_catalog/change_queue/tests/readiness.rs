@@ -1,5 +1,7 @@
 use super::*;
 
+mod lane_isolation;
+
 type Readiness = fn(
     &SqliteCatalog,
     &str,

@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-17
+- Last amended: 2026-10-13
 
 ## Context
 
@@ -130,6 +131,14 @@ also request an explicit cleanup of at most 1024 rows. Pending, leased, retry-wa
 freshness-gap work, and root-generation tombstones are never removed by cleanup.
 Structured metrics expose every state count, ready work, expired leases, exhausted retries,
 unresolved freshness gaps, health, and oldest ready delay without mutating work.
+
+Schema v34 adds a partial index of active queue rows by root, generation, origin and status.
+Foreground readiness constrains both the existing lane authority and its guarded origin mapping,
+so unrelated recovery backlog does not determine P0/P1 polling cost. Due times, expired leases,
+retry limits and claim ownership retain their existing predicates. The index is an optional access
+path, not authority: current catalogs remain readable without it, and readiness never uses a hard
+index hint. Migration preserves retained rows and rejects a conflicting same-name schema object
+atomically. It enumerates derived queue rows once to build the index and reads no source files.
 
 ## Validation gates
 

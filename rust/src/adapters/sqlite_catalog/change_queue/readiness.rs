@@ -45,6 +45,7 @@ impl<'a> ReadinessQuery<'a> {
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p0_live'
+                     AND queue.origin = 'live_notification'
                      AND queue.scope = 'path'
                      AND queue.intent_kind <> 'freshness_unknown'
                      AND (
@@ -79,6 +80,7 @@ impl<'a> ReadinessQuery<'a> {
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p1_journal'
+                     AND queue.origin = 'startup_catch_up'
                      AND queue.scope = 'path'
                      AND queue.intent_kind <> 'freshness_unknown'
                      AND (
@@ -281,6 +283,7 @@ impl<'a> ReadinessQuery<'a> {
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p0_live'
+                     AND queue.origin = 'live_notification'
                      AND NOT EXISTS(
                        SELECT 1 FROM library_live_gap_recovery_claims AS claim
                        WHERE claim.gap_change_id = queue.id

@@ -122,6 +122,7 @@ fn invalid_contract() -> ScanError {
 pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v32_for_test(
     connection: &Connection,
 ) {
+    super::foreground_queue_index::downgrade_to_v33_for_test(connection);
     for (kind, name, _) in OBJECTS.iter().rev() {
         connection
             .execute_batch(&format!("DROP {kind} {name}"))

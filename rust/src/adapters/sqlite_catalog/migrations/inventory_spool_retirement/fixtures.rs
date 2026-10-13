@@ -15,7 +15,7 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v31_for_test
     let version: i64 = connection
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("fixture version");
-    if version == 33 {
+    if matches!(version, 33 | 34) {
         super::super::scan_resume_inventory::downgrade_to_v32_for_test(connection);
     } else if version != 32 {
         return;
