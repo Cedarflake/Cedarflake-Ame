@@ -9,7 +9,8 @@ use super::*;
 fn downgrade(connection: &Connection) {
     connection
         .execute_batch(
-            "DROP TABLE scan_directory_identities;
+            "DROP TABLE library_journal_scope_recoveries;
+         DROP TABLE scan_directory_identities;
          UPDATE schema_info SET version = 34; PRAGMA user_version = 34;",
         )
         .expect("v34 fixture");
