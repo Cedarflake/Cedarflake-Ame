@@ -43,6 +43,12 @@ impl<'a> ReadinessQuery<'a> {
                    FROM library_change_queue AS queue
                    JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p0_live'
                      AND queue.origin = 'live_notification'
@@ -78,6 +84,12 @@ impl<'a> ReadinessQuery<'a> {
                    FROM library_change_queue AS queue
                    JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p1_journal'
                      AND queue.origin = 'startup_catch_up'
@@ -119,6 +131,12 @@ impl<'a> ReadinessQuery<'a> {
                    JOIN library_recovery_authorities AS authority
                      ON authority.run_id = owner.run_id
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND queue.scope = 'path'
                      AND queue.intent_kind <> 'freshness_unknown'
@@ -156,6 +174,12 @@ impl<'a> ReadinessQuery<'a> {
                    FROM library_change_queue AS queue
                    JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND queue.scope = 'path'
                      AND queue.intent_kind <> 'freshness_unknown'
@@ -194,6 +218,12 @@ impl<'a> ReadinessQuery<'a> {
                    FROM library_change_queue AS queue
                    JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND queue.scope <> 'path'
                      AND lane.lane = 'p2_recovery'
                      AND queue.status IN ('pending', 'retry_wait')
@@ -239,6 +269,12 @@ impl<'a> ReadinessQuery<'a> {
                      ON window.change_id = authority.change_id
                     AND window.phase <> 'completed'
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND (?5 IS NULL OR queue.id = ?5)
                      AND lanes.lane = 'p2_recovery'
@@ -246,6 +282,11 @@ impl<'a> ReadinessQuery<'a> {
                      AND authority.reason <> 'first_import_boundary'
                      AND authority.run_id <> ''
                      AND (authority.reason = 'watcher_uncovered_gap'
+                       OR (authority.reason = 'journal_reconstruction_failure' AND EXISTS(
+                         SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                         WHERE recovery.current_change_id = authority.change_id
+                           OR recovery.previous_change_id = authority.change_id
+                       ))
                        OR window.change_id IS NOT NULL)
                      AND (queue.scope <> 'path'
                        OR queue.intent_kind = 'freshness_unknown')
@@ -281,6 +322,12 @@ impl<'a> ReadinessQuery<'a> {
                    FROM library_change_queue AS queue
                    JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p0_live'
                      AND queue.origin = 'live_notification'
@@ -329,6 +376,12 @@ impl<'a> ReadinessQuery<'a> {
                SELECT 1 FROM library_change_queue AS queue
                JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
                WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                  AND lane.lane = 'p1_journal' AND queue.scope <> 'path'
                  AND (
                    (queue.attempt_count < ?3 AND queue.status = 'pending' AND queue.ready_unix_ms <= ?4)

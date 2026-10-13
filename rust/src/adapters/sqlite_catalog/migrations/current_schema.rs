@@ -63,6 +63,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     if schema_version >= 35 {
         super::directory_identities::validate_rows(connection)?;
     }
+    if schema_version >= 37 {
+        super::journal_scope_recovery::validate_rows(connection)?;
+    }
     validate_source_revision_rows(connection)
 }
 
@@ -94,6 +97,9 @@ pub(super) fn validate_schema_structure(
     }
     if schema_version >= 36 {
         super::journal_directory_namespace::validate(connection)?;
+    }
+    if schema_version >= 37 {
+        super::journal_scope_recovery::validate(connection)?;
     }
     validate_existing_source_metadata_marker(connection)
 }

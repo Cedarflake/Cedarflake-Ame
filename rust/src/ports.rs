@@ -342,6 +342,43 @@ pub trait LibraryChangeQueue {
         promoted_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError>;
+    fn promote_journal_scope_to_metadata_inventory(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        failure: &LibraryChangeFailure,
+        promoted_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        let _ = (
+            change_id,
+            lease_generation,
+            failure,
+            promoted_unix_ms,
+            policy,
+        );
+        Err(ScanError::new(
+            "journal_scope_recovery_unsupported",
+            "This queue does not support durable journal scope recovery",
+        ))
+    }
+    fn continue_journal_scope_recovery(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        catalog_revision: u64,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<crate::domain::JournalScopeRecoveryOutcome>, ScanError> {
+        let _ = (
+            change_id,
+            lease_generation,
+            catalog_revision,
+            now_unix_ms,
+            policy,
+        );
+        Ok(None)
+    }
     fn defer_library_change_for_capacity(
         &mut self,
         change_id: LibraryChangeId,

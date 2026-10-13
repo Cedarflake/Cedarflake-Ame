@@ -1,5 +1,8 @@
 use std::fmt::{Display, Formatter};
 
+mod journal_scope_recovery;
+pub use journal_scope_recovery::JournalScopeRecoveryOutcome;
+
 pub mod gallery_query_snapshot;
 pub use gallery_query_snapshot::{GalleryQueryAnchor, GalleryQuerySnapshot};
 pub mod gallery_time_snapshot;

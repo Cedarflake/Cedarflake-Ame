@@ -5917,6 +5917,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "journal_scope_recovery",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "gallery_query_snapshot",
             visibility: "pub",
             attributes: &[],
@@ -5973,6 +5979,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "metadata_inventory_evidence",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "scan_enumeration",
             visibility: "",

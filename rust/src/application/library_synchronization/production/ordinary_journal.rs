@@ -222,7 +222,7 @@ fn ordinary_client_worker() {
                 root_path: root_path.clone(),
                 max_items: Some(8),
                 max_entries: Some(32),
-                preview_edge: 64,
+                preview_edge: 96,
             },
             |event| {
                 if let ScanEvent::Started { .. } = event {

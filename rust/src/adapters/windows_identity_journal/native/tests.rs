@@ -59,7 +59,7 @@ fn hardlinks_retain_every_root_alias_when_the_primary_name_is_outside() {
 }
 
 #[test]
-fn exclusively_open_identity_becomes_inaccessible_until_the_owner_releases_it() {
+fn exclusive_content_lock_still_allows_attribute_only_identity_resolution() {
     let fixture = tempdir().unwrap();
     let path = fixture.path().join("locked.txt");
     fs::write(&path, b"generated metadata fixture").unwrap();
@@ -73,12 +73,13 @@ fn exclusively_open_identity_becomes_inaccessible_until_the_owner_releases_it() 
         .open(&path)
         .unwrap();
 
-    assert_eq!(
-        root.locations(&reference).unwrap_err().code,
-        "identity_journal_identity_access_denied"
-    );
+    assert_eq!(fs::File::open(&path).unwrap_err().raw_os_error(), Some(32));
+    let while_locked = root.locations(&reference).unwrap().unwrap();
+    assert_eq!(while_locked.len(), 1);
+    assert_eq!(while_locked[0].relative_path, "locked.txt");
     drop(held);
     let locations = root.locations(&reference).unwrap().unwrap();
     assert_eq!(locations.len(), 1);
     assert_eq!(locations[0].relative_path, "locked.txt");
+    assert_eq!(locations[0].identity, while_locked[0].identity);
 }

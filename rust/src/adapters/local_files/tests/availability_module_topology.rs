@@ -15,6 +15,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "catalog_identity",
         "directory_coverage",
         "media_signature",
+        "metadata_inventory_evidence",
         "file_admission",
         "file_revalidation",
         "preview_cache_namespace",

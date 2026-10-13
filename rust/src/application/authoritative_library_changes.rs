@@ -143,6 +143,31 @@ where
     if cancellation.load(Ordering::Relaxed) {
         return defer_authoritative_change(repository, leased, root.catalog_revision, now_unix_ms);
     }
+    if leased.change.intent.origin == LibraryChangeOrigin::StartupCatchUp
+        && let Some(outcome) = repository.continue_journal_scope_recovery(
+            leased.change.id,
+            leased.lease_generation,
+            root.catalog_revision,
+            now_unix_ms,
+            queue_policy,
+        )?
+    {
+        let mut incremental = IncrementalLibraryChangeReport {
+            leased_count: 1,
+            catalog_revision: root.catalog_revision,
+            ..Default::default()
+        };
+        match outcome {
+            crate::domain::JournalScopeRecoveryOutcome::Deferred => incremental.deferred_count = 1,
+            crate::domain::JournalScopeRecoveryOutcome::Completed => {
+                incremental.completed_count = 1
+            }
+            crate::domain::JournalScopeRecoveryOutcome::Rejected(_) => {
+                incremental.superseded_count = 1
+            }
+        }
+        return Ok(AuthoritativeLibraryChangeReport { incremental });
+    }
     if leased.change.intent.origin == LibraryChangeOrigin::LiveNotification
         && leased.change.intent.kind == LibraryChangeIntentKind::FreshnessUnknown
         && leased.change.intent.scope == LibraryChangeScope::Root
@@ -453,6 +478,16 @@ where
         ..IncrementalLibraryChangeReport::default()
     };
     let outcome = if failure.code == "metadata_inventory_required"
+        && leased.change.intent.origin == LibraryChangeOrigin::StartupCatchUp
+    {
+        repository.promote_journal_scope_to_metadata_inventory(
+            leased.change.id,
+            leased.lease_generation,
+            &failure,
+            now_unix_ms,
+            policy,
+        )?
+    } else if failure.code == "metadata_inventory_required"
         && leased.change.intent.origin == crate::domain::LibraryChangeOrigin::LiveNotification
     {
         match repository.promote_live_watcher_gap_to_metadata_inventory(

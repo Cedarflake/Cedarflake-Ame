@@ -23,6 +23,7 @@ use super::{
 mod coalescing;
 mod gap_promotion;
 mod ingress;
+mod journal_scope_recovery;
 mod lease_deferral;
 mod lease_matching;
 mod metrics;
@@ -895,6 +896,42 @@ impl LibraryChangeQueue for SqliteCatalog {
             lease_generation,
             failure,
             promoted_unix_ms,
+            policy,
+        )
+    }
+
+    fn promote_journal_scope_to_metadata_inventory(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        failure: &LibraryChangeFailure,
+        promoted_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<LibraryChangeLeaseUpdateOutcome, ScanError> {
+        journal_scope_recovery::promote(
+            self,
+            change_id,
+            lease_generation,
+            failure,
+            promoted_unix_ms,
+            policy,
+        )
+    }
+
+    fn continue_journal_scope_recovery(
+        &mut self,
+        change_id: LibraryChangeId,
+        lease_generation: u64,
+        catalog_revision: u64,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<Option<crate::domain::JournalScopeRecoveryOutcome>, ScanError> {
+        journal_scope_recovery::advance(
+            self,
+            change_id,
+            lease_generation,
+            catalog_revision,
+            now_unix_ms,
             policy,
         )
     }

@@ -13,6 +13,9 @@ use crate::domain::{
 };
 use crate::ports::LibraryChangeQueue;
 
+#[cfg(windows)]
+mod wide_scope;
+
 fn write_image(path: &Path, color: [u8; 3]) {
     RgbImage::from_pixel(24, 24, Rgb(color))
         .save_with_format(path, ImageFormat::Png)
@@ -42,7 +45,7 @@ fn paired_directory_rename_preserves_assets_in_one_catalog_publication() {
             root_path: source.path().to_string_lossy().into_owned(),
             max_items: None,
             max_entries: None,
-            preview_edge: 64,
+            preview_edge: 96,
         },
         |_| true,
         storage.clone(),

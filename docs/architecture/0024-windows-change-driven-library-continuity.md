@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Last amended: 2026-10-13
+- Last amended: 2026-10-14
 - Supersedes: ADR 0023
 - Historical predecessor: ADR 0022
 
@@ -271,6 +271,14 @@ Production has three distinct lanes:
   continuity evidence and a candidate source, not final file state.
 - **P2 Recovery**: metadata inventory for one-time baseline establishment or a proven continuity
   gap. It is never created merely because the application started or time elapsed.
+
+An oversized P1 directory candidate has unresolved namespace reconstruction, even when its raw
+journal range is continuous. Its original task retains range ownership while bounded P2 recovery
+publishes the current subtree, then reconciles the previous subtree for a rename. These scopes
+remain separate; sibling directories do not authorize inventory of their common root. The parent
+cannot complete before both children and their publication work finish. Durable child bindings
+preserve this order across restart, capacity deferral and terminal-record cleanup, without adding
+a new baseline or moving the journal checkpoint past unresolved catalog work.
 
 All lanes feed the same ADR 0016 normalization, ADR 0007 identity rules, source-state inspection,
 and ADR 0019 atomic catalog-delta publisher. Raw watcher kinds, USN reason flags, file references,

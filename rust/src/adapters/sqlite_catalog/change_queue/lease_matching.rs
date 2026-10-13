@@ -31,6 +31,12 @@ impl SqliteCatalog {
                  ) AND EXISTS(
                    SELECT 1 FROM library_change_queue AS queue
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND NOT EXISTS(
+                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                       JOIN library_change_queue AS child
+                         ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                       WHERE recovery.parent_change_id = queue.id AND child.status <> 'completed'
+                     )
                      AND (
                        (queue.status = 'retry_wait' AND queue.attempt_count >= ?3
                          AND queue.next_retry_unix_ms IS NOT NULL)
@@ -62,6 +68,11 @@ impl SqliteCatalog {
                                  AND authority.run_id <> ''
                                  AND (
                                    authority.reason = 'watcher_uncovered_gap'
+                                   OR (authority.reason = 'journal_reconstruction_failure' AND EXISTS(
+                                     SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                                     WHERE recovery.current_change_id = authority.change_id
+                                       OR recovery.previous_change_id = authority.change_id
+                                   ))
                                    OR EXISTS(
                                      SELECT 1
                                      FROM library_persistent_journal_baselines AS window
@@ -206,6 +217,13 @@ impl SqliteCatalog {
                     "SELECT id
                  FROM library_change_queue
                   WHERE root_id = ?1 AND root_generation = ?2
+                    AND NOT EXISTS(
+                      SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                      JOIN library_change_queue AS child
+                        ON child.id = COALESCE(recovery.previous_change_id, recovery.current_change_id)
+                      WHERE recovery.parent_change_id = library_change_queue.id
+                        AND child.status <> 'completed'
+                    )
                     AND attempt_count < ?3
                     AND (?6 <> 6 OR ?7 IS NULL OR id = ?7)
                     AND (
@@ -231,6 +249,11 @@ impl SqliteCatalog {
                            AND authority.run_id <> ''
                            AND (
                              authority.reason = 'watcher_uncovered_gap'
+                             OR (authority.reason = 'journal_reconstruction_failure' AND EXISTS(
+                               SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                               WHERE recovery.current_change_id = authority.change_id
+                                 OR recovery.previous_change_id = authority.change_id
+                             ))
                              OR EXISTS(
                                SELECT 1
                                FROM library_persistent_journal_baselines AS window

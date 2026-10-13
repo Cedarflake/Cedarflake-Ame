@@ -24,6 +24,13 @@ pub(super) fn cleanup_terminal_records(
                  WHERE changes.status IN ('completed', 'superseded')
                    AND changes.updated_unix_ms <= ?1
                    AND NOT EXISTS (
+                     SELECT 1 FROM library_journal_scope_recoveries AS recovery
+                     JOIN library_change_queue AS parent ON parent.id = recovery.parent_change_id
+                     WHERE parent.status IN ('pending', 'leased', 'retry_wait')
+                       AND (recovery.current_change_id = changes.id
+                         OR recovery.previous_change_id = changes.id)
+                   )
+                   AND NOT EXISTS (
                      SELECT 1 FROM library_metadata_inventory_candidate_owners AS owner
                      WHERE owner.change_id = changes.id
                    )

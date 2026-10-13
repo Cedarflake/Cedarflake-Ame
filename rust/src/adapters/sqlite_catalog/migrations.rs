@@ -28,6 +28,7 @@ mod foreground_queue_index;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 mod journal_directory_namespace;
+mod journal_scope_recovery;
 mod persistent_journal_baseline;
 mod retained_source_state;
 mod retired_root_authority;
@@ -92,6 +93,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         foreground_queue_index::migrate_transaction(&transaction)?;
         directory_identities::migrate_transaction(&transaction)?;
         journal_directory_namespace::migrate_transaction(&transaction)?;
+        journal_scope_recovery::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -167,6 +169,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             33 => foreground_queue_index::migrate(connection)?,
             34 => directory_identities::migrate(connection)?,
             35 => journal_directory_namespace::migrate(connection)?,
+            36 => journal_scope_recovery::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
