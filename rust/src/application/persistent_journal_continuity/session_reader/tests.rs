@@ -470,7 +470,10 @@ fn root_at_the_common_end_does_not_block_a_progressing_sibling() {
     assert_eq!(state.shared_read_count.load(Ordering::Acquire), 1);
     let captured = state.captured.lock().expect("captured request");
     assert_eq!(captured.as_ref().expect("shared request").roots.len(), 1);
-    assert!(matches!(&outcomes[0].page, Ok(Some(_.into()))));
+    assert!(matches!(
+        &outcomes[0].page,
+        Ok(Some(PersistentJournalReadPage::Enrolled { .. }))
+    ));
     assert!(matches!(&outcomes[1].page, Ok(None)));
 }
 
