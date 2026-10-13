@@ -45,11 +45,11 @@ use super::observation_diagnostics::measure_observation;
 use super::production_synchronization_cadence::ProductionSynchronizationCadence;
 #[cfg(windows)]
 use crate::application::{
-    AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
+    AuthoritativeLibraryChangeReport, JournalCaptureWindowReport, MetadataInventoryProgressPhase,
     MetadataInventoryRecoveryExecution, MetadataInventoryRecoveryPage,
     MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl, PersistentJournalBrokerRoot,
     ProductionPersistentJournalVolumeReader, RetainedMetadataInventorySource,
-    catch_up_persistent_journal_volume, classify_persistent_journal_operation_failure,
+    catch_up_persistent_journal_window, classify_persistent_journal_operation_failure,
     defer_authoritative_change, leased_change_requires_metadata_inventory,
     process_leased_authoritative_library_change_cancellable,
     process_leased_metadata_inventory_change_with_retained_source,
@@ -630,7 +630,7 @@ struct JournalCloseTask {
 
 #[cfg(windows)]
 enum JournalTaskOutcome {
-    Page(PersistentJournalEnrollmentReport),
+    Page(JournalCaptureWindowReport),
     Drain(IncrementalLibraryChangeReport),
     BaselineBoundary,
 }
@@ -2599,20 +2599,22 @@ impl ProductionSynchronization {
         }
         self.journal = None;
         match result {
-            Ok(JournalTaskOutcome::Page(_report)) => {
+            Ok(JournalTaskOutcome::Page(_window)) => {
                 #[cfg(debug_assertions)]
-                eprintln!(
-                    "[Ame sync] journal page finished roots={} failed={} observations={} checkpoints={} failure_codes={:?}",
-                    _report.enrolled_root_count,
-                    _report.failed_root_count,
-                    _report.observation_count,
-                    _report.advanced_checkpoint_count,
-                    _report
-                        .root_failures
-                        .iter()
-                        .map(|failure| failure.failure.code.as_str())
-                        .collect::<Vec<_>>(),
-                );
+                for _report in _window.reports() {
+                    eprintln!(
+                        "[Ame sync] journal page finished roots={} failed={} observations={} checkpoints={} failure_codes={:?}",
+                        _report.enrolled_root_count,
+                        _report.failed_root_count,
+                        _report.observation_count,
+                        _report.advanced_checkpoint_count,
+                        _report
+                            .root_failures
+                            .iter()
+                            .map(|failure| failure.failure.code.as_str())
+                            .collect::<Vec<_>>(),
+                    );
+                }
                 0
             }
             Ok(JournalTaskOutcome::Drain(report)) => {
@@ -3036,7 +3038,7 @@ impl ProductionSynchronization {
                         checkpoints.push(checkpoint);
                     }
                     if checkpoints.is_empty() {
-                        return Ok(JournalTaskOutcome::Page(report));
+                        return Ok(JournalTaskOutcome::Page(report.into()));
                     }
                     let reader = ProductionPersistentJournalVolumeReader::new(
                         session,
@@ -3047,7 +3049,7 @@ impl ProductionSynchronization {
                         ))),
                         catalog.load_persistent_journal_baselines()?,
                     )?;
-                    let healthy_report = catch_up_persistent_journal_volume(
+                    let window = catch_up_persistent_journal_window(
                         &mut catalog,
                         &reader,
                         &checkpoints,
@@ -3055,21 +3057,8 @@ impl ProductionSynchronization {
                         policy,
                         &worker_cancelled,
                     )?;
-                    report.enrolled_root_count = report
-                        .enrolled_root_count
-                        .saturating_add(healthy_report.enrolled_root_count);
-                    report.failed_root_count = report
-                        .failed_root_count
-                        .saturating_add(healthy_report.failed_root_count);
-                    report.observation_count = report
-                        .observation_count
-                        .saturating_add(healthy_report.observation_count);
-                    report.advanced_checkpoint_count = report
-                        .advanced_checkpoint_count
-                        .saturating_add(healthy_report.advanced_checkpoint_count);
-                    report.root_failures.extend(healthy_report.root_failures);
                     drop(registrations);
-                    Ok(JournalTaskOutcome::Page(report))
+                    Ok(JournalTaskOutcome::Page(window.with_registration(report)))
                 })();
                 let _ = sender.send(result);
             })
@@ -4548,7 +4537,7 @@ mod tests {
                 let (sender, receiver) = mpsc::sync_channel(1);
                 let worker = thread::spawn(move || {
                     let _ = sender.send(Ok(JournalTaskOutcome::Page(
-                        PersistentJournalEnrollmentReport::default(),
+                        PersistentJournalEnrollmentReport::default().into(),
                     )));
                 });
                 runtime.journal = Some(JournalTask {
@@ -7306,7 +7295,7 @@ mod tests {
             }
             p1_worker_finished.store(true, Ordering::Release);
             let _ = p1_sender.send(Ok(JournalTaskOutcome::Page(
-                PersistentJournalEnrollmentReport::default(),
+                PersistentJournalEnrollmentReport::default().into(),
             )));
         });
         production.journal = Some(JournalTask {
@@ -7961,7 +7950,7 @@ mod tests {
             thread::sleep(Duration::from_millis(30));
             p1_worker_finished.store(true, Ordering::Release);
             let _ = p1_sender.send(Ok(JournalTaskOutcome::Page(
-                PersistentJournalEnrollmentReport::default(),
+                PersistentJournalEnrollmentReport::default().into(),
             )));
         });
         runtime.journal = Some(JournalTask {
@@ -8385,7 +8374,8 @@ mod tests {
                 PersistentJournalEnrollmentReport {
                     enrolled_root_count: 1,
                     ..PersistentJournalEnrollmentReport::default()
-                },
+                }
+                .into(),
             )));
         });
         runtime.journal = Some(JournalTask {

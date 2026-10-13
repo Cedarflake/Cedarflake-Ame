@@ -454,6 +454,14 @@ pub trait LibraryChangeQueue {
     )
 )]
 pub trait PersistentJournalRepository {
+    fn journal_capture_should_yield(
+        &self,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        let _ = (now_unix_ms, policy);
+        Ok(true)
+    }
     fn begin_persistent_journal_baseline(
         &mut self,
         request: &PersistentJournalBaselineStartRequest,

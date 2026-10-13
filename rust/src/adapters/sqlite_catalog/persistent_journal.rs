@@ -30,6 +30,7 @@ use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
 mod baseline_capability;
 mod baseline_window;
 mod capability;
+mod capture_priority;
 mod empty_replay;
 mod first_import_completion;
 mod root_unregister;
@@ -303,6 +304,13 @@ impl SqliteCatalog {
 }
 
 impl PersistentJournalRepository for SqliteCatalog {
+    fn journal_capture_should_yield(
+        &self,
+        now_unix_ms: i64,
+        policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        capture_priority::should_yield(&self.connection, now_unix_ms, policy)
+    }
     fn begin_persistent_journal_baseline(
         &mut self,
         request: &PersistentJournalBaselineStartRequest,

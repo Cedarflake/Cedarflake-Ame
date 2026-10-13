@@ -11,11 +11,13 @@ use crate::domain::{
 };
 use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
+mod capture_window;
 mod empty_replay;
 mod identity_reader;
 mod production_reader;
 mod read_boundary;
 mod session_reader;
+pub(crate) use capture_window::{JournalCaptureWindowReport, catch_up_persistent_journal_window};
 pub(crate) use production_reader::ProductionPersistentJournalVolumeReader;
 
 pub(crate) use session_reader::{

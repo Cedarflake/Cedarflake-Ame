@@ -17,6 +17,7 @@ use crate::domain::{
 use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
 use super::catch_up_persistent_journal_volume;
+mod capture_window;
 
 #[test]
 fn one_physical_volume_read_distributes_final_state_candidates_to_independent_roots() {
@@ -392,9 +393,19 @@ struct ControlledRepository {
     checkpoints: HashMap<String, PersistentJournalCheckpoint>,
     fail_enrollment_for: Option<&'static str>,
     root_failures: Vec<PersistentJournalRootFailure>,
+    yield_capture_after: Option<usize>,
 }
 
 impl PersistentJournalRepository for ControlledRepository {
+    fn journal_capture_should_yield(
+        &self,
+        _now_unix_ms: i64,
+        _policy: LibraryChangeQueuePolicy,
+    ) -> Result<bool, ScanError> {
+        Ok(self
+            .yield_capture_after
+            .is_some_and(|count| self.enrollments.len() >= count))
+    }
     fn persist_persistent_journal_root_failure(
         &mut self,
         failure: &PersistentJournalRootFailure,
