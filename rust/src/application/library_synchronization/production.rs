@@ -3050,6 +3050,7 @@ impl ProductionSynchronization {
                         Arc::new(crate::adapters::SqliteJournalNamespaceReader(Arc::clone(
                             &catalog_session,
                         ))),
+                        catalog.load_persistent_journal_baselines()?,
                     )?;
                     let healthy_report = catch_up_persistent_journal_volume(
                         &mut catalog,

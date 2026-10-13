@@ -2,8 +2,8 @@ use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::{
-    PersistentJournalCheckpoint, PersistentJournalPendingRename, PersistentJournalReadFailure,
-    PersistentJournalRootReadOutcome, ScanError,
+    PersistentJournalBaseline, PersistentJournalCheckpoint, PersistentJournalPendingRename,
+    PersistentJournalReadFailure, PersistentJournalRootReadOutcome, ScanError,
 };
 use crate::journal_broker::{CallerClaim, PersistentChangeJournalSession};
 use crate::ports::{PersistentJournalNamespaceReader, PersistentJournalVolumeReader};
@@ -22,12 +22,14 @@ impl ProductionPersistentJournalVolumeReader {
         caller: CallerClaim,
         roots: Vec<PersistentJournalBrokerRoot>,
         namespace: Arc<dyn PersistentJournalNamespaceReader>,
+        baselines: Vec<PersistentJournalBaseline>,
     ) -> Result<Self, ScanError> {
-        let named = SessionBackedPersistentJournalVolumeReader::with_retained_session(
+        let mut named = SessionBackedPersistentJournalVolumeReader::with_retained_session(
             session.clone(),
             caller.clone(),
             roots.clone(),
         )?;
+        let read_windows = super::read_boundary::JournalReadWindows::new(baselines)?;
         if let Some(source) = session.identity_source() {
             Ok(Self::Identity(IdentityPersistentJournalVolumeReader {
                 session,
@@ -35,8 +37,10 @@ impl ProductionPersistentJournalVolumeReader {
                 roots,
                 source,
                 namespace,
+                read_windows,
             }))
         } else {
+            named.read_windows = read_windows;
             Ok(Self::Named(named))
         }
     }

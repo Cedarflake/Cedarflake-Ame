@@ -51,6 +51,7 @@ pub(crate) struct SessionBackedPersistentJournalVolumeReader {
     connection: SessionConnection,
     caller: CallerClaim,
     roots: HashMap<(String, LibraryRootGeneration), PersistentJournalBrokerRoot>,
+    pub(super) read_windows: super::read_boundary::JournalReadWindows,
 }
 
 enum SessionConnection {
@@ -84,6 +85,7 @@ impl SessionBackedPersistentJournalVolumeReader {
             connection: SessionConnection::Factory(journal),
             caller,
             roots: indexed,
+            read_windows: super::read_boundary::JournalReadWindows::default(),
         })
     }
 
@@ -283,7 +285,21 @@ impl SessionBackedPersistentJournalVolumeReader {
                         ));
                     } else {
                         openings.insert(key.clone(), opening.clone());
-                        admitted.push((checkpoint, root, capability, next_usn, opening));
+                        let read_end = match self.read_windows.end(checkpoint, next_usn) {
+                            Ok(end) => end,
+                            Err(error) => {
+                                outcomes.push((
+                                    key,
+                                    Err(reconstruction_from_error(error, Some(opening))),
+                                ));
+                                continue;
+                            }
+                        };
+                        if self.read_windows.blocks_next_window(checkpoint) {
+                            outcomes.push((key, Ok(None)));
+                        } else {
+                            admitted.push((checkpoint, root, capability, read_end, opening));
+                        }
                     }
                 }
                 Ok(BrokerResponse::Journal { .. }) => outcomes.push((
@@ -314,7 +330,11 @@ impl SessionBackedPersistentJournalVolumeReader {
             })?;
         let mut progressing = Vec::with_capacity(admitted.len());
         for admitted_root in admitted {
-            if admitted_root.0.next_unread_usn.value() < end_usn {
+            if admitted_root.0.next_unread_usn.value() < end_usn
+                && self
+                    .read_windows
+                    .admits_shared_end(admitted_root.0, end_usn)
+            {
                 progressing.push(admitted_root);
             } else {
                 outcomes.push((

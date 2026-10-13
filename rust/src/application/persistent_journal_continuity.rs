@@ -12,6 +12,7 @@ use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
 mod identity_reader;
 mod production_reader;
+mod read_boundary;
 mod session_reader;
 pub(crate) use production_reader::ProductionPersistentJournalVolumeReader;
 

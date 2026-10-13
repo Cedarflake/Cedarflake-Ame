@@ -333,6 +333,32 @@ pub struct PersistentJournalBaseline {
 }
 
 impl PersistentJournalBaseline {
+    pub(crate) fn validate_replay_checkpoint(
+        &self,
+        checkpoint: &PersistentJournalCheckpoint,
+    ) -> Result<(), ScanError> {
+        let closing = self.closing_next_usn;
+        if !matches!(
+            self.phase,
+            PersistentJournalBaselinePhase::Replay | PersistentJournalBaselinePhase::Absence
+        ) || self.root_id != checkpoint.root_id
+            || self.root_generation != checkpoint.root_generation
+            || self.volume != checkpoint.volume
+            || self.root_file_reference != checkpoint.root_file_reference
+            || self.journal_id != checkpoint.journal_id
+            || self.protocol_version != checkpoint.protocol_version
+            || self.contract_version != checkpoint.contract_version
+            || closing != Some(checkpoint.captured_exclusive_end)
+            || closing.is_none_or(|end| checkpoint.next_unread_usn > end)
+        {
+            return Err(ScanError::new(
+                "persistent_journal_baseline_read_window_invalid",
+                "The journal checkpoint cannot extend an unfinished baseline window",
+            ));
+        }
+        Ok(())
+    }
+
     pub fn validate(&self) -> Result<(), ScanError> {
         validate_identifier(&self.run_id, 512, "baseline run ID")?;
         validate_identifier(&self.root_id, 256, "root ID")?;

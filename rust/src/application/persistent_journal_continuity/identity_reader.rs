@@ -27,12 +27,14 @@ pub(crate) struct IdentityPersistentJournalVolumeReader {
     pub(crate) roots: Vec<PersistentJournalBrokerRoot>,
     pub(crate) source: Arc<dyn PersistentIdentityJournalSource>,
     pub(crate) namespace: Arc<dyn PersistentJournalNamespaceReader>,
+    pub(super) read_windows: super::read_boundary::JournalReadWindows,
 }
 
 struct PreparedRoot<'a> {
     checkpoint: &'a PersistentJournalCheckpoint,
     root: IdentityJournalRoot,
     opening: LibraryRecoveryOpeningBoundary,
+    read_end: i64,
 }
 
 impl IdentityPersistentJournalVolumeReader {
@@ -169,10 +171,15 @@ impl IdentityPersistentJournalVolumeReader {
                 Some(&opening),
             ));
         }
+        let read_end = self
+            .read_windows
+            .end(checkpoint, next)
+            .map_err(|error| from_error(error, Some(&opening)))?;
         Ok(PreparedRoot {
             checkpoint,
             root,
             opening,
+            read_end,
         })
     }
 }
@@ -210,7 +217,7 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
                                 Some(&root.opening),
                             )),
                         ));
-                    } else if checkpoint.next_unread_usn == root.opening.next_usn {
+                    } else if self.read_windows.blocks_next_window(checkpoint) {
                         outcomes.push(outcome(checkpoint, Some(root.opening), Ok(None)));
                     } else {
                         ready.push(root);
@@ -226,16 +233,30 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
         if ready.is_empty() {
             return Ok(outcomes);
         }
+        let end = ready
+            .iter()
+            .map(|root| root.read_end)
+            .min()
+            .expect("nonempty prepared roots");
+        let mut admitted = Vec::new();
+        for root in ready {
+            if root.checkpoint.next_unread_usn.value() < end
+                && self.read_windows.admits_shared_end(root.checkpoint, end)
+            {
+                admitted.push(root);
+            } else {
+                outcomes.push(outcome(root.checkpoint, Some(root.opening), Ok(None)));
+            }
+        }
+        let ready = admitted;
+        if ready.is_empty() {
+            return Ok(outcomes);
+        }
         let start = ready
             .iter()
             .map(|root| root.checkpoint.next_unread_usn.value())
             .min()
-            .expect("nonempty prepared roots");
-        let end = ready
-            .iter()
-            .map(|root| root.opening.next_usn.value())
-            .min()
-            .expect("nonempty prepared roots");
+            .expect("nonempty admitted roots");
         let request = IdentityJournalRead {
             volume: ready[0].checkpoint.volume.clone(),
             journal_id: ready[0].checkpoint.journal_id.value(),
@@ -374,7 +395,9 @@ fn from_error(
     let kind = match error.code.as_str() {
         "identity_journal_cancelled" => PersistentJournalRootFailureKind::Cancelled,
         "identity_journal_discontinuous" => PersistentJournalRootFailureKind::JournalTrim,
-        "identity_journal_identity_invalid" | "identity_journal_record_invalid" => {
+        "identity_journal_identity_invalid"
+        | "identity_journal_record_invalid"
+        | "persistent_journal_baseline_read_window_invalid" => {
             PersistentJournalRootFailureKind::JournalReconstructionFailure
         }
         _ => PersistentJournalRootFailureKind::Transient,

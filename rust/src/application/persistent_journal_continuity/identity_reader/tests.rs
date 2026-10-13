@@ -128,6 +128,8 @@ fn failed_identity_open_never_removes_directory_history() {
 struct Source {
     reads: AtomicUsize,
     resolutions: AtomicUsize,
+    observed_end: i64,
+    request: std::sync::Mutex<Option<i64>>,
 }
 impl PersistentIdentityJournalSource for Source {
     fn can_probe_baseline(&self, _root: &IdentityJournalRoot) -> bool {
@@ -141,11 +143,15 @@ impl PersistentIdentityJournalSource for Source {
     }
     fn read_volume(
         &self,
-        _request: &IdentityJournalRead,
+        request: &IdentityJournalRead,
         _cancelled: &AtomicBool,
     ) -> Result<IdentityJournalPage, ScanError> {
         self.reads.fetch_add(1, Ordering::Relaxed);
-        Ok(page(false))
+        *self.request.lock().unwrap() = Some(request.end_usn);
+        Ok(IdentityJournalPage {
+            covered_until_usn: request.end_usn,
+            records: Vec::new(),
+        })
     }
     fn current_locations(
         &self,
@@ -193,7 +199,7 @@ impl PersistentChangeJournalSession for Session {
             capability: JournalCapability::Supported,
             journal_id: Some(9),
             first_usn: Some(0),
-            next_usn: Some(10),
+            next_usn: Some(self.0.observed_end),
         })
     }
     fn begin_read_range(
@@ -218,7 +224,22 @@ fn no_change_restart_uses_the_production_reader_without_resolving_or_enumerating
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_end: 10,
+        request: std::sync::Mutex::new(None),
     });
+    let reader = production_reader(source.clone(), Vec::new());
+    let outcomes = reader
+        .read_volume(&[checkpoint()], &[], 2, &AtomicBool::new(false))
+        .unwrap();
+    assert!(matches!(outcomes[0].page, Ok(None)));
+    assert_eq!(source.reads.load(Ordering::Relaxed), 0);
+    assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
+}
+
+fn production_reader(
+    source: Arc<Source>,
+    baselines: Vec<crate::domain::PersistentJournalBaseline>,
+) -> super::super::production_reader::ProductionPersistentJournalVolumeReader {
     let caller = CallerClaim {
         process_id: 1,
         session_id: 1,
@@ -235,17 +256,61 @@ fn no_change_restart_uses_the_production_reader_without_resolving_or_enumerating
         client_root_handle: 1,
         volume_serial: 7,
     };
-    let reader = super::super::production_reader::ProductionPersistentJournalVolumeReader::new(
+    super::super::production_reader::ProductionPersistentJournalVolumeReader::new(
         Arc::new(Session(source.clone())),
         caller,
         vec![root],
         Arc::new(Namespace),
+        baselines,
     )
-    .unwrap();
+    .unwrap()
+}
+
+#[test]
+fn first_import_replay_keeps_its_closing_boundary_when_the_volume_grows() {
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+        observed_end: 30,
+        request: std::sync::Mutex::new(None),
+    });
+    let mut checkpoint = checkpoint();
+    checkpoint.continuity = PersistentJournalContinuityState::CatchingUp;
+    checkpoint.captured_exclusive_end = JournalUsn::new(20).unwrap();
+    let baseline = crate::domain::PersistentJournalBaseline {
+        change_id: crate::domain::LibraryChangeId::new(1).unwrap(),
+        run_id: "first-import".to_owned(),
+        root_id: checkpoint.root_id.clone(),
+        root_generation: checkpoint.root_generation,
+        volume: checkpoint.volume.clone(),
+        root_file_reference: checkpoint.root_file_reference.clone(),
+        journal_id: checkpoint.journal_id,
+        opening_next_usn: checkpoint.next_unread_usn,
+        closing_next_usn: Some(checkpoint.captured_exclusive_end),
+        protocol_version: checkpoint.protocol_version,
+        contract_version: checkpoint.contract_version,
+        phase: crate::domain::PersistentJournalBaselinePhase::Replay,
+        authorized_unix_ms: 1,
+        updated_unix_ms: 1,
+        completed_unix_ms: None,
+    };
+    let reader = production_reader(source.clone(), vec![baseline]);
     let outcomes = reader
-        .read_volume(&[checkpoint()], &[], 2, &AtomicBool::new(false))
+        .read_volume(&[checkpoint], &[], 2, &AtomicBool::new(false))
+        .unwrap();
+    let (batch, checkpoint) = outcomes[0].page.as_ref().unwrap().as_ref().unwrap();
+    assert_eq!(batch.range.requested_end_usn.value(), 20);
+    assert_eq!(checkpoint.captured_exclusive_end.value(), 20);
+    assert_eq!(checkpoint.next_unread_usn.value(), 20);
+    assert_eq!(*source.request.lock().unwrap(), Some(20));
+    let outcomes = reader
+        .read_volume(
+            std::slice::from_ref(checkpoint),
+            &[],
+            3,
+            &AtomicBool::new(false),
+        )
         .unwrap();
     assert!(matches!(outcomes[0].page, Ok(None)));
-    assert_eq!(source.reads.load(Ordering::Relaxed), 0);
-    assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
+    assert_eq!(source.reads.load(Ordering::Relaxed), 1);
 }

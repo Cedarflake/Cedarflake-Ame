@@ -27,6 +27,7 @@ use super::change_queue::{
 use super::metadata_inventory::insert_metadata_inventory_recovery_authority;
 use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
 
+mod baseline_window;
 mod capability;
 mod first_import_completion;
 mod root_unregister;
@@ -1355,6 +1356,7 @@ fn publish_volume_batch(
     validate_atomic_lineage(batch)?;
 
     let transaction = catalog.begin_write_in_lane(crate::domain::LibraryChangeLane::Journal)?;
+    baseline_window::validate_publication(&transaction, batch)?;
     let mut existing = Vec::with_capacity(batch.pages.len());
     for page in &batch.pages {
         require_supported_root(&transaction, &page.enrollment)?;
@@ -3572,6 +3574,7 @@ fn invalid_storage(name: &str) -> ScanError {
 
 #[cfg(test)]
 mod tests {
+    mod baseline_window;
     use rusqlite::{TransactionBehavior, params};
     use tempfile::tempdir;
 
