@@ -23,7 +23,7 @@ the resulting stage disposition.
 
 ### Current execution checkpoint
 
-Updated 2026-10-13. Resume from this checkpoint and the linked owning evidence, then verify the
+Updated 2026-10-14. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
@@ -49,17 +49,18 @@ remains unexecuted. Preserve those results without making installation the first
 Advance the [ordinary-token journal capability](../acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
 through the existing application reconciliation and publication boundaries. The parser now separates
 redacted identity evidence from named-path records; it does not activate a second synchronization
-mode. Next implement bounded current-name resolution plus durable old path/directory identity
-evidence. Existing asset identities do not retain a complete directory namespace: scan frontiers
+mode. Bounded current-name resolution and durable old path/directory identity evidence are
+implemented. Preserve their persisted scan-directory and journal namespace owners: scan frontiers
 are consumed during traversal, and inventory frontiers are scoped recovery data. Do not treat either
 as a permanent directory index or infer a removed path from failed `OpenFileById` alone.
 Current-name resolution must include aliases inside a root even when the returned primary path is
 outside it; unrelated or inaccessible volume identities cannot become guessed root membership.
 
-The next executable checkpoint is one connected ordinary-client workflow: publish an isolated NTFS
+The generated Debug checkpoint covers one connected ordinary-client workflow: publish an isolated NTFS
 root, exit the process, change the generated source, restart the unsigned client and consume the
 continuous journal range into exact published membership. A following unchanged restart must do
-zero source enumeration. Keep namespace capture, identity lookup and atomic enrollment inside this
+zero source enumeration. Retained-library recovery and current Debug/Release verification remain
+open. Keep namespace capture, identity lookup and atomic enrollment inside this
 slice; another standalone capability probe or parser pass does not finish it. Candidate packaging
 and the final client/platform matrix follow the connected outcome. Required per-change correctness
 gates remain in force, and incomplete identity coverage must retain an explicit non-current state.
@@ -69,13 +70,13 @@ actual process restart, including interrupted enrollment and journal gaps. Add a
 migration at the persistence owner; preserve user data and the last trustworthy catalog. First-import
 capture must share its existing enumeration. A legacy missing identity baseline needs an explicit
 bounded migration/recovery decision, not a silent all-root scan or a reused historical checkpoint.
-Only then select the ordinary-token adapter for unsigned Debug/Release and verify the complete client
-path without service installation, startup UAC or a resident helper. Keep caller/root access,
+The production factory selects the ordinary-token adapter; verify the complete unsigned Debug/Release
+client path without service installation, startup UAC or a resident helper. Keep caller/root access,
 cancellation, no-recall, queue bounds and atomic checkpoint publication intact. The existing broker
 retains its authenticated transport and demand-start/idle-retirement contract as a separate adapter.
 
-Recheck the thirty previously identified local images in the selected October subtrees and verify
-their published membership after incremental catch-up. LiveOnly queue-idle state cannot establish
+Re-enumerate the selected October subtrees at verification time and verify their current published
+membership after incremental catch-up. LiveOnly queue-idle state cannot establish
 closed-process coverage. The reported 1.1–2.8-second idle catalog-session polls and the owning
 reclamation/session correction retain their proof and remaining client verification in the
 [reclamation checkpoint](../acceptance/r2c-retained-runtime.md#catalog-reclamation-and-reopen-latency).
@@ -85,8 +86,9 @@ ordinary-client connection or resolve the missing-image incident. The raw PowerS
 route remains stopped. Preserve the versioned unified installer and its transactional rollback.
 Ordinary-token journal reads now succeed on both configured library volumes. Generated cross-process
 fixtures also resolve current identities and hardlink names, with one scoped enumeration for a moved-in
-directory and none on the no-change pass. These are capability results; they do not yet establish Ame
-catalog enrollment, published October membership, real placeholder behavior or complete synchronization.
+directory and none on the no-change pass. The generated Debug application also verifies selected
+catalog enrollment and restart behavior. Published October membership, real placeholder behavior
+and complete synchronization remain open.
 
 The completed [2026-10-13 C02 diagnostic follow-up](../acceptance/r2c-retained-runtime.md#independent-uia-loader-milestones-on-2026-10-13)
 and its 60-minute preparation/verification and ten-minute inspection reservations remain consumed.

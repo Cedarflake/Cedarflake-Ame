@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-13
+Last planning update: 2026-10-14
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -84,8 +84,9 @@ Deliver the following outcomes as individual changes on main, in order:
    installing it is not a prerequisite for developing or verifying the ordinary-token path.
    Measure this step by a connected application restart and exact catalog result. Native probes,
    parser changes and isolated gates are supporting work, not additional delivery stages.
-2. **Verify the reported missing October images.** Recheck the thirty previously identified local
-   images, restore any missing membership through incremental continuity, and prove that displayed
+2. **Verify the reported missing October images.** Re-enumerate the reported October subtrees at
+   verification time instead of fixing the expected set to the original count. Restore any missing
+   membership through incremental continuity, and prove that displayed
    synchronization status matches actual journal coverage and published membership.
 3. **Correct reopen and update latency.** Verify populated reopening, no-change reopening and
    catch-up after closed-process changes. Verify the existing reclamation/session correction and
@@ -101,8 +102,9 @@ executes CI, including boundary regressions; local work is limited to diagnosis,
 inspection and affected client workflows. Existing three Rust failures belong to the latency work;
 retain their workloads and assertions. The [ordinary-token capability checkpoint](acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
 establishes native feasibility and a typed parser boundary, not complete client synchronization.
-Step 1 still needs durable directory/path identity reconstruction, atomic enrollment and restart
-verification before October membership can close. The workstation installation remains removed;
+Ordinary-token directory/path identity reconstruction and atomic enrollment are implemented.
+Retained-library recovery and current Debug/Release restart verification remain open before
+October membership can close. The workstation installation remains removed;
 any later system installation retains its explicit-authorization requirement. The full installer
 upgrade/repair/rollback matrix must not precede the missing-image and latency work.
 Historical readiness matrices retain their recorded gaps; they do not reopen the completed merge
