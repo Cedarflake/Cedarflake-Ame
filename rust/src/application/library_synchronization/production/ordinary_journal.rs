@@ -191,6 +191,63 @@ fn is_current(storage: &StoragePaths, expected: &[&str]) -> bool {
             .eq(expected.iter().copied())
 }
 
+fn convergence_state(storage: &StoragePaths) -> String {
+    let connection = Connection::open(&storage.catalog_path).expect("owned failure-state query");
+    let journal = connection
+        .prepare(
+            "SELECT capability_state, continuity_state, last_failure_code
+         FROM library_persistent_journal_root_state LIMIT 8",
+        )
+        .and_then(|mut statement| {
+            statement
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()
+        });
+    let queue = connection
+        .prepare(
+            "SELECT lane.lane, queue.status, COUNT(*) FROM library_change_queue AS queue
+         JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
+         GROUP BY lane.lane, queue.status LIMIT 16",
+        )
+        .and_then(|mut statement| {
+            statement
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, i64>(2)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()
+        });
+    let baselines = connection
+        .prepare(
+            "SELECT phase, opening_next_usn, closing_next_usn
+         FROM library_persistent_journal_baselines LIMIT 8",
+        )
+        .and_then(|mut statement| {
+            statement
+                .query_map([], |row| {
+                    Ok((
+                        row.get::<_, String>(0)?,
+                        row.get::<_, String>(1)?,
+                        row.get::<_, Option<String>>(2)?,
+                    ))
+                })?
+                .collect::<Result<Vec<_>, _>>()
+        });
+    let members = active_locations(&storage.catalog_path)
+        .into_keys()
+        .collect::<Vec<_>>();
+    format!("journal={journal:?} queue={queue:?} baselines={baselines:?} members={members:?}")
+}
+
 #[test]
 #[ignore = "Executed by the real-journal parent in three isolated processes"]
 fn ordinary_client_worker() {
@@ -262,7 +319,8 @@ fn ordinary_client_worker() {
         }
         assert!(
             Instant::now() < deadline,
-            "phase {phase} failed to converge through the real journal"
+            "phase {phase} failed to converge through the real journal: {}",
+            convergence_state(&storage),
         );
         std::thread::sleep(Duration::from_millis(2));
     }
