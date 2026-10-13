@@ -177,7 +177,8 @@ void main() {
     final feedback = LibrarySynchronizationFeedback.fromStatus(
       _status(recoveryBlocked: false, issueCode: null),
     );
-    expect(feedback.shouldNotify, isTrue);
+    expect(feedback.shouldNotify, isFalse);
+    expect(feedback.severity, AmeNotificationSeverity.info);
     expect(feedback.titleForRoot("Pictures"), "“Pictures”图库尚未核对");
     expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
     expect(feedback.detail, contains("阶段：图库尚未核对"));
@@ -319,7 +320,9 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      final synchronization = _FeedbackSynchronization(_status());
+      final synchronization = _FeedbackSynchronization(
+        _status(recoveryBlocked: false, issueCode: null, retryCount: 0),
+      );
       final scanner = ConcurrentLibraryScanner();
       addTearDown(synchronization.dispose);
       addTearDown(scanner.dispose);
@@ -352,6 +355,20 @@ void main() {
       );
       await tester.pump();
 
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      expect(
+        container.read(ameNotificationControllerProvider).history,
+        isEmpty,
+      );
+      expect(
+        find.text(LibraryStrings.synchronizationUnconfirmed),
+        findsOneWidget,
+      );
+      synchronization.publish(_status());
+      await tester.pump();
+
       expect(
         find.text(LibraryStrings.synchronizationRecoveryBlocked),
         findsOneWidget,
@@ -370,9 +387,6 @@ void main() {
 
       synchronization.publish(_status(issueCode: "catalog_database_busy"));
       await tester.pump();
-      final container = ProviderScope.containerOf(
-        tester.element(find.byType(AmeApp)),
-      );
       final history = container.read(ameNotificationControllerProvider).history;
       expect(history, hasLength(1));
       expect(

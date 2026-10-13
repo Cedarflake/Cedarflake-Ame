@@ -71,6 +71,8 @@ class AmeNotificationEntry {
   final String? actionLabel;
   final String? actionContext;
 
+  bool get isResolvedCondition => dedupeKey != null && !isActive;
+
   AmeNotificationEntry copyWith({
     String? title,
     String? message,
@@ -244,7 +246,13 @@ class AmeNotificationController extends Notifier<AmeNotificationState> {
     final history = [
       for (final notification in state.history)
         if (notification.dedupeKey == dedupeKey)
-          notification.copyWith(isActive: false)
+          notification.copyWith(
+            isActive: false,
+            elapsedStartedAt: null,
+            actionId: null,
+            actionLabel: null,
+            actionContext: null,
+          )
         else
           notification,
     ];
@@ -262,6 +270,23 @@ class AmeNotificationController extends Notifier<AmeNotificationState> {
           .toList(),
     );
     return true;
+  }
+
+  AmeNotificationEntry? admitAction(AmeNotificationEntry observed) {
+    for (final current in state.history) {
+      if (current.id != observed.id) {
+        continue;
+      }
+      if (current.isResolvedCondition ||
+          current.actionId == null ||
+          current.actionId != observed.actionId ||
+          current.actionContext != observed.actionContext ||
+          current.sourcePath != observed.sourcePath) {
+        return null;
+      }
+      return current;
+    }
+    return null;
   }
 
   void dismiss(String notificationId) {

@@ -3,6 +3,91 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "resolved conditions retain history without timers or stale actions",
+    () {
+      final container = ProviderContainer();
+      addTearDown(container.dispose);
+      final controller = container.read(
+        ameNotificationControllerProvider.notifier,
+      );
+      controller.publish(
+        AmeNotificationDraft(
+          title: "更新受阻",
+          message: "无法接续旧更新记录。",
+          severity: AmeNotificationSeverity.warning,
+          dedupeKey: "root-a:1",
+          elapsedStartedAt: DateTime.utc(2026, 10, 14),
+          actionId: "update-root",
+          actionLabel: "更新图库",
+          actionContext: "root-a",
+          sourcePath: r"C:\Generated",
+          isPersistent: true,
+        ),
+      );
+      final observed = container
+          .read(ameNotificationControllerProvider)
+          .history
+          .single;
+      controller.dismiss(observed.id);
+      expect(controller.admitAction(observed), isNotNull);
+      expect(controller.resolve("root-a:1"), isTrue);
+      final resolved = container
+          .read(ameNotificationControllerProvider)
+          .history
+          .single;
+      expect(resolved.isResolvedCondition, isTrue);
+      expect(resolved.message, observed.message);
+      expect(resolved.elapsedStartedAt, isNull);
+      expect(resolved.actionId, isNull);
+      expect(resolved.actionLabel, isNull);
+      expect(controller.admitAction(observed), isNull);
+    },
+  );
+
+  test("a changed or retired notification cannot authorize an old action", () {
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    final controller = container.read(
+      ameNotificationControllerProvider.notifier,
+    );
+    controller.publish(
+      const AmeNotificationDraft(
+        title: "需要更新",
+        message: "",
+        severity: AmeNotificationSeverity.warning,
+        dedupeKey: "root-a:1",
+        actionId: "update-root",
+        actionLabel: "更新图库",
+        sourcePath: r"C:\Old",
+      ),
+    );
+    final observed = container
+        .read(ameNotificationControllerProvider)
+        .history
+        .single;
+    controller.publish(
+      const AmeNotificationDraft(
+        title: "需要更新",
+        message: "",
+        severity: AmeNotificationSeverity.warning,
+        dedupeKey: "root-a:1",
+        actionId: "update-root",
+        actionLabel: "更新图库",
+        sourcePath: r"C:\New",
+      ),
+    );
+    final current = container
+        .read(ameNotificationControllerProvider)
+        .history
+        .single;
+    expect(current.id, observed.id);
+    expect(controller.admitAction(observed), isNull);
+    expect(controller.admitAction(current), same(current));
+    controller.resolve("root-a:1");
+    expect(controller.admitAction(current), isNull);
+  });
+
   test("active notifications deduplicate until their condition resolves", () {
     final container = ProviderContainer();
     addTearDown(container.dispose);

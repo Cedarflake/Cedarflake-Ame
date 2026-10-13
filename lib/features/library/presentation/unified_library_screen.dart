@@ -461,12 +461,16 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
-    switch (notification.actionId) {
+    final action = _notificationController.admitAction(notification);
+    if (action == null) {
+      return;
+    }
+    switch (action.actionId) {
       case _retrySynchronizationNotificationAction:
         unawaited(_retrySynchronizationRefresh());
         break;
       case _refreshBlockedRootNotificationAction:
-        final rootPath = notification.sourcePath;
+        final rootPath = action.sourcePath;
         if (rootPath != null && rootPath.isNotEmpty) {
           final roots = ref.read(libraryControllerProvider).roots;
           for (final root in roots) {

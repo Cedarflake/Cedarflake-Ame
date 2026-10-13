@@ -214,6 +214,7 @@ AmeNotificationSeverity _synchronizationNotificationSeverity(
   if (state == LibrarySynchronizationFeedbackState.awaitingFirstImport ||
       state == LibrarySynchronizationFeedbackState.updating ||
       state == LibrarySynchronizationFeedbackState.awaitingRetry ||
+      state == LibrarySynchronizationFeedbackState.unconfirmed ||
       state == LibrarySynchronizationFeedbackState.synchronized) {
     return AmeNotificationSeverity.info;
   }

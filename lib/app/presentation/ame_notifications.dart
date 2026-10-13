@@ -238,6 +238,10 @@ Future<void> showAmeNotificationDetails(
                 notification.title,
                 style: Theme.of(dialogContext).textTheme.titleMedium,
               ),
+              if (notification.isResolvedCondition) ...[
+                const SizedBox(height: 8),
+                const Text(AmeNotificationStrings.historicalNotificationDetail),
+              ],
               if (notification.message.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(notification.message),
@@ -246,7 +250,8 @@ Future<void> showAmeNotificationDetails(
                 const SizedBox(height: 8),
                 Text(detail),
               ],
-              if (notification.elapsedStartedAt case final startedAt?) ...[
+              if (notification.elapsedStartedAt case final startedAt?
+                  when !notification.isResolvedCondition) ...[
                 const SizedBox(height: 8),
                 Text(
                   "已持续 ${_formatElapsed(DateTime.now().difference(startedAt))}",
@@ -281,7 +286,8 @@ Future<void> showAmeNotificationDetails(
           onPressed: () => Navigator.of(dialogContext).pop(),
           child: const Text(AmeNotificationStrings.close),
         ),
-        if (notification.actionLabel case final actionLabel?)
+        if (notification.actionLabel case final actionLabel?
+            when !notification.isResolvedCondition)
           FilledButton(
             onPressed: () {
               Navigator.of(dialogContext).pop();
@@ -346,7 +352,9 @@ class _NotificationHistoryItem extends StatelessWidget {
                 ],
                 const SizedBox(height: 4),
                 Text(
-                  _formatOccurredAt(notification.occurredAt),
+                  notification.isResolvedCondition
+                      ? "${AmeNotificationStrings.historicalNotification} · ${_formatOccurredAt(notification.occurredAt)}"
+                      : _formatOccurredAt(notification.occurredAt),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),

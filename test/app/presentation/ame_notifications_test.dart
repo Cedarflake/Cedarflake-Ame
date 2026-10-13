@@ -1,4 +1,5 @@
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
+import "package:cedarflake_ame/app/notifications/ame_notification_strings.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_notifications.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
@@ -6,6 +7,41 @@ import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "resolved history is labelled and has no current recovery action",
+    (tester) async {
+      final resolved = _notification(
+        isUnread: false,
+        dedupeKey: "root-a:1",
+        actionLabel: "更新图库",
+        elapsedStartedAt: DateTime.now().subtract(const Duration(minutes: 3)),
+      ).copyWith(isActive: false);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAmeTheme(),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showAmeNotificationDetails(
+                context,
+                resolved,
+                onAction: (_) => fail("Resolved history invoked an action"),
+              ),
+              child: const Text("打开详情"),
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text("打开详情"));
+      await tester.pumpAndSettle();
+      expect(
+        find.text(AmeNotificationStrings.historicalNotificationDetail),
+        findsOneWidget,
+      );
+      expect(find.textContaining("已持续"), findsNothing);
+      expect(find.text("更新图库"), findsNothing);
+      expect(find.text(resolved.message), findsOneWidget);
+    },
+  );
   testWidgets(
     "history button switches to the unread-dot icon without a count",
     (tester) async {
@@ -245,6 +281,7 @@ AmeNotificationEntry _notification({
   String message = "部分文件变化尚未核对，当前仍显示上次确认的图库内容。",
   bool isPersistent = false,
   String? actionLabel,
+  String? dedupeKey,
   DateTime? elapsedStartedAt,
 }) {
   return AmeNotificationEntry(
@@ -263,5 +300,6 @@ AmeNotificationEntry _notification({
     isUnread: isUnread,
     isActive: isPersistent,
     isPersistent: isPersistent,
+    dedupeKey: dedupeKey,
   );
 }

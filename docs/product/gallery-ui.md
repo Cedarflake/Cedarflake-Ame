@@ -431,6 +431,8 @@ For root reconciliation, the active-condition identity is the root itself: obser
 freshness-cause, and issue-code transitions update one record until the root is synchronized.
 Automatic authoritative recovery remains `正在更新图库`; an eligible deferred retry displays
 `等待重试更新`. Neither publishes a fault notification.
+An unconfirmed startup or continuity transition has a neutral source-row label and creates no
+notification history merely because its first snapshot is incomplete.
 Only a failed monitor, exhausted recovery, bridge/catalog refresh failure, or another blocked
 condition that can no longer converge automatically enters the notification queue; successful
 recovery resolves that active error without adding a success notice.
@@ -443,6 +445,9 @@ attempt's issue. Processing does not imply `已同步`, which requires a synchro
 SQLite writer contention during another Ame publication keeps the prior snapshot
 and retries silently for a bounded interval; only contention beyond that interval becomes a
 persistent catalog error.
+Resolved condition records are labelled as history, stop their active elapsed timer, and no longer
+offer a recovery action. A notification action rechecks its retained identity and current action
+binding when invoked, so an already-open detail view cannot trigger a retired or replaced action.
 SQLite read-modify-write paths acquire an immediate writer transaction before observing mutable
 state, while an empty path-queue poll remains read-only. This serializes concurrent publication with
 the configured busy timeout instead of failing a deferred WAL snapshot during write upgrade.
