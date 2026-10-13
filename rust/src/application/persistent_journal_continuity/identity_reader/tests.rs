@@ -181,6 +181,8 @@ struct Source {
     resolutions: AtomicUsize,
     observed_end: i64,
     request: std::sync::Mutex<Option<i64>>,
+    records: Vec<IdentityJournalRecord>,
+    locations: Vec<IdentityJournalLocation>,
 }
 impl PersistentIdentityJournalSource for Source {
     fn can_probe_baseline(&self, _root: &IdentityJournalRoot) -> bool {
@@ -201,17 +203,21 @@ impl PersistentIdentityJournalSource for Source {
         *self.request.lock().unwrap() = Some(request.end_usn);
         Ok(IdentityJournalPage {
             covered_until_usn: request.end_usn,
-            records: Vec::new(),
+            records: self.records.clone(),
         })
     }
     fn current_locations(
         &self,
         _root: &IdentityJournalRoot,
-        _references: &[JournalFileReference],
+        references: &[JournalFileReference],
         _cancelled: &AtomicBool,
     ) -> Result<IdentityJournalResolution, ScanError> {
         self.resolutions.fetch_add(1, Ordering::Relaxed);
-        Ok(IdentityJournalResolution::default())
+        assert!(references.len() <= MAX_IDENTITY_JOURNAL_REFERENCES);
+        Ok(IdentityJournalResolution {
+            locations: self.locations.clone(),
+            ..Default::default()
+        })
     }
 }
 
@@ -277,6 +283,8 @@ fn no_change_restart_uses_the_production_reader_without_resolving_or_enumerating
         resolutions: AtomicUsize::new(0),
         observed_end: 10,
         request: std::sync::Mutex::new(None),
+        records: Vec::new(),
+        locations: Vec::new(),
     });
     let reader = production_reader(source.clone(), Vec::new());
     let outcomes = reader
@@ -318,12 +326,88 @@ fn production_reader(
 }
 
 #[test]
+fn large_unrelated_volume_page_reaches_the_root_change_without_an_inventory() {
+    let mut records: Vec<_> = (10..522)
+        .map(|usn| IdentityJournalRecord {
+            file_reference: reference(100),
+            parent_reference: reference(101),
+            usn,
+            is_directory: false,
+            is_deleted: false,
+        })
+        .collect();
+    records.push(IdentityJournalRecord {
+        file_reference: reference(2),
+        parent_reference: reference(3),
+        usn: 522,
+        is_directory: false,
+        is_deleted: false,
+    });
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+        observed_end: 600,
+        request: std::sync::Mutex::new(None),
+        records,
+        locations: vec![location(2, "fresh.png", false)],
+    });
+    let reader = production_reader(source.clone(), Vec::new());
+    let outcomes = reader
+        .read_volume(&[checkpoint()], &[], 2, &AtomicBool::new(false))
+        .unwrap();
+    let (batch, next) = outcomes[0]
+        .page
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .as_enrolled()
+        .unwrap();
+    assert_eq!(batch.intents.len(), 1);
+    assert_eq!(batch.intents[0].relative_path, "fresh.png");
+    assert_eq!(batch.intents[0].scope, LibraryChangeScope::Path);
+    assert!(batch.directory_changes.is_empty());
+    assert_eq!(next.next_unread_usn.value(), 600);
+    assert_eq!(source.reads.load(Ordering::Relaxed), 1);
+    assert_eq!(source.resolutions.load(Ordering::Relaxed), 1);
+}
+
+#[test]
+fn over_capacity_identity_page_is_rejected_before_source_resolution() {
+    let records = (0..129)
+        .map(|index| IdentityJournalRecord {
+            file_reference: reference(index * 2),
+            parent_reference: reference(index * 2 + 1),
+            usn: 10 + index as i64,
+            is_directory: false,
+            is_deleted: false,
+        })
+        .collect();
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+        observed_end: 200,
+        request: std::sync::Mutex::new(None),
+        records,
+        locations: Vec::new(),
+    });
+    let reader = production_reader(source.clone(), Vec::new());
+    let failure = reader
+        .read_volume(&[checkpoint()], &[], 2, &AtomicBool::new(false))
+        .unwrap_err();
+    assert_eq!(failure.failure.code, "identity_journal_page_invalid");
+    assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
+}
+
+#[test]
 fn first_import_replay_keeps_its_closing_boundary_when_the_volume_grows() {
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
         observed_end: 30,
         request: std::sync::Mutex::new(None),
+        records: Vec::new(),
+        locations: Vec::new(),
     });
     let mut checkpoint = checkpoint();
     checkpoint.continuity = PersistentJournalContinuityState::CatchingUp;
@@ -380,6 +464,8 @@ fn empty_baseline_replay_reads_its_boundary_without_resolving_source_names() {
         resolutions: AtomicUsize::new(0),
         observed_end: 10,
         request: std::sync::Mutex::new(None),
+        records: Vec::new(),
+        locations: Vec::new(),
     });
     let mut checkpoint = checkpoint();
     checkpoint.continuity = PersistentJournalContinuityState::CatchingUp;
@@ -433,6 +519,8 @@ fn partial_catchup_finishes_its_captured_window_before_admitting_later_writes() 
         resolutions: AtomicUsize::new(0),
         observed_end: 30,
         request: std::sync::Mutex::new(None),
+        records: Vec::new(),
+        locations: Vec::new(),
     });
     let mut checkpoint = checkpoint();
     checkpoint.continuity = PersistentJournalContinuityState::CatchingUp;

@@ -24,7 +24,8 @@ pub(crate) use library_change_ingress::LibraryChangeIngress;
 mod persistent_identity_journal;
 pub(crate) use persistent_identity_journal::{
     IdentityJournalLocation, IdentityJournalPage, IdentityJournalRead, IdentityJournalRecord,
-    IdentityJournalResolution, IdentityJournalRoot, PersistentIdentityJournalSource,
+    IdentityJournalResolution, IdentityJournalRoot, MAX_IDENTITY_JOURNAL_PAGE_RECORDS,
+    MAX_IDENTITY_JOURNAL_REFERENCES, PersistentIdentityJournalSource,
     PersistentJournalNamespaceReader, identity_for_reference,
 };
 

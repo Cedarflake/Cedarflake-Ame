@@ -15,20 +15,21 @@ use crate::journal_broker::{
 };
 use crate::ports::{
     IdentityJournalPage, IdentityJournalRead, IdentityJournalRecord, IdentityJournalResolution,
-    IdentityJournalRoot, PersistentIdentityJournalSource, identity_for_reference,
+    IdentityJournalRoot, MAX_IDENTITY_JOURNAL_PAGE_RECORDS, MAX_IDENTITY_JOURNAL_REFERENCES,
+    PersistentIdentityJournalSource, identity_for_reference,
 };
 use crate::windows_usn::{UsnParseError, decode_journal_buffer};
 
 mod io;
 mod metadata_location;
 mod native;
+mod page;
 pub(crate) use metadata_location::current_identity_paths;
 use native::NativeRoot;
 
 const READ_UNPRIVILEGED_USN_JOURNAL: u32 = 0x0009_03ab;
 const READ_TIMEOUT: Duration = Duration::from_secs(10);
 const MAX_ROOTS: usize = 8;
-const MAX_REFERENCES: usize = 256;
 const MAX_LOCATIONS: usize = 4_096;
 type RootKey = (String, LibraryRootGeneration);
 
@@ -288,7 +289,7 @@ impl PersistentIdentityJournalSource for IdentitySource {
     ) -> Result<IdentityJournalPage, ScanError> {
         if request.start_usn < 0
             || request.end_usn < request.start_usn
-            || !(1..=256).contains(&request.max_records)
+            || !(1..=MAX_IDENTITY_JOURNAL_PAGE_RECORDS).contains(&request.max_records)
         {
             return Err(invalid("identity_journal_range_invalid"));
         }
@@ -356,23 +357,16 @@ impl PersistentIdentityJournalSource for IdentitySource {
         {
             return Err(invalid("identity_journal_discontinuous"));
         }
-        let mut records: Vec<_> = records
+        let records: Vec<_> = records
             .into_iter()
             .filter(|record| record.usn < request.end_usn)
             .collect();
-        let mut covered = next.min(request.end_usn);
-        if records.len() > request.max_records as usize {
-            covered = records[request.max_records as usize].usn;
-            records.truncate(request.max_records as usize);
-        }
+        let page = page::bounded_prefix(records, next.min(request.end_usn), request.max_records);
         let after = root.query(cancelled, deadline)?;
         if after.0 != before.0 || after.1 > request.start_usn || after.2 < request.end_usn {
             return Err(invalid("identity_journal_discontinuous"));
         }
-        Ok(IdentityJournalPage {
-            records,
-            covered_until_usn: covered,
-        })
+        Ok(page)
     }
 
     fn current_locations(
@@ -381,7 +375,7 @@ impl PersistentIdentityJournalSource for IdentitySource {
         references: &[JournalFileReference],
         cancelled: &AtomicBool,
     ) -> Result<IdentityJournalResolution, ScanError> {
-        if references.len() > MAX_REFERENCES {
+        if references.len() > MAX_IDENTITY_JOURNAL_REFERENCES {
             return Err(invalid("identity_journal_resolution_capacity"));
         }
         let root = self.root(root)?;

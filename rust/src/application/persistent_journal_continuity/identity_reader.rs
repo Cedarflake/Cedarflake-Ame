@@ -13,7 +13,8 @@ use crate::journal_broker::{
     QueryJournalRequest, RegisterRootRequest,
 };
 use crate::ports::{
-    IdentityJournalRead, IdentityJournalRoot, PersistentIdentityJournalSource,
+    IdentityJournalRead, IdentityJournalRoot, MAX_IDENTITY_JOURNAL_PAGE_RECORDS,
+    MAX_IDENTITY_JOURNAL_REFERENCES, PersistentIdentityJournalSource,
     PersistentJournalNamespaceReader, PersistentJournalVolumeReader, identity_for_reference,
 };
 
@@ -264,7 +265,7 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
             journal_id: ready[0].checkpoint.journal_id.value(),
             start_usn: start,
             end_usn: end,
-            max_records: 64,
+            max_records: MAX_IDENTITY_JOURNAL_PAGE_RECORDS,
         };
         let page = self
             .source
@@ -273,7 +274,7 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
         if page.covered_until_usn < start
             || (page.covered_until_usn == start && (start != end || !page.records.is_empty()))
             || page.covered_until_usn > end
-            || page.records.len() > 64
+            || page.records.len() > MAX_IDENTITY_JOURNAL_PAGE_RECORDS as usize
             || page
                 .records
                 .iter()
@@ -302,6 +303,13 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
             .collect::<BTreeMap<_, _>>()
             .into_values()
             .collect();
+        if references.len() > MAX_IDENTITY_JOURNAL_REFERENCES {
+            return Err(failure(
+                PersistentJournalRootFailureKind::JournalReconstructionFailure,
+                "identity_journal_page_invalid",
+                Some(&ready[0].opening),
+            ));
+        }
         let identities: Vec<_> = references
             .iter()
             .map(|reference| identity_for_reference(request.volume.volume_serial, reference))

@@ -5,6 +5,9 @@ use crate::domain::{
     PersistentJournalVolumeIdentity, ScanError,
 };
 
+pub(crate) const MAX_IDENTITY_JOURNAL_PAGE_RECORDS: u32 = 1_024;
+pub(crate) const MAX_IDENTITY_JOURNAL_REFERENCES: usize = 256;
+
 #[derive(Clone, Debug)]
 pub(crate) struct IdentityJournalRecord {
     pub(crate) file_reference: JournalFileReference,
