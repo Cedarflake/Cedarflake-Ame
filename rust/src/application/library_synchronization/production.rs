@@ -48,7 +48,7 @@ use crate::application::{
     AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
     MetadataInventoryRecoveryExecution, MetadataInventoryRecoveryPage,
     MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl, PersistentJournalBrokerRoot,
-    RetainedMetadataInventorySource, SessionBackedPersistentJournalVolumeReader,
+    ProductionPersistentJournalVolumeReader, RetainedMetadataInventorySource,
     catch_up_persistent_journal_volume, classify_persistent_journal_operation_failure,
     defer_authoritative_change, leased_change_requires_metadata_inventory,
     process_leased_authoritative_library_change_cancellable,
@@ -68,7 +68,7 @@ use crate::journal_broker::{
     PersistentChangeJournal, PersistentChangeJournalConnection,
     PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalOperationError,
     ProductionPersistentJournalRoot, describe_production_persistent_journal_root,
-    production_persistent_change_journal, production_persistent_journal_caller_claim,
+    production_persistent_journal_caller_claim,
 };
 #[cfg(windows)]
 use crate::ports::{
@@ -1873,7 +1873,7 @@ fn poll_runtime_with_storage_inner(
 
 #[cfg(windows)]
 fn new_production_synchronization() -> ProductionSynchronization {
-    let factory = production_persistent_change_journal();
+    let factory = crate::adapters::production_identity_journal_factory();
     new_production_synchronization_with_factory(production_library_change_source_factory(), factory)
 }
 
@@ -2693,6 +2693,7 @@ impl ProductionSynchronization {
                     catalog,
                     snapshot,
                     self.journal_root_cursor.as_deref(),
+                    None,
                 )? {
                     super::journal_baseline::persist_unavailable_session(
                         catalog,
@@ -2723,6 +2724,7 @@ impl ProductionSynchronization {
             catalog,
             snapshot,
             self.journal_root_cursor.as_deref(),
+            session.identity_source().as_deref(),
         )? {
             self.journal_root_cursor = Some(work.root_id().to_owned());
             return self.start_baseline_opening(
@@ -3041,10 +3043,13 @@ impl ProductionSynchronization {
                     if checkpoints.is_empty() {
                         return Ok(JournalTaskOutcome::Page(report));
                     }
-                    let reader = SessionBackedPersistentJournalVolumeReader::with_retained_session(
+                    let reader = ProductionPersistentJournalVolumeReader::new(
                         session,
                         caller,
                         broker_roots,
+                        Arc::new(crate::adapters::SqliteJournalNamespaceReader(Arc::clone(
+                            &catalog_session,
+                        ))),
                     )?;
                     let healthy_report = catch_up_persistent_journal_volume(
                         &mut catalog,

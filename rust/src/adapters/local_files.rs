@@ -1107,8 +1107,10 @@ fn metadata_inventory_entry_from_handle_record(
     } else {
         None
     };
-    let file_identity = (kind == MetadataInventoryEntryKind::File
-        && placeholder_state == MetadataInventoryPlaceholderState::Available)
+    let file_identity = (matches!(
+        kind,
+        MetadataInventoryEntryKind::File | MetadataInventoryEntryKind::Directory
+    ) && placeholder_state == MetadataInventoryPlaceholderState::Available)
         .then(|| FileIdentityEvidence {
             scheme: "windows-file-id-128-v1".to_owned(),
             value: format!(
@@ -5076,7 +5078,13 @@ mod tests {
         );
         assert_eq!(entries[1].relative_path, "album/nested");
         assert_eq!(entries[1].kind, MetadataInventoryEntryKind::Directory);
-        assert!(entries[1].file_identity.is_none());
+        assert_eq!(
+            entries[1]
+                .file_identity
+                .as_ref()
+                .map(|identity| identity.value.as_str()),
+            Some("0000000000000009:0000000000000000000000000000000c")
+        );
 
         write_u32(
             &mut buffer,
@@ -5870,6 +5878,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "windows_identity_journal",
+            visibility: "",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "durable_local_metadata_inventory",
             visibility: "",

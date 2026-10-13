@@ -76,7 +76,7 @@ fn retained_ingress_defers_other_root_opening_without_self_waiting_in_production
         };
         let opening =
             crate::application::library_synchronization::journal_baseline::select_opening_work(
-                &catalog, &snapshot, None,
+                &catalog, &snapshot, None, None,
             )
             .unwrap()
             .expect("root B has actual synchronous LiveOnly opening work");

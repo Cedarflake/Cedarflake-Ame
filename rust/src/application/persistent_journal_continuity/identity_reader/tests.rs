@@ -1,0 +1,251 @@
+use std::sync::atomic::AtomicUsize;
+
+use crate::domain::{
+    JournalFileReference, LibraryChangeScope, LibraryRootGeneration,
+    PersistentJournalContinuityState, PersistentJournalVolumeIdentity,
+};
+use crate::journal_broker::{
+    PersistentChangeJournalOperationError, PersistentChangeJournalRead, ReadJournalRangeRequest,
+    ReadJournalVolumeRequest, ResponseBinding, RootAuthorization, RootCapability,
+};
+use crate::ports::{
+    IdentityJournalLocation, IdentityJournalPage, IdentityJournalRecord, IdentityJournalResolution,
+};
+
+use super::*;
+
+fn checkpoint() -> PersistentJournalCheckpoint {
+    PersistentJournalCheckpoint {
+        root_id: "root".to_owned(),
+        root_generation: LibraryRootGeneration::initial(),
+        volume: PersistentJournalVolumeIdentity {
+            volume_guid: "volume".to_owned(),
+            volume_serial: 7,
+        },
+        root_file_reference: JournalFileReference::from_bytes(&[3; 16]).unwrap(),
+        journal_id: JournalIdentifier::new(9).unwrap(),
+        next_unread_usn: JournalUsn::new(10).unwrap(),
+        captured_exclusive_end: JournalUsn::new(10).unwrap(),
+        covered_catalog_revision: 1,
+        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+        contract_version: 1,
+        continuity: PersistentJournalContinuityState::Current,
+        failure: None,
+        updated_unix_ms: 1,
+    }
+}
+
+fn reference(id: u64) -> JournalFileReference {
+    JournalFileReference::from_bytes(&id.to_le_bytes()).unwrap()
+}
+
+fn location(id: u64, path: &str, directory: bool) -> IdentityJournalLocation {
+    IdentityJournalLocation {
+        identity: identity_for_reference(7, &reference(id)),
+        relative_path: path.to_owned(),
+        is_directory: directory,
+    }
+}
+
+fn page(directory: bool) -> IdentityJournalPage {
+    IdentityJournalPage {
+        covered_until_usn: 20,
+        records: vec![IdentityJournalRecord {
+            file_reference: reference(2),
+            parent_reference: reference(3),
+            usn: 12,
+            is_directory: directory,
+            is_deleted: false,
+        }],
+    }
+}
+
+#[test]
+fn one_identity_record_enrolls_every_hardlink_without_fabricating_usn_order() {
+    let old = vec![
+        location(2, "first.png", false),
+        location(2, "album/second.png", false),
+    ];
+    let current = IdentityJournalResolution {
+        locations: old.clone(),
+        ..Default::default()
+    };
+    let (batch, next) =
+        translation::translate(&checkpoint(), &page(false), 20, 2, &old, &current).unwrap();
+    assert_eq!(batch.intents.len(), 2);
+    assert!(
+        batch
+            .intents
+            .iter()
+            .all(|intent| intent.first_sequence == 12 && intent.scope == LibraryChangeScope::Path)
+    );
+    batch.validate().unwrap();
+    assert_eq!(next.next_unread_usn.value(), 20);
+}
+
+#[test]
+fn directory_rename_enrolls_only_the_two_affected_subtrees() {
+    let old = vec![location(2, "old", true)];
+    let current = IdentityJournalResolution {
+        locations: vec![location(2, "new", true)],
+        ..Default::default()
+    };
+    let (batch, _) =
+        translation::translate(&checkpoint(), &page(true), 20, 2, &old, &current).unwrap();
+    assert_eq!(batch.intents.len(), 2);
+    assert!(
+        batch
+            .intents
+            .iter()
+            .all(|intent| intent.scope == LibraryChangeScope::Subtree)
+    );
+    assert_eq!(batch.directory_changes[0].previous_relative_paths, ["old"]);
+    assert_eq!(
+        batch.directory_changes[0].current_relative_path.as_deref(),
+        Some("new")
+    );
+}
+
+#[test]
+fn failed_identity_open_never_removes_directory_history() {
+    let old = vec![location(2, "retained", true)];
+    let current = IdentityJournalResolution {
+        unresolved: vec![old[0].identity.clone()],
+        ..Default::default()
+    };
+    let (batch, _) =
+        translation::translate(&checkpoint(), &page(true), 20, 2, &old, &current).unwrap();
+    assert!(batch.directory_changes.is_empty());
+    assert_eq!(batch.intents[0].relative_path, "retained");
+    let mut deleted = page(true);
+    deleted.records[0].is_deleted = true;
+    let (batch, _) =
+        translation::translate(&checkpoint(), &deleted, 20, 2, &old, &current).unwrap();
+    assert_eq!(batch.directory_changes.len(), 1);
+    assert!(batch.directory_changes[0].current_relative_path.is_none());
+}
+
+struct Source {
+    reads: AtomicUsize,
+    resolutions: AtomicUsize,
+}
+impl PersistentIdentityJournalSource for Source {
+    fn can_probe_baseline(&self, _root: &IdentityJournalRoot) -> bool {
+        true
+    }
+    fn volume_identity(
+        &self,
+        _root: &IdentityJournalRoot,
+    ) -> Result<PersistentJournalVolumeIdentity, ScanError> {
+        Ok(checkpoint().volume)
+    }
+    fn read_volume(
+        &self,
+        _request: &IdentityJournalRead,
+        _cancelled: &AtomicBool,
+    ) -> Result<IdentityJournalPage, ScanError> {
+        self.reads.fetch_add(1, Ordering::Relaxed);
+        Ok(page(false))
+    }
+    fn current_locations(
+        &self,
+        _root: &IdentityJournalRoot,
+        _references: &[JournalFileReference],
+        _cancelled: &AtomicBool,
+    ) -> Result<IdentityJournalResolution, ScanError> {
+        self.resolutions.fetch_add(1, Ordering::Relaxed);
+        Ok(IdentityJournalResolution::default())
+    }
+}
+
+struct Namespace;
+impl PersistentJournalNamespaceReader for Namespace {
+    fn has_snapshot(&self, _root: &IdentityJournalRoot) -> Result<bool, ScanError> {
+        Ok(true)
+    }
+    fn previous_locations(
+        &self,
+        _root: &IdentityJournalRoot,
+        _identities: &[crate::domain::FileIdentityEvidence],
+    ) -> Result<Vec<IdentityJournalLocation>, ScanError> {
+        Ok(Vec::new())
+    }
+}
+
+struct Session(Arc<Source>);
+impl PersistentChangeJournalSession for Session {
+    fn identity_source(&self) -> Option<Arc<dyn PersistentIdentityJournalSource>> {
+        Some(self.0.clone())
+    }
+    fn register_root(
+        &self,
+        _request: RegisterRootRequest,
+    ) -> Result<RootCapability, PersistentChangeJournalOperationError> {
+        Ok(RootCapability([1; 32]))
+    }
+    fn query_journal(
+        &self,
+        request: QueryJournalRequest,
+    ) -> Result<BrokerResponse, PersistentChangeJournalOperationError> {
+        Ok(BrokerResponse::Journal {
+            request_id: 1,
+            binding: ResponseBinding::from_request(&request.caller, &request.root),
+            capability: JournalCapability::Supported,
+            journal_id: Some(9),
+            first_usn: Some(0),
+            next_usn: Some(10),
+        })
+    }
+    fn begin_read_range(
+        &self,
+        _request: ReadJournalRangeRequest,
+    ) -> Result<Box<dyn PersistentChangeJournalRead>, PersistentChangeJournalOperationError> {
+        Err(PersistentChangeJournalOperationError::InvalidRequest)
+    }
+    fn begin_read_volume(
+        &self,
+        _request: ReadJournalVolumeRequest,
+    ) -> Result<Box<dyn PersistentChangeJournalRead>, PersistentChangeJournalOperationError> {
+        Err(PersistentChangeJournalOperationError::InvalidRequest)
+    }
+    fn close(&self) -> Result<(), PersistentChangeJournalOperationError> {
+        Ok(())
+    }
+}
+
+#[test]
+fn no_change_restart_uses_the_production_reader_without_resolving_or_enumerating_sources() {
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+    });
+    let caller = CallerClaim {
+        process_id: 1,
+        session_id: 1,
+        client_instance: [1; 16],
+    };
+    let root = PersistentJournalBrokerRoot {
+        authorization: RootAuthorization {
+            root_id: "root".to_owned(),
+            root_generation: 1,
+            volume_id: "volume".to_owned(),
+            root_identity: vec![3; 16],
+            canonical_root_utf16: "C:\\source".encode_utf16().collect(),
+        },
+        client_root_handle: 1,
+        volume_serial: 7,
+    };
+    let reader = super::super::production_reader::ProductionPersistentJournalVolumeReader::new(
+        Arc::new(Session(source.clone())),
+        caller,
+        vec![root],
+        Arc::new(Namespace),
+    )
+    .unwrap();
+    let outcomes = reader
+        .read_volume(&[checkpoint()], &[], 2, &AtomicBool::new(false))
+        .unwrap();
+    assert!(matches!(outcomes[0].page, Ok(None)));
+    assert_eq!(source.reads.load(Ordering::Relaxed), 0);
+    assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
+}

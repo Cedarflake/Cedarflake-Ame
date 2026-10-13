@@ -494,6 +494,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
             transaction.commit().map_err(database_error)?;
             return Ok(Some(outcome));
         }
+        directory_snapshot::publish(&transaction, &run)?;
         let completed = transaction
             .execute(
                 "UPDATE library_change_queue
@@ -531,7 +532,6 @@ impl MetadataInventoryRepository for SqliteCatalog {
                 ));
             }
         }
-        directory_snapshot::publish(&transaction, &run)?;
         super::establish_root_publication_namespace(
             &transaction,
             &authority.root_id,
@@ -722,6 +722,9 @@ impl MetadataInventoryRepository for SqliteCatalog {
             )
             .map_err(database_error)?;
         let run = require_run(&transaction, run_id)?;
+        if page.is_complete {
+            directory_snapshot::initialize_recovery(&transaction, &run)?;
+        }
         transaction.commit().map_err(database_error)?;
         Ok(run)
     }

@@ -1450,6 +1450,7 @@ fn publish_volume_batch(
                 )
                 .map_err(database_error)?;
         }
+        super::journal_namespace::publication::publish(&transaction, &page.enrollment)?;
         if fail_after_owner == Some(index) {
             return Err(ScanError::new(
                 "persistent_journal_test_crash",
@@ -7902,6 +7903,7 @@ mod tests {
             carried_cross_root_lineage: Vec::new(),
             pending_renames: Vec::new(),
             consumed_pending_rename_ids: Vec::new(),
+            directory_changes: Vec::new(),
         };
         batch.range.batch_id = persistent_journal_batch_id(&batch);
         batch

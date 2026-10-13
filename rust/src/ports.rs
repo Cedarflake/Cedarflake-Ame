@@ -21,6 +21,12 @@ mod inventory_cleanup_control;
 pub use inventory_cleanup_control::InventoryCleanupControl;
 mod library_change_ingress;
 pub(crate) use library_change_ingress::LibraryChangeIngress;
+mod persistent_identity_journal;
+pub(crate) use persistent_identity_journal::{
+    IdentityJournalLocation, IdentityJournalPage, IdentityJournalRead, IdentityJournalRecord,
+    IdentityJournalResolution, IdentityJournalRoot, PersistentIdentityJournalSource,
+    PersistentJournalNamespaceReader, identity_for_reference,
+};
 
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogDeltaBatch, CatalogDeltaPublication, CatalogSnapshot,

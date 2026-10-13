@@ -92,6 +92,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 35 {
         super::directory_identities::validate_structure(connection)?;
     }
+    if schema_version >= 36 {
+        super::journal_directory_namespace::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

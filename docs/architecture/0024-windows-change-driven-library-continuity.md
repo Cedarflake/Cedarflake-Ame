@@ -113,7 +113,7 @@ redacted journal operation through a volume-directory handle. ADR 0022 is not re
 
 ### Read identity records with the ordinary desktop token
 
-Candidate under implementation for synchronization without installation. The Windows adapter reads bounded
+Selected production path for synchronization without installation. The Windows adapter reads bounded
 redacted USN records and resolves current metadata/name evidence under the caller's existing access.
 The application combines that evidence with durable, root-generation-bound namespace history before
 enrolling ordinary reconciliation. Current paths are not historical journal names. A parser or
@@ -135,11 +135,11 @@ for an explicit baseline or a proven continuity gap.
 
 ## Decision
 
-### Ordinary-token identity reconstruction candidate
+### Ordinary-token identity reconstruction
 
-These constraints govern the candidate adapter; they do not select it as the production source
-or establish a completed ordinary-client workflow. The current production factory still uses the
-named-record broker adapter.
+The production factory selects the ordinary-token identity adapter. Its connected application and
+retained-library verification remain separate delivery work. The named-record broker remains a
+distinct adapter with its original protocol and security checks.
 
 The byte-decoding owner distinguishes an absent filename from a valid component and malformed
 UTF-16 or record bounds. Existing named-record reconstruction continues to reject redacted records;
@@ -176,6 +176,25 @@ transaction, using staged metadata and revalidated spool directory identities. A
 replaces only its exact path and descendants. Cancellation, failed publication and stale root
 generations preserve the previous snapshot. This capture adds no source traversal and does not itself
 establish covered journal ranges or current-name authority.
+
+Schema v36 publishes directory-prefix reconstruction with the durable queue and checkpoint in one
+transaction. An immutable temporary projection prevents parent/child moves and reused paths from
+reading earlier writes in that transaction. Directory mutations require matching queued subtree
+work. Complete recovery enumeration installs its directory baseline before closing-range replay;
+later inventory completion merges observations without replacing journal-owned namespace state.
+Empty named-record batches retain their existing canonical payload. Identity batches add a tagged
+directory extension, preserving old payload identifiers and compatibility validation.
+
+The adapter owns Win32 metadata handles, existing-journal QUERY and unprivileged READ calls, bounded
+hardlink-name enumeration and final-path containment. Handle ownership is unique through RAII;
+source handles carry `OPEN_NO_RECALL`, attribute access and shared access, and volume-directory
+handles never call media reads or journal creation/reset. Synchronous control calls retain their
+buffers until terminal completion. A scoped monitor uses
+[`CancelSynchronousIo`](https://learn.microsoft.com/en-us/windows/win32/api/ioapiset/nf-ioapiset-cancelsynchronousio)
+only on the issuing thread; that thread cannot start unrelated I/O until the monitor retires.
+Cancellation does not free kernel-owned buffers or abort the desktop. The OS may complete a request
+before honoring cancellation. Registration/metadata operations revalidate pinned root identity,
+and current names are checked through normalized final paths and full file identities.
 
 File-by-ID, metadata and hardlink-name operations stay inside the Windows adapter. No media content,
 placeholder hydration, journal creation/reset, privilege enablement, resident helper or ordinary-

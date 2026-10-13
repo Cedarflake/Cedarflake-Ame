@@ -581,6 +581,40 @@ impl PersistentJournalCrossRootLineage {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct PersistentJournalDirectoryChange {
+    pub identity: super::FileIdentityEvidence,
+    pub previous_relative_paths: Vec<String>,
+    pub current_relative_path: Option<String>,
+}
+
+impl PersistentJournalDirectoryChange {
+    fn validate(&self, volume: &PersistentJournalVolumeIdentity) -> Result<(), ScanError> {
+        let expected_prefix = format!("{:016x}:", volume.volume_serial);
+        if self.identity.scheme != "windows-file-id-128-v1"
+            || self.identity.value.len() != 49
+            || !self.identity.value.starts_with(&expected_prefix)
+            || !self.identity.value[17..]
+                .bytes()
+                .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+            || self.previous_relative_paths.len() > 64
+        {
+            return Err(invalid_value("persistent journal directory identity"));
+        }
+        for path in self
+            .previous_relative_paths
+            .iter()
+            .chain(self.current_relative_path.iter())
+        {
+            validate_relative_path(path)?;
+            if path.is_empty() {
+                return Err(invalid_value("persistent journal root directory mutation"));
+            }
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct PersistentJournalEnrollmentBatch {
     pub range: PersistentJournalSourceRange,
     pub intents: Vec<LibraryChangeIntent>,
@@ -588,6 +622,7 @@ pub struct PersistentJournalEnrollmentBatch {
     pub carried_cross_root_lineage: Vec<PersistentJournalCrossRootLineage>,
     pub pending_renames: Vec<PersistentJournalPendingRename>,
     pub consumed_pending_rename_ids: Vec<String>,
+    pub directory_changes: Vec<PersistentJournalDirectoryChange>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -618,6 +653,26 @@ pub struct PersistentJournalRootReadOutcome {
 impl PersistentJournalEnrollmentBatch {
     pub fn validate(&self) -> Result<(), ScanError> {
         self.range.validate()?;
+        if self.directory_changes.len() > 256 {
+            return Err(invalid_value("persistent journal directory window"));
+        }
+        for change in &self.directory_changes {
+            change.validate(&self.range.volume)?;
+            for path in change
+                .previous_relative_paths
+                .iter()
+                .chain(change.current_relative_path.iter())
+            {
+                if !self.intents.iter().any(|intent| {
+                    intent.scope == super::LibraryChangeScope::Subtree
+                        && intent.relative_path == *path
+                }) {
+                    return Err(invalid_value(
+                        "persistent journal directory queue ownership",
+                    ));
+                }
+            }
+        }
         if self.intents.len() > MAX_PERSISTENT_JOURNAL_BATCH_INTENTS
             || self
                 .cross_root_lineage
@@ -765,6 +820,26 @@ pub fn persistent_journal_batch_payload(batch: &PersistentJournalEnrollmentBatch
     let mut consumed = batch.consumed_pending_rename_ids.clone();
     consumed.sort();
     payload.strings(&consumed);
+    if !batch.directory_changes.is_empty() {
+        payload.text("directory-namespace-v1");
+        let mut directories = batch
+            .directory_changes
+            .iter()
+            .map(|change| {
+                let mut previous = change.previous_relative_paths.clone();
+                previous.sort();
+                format!(
+                    "{}\0{}\0{}\0{}",
+                    change.identity.scheme,
+                    change.identity.value,
+                    change.current_relative_path.as_deref().unwrap_or(""),
+                    previous.join("\0")
+                )
+            })
+            .collect::<Vec<_>>();
+        directories.sort();
+        payload.strings(&directories);
+    }
     payload.finish()
 }
 
@@ -988,6 +1063,28 @@ fn decode_persistent_journal_batch_payload(payload: &[u8]) -> Option<CanonicalPa
     let lineage = reader.strings()?;
     let pending = reader.strings()?;
     let consumed = reader.strings()?;
+    if !reader.is_finished() {
+        if reader.text()? != "directory-namespace-v1" {
+            return None;
+        }
+        let directories = reader.strings()?;
+        if directories.is_empty() || directories.len() > 256 {
+            return None;
+        }
+        for entry in directories {
+            let fields: Vec<_> = entry.split('\0').collect();
+            if fields.len() < 4
+                || fields.len() > 67
+                || fields[0] != "windows-file-id-128-v1"
+                || fields[1].len() != 49
+            {
+                return None;
+            }
+            for path in fields.iter().skip(2).filter(|path| !path.is_empty()) {
+                validate_relative_path(path).ok()?;
+            }
+        }
+    }
     reader
         .is_finished()
         .then_some((intents, lineage, pending, consumed))

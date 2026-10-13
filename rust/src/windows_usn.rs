@@ -4,7 +4,7 @@ use windows_sys::Win32::System::Ioctl::{USN_REASON_FILE_DELETE, USN_REASON_RENAM
 
 mod parsing;
 
-pub(crate) use parsing::{UsnParseError, parse_journal_buffer};
+pub(crate) use parsing::{UsnParseError, decode_journal_buffer, parse_journal_buffer};
 
 #[cfg_attr(not(test), allow(dead_code))]
 const WINDOWS_TO_UNIX_EPOCH_100NS: i64 = 116_444_736_000_000_000;

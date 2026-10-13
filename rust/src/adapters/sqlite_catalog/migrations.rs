@@ -27,6 +27,7 @@ mod directory_identities;
 mod foreground_queue_index;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
+mod journal_directory_namespace;
 mod persistent_journal_baseline;
 mod retained_source_state;
 mod retired_root_authority;
@@ -90,6 +91,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         scan_resume_inventory::migrate_transaction(&transaction)?;
         foreground_queue_index::migrate_transaction(&transaction)?;
         directory_identities::migrate_transaction(&transaction)?;
+        journal_directory_namespace::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -164,6 +166,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             32 => scan_resume_inventory::migrate(connection)?,
             33 => foreground_queue_index::migrate(connection)?,
             34 => directory_identities::migrate(connection)?,
+            35 => journal_directory_namespace::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
@@ -733,7 +736,7 @@ fn legacy_terminal_metadata_inventory_repair_shape_matches(
         27 => Some(1),
         28..=30 => Some(2),
         31 => Some(3),
-        32..=35 => Some(4),
+        32..=36 => Some(4),
         _ => return Ok(false),
     };
     let core_matches = schema_object_sql_matches(
@@ -842,7 +845,7 @@ fn retired_live_gap_claim_repair_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if !matches!(schema_version, 30..=35) {
+    if !matches!(schema_version, 30..=36) {
         return Ok(false);
     }
     let schema_matches = schema_object_sql_matches(
@@ -9350,6 +9353,7 @@ fn legacy_v23_range_payload(
         carried_cross_root_lineage: Vec::new(),
         pending_renames,
         consumed_pending_rename_ids: Vec::new(),
+        directory_changes: Vec::new(),
     };
     batch
         .validate()

@@ -1761,7 +1761,7 @@ fn migrated_v17_location_is_preserved_while_unproven_namespace_blocks_backfill()
             },
         )
         .expect("load post-backfill counts");
-    assert_eq!(schema_version, 35);
+    assert_eq!(schema_version, 36);
     assert_eq!(location_count, 1);
     assert_eq!(asset_count, 1);
     assert_eq!(proof_count, 0);
@@ -2031,6 +2031,7 @@ fn persistent_journal_range_stays_catching_up_through_retry_until_terminal() {
         carried_cross_root_lineage: Vec::new(),
         pending_renames: Vec::new(),
         consumed_pending_rename_ids: Vec::new(),
+        directory_changes: Vec::new(),
     };
     enrollment.range.batch_id = persistent_journal_batch_id(&enrollment);
     fixture
@@ -3033,6 +3034,7 @@ fn assert_persistent_journal_cross_root_move_preserves_continuity(source_first: 
         carried_cross_root_lineage: Vec::new(),
         pending_renames: Vec::new(),
         consumed_pending_rename_ids: Vec::new(),
+        directory_changes: Vec::new(),
     };
     safe_prefix.range.batch_id = persistent_journal_batch_id(&safe_prefix);
     let mut prefix_checkpoint = checkpoint("journal-source-root");
@@ -3108,6 +3110,7 @@ fn assert_persistent_journal_cross_root_move_preserves_continuity(source_first: 
         carried_cross_root_lineage: Vec::new(),
         pending_renames: vec![carry],
         consumed_pending_rename_ids: Vec::new(),
+        directory_changes: Vec::new(),
     };
     let source_range_id = persistent_journal_batch_id(&source_enrollment);
     source_enrollment
@@ -3172,6 +3175,7 @@ fn assert_persistent_journal_cross_root_move_preserves_continuity(source_first: 
         carried_cross_root_lineage: vec![carried_lineage(&source_range_id)],
         pending_renames: Vec::new(),
         consumed_pending_rename_ids: vec![durable_carry.carry_id.clone()],
+        directory_changes: Vec::new(),
     };
     let destination_range_id = persistent_journal_batch_id(&destination_enrollment);
     destination_enrollment

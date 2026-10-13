@@ -44,6 +44,12 @@ pub(crate) trait PersistentChangeJournal: Send + Sync {
     reason = "R2c-O admits query and bounded-read operations before R2c-P checkpoint wiring"
 )]
 pub(crate) trait PersistentChangeJournalSession: Send + Sync {
+    fn identity_source(
+        &self,
+    ) -> Option<std::sync::Arc<dyn crate::ports::PersistentIdentityJournalSource>> {
+        None
+    }
+
     fn register_root(
         &self,
         request: RegisterRootRequest,

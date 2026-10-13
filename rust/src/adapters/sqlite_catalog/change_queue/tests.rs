@@ -1700,6 +1700,7 @@ fn newer_root_generation_supersedes_old_work_and_rejects_late_enqueue() {
         carried_cross_root_lineage: Vec::new(),
         pending_renames: Vec::new(),
         consumed_pending_rename_ids: Vec::new(),
+        directory_changes: Vec::new(),
     };
     retained_range.range.batch_id = persistent_journal_batch_id(&retained_range);
     catalog

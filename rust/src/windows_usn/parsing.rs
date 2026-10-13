@@ -9,14 +9,14 @@ pub(crate) enum UsnParseError {
 }
 
 #[derive(Debug)]
-pub(super) struct DecodedUsnRecord {
-    pub(super) file_reference: FileReference,
-    pub(super) parent_reference: FileReference,
-    pub(super) usn: i64,
-    pub(super) timestamp_100ns: i64,
-    pub(super) reason: u32,
-    pub(super) file_attributes: u32,
-    pub(super) name: Option<String>,
+pub(crate) struct DecodedUsnRecord {
+    pub(crate) file_reference: FileReference,
+    pub(crate) parent_reference: FileReference,
+    pub(crate) usn: i64,
+    pub(crate) timestamp_100ns: i64,
+    pub(crate) reason: u32,
+    pub(crate) file_attributes: u32,
+    pub(crate) name: Option<String>,
 }
 
 pub(crate) fn parse_journal_buffer(
@@ -37,7 +37,7 @@ pub(crate) fn parse_journal_buffer(
 
 // Record admission keeps redacted identity evidence out of named-path reconstruction without
 // retaining a second decoded page or manufacturing a historical filename from a current path.
-pub(super) fn decode_journal_buffer<Record>(
+pub(crate) fn decode_journal_buffer<Record>(
     buffer: &[u8],
     mut admit_record: impl FnMut(DecodedUsnRecord) -> Result<Record, UsnParseError>,
 ) -> Result<(i64, Vec<Record>), UsnParseError> {

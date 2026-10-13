@@ -10,7 +10,10 @@ use crate::domain::{
 };
 use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
+mod identity_reader;
+mod production_reader;
 mod session_reader;
+pub(crate) use production_reader::ProductionPersistentJournalVolumeReader;
 
 pub(crate) use session_reader::{
     PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
@@ -232,7 +235,12 @@ where
                                 &mut report,
                                 previous,
                                 PersistentJournalReadFailure {
-                                    kind: PersistentJournalRootFailureKind::Transient,
+                                    kind: if error.code == "persistent_journal_namespace_collision"
+                                    {
+                                        PersistentJournalRootFailureKind::JournalReconstructionFailure
+                                    } else {
+                                        PersistentJournalRootFailureKind::Transient
+                                    },
                                     failure: PersistentJournalFailure {
                                         code: error.code.clone(),
                                         message: error.message.clone(),

@@ -78,6 +78,7 @@ fn publish_followup(catalog: &mut SqliteCatalog, is_complete: bool, has_candidat
         carried_cross_root_lineage: Vec::new(),
         pending_renames: Vec::new(),
         consumed_pending_rename_ids: Vec::new(),
+        directory_changes: Vec::new(),
     };
     enrollment.range.batch_id = persistent_journal_batch_id(&enrollment);
     checkpoint.next_unread_usn = enrollment.range.covered_until_usn;

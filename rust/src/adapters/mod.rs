@@ -10,6 +10,10 @@ mod preview_cache;
 mod sqlite_catalog;
 mod storage_settings;
 #[cfg(windows)]
+mod windows_identity_journal;
+#[cfg(windows)]
+pub(crate) use windows_identity_journal::production_factory as production_identity_journal_factory;
+#[cfg(windows)]
 mod windows_library_change_source;
 #[cfg(all(windows, test))]
 mod windows_usn_catch_up;
@@ -61,8 +65,9 @@ pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;
 pub(crate) use sqlite_catalog::{
     RejectedInputValidationRoster, SqliteCatalogReadExecutor, SqliteCatalogSession,
-    SqliteCatalogSpaceMaintenance, StagedValidationOutcome, StagedValidationRoster,
-    ValidatedStagingProof, load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
+    SqliteCatalogSpaceMaintenance, SqliteJournalNamespaceReader, StagedValidationOutcome,
+    StagedValidationRoster, ValidatedStagingProof, load_retained_scan_issue_window,
+    retained_scan_has_unclassified_issues,
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{

@@ -60,8 +60,9 @@ pub(crate) use metadata_inventory::{
     process_leased_metadata_inventory_change_with_retained_source,
 };
 pub(crate) use persistent_journal_continuity::{
-    PersistentJournalBrokerRoot, SessionBackedPersistentJournalVolumeReader,
-    catch_up_persistent_journal_volume, classify_persistent_journal_operation_failure,
+    PersistentJournalBrokerRoot, ProductionPersistentJournalVolumeReader,
+    SessionBackedPersistentJournalVolumeReader, catch_up_persistent_journal_volume,
+    classify_persistent_journal_operation_failure,
 };
 pub use preview::materialize_preview;
 pub(crate) use preview_cleanup::{acquire_preview_generation, acquire_preview_reclamation};

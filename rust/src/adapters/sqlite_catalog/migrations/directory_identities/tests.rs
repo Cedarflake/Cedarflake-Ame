@@ -49,7 +49,10 @@ fn v34_catalog_migrates_without_inventing_legacy_directory_coverage() {
     drop(catalog);
     for _ in 0..2 {
         let reopened = SqliteCatalog::open(path.clone()).expect("migrate and reopen");
-        assert_eq!(version(&reopened.connection), 35);
+        assert_eq!(
+            version(&reopened.connection),
+            super::super::super::SCHEMA_VERSION
+        );
         let retained: (String, i64) = reopened
             .connection
             .query_row(

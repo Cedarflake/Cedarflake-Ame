@@ -230,7 +230,7 @@ fn generated_scan_reaches_each_owning_operation_without_altering_membership() {
     let report = scope.finish(elapsed.elapsed()).unwrap();
     assert_eq!(
         report.measurements[Operation::SourceDiscovery as usize].calls,
-        6
+        7
     );
     for operation in [
         Operation::PriorSelection,

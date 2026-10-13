@@ -149,6 +149,7 @@ pub(super) fn select_opening_work(
     catalog: &SqliteCatalog,
     snapshot: &LibrarySynchronizationSnapshot,
     root_cursor: Option<&str>,
+    identity_source: Option<&dyn crate::ports::PersistentIdentityJournalSource>,
 ) -> Result<Option<JournalBaselineOpeningWork>, ScanError> {
     let capabilities = catalog.load_persistent_journal_capabilities()?;
     let baselines = catalog.load_persistent_journal_baselines()?;
@@ -185,14 +186,24 @@ pub(super) fn select_opening_work(
         };
         if let Some(capability) = capabilities.iter().find(|capability| {
             capability.root_id == root.root_id && capability.root_generation == root_generation
-        }) && !first_import.as_ref().is_some_and(|(_, started_unix_ms)| {
-            capability.state == PersistentJournalCapabilityState::LiveOnly
-                && capability.continuity == PersistentJournalContinuityState::LiveOnly
-                && capability.updated_unix_ms < *started_unix_ms
-        }) && (capability.state == PersistentJournalCapabilityState::LiveOnly
-            || capability.continuity != PersistentJournalContinuityState::BaselineRequired)
-        {
-            continue;
+        }) {
+            if capability.state == PersistentJournalCapabilityState::LiveOnly {
+                let first_import_is_newer = first_import.as_ref().is_some_and(|(_, started)| {
+                    capability.continuity == PersistentJournalContinuityState::LiveOnly
+                        && capability.updated_unix_ms < *started
+                });
+                let new_source_can_probe = identity_source.is_some_and(|source| {
+                    source.can_probe_baseline(&crate::ports::IdentityJournalRoot {
+                        root_id: root.root_id.clone(),
+                        root_generation,
+                    })
+                });
+                if !first_import_is_newer && !new_source_can_probe {
+                    continue;
+                }
+            } else if capability.continuity != PersistentJournalContinuityState::BaselineRequired {
+                continue;
+            }
         }
         let work = if root.active_scan_id.is_none() {
             let Some((scan_id, started_unix_ms)) = first_import else {
@@ -308,9 +319,24 @@ fn probe_journal_boundary(
             ..
         } if first_usn >= 0 && next_usn >= first_usn => {
             Ok(JournalBoundaryProbe::Supported(SupportedJournalBoundary {
-                volume: PersistentJournalVolumeIdentity {
-                    volume_guid: registration.authorization.volume_id.clone(),
-                    volume_serial: registration.volume_serial,
+                volume: if let Some(source) = session.identity_source() {
+                    source.volume_identity(&crate::ports::IdentityJournalRoot {
+                        root_id: registration.authorization.root_id.clone(),
+                        root_generation: LibraryRootGeneration::new(
+                            registration.authorization.root_generation,
+                        )
+                        .ok_or_else(|| {
+                            ScanError::new(
+                                "identity_journal_generation_invalid",
+                                "The journal root generation is invalid",
+                            )
+                        })?,
+                    })?
+                } else {
+                    PersistentJournalVolumeIdentity {
+                        volume_guid: registration.authorization.volume_id.clone(),
+                        volume_serial: registration.volume_serial,
+                    }
                 },
                 root_file_reference: JournalFileReference::from_bytes(
                     &registration.authorization.root_identity,
