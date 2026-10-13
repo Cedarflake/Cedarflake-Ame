@@ -6003,6 +6003,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "scan_enumeration",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "directory_coverage",
             visibility: "",
             attributes: &[],

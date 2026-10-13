@@ -122,6 +122,17 @@ fn consumed_frontier_does_not_remove_published_directory_history() {
             .expect("published directory lookup")
     };
     assert_eq!(active_count(&fixture.catalog), 0);
+    let error = fixture
+        .catalog
+        .publish_scan(&fixture.request.scan_id, "root", 0, 0)
+        .expect_err("directory identities cannot substitute for change capture");
+    assert_eq!(error.code, "catalog_first_import_change_capture_unproven");
+    assert_eq!(active_count(&fixture.catalog), 0);
+    assert_eq!(fixture.count(), 1);
+    fixture
+        .catalog
+        .prove_live_only_first_import_handoff_for_test(&fixture.request.scan_id)
+        .expect("healthy first-import observer handoff");
     fixture
         .catalog
         .publish_scan(&fixture.request.scan_id, "root", 0, 0)

@@ -19,6 +19,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "file_revalidation",
         "preview_cache_namespace",
         "preview_source",
+        "scan_enumeration",
     ] {
         let contracts = LOCAL_MODULE_CONTRACTS
             .iter()
@@ -86,6 +87,23 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
         "pub(crate) mod media_fixtures;"
     );
     for (source, declaration, replacements, source_key, module_name) in [
+        (
+            LOCAL_SOURCE,
+            "mod scan_enumeration;",
+            vec![
+                "".to_owned(),
+                "mod scan_enumeration;\nmod scan_enumeration;".to_owned(),
+                "pub mod scan_enumeration;".to_owned(),
+                "#[cfg(test)]\nmod scan_enumeration;".to_owned(),
+                "#[path = \"alternate.rs\"]\nmod scan_enumeration;".to_owned(),
+                "#[cfg_attr(not(test), path = \"alternate.rs\")]\nmod scan_enumeration;".to_owned(),
+                "#[adversarial_loader]\nmod scan_enumeration;".to_owned(),
+                "mod scan_enumeration { mod generated {} }".to_owned(),
+                "include!(\"alternate.rs\");".to_owned(),
+            ],
+            "local",
+            "scan_enumeration",
+        ),
         (
             LOCAL_SOURCE,
             "mod directory_coverage;",
