@@ -26,7 +26,13 @@ pub(crate) fn current_identity_paths(
         root_id,
         root_generation.value(),
         Path::new(root_path),
-    )?;
+    )
+    .map_err(|error| {
+        ScanError::new(
+            "source_reconciliation_root_unavailable",
+            format!("The source root metadata could not be validated: {error}"),
+        )
+    })?;
     let root = NativeRoot::open(&registration.authorization)?;
     if root.volume.volume_serial != volume_serial {
         return Err(invalid());
