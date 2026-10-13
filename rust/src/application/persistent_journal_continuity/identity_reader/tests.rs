@@ -141,6 +141,26 @@ fn unsupported_alias_enumeration_cannot_retain_current_journal_authority() {
     assert!(failure.kind.recovery_reason().is_none());
 }
 
+#[test]
+fn inaccessible_unknown_identity_recovers_only_its_proven_parent_scope() {
+    let old = vec![location(3, "album", true)];
+    let current = IdentityJournalResolution {
+        access_denied: vec![identity_for_reference(7, &reference(2))],
+        ..Default::default()
+    };
+    let (batch, next) =
+        translation::translate(&checkpoint(), &page(false), 20, 2, &old, &current).unwrap();
+    assert_eq!(batch.intents.len(), 1);
+    assert_eq!(batch.intents[0].relative_path, "album");
+    assert_eq!(batch.intents[0].scope, LibraryChangeScope::Subtree);
+    assert!(batch.directory_changes.is_empty());
+    assert_eq!(next.next_unread_usn.value(), 20);
+
+    let (unrelated, _) =
+        translation::translate(&checkpoint(), &page(false), 20, 2, &[], &current).unwrap();
+    assert!(unrelated.intents.is_empty());
+}
+
 struct Source {
     reads: AtomicUsize,
     resolutions: AtomicUsize,

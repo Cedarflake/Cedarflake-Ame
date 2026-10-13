@@ -1,4 +1,5 @@
 use std::fs;
+use std::os::windows::fs::OpenOptionsExt;
 
 use tempfile::tempdir;
 
@@ -55,4 +56,29 @@ fn hardlinks_retain_every_root_alias_when_the_primary_name_is_outside() {
     assert_eq!(remaining.len(), 1);
     assert_eq!(remaining[0].relative_path, "second.txt");
     assert_eq!(remaining[0].identity, locations[0].identity);
+}
+
+#[test]
+fn exclusively_open_identity_becomes_inaccessible_until_the_owner_releases_it() {
+    let fixture = tempdir().unwrap();
+    let path = fixture.path().join("locked.txt");
+    fs::write(&path, b"generated metadata fixture").unwrap();
+    let reference = reference_for(&path);
+    let registration =
+        describe_production_persistent_journal_root("root", 1, fixture.path()).unwrap();
+    let root = NativeRoot::open(&registration.authorization).unwrap();
+    let held = fs::OpenOptions::new()
+        .read(true)
+        .share_mode(0)
+        .open(&path)
+        .unwrap();
+
+    assert_eq!(
+        root.locations(&reference).unwrap_err().code,
+        "identity_journal_identity_access_denied"
+    );
+    drop(held);
+    let locations = root.locations(&reference).unwrap().unwrap();
+    assert_eq!(locations.len(), 1);
+    assert_eq!(locations[0].relative_path, "locked.txt");
 }

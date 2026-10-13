@@ -8,10 +8,7 @@ use std::sync::atomic::AtomicBool;
 use std::time::Instant;
 
 use windows_sys::Win32::Foundation::GENERIC_READ;
-use windows_sys::Win32::Foundation::{
-    ERROR_FILE_NOT_FOUND, ERROR_INVALID_PARAMETER, ERROR_PATH_NOT_FOUND, HANDLE,
-    INVALID_HANDLE_VALUE,
-};
+use windows_sys::Win32::Foundation::{HANDLE, INVALID_HANDLE_VALUE};
 use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, ExtendedFileIdType, FILE_ATTRIBUTE_DIRECTORY, FILE_FLAG_BACKUP_SEMANTICS,
     FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_128, FILE_ID_DESCRIPTOR,
@@ -30,6 +27,8 @@ use crate::journal_broker::RootAuthorization;
 use crate::ports::IdentityJournalLocation;
 
 use super::io::{control, native_error};
+mod lookup_errors;
+use lookup_errors::{identity_open_error, metadata_error};
 
 const METADATA_FLAGS: u32 =
     FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_NO_RECALL | FILE_FLAG_OPEN_REPARSE_POINT;
@@ -155,22 +154,10 @@ impl NativeRoot {
             )
         };
         if raw == INVALID_HANDLE_VALUE {
-            let error = io::Error::last_os_error();
-            if error.raw_os_error()
-                == Some(windows_sys::Win32::Foundation::ERROR_ACCESS_DENIED as i32)
-            {
-                return Err(native_error(
-                    "identity_journal_identity_access_denied",
-                    error,
-                ));
-            }
-            if matches!(
-                error.raw_os_error().map(|code| code as u32),
-                Some(ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND | ERROR_INVALID_PARAMETER)
-            ) {
-                return Ok(None);
-            }
-            return Err(native_error("identity_journal_identity_unavailable", error));
+            return match identity_open_error(io::Error::last_os_error()) {
+                Some(error) => Err(error),
+                None => Ok(None),
+            };
         }
         // SAFETY: OpenFileById returned a valid uniquely owned file handle.
         let file = unsafe { File::from_raw_handle(raw) };
@@ -392,15 +379,6 @@ fn link_paths(path: &str, volume: &str) -> Result<Vec<String>, ScanError> {
         }
     }
     Ok(paths.into_iter().collect())
-}
-
-fn metadata_error(code: &str, error: io::Error) -> ScanError {
-    let code = match error.raw_os_error() {
-        Some(2 | 3) => "identity_journal_identity_missing",
-        Some(5) => "identity_journal_identity_access_denied",
-        _ => code,
-    };
-    native_error(code, error)
 }
 
 fn terminated(path: &str) -> Result<Vec<u16>, ScanError> {
