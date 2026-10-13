@@ -368,6 +368,11 @@ void main() {
       );
       synchronization.publish(_status());
       await tester.pump();
+      expect(
+        container.read(ameNotificationControllerProvider).history,
+        hasLength(1),
+      );
+      await tester.pump();
 
       expect(
         find.text(LibraryStrings.synchronizationRecoveryBlocked),
@@ -405,6 +410,7 @@ void main() {
           phase: LibrarySynchronizationPhase.retryWait,
         ),
       );
+      await tester.pump();
       await tester.pump();
       expect(find.text("“Generated”更新受阻"), findsOneWidget);
       expect(
@@ -473,6 +479,7 @@ void main() {
           unknownCount: 0,
         ),
       );
+      await tester.pump();
       await tester.pump();
       expect(find.text(LibraryStrings.synchronized), findsOneWidget);
       expect(find.text(LibraryStrings.synchronizing), findsNothing);
