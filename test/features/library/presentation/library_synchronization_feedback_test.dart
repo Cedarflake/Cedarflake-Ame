@@ -17,6 +17,42 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 
 void main() {
+  test("active baseline is progress rather than an unresolved fault", () {
+    final feedback = LibrarySynchronizationFeedback.fromStatus(
+      _status(
+        recoveryBlocked: false,
+        issueCode: null,
+        freshness: LibraryCatalogFreshness.updating,
+        phase: LibrarySynchronizationPhase.inventoryEnumeration,
+        continuity: LibraryContinuityState.baselineRequired,
+        retryCount: 0,
+      ),
+    );
+    expect(feedback.message, LibraryStrings.synchronizationAutomaticProgress);
+    expect(feedback.severity, AmeNotificationSeverity.info);
+    expect(feedback.detail, contains("正在核对文件列表"));
+    expect(feedback.detail, isNot(contains("故障")));
+    expect(feedback.detail, isNot(contains("项状态尚未确认")));
+    expect(feedback.requiresManualLibraryUpdate, isFalse);
+  });
+
+  test("unresolved evidence does not claim recovery is already running", () {
+    for (final issue in [
+      null,
+      "library_reconciliation_failed",
+      "catalog_database_busy",
+      "change_source_event_incomplete",
+      "change_source_watch_failed",
+    ]) {
+      final feedback = LibrarySynchronizationFeedback.fromStatus(
+        _status(recoveryBlocked: false, issueCode: issue, retryCount: 0),
+      );
+      expect(feedback.message, isNot(contains("正在自动")));
+      expect(feedback.message, isNot(contains("将自动重试")));
+      expect(feedback.detail, isNot(contains("等待重试")));
+    }
+  });
+
   test("exhausted directory work does not promise another scheduled retry", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(_status());
 
@@ -208,6 +244,25 @@ void main() {
       expect(history.single.technicalCode, "catalog_database_busy");
       expect(history.single.severity, AmeNotificationSeverity.error);
       expect(history.single.actionId, isNull);
+      expect(scanner.startedRootPaths, isEmpty);
+
+      synchronization.publish(
+        _status(
+          recoveryBlocked: false,
+          issueCode: null,
+          freshness: LibraryCatalogFreshness.updating,
+          phase: LibrarySynchronizationPhase.inventoryEnumeration,
+          continuity: LibraryContinuityState.baselineRequired,
+          retryCount: 0,
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(
+        find.text(LibraryStrings.synchronizationRecoveryBlocked),
+        findsNothing,
+      );
+      expect(find.textContaining("更新受阻"), findsNothing);
       expect(scanner.startedRootPaths, isEmpty);
     },
   );

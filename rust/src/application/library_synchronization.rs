@@ -27,6 +27,8 @@ mod admission;
 mod journal_baseline;
 #[cfg(windows)]
 mod journal_drain;
+#[cfg(windows)]
+mod journal_status;
 mod observation_diagnostics;
 mod observer_handoff;
 mod production;

@@ -1980,29 +1980,7 @@ impl ProductionSynchronization {
         catalog: &SqliteCatalog,
         snapshot: &mut LibrarySynchronizationSnapshot,
     ) -> Result<(), ScanError> {
-        let capabilities = catalog.load_persistent_journal_capabilities()?;
-        for status in &mut snapshot.roots {
-            if status.availability != crate::domain::LibraryRootAvailability::Available {
-                status.continuity = PersistentJournalContinuityState::Unavailable;
-                continue;
-            }
-            status.continuity = match self._persistent_change_journal {
-                PersistentChangeJournalConnection::LiveOnly(_) => {
-                    PersistentJournalContinuityState::LiveOnly
-                }
-                PersistentChangeJournalConnection::Connected(_) => capabilities
-                    .iter()
-                    .find(|capability| {
-                        capability.root_id == status.root_id
-                            && capability.root_generation.value() == status.root_generation
-                    })
-                    .map_or(
-                        PersistentJournalContinuityState::BaselineRequired,
-                        |capability| capability.continuity,
-                    ),
-            };
-        }
-        Ok(())
+        super::journal_status::project(&self._persistent_change_journal, catalog, snapshot)
     }
 
     fn open_persistent_change_journal_after_watcher(&mut self) {

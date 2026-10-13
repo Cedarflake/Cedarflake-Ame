@@ -52,6 +52,11 @@ String _synchronizationNotificationMessage(
   if (issueMessage != null) {
     return issueMessage;
   }
+  if (status.freshness == LibraryCatalogFreshness.updating &&
+      status.sourceStatus == LibraryChangeSourceStatus.healthy &&
+      status.lastIssueCode == null) {
+    return LibraryStrings.synchronizationAutomaticProgress;
+  }
   return switch (status.freshnessCause) {
     LibraryCatalogFreshnessCause.changeSourceUnhealthy =>
       LibraryStrings.synchronizationSourceUnhealthy,
@@ -131,7 +136,7 @@ String? _synchronizationNotificationDetail(
     }
   }
   if (status.freshnessUnknownCount > BigInt.zero) {
-    details.add("${status.freshnessUnknownCount} 项状态尚未确认");
+    details.add("尚有未核对的图库变化");
   }
   return details.join(" · ");
 }
@@ -173,6 +178,12 @@ AmeNotificationSeverity _synchronizationNotificationSeverity(
       issueCode?.startsWith("change_queue_") == true ||
       issueCode?.startsWith("database_") == true) {
     return AmeNotificationSeverity.error;
+  }
+  if (status.freshness == LibraryCatalogFreshness.updating &&
+      status.sourceStatus == LibraryChangeSourceStatus.healthy &&
+      !status.recoveryBlocked &&
+      issueCode == null) {
+    return AmeNotificationSeverity.info;
   }
   return AmeNotificationSeverity.warning;
 }

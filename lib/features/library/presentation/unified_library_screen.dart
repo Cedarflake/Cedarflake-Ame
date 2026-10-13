@@ -371,7 +371,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       final status = entry.value;
       final root = roots[rootId];
       final priorKey = _synchronizationNotificationKeys[rootId];
-      final currentGenerationKey = _synchronizationNotificationKey(status);
       switch (status.freshness) {
         case LibraryCatalogFreshness.needsReconciliation:
           final feedback = LibrarySynchronizationFeedback.fromStatus(status);
@@ -419,7 +418,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           }
           break;
         case LibraryCatalogFreshness.updating:
-          if (priorKey != null && priorKey != currentGenerationKey) {
+          if (priorKey != null) {
             _notificationController.resolve(priorKey);
             _synchronizationNotificationKeys.remove(rootId);
           }
