@@ -20,8 +20,8 @@ still require their applicable evidence, without claiming an unexecuted installe
 ADR 0016 through ADR 0021 established Ame-owned change normalization, the live Windows observer,
 durable queueing, final-state reconciliation, atomic catalog deltas, and desktop lifecycle. ADR 0022
 attempted to cover changes made while Ame was closed by opening the Windows USN change journal from
-the desktop process. The target workstation's ordinary desktop token could not open either retained
-volume journal, so ADR 0023 removed production journal access and made a metadata inventory of every
+the desktop process. Its raw-volume open failed under the target workstation's ordinary desktop
+token, so ADR 0023 removed production journal access and made a metadata inventory of every
 available root the normal continuity authority after every process start.
 
 That replacement is correct about source safety but wrong for the required user experience. Its
@@ -33,11 +33,17 @@ verification is on the critical path to proving freshness, while change delivery
 execution path.
 
 The product requirement is now limited to Windows 11 x64. For a local NTFS root, the USN change
-journal is the persistent change source available while Ame is not running. The target permission
-failure is a process-boundary problem, not evidence that an O(N) inventory is the correct steady-
-state model. Ame can keep its ordinary desktop process unprivileged while a narrowly scoped Windows
-service performs only the privileged journal operations. Installation and service update may use
-one explicit UAC authorization; ordinary application startup and synchronization may not.
+journal is the persistent change source available while Ame is not running. The earlier raw-volume
+failure does not establish that every journal API requires elevation. Ordinary-token queries and
+`FSCTL_READ_UNPRIVILEGED_USN_JOURNAL` succeed through a volume-directory handle on both configured
+volumes, while the named journal operation still returns access denied. Redacted records preserve
+file/parent identities but omit names. Current-name resolution is possible with ordinary file
+permissions; complete continuity additionally needs durable old namespace evidence.
+
+Prefer that ordinary-token path once identity reconstruction and atomic catalog enrollment satisfy
+the existing contract. A constrained broker remains an adapter for privileged named journal reads,
+not an installation prerequisite for the ordinary-token path. Installation and service update may
+use explicitly authorized UAC; ordinary application startup and synchronization may not.
 
 This decision does not revive ADR 0022 as written. Its direct desktop volume access, one global
 catch-up worker, all-roots enrollment boundary, fixed record ceiling fallback, and automatic
@@ -52,7 +58,7 @@ contract.
   catch-up or recovery work is active;
 - discover changes made while Ame was closed without a routine root enumeration;
 - perform zero source-root enumeration on a no-change normal startup;
-- keep the desktop process at ordinary user privilege after installation;
+- keep synchronization at ordinary user privilege without requiring application/helper installation;
 - prevent a privileged component from reading media content, mutating source files, changing the
   journal, or disclosing records outside an authorized root;
 - preserve final-state reconciliation, root generation, identity, atomic catalog publication,
@@ -70,13 +76,13 @@ The first complete continuity contract is for:
 
 - Windows 11 x64;
 - a local NTFS volume;
-- an installed and compatible journal broker;
+- a usable journal adapter with complete name/identity reconstruction authority;
 - an existing, queryable, continuous USN journal; and
 - a configured root whose identity and caller access can be verified.
 
 The application detects capability per root at runtime rather than inferring it only from the
-Windows version. FAT, FAT32, exFAT, ReFS until separately accepted, SMB, UNC, NAS, roots whose broker
-cannot be installed or contacted, and NTFS volumes without usable journal continuity do not receive
+Windows version. FAT, FAT32, exFAT, ReFS until separately accepted, SMB, UNC, NAS, roots without a
+usable journal adapter and identity baseline, and NTFS volumes without usable journal continuity do not receive
 a false complete-synchronization claim. They are `LiveOnly`, `RecoveryRequired`, or `Unavailable`
 as evidence requires. `LiveOnly` observes changes while Ame runs and offers explicit `更新图库`; it
 does not silently enumerate the complete root on every startup.
@@ -99,10 +105,19 @@ Rejected as the primary continuity authority. It can reduce common downtime gaps
 coverage across logon races, crashes, upgrades, process termination, or periods when the helper is
 not running. Correctness would still require a persistent platform log or routine inventory.
 
-### Open the journal directly from the desktop process
+### Open the raw volume for named journal reads in the desktop process
 
 Rejected. It repeats the target permission failure and would either require ordinary-start UAC or
-mix raw-volume privilege into the UI process. ADR 0022 remains historical and is not reactivated.
+mix raw-volume privilege into the UI process. This rejection does not cover the verified ordinary-token
+redacted journal operation through a volume-directory handle. ADR 0022 is not reactivated.
+
+### Read identity records with the ordinary desktop token
+
+Accepted direction for synchronization without installation. The Windows adapter reads bounded
+redacted USN records and resolves current metadata/name evidence under the caller's existing access.
+The application combines that evidence with durable, root-generation-bound namespace history before
+enrolling ordinary reconciliation. Current paths are not historical journal names. A parser or
+successful native query alone cannot establish complete root capability.
 
 ### Install one broad privileged media service
 
@@ -112,12 +127,43 @@ privilege boundary.
 
 ### Use a constrained journal broker plus the existing live watcher
 
-Accepted. `ReadDirectoryChangesW` remains a low-latency hint while the process is running. A small,
-on-demand Windows service supplies persistent USN records across downtime. Both sources enter one
-Ame-owned durable intent and final-state reconciliation model. Metadata inventory is invoked only
+Retained for the named-record adapter. `ReadDirectoryChangesW` remains a low-latency hint while the
+process is running. A small, on-demand Windows service supplies persistent USN records across
+downtime. Both sources enter one Ame-owned durable intent and final-state reconciliation model.
+Metadata inventory is invoked only
 for an explicit baseline or a proven continuity gap.
 
 ## Decision
+
+### Ordinary-token identity reconstruction
+
+The byte-decoding owner distinguishes an absent filename from a valid component and malformed
+UTF-16 or record bounds. Existing named-record reconstruction continues to reject redacted records;
+an empty name must never become the parent directory's path. V2/V3 identity widths remain lossless.
+
+[`OpenFileById`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-openfilebyid)
+resolves one current link under ordinary caller access. It cannot establish a deleted name or all
+hardlink aliases. Resolve current file names through bounded
+[`FindFirstFileNameW`](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfilenamew)
+enumeration; combine them with the matching catalog/namespace identities and revalidate containment.
+A failure to open an identity is not proof of absence or authority to remove a catalog location. Renamed
+directories require the old directory binding; unchanged descendants need no separate USN record.
+A directory entering a root requires bounded enumeration of that affected subtree. No-change startup
+performs zero source-directory enumeration, and ordinary changes cannot trigger a full-root recovery
+merely because names are redacted.
+
+Namespace evidence belongs to the persistence adapter, bound to the configured root generation,
+volume identity and covered journal range. It must survive process loss with enqueue-before-advance
+and atomic publication. Baseline construction shares the first import's enumeration. A legacy
+catalog lacking directory identity coverage must not manufacture it from paths or consume an old
+checkpoint as if that coverage existed. Any new schema uses a forward migration and a separately
+defined, bounded baseline/recovery transition that preserves the last trustworthy catalog.
+
+File-by-ID, metadata and hardlink-name operations stay inside the Windows adapter. No media content,
+placeholder hydration, journal creation/reset, privilege enablement, resident helper or ordinary-
+start UAC is admitted. Reparse, root-identity, case-sensitivity, access-denial and concurrent rename
+checks retain the same fail-closed publication contract as other sources. The broker security and
+service lifecycle requirements below continue to apply when the named-record adapter is selected.
 
 ### Source revision evidence at the change-driven boundary
 
@@ -2955,9 +3001,10 @@ lane capacity, retry policy, or acceptance thresholds.
 
 - Normal no-change startup becomes O(1) with respect to source-root entries, while downtime catch-up
   is proportional to retained journal evidence and affected final paths.
-- Ame acquires an installer and privileged service attack surface earlier than the former R9 plan.
-  Protocol minimization, caller-root authorization, constrained output, signing, service isolation,
-  and independent security review are release requirements rather than follow-up hardening.
+- The broker adapter adds installer and privileged service attack surfaces. Protocol minimization,
+  caller-root authorization, constrained output, service isolation and independent security review
+  remain requirements for that adapter. Signing belongs to the optional distribution channel;
+  ordinary-token synchronization must not depend on that channel or service installation.
 - Journal truncation, recreation, disabled service, enterprise policy, unsupported storage, and
   ambiguous path reconstruction remain possible. They produce explicit recovery or `LiveOnly`
   behavior, never silent freshness or routine startup inventory.
@@ -2965,9 +3012,9 @@ lane capacity, retry policy, or acceptance thresholds.
   P0 remains responsive during it, and the cost must not recur after authority is established.
 - Sharing one volume read reduces I/O, but independent per-root advancement and cross-root handoff
   add persistence and test complexity.
-- Full closed-process continuity requires an installed compatible broker. The current signed
-  installation channel has separate deployment qualification and does not gate unsigned R2c
-  engineering acceptance. The portable ZIP retains its explicitly weaker synchronization capability.
+- The existing broker implementation requires an installed compatible service. The ordinary-token
+  adapter must satisfy the same continuity contract before it can provide complete synchronization
+  without installation. Distribution format alone does not define synchronization capability.
 
 ## Rollback and replacement strategy
 

@@ -76,10 +76,13 @@ Current retained-library client and final candidate acceptance remain open.
 
 Within active item 3 below, execute this functional recovery sequence in order:
 
-1. **Restore ordinary-client synchronization.** Correct the connection failure between unsigned
-   Debug/Release clients and the broker. Keep caller/root authorization and the protected service
-   identity intact. Complete demand-start and idle retirement through the existing broker owner;
-   closed-process journal coverage must not require a permanently resident helper.
+1. **Restore ordinary-client synchronization without installation.** Connect ordinary-token journal
+   reads and file-identity reconstruction to the existing durable queue and catalog publication.
+   Keep unsigned Debug/Release behavior consistent, including closed-process changes and no-change
+   zero-enumeration startup. Preserve the broker correction as a separate supported adapter;
+   installing it is not a prerequisite for developing or verifying the ordinary-token path.
+   Measure this step by a connected application restart and exact catalog result. Native probes,
+   parser changes and isolated gates are supporting work, not additional delivery stages.
 2. **Verify the reported missing October images.** Recheck the thirty previously identified local
    images, restore any missing membership through incremental continuity, and prove that displayed
    synchronization status matches actual journal coverage and published membership.
@@ -94,10 +97,12 @@ Within active item 3 below, execute this functional recovery sequence in order:
    lifecycle qualification, final independent review and current-source local/hosted gates.
 
 Each step requires its owning correction, focused regressions and applicable user-path verification
-before the next step. Installation needed for a corrected ordinary-client check is a dependency of
-step 1; the full upgrade/repair/rollback matrix must not precede the missing-image and latency work.
-The workstation installation has been removed. Continue source-level correction and isolated
-verification; any later system installation retains its explicit-authorization requirement.
+before the next step. The [ordinary-token capability checkpoint](acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
+establishes native feasibility and a typed parser boundary, not complete client synchronization.
+Step 1 still needs durable directory/path identity reconstruction, atomic enrollment and restart
+verification before October membership can close. The workstation installation remains removed;
+any later system installation retains its explicit-authorization requirement. The full installer
+upgrade/repair/rollback matrix must not precede the missing-image and latency work.
 This sequence changes execution priority, not acceptance assertions or the active R2c stage.
 
 The current direction prioritizes defects that directly impair functions and user experience.
@@ -110,9 +115,9 @@ has owning-layer corrections and selected generated-client evidence, with the re
 Item 3 selects functional synchronization and browsing. **R2C-C04 now has focused and generated-client
 verification** for fresh bulk changes and recovery of retained terminal work. The new
 [retained-library runtime findings](acceptance/r2c-retained-runtime.md) retain completed but slow
-recovery and a reported middle-timeline scroll jump with Retry feedback; the browsing incident
-takes current functional priority under its bounded execution method. First-import resumption now
-retains completed inspection work while proving current namespace membership. Its selected real-source
+recovery and a reported middle-timeline scroll jump with Retry feedback; that browsing incident
+follows synchronization and missing-image recovery in the functional sequence above. First-import
+resumption now retains completed inspection work while proving current namespace membership. Its selected real-source
 continuation and local candidate gates are recorded in the same runtime evidence. The subsequent
 [update checkpoint](acceptance/r2c-update-checkpoint.md) has a normally closed source-backed update,
 pending-result scrolling and preview observation; warm-update and uncached-preview latency,

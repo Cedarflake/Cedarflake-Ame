@@ -39,6 +39,12 @@ persistence layers.
 
 ### Rust boundaries
 
+`windows_usn/parsing.rs` owns checked V2/V3 wire decoding and typed record admission. Redacted
+filenames remain absent identity evidence; the existing named-record facade rejects them before
+historical path reconstruction. Framing, identity widths, UTF-16/component validation and complete-
+page failure remain one boundary, with no second decoded page or per-record cloning. The parent
+`windows_usn` module retains named reference histories and path reconstruction.
+
 - `journal_broker/windows/production_host.rs` owns production listener readiness and joined shutdown.
   Its lifetime owner linearizes connection admission against idle retirement and holds each lease
   through request drain and disconnect. `identity_query_access.rs` owns only the verified service's
@@ -223,6 +229,9 @@ persistence layers.
   records are counted without evaluating active-state projections, in the same SQL statement and
   snapshot as active counts and failure evidence. Neither owner depends on one hard-coded index
   name or discards retained history to reduce observation cost.
+  `migrations/foreground_queue_index.rs` owns the v34 optional active-origin access path and its
+  atomic upgrade. Readiness retains both lane authority and the guarded origin constraint; the
+  migration coordinator only dispatches the step and retains its existing compatibility checks.
 - `sqlite_catalog/metadata_inventory/lifecycle.rs` owns inventory-start and terminal-cleanup
   admission. Restoring an existing run reads its frontier and active-root evidence in one short
   read snapshot; a missing run ends that snapshot before writer admission and epoch allocation.

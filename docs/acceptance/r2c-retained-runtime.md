@@ -2959,3 +2959,93 @@ Touched-file sizes separate main-region code, inline tests and the new accompany
 | `windows/production_host/lifetime.rs` | 94 | 0 | 72 |
 | `windows/service_identity/activation.rs` | 123 | 0 | 128 |
 | `windows/transport/connect.rs` | 124 | 0 | 98 |
+
+## Ordinary-token journal capability
+
+On 2026-10-13, generated workspace fixtures verified ordinary-token journal reads through a
+volume-directory handle, current path lookup with both 64-bit and extended 128-bit `OpenFileById`
+descriptors, and bounded hardlink-name enumeration. The probe explicitly rejects an administrator
+token. It installs nothing and does not enable privileges or change journal configuration.
+
+The first fixture covers file rename, deletion, move-in/out, directory rename and hardlinks.
+Selected native V2 records have a 64-byte aligned length, filename offset 60 and filename length
+zero. Resolving a hardlinked identity returns one path, not every alias. Deleted-file lookup returns
+error 87 on this host; that error alone is not absence proof. The deleted pathname and same-path
+replacement are checked separately through attribute-only identity queries.
+
+A separate baseline, mutation, recovery and no-change process sequence passes twelve assertions.
+Recovery reads 1160 journal bytes and discovers both surviving/new hardlink aliases. Renamed-directory
+and moved-in-directory children have no individual journal records. Recovery enumerates only the
+moved-in directory to discover its unchanged child; the subsequent no-change process enumerates no
+directory. The fixture retains child identities as test oracles, so this does not prove enrollment
+of an unknown identity in Ame. The probe allows at most 128 journal reads, 8 MiB and fifteen seconds
+per read range, 64 hardlink names and sixteen immediate imported-directory entries. Child processes
+have thirty-second deadlines. Fixture generation writes only its own disposable files; observation
+opens no media content. Original libraries and catalogs are not inputs to these fixture operations.
+
+A separate thirty-second capability check reads only existing journal metadata/tail cursors on the
+volumes mapped by `local-primary` and `cloud-primary`. Both ordinary-token operations succeed with
+eight-byte empty responses, while the named operation returns access denied. It opens no selected
+source directory or image, enumerates nothing and creates no volume data. This proves access to the
+existing logs, not root containment, actual library catch-up or Cloud Files no-hydration behavior.
+
+The production shared decoder now has a separate `windows_usn/parsing.rs` owner. It admits an absent
+name as typed identity evidence while the existing named-record facade still rejects it. Twelve
+focused Rust regressions pass: V2/V3 identity preservation, redacted rejection by the named path,
+Unicode named records, mixed pages, malformed name/record bounds, invalid UTF-16/components,
+truncation, unsupported versions, negative record USNs, empty pages and admission rejection. V3 is
+synthetic format coverage, not native ReFS acceptance. The page is decoded once without cloning or
+retaining a second record page. Parent main-region size is 131 lines; the parser has 176 main-region
+lines and no inline test bodies; its dedicated tests contain 246 lines.
+
+Initial quality verification stopped on native stderr redirected through Windows PowerShell and,
+after removing that wrapper, on the existing R2c-R descendant-cleanup assertion. A single isolated
+run with a read-only observation found the owned child absent and passed all nineteen unchanged
+guardrail cases; the subsequent ordinary Daily invocation also passed that assertion. No cleanup
+code, assertion or deadline changed. The earlier cleanup failure remains unattributed and is not
+reported as repaired by the parser change.
+
+The complete Rust phase then fails the existing mixed P0/P1/P2 creation-to-reopen limit: at the
+unchanged 300-second deadline, 9792 of 10000 P2 candidate owners are complete, with 64 leased and
+144 pending. The P2 control is still pending and the baseline remains in replay. All 25 P0 and 2048
+P1 changes are complete; P0 event-to-visible P95 is 138 ms. Daily stops after 1776 Rust passes, one
+failure and 23 existing ignores, before Flutter and native integration phases. Queue metrics account
+for about 49 seconds across 20336 calls, while live/journal scheduling accounts for about 53 seconds.
+A focused production-port query-work regression demonstrates a causal polling defect: with no P0
+work, increasing a same-root P2 backlog from 256 to 3072 rows raises P0 readiness from 4854 to 55542
+SQLite VM steps. These are synthetic catalogs; no source library or original catalog is accessed.
+
+The v34 optional active-origin index and explicit guarded-origin predicates remove that
+cross-lane traversal. The same absent P0/P1 probes take 276 steps at both backlog sizes; present
+path work takes 300, and absent/present P0 authoritative probes take 605/307. The complete focused
+readiness suite passes four cases, metrics eight, the index migration four and retained first-import
+migration three. Fresh and repeated full opens, all retained table values, conflicting-index rollback,
+corrupt-authority rejection and operation without the optional index are checked. The original mixed
+workload then passes in 136.01 seconds with its unchanged 300-second creation-to-reopen requirement;
+its recovery tail is 85.881 seconds, all 10000 owners/control/baseline complete and the root/checkpoint
+are current. It also verifies source bytes, exact reopened results and retirement of executable
+spools.
+
+A chained lint-then-Daily invocation in one PowerShell process fails the compiler-bootstrap fault
+guard because the preceding lint has already loaded its native types. A fresh Daily process passes
+that unchanged guard and complete lint. Its Rust phase passes 1780 cases, including the original
+mixed workload, with 23 existing ignores; two tests fail because their current-schema expectations
+still say 33 after the v34 migration. Updating only those expectations preserves the source,
+retirement, identity and publication assertions. Both exact regressions and their format check then
+pass. The failed aggregate is retained: current-source complete Daily and Release remain open, and
+its Flutter/native phases did not run. Further final-candidate verification follows the connected
+ordinary-client checkpoint rather than becoming a separate delivery stage.
+
+This correction changes query cost, not lane, retry, lease or publication policy. Main-region,
+inline-test and dedicated-test sizes are respectively 352/0/386 for readiness and 49/0/190 for the
+index migration (plus a fourteen-line test-only downgrade helper). The catalog facade remains 3848
+lines with separate tests; the migration facade has a 9935-line main region and 5267 lines of inline
+tests. Its change only dispatches the new owner and extends the existing compatibility versions.
+The 3775-line incremental application test owner, 5512-line scan test owner and 314-line retirement
+test owner change only their expected current schema version.
+
+This is capability and parser-boundary verification, not complete no-install synchronization.
+Durable old directory/path identity coverage, current-name resolution under concurrent mutation,
+atomic queue/checkpoint enrollment and ordinary Debug/Release restart verification remain required.
+The shipped factory still selects the broker, and its absence still yields honest `LiveOnly` status.
+No real missing-image membership or R2c acceptance claim follows from these probes.

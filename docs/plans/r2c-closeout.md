@@ -26,7 +26,7 @@ live source and running artifact. Preserve the exact triggering sequence of each
 a related correction, a focused pass or a different native scenario cannot close it.
 
 Follow the [roadmap's functional recovery order](../roadmap.md#current-execution-queue): ordinary
-client connection and helper lifetime, reported October membership, reopening/update latency, then
+client synchronization without installation, reported October membership, reopening/update latency, then
 remaining retained browsing/preview incidents. Finish each affected user path before returning to
 the remaining merge-readiness matrix. Prepared Release fixtures and historical diagnostic work
 remain retained work; their preparation does not move them ahead of these incidents.
@@ -36,21 +36,41 @@ probe returned `TransportUnavailable`. The failure has not yet been attributed t
 operation. The subsequent requested uninstall completed, including service and package removal,
 with the checked catalog, its WAL/SHM files and settings unchanged. Keep that installation removed
 while diagnosing and correcting the source. Any later installation requires the applicable system
-authorization. A necessary corrected-client installation may support the first functional step;
-complete upgrade, repair and failed-upgrade rollback qualification follow the functional recovery.
+authorization. Reinstallation is not the next action. Complete upgrade, repair and failed-upgrade
+rollback qualification follow the functional recovery.
 
 The current source-level identity-query and idle-lifetime correction has focused and native broker
 regressions in the [ordinary-client checkpoint](../acceptance/r2c-retained-runtime.md#ordinary-client-access-and-idle-retirement).
-Complete its current-source gates and corrected ordinary-client verification before advancing to
-October membership. Its isolated tests do not establish an installed-service pass.
+Its complete local Daily and unsigned Release gates pass; installed ordinary-client verification
+remains unexecuted. Preserve those results without making installation the first-step dependency.
 
-Resolve the broker connection through the existing authenticated transport and service owners,
-using a focused boundary reproduction before changing policy. Keep ordinary unsigned Debug and
-Release behavior consistent. Demand-start must include safe idle retirement after clients and
-in-flight requests retire; Windows retains the change journal while Ame and its helper are closed.
-Preserve caller/root access, protected service identity, cancellation and bounded reads. No source
-mutation, automatic full scan, relaxed authorization or separate Debug synchronization mode is
-admitted.
+Advance the [ordinary-token journal capability](../acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
+through the existing application reconciliation and publication boundaries. The parser now separates
+redacted identity evidence from named-path records; it does not activate a second synchronization
+mode. Next implement bounded current-name resolution plus durable old path/directory identity
+evidence. Existing asset identities do not retain a complete directory namespace: scan frontiers
+are consumed during traversal, and inventory frontiers are scoped recovery data. Do not treat either
+as a permanent directory index or infer a removed path from failed `OpenFileById` alone.
+Current-name resolution must include aliases inside a root even when the returned primary path is
+outside it; unrelated or inaccessible volume identities cannot become guessed root membership.
+
+The next executable checkpoint is one connected ordinary-client workflow: publish an isolated NTFS
+root, exit the process, change the generated source, restart the unsigned client and consume the
+continuous journal range into exact published membership. A following unchanged restart must do
+zero source enumeration. Keep namespace capture, identity lookup and atomic enrollment inside this
+slice; another standalone capability probe or parser pass does not finish it. Candidate packaging
+and the final client/platform matrix follow the connected outcome. Required per-change correctness
+gates remain in force, and incomplete identity coverage must retain an explicit non-current state.
+
+Prove deletion, same-path replacement, all hardlink aliases, directory rename and move-in/out across
+actual process restart, including interrupted enrollment and journal gaps. Add any required forward
+migration at the persistence owner; preserve user data and the last trustworthy catalog. First-import
+capture must share its existing enumeration. A legacy missing identity baseline needs an explicit
+bounded migration/recovery decision, not a silent all-root scan or a reused historical checkpoint.
+Only then select the ordinary-token adapter for unsigned Debug/Release and verify the complete client
+path without service installation, startup UAC or a resident helper. Keep caller/root access,
+cancellation, no-recall, queue bounds and atomic checkpoint publication intact. The existing broker
+retains its authenticated transport and demand-start/idle-retirement contract as a separate adapter.
 
 Recheck the thirty previously identified local images in the selected October subtrees and verify
 their published membership after incremental catch-up. LiveOnly queue-idle state cannot establish
@@ -61,10 +81,10 @@ The [unsigned continuity checkpoint](../acceptance/r2c-retained-runtime.md#unsig
 retains the preceding focused/static and optimized-artifact results; they do not establish an
 ordinary-client connection or resolve the missing-image incident. The raw PowerShell installation
 route remains stopped. Preserve the versioned unified installer and its transactional rollback.
-The ordinary-token journal probe succeeds through a volume directory handle, but its generated
-create/rename records omit names. This is not a drop-in replacement for the current reconstruction
-contract. Keep that capability result distinct from complete tracking; the immediate unsigned-client
-repair retains the existing reconciliation semantics rather than adding an unverified second path.
+Ordinary-token journal reads now succeed on both configured library volumes. Generated cross-process
+fixtures also resolve current identities and hardlink names, with one scoped enumeration for a moved-in
+directory and none on the no-change pass. These are capability results; they do not yet establish Ame
+catalog enrollment, published October membership, real placeholder behavior or complete synchronization.
 
 The completed [2026-10-13 C02 diagnostic follow-up](../acceptance/r2c-retained-runtime.md#independent-uia-loader-milestones-on-2026-10-13)
 and its 60-minute preparation/verification and ten-minute inspection reservations remain consumed.
