@@ -64,7 +64,7 @@ unsafe extern "system" fn service_main(_argument_count: u32, _arguments: *mut *m
     report_status(SERVICE_START_PENDING, 0, NO_ERROR, 0, 1, 5_000);
     let (ready_tx, ready_rx) = sync_channel(1);
     let worker = std::thread::spawn(move || {
-        super::host::run_production_service_with_ready(&STOP_REQUESTED, ready_tx)
+        super::production_host::run_with_ready(&STOP_REQUESTED, ready_tx)
     });
     if startup_state(ready_rx.recv_timeout(START_READY_TIMEOUT)) != SERVICE_RUNNING {
         STOP_REQUESTED.store(true, Ordering::Release);

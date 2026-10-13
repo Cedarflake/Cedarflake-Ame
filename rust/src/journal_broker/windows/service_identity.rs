@@ -1,3 +1,4 @@
+mod activation;
 mod installed;
 
 use installed::{InstalledBrokerIdentity, ServerProcessFacts};
@@ -14,9 +15,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::thread;
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
-use windows_sys::Win32::Foundation::{
-    CloseHandle, ERROR_INSUFFICIENT_BUFFER, ERROR_SERVICE_ALREADY_RUNNING, HANDLE,
-};
+use windows_sys::Win32::Foundation::{CloseHandle, ERROR_INSUFFICIENT_BUFFER, HANDLE};
 use windows_sys::Win32::Security::Cryptography::{
     BCRYPT_SHA256_ALGORITHM, BCryptCloseAlgorithmProvider, BCryptHash, BCryptOpenAlgorithmProvider,
 };
@@ -31,7 +30,7 @@ use windows_sys::Win32::System::Services::{
     CloseServiceHandle, OpenSCManagerW, OpenServiceW, QueryServiceConfig2W, QueryServiceStatusEx,
     SC_HANDLE, SC_MANAGER_CONNECT, SC_STATUS_PROCESS_INFO, SERVICE_CONFIG_DESCRIPTION,
     SERVICE_DESCRIPTIONW, SERVICE_QUERY_CONFIG, SERVICE_QUERY_STATUS, SERVICE_RUNNING,
-    SERVICE_START, SERVICE_START_PENDING, SERVICE_STATUS_PROCESS, StartServiceW,
+    SERVICE_START, SERVICE_STATUS_PROCESS,
 };
 use windows_sys::Win32::System::Threading::{
     CREATE_NO_WINDOW, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION, QueryFullProcessImageNameW,
@@ -45,7 +44,6 @@ use super::service_host::SERVICE_NAME;
 use super::transport::{OwnedHandle, WindowsTransportError};
 use crate::journal_broker::BROKER_EXECUTABLE_NAME;
 
-const SERVICE_START_TIMEOUT: Duration = Duration::from_secs(5);
 const MAX_MANIFEST_BYTES: usize = 16 * 1024;
 const MAX_BINARY_BYTES: u64 = 128 * 1024 * 1024;
 const IDENTITY_PROBE_TIMEOUT: Duration = Duration::from_secs(3);
@@ -53,10 +51,16 @@ const MAX_IDENTITY_PROBE_OUTPUT_BYTES: u64 = 512;
 const IDENTITY_PROBE_PROTOCOL: &str = "AMEJBPROBE1";
 static NEXT_IDENTITY_PROBE_NONCE: AtomicU64 = AtomicU64::new(1);
 
-#[derive(Clone, Debug, PartialEq, Eq)]
 pub(super) struct StartedService {
     process_id: u32,
     manifest: InstalledBrokerIdentity,
+    service: ServiceHandle,
+}
+
+impl StartedService {
+    pub(super) fn wait_for_retirement(&self) -> Result<bool, WindowsTransportError> {
+        activation::wait_for_retirement(&self.service, self.process_id)
+    }
 }
 
 pub(super) fn demand_start_service() -> Result<StartedService, WindowsTransportError> {
@@ -74,33 +78,11 @@ pub(super) fn demand_start_service() -> Result<StartedService, WindowsTransportE
         )
     })
     .map_err(map_service_open_error)?;
-    let mut status = query_status(&service)?;
-    if status.dwCurrentState != SERVICE_RUNNING {
-        // SAFETY: service is the fixed service handle and no caller-controlled arguments are used.
-        if unsafe { StartServiceW(service.raw(), 0, null()) } == 0 {
-            let error = io::Error::last_os_error();
-            if error.raw_os_error() != Some(ERROR_SERVICE_ALREADY_RUNNING as i32) {
-                return Err(WindowsTransportError::Io(error));
-            }
-        }
-        let deadline = Instant::now() + SERVICE_START_TIMEOUT;
-        loop {
-            status = query_status(&service)?;
-            if status.dwCurrentState == SERVICE_RUNNING && status.dwProcessId != 0 {
-                break;
-            }
-            if status.dwCurrentState != SERVICE_START_PENDING || Instant::now() >= deadline {
-                return Err(WindowsTransportError::TimedOut);
-            }
-            thread::sleep(Duration::from_millis(25));
-        }
-    }
-    if status.dwProcessId == 0 {
-        return Err(WindowsTransportError::ServerIdentityRejected);
-    }
+    let process_id = activation::activate(&service)?;
     Ok(StartedService {
-        process_id: status.dwProcessId,
+        process_id,
         manifest: query_identity_manifest(&service)?,
+        service,
     })
 }
 

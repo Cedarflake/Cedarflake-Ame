@@ -2907,3 +2907,49 @@ The assembly, probe, process and evidence facades have 62, 562, 384 and 264 prod
 respectively, with no new inline tests. The review checks request isolation, first-error precedence,
 partial acquisition and owned retirement; it does not constitute the remaining independent final
 R2c audit. Historical C01/C02 attribution, installation and the other frozen variants remain open.
+
+## Ordinary-client access and idle retirement
+
+The installed unsigned client's earlier `TransportUnavailable` result remains a failed observation.
+A read-only comparison under the ordinary desktop token can query its own process/token but receives
+Win32 error 5 when opening an existing LocalSystem service process. This establishes the unsupported
+default-access assumption in the broker authentication path; it does not uniquely attribute every
+failure of the removed installation.
+
+The verified production service now grants Interactive Users only limited process-identity query
+and token-query access on its own objects. Existing ACEs remain intact and a missing DACL fails
+closed before listeners become ready. Production lifetime ownership separately holds admission
+through handshake, request drain and disconnect, then retires after ten idle seconds. Connection
+handover requires bounded SCM evidence of retirement and repeats complete authentication at most
+once. These corrections preserve caller/root authorization, journal bounds and source-content
+isolation; they add no dependency, catalog migration or application privilege.
+
+The focused Windows broker module passes 73 cases with one existing opt-in pressure case ignored.
+The expanded native integration entrypoint then passes all 61 exactly counted cases, including real
+token-DACL replacement, denied mutation/duplication, retained denials, idle/admission races and
+service handover. The initial lint run rejects an unnecessary mutable test argument; the corrected
+source passes warnings-denied Clippy, formatting and Dart analysis inside the following Daily run.
+That run is interrupted during Rust verification to correct a subsequently identified peer-start
+failure branch; its processes retire before the next command. Seven activation regressions then
+pass, including returning a peer's failed startup instead of starting the service again. The final
+61-case integration pass includes that correction. The final complete Daily exits zero: 1765 Rust
+library cases pass with the 23 existing explicit ignores, as do three broker binary cases, all 112
+Flutter test files, controlled native scan, all ten native accessibility phases and sixteen bridge
+contracts. Native scan exits zero in 73774 ms without a cleanup failure; accessibility confirms
+normal process exit and owned Job Object closure. Current-source unsigned Release and installed
+ordinary Debug/Release connection, idle exit and subsequent activation remain unverified. Source media and
+the retained catalog are not inputs to these fixture checks.
+
+Touched-file sizes separate main-region code, inline tests and the new accompanying dedicated tests:
+
+| Owner | Main region | Inline tests | Dedicated tests |
+| --- | ---: | ---: | ---: |
+| `windows/host.rs` | 642 | 296 | 0 |
+| `windows/service_host.rs` | 164 | 30 | 0 |
+| `windows/service_identity.rs` | 580 | 35 | 0 |
+| `windows/transport.rs` | 681 | 171 | 0 |
+| `windows/identity_query_access.rs` | 157 | 0 | 402 |
+| `windows/production_host.rs` | 138 | 0 | 0 |
+| `windows/production_host/lifetime.rs` | 94 | 0 | 72 |
+| `windows/service_identity/activation.rs` | 123 | 0 | 128 |
+| `windows/transport/connect.rs` | 124 | 0 | 98 |

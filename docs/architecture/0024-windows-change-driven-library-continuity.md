@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-22
-- Last amended: 2026-10-12
+- Last amended: 2026-10-13
 - Supersedes: ADR 0023
 - Historical predecessor: ADR 0022
 
@@ -318,6 +318,18 @@ while Ame is closed. Normal desktop startup never requests elevation. Service in
 replacement, repair, and removal remain installer operations rather than application-side shell
 commands.
 
+The production host retires after ten seconds without an admitted connection. A connection owns an
+admission lease from pipe acceptance through handshake, request-worker draining and pipe disconnect;
+only the last retired lease starts the idle deadline. Admission and idle retirement share one gate,
+so retirement cannot race a new admitted connection. Retirement closes admission, joins both
+listeners and their request work, then reports the service stopped. Demand-start waits through an
+existing stop-pending transition within its five-second deadline. If connection authentication
+overlaps that retirement, the client observes SCM for at most 500 milliseconds to allow its status
+publication to catch up with pipe retirement. It may repeat complete activation and authentication
+once only after SCM proves that the originally observed service process stopped or was replaced.
+A live same-process failure and an unverified transition remain terminal. A failed startup observed
+from another client's pending start also remains terminal rather than requesting another start.
+
 The broker may:
 
 - identify a local NTFS volume for a caller-authorized root;
@@ -399,8 +411,20 @@ still holds the pipe. Clients need no fixed image path, binary hash or Authentic
 The desktop authenticates the broker through SCM and pipe PID agreement, the fixed protected broker
 path, LocalSystem and restricted-service-SID token evidence, and the protected `AMEJBID3` manifest.
 That exact record contains protocol, maximum frame size and broker SHA-256 only. Missing, malformed,
-legacy or mismatched server identities fail closed. SHA-256 is never computed while the application
-synchronization mutex or service connection lifecycle lock is held. Production runs it in the fixed protected broker
+legacy or mismatched server identities fail closed.
+
+Ordinary clients cannot assume that SCM query permission also grants access to the LocalSystem
+process or its token. After validating its own required service profile and before publishing any
+production listener, the broker extends only its own process and primary-token DACLs: Interactive
+Users receive `PROCESS_QUERY_LIMITED_INFORMATION` and `TOKEN_QUERY`, respectively. Existing ACEs,
+owner, group and SACL are preserved; a missing DACL is rejected. A partial setup failure stops startup
+before readiness. These grants permit the existing independent identity checks without process-memory
+access, process-handle duplication, termination, token duplication/impersonation, token mutation,
+privilege elevation or service-control changes. Windows allocations and the token configuration
+handle have separate RAII owners, and no arbitrary PID or external object enters this setup path.
+
+SHA-256 is never computed while the application synchronization mutex or service connection lifecycle
+lock is held. Production runs it in the fixed protected broker
 executable as an identity-probe child, binds the result to a parent-generated 256-bit nonce, and
 requires one exact bounded success record. The child is assigned to a kill-on-close Job Object; a
 three-second absolute deadline terminates the job, waits for process exit, joins the bounded stdout
@@ -2922,6 +2946,8 @@ lane capacity, retry policy, or acceptance thresholds.
 - [Microsoft: SERVICE_REQUIRED_PRIVILEGES_INFO](https://learn.microsoft.com/en-us/windows/win32/api/winsvc/ns-winsvc-service_required_privileges_info)
 - [Microsoft: Job Objects](https://learn.microsoft.com/en-us/windows/win32/procthread/job-objects)
 - [Microsoft: Get-AuthenticodeSignature](https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.security/get-authenticodesignature)
+- [Microsoft: Process Security and Access Rights](https://learn.microsoft.com/en-us/windows/win32/procthread/process-security-and-access-rights)
+- [Microsoft: SetSecurityInfo](https://learn.microsoft.com/en-us/windows/win32/api/aclapi/nf-aclapi-setsecurityinfo)
 - [Microsoft: Register-ScheduledTask](https://learn.microsoft.com/en-us/powershell/module/scheduledtasks/register-scheduledtask)
 - [Microsoft: Task Scheduler Principal.LogonType](https://learn.microsoft.com/en-us/windows/win32/taskschd/principal-logontype)
 

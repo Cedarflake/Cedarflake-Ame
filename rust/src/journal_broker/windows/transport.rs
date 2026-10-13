@@ -1,26 +1,20 @@
+mod connect;
+
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::io;
 use std::ptr::{null, null_mut};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 
 use thiserror::Error;
 use windows_sys::Win32::Foundation::{
-    CloseHandle, ERROR_BROKEN_PIPE, ERROR_IO_INCOMPLETE, ERROR_IO_PENDING, ERROR_NO_DATA,
-    GENERIC_READ, GENERIC_WRITE, HANDLE, INVALID_HANDLE_VALUE, WAIT_OBJECT_0,
+    CloseHandle, ERROR_BROKEN_PIPE, ERROR_IO_INCOMPLETE, ERROR_IO_PENDING, ERROR_NO_DATA, HANDLE,
+    INVALID_HANDLE_VALUE, WAIT_OBJECT_0,
 };
-use windows_sys::Win32::Storage::FileSystem::{
-    CreateFileW, FILE_FLAG_OVERLAPPED, OPEN_EXISTING, ReadFile, SECURITY_IMPERSONATION,
-    SECURITY_SQOS_PRESENT, WriteFile,
-};
+use windows_sys::Win32::Storage::FileSystem::{ReadFile, WriteFile};
 use windows_sys::Win32::System::IO::{CancelIoEx, GetOverlappedResult, OVERLAPPED};
-use windows_sys::Win32::System::Pipes::WaitNamedPipeW;
 use windows_sys::Win32::System::Threading::{CreateEventW, ResetEvent, WaitForSingleObject};
 
-use super::connection::{
-    HANDSHAKE_BYTES, SERVER_ACCEPT_BYTES, ServerConnectionIdentity, decode_handshake,
-    encode_client_proof, validate_server_accept,
-};
-use super::service_identity::{authenticate_pipe_server, demand_start_service};
+use super::connection::ServerConnectionIdentity;
 use crate::journal_broker::client::{
     AdapterPoll, BrokerClientTransport, JournalBrokerClient, OwnedBrokerConnection, sealed,
 };
@@ -32,8 +26,6 @@ use crate::journal_broker::{
 };
 
 pub(super) const PRODUCTION_PIPE_NAME: &str = r"\\.\pipe\CedarflakeAme.JournalBroker.v3";
-const CONNECT_TIMEOUT_MS: u32 = 250;
-const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(2);
 const DROP_CANCEL_TIMEOUT_MS: u32 = 1_000;
 const MAX_BUFFERED_RESPONSE_REQUESTS: usize = 12;
 const MAX_BUFFERED_RESPONSE_FRAMES: usize = 20;
@@ -96,54 +88,7 @@ impl WindowsNamedPipeTransport {
     pub(super) fn connect(
         pipe_name: &str,
     ) -> Result<(Self, ServerConnectionIdentity), WindowsTransportError> {
-        let started_service = demand_start_service()?;
-        let pipe_name = nul_terminated(pipe_name)?;
-        // SAFETY: pipe_name is bounded, NUL-terminated, and live for the call. This wait does not
-        // create or mutate a journal and is bounded by CONNECT_TIMEOUT_MS.
-        if unsafe { WaitNamedPipeW(pipe_name.as_ptr(), CONNECT_TIMEOUT_MS) } == 0 {
-            return Err(map_connect_error(io::Error::last_os_error()));
-        }
-        // SAFETY: all pointers are either null or point to the live, terminated pipe name. The
-        // returned handle is checked before becoming the unique OwnedHandle owner.
-        let raw = unsafe {
-            CreateFileW(
-                pipe_name.as_ptr(),
-                GENERIC_READ | GENERIC_WRITE,
-                0,
-                null(),
-                OPEN_EXISTING,
-                FILE_FLAG_OVERLAPPED | SECURITY_SQOS_PRESENT | SECURITY_IMPERSONATION,
-                null_mut(),
-            )
-        };
-        let pipe = OwnedHandle::new(raw).map_err(map_connect_error)?;
-        authenticate_pipe_server(&pipe, &started_service)?;
-        let mut handshake = PendingIo::start_read(&pipe, vec![0; HANDSHAKE_BYTES])?;
-        let deadline = Instant::now() + HANDSHAKE_TIMEOUT;
-        let bytes = loop {
-            match handshake.poll(&pipe)? {
-                AdapterPoll::Ready(bytes) => break bytes,
-                AdapterPoll::Pending if Instant::now() < deadline => handshake.wait_slice(10),
-                AdapterPoll::Pending => {
-                    handshake.cancel_and_drain(&pipe);
-                    return Err(WindowsTransportError::TimedOut);
-                }
-            }
-        };
-        let identity =
-            decode_handshake(&bytes).map_err(|_| WindowsTransportError::ProtocolMismatch)?;
-        write_exact_bounded(
-            &pipe,
-            encode_client_proof(identity).to_vec(),
-            Instant::now() + HANDSHAKE_TIMEOUT,
-        )?;
-        let accepted = read_exact_bounded(
-            &pipe,
-            SERVER_ACCEPT_BYTES,
-            Instant::now() + HANDSHAKE_TIMEOUT,
-        )?;
-        validate_server_accept(identity, &accepted)
-            .map_err(|_| WindowsTransportError::ProtocolMismatch)?;
+        let (pipe, identity) = connect::authenticate(pipe_name)?;
         Ok((
             Self {
                 pipe,
@@ -690,22 +635,6 @@ pub(crate) enum WindowsTransportError {
     Io(#[from] io::Error),
 }
 
-fn nul_terminated(value: &str) -> Result<Vec<u16>, WindowsTransportError> {
-    if value.is_empty() || value.encode_utf16().any(|unit| unit == 0) {
-        return Err(WindowsTransportError::ProtocolMismatch);
-    }
-    let mut units: Vec<u16> = value.encode_utf16().collect();
-    units.push(0);
-    Ok(units)
-}
-
-fn map_connect_error(error: io::Error) -> WindowsTransportError {
-    match error.raw_os_error() {
-        Some(2 | 3 | 53 | 67 | 121 | 231) => WindowsTransportError::BrokerAbsent,
-        _ => WindowsTransportError::Io(error),
-    }
-}
-
 fn map_pipe_io_error(error: io::Error) -> WindowsTransportError {
     match error.raw_os_error().map(|value| value as u32) {
         Some(ERROR_BROKEN_PIPE | ERROR_NO_DATA) => WindowsTransportError::Closed,
@@ -754,7 +683,8 @@ fn poll_exact_bounded(
 mod tests {
     use super::*;
     use crate::journal_broker::windows::connection::{
-        ConnectionIdentitySource, ProcessConnectionIdentitySource, encode_handshake,
+        ConnectionIdentitySource, ProcessConnectionIdentitySource, decode_handshake,
+        encode_handshake,
     };
 
     #[test]
@@ -763,14 +693,6 @@ mod tests {
             .next_identity()
             .expect("server identity");
         assert_eq!(decode_handshake(&encode_handshake(identity)), Ok(identity));
-    }
-
-    #[test]
-    fn malformed_pipe_names_fail_before_win32() {
-        assert!(matches!(
-            nul_terminated("bad\0name"),
-            Err(WindowsTransportError::ProtocolMismatch)
-        ));
     }
 
     #[test]

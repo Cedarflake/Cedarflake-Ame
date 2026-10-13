@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-10-12
+- Last amended: 2026-10-13
 
 ## Context
 
@@ -39,6 +39,12 @@ persistence layers.
 
 ### Rust boundaries
 
+- `journal_broker/windows/production_host.rs` owns production listener readiness and joined shutdown.
+  Its lifetime owner linearizes connection admission against idle retirement and holds each lease
+  through request drain and disconnect. `identity_query_access.rs` owns only the verified service's
+  process/token query grants. The service activation owner handles bounded SCM state transitions;
+  the transport connection owner admits one fully reauthenticated handover only after proven process
+  retirement. Protocol dispatch and partial I/O remain in their existing owners.
 - `media_inspector/jpeg_headers.rs` owns streamed JPEG header parsing, source-error retention and
   the read budget. The media-inspection facade selects the detected format; this adapter returns
   Ame dimensions/metadata and shares the existing EXIF/orientation policy. It neither opens a new

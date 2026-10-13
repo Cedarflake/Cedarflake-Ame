@@ -11,7 +11,7 @@ use windows_sys::Win32::Foundation::{ERROR_IO_PENDING, ERROR_PIPE_CONNECTED, WAI
 
 use windows_sys::Win32::System::IO::{CancelIoEx, GetOverlappedResult, OVERLAPPED};
 use windows_sys::Win32::System::Pipes::{
-    ConnectNamedPipe, DisconnectNamedPipe, GetNamedPipeClientProcessId, GetNamedPipeClientSessionId,
+    ConnectNamedPipe, GetNamedPipeClientProcessId, GetNamedPipeClientSessionId,
 };
 use windows_sys::Win32::System::Threading::{CreateEventW, WaitForSingleObject};
 
@@ -19,13 +19,11 @@ use super::connection::{
     CLIENT_PROOF_BYTES, ConnectionIdentitySource, ProcessConnectionIdentitySource,
     ServerConnectionIdentity, encode_handshake, encode_server_accept, validate_client_proof,
 };
-use super::pipe_listener::{
-    CONSOLE_PIPE_PREFIX, DISPOSABLE_PIPE_SDDL, MAX_PRODUCTION_CONNECTIONS, create_pipe,
-    production_pipe_sddl,
-};
+#[cfg(test)]
+use super::pipe_listener::MAX_PRODUCTION_CONNECTIONS;
+use super::pipe_listener::{CONSOLE_PIPE_PREFIX, DISPOSABLE_PIPE_SDDL, create_pipe};
 use super::transport::{
-    OwnedHandle, PRODUCTION_PIPE_NAME, PendingFrameRead, WindowsTransportError, read_exact_bounded,
-    write_exact_bounded,
+    OwnedHandle, PendingFrameRead, WindowsTransportError, read_exact_bounded, write_exact_bounded,
 };
 use crate::journal_broker::client::AdapterPoll;
 use crate::journal_broker::framing::decode_frame;
@@ -42,7 +40,7 @@ const PRODUCTION_IDLE_TIMEOUT: Duration = Duration::from_secs(30);
 const PRODUCTION_MAX_LIFETIME: Duration = Duration::from_secs(5 * 60);
 const HOST_POLL_INTERVAL: Duration = Duration::from_millis(25);
 const WORKER_DRAIN_TIMEOUT: Duration = Duration::from_secs(2);
-const MAX_HOST_READ_WORKERS: usize = 8;
+pub(super) const MAX_HOST_READ_WORKERS: usize = 8;
 pub(super) fn run_disposable_console_host() -> ExitCode {
     match run_disposable_console_host_inner() {
         Ok(()) => ExitCode::SUCCESS,
@@ -70,112 +68,7 @@ fn run_disposable_console_host_inner() -> Result<(), HostError> {
     )
 }
 
-pub(super) fn run_production_service_with_ready(
-    stop_requested: &'static AtomicBool,
-    ready: SyncSender<()>,
-) -> Result<(), ()> {
-    super::service_profile::verify_running_service_profile().map_err(|_| ())?;
-    run_production_service_inner(stop_requested, ready)
-}
-
-fn run_production_service_inner(
-    stop_requested: &'static AtomicBool,
-    ready: SyncSender<()>,
-) -> Result<(), ()> {
-    let first = create_pipe(
-        PRODUCTION_PIPE_NAME,
-        &production_pipe_sddl(),
-        false,
-        true,
-        MAX_PRODUCTION_CONNECTIONS,
-    )
-    .map_err(|_| ())?;
-    let second = create_pipe(
-        PRODUCTION_PIPE_NAME,
-        &production_pipe_sddl(),
-        false,
-        false,
-        MAX_PRODUCTION_CONNECTIONS,
-    )
-    .map_err(|_| ())?;
-    let identities = Arc::new(ProcessConnectionIdentitySource::new());
-    let root_budget = WindowsRootRegistrationBudget::production();
-    let worker_budget = ReadWorkerBudget::new(MAX_HOST_READ_WORKERS);
-    let mut listeners = Vec::with_capacity(MAX_PRODUCTION_CONNECTIONS as usize);
-    for initial in [first, second] {
-        let identities = Arc::clone(&identities);
-        let root_budget = root_budget.clone();
-        let worker_budget = worker_budget.clone();
-        listeners.push(std::thread::spawn(move || {
-            run_production_listener(
-                initial,
-                stop_requested,
-                identities,
-                root_budget,
-                worker_budget,
-            )
-        }));
-    }
-    ready.send(()).map_err(|_| ())?;
-    let mut listener_failed = false;
-    while !stop_requested.load(Ordering::Acquire) {
-        if listeners.iter().any(JoinHandle::is_finished) {
-            listener_failed = true;
-            stop_requested.store(true, Ordering::Release);
-            break;
-        }
-        std::thread::sleep(HOST_POLL_INTERVAL);
-    }
-    for listener in listeners {
-        match listener.join() {
-            Ok(Ok(())) => {}
-            Ok(Err(_)) | Err(_) => listener_failed = true,
-        }
-    }
-    if listener_failed { Err(()) } else { Ok(()) }
-}
-
-fn run_production_listener(
-    initial: OwnedHandle,
-    stop_requested: &'static AtomicBool,
-    identities: Arc<ProcessConnectionIdentitySource>,
-    root_budget: WindowsRootRegistrationBudget,
-    worker_budget: ReadWorkerBudget,
-) -> Result<(), HostError> {
-    let mut pipe = Some(initial);
-    while !stop_requested.load(Ordering::Acquire) {
-        let current = match pipe.take() {
-            Some(initial) => initial,
-            None => create_pipe(
-                PRODUCTION_PIPE_NAME,
-                &production_pipe_sddl(),
-                false,
-                false,
-                MAX_PRODUCTION_CONNECTIONS,
-            )?,
-        };
-        match connect_bounded(&current, Instant::now() + Duration::from_millis(250)) {
-            Ok(()) => {
-                let identity = identities.next_identity()?;
-                let _ = serve_named_pipe(
-                    &current,
-                    identity,
-                    Some(stop_requested),
-                    root_budget.clone(),
-                    worker_budget.clone(),
-                );
-                // SAFETY: current is a live server-side pipe and serve_named_pipe drained or
-                // retained every operation-owned OVERLAPPED before returning.
-                let _ = unsafe { DisconnectNamedPipe(current.raw()) };
-            }
-            Err(HostError::TimedOut) => {}
-            Err(error) => return Err(error),
-        }
-    }
-    Ok(())
-}
-
-fn serve_named_pipe(
+pub(super) fn serve_named_pipe(
     pipe: &OwnedHandle,
     identity: ServerConnectionIdentity,
     stop_requested: Option<&AtomicBool>,
@@ -419,7 +312,7 @@ impl Drop for NamedPipeHostIo<'_> {
 type WindowsBrokerService = BrokerService<WindowsExistingJournalBackend, WindowsPipeAuthorizer>;
 
 #[derive(Clone)]
-struct ReadWorkerBudget {
+pub(super) struct ReadWorkerBudget {
     state: Arc<ReadWorkerBudgetState>,
 }
 
@@ -433,7 +326,7 @@ struct ReadWorkerPermit {
 }
 
 impl ReadWorkerBudget {
-    fn new(limit: usize) -> Self {
+    pub(super) fn new(limit: usize) -> Self {
         Self {
             state: Arc::new(ReadWorkerBudgetState {
                 active: AtomicUsize::new(0),
@@ -656,7 +549,7 @@ fn drain_worker_handles(workers: &mut Vec<JoinHandle<()>>, deadline: Instant) ->
     true
 }
 
-fn connect_bounded(pipe: &OwnedHandle, deadline: Instant) -> Result<(), HostError> {
+pub(super) fn connect_bounded(pipe: &OwnedHandle, deadline: Instant) -> Result<(), HostError> {
     // SAFETY: null attributes and name create a private manual-reset event owned below.
     let event = OwnedHandle::new(unsafe { CreateEventW(null(), 1, 0, null()) })?;
     let mut overlapped = Box::<OVERLAPPED>::default();

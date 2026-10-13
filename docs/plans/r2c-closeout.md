@@ -39,6 +39,11 @@ while diagnosing and correcting the source. Any later installation requires the 
 authorization. A necessary corrected-client installation may support the first functional step;
 complete upgrade, repair and failed-upgrade rollback qualification follow the functional recovery.
 
+The current source-level identity-query and idle-lifetime correction has focused and native broker
+regressions in the [ordinary-client checkpoint](../acceptance/r2c-retained-runtime.md#ordinary-client-access-and-idle-retirement).
+Complete its current-source gates and corrected ordinary-client verification before advancing to
+October membership. Its isolated tests do not establish an installed-service pass.
+
 Resolve the broker connection through the existing authenticated transport and service owners,
 using a focused boundary reproduction before changing policy. Keep ordinary unsigned Debug and
 Release behavior consistent. Demand-start must include safe idle retirement after clients and
