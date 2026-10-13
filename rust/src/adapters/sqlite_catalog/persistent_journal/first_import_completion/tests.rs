@@ -268,6 +268,17 @@ impl CompletionFixture {
                     },
                 )
                 .expect("capture real closing boundary");
+            if closing == 10 {
+                let checkpoint = catalog
+                    .load_persistent_journal_checkpoint(ROOT, LibraryRootGeneration::initial())
+                    .expect("empty closing checkpoint")
+                    .expect("captured closing checkpoint");
+                assert!(
+                    catalog
+                        .record_persistent_journal_empty_replay(&checkpoint, 2_001)
+                        .expect("record the successful empty read")
+                );
+            }
         }
         fixture
     }

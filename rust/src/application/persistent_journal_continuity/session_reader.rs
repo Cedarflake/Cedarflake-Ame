@@ -5,8 +5,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryRecoveryOpeningBoundary,
     LibraryRootGeneration, PersistentJournalCheckpoint, PersistentJournalCrossRootLineage,
-    PersistentJournalEnrollmentBatch, PersistentJournalFailure, PersistentJournalLineageState,
-    PersistentJournalPendingRename, PersistentJournalReadFailure, PersistentJournalRootFailureKind,
+    PersistentJournalFailure, PersistentJournalLineageState, PersistentJournalPendingRename,
+    PersistentJournalReadFailure, PersistentJournalReadPage, PersistentJournalRootFailureKind,
     PersistentJournalRootReadOutcome, ScanError, persistent_journal_batch_id,
     persistent_journal_pending_rename_id,
 };
@@ -27,13 +27,9 @@ const DEFAULT_MAX_EVIDENCE_BYTES: u32 = 512 * 1_024;
 const DEFAULT_TIMEOUT_MS: u32 = 10_000;
 
 type RootKey = (String, LibraryRootGeneration);
-type RootPage = (
-    PersistentJournalEnrollmentBatch,
-    PersistentJournalCheckpoint,
-);
 type CollectedRootOutcome = (
     RootKey,
-    Result<Option<RootPage>, PersistentJournalReadFailure>,
+    Result<Option<PersistentJournalReadPage>, PersistentJournalReadFailure>,
 );
 
 #[cfg(test)]
@@ -526,9 +522,14 @@ fn attach_pending_renames(
         let key = (pending.binding.root_id.clone(), root_generation);
         let index = outcomes
             .iter()
-            .position(|(outcome_key, page)| outcome_key == &key && matches!(page, Ok(Some(_))))
+            .position(|(outcome_key, page)| {
+                outcome_key == &key
+                    && matches!(page, Ok(Some(PersistentJournalReadPage::Enrolled { .. })))
+            })
             .ok_or_else(|| invalid("broker pending rename has no successful root proof"))?;
-        let Some((batch, _)) = outcomes[index].1.as_mut().ok().and_then(Option::as_mut) else {
+        let Some(PersistentJournalReadPage::Enrolled { batch, .. }) =
+            outcomes[index].1.as_mut().ok().and_then(Option::as_mut)
+        else {
             return Err(invalid("broker pending rename root proof disappeared"));
         };
         if pending.old_usn < batch.range.requested_start_usn.value()
@@ -614,11 +615,17 @@ fn attach_cross_root_lineage(
         }
         let previous_index = outcomes
             .iter()
-            .position(|(key, page)| key == &previous_key && matches!(page, Ok(Some(_))))
+            .position(|(key, page)| {
+                key == &previous_key
+                    && matches!(page, Ok(Some(PersistentJournalReadPage::Enrolled { .. })))
+            })
             .ok_or_else(|| invalid("broker handoff previous endpoint has no successful proof"))?;
         let current_index = outcomes
             .iter()
-            .position(|(key, page)| key == &current_key && matches!(page, Ok(Some(_))))
+            .position(|(key, page)| {
+                key == &current_key
+                    && matches!(page, Ok(Some(PersistentJournalReadPage::Enrolled { .. })))
+            })
             .ok_or_else(|| invalid("broker handoff current endpoint has no successful proof"))?;
         let endpoint_range_accepts = |index: usize| {
             outcomes[index]
@@ -686,7 +693,9 @@ fn attach_cross_root_lineage(
             (previous_index, &previous_key),
             (current_index, &current_key),
         ] {
-            let Some((batch, _)) = outcomes[index].1.as_mut().ok().and_then(Option::as_mut) else {
+            let Some(PersistentJournalReadPage::Enrolled { batch, .. }) =
+                outcomes[index].1.as_mut().ok().and_then(Option::as_mut)
+            else {
                 return Err(invalid("broker handoff endpoint proof disappeared"));
             };
             batch
@@ -763,9 +772,12 @@ fn attach_carried_cross_root_lineage(
     }
     let current_index = outcomes
         .iter()
-        .position(|(key, page)| key == &current_key && matches!(page, Ok(Some(_))))
+        .position(|(key, page)| {
+            key == &current_key
+                && matches!(page, Ok(Some(PersistentJournalReadPage::Enrolled { .. })))
+        })
         .ok_or_else(|| invalid("broker carried handoff current endpoint has no proof"))?;
-    let Some((batch, _)) = outcomes[current_index]
+    let Some(PersistentJournalReadPage::Enrolled { batch, .. }) = outcomes[current_index]
         .1
         .as_mut()
         .ok()
@@ -849,7 +861,9 @@ fn binding_matches_requested_root(
 
 fn finalize_batch_ids(outcomes: &mut [CollectedRootOutcome]) -> Result<(), ScanError> {
     for (_, page) in outcomes {
-        let Some((batch, _)) = page.as_mut().ok().and_then(Option::as_mut) else {
+        let Some(PersistentJournalReadPage::Enrolled { batch, .. }) =
+            page.as_mut().ok().and_then(Option::as_mut)
+        else {
             continue;
         };
         let previous_id = batch.range.batch_id.clone();

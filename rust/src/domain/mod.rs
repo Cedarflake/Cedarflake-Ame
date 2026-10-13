@@ -67,7 +67,7 @@ pub use persistent_journal::{
     PersistentJournalDirectoryChange, PersistentJournalEnrollmentBatch,
     PersistentJournalEnrollmentReport, PersistentJournalFailure, PersistentJournalLineageState,
     PersistentJournalPendingRename, PersistentJournalRangeState, PersistentJournalReadFailure,
-    PersistentJournalRootFailure, PersistentJournalRootFailureKind,
+    PersistentJournalReadPage, PersistentJournalRootFailure, PersistentJournalRootFailureKind,
     PersistentJournalRootReadOutcome, PersistentJournalSourceRange, PersistentJournalVolumeBatch,
     PersistentJournalVolumeIdentity, PersistentJournalVolumePage, persistent_journal_batch_id,
     persistent_journal_batch_id_from_payload, persistent_journal_batch_payload,

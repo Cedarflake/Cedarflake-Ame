@@ -5,7 +5,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::domain::{
     JournalIdentifier, JournalUsn, LibraryRecoveryOpeningBoundary, PersistentJournalCheckpoint,
     PersistentJournalFailure, PersistentJournalPendingRename, PersistentJournalReadFailure,
-    PersistentJournalRootFailureKind, PersistentJournalRootReadOutcome, ScanError,
+    PersistentJournalReadPage, PersistentJournalRootFailureKind, PersistentJournalRootReadOutcome,
+    ScanError,
 };
 use crate::journal_broker::{
     BrokerResponse, CallerClaim, JournalCapability, PersistentChangeJournalSession,
@@ -308,7 +309,14 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
         let mut locations = HashMap::new();
         for root in ready {
             if root.checkpoint.next_unread_usn.value() >= page.covered_until_usn {
-                outcomes.push(outcome(root.checkpoint, Some(root.opening), Ok(None)));
+                let completed = if start == end && page.covered_until_usn == end {
+                    Some(PersistentJournalReadPage::EmptyReplay(
+                        root.checkpoint.clone(),
+                    ))
+                } else {
+                    None
+                };
+                outcomes.push(outcome(root.checkpoint, Some(root.opening), Ok(completed)));
                 continue;
             }
             let captured = (|| {
@@ -334,7 +342,7 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
                     outcomes.push(outcome(
                         root.checkpoint,
                         Some(root.opening),
-                        Ok(Some(batch)),
+                        Ok(Some(batch.into())),
                     ));
                 }
                 Err(error) => outcomes.push(outcome(
@@ -357,15 +365,10 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
     }
 }
 
-type RootPage = (
-    crate::domain::PersistentJournalEnrollmentBatch,
-    PersistentJournalCheckpoint,
-);
-
 fn outcome(
     checkpoint: &PersistentJournalCheckpoint,
     opening_boundary: Option<LibraryRecoveryOpeningBoundary>,
-    page: Result<Option<RootPage>, PersistentJournalReadFailure>,
+    page: Result<Option<PersistentJournalReadPage>, PersistentJournalReadFailure>,
 ) -> PersistentJournalRootReadOutcome {
     PersistentJournalRootReadOutcome {
         root_id: checkpoint.root_id.clone(),

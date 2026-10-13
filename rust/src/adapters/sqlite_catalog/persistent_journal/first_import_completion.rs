@@ -69,7 +69,7 @@ fn select_ready(connection: &Connection) -> Result<Option<ReadyFirstImportBaseli
                  JOIN scan_runs AS scan ON scan.id = authority.run_id
                  WHERE authority.reason = 'first_import_boundary'
                    AND authority.retired_unix_ms IS NULL
-                   AND baseline.phase = 'replay'
+                   AND baseline.phase IN ('replay', 'absence')
                    AND baseline.closing_next_usn IS NOT NULL
                    AND control.status IN ('pending', 'retry_wait')
                    AND root_state.is_active = 1
@@ -128,7 +128,7 @@ fn complete(
         .query_row(
             "SELECT root_id, root_generation, updated_unix_ms
              FROM library_persistent_journal_baselines
-             WHERE change_id = ?1 AND phase = 'replay'",
+             WHERE change_id = ?1 AND phase IN ('replay', 'absence')",
             [stored_change_id],
             |row| {
                 Ok((
@@ -170,7 +170,7 @@ fn complete(
         .execute(
             "UPDATE library_persistent_journal_baselines
              SET phase = 'completed', completed_unix_ms = ?2, updated_unix_ms = ?2
-             WHERE change_id = ?1 AND phase = 'replay'
+             WHERE change_id = ?1 AND phase IN ('replay', 'absence')
                AND completed_unix_ms IS NULL",
             params![stored_change_id, completed_unix_ms],
         )

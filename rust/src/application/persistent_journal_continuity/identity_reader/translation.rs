@@ -4,8 +4,9 @@ use crate::domain::{
     JournalUsn, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin,
     LibraryChangeScope, PersistentJournalCheckpoint, PersistentJournalContinuityState,
     PersistentJournalCrossRootLineage, PersistentJournalEnrollmentBatch,
-    PersistentJournalLineageState, PersistentJournalRangeState, PersistentJournalRootReadOutcome,
-    PersistentJournalSourceRange, ScanError, persistent_journal_batch_id,
+    PersistentJournalLineageState, PersistentJournalRangeState, PersistentJournalReadPage,
+    PersistentJournalRootReadOutcome, PersistentJournalSourceRange, ScanError,
+    persistent_journal_batch_id,
 };
 use crate::ports::{
     IdentityJournalLocation, IdentityJournalPage, IdentityJournalResolution, identity_for_reference,
@@ -238,7 +239,7 @@ pub(super) fn attach_handoffs(
         let mut removed = Vec::new();
         let mut added = Vec::new();
         for (index, outcome) in outcomes.iter().enumerate() {
-            let Ok(Some((batch, _))) = &outcome.page else {
+            let Ok(Some(PersistentJournalReadPage::Enrolled { batch, .. })) = &outcome.page else {
                 continue;
             };
             if record.usn < batch.range.requested_start_usn.value() {
@@ -293,7 +294,9 @@ pub(super) fn attach_handoffs(
             ),
         );
         for index in [*old_index, *new_index] {
-            let Ok(Some((batch, _))) = &mut outcomes[index].page else {
+            let Ok(Some(PersistentJournalReadPage::Enrolled { batch, .. })) =
+                &mut outcomes[index].page
+            else {
                 return Err(invalid());
             };
             batch
@@ -318,7 +321,7 @@ pub(super) fn attach_handoffs(
         }
     }
     for outcome in outcomes {
-        if let Ok(Some((batch, _))) = &mut outcome.page {
+        if let Ok(Some(PersistentJournalReadPage::Enrolled { batch, .. })) = &mut outcome.page {
             let previous = batch.range.batch_id.clone();
             let current = persistent_journal_batch_id(batch);
             for lineage in &mut batch.cross_root_lineage {

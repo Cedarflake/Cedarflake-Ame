@@ -3,14 +3,15 @@ use crate::domain::{
     LibraryChangeOrigin, LibraryChangeScope, PERSISTENT_JOURNAL_CONTRACT_VERSION,
     PersistentJournalCheckpoint, PersistentJournalContinuityState,
     PersistentJournalEnrollmentBatch, PersistentJournalRangeState, PersistentJournalReadFailure,
-    PersistentJournalSourceRange, ScanError, persistent_journal_batch_id,
+    PersistentJournalReadPage, PersistentJournalSourceRange, ScanError,
+    persistent_journal_batch_id,
 };
 use crate::journal_broker::{
     BrokerCandidate, CandidateKind, CandidateScope, PROTOCOL_VERSION, SharedJournalRootOutcome,
 };
 
 use super::{
-    RootPage, containment_failure, invalid, map_broker_failure_code, reconstruction_failure,
+    containment_failure, invalid, map_broker_failure_code, reconstruction_failure,
     reconstruction_from_error, recovery_opening_boundary,
 };
 
@@ -19,7 +20,7 @@ pub(super) fn translate_root_outcome(
     outcome: SharedJournalRootOutcome,
     requested_end_usn: i64,
     observed_unix_ms: i64,
-) -> Result<Option<RootPage>, PersistentJournalReadFailure> {
+) -> Result<Option<PersistentJournalReadPage>, PersistentJournalReadFailure> {
     let opening_boundary =
         recovery_opening_boundary(previous, previous.journal_id.value(), requested_end_usn)?;
     if let Some(failure) = outcome.failure {
@@ -51,7 +52,9 @@ pub(super) fn translate_root_outcome(
                 Some(opening_boundary),
             ));
         }
-        return Ok(None);
+        return Ok(Some(PersistentJournalReadPage::EmptyReplay(
+            previous.clone(),
+        )));
     }
     let intents = outcome
         .candidates
@@ -111,7 +114,7 @@ pub(super) fn translate_root_outcome(
     checkpoint
         .validate()
         .map_err(|error| reconstruction_from_error(error, Some(opening_boundary)))?;
-    Ok(Some((batch, checkpoint)))
+    Ok(Some((batch, checkpoint).into()))
 }
 
 fn candidate_to_intent(

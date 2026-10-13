@@ -72,11 +72,35 @@ impl SqliteCatalog {
         }
         let updated = transaction
             .execute(
-                "UPDATE library_persistent_journal_root_state
+                "WITH progress AS MATERIALIZED (
+               SELECT state.continuity_state, state.last_failure_code, state.last_failure_message
+               FROM library_persistent_journal_root_state AS state
+               WHERE state.root_id = ?8 AND state.root_generation = ?9
+                 AND state.capability_state = 'supported' AND ?3 = 'supported'
+                 AND state.protocol_version = ?1 AND state.contract_version = ?2
+                 AND (
+                   EXISTS (SELECT 1 FROM library_persistent_journal_checkpoints AS checkpoint
+                     WHERE checkpoint.root_id = state.root_id
+                       AND checkpoint.root_generation = state.root_generation)
+                   OR EXISTS (
+                     SELECT 1 FROM library_persistent_journal_baselines AS baseline
+                     JOIN library_recovery_authorities AS authority
+                       ON authority.change_id = baseline.change_id
+                     WHERE baseline.root_id = state.root_id
+                       AND baseline.root_generation = state.root_generation
+                       AND baseline.phase <> 'completed' AND authority.retired_unix_ms IS NULL
+                   )
+                 )
+             )
+             UPDATE library_persistent_journal_root_state
              SET protocol_version = ?1, contract_version = ?2,
-                 capability_state = ?3, continuity_state = ?4,
-                 last_failure_code = ?5, last_failure_message = ?6,
-                 updated_unix_ms = ?7
+                 capability_state = ?3,
+                 continuity_state = COALESCE((SELECT continuity_state FROM progress), ?4),
+                 last_failure_code = CASE WHEN EXISTS(SELECT 1 FROM progress)
+                   THEN (SELECT last_failure_code FROM progress) ELSE ?5 END,
+                 last_failure_message = CASE WHEN EXISTS(SELECT 1 FROM progress)
+                   THEN (SELECT last_failure_message FROM progress) ELSE ?6 END,
+                 updated_unix_ms = MAX(updated_unix_ms, ?7)
              WHERE root_id = ?8 AND root_generation = ?9
                AND EXISTS(
                  SELECT 1 FROM library_change_root_state AS active

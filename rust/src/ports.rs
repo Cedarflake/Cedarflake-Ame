@@ -486,6 +486,17 @@ pub trait PersistentJournalRepository {
         let _ = change_id;
         Ok(false)
     }
+    fn record_persistent_journal_empty_replay(
+        &mut self,
+        checkpoint: &PersistentJournalCheckpoint,
+        observed_unix_ms: i64,
+    ) -> Result<bool, ScanError> {
+        let _ = (checkpoint, observed_unix_ms);
+        Err(ScanError::new(
+            "persistent_journal_empty_replay_unsupported",
+            "This repository cannot record an empty baseline replay",
+        ))
+    }
     fn finalize_ready_first_import_journal_baseline(
         &mut self,
         completed_unix_ms: i64,

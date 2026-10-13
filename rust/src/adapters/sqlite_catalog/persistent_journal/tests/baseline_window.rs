@@ -1,6 +1,172 @@
 use super::*;
 
 #[test]
+fn repeated_supported_probe_cannot_rewind_replay_or_completed_continuity() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("catalog.sqlite3");
+    let request = first_import_scan_request("late-capability-window", "root-a");
+    let mut catalog = SqliteCatalog::open(path.clone()).unwrap();
+    catalog
+        .begin_scan(&request, "root-a", &request.root_path)
+        .unwrap();
+    let baseline = catalog
+        .begin_persistent_journal_baseline(
+            &first_import_baseline_request(&request, "root-a", 10),
+            policy(),
+        )
+        .unwrap();
+    catalog
+        .publish_scan(&request.scan_id, "root-a", 0, 0)
+        .unwrap();
+    catalog
+        .capture_persistent_journal_baseline_closing_boundary(&closing_boundary(
+            baseline.change_id,
+            10,
+        ))
+        .unwrap();
+    let checkpoint = catalog
+        .load_persistent_journal_checkpoint("root-a", LibraryRootGeneration::initial())
+        .unwrap()
+        .unwrap();
+    let mut stale_probe = catalog
+        .load_persistent_journal_capabilities()
+        .unwrap()
+        .remove(0);
+    stale_probe.continuity = PersistentJournalContinuityState::BaselineRequired;
+    stale_probe.updated_unix_ms = 3_000;
+    catalog
+        .save_persistent_journal_capability(&stale_probe)
+        .unwrap();
+    drop(catalog);
+    let mut catalog =
+        SqliteCatalog::open(path.clone()).expect("late probe preserves active replay");
+    assert_eq!(
+        catalog.load_persistent_journal_capabilities().unwrap()[0].continuity,
+        PersistentJournalContinuityState::CatchingUp
+    );
+    assert!(
+        catalog
+            .record_persistent_journal_empty_replay(&checkpoint, 3_000)
+            .unwrap()
+    );
+    assert!(
+        catalog
+            .finalize_ready_first_import_journal_baseline(3_001)
+            .unwrap()
+    );
+    stale_probe.updated_unix_ms = 3_002;
+    catalog
+        .save_persistent_journal_capability(&stale_probe)
+        .unwrap();
+    drop(catalog);
+    let catalog = SqliteCatalog::open(path).expect("late probe preserves completed continuity");
+    assert_eq!(
+        catalog.load_persistent_journal_capabilities().unwrap()[0].continuity,
+        PersistentJournalContinuityState::Current
+    );
+}
+
+#[test]
+fn empty_first_import_replay_is_durable_without_a_zero_length_source_range() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("catalog.sqlite3");
+    let request = first_import_scan_request("empty-first-import-window", "root-a");
+    let mut catalog = SqliteCatalog::open(path.clone()).unwrap();
+    catalog
+        .begin_scan(&request, "root-a", &request.root_path)
+        .unwrap();
+    let baseline = catalog
+        .begin_persistent_journal_baseline(
+            &first_import_baseline_request(&request, "root-a", 10),
+            policy(),
+        )
+        .unwrap();
+    catalog
+        .publish_scan(&request.scan_id, "root-a", 0, 0)
+        .unwrap();
+    catalog
+        .capture_persistent_journal_baseline_closing_boundary(&closing_boundary(
+            baseline.change_id,
+            10,
+        ))
+        .unwrap();
+    let checkpoint = catalog
+        .load_persistent_journal_checkpoint("root-a", LibraryRootGeneration::initial())
+        .unwrap()
+        .unwrap();
+    assert!(
+        !catalog
+            .persistent_journal_baseline_closing_is_covered(baseline.change_id)
+            .unwrap()
+    );
+    assert!(
+        !catalog
+            .finalize_ready_first_import_journal_baseline(3_000)
+            .unwrap()
+    );
+    let mut wrong_journal = checkpoint.clone();
+    wrong_journal.journal_id = JournalIdentifier::new(999).unwrap();
+    assert!(
+        !catalog
+            .record_persistent_journal_empty_replay(&wrong_journal, 3_000)
+            .unwrap()
+    );
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint("root-a", LibraryRootGeneration::initial(),)
+            .unwrap()
+            .unwrap(),
+        checkpoint
+    );
+    assert!(
+        catalog
+            .record_persistent_journal_empty_replay(&checkpoint, 3_000)
+            .unwrap()
+    );
+    assert!(
+        catalog
+            .record_persistent_journal_empty_replay(&checkpoint, 3_000)
+            .unwrap()
+    );
+    let range_count: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_persistent_journal_source_ranges",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(range_count, 0);
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(path).expect("reopen after empty replay receipt");
+    assert_eq!(
+        catalog.load_persistent_journal_baselines().unwrap()[0].phase,
+        PersistentJournalBaselinePhase::Absence
+    );
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint("root-a", LibraryRootGeneration::initial(),)
+            .unwrap()
+            .unwrap()
+            .continuity,
+        PersistentJournalContinuityState::CatchingUp
+    );
+    assert!(
+        catalog
+            .finalize_ready_first_import_journal_baseline(3_001)
+            .unwrap()
+    );
+    assert_eq!(
+        catalog
+            .load_persistent_journal_checkpoint("root-a", LibraryRootGeneration::initial(),)
+            .unwrap()
+            .unwrap()
+            .continuity,
+        PersistentJournalContinuityState::Current
+    );
+}
+
+#[test]
 fn first_import_rejects_overshoot_atomically_and_reopens_after_bounded_replay() {
     let directory = tempdir().expect("catalog directory");
     let path = directory.path().join("catalog.sqlite3");

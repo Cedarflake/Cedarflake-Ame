@@ -5,11 +5,13 @@ use crate::domain::{
     LibraryChangeQueuePolicy, PersistentJournalCapabilityState, PersistentJournalCheckpoint,
     PersistentJournalCrossRootLineage, PersistentJournalEnrollmentBatch,
     PersistentJournalEnrollmentReport, PersistentJournalFailure, PersistentJournalPendingRename,
-    PersistentJournalReadFailure, PersistentJournalRootFailure, PersistentJournalRootFailureKind,
-    PersistentJournalVolumeBatch, PersistentJournalVolumePage, ScanError,
+    PersistentJournalReadFailure, PersistentJournalReadPage, PersistentJournalRootFailure,
+    PersistentJournalRootFailureKind, PersistentJournalVolumeBatch, PersistentJournalVolumePage,
+    ScanError,
 };
 use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
+mod empty_replay;
 mod identity_reader;
 mod production_reader;
 mod read_boundary;
@@ -113,7 +115,25 @@ where
             )?;
         }
         let (batch, checkpoint) = match outcome.page {
-            Ok(Some(page)) => page,
+            Ok(Some(PersistentJournalReadPage::Enrolled { batch, checkpoint })) => {
+                (*batch, checkpoint)
+            }
+            Ok(Some(PersistentJournalReadPage::EmptyReplay(checkpoint))) => {
+                let previous = initial[&outcome_key];
+                if let Err(failure) =
+                    empty_replay::record(repository, previous, &checkpoint, observed_unix_ms)
+                {
+                    record_root_failure(
+                        repository,
+                        &mut report,
+                        previous,
+                        failure,
+                        observed_unix_ms,
+                        policy,
+                    )?;
+                }
+                continue;
+            }
             Ok(None) => continue,
             Err(failure) => {
                 record_root_failure(

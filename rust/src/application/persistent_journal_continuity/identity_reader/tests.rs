@@ -349,7 +349,14 @@ fn first_import_replay_keeps_its_closing_boundary_when_the_volume_grows() {
     let outcomes = reader
         .read_volume(&[checkpoint], &[], 2, &AtomicBool::new(false))
         .unwrap();
-    let (batch, checkpoint) = outcomes[0].page.as_ref().unwrap().as_ref().unwrap();
+    let (batch, checkpoint) = outcomes[0]
+        .page
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .as_enrolled()
+        .unwrap();
     assert_eq!(batch.range.requested_end_usn.value(), 20);
     assert_eq!(checkpoint.captured_exclusive_end.value(), 20);
     assert_eq!(checkpoint.next_unread_usn.value(), 20);
@@ -431,7 +438,14 @@ fn partial_catchup_finishes_its_captured_window_before_admitting_later_writes() 
     let outcomes = reader
         .read_volume(&[checkpoint], &[], 2, &AtomicBool::new(false))
         .unwrap();
-    let (_, checkpoint) = outcomes[0].page.as_ref().unwrap().as_ref().unwrap();
+    let (_, checkpoint) = outcomes[0]
+        .page
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .as_enrolled()
+        .unwrap();
     assert_eq!(checkpoint.next_unread_usn.value(), 20);
     assert_eq!(checkpoint.captured_exclusive_end.value(), 20);
     assert_eq!(*source.request.lock().unwrap(), Some(20));
@@ -444,7 +458,14 @@ fn partial_catchup_finishes_its_captured_window_before_admitting_later_writes() 
             &AtomicBool::new(false),
         )
         .unwrap();
-    let (_, checkpoint) = outcomes[0].page.as_ref().unwrap().as_ref().unwrap();
+    let (_, checkpoint) = outcomes[0]
+        .page
+        .as_ref()
+        .unwrap()
+        .as_ref()
+        .unwrap()
+        .as_enrolled()
+        .unwrap();
     assert_eq!(checkpoint.next_unread_usn.value(), 30);
     assert_eq!(checkpoint.captured_exclusive_end.value(), 30);
     assert_eq!(source.reads.load(Ordering::Relaxed), 2);

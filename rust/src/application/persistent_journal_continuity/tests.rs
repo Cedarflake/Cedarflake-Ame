@@ -179,7 +179,7 @@ fn broker_root_failure_does_not_block_unrelated_sibling_publication() {
             root_id: "root-a".to_owned(),
             root_generation: LibraryRootGeneration::initial(),
             opening_boundary: None,
-            page: Ok(Some(healthy)),
+            page: Ok(Some(healthy.into())),
         },
         PersistentJournalRootReadOutcome {
             root_id: "root-b".to_owned(),
@@ -238,13 +238,13 @@ fn extra_and_missing_root_outcomes_are_counted_independently() {
             root_id: "root-a".to_owned(),
             root_generation: LibraryRootGeneration::initial(),
             opening_boundary: None,
-            page: Ok(Some(valid)),
+            page: Ok(Some(valid.into())),
         },
         PersistentJournalRootReadOutcome {
             root_id: "root-extra".to_owned(),
             root_generation: LibraryRootGeneration::initial(),
             opening_boundary: None,
-            page: Ok(Some(extra)),
+            page: Ok(Some(extra.into())),
         },
     ]);
     let mut repository = ControlledRepository {
@@ -352,7 +352,7 @@ impl ControlledReader {
                     root_id: page.0.range.root_id.clone(),
                     root_generation: page.0.range.root_generation,
                     opening_boundary: None,
-                    page: Ok(Some(page)),
+                    page: Ok(Some(page.into())),
                 })
                 .collect(),
         )

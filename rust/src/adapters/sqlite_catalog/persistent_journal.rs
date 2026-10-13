@@ -29,6 +29,7 @@ use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
 
 mod baseline_window;
 mod capability;
+mod empty_replay;
 mod first_import_completion;
 mod root_unregister;
 
@@ -580,6 +581,13 @@ impl PersistentJournalRepository for SqliteCatalog {
         change_id: LibraryChangeId,
     ) -> Result<bool, ScanError> {
         baseline_closing_is_covered(&self.connection, change_id)
+    }
+    fn record_persistent_journal_empty_replay(
+        &mut self,
+        checkpoint: &PersistentJournalCheckpoint,
+        observed_unix_ms: i64,
+    ) -> Result<bool, ScanError> {
+        empty_replay::record(self, checkpoint, observed_unix_ms)
     }
 
     fn finalize_ready_first_import_journal_baseline(
@@ -3406,7 +3414,7 @@ pub(super) fn baseline_closing_is_covered(
         return Ok(false);
     }
     if closing == baseline.opening_next_usn {
-        return Ok(true);
+        return Ok(baseline.phase == PersistentJournalBaselinePhase::Absence);
     }
     let has_unfinished_replay = connection
         .query_row(
@@ -4567,7 +4575,7 @@ mod tests {
     }
 
     #[test]
-    fn empty_baseline_interval_needs_no_fsctl_range_to_cover_closing() {
+    fn empty_baseline_interval_requires_a_read_receipt_without_a_source_range() {
         let directory = tempdir().expect("catalog directory");
         let mut catalog = catalog_with_roots(directory.path().join("catalog.sqlite3"), &["root-a"]);
         require_baseline_root(&mut catalog, "root-a");
@@ -4580,6 +4588,21 @@ mod tests {
                 10,
             ))
             .expect("capture empty closing interval");
+
+        assert!(
+            !catalog
+                .persistent_journal_baseline_closing_is_covered(baseline.change_id)
+                .expect("empty interval is not yet read")
+        );
+        let checkpoint = catalog
+            .load_persistent_journal_checkpoint("root-a", LibraryRootGeneration::initial())
+            .expect("load empty replay checkpoint")
+            .expect("empty replay checkpoint");
+        assert!(
+            catalog
+                .record_persistent_journal_empty_replay(&checkpoint, 3_000)
+                .expect("record empty replay receipt")
+        );
 
         assert!(
             catalog

@@ -252,7 +252,9 @@ fn session_reader_uses_one_shared_request_and_preserves_root_failure_isolation()
         .as_ref()
         .expect("first root result")
         .as_ref()
-        .expect("first root page");
+        .expect("first root page")
+        .as_enrolled()
+        .expect("enrolled root page");
     assert_eq!(batch.intents.len(), 1);
     assert!(batch.cross_root_lineage.is_empty());
     assert_eq!(batch.intents[0].relative_path, "created.jpg");
@@ -468,7 +470,7 @@ fn root_at_the_common_end_does_not_block_a_progressing_sibling() {
     assert_eq!(state.shared_read_count.load(Ordering::Acquire), 1);
     let captured = state.captured.lock().expect("captured request");
     assert_eq!(captured.as_ref().expect("shared request").roots.len(), 1);
-    assert!(matches!(&outcomes[0].page, Ok(Some(_))));
+    assert!(matches!(&outcomes[0].page, Ok(Some(_.into()))));
     assert!(matches!(&outcomes[1].page, Ok(None)));
 }
 
@@ -503,6 +505,8 @@ fn growing_query_boundary_is_shared_before_any_root_advances_past_it() {
             .expect("second root result")
             .as_ref()
             .expect("second root page")
+            .as_enrolled()
+            .expect("enrolled root page")
             .1
             .next_unread_usn
             .value(),
@@ -544,7 +548,9 @@ fn session_carries_pending_old_into_a_later_cross_root_page() {
         .as_ref()
         .expect("OLD root result")
         .as_ref()
-        .expect("OLD root page");
+        .expect("OLD root page")
+        .as_enrolled()
+        .expect("enrolled root page");
     assert_eq!(old_page.0.pending_renames.len(), 1);
     let carry = old_page.0.pending_renames[0].clone();
     assert_eq!(carry.source_range_id, old_page.0.range.batch_id);
@@ -565,7 +571,9 @@ fn session_carries_pending_old_into_a_later_cross_root_page() {
         .as_ref()
         .expect("NEW root result")
         .as_ref()
-        .expect("NEW root page");
+        .expect("NEW root page")
+        .as_enrolled()
+        .expect("enrolled root page");
     assert_eq!(
         new_page.0.consumed_pending_rename_ids,
         std::slice::from_ref(&carry.carry_id)
@@ -593,10 +601,12 @@ fn session_rejects_pending_or_carried_rename_outside_durable_request_evidence() 
     let previous_page =
         translate_root_outcome(&previous, successful_outcome(&previous, 10, 20), 20, 500)
             .expect("previous page")
-            .expect("nonempty source range");
+            .expect("nonempty source range")
+            .into_enrolled()
+            .expect("enrolled source range");
     let mut previous_outcomes = vec![(
         (previous.root_id.clone(), previous.root_generation),
-        Ok(Some(previous_page)),
+        Ok(Some(previous_page.into())),
     )];
     let outside = SharedJournalPendingRename {
         binding: first_binding(&previous),
@@ -639,6 +649,8 @@ fn session_rejects_pending_or_carried_rename_outside_durable_request_evidence() 
         .expect("successful OLD page")
         .as_ref()
         .expect("OLD page")
+        .as_enrolled()
+        .expect("enrolled OLD page")
         .0
         .pending_renames[0]
         .clone();
@@ -647,10 +659,12 @@ fn session_rejects_pending_or_carried_rename_outside_durable_request_evidence() 
     let current_page =
         translate_root_outcome(&current, successful_outcome(&current, 12, 20), 20, 501)
             .expect("current page")
-            .expect("nonempty source range");
+            .expect("nonempty source range")
+            .into_enrolled()
+            .expect("enrolled source range");
     let mut current_outcomes = vec![(
         (current.root_id.clone(), current.root_generation),
-        Ok(Some(current_page)),
+        Ok(Some(current_page.into())),
     )];
     let mut request = handoff_request(&[&current]);
     request
@@ -694,10 +708,14 @@ fn half_lineage_is_rejected_and_successful_endpoints_share_one_identity() {
     let second = checkpoint("root-b", 2, 12);
     let first_page = translate_root_outcome(&first, successful_outcome(&first, 10, 20), 20, 500)
         .expect("first page")
-        .expect("nonempty source range");
+        .expect("nonempty source range")
+        .into_enrolled()
+        .expect("enrolled source range");
     let second_page = translate_root_outcome(&second, successful_outcome(&second, 12, 20), 20, 500)
         .expect("second page")
-        .expect("nonempty source range");
+        .expect("nonempty source range")
+        .into_enrolled()
+        .expect("enrolled source range");
     let handoff = crate::journal_broker::SharedJournalHandoff {
         previous_binding: first_binding(&first),
         current_binding: first_binding(&second),
@@ -712,7 +730,7 @@ fn half_lineage_is_rejected_and_successful_endpoints_share_one_identity() {
     let mut half = vec![
         (
             (first.root_id.clone(), first.root_generation),
-            Ok(Some(first_page.clone())),
+            Ok(Some(first_page.clone().into())),
         ),
         (
             (second.root_id.clone(), second.root_generation),
@@ -734,11 +752,11 @@ fn half_lineage_is_rejected_and_successful_endpoints_share_one_identity() {
     let mut complete = vec![
         (
             (first.root_id.clone(), first.root_generation),
-            Ok(Some(first_page)),
+            Ok(Some(first_page.into())),
         ),
         (
             (second.root_id.clone(), second.root_generation),
-            Ok(Some(second_page)),
+            Ok(Some(second_page.into())),
         ),
     ];
     attach_cross_root_lineage(
@@ -758,6 +776,8 @@ fn half_lineage_is_rejected_and_successful_endpoints_share_one_identity() {
                 .expect("successful page")
                 .as_ref()
                 .expect("page")
+                .as_enrolled()
+                .expect("enrolled lineage page")
                 .0
                 .cross_root_lineage[0]
                 .lineage_id
@@ -773,6 +793,8 @@ fn durable_range_identity_changes_with_volume_or_root_generation() {
         translate_root_outcome(&original, successful_outcome(&original, 10, 20), 20, 500)
             .expect("original page")
             .expect("nonempty source range")
+            .into_enrolled()
+            .expect("enrolled source range")
             .0
             .range
             .batch_id;
@@ -786,6 +808,8 @@ fn durable_range_identity_changes_with_volume_or_root_generation() {
     )
     .expect("changed volume page")
     .expect("nonempty source range")
+    .into_enrolled()
+    .expect("enrolled source range")
     .0
     .range
     .batch_id;
@@ -798,6 +822,8 @@ fn durable_range_identity_changes_with_volume_or_root_generation() {
     )
     .expect("changed generation page")
     .expect("nonempty source range")
+    .into_enrolled()
+    .expect("enrolled source range")
     .0
     .range
     .batch_id;
@@ -833,7 +859,9 @@ fn attached_lineage_id(
         500,
     )
     .expect("previous page")
-    .expect("nonempty source range");
+    .expect("nonempty source range")
+    .into_enrolled()
+    .expect("enrolled source range");
     let current_page = translate_root_outcome(
         current,
         successful_outcome(current, current.next_unread_usn.value(), 20),
@@ -841,15 +869,17 @@ fn attached_lineage_id(
         500,
     )
     .expect("current page")
-    .expect("nonempty source range");
+    .expect("nonempty source range")
+    .into_enrolled()
+    .expect("enrolled source range");
     let mut outcomes = vec![
         (
             (previous.root_id.clone(), previous.root_generation),
-            Ok(Some(previous_page)),
+            Ok(Some(previous_page.into())),
         ),
         (
             (current.root_id.clone(), current.root_generation),
-            Ok(Some(current_page)),
+            Ok(Some(current_page.into())),
         ),
     ];
     let request = handoff_request(&[previous, current]);
@@ -877,6 +907,8 @@ fn attached_lineage_id(
         .expect("successful page")
         .as_ref()
         .expect("page")
+        .as_enrolled()
+        .expect("enrolled lineage page")
         .0
         .cross_root_lineage[0]
         .lineage_id
@@ -1002,11 +1034,11 @@ fn empty_replay_validates_coverage_without_enrolling_a_zero_length_source_range(
         candidates: Vec::new(),
         failure: None,
     };
-    assert!(
+    assert!(matches!(
         translate_root_outcome(&checkpoint, outcome.clone(), 20, 500)
-            .expect("empty replay boundary")
-            .is_none()
-    );
+            .expect("empty replay boundary"),
+        Some(PersistentJournalReadPage::EmptyReplay(proof)) if proof == checkpoint
+    ));
     let mut incomplete = outcome.clone();
     incomplete.is_complete = false;
     assert!(translate_root_outcome(&checkpoint, incomplete, 20, 500).is_err());

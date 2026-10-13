@@ -663,17 +663,66 @@ pub struct PersistentJournalVolumeBatch {
 }
 
 #[derive(Clone, Debug)]
+pub enum PersistentJournalReadPage {
+    Enrolled {
+        batch: Box<PersistentJournalEnrollmentBatch>,
+        checkpoint: PersistentJournalCheckpoint,
+    },
+    EmptyReplay(PersistentJournalCheckpoint),
+}
+
+#[cfg(test)]
+impl PersistentJournalReadPage {
+    pub(crate) fn into_enrolled(
+        self,
+    ) -> Option<(
+        PersistentJournalEnrollmentBatch,
+        PersistentJournalCheckpoint,
+    )> {
+        match self {
+            Self::Enrolled { batch, checkpoint } => Some((*batch, checkpoint)),
+            Self::EmptyReplay(_) => None,
+        }
+    }
+
+    pub(crate) fn as_enrolled(
+        &self,
+    ) -> Option<(
+        &PersistentJournalEnrollmentBatch,
+        &PersistentJournalCheckpoint,
+    )> {
+        match self {
+            Self::Enrolled { batch, checkpoint } => Some((batch, checkpoint)),
+            Self::EmptyReplay(_) => None,
+        }
+    }
+}
+
+impl
+    From<(
+        PersistentJournalEnrollmentBatch,
+        PersistentJournalCheckpoint,
+    )> for PersistentJournalReadPage
+{
+    fn from(
+        page: (
+            PersistentJournalEnrollmentBatch,
+            PersistentJournalCheckpoint,
+        ),
+    ) -> Self {
+        Self::Enrolled {
+            batch: Box::new(page.0),
+            checkpoint: page.1,
+        }
+    }
+}
+
+#[derive(Clone, Debug)]
 pub struct PersistentJournalRootReadOutcome {
     pub root_id: String,
     pub root_generation: LibraryRootGeneration,
     pub opening_boundary: Option<LibraryRecoveryOpeningBoundary>,
-    pub page: Result<
-        Option<(
-            PersistentJournalEnrollmentBatch,
-            PersistentJournalCheckpoint,
-        )>,
-        PersistentJournalReadFailure,
-    >,
+    pub page: Result<Option<PersistentJournalReadPage>, PersistentJournalReadFailure>,
 }
 
 impl PersistentJournalEnrollmentBatch {
