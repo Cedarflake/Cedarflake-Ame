@@ -2936,9 +2936,15 @@ pass, including returning a peer's failed startup instead of starting the servic
 library cases pass with the 23 existing explicit ignores, as do three broker binary cases, all 112
 Flutter test files, controlled native scan, all ten native accessibility phases and sixteen bridge
 contracts. Native scan exits zero in 73774 ms without a cleanup failure; accessibility confirms
-normal process exit and owned Job Object closure. Current-source unsigned Release and installed
-ordinary Debug/Release connection, idle exit and subsequent activation remain unverified. Source media and
-the retained catalog are not inputs to these fixture checks.
+normal process exit and owned Job Object closure. The clean `8e68476` unsigned Release passes all
+three native window-lifecycle cases, both engine-retirement cases and the catalog-free bridge
+smoke. Its twenty-file application/broker payload is packaged into the corrected unified installer;
+57 native policy cases, 26 rejecting database-policy cases and sixteen checkbox transitions pass
+without installation. The setup digest is
+`E1FFC547D0E68880D9C441224EF255EE787D5DEA4B90CE2B58CB1618B6E43066`.
+Installed ordinary Debug/Release connection, idle exit and subsequent activation remain unverified;
+the previously removed service has not been reinstalled. Source media and the retained catalog are
+not inputs to these fixture checks.
 
 Touched-file sizes separate main-region code, inline tests and the new accompanying dedicated tests:
 
