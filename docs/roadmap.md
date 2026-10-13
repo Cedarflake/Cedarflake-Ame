@@ -103,8 +103,9 @@ inspection and affected client workflows. Existing three Rust failures belong to
 retain their workloads and assertions. The [ordinary-token capability checkpoint](acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
 establishes native feasibility and a typed parser boundary, not complete client synchronization.
 Ordinary-token directory/path identity reconstruction and atomic enrollment are implemented.
-Retained-library recovery and current Debug/Release restart verification remain open before
-October membership can close. The workstation installation remains removed;
+Selected retained-library recovery restores the current October membership and survives ordinary
+unsigned Release reopening without another inventory. Complete closed-process replay, including
+volume-wide unrelated changes, and remaining current-source verification stay open. The workstation installation remains removed;
 any later system installation retains its explicit-authorization requirement. The full installer
 upgrade/repair/rollback matrix must not precede the missing-image and latency work.
 Historical readiness matrices retain their recorded gaps; they do not reopen the completed merge
