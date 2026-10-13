@@ -171,6 +171,12 @@ only their owned rows. Migration leaves legacy namespace coverage absent and nev
 These bindings are the captured baseline input, not a substitute for journal coverage, directory
 updates during reconciliation, or a completed ordinary-token adapter.
 
+Completed metadata inventories refresh the same captured directory snapshot in their completion
+transaction, using staged metadata and revalidated spool directory identities. A subtree inventory
+replaces only its exact path and descendants. Cancellation, failed publication and stale root
+generations preserve the previous snapshot. This capture adds no source traversal and does not itself
+establish covered journal ranges or current-name authority.
+
 File-by-ID, metadata and hardlink-name operations stay inside the Windows adapter. No media content,
 placeholder hydration, journal creation/reset, privilege enablement, resident helper or ordinary-
 start UAC is admitted. Reparse, root-identity, case-sensitivity, access-denial and concurrent rename

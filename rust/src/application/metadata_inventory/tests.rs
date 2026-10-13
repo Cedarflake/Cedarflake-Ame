@@ -48,6 +48,8 @@ use super::{
 };
 
 mod bounded_cleanup;
+#[cfg(windows)]
+mod directory_snapshot;
 mod lifecycle_admission;
 mod spool_lifecycle;
 mod terminal_media;
@@ -1385,6 +1387,7 @@ fn next_epoch_is_allocated_atomically_and_does_not_depend_on_wall_clock_order() 
 #[test]
 fn proven_consistency_gap_uses_inventory_and_completes_its_authoritative_lease() {
     let mut fixture = InventoryFixture::new(&["removed.png"]);
+    fs::create_dir(fixture.source.path().join("empty-album")).expect("new empty directory");
     fs::remove_file(fixture.source.path().join("removed.png")).expect("remove fixture");
     write_png(&fixture.source.path().join("added.png"), 3, 2, [40, 50, 60]);
     let policy = LibraryChangeQueuePolicy {
@@ -1474,6 +1477,8 @@ fn proven_consistency_gap_uses_inventory_and_completes_its_authoritative_lease()
         }
     }
     let report = report.expect("inventory recovery report");
+    #[cfg(windows)]
+    assert_eq!(directory_snapshot::paths(&fixture), ["", "empty-album"]);
     assert!(
         progress
             .borrow()
@@ -1496,7 +1501,7 @@ fn proven_consistency_gap_uses_inventory_and_completes_its_authoritative_lease()
     );
 
     assert!(report.inventory.is_complete);
-    assert_eq!(report.inventory.staged_entry_count, 1);
+    assert_eq!(report.inventory.staged_entry_count, 2);
     assert_eq!(report.inventory.candidate_count, 2);
     assert_eq!(report.incremental.leased_count, 1);
     assert_eq!(completed_candidates, 2);
