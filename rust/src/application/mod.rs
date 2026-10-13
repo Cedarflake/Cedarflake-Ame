@@ -59,8 +59,6 @@ pub(crate) use metadata_inventory::{
     RetainedMetadataInventorySource, leased_change_requires_metadata_inventory,
     process_leased_metadata_inventory_change_with_retained_source,
 };
-#[cfg(test)]
-pub(crate) use persistent_journal_continuity::catch_up_persistent_journal_volume;
 pub(crate) use persistent_journal_continuity::{
     JournalCaptureWindowReport, PersistentJournalBrokerRoot,
     ProductionPersistentJournalVolumeReader, catch_up_persistent_journal_window,
