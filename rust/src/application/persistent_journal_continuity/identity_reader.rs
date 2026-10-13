@@ -240,7 +240,8 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
             .expect("nonempty prepared roots");
         let mut admitted = Vec::new();
         for root in ready {
-            if root.checkpoint.next_unread_usn.value() < end
+            if (root.checkpoint.next_unread_usn.value() < end
+                || self.read_windows.requires_empty_replay(root.checkpoint))
                 && self.read_windows.admits_shared_end(root.checkpoint, end)
             {
                 admitted.push(root);
@@ -268,7 +269,8 @@ impl PersistentJournalVolumeReader for IdentityPersistentJournalVolumeReader {
             .source
             .read_volume(&request, cancelled)
             .map_err(|error| from_error(error, Some(&ready[0].opening)))?;
-        if page.covered_until_usn <= start
+        if page.covered_until_usn < start
+            || (page.covered_until_usn == start && (start != end || !page.records.is_empty()))
             || page.covered_until_usn > end
             || page.records.len() > 64
             || page
@@ -400,7 +402,8 @@ fn from_error(
         }
         "identity_journal_identity_invalid"
         | "identity_journal_record_invalid"
-        | "persistent_journal_baseline_read_window_invalid" => {
+        | "persistent_journal_baseline_read_window_invalid"
+        | "persistent_journal_catchup_window_regressed" => {
             PersistentJournalRootFailureKind::JournalReconstructionFailure
         }
         _ => PersistentJournalRootFailureKind::Transient,

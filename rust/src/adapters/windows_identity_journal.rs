@@ -285,7 +285,7 @@ impl PersistentIdentityJournalSource for IdentitySource {
         cancelled: &AtomicBool,
     ) -> Result<IdentityJournalPage, ScanError> {
         if request.start_usn < 0
-            || request.end_usn <= request.start_usn
+            || request.end_usn < request.start_usn
             || !(1..=256).contains(&request.max_records)
         {
             return Err(invalid("identity_journal_range_invalid"));
@@ -344,7 +344,9 @@ impl PersistentIdentityJournalSource for IdentitySource {
             })
         })
         .map_err(|_| invalid("identity_journal_record_invalid"))?;
-        if next <= request.start_usn
+        if next < request.start_usn
+            || (next == request.start_usn
+                && (request.start_usn != request.end_usn || !records.is_empty()))
             || records.windows(2).any(|pair| pair[0].usn >= pair[1].usn)
             || records
                 .iter()

@@ -3,10 +3,14 @@ use std::sync::Mutex;
 use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 use super::*;
-use crate::domain::{JournalFileReference, PersistentJournalVolumeIdentity};
+use crate::domain::{
+    JournalFileReference, PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalContinuityState,
+    PersistentJournalVolumeIdentity,
+};
 use crate::journal_broker::{
-    BrokerFailure, CandidateKind, CandidateScope, PersistentChangeJournalLiveOnlyReason,
-    PersistentChangeJournalRead, PersistentChangeJournalSession, ResponseBinding, RootCapability,
+    BrokerCandidate, BrokerFailure, CandidateKind, CandidateScope, PROTOCOL_VERSION,
+    PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalRead,
+    PersistentChangeJournalSession, ResponseBinding, RootCapability, SharedJournalRootOutcome,
 };
 
 #[derive(Default)]
@@ -976,6 +980,30 @@ fn caller() -> CallerClaim {
         session_id: 2,
         client_instance: [9; 16],
     }
+}
+
+#[test]
+fn empty_replay_validates_coverage_without_enrolling_a_zero_length_source_range() {
+    let checkpoint = checkpoint("root-a", 1, 20);
+    let outcome = SharedJournalRootOutcome {
+        binding: first_binding(&checkpoint),
+        requested_start_usn: 20,
+        covered_until_usn: Some(20),
+        is_complete: true,
+        candidates: Vec::new(),
+        failure: None,
+    };
+    assert!(
+        translate_root_outcome(&checkpoint, outcome.clone(), 20, 500)
+            .expect("empty replay boundary")
+            .is_none()
+    );
+    let mut incomplete = outcome.clone();
+    incomplete.is_complete = false;
+    assert!(translate_root_outcome(&checkpoint, incomplete, 20, 500).is_err());
+    let mut wrong_boundary = outcome;
+    wrong_boundary.covered_until_usn = Some(21);
+    assert!(translate_root_outcome(&checkpoint, wrong_boundary, 20, 500).is_err());
 }
 
 #[test]

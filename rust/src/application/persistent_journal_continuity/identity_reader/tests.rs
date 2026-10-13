@@ -350,3 +350,87 @@ fn first_import_replay_keeps_its_closing_boundary_when_the_volume_grows() {
     assert!(matches!(outcomes[0].page, Ok(None)));
     assert_eq!(source.reads.load(Ordering::Relaxed), 1);
 }
+
+#[test]
+fn empty_baseline_replay_reads_its_boundary_without_resolving_source_names() {
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+        observed_end: 10,
+        request: std::sync::Mutex::new(None),
+    });
+    let mut checkpoint = checkpoint();
+    checkpoint.continuity = PersistentJournalContinuityState::CatchingUp;
+    let mut baseline = crate::domain::PersistentJournalBaseline {
+        change_id: crate::domain::LibraryChangeId::new(1).unwrap(),
+        run_id: "empty-first-import".to_owned(),
+        root_id: checkpoint.root_id.clone(),
+        root_generation: checkpoint.root_generation,
+        volume: checkpoint.volume.clone(),
+        root_file_reference: checkpoint.root_file_reference.clone(),
+        journal_id: checkpoint.journal_id,
+        opening_next_usn: checkpoint.next_unread_usn,
+        closing_next_usn: Some(checkpoint.next_unread_usn),
+        protocol_version: checkpoint.protocol_version,
+        contract_version: checkpoint.contract_version,
+        phase: crate::domain::PersistentJournalBaselinePhase::Replay,
+        authorized_unix_ms: 1,
+        updated_unix_ms: 1,
+        completed_unix_ms: None,
+    };
+    let reader = production_reader(source.clone(), vec![baseline.clone()]);
+    let outcomes = reader
+        .read_volume(
+            std::slice::from_ref(&checkpoint),
+            &[],
+            2,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+    assert!(matches!(outcomes[0].page, Ok(None)));
+    assert_eq!(source.reads.load(Ordering::Relaxed), 1);
+    assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
+    assert_eq!(*source.request.lock().unwrap(), Some(10));
+
+    baseline.phase = crate::domain::PersistentJournalBaselinePhase::Absence;
+    let reader = production_reader(source.clone(), vec![baseline]);
+    let outcomes = reader
+        .read_volume(&[checkpoint], &[], 3, &AtomicBool::new(false))
+        .unwrap();
+    assert!(matches!(outcomes[0].page, Ok(None)));
+    assert_eq!(source.reads.load(Ordering::Relaxed), 1);
+}
+
+#[test]
+fn partial_catchup_finishes_its_captured_window_before_admitting_later_writes() {
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+        observed_end: 30,
+        request: std::sync::Mutex::new(None),
+    });
+    let mut checkpoint = checkpoint();
+    checkpoint.continuity = PersistentJournalContinuityState::CatchingUp;
+    checkpoint.captured_exclusive_end = JournalUsn::new(20).unwrap();
+    let reader = production_reader(source.clone(), Vec::new());
+    let outcomes = reader
+        .read_volume(&[checkpoint], &[], 2, &AtomicBool::new(false))
+        .unwrap();
+    let (_, checkpoint) = outcomes[0].page.as_ref().unwrap().as_ref().unwrap();
+    assert_eq!(checkpoint.next_unread_usn.value(), 20);
+    assert_eq!(checkpoint.captured_exclusive_end.value(), 20);
+    assert_eq!(*source.request.lock().unwrap(), Some(20));
+
+    let outcomes = reader
+        .read_volume(
+            std::slice::from_ref(checkpoint),
+            &[],
+            3,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+    let (_, checkpoint) = outcomes[0].page.as_ref().unwrap().as_ref().unwrap();
+    assert_eq!(checkpoint.next_unread_usn.value(), 30);
+    assert_eq!(checkpoint.captured_exclusive_end.value(), 30);
+    assert_eq!(source.reads.load(Ordering::Relaxed), 2);
+}
