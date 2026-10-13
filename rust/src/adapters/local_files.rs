@@ -82,6 +82,7 @@ mod directory_coverage;
 mod file_admission;
 mod file_revalidation;
 mod media_signature;
+mod metadata_inventory_evidence;
 mod preview_cache_namespace;
 mod preview_source;
 #[cfg(windows)]
@@ -101,6 +102,7 @@ use file_revalidation::revalidate_file_state_values;
 #[cfg(not(windows))]
 use file_revalidation::revalidate_file_state_with_metadata;
 pub(crate) use file_revalidation::revalidate_open_preview_source;
+use metadata_inventory_evidence::metadata_inventory_entry_from_checked_directory_entry;
 pub(crate) use preview_cache_namespace::PreviewCacheNamespace;
 pub(crate) use preview_source::open_preview_source;
 #[cfg(windows)]
@@ -1906,51 +1908,6 @@ fn checked_directory_entry_from_metadata(
         metadata,
         reparse_kind,
         placeholder_state,
-    })
-}
-
-fn metadata_inventory_entry_from_checked_directory_entry(
-    entry: CheckedDirectoryEntry,
-    path: &Path,
-) -> Result<MetadataInventoryEntry, ScanIssue> {
-    let is_reparse_point = entry.reparse_kind != ReparseKind::None;
-    let is_opaque_directory = entry.metadata.is_dir()
-        && (is_reparse_point
-            || entry.placeholder_state != MetadataInventoryPlaceholderState::Available);
-    let kind = if entry.reparse_kind == ReparseKind::Other || is_opaque_directory {
-        MetadataInventoryEntryKind::Other
-    } else {
-        metadata_inventory_entry_kind(
-            entry.metadata.is_dir(),
-            entry.metadata.is_file(),
-            entry.reparse_kind,
-        )
-    };
-    let (file_identity, source_revision) = if kind == MetadataInventoryEntryKind::File
-        && entry.placeholder_state == MetadataInventoryPlaceholderState::Available
-    {
-        #[cfg(windows)]
-        {
-            file_source_evidence(path)
-                .map(|(identity, revision)| (identity, Some(revision)))
-                .unwrap_or((None, None))
-        }
-        #[cfg(not(windows))]
-        {
-            (file_identity(path).ok().flatten(), None)
-        }
-    } else {
-        (None, None)
-    };
-    Ok(MetadataInventoryEntry {
-        relative_path: entry.relative_path,
-        kind,
-        file_size: (kind == MetadataInventoryEntryKind::File).then_some(entry.metadata.len()),
-        modified_unix_ms: modified_unix_ms(&entry.metadata),
-        file_identity,
-        source_revision,
-        placeholder_state: entry.placeholder_state,
-        is_reparse_point,
     })
 }
 
