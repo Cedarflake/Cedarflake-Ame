@@ -274,7 +274,7 @@ void main() {
   );
 
   testWidgets(
-    "automatic retry keeps one error until synchronization proves recovery",
+    "automatic recovery dismisses stale warnings while retaining failure history",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1;
@@ -309,17 +309,23 @@ void main() {
         find.text("Windows 拒绝了目录监控访问。Ame 会保留上次可信内容，并在恢复后重新核对。"),
         findsOneWidget,
       );
-      expect(find.textContaining("阶段：等待故障恢复"), findsOneWidget);
+      expect(
+        find.textContaining("阶段：${LibraryStrings.synchronizationPhaseBlocked}"),
+        findsOneWidget,
+      );
       expect(find.textContaining("3 项等待处理"), findsOneWidget);
       expect(find.textContaining("2 项等待重试"), findsOneWidget);
-      expect(find.textContaining("1 项状态尚未确认"), findsOneWidget);
+      expect(find.textContaining("尚有未核对的图库变化"), findsOneWidget);
       expect(find.byKey(const Key("notification-unread-icon")), findsOneWidget);
 
       synchronization.publish(_automaticRecoverySnapshot());
       await tester.pump();
 
-      expect(find.text("“Pictures”更新受阻"), findsOneWidget);
-      expect(find.text("短时间内的文件变化超出监控可确认范围，Ame 正在重新核对该目录。"), findsNothing);
+      expect(find.text("“Pictures”更新受阻"), findsNothing);
+      expect(
+        find.text(LibraryStrings.synchronizationMonitoringCapacityExceeded),
+        findsNothing,
+      );
       expect(
         find.byKey(const Key("notification-primary-action")),
         findsNothing,
@@ -426,7 +432,10 @@ void main() {
       );
       expect(find.text(LibraryStrings.firstImportAwaitingUser), findsOneWidget);
       expect(find.text("“Pictures”更新受阻"), findsNothing);
-      expect(find.textContaining("阶段：等待故障恢复"), findsNothing);
+      expect(
+        find.textContaining("阶段：${LibraryStrings.synchronizationPhaseBlocked}"),
+        findsNothing,
+      );
       expect(
         find.text(LibraryStrings.synchronizationEvidenceGap),
         findsNothing,
