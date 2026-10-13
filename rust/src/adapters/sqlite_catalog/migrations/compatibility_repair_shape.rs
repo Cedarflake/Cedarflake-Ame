@@ -3,10 +3,11 @@ use rusqlite::{Connection, OptionalExtension};
 use crate::domain::ScanError;
 
 use super::{
+    LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL, LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
     LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL, LIVE_GAP_RECOVERY_INSERT_GUARD_DDL,
-    LIVE_GAP_RECOVERY_ROOT_INDEX_DDL, LIVE_GAP_RECOVERY_TABLE_DDL,
-    METADATA_INVENTORY_RUN_TABLE_DDL, RECOVERY_AUTHORITY_TABLE_DDL, database_error,
-    metadata_inventory_spool_schema_matches, schema_object_sql_matches,
+    LIVE_GAP_RECOVERY_ROOT_INDEX_DDL, METADATA_INVENTORY_RUN_TABLE_DDL,
+    RECOVERY_AUTHORITY_TABLE_DDL, database_error, metadata_inventory_spool_schema_matches,
+    schema_object_sql_matches,
 };
 
 pub(super) fn inventory_shape_matches(
