@@ -27,6 +27,7 @@ use super::change_queue::{
 use super::metadata_inventory::insert_metadata_inventory_recovery_authority;
 use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
 
+mod baseline_capability;
 mod baseline_window;
 mod capability;
 mod empty_replay;
@@ -104,60 +105,7 @@ impl SqliteCatalog {
             transaction.commit().map_err(database_error)?;
             return Ok(existing);
         }
-        if load_checkpoint(&transaction, &request.root_id, request.root_generation)?.is_some() {
-            return Err(ScanError::new(
-                "persistent_journal_baseline_checkpoint_exists",
-                "A root with a trustworthy checkpoint cannot start a migration baseline",
-            ));
-        }
-        let capability_updated = transaction
-            .execute(
-                "UPDATE library_persistent_journal_root_state
-                 SET protocol_version = ?1, contract_version = ?2,
-                     capability_state = 'supported', continuity_state = 'baseline_required',
-                     last_failure_code = NULL, last_failure_message = NULL,
-                     updated_unix_ms = ?3
-                 WHERE root_id = ?4 AND root_generation = ?5
-                   AND EXISTS(
-                     SELECT 1 FROM library_change_root_state AS active
-                     WHERE active.root_id = ?4 AND active.generation = ?5
-                       AND active.is_active = 1
-                   )
-                   AND (
-                     (capability_state = 'unknown' AND continuity_state = 'baseline_required'
-                      AND protocol_version = 0 AND last_failure_code IS NULL)
-                     OR
-                     (capability_state = 'supported' AND continuity_state = 'baseline_required'
-                      AND protocol_version = ?1 AND contract_version = ?2
-                      AND last_failure_code IS NULL)
-                   )",
-                params![
-                    i64::from(request.protocol_version),
-                    i64::from(request.contract_version),
-                    request.authorized_unix_ms,
-                    request.root_id,
-                    sqlite_integer(request.root_generation.value(), "root generation")?,
-                ],
-            )
-            .map_err(database_error)?;
-        if capability_updated != 1 {
-            return Err(ScanError::new(
-                "persistent_journal_baseline_capability_invalid",
-                "The root cannot atomically acquire supported baseline-required journal authority",
-            ));
-        }
-        let root_state =
-            load_root_authority_for_key(&transaction, &request.root_id, request.root_generation)?;
-        if root_state.capability_state != "supported"
-            || root_state.continuity_state != "baseline_required"
-            || root_state.protocol_version != request.protocol_version
-            || root_state.contract_version != request.contract_version
-        {
-            return Err(ScanError::new(
-                "persistent_journal_baseline_capability_invalid",
-                "The root does not own supported baseline-required journal authority",
-            ));
-        }
+        baseline_capability::acquire(&transaction, request)?;
         let root_has_published_scan = transaction
             .query_row(
                 "SELECT active_scan_id IS NOT NULL FROM library_roots WHERE id = ?1",
@@ -3751,6 +3699,18 @@ mod tests {
                 10,
             ))
             .expect("enter replay phase with an empty journal range");
+        let checkpoint = catalog
+            .load_persistent_journal_checkpoint(
+                "root-first-replay",
+                LibraryRootGeneration::initial(),
+            )
+            .expect("empty replay checkpoint")
+            .expect("captured replay checkpoint");
+        assert!(
+            catalog
+                .record_persistent_journal_empty_replay(&checkpoint, 2_001)
+                .expect("record successful empty replay")
+        );
         catalog
             .enqueue_library_change_intents(
                 &[LibraryChangeIntent {

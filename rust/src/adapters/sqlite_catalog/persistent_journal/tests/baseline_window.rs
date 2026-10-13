@@ -1,6 +1,101 @@
 use super::*;
 
 #[test]
+fn live_only_retained_root_acquires_baseline_after_a_fresh_supported_opening() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = catalog_with_roots(path.clone(), &["root-a"]);
+    let before = catalog
+        .load_persistent_journal_capabilities()
+        .unwrap()
+        .remove(0);
+    assert_eq!(before.state, PersistentJournalCapabilityState::LiveOnly);
+    assert!(before.failure.is_some());
+    let active_scan = catalog
+        .connection
+        .query_row(
+            "SELECT active_scan_id FROM library_roots WHERE id='root-a'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .unwrap();
+    let request = baseline_request("root-a", 10);
+    let admitted = catalog
+        .begin_persistent_journal_baseline(&request, policy())
+        .unwrap();
+    assert_eq!(admitted.phase, PersistentJournalBaselinePhase::Inventory);
+    assert_eq!(
+        catalog.load_persistent_journal_capabilities().unwrap()[0].continuity,
+        PersistentJournalContinuityState::BaselineRequired
+    );
+    assert!(
+        catalog
+            .load_persistent_journal_checkpoint("root-a", LibraryRootGeneration::initial())
+            .unwrap()
+            .is_none()
+    );
+    drop(catalog);
+    let catalog = SqliteCatalog::open(path).expect("reopen upgraded LiveOnly authority");
+    let after = catalog
+        .load_persistent_journal_capabilities()
+        .unwrap()
+        .remove(0);
+    assert_eq!(after.state, PersistentJournalCapabilityState::Supported);
+    assert!(after.failure.is_none());
+    assert_eq!(
+        catalog
+            .connection
+            .query_row(
+                "SELECT active_scan_id FROM library_roots WHERE id='root-a'",
+                [],
+                |row| row.get::<_, String>(0),
+            )
+            .unwrap(),
+        active_scan
+    );
+    let scans: i64 = catalog
+        .connection
+        .query_row("SELECT COUNT(*) FROM scan_runs", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(scans, 1);
+}
+
+#[test]
+fn stale_live_only_root_generation_cannot_acquire_a_baseline() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = catalog_with_roots(path.clone(), &["root-a"]);
+    let before = catalog
+        .load_persistent_journal_capabilities()
+        .unwrap()
+        .remove(0);
+    let mut request = baseline_request("root-a", 10);
+    request.root_generation = LibraryRootGeneration::new(2).unwrap();
+    assert_eq!(
+        catalog
+            .begin_persistent_journal_baseline(&request, policy())
+            .unwrap_err()
+            .code,
+        "persistent_journal_baseline_capability_invalid"
+    );
+    assert!(
+        catalog
+            .load_persistent_journal_baselines()
+            .unwrap()
+            .is_empty()
+    );
+    let after = catalog
+        .load_persistent_journal_capabilities()
+        .unwrap()
+        .remove(0);
+    assert_eq!(after.state, before.state);
+    assert_eq!(after.continuity, before.continuity);
+    assert_eq!(after.failure, before.failure);
+    drop(catalog);
+    SqliteCatalog::open(path).expect("stale generation leaves the catalog valid");
+}
+
+#[test]
 fn repeated_supported_probe_cannot_rewind_replay_or_completed_continuity() {
     let directory = tempdir().unwrap();
     let path = directory.path().join("catalog.sqlite3");
