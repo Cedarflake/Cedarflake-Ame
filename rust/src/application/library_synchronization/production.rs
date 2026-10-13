@@ -78,6 +78,9 @@ use crate::ports::{
 #[cfg(windows)]
 mod poll_diagnostics;
 
+#[cfg(all(test, windows, debug_assertions))]
+mod ordinary_journal;
+
 #[cfg(windows)]
 mod catalog_scheduling;
 
