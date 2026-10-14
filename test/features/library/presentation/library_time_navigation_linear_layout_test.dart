@@ -85,11 +85,12 @@ void main() {
     final slider = tester.widget<Slider>(
       find.byKey(const Key("timeline-slider")),
     );
-    slider.onChangeStart?.call(0.61);
-    slider.onChanged?.call(0.61);
+    const rawSliderValue = 1 - 0.61;
+    slider.onChangeStart?.call(rawSliderValue);
+    slider.onChanged?.call(rawSliderValue);
     await tester.pump();
     expect(controller.offset, closeTo(427, 0.001));
-    slider.onChangeEnd?.call(0.61);
+    slider.onChangeEnd?.call(rawSliderValue);
     await tester.pump();
     expect(controller.offset, closeTo(427, 0.001));
     controller.jumpTo(350);
