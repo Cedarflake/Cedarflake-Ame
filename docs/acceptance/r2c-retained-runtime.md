@@ -3183,3 +3183,25 @@ identity, namespace and reusable-connection owners contain 118, 133 and 119 prod
 no inline tests. Their affected dedicated tests contain 75, 34 and 338 lines respectively. Owned
 Rust formatting and diff checks pass. Hosted execution and affected populated-client verification
 remain pending; no local CI suite runs and no new gallery corpus is generated.
+
+The `be27770` Release client builds after correcting UTF-16 constant patterns to match values.
+It reopens the same retained 65130-location catalog, displays current October images and synchronized
+source status, navigates into the middle of the gallery, reverses wheel input, opens one original
+image and returns to the prior row. It exits normally with code 0 after 248437 ms, restores the
+original profile and preserves original catalog hashes. Active membership remains 65130; scan and
+inventory counts remain one each. A fresh metadata-only comparison finds all current 51 October
+images, with no missing or extra membership. This selected workflow does not measure startup P95
+or reproduce the historical July incident. A transient blank canvas during backward paging remains
+an observed browsing issue; no root-failure recovery verdict is inferred from ready previews.
+
+## Viewer loading position and window-relative zoom
+
+The viewer now applies its InteractiveViewer transform only to image content; pending-load feedback
+stays in the fixed viewport overlay and retires through the existing source-frame lifecycle. Zoom
+percentage uses the fitted presentation as 100%, while the explicit actual-pixel action preserves
+1:1. Held source-read regressions cover zoom and pan during loading, indicator bounds, completion
+and lease release. Geometry examples cover small, portrait and wide images, resizing, actual pixels
+and slider mapping; existing keyboard/opening assertions follow the new percentage contract.
+The viewer, image and zoom-geometry owners contain 472, 192 and 64 production lines with no inline
+tests; affected dedicated tests contain 623, 494 and 67 lines. Owned Dart formatting and diff checks
+pass. Current hosted regressions and affected client verification remain pending; no local CI runs.

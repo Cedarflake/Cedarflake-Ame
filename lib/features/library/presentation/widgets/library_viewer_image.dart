@@ -10,17 +10,22 @@ import "library_loading_indicator.dart";
 import "library_source_image.dart";
 import "library_viewer_source_scope.dart";
 
+typedef LibraryViewerImageBuilder =
+    Widget Function(BuildContext context, Widget image);
+
 class LibraryViewerImage extends StatefulWidget {
   const LibraryViewerImage({
     required this.asset,
     this.sourceReadScheduler,
     this.sourceBufferLoader,
+    this.imageBuilder,
     super.key,
   });
 
   final LibraryAsset asset;
   final LibrarySourceReadScheduler? sourceReadScheduler;
   final LibrarySourceBufferLoader? sourceBufferLoader;
+  final LibraryViewerImageBuilder? imageBuilder;
 
   @override
   State<LibraryViewerImage> createState() => _LibraryViewerImageState();
@@ -79,23 +84,33 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
       gaplessPlayback: true,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
         if (frame != null || wasSynchronouslyLoaded) {
-          return child;
+          return _buildImage(context, child);
         }
         return Stack(
           fit: StackFit.expand,
           children: [
-            if (_hasPreview) _buildPreview(),
-            const LibraryLoadingIndicator(
-              maximumDimension: 36,
-              minimumInset: 0,
-              strokeWidth: 4,
+            _buildImage(
+              context,
+              _hasPreview ? _buildPreview() : const SizedBox.expand(),
+            ),
+            const IgnorePointer(
+              child: LibraryLoadingIndicator(
+                key: Key("viewer-image-loading"),
+                maximumDimension: 36,
+                minimumInset: 0,
+                strokeWidth: 4,
+              ),
             ),
           ],
         );
       },
-      errorBuilder: (context, error, stackTrace) => _buildFailure(context),
+      errorBuilder: (context, error, stackTrace) =>
+          _buildImage(context, _buildFailure(context)),
     );
   }
+
+  Widget _buildImage(BuildContext context, Widget image) =>
+      widget.imageBuilder?.call(context, image) ?? image;
 
   Widget _buildFailure(BuildContext context) {
     if (_hasPreview) {

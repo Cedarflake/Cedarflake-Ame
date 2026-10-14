@@ -5,13 +5,72 @@ import "dart:ui" as ui;
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
 import "package:flutter/material.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "pending image indicator stays at the viewport center during zoom and pan",
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final fixture = _Fixture();
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: LibraryViewerSourceScope(
+              scheduler: fixture.scheduler,
+              bufferLoader: fixture.loadBuffer,
+              child: Scaffold(
+                body: LibraryImageViewer(
+                  asset: _asset("first"),
+                  onBack: () {},
+                  onInformation: () {},
+                  onCopyPath: () {},
+                  onRevealFile: () {},
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      final viewport = find.byKey(
+        const Key("library-image-interactive-viewer"),
+      );
+      final indicator = find.descendant(
+        of: find.byKey(const Key("viewer-image-loading")),
+        matching: find.byType(CircularProgressIndicator),
+      );
+      final center = tester.getRect(viewport).center;
+      final bounds = tester.getRect(indicator);
+      expect(bounds.center, center);
+      await tester.tap(find.byKey(const Key("viewer-zoom-in")));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(find.text("125%"), findsOneWidget);
+      expect(tester.getRect(indicator), bounds);
+      await tester.drag(viewport, const Offset(180, 100));
+      await tester.pump();
+      expect(tester.getRect(indicator), bounds);
+      expect(fixture.reader.opened, ["first"]);
+      expect(fixture.reader.leases.single.closed, 0);
+      await tester.runAsync(() => fixture.finishBuffer("approved-first"));
+      await _waitForImage(tester);
+      expect(indicator, findsNothing);
+      expect(fixture.reader.leases.single.closed, 1);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets("inherited source dependencies keep an unchanged read alive", (
     tester,
   ) async {

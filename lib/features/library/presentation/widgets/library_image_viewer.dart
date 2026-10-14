@@ -8,6 +8,7 @@ import "../../../settings/application/ame_preferences.dart";
 import "../../domain/library_models.dart";
 import "library_viewer_controls.dart";
 import "library_viewer_image.dart";
+import "library_viewer_zoom_geometry.dart";
 
 class LibraryImageViewer extends StatefulWidget {
   const LibraryImageViewer({
@@ -43,8 +44,6 @@ class LibraryImageViewer extends StatefulWidget {
 
 class _LibraryImageViewerState extends State<LibraryImageViewer>
     with SingleTickerProviderStateMixin {
-  static const _defaultMinimumScale = 0.25;
-  static const _defaultMaximumScale = 8.0;
   static const _zoomStep = 1.25;
   static const _zoomAnimationDuration = Duration(milliseconds: 180);
 
@@ -207,29 +206,35 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
           child: GestureDetector(
             behavior: HitTestBehavior.opaque,
             onDoubleTap: _toggleActualSize,
-            child: InteractiveViewer(
-              key: const Key("library-image-interactive-viewer"),
-              transformationController: _transformationController,
-              alignment: Alignment.topLeft,
-              boundaryMargin: const EdgeInsets.all(double.infinity),
-              minScale: _minimumScale,
-              maxScale: _maximumScale,
-              scaleFactor: 180,
-              scaleEnabled:
-                  widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
-              trackpadScrollCausesScale: true,
-              onInteractionStart: _handleInteractionStart,
-              child: SizedBox(
-                width: _viewportSize.width,
-                height: _viewportSize.height,
-                child: LibraryViewerImage(asset: widget.asset),
-              ),
+            child: LibraryViewerImage(
+              asset: widget.asset,
+              imageBuilder: _buildTransformedImage,
             ),
           ),
         ),
         LibraryViewerNavigationButton.previous(onPressed: widget.onPrevious),
         LibraryViewerNavigationButton.next(onPressed: widget.onNext),
       ],
+    );
+  }
+
+  Widget _buildTransformedImage(BuildContext context, Widget image) {
+    return InteractiveViewer(
+      key: const Key("library-image-interactive-viewer"),
+      transformationController: _transformationController,
+      alignment: Alignment.topLeft,
+      boundaryMargin: const EdgeInsets.all(double.infinity),
+      minScale: _minimumScale,
+      maxScale: _maximumScale,
+      scaleFactor: 180,
+      scaleEnabled: widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
+      trackpadScrollCausesScale: true,
+      onInteractionStart: _handleInteractionStart,
+      child: SizedBox(
+        width: _viewportSize.width,
+        height: _viewportSize.height,
+        child: image,
+      ),
     );
   }
 
@@ -355,7 +360,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
   }
 
   void _toggleActualSize() {
-    if (!_hasImageDimensions || (_zoomPercent - 100).abs() < 1) {
+    if (!_hasImageDimensions || _zoomGeometry.isActualSize(_scale)) {
       _fitToWindow();
     } else {
       _showActualSize();
@@ -422,52 +427,37 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
       start + (end - start) * progress;
 
   double _sliderValueForScale(double scale) {
-    final bounded = scale.clamp(_minimumScale, _maximumScale).toDouble();
-    return (math.log(bounded) - math.log(_minimumScale)) /
-        (math.log(_maximumScale) - math.log(_minimumScale));
+    return _zoomGeometry.sliderValueForScale(scale);
   }
 
   double _scaleForSliderValue(double value) {
-    return math.exp(
-      math.log(_minimumScale) +
-          value * (math.log(_maximumScale) - math.log(_minimumScale)),
-    );
+    return _zoomGeometry.scaleForSliderValue(value);
   }
 
-  double _zoomPercentForScale(double scale) => scale * _fitImageScale * 100;
+  double _zoomPercentForScale(double scale) =>
+      _zoomGeometry.percentageForScale(scale);
 
   void _showPreviousFromKeyboard() => widget.onPrevious?.call();
 
   void _showNextFromKeyboard() => widget.onNext?.call();
 
-  bool get _hasImageDimensions =>
-      widget.asset.width > 0 &&
-      widget.asset.height > 0 &&
-      !_viewportSize.isEmpty;
+  LibraryViewerZoomGeometry get _zoomGeometry => LibraryViewerZoomGeometry(
+    imageSize: Size(
+      widget.asset.width.toDouble(),
+      widget.asset.height.toDouble(),
+    ),
+    viewportSize: _viewportSize,
+  );
 
-  double get _fitImageScale {
-    if (!_hasImageDimensions) {
-      return 1;
-    }
-    return math.min(
-      _viewportSize.width / widget.asset.width,
-      _viewportSize.height / widget.asset.height,
-    );
-  }
+  bool get _hasImageDimensions => _zoomGeometry.hasImageDimensions;
 
-  double get _actualSizeScale => 1 / _fitImageScale;
+  double get _fitImageScale => _zoomGeometry.fitImageScale;
 
-  double get _minimumScale => !_hasImageDimensions
-      ? _defaultMinimumScale
-      : math
-            .min(_defaultMinimumScale, _actualSizeScale / 4)
-            .clamp(0.01, _defaultMinimumScale);
+  double get _actualSizeScale => _zoomGeometry.actualSizeScale;
 
-  double get _maximumScale => !_hasImageDimensions
-      ? _defaultMaximumScale
-      : math
-            .max(_defaultMaximumScale, _actualSizeScale * 4)
-            .clamp(_defaultMaximumScale, 1024);
+  double get _minimumScale => _zoomGeometry.minimumScale;
+
+  double get _maximumScale => _zoomGeometry.maximumScale;
 
   double get _zoomPercent => _zoomPercentForScale(_scale);
 

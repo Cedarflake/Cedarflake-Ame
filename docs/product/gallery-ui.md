@@ -400,6 +400,18 @@ position when possible.
 - No user-visible pagination or page transitions are introduced.
 - Opening an image and returning restores its prior gallery item and scroll position.
 
+## Single-image loading and zoom
+
+While an original image is loading, its progress indicator stays at the center of the image
+viewport. Zoom, pan and wheel input transform the image or retained preview, never the indicator.
+Loading completion retires the indicator through the current source image's frame lifecycle.
+
+The zoom percentage is relative to the image's fit-to-window presentation: fitting the available
+viewport is 100%, enlargement by one quarter is 125%, and reduction by half is 50%. Portrait images
+use the available height; wider images respect the available width so the whole image remains
+visible. Window resizing recalculates that fitted reference. The explicit `1:1` action remains
+actual source-pixel size and can differ from 100% under this window-relative scale.
+
 ## Temporary task and notification feedback
 
 An active import uses a bottom floating progress surface similar to the reference workflow:
