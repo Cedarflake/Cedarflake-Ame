@@ -201,16 +201,9 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
     return Stack(
       fit: StackFit.expand,
       children: [
-        Listener(
-          onPointerSignal: _handlePointerSignal,
-          child: GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onDoubleTap: _toggleActualSize,
-            child: LibraryViewerImage(
-              asset: widget.asset,
-              imageBuilder: _buildTransformedImage,
-            ),
-          ),
+        LibraryViewerImage(
+          asset: widget.asset,
+          imageBuilder: _buildTransformedImage,
         ),
         LibraryViewerNavigationButton.previous(onPressed: widget.onPrevious),
         LibraryViewerNavigationButton.next(onPressed: widget.onNext),
@@ -219,21 +212,28 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
   }
 
   Widget _buildTransformedImage(BuildContext context, Widget image) {
-    return InteractiveViewer(
-      key: const Key("library-image-interactive-viewer"),
-      transformationController: _transformationController,
-      alignment: Alignment.topLeft,
-      boundaryMargin: const EdgeInsets.all(double.infinity),
-      minScale: _minimumScale,
-      maxScale: _maximumScale,
-      scaleFactor: 180,
-      scaleEnabled: widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
-      trackpadScrollCausesScale: true,
-      onInteractionStart: _handleInteractionStart,
-      child: SizedBox(
-        width: _viewportSize.width,
-        height: _viewportSize.height,
-        child: image,
+    return Listener(
+      onPointerSignal: _handlePointerSignal,
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onDoubleTap: _toggleActualSize,
+        child: InteractiveViewer(
+          key: const Key("library-image-interactive-viewer"),
+          transformationController: _transformationController,
+          alignment: Alignment.topLeft,
+          boundaryMargin: const EdgeInsets.all(double.infinity),
+          minScale: _minimumScale,
+          maxScale: _maximumScale,
+          scaleFactor: 180,
+          scaleEnabled: widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
+          trackpadScrollCausesScale: true,
+          onInteractionStart: _handleInteractionStart,
+          child: SizedBox(
+            width: _viewportSize.width,
+            height: _viewportSize.height,
+            child: image,
+          ),
+        ),
       ),
     );
   }

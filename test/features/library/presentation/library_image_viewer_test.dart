@@ -171,6 +171,13 @@ void main() {
     expect(viewportRect.bottom, lessThanOrEqualTo(controlsRect.top));
     expect(controlsRect.left, 0);
     expect(controlsRect.right, 1000);
+
+    await tester.tapAt(viewportRect.center);
+    await tester.pump(kDoubleTapMinTime);
+    await tester.tapAt(viewportRect.center);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text("100%"), findsOneWidget);
   });
 
   testWidgets("viewer exposes adjacent navigation through controls and keys", (

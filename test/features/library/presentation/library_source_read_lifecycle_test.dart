@@ -83,7 +83,7 @@ void main() {
 
   for (final hasPreview in [false, true]) {
     testWidgets(
-      "original retry remains visible after zoom and pan with preview $hasPreview",
+      "original retry starts immediately after zoom and pan with preview $hasPreview",
       (tester) async {
         tester.view.physicalSize = const Size(1000, 700);
         tester.view.devicePixelRatio = 1;

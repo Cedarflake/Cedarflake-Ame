@@ -39,8 +39,9 @@ states, and a display-only retry is labeled Reload. `LibraryUpdateFeedback` owns
 labels and accessibility text; the application still owns commands and state transitions. Hosted
 checks and the focused client walkthrough remain pending. Primary-task result recovery now labels
 the action Reread and changes the task/sidebar to Reading while it runs; published display recovery
-uses Reload. Continue affected preview retry feedback next, preserving completed viewer geometry
-and preferences.
+uses Reload. Original-image Retry now sits outside image gestures so its first click does not
+wait for double-tap recognition; image double-tap zoom retains coverage. Continue affected preview
+retry feedback next, preserving completed viewer geometry and preferences.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named
