@@ -36,6 +36,11 @@ impl<'a> ReadinessQuery<'a> {
     }
 
     pub(super) fn has_ready_live_path_library_change(&self) -> Result<bool, ScanError> {
+        let defer_unlineaged = super::first_import_replay::blocks_unlineaged_live_changes(
+            self.connection,
+            self.root_id,
+            self.root_generation,
+        )?;
         self.connection
             .query_row(
                 "SELECT EXISTS(
@@ -51,6 +56,11 @@ impl<'a> ReadinessQuery<'a> {
                      )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p0_live'
+                     AND (?5 = 0 OR EXISTS(
+                       SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                       WHERE lineage.change_id = queue.id
+                         AND lineage.catch_up_source = 'persistent_journal_v1'
+                     ))
                      AND queue.origin = 'live_notification'
                      AND queue.scope = 'path'
                      AND queue.intent_kind <> 'freshness_unknown'
@@ -70,6 +80,7 @@ impl<'a> ReadinessQuery<'a> {
                     sqlite_integer(self.root_generation.value(), "root generation")?,
                     i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
+                    defer_unlineaged,
                 ],
                 |row| row.get::<_, bool>(0),
             )
@@ -314,6 +325,11 @@ impl<'a> ReadinessQuery<'a> {
     }
 
     pub(super) fn has_ready_live_authoritative_library_change(&self) -> Result<bool, ScanError> {
+        let defer_unlineaged = super::first_import_replay::blocks_unlineaged_live_changes(
+            self.connection,
+            self.root_id,
+            self.root_generation,
+        )?;
         let ready = self
             .connection
             .query_row(
@@ -330,6 +346,11 @@ impl<'a> ReadinessQuery<'a> {
                      )
                      AND queue.status IN ('pending', 'leased', 'retry_wait')
                      AND lane.lane = 'p0_live'
+                     AND (?5 = 0 OR EXISTS(
+                       SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                       WHERE lineage.change_id = queue.id
+                         AND lineage.catch_up_source = 'persistent_journal_v1'
+                     ))
                      AND queue.origin = 'live_notification'
                      AND NOT EXISTS(
                        SELECT 1 FROM library_live_gap_recovery_claims AS claim
@@ -354,12 +375,16 @@ impl<'a> ReadinessQuery<'a> {
                     sqlite_integer(self.root_generation.value(), "root generation")?,
                     i64::from(self.policy.max_attempts),
                     self.now_unix_ms,
+                    defer_unlineaged,
                 ],
                 |row| row.get::<_, bool>(0),
             )
             .map_err(database_error)?;
         if ready {
             return Ok(true);
+        }
+        if defer_unlineaged {
+            return Ok(false);
         }
         Ok(super::gap_promotion::retained_candidate(
             self.connection,

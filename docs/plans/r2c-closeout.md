@@ -75,6 +75,17 @@ coverage policy; their dedicated tests have 276, 172 and 74 lines. The catalog f
 lines. Journal baseline has 437 production and 326 inline-test lines; persistent journal has 3,440
 production and 4,740 inline-test lines, with only the existing baseline loader's visibility changed.
 
+The ordinary resumed-import regression exposed a second ordering fault: unlineaged live removals
+deleted both old hardlink locations before journal replay could reuse their asset identity. The
+first-import replay owner now defers those leases until closing replay coverage, while enrolled
+journal work keeps its priority and handoff ownership. The same isolated native five-location case
+now preserves the original shared asset ID after in-place rewrite, directory rename, addition and
+deletion, reaches exact membership and Current, and reopens normally through the unmodified Debug
+entrypoint. Source hashes match. Hosted queue regressions cover deferred path/root work, journal
+lineage and release before baseline completion. Owner sizes (production / inline / dedicated tests):
+replay admission 58 / 0 / 262; readiness 451 / 0 / existing dedicated tests; lease matching
+444 / 0 / existing dedicated tests; capture priority 69 / 0 / 85. Hosted validation is pending.
+
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
 states, and a display-only retry is labeled Reload. `LibraryUpdateFeedback` owns the related task

@@ -2888,6 +2888,15 @@ only with its same-generation unresolved P0 path or root evidence; it remains pe
 Original queue authority, namespace guards, identity reconciliation, and rollback remain mandatory;
 publication entrypoints without this foreground proof retain their original checks.
 
+After first-import publication, live work without persistent-journal lineage waits until the
+opening-to-closing journal replay has published. A missing old path may belong to a moved file
+whose retained identity is still needed by that replay. Journal-enrolled live work remains
+runnable because its existing handoff lineage retains that identity across removal. Readiness,
+transactional lease admission, and capture priority share this first-import rule. The hold ends
+at closing-replay coverage, before baseline completion, so remaining live work can finish and
+allow completion. Published replacement updates and roots without an active first-import
+baseline retain their existing priority.
+
 Preview materialization may advance only the active projection while P0's matching staging row is
 still pending. Before the full-payload proof, the same transaction may adopt that active derived
 payload only when every non-derived source-lease field matches exactly, including physical identity,

@@ -21,6 +21,7 @@ use super::{
 };
 
 mod coalescing;
+pub(super) mod first_import_replay;
 mod gap_promotion;
 mod ingress;
 mod journal_scope_recovery;

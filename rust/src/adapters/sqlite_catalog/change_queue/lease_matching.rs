@@ -22,6 +22,11 @@ impl SqliteCatalog {
             } else {
                 None
             };
+        let defer_unlineaged = first_import_replay::blocks_unlineaged_live_changes(
+            &self.connection,
+            root_id,
+            root_generation,
+        )?;
         let pass_is_needed = self
             .connection
             .query_row(
@@ -31,6 +36,14 @@ impl SqliteCatalog {
                  ) AND EXISTS(
                    SELECT 1 FROM library_change_queue AS queue
                    WHERE queue.root_id = ?1 AND queue.root_generation = ?2
+                     AND (?7 = 0 OR NOT EXISTS(
+                       SELECT 1 FROM library_change_queue_lanes AS lane
+                       WHERE lane.change_id = queue.id AND lane.lane = 'p0_live'
+                     ) OR EXISTS(
+                       SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                       WHERE lineage.change_id = queue.id
+                         AND lineage.catch_up_source = 'persistent_journal_v1'
+                     ))
                      AND NOT EXISTS(
                        SELECT 1 FROM library_journal_scope_recoveries AS recovery
                        JOIN library_change_queue AS child
@@ -161,6 +174,7 @@ impl SqliteCatalog {
                     now_unix_ms,
                     selection_sql,
                     pretransaction_recovery_affinity_change_id,
+                    defer_unlineaged,
                 ],
                 |row| row.get::<_, bool>(0),
             )
@@ -211,12 +225,25 @@ impl SqliteCatalog {
             | LeaseSelection::RecoveryCandidates
             | LeaseSelection::UnownedRecoveryPaths => i64::from(policy.max_lease_batch),
         };
+        let defer_unlineaged = first_import_replay::blocks_unlineaged_live_changes(
+            &transaction,
+            root_id,
+            root_generation,
+        )?;
         let change_ids = {
             let mut statement = transaction
                 .prepare(
                     "SELECT id
                  FROM library_change_queue
                   WHERE root_id = ?1 AND root_generation = ?2
+                    AND (?8 = 0 OR NOT EXISTS(
+                      SELECT 1 FROM library_change_queue_lanes AS lane
+                      WHERE lane.change_id = library_change_queue.id AND lane.lane = 'p0_live'
+                    ) OR EXISTS(
+                      SELECT 1 FROM library_change_queue_catch_up_lineage AS lineage
+                      WHERE lineage.change_id = library_change_queue.id
+                        AND lineage.catch_up_source = 'persistent_journal_v1'
+                    ))
                     AND NOT EXISTS(
                       SELECT 1 FROM library_journal_scope_recoveries AS recovery
                       JOIN library_change_queue AS child
@@ -344,6 +371,7 @@ impl SqliteCatalog {
                         limit,
                         selection_sql,
                         recovery_affinity_change_id,
+                        defer_unlineaged,
                     ],
                     |row| row.get::<_, i64>(0),
                 )

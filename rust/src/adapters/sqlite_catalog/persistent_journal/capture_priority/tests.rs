@@ -10,6 +10,14 @@ fn fixture() -> Connection {
            status TEXT, intent_kind TEXT, attempt_count INTEGER, ready_unix_ms INTEGER,
            next_retry_unix_ms INTEGER);
          CREATE TABLE library_change_queue_lanes(change_id INTEGER, lane TEXT);
+         CREATE TABLE library_change_queue_catch_up_lineage(change_id INTEGER, catch_up_source TEXT);
+         CREATE TABLE library_persistent_journal_baselines(
+           change_id INTEGER, root_id TEXT, root_generation INTEGER, phase TEXT);
+         CREATE TABLE library_recovery_authorities(
+           change_id INTEGER, run_id TEXT, root_id TEXT, root_generation INTEGER,
+           reason TEXT, retired_unix_ms INTEGER);
+         CREATE TABLE scan_runs(
+           id TEXT, root_id TEXT, root_generation_at_start INTEGER, scan_owner TEXT, status TEXT);
          INSERT INTO library_roots VALUES ('peer-root', 'published-scan');
          INSERT INTO library_change_root_state VALUES ('peer-root', 1, 1);
          INSERT INTO library_change_queue VALUES
