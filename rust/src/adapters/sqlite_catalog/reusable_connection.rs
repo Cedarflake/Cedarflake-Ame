@@ -1,10 +1,9 @@
 use rusqlite::Connection;
 
 use super::{
-    SCHEMA_VERSION, SQLITE_APPLICATION_ID, ScanError, SqliteCatalog, SqliteCatalogSession,
-    SqliteDatabaseIdentity, catalog_database_identity, catalog_pragma_integer,
-    catalog_schema_cookie, database_error, operation_diagnostics::measure,
-    stale_catalog_session_error,
+    SCHEMA_VERSION, SQLITE_APPLICATION_ID, ScanError, SqliteCatalog, SqliteCatalogIdentityGuard,
+    SqliteCatalogSession, SqliteDatabaseIdentity, catalog_pragma_integer, catalog_schema_cookie,
+    database_error, operation_diagnostics::measure, stale_catalog_session_error,
 };
 
 impl SqliteCatalogSession {
@@ -30,19 +29,24 @@ impl SqliteCatalogSession {
                 "The catalog connection still owns a transaction, active statement, or pending publication",
             ));
         }
-        self.validate_connection_proof(&catalog.connection, &self.database_identity)
+        self.validate_connection_proof(
+            &catalog.connection,
+            &self.database_identity,
+            &catalog.identity_guard,
+        )
     }
 
     pub(super) fn validate_connection_proof(
         &self,
         connection: &Connection,
         before_identity: &SqliteDatabaseIdentity,
+        identity_guard: &SqliteCatalogIdentityGuard,
     ) -> Result<(), ScanError> {
         let schema_proof = ConnectionSchemaProof::read(connection);
         // A retained connection still addresses its opened database. Resolve the current
         // namespace before returning, including when the old database's SQL proof failed.
         let after_identity = measure("proof_identity_after", || {
-            catalog_database_identity(&self.path)
+            identity_guard.observe_current_namespace(&self.path)
         })?;
         if before_identity != &after_identity {
             return Err(stale_catalog_session_error());

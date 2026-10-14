@@ -20,6 +20,7 @@ pub(crate) struct CatalogFileIdentity {
 #[cfg(test)]
 thread_local! {
     static IDENTITY_READ_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
+    static TEMPORARY_OPEN_COUNT: std::cell::Cell<usize> = const { std::cell::Cell::new(0) };
 }
 
 #[cfg(test)]
@@ -27,10 +28,18 @@ pub(crate) fn catalog_identity_read_count() -> usize {
     IDENTITY_READ_COUNT.get()
 }
 
+#[cfg(all(test, windows))]
+pub(crate) fn catalog_identity_temporary_open_count() -> usize {
+    TEMPORARY_OPEN_COUNT.get()
+}
+
 #[cfg(windows)]
 pub(crate) fn read_catalog_identity(path: &Path) -> io::Result<CatalogFileIdentity> {
     #[cfg(test)]
-    IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
+    {
+        IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
+        TEMPORARY_OPEN_COUNT.set(TEMPORARY_OPEN_COUNT.get() + 1);
+    }
     #[cfg(test)]
     {
         diagnostics::read(path)
@@ -42,7 +51,14 @@ pub(crate) fn read_catalog_identity(path: &Path) -> io::Result<CatalogFileIdenti
     }
 }
 
-#[cfg(all(windows, not(test)))]
+#[cfg(windows)]
+pub(crate) fn read_open_catalog_identity(file: &File) -> io::Result<CatalogFileIdentity> {
+    #[cfg(test)]
+    IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
+    identity_from_handle(file)
+}
+
+#[cfg(windows)]
 fn identity_from_handle(file: &File) -> io::Result<CatalogFileIdentity> {
     // The path and ID must describe one fresh object, even if an ancestor junction changes.
     Ok(CatalogFileIdentity {
@@ -54,7 +70,10 @@ fn identity_from_handle(file: &File) -> io::Result<CatalogFileIdentity> {
 #[cfg(not(windows))]
 pub(crate) fn read_catalog_identity(path: &Path) -> io::Result<CatalogFileIdentity> {
     #[cfg(test)]
-    IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
+    {
+        IDENTITY_READ_COUNT.set(IDENTITY_READ_COUNT.get() + 1);
+        TEMPORARY_OPEN_COUNT.set(TEMPORARY_OPEN_COUNT.get() + 1);
+    }
     Ok(CatalogFileIdentity {
         canonical_path: std::fs::canonicalize(path)?,
         file_identity: super::file_identity(path)?,

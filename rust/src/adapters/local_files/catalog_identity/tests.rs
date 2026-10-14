@@ -3,7 +3,7 @@ use std::path::Path;
 
 use tempfile::tempdir;
 
-use super::{open_catalog_identity_guard, read_catalog_identity};
+use super::{open_catalog_identity_guard, read_catalog_identity, read_open_catalog_identity};
 
 fn assert_identity_matches_existing_contract(path: &Path) {
     let observed = read_catalog_identity(path).expect("fresh catalog identity");
@@ -52,4 +52,24 @@ fn catalog_identity_does_not_create_a_missing_catalog_or_keep_a_temporary_guard(
     fs::write(&path, b"held").unwrap();
     read_catalog_identity(&path).unwrap();
     fs::remove_file(&path).expect("attribute-only lookup has released its handle");
+}
+
+#[test]
+fn open_catalog_identity_queries_the_held_object_without_temporary_opens() {
+    let directory = tempdir().unwrap();
+    let path = directory.path().join("catalog.sqlite3");
+    fs::write(&path, b"catalog fixture").unwrap();
+    let (file, expected_identity) = open_catalog_identity_guard(&path).unwrap();
+    let reads = super::catalog_identity_read_count();
+    let opens = super::catalog_identity_temporary_open_count();
+    for _ in 0..32 {
+        let observed = read_open_catalog_identity(&file).unwrap();
+        assert_eq!(observed.canonical_path, fs::canonicalize(&path).unwrap());
+        assert_eq!(observed.file_identity, expected_identity);
+    }
+    assert_eq!(super::catalog_identity_read_count() - reads, 32);
+    assert_eq!(super::catalog_identity_temporary_open_count(), opens);
+    assert!(fs::remove_file(&path).is_err(), "the guard pins its object");
+    drop(file);
+    fs::remove_file(&path).expect("retirement releases the pinned object");
 }

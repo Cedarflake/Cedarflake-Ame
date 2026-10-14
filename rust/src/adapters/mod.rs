@@ -25,6 +25,8 @@ pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;
 pub(crate) use local_files::force_publication_namespace_guard_failure_for_test;
 #[cfg(windows)]
 pub(crate) use local_files::open_viewer_source_guard;
+#[cfg(test)]
+pub(crate) use local_files::read_catalog_identity;
 pub use local_files::{
     FileDiscovery, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
 };
@@ -32,8 +34,8 @@ pub use local_files::{
 pub(crate) use local_files::{LocatedLibraryRoot, locate_library_root};
 pub(crate) use local_files::{
     PreviewCacheNamespace, PreviewPublicationGuard, PublicationGuardedFileDiscovery,
-    open_catalog_identity_guard, open_preview_publication_guard, open_preview_source,
-    read_catalog_identity, revalidate_open_preview_source, user_visible_path,
+    open_preview_publication_guard, open_preview_source, revalidate_open_preview_source,
+    user_visible_path,
 };
 #[cfg(test)]
 pub(crate) use local_files::{

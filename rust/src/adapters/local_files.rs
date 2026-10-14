@@ -94,7 +94,13 @@ mod source_content_observation;
 mod viewer_source_guard;
 #[cfg(test)]
 pub(crate) use catalog_identity::catalog_identity_read_count;
-pub(crate) use catalog_identity::{open_catalog_identity_guard, read_catalog_identity};
+#[cfg(all(test, windows))]
+pub(crate) use catalog_identity::catalog_identity_temporary_open_count;
+#[cfg(windows)]
+pub(crate) use catalog_identity::read_open_catalog_identity;
+pub(crate) use catalog_identity::{
+    CatalogFileIdentity, open_catalog_identity_guard, read_catalog_identity,
+};
 pub use file_admission::{FileVisit, FileVisitOutcome};
 pub use file_revalidation::revalidate_file_state;
 #[cfg(windows)]

@@ -322,6 +322,13 @@ page failure remain one boundary, with no second decoded page or per-record clon
   the session. A newly opened writable connection retains its before-open and after-proof identity
   checks. No path/time cache or assumption of a permanent writable identity guard substitutes for
   fresh evidence; same-file hardlinks in different WAL namespaces remain distinct.
+  `sqlite_catalog/catalog_namespace.rs` owns the held identity and current namespace observation.
+  Windows connections retain a no-delete regular-file guard, matching SQLite's existing sharing
+  restriction. An exactly matching, normalized local disk path may query its current final path and
+  complete file ID through that guard; neither captured value alone admits reuse. Alias, relative,
+  UNC, ambiguous and differently spelled paths reopen the configured namespace. Ancestor movement
+  must either be prevented by the open objects or change the observed final path and reject reuse.
+  The guard retires after its SQLite connection. Non-Windows paths retain fresh path observation.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
   are stable. `migrations/current_schema.rs` owns current-schema proof order and its consistent read
   snapshot: structural checks precede the complete authority-row audit. Process-owned validated

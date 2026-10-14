@@ -9,7 +9,7 @@ impl SqliteCatalog {
         let Self {
             path,
             connection,
-            _identity_guard: identity_guard,
+            identity_guard,
             session,
             write_admission,
             pending_locations,
@@ -26,7 +26,6 @@ impl SqliteCatalog {
         drop(connection);
         let connection_elapsed = connection_started.elapsed();
         let identity_started = Instant::now();
-        let had_identity_guard = identity_guard.is_some();
         drop(identity_guard);
         let identity_elapsed = identity_started.elapsed();
         let session_started = Instant::now();
@@ -42,7 +41,7 @@ impl SqliteCatalog {
             eprintln!(
                 "[Ame sync catalog retirement] total_ms={} statement_cache_ms={} \
                  connection_drop_ms={} autocommit={autocommit} \
-                 identity_guard_ms={} identity_guard_present={had_identity_guard} \
+                 identity_guard_ms={} identity_guard_present=true \
                  session_admission_ms={} pending_buffers_ms={}",
                 elapsed.as_millis(),
                 cache_elapsed.as_millis(),

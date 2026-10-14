@@ -3137,8 +3137,9 @@ and diff checks pass; the native integration path is delegated to the next hoste
 
 Hosted run `38505530640` at `094382f` passes the complete Flutter component and Windows
 accessibility integration, including the retained first-preview admission and neutral source-label
-corrections. Rust remains separate: the preceding complete run passes 1860 tests with two failures,
-P1/P2 sample advancement and baseline shutdown, which return to their owning latency/lifecycle work.
+corrections. The same run subsequently passes all required hosted jobs, including Rust. The preceding
+complete run passes 1860 tests with two failures, P1/P2 sample advancement and baseline shutdown;
+that intermittent failure evidence remains relevant to its owning latency/lifecycle work.
 
 The subsequent recovery projection publishes pending state when a source-authorized temporary-root
 retry is admitted, removing the old failure action while work is active. The root owner remains 108
@@ -3151,5 +3152,34 @@ projection and regression await hosted execution; no local CI suite runs.
 Local gallery verification now reuses `build/test`: the existing complete 10000-image corpus is moved
 there on the same volume, retaining 1000 PNGs, 9000 JPEGs, 72 textured encodings, varying dimensions,
 dates and encoded sizes, including 3000 JPEGs with EXIF. Original profile and catalog checks pass.
-Obsolete build outputs have an inspected cleanup list; bulk deletion awaits explicit approval after
-automatic review rejects it. The reusable corpus and current Release are excluded from cleanup.
+After explicit approval of the complete inspected list, cleanup removes 228 old output directories,
+42622 files and 20091431540 logical bytes. `build/test` and the current Release are retained; all
+Release file hashes remain identical. Original profile/catalog restoration and target containment
+and reparse checks precede removal. No source media or original catalog is deleted.
+
+## Retained catalog identity observation without per-poll handle retirement
+
+The failing `128a450` Rust run records sample 11's P0 visibility at 104.8316 ms, followed by a
+4431522-microsecond metadata-handle close on the poll thread. The enclosing identity proof and
+catalog revalidation take 4431 ms, preventing P1 advancement within the unchanged five-second
+sample window. Other close spikes on that thread reach 100169, 772925 and 330371 microseconds.
+This identifies handle retirement as one observed synchronous cost; it does not identify a Windows
+filter or explain the separate baseline-stop timeout. The later complete passing run retains the
+intermittent finding rather than erasing it.
+
+The namespace owner now keeps a guard for each open catalog connection. Exact normalized Windows
+disk paths read the guard's current final path and complete file ID on every proof, avoiding another
+temporary handle retirement on the poll thread. Aliases and ambiguous namespaces retain a fresh
+configured-path observation; failed SQL still cannot skip namespace checking. The existing schema,
+WAL namespace, session, pending-publication and write-authority checks remain intact. Guards retire
+after their connections; shutdown completion still waits for actual retirement.
+
+Boundary regressions cover 32 current identity reads with zero temporary opens, protected-object
+retirement, direct parent movement or its native refusal, and conservative namespace selection.
+Existing junction-retarget, identical-file/different-WAL and failed-SQL regressions remain in place,
+as do the full original P0/P1/P2 workloads and deadlines. The catalog facade is 3778 production
+lines with no inline tests; local-files facade is 3695 lines before 3487 inline test lines. The
+identity, namespace and reusable-connection owners contain 118, 133 and 119 production lines, with
+no inline tests. Their affected dedicated tests contain 75, 34 and 338 lines respectively. Owned
+Rust formatting and diff checks pass. Hosted execution and affected populated-client verification
+remain pending; no local CI suite runs and no new gallery corpus is generated.

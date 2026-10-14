@@ -87,6 +87,61 @@ fn schema_statements(path: &Path) -> Vec<String> {
 }
 
 #[test]
+fn direct_catalog_revalidation_reads_current_identity_without_temporary_handle_closes() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = fs::canonicalize(directory.path())
+        .unwrap()
+        .join("catalog.sqlite3");
+    let session = seed_catalog(&path, 11);
+    let catalog = session.open_in_lane(LibraryChangeLane::Live).unwrap();
+    let reads = crate::adapters::local_files::catalog_identity_read_count();
+    let opens = crate::adapters::local_files::catalog_identity_temporary_open_count();
+    for _ in 0..32 {
+        session.revalidate_connection(&catalog).unwrap();
+    }
+    assert_eq!(
+        crate::adapters::local_files::catalog_identity_read_count() - reads,
+        32,
+    );
+    assert_eq!(
+        crate::adapters::local_files::catalog_identity_temporary_open_count(),
+        opens,
+        "each proof queries the pinned object instead of opening and closing another handle",
+    );
+    assert_eq!(full_schema_validation_count(&path), 1);
+}
+
+#[test]
+fn direct_catalog_parent_rename_cannot_leave_the_original_namespace_current() {
+    let directory = tempfile::tempdir().unwrap();
+    let parent = fs::canonicalize(directory.path()).unwrap().join("original");
+    fs::create_dir(&parent).unwrap();
+    let path = parent.join("catalog.sqlite3");
+    let session = seed_catalog(&path, 11);
+    let catalog = session.open_in_lane(LibraryChangeLane::Live).unwrap();
+    let renamed = directory.path().join("renamed");
+    match fs::rename(&parent, &renamed) {
+        Ok(()) => {
+            fs::create_dir(&parent).unwrap();
+            fs::hard_link(renamed.join("catalog.sqlite3"), &path).unwrap();
+            assert_rejected(&session, &catalog, "catalog_validated_session_stale");
+            assert_eq!(revision(&path), 11);
+        }
+        Err(error) => {
+            assert!(matches!(error.raw_os_error(), Some(5 | 32)), "{error}");
+            session.revalidate_connection(&catalog).unwrap();
+            assert!(path.is_file());
+            assert!(!renamed.exists());
+        }
+    }
+    drop(catalog);
+    drop(session);
+    if parent.exists() && !renamed.exists() {
+        fs::rename(&parent, &renamed).expect("connection retirement releases the namespace");
+    }
+}
+
+#[test]
 fn reusable_connection_rejects_junction_retarget_while_original_sqlite_handle_is_alive() {
     let directory = tempfile::tempdir().expect("disposable catalog fixture");
     let target_a = directory.path().join("catalog-a");
@@ -139,7 +194,11 @@ fn reusable_connection_rejects_junction_retarget_while_original_sqlite_handle_is
     assert_rejected(&session, &catalog, "catalog_validated_session_stale");
     assert_eq!(
         session
-            .validate_connection_proof(&catalog.connection, &session.database_identity)
+            .validate_connection_proof(
+                &catalog.connection,
+                &session.database_identity,
+                &catalog.identity_guard,
+            )
             .expect_err("the after-proof observation must also detect junction retarget")
             .code,
         "catalog_validated_session_stale",

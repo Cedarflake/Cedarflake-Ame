@@ -1526,9 +1526,11 @@ Windows file operations stalling. The existing safe handle-query helpers supply 
 the catalog-specific composition and guard live in `local_files/catalog_identity.rs`.
 
 That paragraph describes the earlier implementation checkpoint. Initial writable connection opens
-still retain both observations. The current retained-connection proof is owned by
+still retain both observations. The current retained-connection and namespace proof is owned by
 [ADR 0025](0025-invariant-owned-workflow-modules.md): it reads the already bound SQLite connection
 and always obtains fresh namespace/file identity before admission, including after failed SQL.
+Exactly matching normalized local disk paths query the current final path and full identity through
+the connection's held no-delete guard; aliases and other namespaces still reopen the configured path.
 This preserves the connection-admission invariant, not identical rejection of every transient
 namespace history; neither implementation continuously pins ancestor junctions.
 

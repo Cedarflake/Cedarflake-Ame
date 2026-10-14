@@ -22,10 +22,12 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
-use super::{
-    open_catalog_identity_guard, read_catalog_identity, revalidate_file_state, user_visible_path,
-};
+use super::{revalidate_file_state, user_visible_path};
 
+mod catalog_namespace;
+use catalog_namespace::{
+    SqliteCatalogIdentityGuard, SqliteDatabaseIdentity, open_catalog_database_identity_guard,
+};
 mod folders;
 mod gallery;
 mod gallery_snapshot;
@@ -268,7 +270,7 @@ pub(crate) fn remove_persistent_journal_v22_contract_for_test(connection: &Conne
 pub struct SqliteCatalog {
     path: PathBuf,
     connection: Connection,
-    _identity_guard: Option<SqliteCatalogIdentityGuard>,
+    identity_guard: SqliteCatalogIdentityGuard,
     session: SqliteCatalogSession,
     write_admission: Arc<SqliteWriteAdmission>,
     pending_locations: Vec<PendingLocation>,
@@ -283,17 +285,6 @@ pub(crate) struct SqliteCatalogSession {
     user_version: i64,
     schema_cookie: i64,
     write_admission: Arc<SqliteWriteAdmission>,
-}
-
-#[derive(Clone, Debug, PartialEq, Eq)]
-struct SqliteDatabaseIdentity {
-    canonical_path: PathBuf,
-    file_identity: FileIdentityEvidence,
-}
-
-struct SqliteCatalogIdentityGuard {
-    _file: fs::File,
-    identity: SqliteDatabaseIdentity,
 }
 
 #[derive(Clone)]
@@ -445,19 +436,20 @@ impl SqliteCatalogSession {
         _lane: LibraryChangeLane,
         mut before_stage: impl FnMut(SqliteCatalogReadStage) -> Result<(), ScanError>,
     ) -> Result<SqliteCatalog, ScanError> {
-        let before_identity = catalog_database_identity(&self.path)?;
-        if before_identity != self.database_identity {
+        let identity_guard = open_catalog_database_identity_guard(&self.path)?;
+        let before_identity = &identity_guard.identity;
+        if before_identity != &self.database_identity {
             return Err(stale_catalog_session_error());
         }
         before_stage(SqliteCatalogReadStage::Open)?;
         let connection = Connection::open(&self.path).map_err(database_error)?;
         configure_catalog_connection(&connection)?;
         before_stage(SqliteCatalogReadStage::Validation)?;
-        self.validate_connection_proof(&connection, &before_identity)?;
+        self.validate_connection_proof(&connection, before_identity, &identity_guard)?;
         Ok(SqliteCatalog {
             path: self.path.clone(),
             connection,
-            _identity_guard: None,
+            identity_guard,
             session: self.clone(),
             write_admission: Arc::clone(&self.write_admission),
             pending_locations: Vec::with_capacity(LOCATION_STAGE_BATCH),
@@ -507,7 +499,7 @@ impl SqliteCatalogSession {
         Ok(SqliteCatalog {
             path: self.path.clone(),
             connection,
-            _identity_guard: Some(identity_guard),
+            identity_guard,
             session: self.clone(),
             write_admission: Arc::clone(&self.write_admission),
             pending_locations: Vec::with_capacity(LOCATION_STAGE_BATCH),
@@ -567,55 +559,6 @@ fn catalog_pragma_integer(connection: &Connection, name: &str) -> Result<i64, Sc
     connection
         .query_row(&format!("PRAGMA {name}"), [], |row| row.get(0))
         .map_err(database_error)
-}
-
-fn catalog_database_identity(path: &Path) -> Result<SqliteDatabaseIdentity, ScanError> {
-    let identity = read_catalog_identity(path).map_err(|error| {
-        ScanError::new(
-            "catalog_identity_unavailable",
-            format!("Could not inspect the catalog identity: {error}"),
-        )
-    })?;
-    let file_identity = identity.file_identity.ok_or_else(|| {
-        ScanError::new(
-            "catalog_identity_unavailable",
-            "The catalog file identity is unavailable",
-        )
-    })?;
-    Ok(SqliteDatabaseIdentity {
-        canonical_path: identity.canonical_path,
-        file_identity,
-    })
-}
-
-fn open_catalog_database_identity_guard(
-    path: &Path,
-) -> Result<SqliteCatalogIdentityGuard, ScanError> {
-    let (file, file_identity) = open_catalog_identity_guard(path).map_err(|error| {
-        ScanError::new(
-            "catalog_identity_unavailable",
-            format!("Could not hold the catalog identity: {error}"),
-        )
-    })?;
-    let canonical_path = fs::canonicalize(path).map_err(|error| {
-        ScanError::new(
-            "catalog_identity_unavailable",
-            format!("Could not canonicalize the held catalog identity: {error}"),
-        )
-    })?;
-    let file_identity = file_identity.ok_or_else(|| {
-        ScanError::new(
-            "catalog_identity_unsupported",
-            "The current platform cannot provide stable catalog file identity evidence",
-        )
-    })?;
-    Ok(SqliteCatalogIdentityGuard {
-        _file: file,
-        identity: SqliteDatabaseIdentity {
-            canonical_path,
-            file_identity,
-        },
-    })
 }
 
 fn stale_catalog_session_error() -> ScanError {
