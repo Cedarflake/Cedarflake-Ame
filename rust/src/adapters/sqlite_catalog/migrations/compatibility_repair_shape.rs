@@ -37,7 +37,19 @@ pub(super) fn inventory_shape_matches(
         return Ok(false);
     }
     if let Some(version) = spool_contract_version {
-        metadata_inventory_spool_schema_matches(connection, version)
+        if !metadata_inventory_spool_schema_matches(connection, version)? {
+            return Ok(false);
+        }
+        connection
+            .query_row(
+                "SELECT singleton = 1 AND contract_version = ?1 AND complete = 1
+                 FROM library_metadata_inventory_spool_contract",
+                [version],
+                |row| row.get::<_, bool>(0),
+            )
+            .optional()
+            .map_err(database_error)
+            .map(|marker| marker.unwrap_or(false))
     } else {
         Ok(true)
     }

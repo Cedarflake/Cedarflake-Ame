@@ -30,3 +30,18 @@ fn damaged_claim_guard_or_spool_marker_cannot_acquire_repair_authority() {
         .unwrap();
     assert!(!inventory_shape_matches(&connection, 37).unwrap());
 }
+
+#[test]
+fn mismatched_or_incomplete_spool_markers_cannot_acquire_repair_authority() {
+    for modification in [
+        "UPDATE library_metadata_inventory_spool_contract SET contract_version = 3",
+        "UPDATE library_metadata_inventory_spool_contract SET complete = 0",
+    ] {
+        let connection = current_catalog();
+        connection
+            .execute_batch("PRAGMA ignore_check_constraints = ON")
+            .unwrap();
+        connection.execute_batch(modification).unwrap();
+        assert!(!inventory_shape_matches(&connection, 37).unwrap());
+    }
+}
