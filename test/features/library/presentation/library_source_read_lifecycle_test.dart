@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_ima
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -31,6 +32,7 @@ void main() {
               child: Scaffold(
                 body: LibraryImageViewer(
                   asset: _asset("first", width: 4000, height: 2000),
+                  openBehavior: ImageViewerOpenBehavior.actualSize,
                   onBack: () {},
                   onInformation: () {},
                   onCopyPath: () {},

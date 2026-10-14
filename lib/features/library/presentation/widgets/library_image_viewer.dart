@@ -18,7 +18,7 @@ class LibraryImageViewer extends StatefulWidget {
     required this.onCopyPath,
     required this.onRevealFile,
     this.wheelBehavior = ImageViewerWheelBehavior.zoom,
-    this.openBehavior = ImageViewerOpenBehavior.actualSize,
+    this.openBehavior = ImageViewerOpenBehavior.automatic,
     this.onPrevious,
     this.onNext,
     this.position,
@@ -313,10 +313,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
       return;
     }
     _shouldApplyOpeningBehavior = false;
-    _fitToWindow(animate: false);
-    if (widget.openBehavior == ImageViewerOpenBehavior.actualSize) {
-      _showActualSize(animate: false);
-    }
+    _setScale(_zoomGeometry.openingScale(widget.openBehavior), animate: false);
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {

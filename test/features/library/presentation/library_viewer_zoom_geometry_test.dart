@@ -1,9 +1,37 @@
 import "dart:ui";
 
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_zoom_geometry.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "automatic opening shrinks oversized images and never enlarges fitting images",
+    () {
+      for (final sample in [
+        (image: const Size(1, 1), percentage: 100.0),
+        (image: const Size(60, 60), percentage: 100.0),
+        (image: const Size(100, 200), percentage: 100.0),
+        (image: const Size(1000, 600), percentage: 100.0),
+        (image: const Size(100, 1200), percentage: 50.0),
+        (image: const Size(4000, 100), percentage: 25.0),
+        (image: const Size(8000, 1000), percentage: 12.5),
+      ]) {
+        final geometry = LibraryViewerZoomGeometry(
+          imageSize: sample.image,
+          viewportSize: const Size(1000, 600),
+        );
+        final openingScale = geometry.openingScale(
+          ImageViewerOpenBehavior.automatic,
+        );
+        final percentage = geometry.percentageForScale(openingScale);
+        expect(percentage, closeTo(sample.percentage, 0.000001));
+        expect(sample.image.width * percentage / 100, lessThanOrEqualTo(1000));
+        expect(sample.image.height * percentage / 100, lessThanOrEqualTo(600));
+      }
+    },
+  );
+
   test(
     "actual pixels are 100 percent for tiny, small, tall and wide images",
     () {

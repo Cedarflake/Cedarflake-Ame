@@ -10,7 +10,7 @@ import "package:shared_preferences_platform_interface/shared_preferences_async_p
 
 void main() {
   test(
-    "defaults to actual size and preserves explicit fit-window preferences",
+    "defaults to automatic sizing and preserves all explicit opening preferences",
     () async {
       SharedPreferencesAsyncPlatform.instance =
           InMemorySharedPreferencesAsync.empty();
@@ -18,17 +18,14 @@ void main() {
       final store = SharedPreferencesAmeStore(preferences: preferences);
       expect(
         (await store.loadAmePreferences()).viewerOpenBehavior,
-        ImageViewerOpenBehavior.actualSize,
+        ImageViewerOpenBehavior.automatic,
       );
-      await store.saveAmePreferences(
-        const AmePreferences(
-          viewerOpenBehavior: ImageViewerOpenBehavior.fitWindow,
-        ),
-      );
-      expect(
-        (await store.loadAmePreferences()).viewerOpenBehavior,
-        ImageViewerOpenBehavior.fitWindow,
-      );
+      for (final behavior in ImageViewerOpenBehavior.values) {
+        await store.saveAmePreferences(
+          AmePreferences(viewerOpenBehavior: behavior),
+        );
+        expect((await store.loadAmePreferences()).viewerOpenBehavior, behavior);
+      }
     },
   );
 
@@ -120,7 +117,7 @@ void main() {
           .having(
             (value) => value.viewerOpenBehavior,
             "viewerOpenBehavior",
-            ImageViewerOpenBehavior.actualSize,
+            ImageViewerOpenBehavior.automatic,
           )
           .having(
             (value) => value.previewLoadingSpeed,

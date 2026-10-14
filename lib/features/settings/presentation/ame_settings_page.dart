@@ -123,10 +123,14 @@ class AmeSettingsPage extends ConsumerWidget {
                           SettingsRow(
                             icon: Symbols.image_rounded,
                             title: "打开图片",
-                            subtitle: const Text("选择图片首次打开时的显示大小"),
+                            subtitle: const Text("自动模式缩小大图，小图保持实际大小"),
                             trailing: SettingsChoice<ImageViewerOpenBehavior>(
                               value: preferences.viewerOpenBehavior,
                               entries: const [
+                                SettingsChoiceEntry(
+                                  value: ImageViewerOpenBehavior.automatic,
+                                  label: "自动",
+                                ),
                                 SettingsChoiceEntry(
                                   value: ImageViewerOpenBehavior.fitWindow,
                                   label: "适应窗口",

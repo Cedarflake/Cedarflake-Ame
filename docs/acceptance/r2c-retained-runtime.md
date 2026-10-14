@@ -3194,17 +3194,19 @@ images, with no missing or extra membership. This selected workflow does not mea
 or reproduce the historical July incident. A transient blank canvas during backward paging remains
 an observed browsing issue; no root-failure recovery verdict is inferred from ready previews.
 
-## Viewer loading position and actual-size opening
+## Viewer loading position and automatic opening
 
 The viewer now applies its InteractiveViewer transform only to image content; pending-load feedback
 stays in the fixed viewport overlay and retires through the existing source-frame lifecycle. Zoom
-percentage retains the source-pixel reference, where 100% is 1:1. Default opening uses actual size
-instead of enlarging small images to fill the viewport; explicit fit-to-window preferences remain.
+percentage retains the source-pixel reference, where 100% is 1:1. The default Automatic preference
+shrinks images exceeding the viewport width or height and keeps smaller images at actual size.
+Existing explicit fit-window and actual-size choices remain saved; Automatic is a third persistent
+option. The toolbar's sizing actions remain local to the current image.
 Held source-read regressions cover zoom and pan during loading, indicator bounds, completion
 and lease release. Geometry examples cover small, portrait and wide images, resizing, actual pixels
 and slider mapping; existing keyboard/opening assertions follow the new percentage contract.
-The viewer, image and zoom-geometry owners contain 472, 192 and 67 production lines with no inline
-tests; affected dedicated tests contain 623, 499 and 87 lines. Preference and store owners remain
-96 and 224 production lines, with a 132-line dedicated store test covering the new default and
-preservation of an explicit fit-window choice. Owned Dart formatting and diff checks
+The viewer, image and zoom-geometry owners contain 469, 192 and 77 production lines with no inline
+tests; affected dedicated tests contain 624, 501 and 115 lines. Preference and store owners remain
+96 and 224 production lines; settings presentation is 255 lines. The 129-line dedicated store test
+covers the automatic default and preservation of all three explicit choices. Owned Dart formatting and diff checks
 pass. Current hosted regressions and affected client verification remain pending; no local CI runs.

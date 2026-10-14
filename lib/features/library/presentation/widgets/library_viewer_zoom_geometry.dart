@@ -1,6 +1,8 @@
 import "dart:math" as math;
 import "dart:ui";
 
+import "../../../settings/application/ame_preferences.dart";
+
 class LibraryViewerZoomGeometry {
   const LibraryViewerZoomGeometry({
     required this.imageSize,
@@ -49,6 +51,14 @@ class LibraryViewerZoomGeometry {
   }
 
   double percentageForScale(double scale) => scale * fitImageScale * 100;
+
+  double openingScale(ImageViewerOpenBehavior behavior) {
+    return switch (behavior) {
+      ImageViewerOpenBehavior.automatic => math.min(1, actualSizeScale),
+      ImageViewerOpenBehavior.fitWindow => 1,
+      ImageViewerOpenBehavior.actualSize => actualSizeScale,
+    };
+  }
 
   bool isActualSize(double scale) => (scale / actualSizeScale - 1).abs() < 0.01;
 

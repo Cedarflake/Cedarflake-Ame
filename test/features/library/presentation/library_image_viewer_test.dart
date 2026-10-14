@@ -146,7 +146,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 250));
     expect(find.text("复制路径"), findsNothing);
 
-    expect(find.text("100%"), findsOneWidget);
+    expect(find.text("25%"), findsOneWidget);
 
     await tester.tap(find.byKey(const Key("viewer-actual-size")));
     await tester.pump();
@@ -263,6 +263,7 @@ void main() {
       FocusManager.instance.primaryFocus?.debugLabel,
       "library-image-viewer",
     );
+    expect(find.text("100%"), findsOneWidget);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
     await tester.sendKeyEvent(LogicalKeyboardKey.digit1);

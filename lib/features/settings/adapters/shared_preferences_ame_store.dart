@@ -84,7 +84,7 @@ class SharedPreferencesAmeStore
       viewerOpenBehavior: _enumByName(
         ImageViewerOpenBehavior.values,
         value["viewerOpenBehavior"],
-        ImageViewerOpenBehavior.actualSize,
+        ImageViewerOpenBehavior.automatic,
       ),
       previewLoadingSpeed: _enumByName(
         PreviewLoadingSpeed.values,

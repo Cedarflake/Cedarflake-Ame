@@ -407,10 +407,13 @@ viewport. Zoom, pan and wheel input transform the image or retained preview, nev
 Loading completion retires the indicator through the current source image's frame lifecycle.
 
 The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
-one quarter is 125%, and reduction by half is 50%. The default opening behavior is actual size,
-so small images are not automatically enlarged to fill the viewport. Fit-to-window remains an
-explicit action or saved preference and preserves the whole image within the available width and
-height; its percentage follows the resulting pixel scale rather than being relabeled as 100%.
+one quarter is 125%, and reduction by half is 50%. The default opening preference is Automatic:
+images exceeding the available width or height shrink to fit the viewport, while fitting images
+stay at 100% actual size. This mode never enlarges a small image to fill the window. Automatic,
+fit-to-window and actual-size preferences persist across restart; an existing saved choice is
+preserved. The toolbar's fit and `1:1` actions affect only the current image. Explicit fit preserves
+the whole image within the available width and height; its percentage follows the resulting pixel
+scale rather than being relabeled as 100%.
 
 ## Temporary task and notification feedback
 
@@ -509,7 +512,7 @@ Initial settings are limited to behavior that is understandable and connected en
 
 浏览
   查看图片时的鼠标滚轮     放大或缩小 / 上一张或下一张
-  打开图片时               适应窗口 / 实际大小
+  打开图片时               自动（默认） / 适应窗口 / 实际大小
   缩略图加载速度           小 / 中 / 大
 
 相册（R4 接通后）

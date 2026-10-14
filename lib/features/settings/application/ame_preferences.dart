@@ -4,7 +4,7 @@ enum AmeThemePreference { system, light, dark }
 
 enum ImageViewerWheelBehavior { zoom, previousOrNext }
 
-enum ImageViewerOpenBehavior { fitWindow, actualSize }
+enum ImageViewerOpenBehavior { automatic, fitWindow, actualSize }
 
 enum PreviewLoadingSpeed { small, medium, large }
 
@@ -16,7 +16,7 @@ class AmePreferences {
   const AmePreferences({
     this.theme = AmeThemePreference.system,
     this.viewerWheelBehavior = ImageViewerWheelBehavior.zoom,
-    this.viewerOpenBehavior = ImageViewerOpenBehavior.actualSize,
+    this.viewerOpenBehavior = ImageViewerOpenBehavior.automatic,
     this.previewLoadingSpeed = PreviewLoadingSpeed.medium,
     this.sidebarWidth = ameDefaultSidebarWidth,
   });
