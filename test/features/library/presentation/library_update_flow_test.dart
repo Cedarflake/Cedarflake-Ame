@@ -132,7 +132,7 @@ void main() {
       expect(find.text("archive_failed: Archive failed"), findsOneWidget);
       expect(find.bySemanticsLabel("取消更新 Pictures"), findsOneWidget);
       expect(find.bySemanticsLabel("重试更新 Archive"), findsOneWidget);
-      expect(find.bySemanticsLabel("清除 Reference 更新结果"), findsOneWidget);
+      expect(find.bySemanticsLabel("关闭 Reference 更新任务"), findsOneWidget);
       expect(find.bySemanticsLabel("Pictures 更新进度"), findsOneWidget);
       expect(
         tester.getSemantics(find.bySemanticsLabel("Pictures 更新进度")).value,
@@ -141,8 +141,8 @@ void main() {
 
       final cancelAction = find.bySemanticsLabel("取消更新 Pictures");
       final retryAction = find.bySemanticsLabel("重试更新 Archive");
-      final dismissAction = find.bySemanticsLabel("清除 Reference 更新结果");
-      final dismissAllAction = find.bySemanticsLabel("清除结果");
+      final dismissAction = find.bySemanticsLabel("关闭 Reference 更新任务");
+      final dismissAllAction = find.bySemanticsLabel("关闭已结束的任务");
       for (final action in [
         cancelAction,
         retryAction,
@@ -237,10 +237,7 @@ void main() {
         firstPhase: LibraryRootUpdatePhase.refreshing,
       );
       await tester.pump();
-      expect(
-        tester.getSemantics(liveRegion).label,
-        contains("Pictures，正在刷新显示"),
-      );
+      expect(tester.getSemantics(liveRegion).label, contains("Pictures，正在刷新"));
     } finally {
       semantics.dispose();
     }

@@ -85,6 +85,9 @@ String _synchronizationNotificationMessage(
     return LibraryStrings.synchronizationAutomaticProgress;
   }
   if (state == LibrarySynchronizationFeedbackState.synchronized) {
+    if (status.continuity == LibraryContinuityState.liveOnly) {
+      return LibraryStrings.continuityLiveOnlyDetail;
+    }
     return LibraryStrings.synchronizationCompleted;
   }
   final issueMessage = _synchronizationIssueMessage(status.lastIssueCode);
@@ -160,17 +163,10 @@ String? _synchronizationNotificationDetail(
   if (status.isAwaitingFirstImport) {
     return LibraryStrings.firstImportAwaitingUser;
   }
-  final phaseLabel = switch (state) {
-    LibrarySynchronizationFeedbackState.blocked ||
-    LibrarySynchronizationFeedbackState.interrupted =>
-      LibraryStrings.needsReconciliation,
-    LibrarySynchronizationFeedbackState.unconfirmed =>
-      LibraryStrings.synchronizationUnconfirmed,
-    LibrarySynchronizationFeedbackState.unavailable =>
-      LibraryStrings.sourceUnavailable,
-    _ => _synchronizationPhaseLabel(status.phase),
-  };
-  final details = <String>["阶段：$phaseLabel"];
+  final details = <String>[];
+  if (state == LibrarySynchronizationFeedbackState.updating) {
+    details.add(_synchronizationPhaseLabel(status.phase));
+  }
   if (status.pendingChangeCount > BigInt.zero) {
     details.add("${status.pendingChangeCount} 项等待处理");
   }
@@ -182,10 +178,11 @@ String? _synchronizationNotificationDetail(
       details.add("${status.retryWaitCount} 项更新尚未完成");
     }
   }
-  if (status.freshnessUnknownCount > BigInt.zero) {
-    details.add("尚有未核对的图库变化");
+  if (status.freshnessUnknownCount > BigInt.zero &&
+      state == LibrarySynchronizationFeedbackState.unconfirmed) {
+    details.add("还有文件变化待检查");
   }
-  return details.join(" · ");
+  return details.isEmpty ? null : details.join(" · ");
 }
 
 String _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {

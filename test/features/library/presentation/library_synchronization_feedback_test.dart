@@ -30,13 +30,13 @@ void main() {
     );
     expect(feedback.message, LibraryStrings.synchronizationAutomaticProgress);
     expect(feedback.severity, AmeNotificationSeverity.info);
-    expect(feedback.detail, contains("正在核对文件列表"));
+    expect(feedback.detail, "正在检查文件夹");
     expect(feedback.detail, isNot(contains("故障")));
     expect(feedback.detail, isNot(contains("项状态尚未确认")));
     expect(feedback.requiresManualLibraryUpdate, isFalse);
     expect(feedback.shouldNotify, isFalse);
     expect(feedback.sourceLabel, LibraryStrings.synchronizing);
-    expect(feedback.titleForRoot("Pictures"), "“Pictures”正在更新图库");
+    expect(feedback.titleForRoot("Pictures"), "“Pictures”正在更新");
   });
 
   test("unresolved evidence does not claim recovery is already running", () {
@@ -144,7 +144,7 @@ void main() {
         expect(feedback.shouldNotify, isTrue);
         expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
         expect(feedback.titleForRoot("Pictures"), "“Pictures”更新受阻");
-        expect(feedback.detail, contains("阶段：更新受阻"));
+        expect(feedback.detail, "1 项更新尚未完成");
         expect(feedback.detail, isNot(contains("等待重试")));
         expect(feedback.message, isNot(contains("正在")));
         expect(feedback.severity, isNot(AmeNotificationSeverity.info));
@@ -168,7 +168,7 @@ void main() {
       expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
       expect(feedback.severity, AmeNotificationSeverity.error);
       expect(feedback.message, LibraryStrings.synchronizationMonitoringFailed);
-      expect(feedback.detail, contains("阶段：更新受阻"));
+      expect(feedback.detail, "1 项更新尚未完成");
       expect(feedback.detail, isNot(contains("正在核对")));
     },
   );
@@ -181,7 +181,7 @@ void main() {
     expect(feedback.severity, AmeNotificationSeverity.info);
     expect(feedback.titleForRoot("Pictures"), "“Pictures”图库尚未核对");
     expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
-    expect(feedback.detail, contains("阶段：图库尚未核对"));
+    expect(feedback.detail, "1 项更新尚未完成 · 还有文件变化待检查");
     expect(feedback.detail, isNot(contains("等待重试")));
     expect(feedback.requiresManualLibraryUpdate, isFalse);
   });
@@ -250,6 +250,11 @@ void main() {
           feedback.message,
           isNot(LibraryStrings.synchronizationCompleted),
         );
+      } else if (continuity == LibraryContinuityState.liveOnly) {
+        expect(feedback.shouldNotify, isFalse);
+        expect(feedback.sourceLabel, LibraryStrings.continuityLiveOnly);
+        expect(feedback.message, LibraryStrings.continuityLiveOnlyDetail);
+        expect(feedback.detail, isNull);
       } else {
         expect(feedback.shouldNotify, isFalse);
         expect(feedback.message, LibraryStrings.synchronizationCompleted);
@@ -322,7 +327,7 @@ void main() {
     );
     expect(feedback.sourceLabel, LibraryStrings.sourceUnavailable);
     expect(feedback.message, LibraryStrings.synchronizationSourceUnavailable);
-    expect(feedback.detail, contains("阶段：目录不可用"));
+    expect(feedback.detail, "1 项更新尚未完成");
     expect(feedback.requiresManualLibraryUpdate, isFalse);
     expect(feedback.detail, isNot(contains("等待重试")));
   });

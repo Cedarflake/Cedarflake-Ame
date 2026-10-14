@@ -3,6 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_theme.dart";
 import "../../application/library_update_controller.dart";
+import "../library_update_feedback.dart";
 import "library_source_navigation_tile.dart";
 import "library_task_live_region.dart";
 
@@ -27,18 +28,24 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
     final tasks = state.tasks;
     final activeTasks = tasks.where((task) => task.isActive).toList();
     final hasTerminalTasks = tasks.any((task) => !task.isActive);
-    final title = activeTasks.length == 1
-        ? "正在更新图库“${librarySourceName(activeTasks.single.root.displayPath)}”…"
-        : activeTasks.isNotEmpty
-        ? "正在更新 ${activeTasks.length} 个图库文件夹…"
-        : "图库更新已结束";
+    final String title;
+    if (activeTasks.length == 1) {
+      final task = activeTasks.single;
+      title = LibraryUpdateFeedback(
+        task,
+      ).activeTitle(librarySourceName(task.root.displayPath));
+    } else if (activeTasks.isNotEmpty) {
+      title = "正在处理 ${activeTasks.length} 个文件夹的更新…";
+    } else {
+      title = "图库更新已结束";
+    }
     final announcementScope = tasks
         .map((task) => "${task.root.id}:${task.phase.name}")
         .join("|");
     final announcement = [
       title,
       for (final task in tasks)
-        "${librarySourceName(task.root.displayPath)}，${_progressSemanticsValue(task)}",
+        "${librarySourceName(task.root.displayPath)}，${LibraryUpdateFeedback(task).progressSemanticsValue}",
     ].join("。 ");
     final surface = Material(
       key: const Key("library-update-task-surface"),
@@ -66,7 +73,7 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
                     TextButton(
                       key: const Key("library-update-dismiss-terminal"),
                       onPressed: onDismissTerminalTasks,
-                      child: const Text("清除结果"),
+                      child: const Text("关闭已结束的任务"),
                     ),
                 ],
               ),
@@ -118,19 +125,7 @@ class _LibraryRootUpdateRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final rootName = librarySourceName(task.root.displayPath);
-    final phaseLabel = _phaseLabel(task.phase);
-    final detail =
-        task.errorMessage ??
-        switch (task.phase) {
-          LibraryRootUpdatePhase.queued => "等待可用的更新槽位",
-          LibraryRootUpdatePhase.finalizing =>
-            "正在核对 ${task.validatedItems} / ${task.validationItemCount} 张图片 · "
-                "已检查 ${task.visitedEntries} 个文件",
-          LibraryRootUpdatePhase.refreshing => "图库已更新，正在刷新当前视图",
-          LibraryRootUpdatePhase.completed =>
-            "已检查 ${task.visitedEntries} 个文件 · 图库包含 ${task.acceptedItems} 张图片",
-          _ => "已检查 ${task.visitedEntries} 个文件 · 已找到 ${task.acceptedItems} 张图片",
-        };
+    final feedback = LibraryUpdateFeedback(task);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -144,7 +139,7 @@ class _LibraryRootUpdateRow extends StatelessWidget {
               ),
             ),
             Text(
-              phaseLabel,
+              feedback.phaseLabel,
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
@@ -162,16 +157,19 @@ class _LibraryRootUpdateRow extends StatelessWidget {
             else if (task.canRetry)
               Semantics(
                 container: true,
-                label: "重试更新 $rootName",
+                label: feedback.retrySemanticsLabel(rootName),
                 button: true,
                 onTap: onRetry,
                 excludeSemantics: true,
-                child: TextButton(onPressed: onRetry, child: const Text("重试")),
+                child: TextButton(
+                  onPressed: onRetry,
+                  child: Text(feedback.retryLabel),
+                ),
               )
             else if (!task.isActive)
               Semantics(
                 container: true,
-                label: "清除 $rootName 更新结果",
+                label: "关闭 $rootName 更新任务",
                 button: true,
                 onTap: onDismiss,
                 excludeSemantics: true,
@@ -183,7 +181,7 @@ class _LibraryRootUpdateRow extends StatelessWidget {
           ],
         ),
         Text(
-          detail,
+          feedback.detail,
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -195,7 +193,7 @@ class _LibraryRootUpdateRow extends StatelessWidget {
           Semantics(
             container: true,
             label: "$rootName 更新进度",
-            value: _progressSemanticsValue(task),
+            value: feedback.progressSemanticsValue,
             child: ExcludeSemantics(
               child: LinearProgressIndicator(
                 value:
@@ -210,34 +208,4 @@ class _LibraryRootUpdateRow extends StatelessWidget {
       ],
     );
   }
-}
-
-String _phaseLabel(LibraryRootUpdatePhase phase) => switch (phase) {
-  LibraryRootUpdatePhase.queued => "等待更新",
-  LibraryRootUpdatePhase.discovering => "正在更新",
-  LibraryRootUpdatePhase.finalizing => "正在核对",
-  LibraryRootUpdatePhase.refreshing => "正在刷新显示",
-  LibraryRootUpdatePhase.cancelling => "正在取消",
-  LibraryRootUpdatePhase.completed => "更新完成",
-  LibraryRootUpdatePhase.cancelled => "已取消",
-  LibraryRootUpdatePhase.stale => "需要重试",
-  LibraryRootUpdatePhase.refreshFailed => "刷新显示失败",
-  LibraryRootUpdatePhase.failed => "更新失败",
-};
-
-String _progressSemanticsValue(LibraryRootUpdateTask task) {
-  final phaseLabel = _phaseLabel(task.phase);
-  if (task.phase == LibraryRootUpdatePhase.finalizing &&
-      task.validationItemCount > 0) {
-    final percent = ((task.validatedItems / task.validationItemCount) * 100)
-        .round()
-        .clamp(0, 100);
-    return "$phaseLabel，${task.validatedItems} / "
-        "${task.validationItemCount} 张图片，$percent%";
-  }
-  if (task.phase == LibraryRootUpdatePhase.discovering) {
-    return "$phaseLabel，已检查 ${task.visitedEntries} 个文件，"
-        "已找到 ${task.acceptedItems} 张图片";
-  }
-  return phaseLabel;
 }

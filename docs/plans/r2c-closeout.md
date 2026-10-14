@@ -23,11 +23,24 @@ the resulting stage disposition.
 
 ### Current execution checkpoint
 
-Updated 2026-10-14. Resume from this checkpoint and the linked owning evidence, then verify the
+Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, then verify the
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-Follow the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
+**Current priority: UI copy and interaction.** Finish synchronization notices and task feedback,
+then the affected loading, cancel and retry transitions. Preserve the user's current string edits
+and the completed viewer/time-rail changes. Use `microsoft-ui-ux`, submit each connected correction
+and let Actions run CI. The prepared cancellation-cache changes remain uncommitted while this UI
+slice takes priority; do not start their build or real-library comparison ahead of it.
+
+Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
+redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
+states, and a display-only retry is labeled Reload. `LibraryUpdateFeedback` owns the related task
+labels and accessibility text; the application still owns commands and state transitions. Hosted
+checks and the focused client walkthrough remain pending. Continue primary-task result recovery
+and affected preview retry feedback next, preserving completed viewer geometry and preferences.
+
+Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named
 browsing/preview incidents and explicitly requested viewer/time-rail corrections. R3 is outside
 this repair goal. Deliver each fix independently on main; a supporting test or verification failure
@@ -56,8 +69,11 @@ cost, specifically unverified browsing variants and final acceptance below stay 
 update checkpoint.
 
 Cancellation and interrupted-update retirement no longer repeat a whole-library orphan sweep
-after scoped staging cleanup. The affected rows still retire atomically; hosted work-bound
-regressions and a changed-client cancellation comparison remain pending.
+after scoped staging cleanup. Hosted work-bound regressions pass. The changed Release still takes
+15.8 seconds to commit late cancellation. Staged-location deletion dominates the isolated SQL
+comparison; a prepared, uncommitted correction temporarily increases the retirement pager-cache
+budget and restores it on success or failure. Hosted cache-restoration/rollback regressions and the changed-client
+cancellation comparison remain pending.
 
 The current preview correction rejects retired sources before they can supersede pending/running
 current work or release a root failure, and retires scheduled image repairs after source replacement.

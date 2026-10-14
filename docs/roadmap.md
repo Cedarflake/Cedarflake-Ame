@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-14
+Last planning update: 2026-10-15
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -75,7 +75,13 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-The current repair goal contains exactly three outcomes, delivered independently on main in order:
+The current priority is UI copy and interaction: synchronization/task feedback first, then loading,
+cancel and retry transitions. Complete and push that slice before resuming cancellation performance
+work or remaining real-library acceptance. Preserve the already delivered viewer/time-rail behavior
+and current ordinary-client synchronization results. Apply `microsoft-ui-ux` to the affected flows,
+including their actual states, buttons, focus and feedback; retain the user's chosen wording.
+
+The repair goal retains these three outcomes, delivered independently on main:
 
 1. **Restore ordinary-client synchronization and October membership without installation.**
    Connect ordinary-token journal reads and file-identity reconstruction to the existing durable

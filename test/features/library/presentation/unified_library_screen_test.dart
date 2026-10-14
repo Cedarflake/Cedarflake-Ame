@@ -2695,7 +2695,7 @@ void main() {
       find.byKey(const Key("library-update-task-surface")),
       findsOneWidget,
     );
-    expect(find.text("正在更新 2 个图库文件夹…"), findsOneWidget);
+    expect(find.text("正在处理 2 个文件夹的更新…"), findsOneWidget);
     expect(
       find.byKey(const ValueKey("library-update-task-root-1")),
       findsOneWidget,

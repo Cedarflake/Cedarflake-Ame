@@ -309,14 +309,11 @@ void main() {
         find.text(LibraryStrings.synchronizationMonitoringAccessDenied),
         findsOneWidget,
       );
-      expect(
-        find.textContaining("阶段：${LibraryStrings.needsReconciliation}"),
-        findsOneWidget,
-      );
+      expect(find.textContaining("阶段："), findsNothing);
       expect(find.textContaining("3 项等待处理"), findsOneWidget);
       expect(find.textContaining("2 项更新尚未完成"), findsOneWidget);
       expect(find.textContaining("2 项等待重试"), findsNothing);
-      expect(find.textContaining("尚有未核对的图库变化"), findsOneWidget);
+      expect(find.textContaining("尚有未核对的图库变化"), findsNothing);
       expect(find.byKey(const Key("notification-unread-icon")), findsOneWidget);
 
       synchronization.publish(_automaticRecoverySnapshot());
@@ -737,10 +734,10 @@ void main() {
           .read(ameNotificationControllerProvider)
           .history
           .single;
-      expect(firstNotification.title, LibraryStrings.continuityLiveOnly);
+      expect(firstNotification.title, LibraryStrings.continuityLiveOnlyNotice);
       expect(
         firstNotification.message,
-        LibraryStrings.continuityLiveOnlyDetail,
+        LibraryStrings.continuityLiveOnlyNoticeDetail,
       );
       expect(firstNotification.severity, AmeNotificationSeverity.info);
       expect(firstNotification.dedupeKey, "library.liveOnlyCapability");
@@ -751,7 +748,10 @@ void main() {
       expect(libraryState.status, LibraryStatus.completed);
       expect(find.byKey(const Key("library-task-surface")), findsNothing);
       expect(find.byKey(const Key("ame-notification-surface")), findsOneWidget);
-      expect(find.text(LibraryStrings.continuityLiveOnly), findsOneWidget);
+      expect(
+        find.text(LibraryStrings.continuityLiveOnlyNotice),
+        findsOneWidget,
+      );
 
       for (var poll = 0; poll < 4; poll += 1) {
         synchronization.publish(_liveOnlySynchronizedRootSnapshot());

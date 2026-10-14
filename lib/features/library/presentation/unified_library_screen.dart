@@ -333,7 +333,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           severity: AmeNotificationSeverity.error,
           dedupeKey: _synchronizationRefreshNotificationKey,
           actionId: _retrySynchronizationNotificationAction,
-          actionLabel: LibraryStrings.retry,
+          actionLabel: LibraryStrings.reload,
           isPersistent: true,
         ),
       );
@@ -430,8 +430,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (hasHealthyLiveOnlyRoot) {
       _notificationController.publish(
         const AmeNotificationDraft(
-          title: LibraryStrings.continuityLiveOnly,
-          message: LibraryStrings.continuityLiveOnlyDetail,
+          title: LibraryStrings.continuityLiveOnlyNotice,
+          message: LibraryStrings.continuityLiveOnlyNoticeDetail,
           severity: AmeNotificationSeverity.info,
           dedupeKey: _liveOnlyCapabilityNotificationKey,
         ),
