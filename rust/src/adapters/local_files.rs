@@ -5982,6 +5982,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             attributes: &[],
             is_inline: false,
         },
+        AvailabilityModuleContract {
+            name: "scan_resume_coverage",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
     ];
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
