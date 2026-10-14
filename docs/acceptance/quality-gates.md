@@ -70,6 +70,11 @@ validated by the pull-request event, avoiding duplicate push and pull-request ru
 update. Merge queues receive their own `merge_group` check so the combined merge result cannot
 inherit a stale pull-request status.
 
+The main concurrency group preserves its active run while later updates wait. Only the newest
+pending update is retained, so successive fixes cannot repeatedly discard the complete Rust
+result. Pull-request and merge-group runs still cancel a superseded run in their own group.
+Each run remains evidence for its recorded source commit, never a later queued head.
+
 Every hosted job uses `windows-2025`. Daily components and the unsigned-build and signed-verifier
 release jobs install Flutter 3.44.9 and use the repository Rust toolchain; the protected signer and
 published-artifact verifier do not. Static Daily, the unsigned-build job, and the signed-verifier job
