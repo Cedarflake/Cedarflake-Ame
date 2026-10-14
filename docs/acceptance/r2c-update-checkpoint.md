@@ -601,6 +601,16 @@ allowed cleanup of 458,150,326 bytes of isolated database/cache data. The source
 current Release and compact results remain. This continuation does not prove instrumented zero
 source calls, every browsing transition, or acceptable cancellation latency.
 
+Source inspection finds a second, unscoped orphan sweep after the scan-staging owner already
+retires its affected assets transactionally. Explicit cancellation and interrupted-update retirement
+now rely on that scoped cleanup, avoiding another traversal of unrelated library assets. Active
+locations and both durable handoff protections remain unchanged; physical staging deletion still
+finishes in the same terminal transaction. Two regressions compare actual retirement VM work with
+128 versus 4,096 unrelated assets, require their preservation and verify a full catalog reopen.
+The catalog facade has 3,774 source lines with no inline tests; the lifecycle test owner has 497
+lines. Owned Rust formatting and diff checks pass; Actions owns test execution. The observed
+11,688-ms cancellation cost is not considered resolved until the changed client is measured.
+
 Hosted run [38552243492](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38552243492) finished
 with 1,869 Rust tests passing and one failure: the 4,096-file coordinator test counted two journal
 reads while requiring one empty closing replay. Its `AdvancingJournalSession` supplied two `20`

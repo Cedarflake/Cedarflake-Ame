@@ -1437,9 +1437,6 @@ impl SqliteCatalog {
                 )?;
                 retired_scan_ids.push(scan_id);
             }
-            if !retired_scan_ids.is_empty() {
-                delete_orphan_assets(&transaction)?;
-            }
             transaction.commit().map_err(database_error)?;
             retired_scan_ids
         };
@@ -2690,7 +2687,6 @@ impl CatalogRepository for SqliteCatalog {
         let now = unix_time_ms();
         let transaction = self.begin_write()?;
         abandon_scan_transaction(&transaction, scan_id, status, issue_count, now)?;
-        delete_orphan_assets(&transaction)?;
         transaction.commit().map_err(database_error)
     }
 

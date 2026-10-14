@@ -55,6 +55,10 @@ exact loading latency or close the historical transient Retry incident. Remainin
 cost, specifically unverified browsing variants and final acceptance below stay open; see the same
 update checkpoint.
 
+Cancellation and interrupted-update retirement no longer repeat a whole-library orphan sweep
+after scoped staging cleanup. The affected rows still retire atomically; hosted work-bound
+regressions and a changed-client cancellation comparison remain pending.
+
 The current preview correction rejects retired sources before they can supersede pending/running
 current work or release a root failure, and retires scheduled image repairs after source replacement.
 Automatic decode repair displays progress from its first frame; a replaced artifact retires its

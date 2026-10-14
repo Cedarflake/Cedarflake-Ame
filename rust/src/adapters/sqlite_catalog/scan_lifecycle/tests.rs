@@ -1,3 +1,8 @@
+use std::sync::{
+    Arc,
+    atomic::{AtomicUsize, Ordering},
+};
+
 use rusqlite::types::Value;
 
 use crate::domain::{
@@ -153,6 +158,95 @@ fn missing_scan_abandon_does_not_touch_published_or_retained_owners() {
         .expect("missing scan is terminal");
     assert_eq!(durable_state(&fixture.catalog), before);
     fixture.reopen_and_assert(before);
+}
+
+#[derive(Clone, Copy, Debug)]
+enum Retirement {
+    Cancel,
+    RecoverInterruptedUpdate,
+}
+
+#[test]
+fn cancellation_cost_and_cleanup_stay_with_the_retired_scan() {
+    assert_scoped_retirement_work(Retirement::Cancel);
+}
+
+#[test]
+fn interrupted_update_retirement_does_not_sweep_the_whole_library() {
+    assert_scoped_retirement_work(Retirement::RecoverInterruptedUpdate);
+}
+
+fn assert_scoped_retirement_work(retirement: Retirement) {
+    let small = retire_with_unrelated_assets(retirement, 128);
+    let large = retire_with_unrelated_assets(retirement, 4096);
+    assert!(small > 0 && large > 0, "observe actual retirement SQL");
+    assert!(
+        large <= small.saturating_mul(2),
+        "unrelated catalog growth must not expand one-scan retirement: \
+         retirement={retirement:?}, small={small}, large={large}"
+    );
+}
+
+fn retire_with_unrelated_assets(retirement: Retirement, unrelated_count: u32) -> usize {
+    let mut fixture = PublicationFixture::new();
+    fixture.publish("active", "root");
+    fixture.begin_and_stage("cancelled", "root");
+    fixture
+        .catalog
+        .connection
+        .execute(
+            "WITH RECURSIVE unrelated(number) AS (
+               VALUES(1)
+               UNION ALL SELECT number + 1 FROM unrelated WHERE number < ?1
+             )
+             INSERT INTO assets(id, created_unix_ms)
+             SELECT printf('unrelated-%05d', number), 1 FROM unrelated",
+            [unrelated_count],
+        )
+        .expect("unrelated assets outside this scan's cleanup authority");
+    let steps = Arc::new(AtomicUsize::new(0));
+    let observed = Arc::clone(&steps);
+    fixture
+        .catalog
+        .connection
+        .progress_handler(
+            1,
+            Some(move || {
+                observed.fetch_add(1, Ordering::Relaxed);
+                false
+            }),
+        )
+        .expect("count executed SQLite instructions");
+    match retirement {
+        Retirement::Cancel => fixture
+            .catalog
+            .abandon_scan("cancelled", "cancelled", 3)
+            .expect("cancel only the current update"),
+        Retirement::RecoverInterruptedUpdate => assert!(
+            fixture
+                .catalog
+                .load_single_recoverable_foreground_scan()
+                .expect("retire interrupted update")
+                .is_none()
+        ),
+    }
+    fixture
+        .catalog
+        .connection
+        .progress_handler(0, None::<fn() -> bool>)
+        .expect("stop counting retirement work");
+    let work = steps.load(Ordering::Relaxed);
+    assert_eq!(fixture.count("asset_locations", "scan_id = 'cancelled'"), 0);
+    assert_eq!(fixture.count("assets", "id = 'asset-cancelled'"), 0);
+    assert_eq!(fixture.count("asset_locations", "scan_id = 'active'"), 1);
+    assert_eq!(
+        fixture.count("assets", "id LIKE 'unrelated-%'"),
+        i64::from(unrelated_count),
+        "scan retirement cannot sweep unrelated orphan assets"
+    );
+    let after = durable_state(&fixture.catalog);
+    fixture.reopen_and_assert(after);
+    work
 }
 
 struct PublicationFixture {
