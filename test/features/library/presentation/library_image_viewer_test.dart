@@ -1,4 +1,5 @@
 import "dart:math" as math;
+import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
@@ -6,6 +7,7 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_controls.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/gestures.dart";
@@ -79,6 +81,7 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final asset = await _assetWithImage(tester, width: 4000, height: 2000);
 
     await tester.pumpWidget(
       ProviderScope(
@@ -86,7 +89,7 @@ void main() {
           theme: buildAmeTheme(),
           home: Scaffold(
             body: LibraryImageViewer(
-              asset: _asset(width: 4000, height: 2000),
+              asset: asset,
               position: 4,
               totalItems: 12,
               onBack: () {},
@@ -101,6 +104,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    _expectViewerPixels(tester, asset);
     expect(find.text("4 / 12"), findsOneWidget);
     expect(find.text("sample.png"), findsOneWidget);
     expect(find.text("C:\\Pictures\\sample.png"), findsNothing);
@@ -291,13 +295,14 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     var previousCount = 0;
     var nextCount = 0;
+    final asset = await _assetWithImage(tester, width: 200, height: 100);
 
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
-              asset: _asset(width: 200, height: 100),
+              asset: asset,
               wheelBehavior: ImageViewerWheelBehavior.previousOrNext,
               openBehavior: ImageViewerOpenBehavior.actualSize,
               onBack: () {},
@@ -314,6 +319,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    _expectViewerPixels(tester, asset);
     expect(find.text("100%"), findsOneWidget);
     final viewer = find.byKey(const Key("library-image-interactive-viewer"));
     await tester.sendEventToBinding(
@@ -345,13 +351,14 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final asset = await _assetWithImage(tester, width: 1000, height: 500);
 
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
-              asset: _asset(width: 1000, height: 500),
+              asset: asset,
               onBack: () {},
               onInformation: () {},
               onCopyPath: () {},
@@ -364,6 +371,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    _expectViewerPixels(tester, asset);
     final viewer = find.byKey(const Key("library-image-interactive-viewer"));
     await tester.drag(viewer, const Offset(800, 500));
     await tester.pump();
@@ -449,13 +457,14 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final asset = await _assetWithImage(tester, width: 1000, height: 500);
 
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
-              asset: _asset(width: 1000, height: 500),
+              asset: asset,
               onBack: () {},
               onInformation: () {},
               onCopyPath: () {},
@@ -468,6 +477,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    _expectViewerPixels(tester, asset);
     final viewer = find.byKey(const Key("library-image-interactive-viewer"));
     final interactiveViewer = tester.widget<InteractiveViewer>(viewer);
     final startScale = interactiveViewer.transformationController!.value
@@ -497,13 +507,14 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
+    final asset = await _assetWithImage(tester, width: 1000, height: 500);
 
     await tester.pumpWidget(
       ProviderScope(
         child: MaterialApp(
           home: Scaffold(
             body: LibraryImageViewer(
-              asset: _asset(width: 1000, height: 500),
+              asset: asset,
               onBack: () {},
               onInformation: () {},
               onCopyPath: () {},
@@ -516,6 +527,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
+    _expectViewerPixels(tester, asset);
     final viewer = find.byKey(const Key("library-image-interactive-viewer"));
     final interactiveViewer = tester.widget<InteractiveViewer>(viewer);
     final controller = interactiveViewer.transformationController!;
@@ -589,6 +601,46 @@ Future<void> _revealViewerFile(WidgetTester tester) async {
   await tester.tap(find.text(LibraryStrings.openInExplorer));
   await tester.pump();
   await tester.pump(const Duration(milliseconds: 500));
+}
+
+Future<LibraryAsset> _assetWithImage(
+  WidgetTester tester, {
+  required int width,
+  required int height,
+}) async {
+  final asset = _asset(width: width, height: height);
+  final source = LibrarySourceImage(asset);
+  await tester.runAsync(() async {
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    final bounds = Rect.fromLTWH(0, 0, width.toDouble(), height.toDouble());
+    canvas.drawRect(bounds, Paint()..color = Colors.indigo);
+    canvas.drawRect(
+      Rect.fromLTWH(0, 0, width / 3, height / 2),
+      Paint()..color = Colors.amber,
+    );
+    final picture = recorder.endRecording();
+    try {
+      final image = await picture.toImage(width, height);
+      PaintingBinding.instance.imageCache.putIfAbsent(
+        source,
+        () =>
+            OneFrameImageStreamCompleter(Future.value(ImageInfo(image: image))),
+      );
+    } finally {
+      picture.dispose();
+    }
+  });
+  addTearDown(() => source.evict());
+  return asset;
+}
+
+void _expectViewerPixels(WidgetTester tester, LibraryAsset asset) {
+  final image = tester.widget<RawImage>(find.byType(RawImage)).image;
+  expect(image?.width, asset.width);
+  expect(image?.height, asset.height);
+  expect(find.byKey(const Key("viewer-image-loading")), findsNothing);
+  expect(find.text("无法打开原图"), findsNothing);
 }
 
 LibraryAsset _asset({
