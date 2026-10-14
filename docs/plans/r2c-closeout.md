@@ -39,7 +39,10 @@ remain retained work; their preparation does not move them ahead of these incide
 The retained update's 100-percent publication stall now has an owning correction and a normally
 closed Release comparison in the [update checkpoint](../acceptance/r2c-update-checkpoint.md#idle-journal-opening-admission-on-2026-10-14).
 Preserve that diagnosis and completed comparison. The corrected regression-test imports are pushed;
-their hosted checks and the clean-environment acceptance below still need to complete.
+hosted verification retains an open Accessibility probe timeout. The selected
+[fresh real-library import](../acceptance/r2c-update-checkpoint.md#fresh-real-library-import-on-2026-10-14)
+now completes with initial previews, current October membership and normal process retirement.
+Independent update/UI cases and the remaining final acceptance below still need to complete.
 
 For final import, update and UI acceptance, use the actual large library with one reusable isolated
 derived environment. Reset its database and preview cache before each independent case; an update

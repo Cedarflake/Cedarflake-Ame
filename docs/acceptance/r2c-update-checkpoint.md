@@ -542,3 +542,34 @@ retirement and restoration checks, cleanup removed the obsolete Debug output, do
 logs and this environment's catalog/preview cache, totaling 687,092,599 bytes. The current Release,
 reusable source corpus, original profile backups and small result records remain. Subsequent
 independent acceptance cases reuse this environment with a fresh database and empty preview cache.
+
+## Fresh real-library import on 2026-10-14
+
+The same isolated environment started without a catalog or preview-cache directory. The ordinary
+unsigned Release retains the `c7737c6` production inputs; the subsequent test-import and documentation
+commits do not change that runtime. Actual picker input imported the combined destination for
+`local-primary` and `cloud-primary`, under a 120,000-entry, 600-second process and 2-GiB client bound.
+No source copy, service installation or local CI run was required.
+
+The single scan completed in **228,654 ms**, checking 70,078 entries and publishing 64,451 locations.
+There were zero metadata-inventory runs. Its 955 inspection issues comprise 678 unsupported formats,
+181 invalid capture times and 96 metadata-parse failures; issue count is not a missing-image count.
+The interface displayed completion, current October previews and synchronized state. Closed catalog
+inspection confirmed supported/current journal state with no failure code. A fresh attribute-only
+enumeration of the two reported October subtrees found 51 files, all present in the active scan.
+
+The process exited normally with code zero after 592,939 ms, including picker interaction and
+observation time; that lifetime is not import latency. The launcher restored and hash-verified the
+original profile and catalog. After process retirement, exact-path and reparse checks, cleanup removed
+224,510,555 bytes of disposable catalog/cache data while retaining the reusable source corpus,
+current Release and compact result records. Source-media byte integrity and instrumented no-hydration
+claims are not inferred from the catalog checks. This case establishes fresh import and initial
+preview display, not the remaining independent update, viewer or browsing variants.
+
+Hosted run [38552243492](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38552243492) passes
+the unsigned Release, Flutter tests, Windows scan, identity-publication and supported-format jobs at
+this checkpoint, while other jobs are still running. Its Windows Accessibility job fails the existing
+eight-second `application-ready` probe deadline at 8,019 ms. Both assembly-validation marker sets are
+complete; the last persisted probe record remains at `loading-uia-client`, 3,112 ms, without a recorded
+window traversal. This does not attribute the timeout to application readiness or to assembly loading.
+Keep the failure open without weakening its deadline or native assertions.
