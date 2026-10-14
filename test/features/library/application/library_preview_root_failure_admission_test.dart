@@ -6,6 +6,40 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test("a retired retry cannot release the current root failure", () async {
+    final previewer = _DeferredPreviewer();
+    final published = <LibraryAsset>[];
+    final queue = LibraryPreviewQueue(
+      previewer: previewer,
+      previewEdge: 512,
+      maxActive: 1,
+      onResult: published.add,
+      canPublishResult: (asset) => asset.locationId != "retired",
+    );
+    addTearDown(queue.dispose);
+    queue.request(_asset("blocked"));
+    previewer.fail("blocked", "preview_root_identity_unproven");
+    await Future<void>.delayed(Duration.zero);
+
+    LibraryPreviewRequestOutcome? retiredOutcome;
+    unawaited(
+      queue.retry(_asset("retired")).then((outcome) {
+        retiredOutcome = outcome;
+      }),
+    );
+    await Future<void>.delayed(Duration.zero);
+    queue.request(_asset("sibling"));
+
+    expect(retiredOutcome, LibraryPreviewRequestOutcome.superseded);
+    expect(previewer.requests, ["blocked"]);
+    expect(published.last.locationId, "sibling");
+    expect(published.last.previewIssueCode, "preview_root_identity_unproven");
+    final currentRetry = queue.retry(_asset("blocked"));
+    expect(previewer.requests, ["blocked", "blocked"]);
+    previewer.succeed("blocked");
+    expect(await currentRetry, LibraryPreviewRequestOutcome.ready);
+  });
+
   for (final code in [
     "preview_root_identity_unproven",
     "preview_root_identity_changed",

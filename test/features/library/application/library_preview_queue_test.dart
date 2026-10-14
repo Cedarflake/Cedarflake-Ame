@@ -329,6 +329,66 @@ void main() {
     queue.dispose();
   });
 
+  for (final heldBehindPeer in [false, true]) {
+    test(
+      "retired retry preserves a ${heldBehindPeer ? "pending" : "running"} current preview",
+      () async {
+        final previewer = _ControlledPreviewer();
+        final results = <LibraryAsset>[];
+        final queue = LibraryPreviewQueue(
+          previewer: previewer,
+          previewEdge: 512,
+          maxActive: 1,
+          onResult: results.add,
+          canPublishResult: (asset) =>
+              asset.locationId == "peer" ||
+              asset.sourceGeneration == BigInt.two,
+        );
+        addTearDown(queue.dispose);
+        if (heldBehindPeer) {
+          queue.request(_asset("peer"));
+        }
+        LibraryPreviewRequestOutcome? currentResult;
+        final current = queue
+            .retry(_asset("same", sourceGeneration: BigInt.two))
+            .then((outcome) {
+              currentResult = outcome;
+              return outcome;
+            });
+        LibraryPreviewRequestOutcome? retiredResult;
+        unawaited(
+          queue.retry(_asset("same")).then((outcome) {
+            retiredResult = outcome;
+          }),
+        );
+        await _flushAsyncWork();
+
+        expect(retiredResult, LibraryPreviewRequestOutcome.superseded);
+        expect(currentResult, isNull);
+        expect(previewer.requests, [heldBehindPeer ? "peer" : "same"]);
+        if (heldBehindPeer) {
+          previewer.succeed("peer", _readyAsset("peer"));
+          await _flushAsyncWork();
+        }
+        expect(previewer.sourceContexts.last.generation, BigInt.two);
+        previewer.succeed(
+          "same",
+          _readyAsset("same", sourceGeneration: BigInt.two),
+        );
+
+        expect(await current, LibraryPreviewRequestOutcome.ready);
+        expect(
+          results
+              .where((asset) => asset.locationId == "same")
+              .single
+              .sourceGeneration,
+          BigInt.two,
+        );
+        expect(previewer.requests, [if (heldBehindPeer) "peer", "same"]);
+      },
+    );
+  }
+
   test("ends active explicit retries on context invalidation", () async {
     final previewer = _ControlledPreviewer();
     final queue = LibraryPreviewQueue(
@@ -367,15 +427,17 @@ void main() {
   test("ends a retry when the publication owner rejects its result", () async {
     final previewer = _ControlledPreviewer();
     final results = <LibraryAsset>[];
+    var canPublish = true;
     final queue = LibraryPreviewQueue(
       previewer: previewer,
       previewEdge: 512,
       maxActive: 1,
       onResult: results.add,
-      canPublishResult: (_) => false,
+      canPublishResult: (_) => canPublish,
     );
 
     final outcome = queue.retry(_asset("rejected"));
+    canPublish = false;
     previewer.succeed("rejected", _readyAsset("rejected"));
 
     expect(await outcome, LibraryPreviewRequestOutcome.superseded);

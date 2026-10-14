@@ -274,8 +274,17 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       return;
     }
     _previewRepairSource = source;
+    final retryGeneration = _retryGeneration;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
+      if (!mounted ||
+          retryGeneration != _retryGeneration ||
+          _previewRepairSource != source) {
+        return;
+      }
+      final current = _controller.resolvePreview(widget.asset);
+      if (!source.isCompatibleWith(current) ||
+          current.previewStatus != LibraryPreviewStatus.ready ||
+          current.previewPath != asset.previewPath) {
         return;
       }
       _startPreviewRetry(

@@ -3263,3 +3263,24 @@ also pass. Flutter stops in the pending-image indicator regression after its bou
 read and lease checks, because the synthetic drag leaves Flutter's 40 ms double-tap countdown.
 The test now advances the installed SDK's `kDoubleTapMinTime` after dragging. All existing assertions
 remain; the corrected hosted result is pending. No product behavior or local CI execution changes.
+
+## Retired preview retry admission on 2026-10-14
+
+Source inspection identifies a retry-ownership defect. A photo's deferred decode-repair callback
+only checked whether its widget remained mounted. After replacement it could submit an older
+source to the preview queue, which superseded the current pending/running request before checking
+publication authority. A stale explicit retry could also release the current root's failure fuse.
+
+The existing typed admission owner now rejects a retired source before changing root state or queue
+ownership. Deferred photo repairs retain their operation generation and revalidate the displayed
+source, ready status and artifact path before cache eviction or request admission. Current manual
+retry, root identity requirements, bounded execution and result-time validation remain intact.
+No schema, media-read policy or source mutation is introduced.
+
+Five added regressions cover current pending/running work, retained root failure, and widget source
+generation/location replacement before the repair callback. The existing result-rejection test
+now explicitly revokes publication after admission, preserving that later boundary's coverage.
+Production owners have 115 admission, 696 queue and 424 photo-tile lines, with no inline tests;
+their dedicated test files have 180, 1123 and 770 lines. Owned formatting and diff checks pass.
+GitHub Actions executes these regressions and CI; no local test suite runs. Runtime verification
+of this race and attribution of the historical retained-library Retry incident remain open.

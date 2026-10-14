@@ -9,6 +9,10 @@ final class LibraryPreviewRootAllowed extends LibraryPreviewRootAdmission {
   const LibraryPreviewRootAllowed();
 }
 
+final class LibraryPreviewSourceRetired extends LibraryPreviewRootAdmission {
+  const LibraryPreviewSourceRetired();
+}
+
 final class LibraryPreviewRootBlocked extends LibraryPreviewRootAdmission {
   const LibraryPreviewRootBlocked(this.failure);
 
@@ -45,6 +49,9 @@ class LibraryPreviewRootFailures {
     LibraryAsset asset, {
     required bool explicitRetry,
   }) {
+    if (!_isCurrentSource(asset)) {
+      return const LibraryPreviewSourceRetired();
+    }
     final blocked = _roots[asset.rootId];
     if (blocked != null) {
       if (blocked.activeScanId == asset.activeScanId &&

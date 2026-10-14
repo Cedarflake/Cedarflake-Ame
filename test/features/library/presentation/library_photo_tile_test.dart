@@ -1,4 +1,5 @@
 import "dart:async";
+import "dart:convert";
 import "dart:io";
 
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
@@ -396,6 +397,85 @@ void main() {
     timeout: const Timeout(Duration(seconds: 30)),
   );
 
+  for (final replacesLocation in [false, true]) {
+    testWidgets(
+      "retires a queued repair when the ${replacesLocation ? "location" : "source generation"} changes",
+      (tester) async {
+        final directory = Directory.systemTemp.createTempSync(
+          "ame-preview-callback-",
+        );
+        addTearDown(() => directory.deleteSync(recursive: true));
+        final previewFile = File(
+          "${directory.path}${Platform.pathSeparator}ready.png",
+        );
+        previewFile.writeAsBytesSync(
+          base64Decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          ),
+        );
+        final asset = _readyAsset(previewFile.path);
+        final snapshot = LibrarySnapshot(
+          catalogPath: "C:\\AmeData\\ame.sqlite3",
+          revision: BigInt.one,
+          queryId: "query-1",
+          roots: const [],
+          assets: [asset],
+        );
+        final catalog = _FakeCatalog(snapshot);
+        final initialState = LibraryState.fromSnapshot(snapshot);
+        final previewer = _RecordingPreviewer(asset);
+        Widget buildTile(LibraryAsset displayed) {
+          return ProviderScope(
+            overrides: [
+              initialLibraryStateProvider.overrideWithValue(initialState),
+              libraryCatalogProvider.overrideWithValue(catalog),
+              libraryScannerProvider.overrideWithValue(const _FakeScanner()),
+              libraryPreviewerProvider.overrideWithValue(previewer),
+            ],
+            child: MaterialApp(
+              home: Scaffold(
+                body: LibraryPhotoTile(
+                  asset: displayed,
+                  width: 160,
+                  height: 120,
+                  isSelecting: false,
+                  isSelected: false,
+                  onOpen: (_) {},
+                  onToggleSelection: (_) {},
+                  onViewInformation: (_) {},
+                  onCopyPath: (_) {},
+                  onRevealFile: (_) {},
+                ),
+              ),
+            ),
+          );
+        }
+
+        await tester.pumpWidget(buildTile(asset));
+        final image = find.byType(Image);
+        tester.widget<Image>(image).errorBuilder!(
+          tester.element(image),
+          StateError("The previous preview failed to decode"),
+          StackTrace.current,
+        );
+        final replacement = replacesLocation
+            ? _pendingAsset()
+            : _readyAsset(previewFile.path, sourceGeneration: BigInt.two);
+        await tester.pumpWidget(buildTile(replacement));
+        await tester.pump();
+
+        expect(previewer.requests, isEmpty);
+        expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+        expect(
+          tester.getSize(find.byType(LibraryPhotoTile)),
+          const Size(160, 120),
+        );
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
   testWidgets(
     "repairs a ready preview after Flutter cannot decode it",
     (tester) async {
@@ -466,14 +546,14 @@ void main() {
   );
 }
 
-LibraryAsset _readyAsset(String previewPath) {
+LibraryAsset _readyAsset(String previewPath, {BigInt? sourceGeneration}) {
   return LibraryAsset(
     assetId: "asset-ready",
     locationId: "location-ready",
     rootId: "root-1",
     activeScanId: "scan-1",
     sourceRevision: null,
-    sourceGeneration: BigInt.one,
+    sourceGeneration: sourceGeneration ?? BigInt.one,
     sourcePath: "C:\\Pictures\\ready.jpg",
     displayPath: "C:\\Pictures\\ready.jpg",
     relativePath: "ready.jpg",

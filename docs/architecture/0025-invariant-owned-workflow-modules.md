@@ -475,6 +475,8 @@ page failure remain one boundary, with no second decoded page or per-record clon
   acceptance; selection order cannot confer publication authority. `LibraryState` separately
   projects explicit removal, query-refresh and primary-scan precedence without owning execution.
 - `library_preview_root_failures.dart` owns admission and lifetime of scan-scoped root failures.
+  Admission rejects a retired source before it can release a root failure or supersede current
+  queue ownership. Deferred photo repairs revalidate their operation, source and artifact before admission.
   Only a source still accepted by the current publication owner may block sibling demand. A late
   error from a retired source settles as superseded without acquiring root-wide authority. Explicit
   retry, availability cooldown, scan replacement and authority restoration retain their distinct

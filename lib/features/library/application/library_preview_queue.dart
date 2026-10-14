@@ -177,6 +177,10 @@ class LibraryPreviewQueue {
       return;
     }
     final admission = _rootFailures.admit(asset, explicitRetry: retry);
+    if (admission is LibraryPreviewSourceRetired) {
+      completion?.complete(LibraryPreviewRequestOutcome.superseded);
+      return;
+    }
     if (admission case LibraryPreviewRootBlocked(:final failure)) {
       _publishBlockedAsset(asset, failure);
       completion?.complete(_rootFailureOutcome(failure));

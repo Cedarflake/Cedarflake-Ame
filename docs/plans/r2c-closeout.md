@@ -55,6 +55,11 @@ exact loading latency or close the historical transient Retry incident. Remainin
 cost, specifically unverified browsing variants and final acceptance below stay open; see the same
 update checkpoint.
 
+The current preview correction rejects retired sources before they can supersede pending/running
+current work or release a root failure, and retires scheduled image repairs after source replacement.
+Its focused queue and widget regressions await hosted execution. Continue this affected boundary;
+do not repeat completed import/reopen/position cases or infer that the historical Retry incident is closed.
+
 For final import, update and UI acceptance, use the actual large library with one reusable isolated
 derived environment. Reset its database and preview cache before each independent case; an update
 case first imports its baseline and then updates that baseline. Keep intermediate state within
