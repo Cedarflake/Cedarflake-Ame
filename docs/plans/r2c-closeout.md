@@ -41,11 +41,22 @@ The correction retains the proof after normal interruption and preserves invalid
 maintenance, unrelated storage failures, unwind and independent invalidation. The adapter distinguishes
 `SQLITE_INTERRUPT` from an unrelated error even when cancellation arrives concurrently. Boundary
 regressions cover repeated preemption, interleaved reads and concurrent invalidation. A same-input
-ordinary Debug comparison reduces median poll time from 1,729 ms to 28.5 ms in the first six polls,
-with one opening validation instead of 18 repeated validations; complete catch-up is still running.
+ordinary Debug comparison reduces median poll time from 1,729 ms to 25 ms over 110 polls (maximum
+56 ms), with one opening validation instead of 18 repeated validations. Enumeration completes with
+70,078 raw entries; comparison reaches 447 candidates before normal close. The original profile and
+catalog hashes are restored, and the next run continues the same isolated inventory. Full catch-up
+and unchanged reopening remain in progress.
 Affected owner sizes (production / inline tests / dedicated tests): reclamation adapter 393 / 335 / 0,
 maintenance owner 139 / 0 / 0, incremental policy tests 0 / 0 / 65 and reclamation integration tests
 0 / 0 / 110; the ports file has 1,150 production lines and only its contract comment changes.
+
+The same native run exposes one-directory-per-poll enumeration at about four directories per second.
+The source adapter now shares each quantum across at most 16 directories and 128 entries, retaining
+the smaller requested entry limit. Directory identity guards and commit boundaries remain unchanged;
+completed directories survive cancellation and source reconstruction. New regressions cover a mix
+of small and empty directories, both work bounds, cancellation, reuse and a seven-entry request.
+Affected owner sizes (production / inline tests / dedicated tests): durable source adapter
+318 / 0 / 0 and its dedicated batch regressions 0 / 0 / 105; the existing test facade only adds a module.
 
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing

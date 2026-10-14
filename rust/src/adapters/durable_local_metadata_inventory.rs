@@ -13,6 +13,7 @@ use super::{
 };
 
 const RAW_SOURCE_BATCH_ENTRIES: usize = 128;
+const RAW_SOURCE_BATCH_DIRECTORIES: usize = 16;
 
 pub(crate) struct DurableLocalMetadataInventory {
     discovery: PublicationGuardedFileDiscovery,
@@ -124,57 +125,13 @@ impl DurableLocalMetadataInventory {
         });
         Ok(true)
     }
-}
-
-impl MetadataInventorySource for DurableLocalMetadataInventory {
-    fn rebind_recovery_lease(&mut self, authority: &LeasedLibraryChange) -> Result<(), ScanError> {
-        let catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
-        self.execution =
-            catalog.rebind_metadata_inventory_spool_execution(&self.execution, authority)?;
-        Ok(())
-    }
-
-    fn prepare_next_page(
+    fn capture_directory_batch(
         &mut self,
-        max_source_entries: u32,
+        catalog: &mut SqliteCatalog,
+        source_limit: usize,
         cancelled: &AtomicBool,
-    ) -> Result<MetadataInventorySourcePreparation, ScanError> {
-        if max_source_entries == 0 {
-            return Err(ScanError::new(
-                "metadata_inventory_page_limit_invalid",
-                "Metadata inventory source pages require a positive bound",
-            ));
-        }
-        if cancelled.load(Ordering::Acquire) {
-            return Err(cancelled_error());
-        }
-        let mut catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
-        if self.active_directory.is_some() {
-            catalog.validate_metadata_inventory_spool_execution(&self.execution)?;
-        }
-        let updated_unix_ms = now_unix_ms()?;
-        if self.active_directory.is_none()
-            && catalog.reset_metadata_inventory_spool_batch(
-                &self.execution,
-                max_source_entries.min(RAW_SOURCE_BATCH_ENTRIES as u32),
-                updated_unix_ms,
-            )?
-        {
-            return Ok(MetadataInventorySourcePreparation::Yielded);
-        }
-        let _publication_guard =
-            PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
-                &self.root_path,
-                &self.root_identity,
-            )?;
-        if self.active_directory.is_none()
-            && !self.open_next_directory(&mut catalog, updated_unix_ms)?
-        {
-            return Ok(MetadataInventorySourcePreparation::Ready);
-        }
-        let source_limit = usize::try_from(max_source_entries)
-            .unwrap_or(usize::MAX)
-            .min(RAW_SOURCE_BATCH_ENTRIES);
+        updated_unix_ms: i64,
+    ) -> Result<usize, ScanError> {
         let mut batch = Vec::with_capacity(source_limit);
         let mut exhausted = false;
         {
@@ -241,6 +198,80 @@ impl MetadataInventorySource for DurableLocalMetadataInventory {
                 &batch,
                 updated_unix_ms,
             )?;
+        }
+        Ok(batch.len())
+    }
+}
+
+impl MetadataInventorySource for DurableLocalMetadataInventory {
+    fn rebind_recovery_lease(&mut self, authority: &LeasedLibraryChange) -> Result<(), ScanError> {
+        let catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
+        self.execution =
+            catalog.rebind_metadata_inventory_spool_execution(&self.execution, authority)?;
+        Ok(())
+    }
+
+    fn prepare_next_page(
+        &mut self,
+        max_source_entries: u32,
+        cancelled: &AtomicBool,
+    ) -> Result<MetadataInventorySourcePreparation, ScanError> {
+        if max_source_entries == 0 {
+            return Err(ScanError::new(
+                "metadata_inventory_page_limit_invalid",
+                "Metadata inventory source pages require a positive bound",
+            ));
+        }
+        if cancelled.load(Ordering::Acquire) {
+            return Err(cancelled_error());
+        }
+        let mut catalog = self.session.open_in_lane(LibraryChangeLane::Recovery)?;
+        if self.active_directory.is_some() {
+            catalog.validate_metadata_inventory_spool_execution(&self.execution)?;
+        }
+        let updated_unix_ms = now_unix_ms()?;
+        if self.active_directory.is_none()
+            && catalog.reset_metadata_inventory_spool_batch(
+                &self.execution,
+                max_source_entries.min(RAW_SOURCE_BATCH_ENTRIES as u32),
+                updated_unix_ms,
+            )?
+        {
+            return Ok(MetadataInventorySourcePreparation::Yielded);
+        }
+        let _publication_guard =
+            PublicationGuardedFileDiscovery::new_metadata_inventory_publication_guard(
+                &self.root_path,
+                &self.root_identity,
+            )?;
+        let mut remaining_entries = usize::try_from(max_source_entries)
+            .unwrap_or(usize::MAX)
+            .min(RAW_SOURCE_BATCH_ENTRIES);
+        // Small and empty directories share a bounded quantum instead of each
+        // waiting for another synchronization poll. Both source reads and opens are bounded.
+        for directory_index in 0..RAW_SOURCE_BATCH_DIRECTORIES {
+            if cancelled.load(Ordering::Acquire) {
+                return Err(cancelled_error());
+            }
+            if self.active_directory.is_none()
+                && !self.open_next_directory(&mut catalog, updated_unix_ms)?
+            {
+                return Ok(if directory_index == 0 {
+                    MetadataInventorySourcePreparation::Ready
+                } else {
+                    MetadataInventorySourcePreparation::Yielded
+                });
+            }
+            let captured = self.capture_directory_batch(
+                &mut catalog,
+                remaining_entries,
+                cancelled,
+                updated_unix_ms,
+            )?;
+            remaining_entries -= captured;
+            if remaining_entries == 0 {
+                break;
+            }
         }
         Ok(MetadataInventorySourcePreparation::Yielded)
     }

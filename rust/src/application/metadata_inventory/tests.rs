@@ -51,6 +51,7 @@ mod bounded_cleanup;
 #[cfg(windows)]
 mod directory_snapshot;
 mod lifecycle_admission;
+mod spool_batches;
 mod spool_lifecycle;
 mod terminal_media;
 

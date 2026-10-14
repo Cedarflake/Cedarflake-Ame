@@ -255,6 +255,10 @@ page failure remain one boundary, with no second decoded page or per-record clon
   not keep duplicate run-id-only raw APIs. A retained application continuation explicitly accepts
   its new lease through the source port without resetting its iterator or completed directories.
   Failed rebinding preserves the previous token, which remains subject to current authority checks.
+  `DurableLocalMetadataInventory` packs small directories into one source quantum, bounded by both
+  entry reads and directory opens. Each directory keeps its own opening/closing identity check and
+  atomic persistence; cancellation is checked between entries and directories. Completed directories
+  remain reusable after source reconstruction, while an incomplete directory follows the existing reset.
   Active enumeration checks admission before advancing its iterator and again before committing;
   a failed attempt is discarded by the application before reconstruction. No database transaction
   spans source I/O. This execution fence does not replace generation-specific delayed retirement.
