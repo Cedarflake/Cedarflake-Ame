@@ -612,3 +612,33 @@ opening boundary with current continuity. Production behavior is unchanged; the 
 3,957 production and 10,490 inline-test lines, with no added dedicated test file. Formatting and
 diff checks run locally; GitHub Actions executes the regression and full CI. The separate native
 Accessibility timeout remains open.
+
+## Fresh real-library browsing on 2026-10-14
+
+The reusable isolated environment again started without a database or preview cache. Its unchanged
+`c7737c6` Release imported the actual combined library under the 120,000-entry, 900-second and 2-GiB
+client bounds. The single scan checked 70,078 entries and published 64,451 locations; its catalog
+interval was 220,059 ms, assigned before commit. There were no metadata inventories, journal state
+was supported/current without a failure code, and all 51 previously enumerated October files were
+present. This membership comparison does not represent another current source enumeration.
+
+Native middle-rail navigation and an upward 1,000-pixel scroll initially showed unpainted slots with
+the shared top loading line. Both populated automatically without additional input. The next
+populated screenshots were 6,265 and 8,458 ms after input; these are discrete observation upper
+bounds, not measured page latency. Reversing by 1,000 pixels restored the same visible rows. Opening
+the small original at position 27,933 of 64,451 showed 100-percent scale, and Escape returned to the
+same gallery position. No Retry feedback appeared in the sampled frames; continuous transient-error
+coverage and the exact historical Retry incident remain unverified.
+
+The unpainted pending slots agree with ADR 0014's existing loading treatment. The product contract's
+older painted-placeholder wording is aligned with that decision; no rendering or query behavior
+changes. The process exited normally with code zero after 418,580 ms. Original settings, preferences,
+their recovery backups and original catalog components matched their saved hashes. After process,
+exact-path and reparse checks, cleanup removed 225,435,919 bytes of isolated catalog/cache data.
+The reusable corpus, current Release and compact results remain; source-byte integrity and
+instrumented no-hydration claims are not inferred from these checks.
+
+Following hosted run [38554959576](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38554959576)
+passes the unchanged Accessibility gate. This preserves the earlier timeout without claiming its
+cause was fixed. At this checkpoint its Rust job still runs, while the `8a671a6` empty-journal fixture
+correction waits for its main-branch CI run. No local CI or unit suite was run.

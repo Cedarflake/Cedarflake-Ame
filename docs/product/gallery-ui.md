@@ -365,8 +365,8 @@ position when possible.
   query- and revision-bound logical viewport anchor rather than synchronizing several pixel offsets.
 - Wheel and touchpad movement use native relative scrolling. Crossing a detail-page boundary
   prefetches bounded pages before and after the viewport without replacing the canvas. A cold page
-  immediately shows static placeholders in its final equal-height rectangles, never a generic
-  square grid or a blank substitute view.
+  keeps unpainted, non-interactive slots in its final equal-height rectangles behind the shared
+  loading line, as specified by ADR 0014. It does not replace the gallery with a generic square grid.
 - Scroll-triggered detail paging uses one thin linear progress indicator at the top of the gallery.
   It overlays the gallery without resizing its viewport or intercepting gallery input. It does not
   add circular loaders to the photo wall or its boundaries.
@@ -375,8 +375,8 @@ position when possible.
   cadence outside the pointer-to-scroll critical path. Release promotes the final target, but it is
   not the first opportunity to prepare its detail page.
 - A distant date click jumps directly to the resolved logical anchor rather than animating through
-  the library. Cached details and previews appear immediately; otherwise final-geometry
-  placeholders remain responsive while the target and guard pages load.
+  the library. Cached details and previews appear immediately; otherwise the same final geometry
+  remains scrollable behind the shared loading line while the target and guard pages load.
 - Window resizing coalesces to one newest layout request per frame. The prior snapshot remains
   coherent until the replacement snapshot and its logical-anchor correction publish atomically.
   Preview decoding uses bounded width buckets, and obsolete intermediate-width computations cannot
