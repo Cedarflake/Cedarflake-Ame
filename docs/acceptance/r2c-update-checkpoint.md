@@ -573,3 +573,42 @@ eight-second `application-ready` probe deadline at 8,019 ms. Both assembly-valid
 complete; the last persisted probe record remains at `loading-uia-client`, 3,112 ms, without a recorded
 window traversal. This does not attribute the timeout to application readiness or to assembly loading.
 Keep the failure open without weakening its deadline or native assertions.
+
+## Fresh update and cancellation continuation on 2026-10-14
+
+The same isolated environment started with an absent database and preview cache, then imported the
+actual combined library before updating it. The unchanged `c7737c6` Release checked 70,078 entries
+and retained 64,451 published locations. The baseline's catalog interval was 226,287 ms; two complete
+updates recorded 169,153 ms and 158,673 ms. These timestamps precede transaction commit and are not
+exact UI completion latency. The first update preserved the selected October scroll position and
+visible previews through completion. The second completed before the intended Cancel input, so it
+does not prove cancellation. This client exited normally with code zero and restored the original
+profile/catalog; its 817,598-ms lifetime includes all three scans and observation.
+
+A continuous reopened client then ran a separate update. Native Cancel at final validation was
+accepted immediately; a 200-ms read-only observer saw committed `cancelled` state 11,688 ms after
+the input. Existing photos stayed visible. The catalog's terminal timestamp was assigned before
+the cleanup transaction committed, so that timestamp alone understates cancellation cost. The
+client was not closed promptly after observation and reached its 300-second test guard; that
+lifetime is failed, not a normal-retirement pass.
+
+The following continuous reopen displayed the populated gallery, previews and synchronized state
+within 2,694 ms of process start. Closed inspection retained the same four scan records, zero
+metadata inventories, 64,451 active locations, zero cancelled staging locations and supported/current
+journal state without a failure. It exited normally after 12,240 ms with code zero. Original settings,
+preferences and catalog components matched their saved hashes. Exact-path and reparse checks then
+allowed cleanup of 458,150,326 bytes of isolated database/cache data. The source corpus, `build/test`,
+current Release and compact results remain. This continuation does not prove instrumented zero
+source calls, every browsing transition, or acceptable cancellation latency.
+
+Hosted run [38552243492](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38552243492) finished
+with 1,869 Rust tests passing and one failure: the 4,096-file coordinator test counted two journal
+reads while requiring one empty closing replay. Its `AdvancingJournalSession` supplied two `20`
+boundaries, then silently returned `21` on later queries, admitting ordinary catch-up into the
+same counter. The test now reuses `NoChangeJournalSession`, which stays at `20` and rejects nonempty
+reads. The exact-one-read assertion, 4,096 files, 4,095-entry page, 300-second deadline and retirement
+checks remain. Additional FULL-reopen assertions require both checkpoint cursors to remain at the
+opening boundary with current continuity. Production behavior is unchanged; the owner retains
+3,957 production and 10,490 inline-test lines, with no added dedicated test file. Formatting and
+diff checks run locally; GitHub Actions executes the regression and full CI. The separate native
+Accessibility timeout remains open.

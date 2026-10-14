@@ -10816,15 +10816,12 @@ mod tests {
         let query_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let shared_read_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
         let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let session: Arc<dyn PersistentChangeJournalSession> = Arc::new(AdvancingJournalSession {
-            boundaries: Mutex::new(std::collections::VecDeque::from([
-                opening_next_usn.value(),
-                opening_next_usn.value(),
-            ])),
+        let session: Arc<dyn PersistentChangeJournalSession> = Arc::new(NoChangeJournalSession {
+            register_count: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
             query_count: Arc::clone(&query_count),
             shared_read_count: Arc::clone(&shared_read_count),
-            read_release: Arc::new(AtomicBool::new(true)),
             close_count: Arc::clone(&close_count),
+            client_instances: Arc::new(Mutex::new(Vec::new())),
         });
         let mut production = new_production_synchronization_with_connection(
             crate::ports::erase_library_change_source_factory(HealthyFactory),
@@ -11011,6 +11008,16 @@ mod tests {
                 ).expect("bounded baseline failure evidence");
                 panic!("FULL reopen after production retirement: {error:?}; {evidence}")
             });
+        let checkpoint = catalog
+            .load_persistent_journal_checkpoint(&root_id, generation)
+            .expect("load completed recovery checkpoint")
+            .expect("completed recovery retains its checkpoint");
+        assert_eq!(checkpoint.next_unread_usn, opening_next_usn);
+        assert_eq!(checkpoint.captured_exclusive_end, opening_next_usn);
+        assert_eq!(
+            checkpoint.continuity,
+            PersistentJournalContinuityState::Current
+        );
         let run_id: String = evidence_connection
             .query_row(
                 "SELECT run_id FROM library_recovery_authorities WHERE change_id = ?1",
