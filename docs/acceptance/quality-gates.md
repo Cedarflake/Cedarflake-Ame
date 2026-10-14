@@ -137,6 +137,10 @@ wall-clock latency at the cost of additional hosted runner minutes. Release cand
 ordered by immutable artifacts because build, protected signing, credential-free verification, and
 publication form distinct trust boundaries.
 
+The serial static/Rust job has a 90-minute total budget; the other Daily components retain 60 minutes.
+This includes toolchain setup, lint, compilation and the full Rust suite. Product-workflow and test
+deadlines, workload sizes, assertions and serial execution remain independent and unchanged.
+
 Before any release checkout, inline validation accepts only the repository's strict `v`-prefixed
 SemVer 2.0 grammar, including the prohibition on leading zeroes in numeric prerelease identifiers.
 Tag checkouts name the full `refs/tags/<tag>` namespace; later jobs check out the already proven

@@ -54,14 +54,18 @@ jobs:
         include:
           - component: static
             label: Static and Rust
+            timeout_minutes: 90
           - component: flutter
             label: Flutter Tests
+            timeout_minutes: 60
           - component: windows_scan
             label: Windows Scan
+            timeout_minutes: 60
           - component: windows_accessibility
             label: Windows Accessibility
+            timeout_minutes: 60
     runs-on: windows-2025
-    timeout-minutes: 60
+    timeout-minutes: ${{ matrix.timeout_minutes }}
     env:
       CI: "true"
     steps:
