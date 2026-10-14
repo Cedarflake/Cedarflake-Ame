@@ -3,8 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_theme.dart";
 import "../../domain/library_state.dart";
-import "../library_strings.dart";
-import "library_navigation.dart";
+import "../library_primary_task_feedback.dart";
 import "library_task_live_region.dart";
 
 class LibraryTaskSurface extends StatelessWidget {
@@ -27,82 +26,9 @@ class LibraryTaskSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isLibraryUpdate = state.taskKind == LibraryTaskKind.update;
-    final isRootRemoval = state.taskKind == LibraryTaskKind.remove;
-    final isConfirmingPublication =
-        state.primaryScanSnapshot.publication ==
-        LibraryScanPublication.confirmationPending;
-    final isPublishedReload =
-        state.primaryScanSnapshot.publication ==
-        LibraryScanPublication.reloadPending;
-    final title = switch (state.status) {
-      LibraryStatus.choosingDirectory => "正在选择文件夹…",
-      LibraryStatus.scanning =>
-        isLibraryUpdate && state.scanPhase == LibraryScanPhase.finalizing
-            ? "正在检查“${_rootName(state.displayRootPath)}”的图片…"
-            : isLibraryUpdate
-            ? "正在更新“${_rootName(state.displayRootPath)}”…"
-            : state.scanPhase == LibraryScanPhase.finalizing
-            ? "正在检查“${_rootName(state.displayRootPath)}”的图片…"
-            : "正在添加“${_rootName(state.displayRootPath)}”…",
-      LibraryStatus.pausing => "正在暂停…",
-      LibraryStatus.cancelling || LibraryStatus.discarding => "正在停止…",
-      LibraryStatus.removing =>
-        state.isRemovalCommitted
-            ? LibraryStrings.refreshingAfterRemoval(
-                _rootName(state.removingRootDisplayPath),
-              )
-            : LibraryStrings.removingFromAme(
-                _rootName(state.removingRootDisplayPath),
-              ),
-      LibraryStatus.refreshing when isConfirmingPublication =>
-        LibraryStrings.readingScanResult,
-      LibraryStatus.refreshing => "正在加载图片…",
-      LibraryStatus.cancelled => isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹",
-      LibraryStatus.paused => isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹",
-      LibraryStatus.stale => "文件已变化，请重试",
-      LibraryStatus.failed when isConfirmingPublication =>
-        LibraryStrings.scanConfirmationPending,
-      LibraryStatus.failed =>
-        isRootRemoval
-            ? state.isRemovalCommitted
-                  ? LibraryStrings.removedFolderRefreshFailed
-                  : LibraryStrings.removeFolderFailed
-            : isPublishedReload
-            ? LibraryStrings.galleryDisplayReloadPending
-            : isLibraryUpdate
-            ? "更新图库失败"
-            : "添加文件夹失败",
-      LibraryStatus.completed => isLibraryUpdate ? "更新完成" : "添加完成",
-      LibraryStatus.empty => "",
-    };
-    final completedDetail = isLibraryUpdate
-        ? "已检查 ${state.visitedEntries} 个文件 · 图库包含 ${state.stagedAssetCount} 张图片"
-        : "已检查 ${state.visitedEntries} 个文件 · 已添加 ${state.stagedAssetCount} 张图片";
-    final isFinalizing =
-        state.status == LibraryStatus.scanning &&
-        state.scanPhase == LibraryScanPhase.finalizing;
-    final scanningDetail = isFinalizing
-        ? "已检查 ${state.validatedAssetCount} / ${state.validationAssetCount} 张图片 · "
-              "已检查 ${state.visitedEntries} 个文件"
-        : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
-    final String? detail;
-    if (isConfirmingPublication || isPublishedReload) {
-      detail = null;
-    } else if (state.status == LibraryStatus.failed) {
-      detail = LibraryStrings.scanFailureDetail(state.errorMessage);
-    } else if (state.status == LibraryStatus.cancelling ||
-        state.status == LibraryStatus.discarding) {
-      detail = null;
-    } else if (state.status == LibraryStatus.removing) {
-      detail = state.isRemovalCommitted
-          ? LibraryStrings.refreshingAfterRemovalDetail
-          : LibraryStrings.removingFolderDetail;
-    } else {
-      detail = state.status == LibraryStatus.completed
-          ? completedDetail
-          : scanningDetail;
-    }
+    final feedback = LibraryPrimaryTaskFeedback(state);
+    final title = feedback.title;
+    final detail = feedback.detail;
     final surface = Material(
       key: const Key("library-task-surface"),
       elevation: ameNotificationElevation,
@@ -124,7 +50,7 @@ class LibraryTaskSurface extends StatelessWidget {
                   if (state.status == LibraryStatus.scanning ||
                       state.status == LibraryStatus.pausing) ...[
                     if (state.status == LibraryStatus.scanning &&
-                        !isLibraryUpdate)
+                        !feedback.isLibraryUpdate)
                       TextButton(
                         key: const Key("library-pause-button"),
                         onPressed: onPause,
@@ -154,7 +80,7 @@ class LibraryTaskSurface extends StatelessWidget {
                     TextButton(
                       key: const Key("library-retry-button"),
                       onPressed: onRetry,
-                      child: Text(_retryLabel),
+                      child: Text(feedback.retryLabel),
                     ),
                     if (!state.isCommittedRemovalReloadPending &&
                         !state.primaryScanSnapshot.hasUnresolvedPublication)
@@ -167,7 +93,7 @@ class LibraryTaskSurface extends StatelessWidget {
                     TextButton(
                       key: const Key("library-retry-button"),
                       onPressed: onRetry,
-                      child: Text(_retryLabel),
+                      child: Text(feedback.retryLabel),
                     )
                   else if (state.status == LibraryStatus.completed)
                     TextButton(
@@ -202,7 +128,7 @@ class LibraryTaskSurface extends StatelessWidget {
         ),
       ),
     );
-    if (!isRootRemoval) {
+    if (!feedback.isRootRemoval) {
       return surface;
     }
     return LibraryTaskLiveRegion(
@@ -211,24 +137,5 @@ class LibraryTaskSurface extends StatelessWidget {
           "${state.status.name}:${state.isRemovalCommitted}:${state.removingRootId}",
       child: surface,
     );
-  }
-
-  String get _retryLabel {
-    if (state.taskKind == LibraryTaskKind.remove) {
-      return state.isRemovalCommitted ? LibraryStrings.reload : "重试移除";
-    }
-    return switch (state.primaryScanSnapshot.publication) {
-      LibraryScanPublication.confirmationPending =>
-        LibraryStrings.rereadScanResult,
-      LibraryScanPublication.reloadPending => LibraryStrings.reload,
-      _ => LibraryStrings.retry,
-    };
-  }
-
-  static String _rootName(String? path) {
-    if (path == null) {
-      return "图片";
-    }
-    return librarySourceName(path);
   }
 }

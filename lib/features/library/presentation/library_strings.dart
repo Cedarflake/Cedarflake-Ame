@@ -139,6 +139,8 @@ abstract final class LibraryStrings {
     final separator = error.indexOf(":");
     final code = separator < 0 ? error : error.substring(0, separator);
     return switch (code) {
+      "library_update_in_progress" => "另一个文件夹正在更新，结束后再继续。",
+      "library_retained_cancel_failed" => "取消失败，请重试。",
       "catalog_root_consolidation_incomplete" =>
         "上级文件夹没有扫描完整。请检查文件夹能否打开，以及扫描数量是否达到上限。已添加的子文件夹仍会保留。",
       "catalog_root_consolidation_busy" => "子文件夹还有未完成的扫描。请先继续或取消该任务，再添加父文件夹。",

@@ -225,7 +225,8 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
       isResuming: isResuming,
     );
     if (!_admission.tryAcquirePrimary(this)) {
-      const message = "其他图库更新正在运行，请等待更新结束或先取消更新，然后继续此任务。";
+      const message =
+          "library_update_in_progress: 其他图库更新正在运行，请等待更新结束或先取消更新，然后继续此任务。";
       _publish(
         isResuming
             ? _state.copyWith(errorMessage: message)
@@ -349,7 +350,7 @@ class LibraryPrimaryScanLifecycle implements LibraryScanRunListener {
         _publish(
           _state.copyWith(
             status: LibraryStatus.paused,
-            errorMessage: error.toString(),
+            errorMessage: "library_retained_cancel_failed: $error",
           ),
         );
       }

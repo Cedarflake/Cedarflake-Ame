@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
@@ -104,11 +105,18 @@ void main() {
       fixture.scanner.cancelFailure = StateError("catalog write blocked");
       await tester.tap(find.byKey(const Key("library-cancel-button")));
       await tester.pump();
-      expect(find.textContaining("catalog write blocked"), findsOneWidget);
+      expect(find.text("取消失败，请重试。"), findsOneWidget);
+      expect(find.textContaining("catalog write blocked"), findsNothing);
+      expect(fixture.state.errorMessage, contains("catalog write blocked"));
       expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
       expect(find.byKey(const Key("library-cancel-button")), findsOneWidget);
       expect(fixture.state.status, LibraryStatus.paused);
       expect(fixture.scanner.startedRoots, isEmpty);
+      fixture.scanner.cancelFailure = null;
+      await tester.tap(find.byKey(const Key("library-cancel-button")));
+      await tester.pump();
+      expect(find.text("取消失败，请重试。"), findsNothing);
+      expect(find.byType(LibraryTaskSurface), findsNothing);
     },
   );
 
@@ -135,7 +143,11 @@ void main() {
       await tester.pump();
       expect(fixture.state.status, LibraryStatus.paused);
       expect(fixture.state.scanId, retainedScanCheckpoint.scanId);
-      expect(find.textContaining("其他图库更新正在运行"), findsOneWidget);
+      expect(find.text("另一个文件夹正在更新，结束后再继续。"), findsOneWidget);
+      expect(
+        fixture.state.errorMessage,
+        contains("library_update_in_progress"),
+      );
       expect(fixture.scanner.resumedIds, isEmpty);
       expect(tester.takeException(), isNull);
 
@@ -154,7 +166,18 @@ void main() {
       fixture.scanner.failUpdates();
       await tester.pump();
       await tester.pump();
-      expect(find.textContaining("更新夹具失败"), findsOneWidget);
+      expect(
+        find.descendant(of: updateSurface, matching: find.text("更新失败")),
+        findsOneWidget,
+      );
+      expect(find.textContaining("更新夹具失败"), findsNothing);
+      expect(
+        fixture.container
+            .read(libraryUpdateControllerProvider)
+            .tasksByRootId["other"]
+            ?.errorMessage,
+        contains("更新夹具失败"),
+      );
       final retry = find.descendant(
         of: updateSurface,
         matching: find.widgetWithText(TextButton, "重试"),
@@ -270,10 +293,16 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
-      expect(find.textContaining("更新夹具失败"), findsOneWidget);
+      expect(find.text("添加文件夹失败"), findsOneWidget);
+      expect(find.textContaining("更新夹具失败"), findsNothing);
+      expect(fixture.state.errorMessage, contains("更新夹具失败"));
       await tester.tap(find.byKey(const Key("library-retry-button")));
       await tester.pump();
-      expect(find.textContaining("其他图库更新正在运行"), findsOneWidget);
+      expect(find.text("另一个文件夹正在更新，结束后再继续。"), findsOneWidget);
+      expect(
+        fixture.state.errorMessage,
+        contains("library_update_in_progress"),
+      );
       expect(fixture.scanner.startedRoots, ["C:\\Retained", "C:\\Other"]);
       expect(tester.takeException(), isNull);
     },

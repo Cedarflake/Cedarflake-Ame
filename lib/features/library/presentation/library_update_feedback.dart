@@ -29,8 +29,7 @@ class LibraryUpdateFeedback {
         "已检查 ${task.validatedItems} / ${task.validationItemCount} 张图片 · "
             "已检查 ${task.visitedEntries} 个文件",
       LibraryRootUpdatePhase.refreshing => null,
-      LibraryRootUpdatePhase.completed =>
-        "已检查 ${task.visitedEntries} 个文件 · 图库包含 ${task.acceptedItems} 张图片",
+      LibraryRootUpdatePhase.completed => "共 ${task.acceptedItems} 张图片",
       LibraryRootUpdatePhase.refreshFailed =>
         LibraryStrings.scanFailureDetail(task.errorMessage) ?? "扫描已完成。",
       LibraryRootUpdatePhase.failed => LibraryStrings.scanFailureDetail(

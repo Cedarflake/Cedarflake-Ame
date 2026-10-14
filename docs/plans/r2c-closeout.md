@@ -32,6 +32,9 @@ then the affected loading, cancel and retry transitions. Preserve the user's cur
 and the completed viewer/time-rail changes. Use `microsoft-ui-ux`, submit each connected correction
 and let Actions run CI. The prepared cancellation-cache changes remain uncommitted while this UI
 slice takes priority; do not start their build or real-library comparison ahead of it.
+Check three outcomes in the client: immediate feedback for add/pause/continue; a brief successful
+result that gives the image area back; and failures with a working local recovery action whose
+old message clears after recovery. Keep this pass on those workflows rather than unrelated wording.
 
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
@@ -95,6 +98,30 @@ adapter delegates retention to a 49-line owner; its dedicated regression file ha
 feedback owner has 260 production lines and 644 test lines, with no inline tests. Hosted checks
 remain pending. Pause/continue still visibly resets the imported count from 2,318 to zero; preserve
 this exact open incident for the next resumption correction alongside the prepared cancellation work.
+
+Task-feedback follow-up: retained cancellation failures and a Continue blocked by another update
+now have readable feedback while preserving diagnostics and the existing recovery controls.
+Successful import/update feedback expires after five seconds; hover, keyboard focus and accessible
+navigation retain it. Paused, failed, limited and issue-bearing results retain their controls.
+Expiry checks the current root/run identity, so an older result cannot dismiss a new task.
+The native Debug walkthrough pauses at 3,162 accepted images, holds a temporary SQLite writer lock
+without executing writes and exercises a failed Cancel, then releases the lock and cancels; both the
+task and old error disappear. A subsequent 10,000-image import and baseline update each finish
+with their task feedback automatically removed. The client exits normally after 520 seconds;
+original profile/catalog hashes match, and 61.8 MiB of disposable derived storage is removed.
+The reusable corpus stays in `build/test`. No source content is changed.
+
+`LibraryPrimaryTaskFeedback` owns primary task labels; `LibraryTaskFeedback` owns result lifetime
+and callback binding. This preserves the existing independently controlled task rows, composing
+Flutter Focus and MouseRegion rather than replacing them with a single Snackbar. The installed
+Flutter Snackbar implementation and [official lifetime/accessibility API](https://api.flutter.dev/flutter/material/SnackBar-class.html)
+were checked for the transient-feedback behavior. Affected production owners are the 2,101-line
+screen, 697-line lifecycle (error classification only), 141-line primary surface, 152-line lifetime
+owner and 112-line label owner; none has inline tests. The 166-line completion and 339-line
+retained-interaction tests cover identity, independent tasks, focus, hover, accessibility and recovery. Formatting,
+whitespace checks and the Debug build pass; these tests run in Actions. The earlier hosted Flutter
+failures are covered by these feedback corrections. The Rust mixed-load connection-lifetime
+test's five-second P0 visibility failure remains in the performance work; its deadline is unchanged.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named

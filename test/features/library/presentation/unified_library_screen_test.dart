@@ -1000,7 +1000,7 @@ void main() {
     expect(container.read(libraryControllerProvider).scanId, "scan-completed");
     expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
     expect(find.text("添加完成"), findsOneWidget);
-    expect(find.text("已检查 128 个文件 · 已添加 64 张图片"), findsOneWidget);
+    expect(find.text("已添加 64 张图片"), findsOneWidget);
     expect(
       find.byKey(const Key("library-task-dismiss-button")),
       findsOneWidget,

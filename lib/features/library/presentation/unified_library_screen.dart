@@ -46,10 +46,9 @@ import "widgets/library_main_surface.dart";
 import "widgets/library_navigation.dart";
 import "widgets/library_navigation_resize_handle.dart";
 import "widgets/library_query_failure_banner.dart";
-import "widgets/library_task_surface.dart";
+import "widgets/library_task_feedback.dart";
 import "widgets/library_time_navigation.dart";
 import "widgets/library_update_dialog.dart";
-import "widgets/library_update_task_surface.dart";
 import "widgets/library_virtual_gallery_geometry.dart";
 
 class UnifiedLibraryScreen extends ConsumerStatefulWidget {
@@ -602,7 +601,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     );
     final state = ref.watch(libraryControllerProvider);
     final updateState = ref.watch(libraryUpdateControllerProvider);
-    final updateController = ref.read(libraryUpdateControllerProvider.notifier);
     final notifications = ref.watch(ameNotificationControllerProvider);
     _synchronizeLayoutDimensionContext(state.catalogRevision, state.queryId);
     final amePreferences = ref.watch(amePreferencesControllerProvider);
@@ -757,32 +755,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                   alignment: Alignment.bottomCenter,
                   child: Padding(
                     padding: const EdgeInsets.only(bottom: 24),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (showsUpdateTaskSurface)
-                          Flexible(
-                            child: LibraryUpdateTaskSurface(
-                              state: updateState,
-                              onCancel: updateController.cancel,
-                              onRetry: updateController.retry,
-                              onDismiss: updateController.dismiss,
-                              onDismissTerminalTasks:
-                                  updateController.dismissTerminalTasks,
-                            ),
-                          ),
-                        if (showsUpdateTaskSurface && showsLibraryTaskSurface)
-                          const SizedBox(height: 12),
-                        if (showsLibraryTaskSurface)
-                          LibraryTaskSurface(
-                            state: state,
-                            onPause: controller.pauseScan,
-                            onCancel: controller.cancelScan,
-                            onResume: controller.resumePausedScan,
-                            onRetry: _retryLibraryTask,
-                            onDismiss: controller.dismissTaskFeedback,
-                          ),
-                      ],
+                    child: LibraryTaskFeedback(
+                      onRetryPrimary: _retryLibraryTask,
                     ),
                   ),
                 ),
