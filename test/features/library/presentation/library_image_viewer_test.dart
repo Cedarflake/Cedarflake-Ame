@@ -151,12 +151,12 @@ void main() {
     await tester.tap(find.byKey(const Key("viewer-actual-size")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text("400%"), findsOneWidget);
+    expect(find.text("100%"), findsOneWidget);
 
     await tester.tap(find.byKey(const Key("viewer-fit")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text("100%"), findsOneWidget);
+    expect(find.text("25%"), findsOneWidget);
 
     final viewportRect = tester.getRect(
       find.byKey(const Key("library-image-interactive-viewer")),
@@ -270,14 +270,14 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
     expect(previousCount, 1);
     expect(nextCount, 1);
-    expect(find.text("20%"), findsOneWidget);
+    expect(find.text("100%"), findsOneWidget);
 
     await tester.sendKeyEvent(LogicalKeyboardKey.digit0);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pump();
-    expect(find.text("100%"), findsOneWidget);
+    expect(find.text("500%"), findsOneWidget);
     expect(backCount, 1);
   });
 
@@ -313,7 +313,7 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
 
-    expect(find.text("20%"), findsOneWidget);
+    expect(find.text("100%"), findsOneWidget);
     final viewer = find.byKey(const Key("library-image-interactive-viewer"));
     await tester.sendEventToBinding(
       PointerScrollEvent(

@@ -16,7 +16,7 @@ class AmePreferences {
   const AmePreferences({
     this.theme = AmeThemePreference.system,
     this.viewerWheelBehavior = ImageViewerWheelBehavior.zoom,
-    this.viewerOpenBehavior = ImageViewerOpenBehavior.fitWindow,
+    this.viewerOpenBehavior = ImageViewerOpenBehavior.actualSize,
     this.previewLoadingSpeed = PreviewLoadingSpeed.medium,
     this.sidebarWidth = ameDefaultSidebarWidth,
   });

@@ -18,7 +18,7 @@ class LibraryImageViewer extends StatefulWidget {
     required this.onCopyPath,
     required this.onRevealFile,
     this.wheelBehavior = ImageViewerWheelBehavior.zoom,
-    this.openBehavior = ImageViewerOpenBehavior.fitWindow,
+    this.openBehavior = ImageViewerOpenBehavior.actualSize,
     this.onPrevious,
     this.onNext,
     this.position,

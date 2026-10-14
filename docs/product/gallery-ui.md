@@ -406,11 +406,11 @@ While an original image is loading, its progress indicator stays at the center o
 viewport. Zoom, pan and wheel input transform the image or retained preview, never the indicator.
 Loading completion retires the indicator through the current source image's frame lifecycle.
 
-The zoom percentage is relative to the image's fit-to-window presentation: fitting the available
-viewport is 100%, enlargement by one quarter is 125%, and reduction by half is 50%. Portrait images
-use the available height; wider images respect the available width so the whole image remains
-visible. Window resizing recalculates that fitted reference. The explicit `1:1` action remains
-actual source-pixel size and can differ from 100% under this window-relative scale.
+The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
+one quarter is 125%, and reduction by half is 50%. The default opening behavior is actual size,
+so small images are not automatically enlarged to fill the viewport. Fit-to-window remains an
+explicit action or saved preference and preserves the whole image within the available width and
+height; its percentage follows the resulting pixel scale rather than being relabeled as 100%.
 
 ## Temporary task and notification feedback
 

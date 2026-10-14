@@ -9,6 +9,29 @@ import "package:shared_preferences_platform_interface/in_memory_shared_preferenc
 import "package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart";
 
 void main() {
+  test(
+    "defaults to actual size and preserves explicit fit-window preferences",
+    () async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final preferences = SharedPreferencesAsync();
+      final store = SharedPreferencesAmeStore(preferences: preferences);
+      expect(
+        (await store.loadAmePreferences()).viewerOpenBehavior,
+        ImageViewerOpenBehavior.actualSize,
+      );
+      await store.saveAmePreferences(
+        const AmePreferences(
+          viewerOpenBehavior: ImageViewerOpenBehavior.fitWindow,
+        ),
+      );
+      expect(
+        (await store.loadAmePreferences()).viewerOpenBehavior,
+        ImageViewerOpenBehavior.fitWindow,
+      );
+    },
+  );
+
   test("round-trips window, gallery, and presentation preferences", () async {
     SharedPreferencesAsyncPlatform.instance =
         InMemorySharedPreferencesAsync.empty();
@@ -97,7 +120,7 @@ void main() {
           .having(
             (value) => value.viewerOpenBehavior,
             "viewerOpenBehavior",
-            ImageViewerOpenBehavior.fitWindow,
+            ImageViewerOpenBehavior.actualSize,
           )
           .having(
             (value) => value.previewLoadingSpeed,

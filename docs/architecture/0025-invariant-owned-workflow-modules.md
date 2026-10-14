@@ -586,7 +586,7 @@ page failure remain one boundary, with no second decoded page or per-record clon
   `LibraryViewerImage` composes its current source frame with an image-only transformation builder;
   pending-load feedback stays outside that transformed child without another loading-state owner.
   `library_viewer_zoom_geometry.dart` owns fitted versus actual-pixel scale, bounded zoom, slider
-  mapping and window-relative percentage. The viewer retains input, animation and navigation.
+  mapping and source-pixel percentage. The viewer retains input, animation and navigation.
   `local_files/viewer_source_guard.rs` owns the held Windows namespace. Opaque bridge methods
   only translate acquisition and idempotent close. A same-path edit with unchanged size and restored
   modification time must resolve a different stream when its source generation changes.

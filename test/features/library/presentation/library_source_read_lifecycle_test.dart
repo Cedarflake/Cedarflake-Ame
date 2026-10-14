@@ -30,7 +30,7 @@ void main() {
               bufferLoader: fixture.loadBuffer,
               child: Scaffold(
                 body: LibraryImageViewer(
-                  asset: _asset("first"),
+                  asset: _asset("first", width: 4000, height: 2000),
                   onBack: () {},
                   onInformation: () {},
                   onCopyPath: () {},
@@ -57,8 +57,13 @@ void main() {
       await tester.pump(const Duration(milliseconds: 200));
       expect(find.text("125%"), findsOneWidget);
       expect(tester.getRect(indicator), bounds);
+      final transform = tester
+          .widget<InteractiveViewer>(viewport)
+          .transformationController!;
+      final beforePan = transform.value.getTranslation().clone();
       await tester.drag(viewport, const Offset(180, 100));
       await tester.pump();
+      expect(transform.value.getTranslation().x, isNot(beforePan.x));
       expect(tester.getRect(indicator), bounds);
       expect(fixture.reader.opened, ["first"]);
       expect(fixture.reader.leases.single.closed, 0);
@@ -476,7 +481,7 @@ Future<void> _pumpRetirement(WidgetTester tester) async {
   }
 }
 
-LibraryAsset _asset(String id) => LibraryAsset(
+LibraryAsset _asset(String id, {int width = 1, int height = 1}) => LibraryAsset(
   assetId: id,
   locationId: id,
   rootId: "root",
@@ -489,6 +494,6 @@ LibraryAsset _asset(String id) => LibraryAsset(
   modifiedUnixMs: 1,
   sourceRevision: null,
   sourceGeneration: BigInt.one,
-  width: 1,
-  height: 1,
+  width: width,
+  height: height,
 );

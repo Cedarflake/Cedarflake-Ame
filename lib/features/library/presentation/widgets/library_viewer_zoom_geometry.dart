@@ -31,6 +31,9 @@ class LibraryViewerZoomGeometry {
     if (!hasImageDimensions) {
       return _defaultMinimumScale;
     }
+    if (actualSizeScale < 0.01) {
+      return actualSizeScale / 4;
+    }
     return math
         .min(_defaultMinimumScale, actualSizeScale / 4)
         .clamp(0.01, _defaultMinimumScale);
@@ -45,7 +48,7 @@ class LibraryViewerZoomGeometry {
         .clamp(_defaultMaximumScale, 1024);
   }
 
-  double percentageForScale(double scale) => scale * 100;
+  double percentageForScale(double scale) => scale * fitImageScale * 100;
 
   bool isActualSize(double scale) => (scale / actualSizeScale - 1).abs() < 0.01;
 
