@@ -42,18 +42,21 @@ void main() {
 
   test("rejects a result before it enters the preview store", () async {
     final previewer = _ControlledPreviewer();
+    var canPublish = true;
     final published = <String>[];
     final coordinator = LibraryPreviewCoordinator(
       previewer: previewer,
       defaultPreviewEdge: 512,
       maxActive: 1,
-      canPublish: (_) => false,
+      canPublish: (_) => canPublish,
       onPublished: (asset) => published.add(asset.locationId),
     );
     addTearDown(coordinator.dispose);
     final pending = _asset("stale", LibraryPreviewStatus.pending);
 
     coordinator.updateGalleryDemand(visible: [pending]);
+    expect(previewer.requests, [pending.locationId]);
+    canPublish = false;
     previewer.succeed(pending.locationId, _readyAsset("stale"));
     await _flushAsyncWork();
 
@@ -68,7 +71,7 @@ void main() {
     "readmits unchanged visible demand after a rejected completion",
     () async {
       final previewer = _ControlledPreviewer();
-      var canPublish = false;
+      var canPublish = true;
       final published = <String>[];
       final coordinator = LibraryPreviewCoordinator(
         previewer: previewer,
@@ -80,6 +83,8 @@ void main() {
       addTearDown(coordinator.dispose);
       final pending = _asset("returning", LibraryPreviewStatus.pending);
       coordinator.updateGalleryDemand(visible: [pending]);
+      expect(previewer.requests, [pending.locationId]);
+      canPublish = false;
       previewer.succeed(pending.locationId, _readyAsset("returning"));
       await _flushAsyncWork();
       expect(published, isEmpty);
