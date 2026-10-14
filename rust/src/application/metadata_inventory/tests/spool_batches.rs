@@ -28,12 +28,12 @@ fn small_and_empty_directories_share_bounded_batches_and_keep_completed_progress
     let mut ready = false;
     for batch in 0..8 {
         let prior_reads = source_entry_read_count(&fixture.root_path);
-        let prior_opens = source_directory_open_count(&fixture.root_path);
+        let prior_opens = source_spool_open_count(&fixture.root_path);
         let outcome = source
             .prepare_next_page(4_095, &cancellation)
             .expect("bounded source batch");
         let reads = source_entry_read_count(&fixture.root_path);
-        let opens = source_directory_open_count(&fixture.root_path);
+        let opens = source_spool_open_count(&fixture.root_path);
         assert!(reads - prior_reads <= 128);
         assert!(opens - prior_opens <= 16);
         if batch == 0 {
@@ -47,7 +47,7 @@ fn small_and_empty_directories_share_bounded_batches_and_keep_completed_progress
                 "metadata_inventory_cancelled"
             );
             assert_eq!(source_entry_read_count(&fixture.root_path), reads);
-            assert_eq!(source_directory_open_count(&fixture.root_path), opens);
+            assert_eq!(source_spool_open_count(&fixture.root_path), opens);
             cancellation.store(false, std::sync::atomic::Ordering::Release);
         }
         if outcome == MetadataInventorySourcePreparation::Ready {
@@ -62,7 +62,7 @@ fn small_and_empty_directories_share_bounded_batches_and_keep_completed_progress
         "forty small directories must finish within eight batches"
     );
     assert_eq!(source_entry_read_count(&fixture.root_path), 60);
-    assert_eq!(source_directory_open_count(&fixture.root_path), 41);
+    assert_eq!(source_spool_open_count(&fixture.root_path), 41);
     let page = source
         .next_page(4_095, &cancellation)
         .expect("complete durable source page");
@@ -101,5 +101,5 @@ fn raw_batch_respects_a_smaller_requested_source_read_limit() {
         MetadataInventorySourcePreparation::Yielded
     );
     assert_eq!(source_entry_read_count(&fixture.root_path), 7);
-    assert_eq!(source_directory_open_count(&fixture.root_path), 1);
+    assert_eq!(source_spool_open_count(&fixture.root_path), 1);
 }

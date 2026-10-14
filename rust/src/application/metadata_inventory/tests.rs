@@ -677,8 +677,8 @@ fn durable_spool_rejects_a_pending_frontier_replaced_by_an_external_junction() {
     let mut source = open_inventory_source(&fixture, &request.scope, &run, &leased);
     assert_eq!(
         source
-            .prepare_next_page(4_095, &cancellation)
-            .expect("persist root frontier"),
+            .prepare_next_page(1, &cancellation)
+            .expect("persist the root entry before opening its child"),
         MetadataInventorySourcePreparation::Yielded
     );
 
@@ -1995,62 +1995,34 @@ fn nested_durable_spool_orders_directories_and_never_replays_a_completed_parent(
     let run_id = metadata_inventory_run_id(&lease);
     authorize_leased_containment_recovery(&mut fixture, &lease, &run_id, 2_000);
     reset_source_enumeration_instrumentation(&fixture.root_path);
+    let page = process_leased_metadata_inventory_change_with_retained_source(
+        &mut fixture.catalog,
+        &root,
+        &lease,
+        MetadataInventoryRecoveryExecution::new(
+            2_000,
+            4_095,
+            policy,
+            MetadataInventoryWorkerControl::without_progress(&AtomicBool::new(false)),
+        ),
+        None,
+    )
+    .expect("capture the complete small-directory quantum");
+    assert!(!page.report.inventory.is_complete);
+    drop(page.retained_source);
+    let run = fixture
+        .catalog
+        .load_metadata_inventory_run(&run_id)
+        .expect("load captured nested run")
+        .expect("nested run");
+    assert!(
+        !run.absence_authority,
+        "raw enumeration alone cannot authorize absence"
+    );
+    let catalog_path = fixture.catalog.catalog_path().to_path_buf();
+    fixture.catalog = SqliteCatalog::open(catalog_path)
+        .expect("reopen after all four source directories completed");
     let mut retained = None;
-
-    for directory_index in 0..4_i64 {
-        let observed_unix_ms = 2_000_i64.saturating_add(directory_index);
-        let page = process_leased_metadata_inventory_change_with_retained_source(
-            &mut fixture.catalog,
-            &root,
-            &lease,
-            MetadataInventoryRecoveryExecution::new(
-                observed_unix_ms,
-                4_095,
-                policy,
-                MetadataInventoryWorkerControl::without_progress(&AtomicBool::new(false)),
-            ),
-            retained,
-        )
-        .expect("enumerate one nested source directory");
-        assert!(!page.report.inventory.is_complete);
-        retained = page.retained_source;
-        let run = fixture
-            .catalog
-            .load_metadata_inventory_run(&run_id)
-            .expect("load nested run")
-            .expect("nested run");
-        assert!(
-            !run.absence_authority,
-            "absence must remain untrusted while any source directory is unfinished"
-        );
-        if directory_index == 0 {
-            assert_eq!(source_entry_read_count(&fixture.root_path), 3);
-            assert_eq!(source_spool_open_count(&fixture.root_path), 1);
-            drop(retained.take());
-            let catalog_path = fixture.catalog.catalog_path().to_path_buf();
-            fixture.catalog = SqliteCatalog::open(catalog_path)
-                .expect("reopen current v27 catalog with completed parent spool");
-        } else if directory_index == 1 {
-            assert_eq!(
-                source_entry_read_count(&fixture.root_path),
-                5,
-                "reopening after the parent completed must not reread its three entries"
-            );
-            assert_eq!(source_spool_open_count(&fixture.root_path), 2);
-        }
-        if directory_index < 3 {
-            lease = fixture
-                .catalog
-                .lease_authoritative_library_change(
-                    &fixture.root_id,
-                    LibraryRootGeneration::initial(),
-                    observed_unix_ms.saturating_add(1),
-                    policy,
-                )
-                .expect("lease next nested directory")
-                .expect("next nested directory");
-        }
-    }
 
     assert_eq!(source_entry_read_count(&fixture.root_path), 7);
     assert_eq!(source_spool_open_count(&fixture.root_path), 4);
