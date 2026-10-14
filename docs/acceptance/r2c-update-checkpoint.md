@@ -754,3 +754,17 @@ placeholders remain unhydrated. No source files, user copy or layout are changed
 After verifying process exit and restored hashes, explicit contained-path and reparse checks precede
 removal of 54 disposable files totaling 455,630,955 bytes. The reusable sources, templates, manifest,
 oracle and fixture remain in `build/test`, alongside the current Debug and Release build outputs.
+
+## Native picker discovery in hosted verification
+
+Run [38647442080](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38647442080) completes
+three Windows scan scenarios but fails the picker-cancellation test's final semantics-handle check.
+The helper traversed the Flutter window through UI Automation to find the native dialog. The pinned
+Flutter binding retains a platform-owned semantics handle when that traversal enables accessibility;
+the test then observes a handle created after its starting baseline. Native dialog discovery now uses
+[EnumWindows](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-enumwindows),
+filtered to the target process, visible `#32770` class and a single match. Existing control IDs,
+button invocation, action deadlines and picker-result assertions remain. A new boundary assertion
+requires the cancellation helper to preserve the actual platform semantics-enabled state. Dedicated
+accessibility tests keep their existing real UI Automation coverage. PowerShell parsing, embedded
+C# compilation, Dart formatting and diff checks pass; the native workflow runs in Actions.

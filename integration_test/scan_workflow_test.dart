@@ -1,5 +1,6 @@
 import "dart:convert";
 import "dart:io";
+import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/bootstrap/library_synchronization_lifecycle_owner.dart";
@@ -95,6 +96,8 @@ void main() {
       ),
     );
 
+    final platformSemanticsBeforePicker =
+        ui.PlatformDispatcher.instance.semanticsEnabled;
     final pickerAutomation = await startNativeDirectoryPickerAutomation(
       NativeDirectoryPickerAction.cancel,
     );
@@ -119,6 +122,12 @@ void main() {
     final automationError = await error;
     expect(exitCode, 0, reason: "$automationOutput\n$automationError");
     expect(automationOutput, contains("NATIVE_PICKER_CANCELLED"));
+    expect(
+      ui.PlatformDispatcher.instance.semanticsEnabled,
+      platformSemanticsBeforePicker,
+      reason:
+          "Native picker discovery must preserve platform semantics ownership",
+    );
 
     await _pumpUntil(
       tester,
