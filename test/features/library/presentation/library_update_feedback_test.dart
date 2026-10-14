@@ -49,8 +49,6 @@ void main() {
   testWidgets("refresh retry announces loading and clears its old failure", (
     tester,
   ) async {
-    final semantics = tester.ensureSemantics();
-    addTearDown(semantics.dispose);
     final task = ValueNotifier(
       _task(
         LibraryRootUpdatePhase.refreshFailed,

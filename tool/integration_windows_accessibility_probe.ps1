@@ -54,6 +54,7 @@ $removeFromAmeName = (
     (-join [char[]](0x4E2D, 0x79FB, 0x9664))
 )
 $copyPathName = -join [char[]](0x590D, 0x5236, 0x8DEF, 0x5F84)
+$reopenImageName = -join [char[]](0x91CD, 0x65B0, 0x6253, 0x5F00)
 $openInExplorerName = -join [char[]](
     0x5728,
     0x6587,
@@ -379,7 +380,7 @@ function Get-AmeWindowsUiaPhaseFailure {
                         ControlType = "ControlType.Button"
                     },
                     @{
-                        Name = (-join [char[]](0x91CD, 0x65B0, 0x6253, 0x5F00))
+                        Name = $reopenImageName
                         ControlType = "ControlType.Button"
                     }
                 )
@@ -411,7 +412,7 @@ function Get-AmeWindowsUiaPhaseFailure {
                         ControlType = "ControlType.Button"
                     },
                     @{
-                        Name = (-join [char[]](0x91CD, 0x8BD5))
+                        Name = $reopenImageName
                         ControlType = "ControlType.Button"
                     }
                 )
