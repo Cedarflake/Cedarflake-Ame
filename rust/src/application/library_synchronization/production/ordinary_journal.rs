@@ -22,6 +22,8 @@ const WORKER: &str =
     "application::library_synchronization::production::ordinary_journal::ordinary_client_worker";
 const PHASE_LIMIT: Duration = Duration::from_secs(60);
 
+mod fixture_capability;
+
 fn write_png(path: &Path, color: [u8; 3]) {
     fs::create_dir_all(path.parent().expect("fixture parent")).expect("fixture directory");
     image::RgbImage::from_pixel(32, 24, image::Rgb(color))
@@ -111,8 +113,7 @@ fn report_worker_failure(log_path: &Path, phase: &str) -> String {
 
 #[test]
 fn real_journal_converges_across_process_exit_and_unchanged_restart() {
-    let directory = tempfile::tempdir_in(std::env::current_dir().expect("working directory"))
-        .expect("owned NTFS fixture");
+    let directory = fixture_capability::journal_capable_fixture();
     let source = directory.path().join("source");
     for (name, color) in [
         ("delete.png", [180, 20, 20]),
