@@ -58,8 +58,12 @@ Follow-up presentation changes add the broken-image icon to the fallback notice,
 directory picker's confirmation button, and make the empty gallery follow the current import
 state. Active import no longer includes paused/cancelled instructions; paused, cancelled and
 failed states show their applicable next action. `LibraryFirstImportFeedback` owns this copy and
-keeps a different selected folder independent of the primary task. Hosted checks for these
-follow-ups remain pending before resuming cancellation performance.
+keeps a different selected folder independent of the primary task. The `c6d859b` Release follow-up
+displayed the localized picker, active/pausing/paused/resumed gallery copy and the fallback icon
+with its reachable Reopen button. Successful reopening cleared both icon and failure text. It
+exited normally after 158 seconds, restored the original profile and catalog hashes, and removed
+its 41 disposable derived files (32 MiB). Hosted checks for these follow-ups remain pending before
+resuming cancellation performance.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named
