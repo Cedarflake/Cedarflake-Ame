@@ -3,6 +3,9 @@ use std::sync::{Arc, mpsc};
 use std::thread;
 use std::time::Duration;
 
+use crate::domain::LibraryChangeId;
+
+use super::super::attach_recovery_window_if_available;
 use super::*;
 
 const ROOT: &str = "opening-root";
