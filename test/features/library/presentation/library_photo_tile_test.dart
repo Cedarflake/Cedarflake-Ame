@@ -382,6 +382,7 @@ void main() {
       }
 
       expect(find.text(LibraryStrings.previewUpdateRequired), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
       expect(
         find.bySemanticsLabel(LibraryStrings.previewUpdateRequired),
         findsOneWidget,
@@ -394,6 +395,7 @@ void main() {
       await tester.pump();
       await tester.pump();
       expect(find.text(LibraryStrings.previewUpdateRequired), findsOneWidget);
+      expect(find.byType(Image), findsNothing);
     },
     timeout: const Timeout(Duration(seconds: 30)),
   );

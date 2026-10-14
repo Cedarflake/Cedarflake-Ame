@@ -230,6 +230,17 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       MediaQuery.devicePixelRatioOf(context),
     );
     final previewEdge = _requestedPreviewEdge(context);
+    if (_isPreviewUpdateRequired) {
+      return LibraryPreviewFeedback.failed(
+        locationId: asset.locationId,
+        updateRequired: true,
+        onRetry: () => _startPreviewRetry(
+          asset,
+          cacheWidth: cacheWidth,
+          previewEdge: previewEdge,
+        ),
+      );
+    }
     return Image.file(
       File(asset.previewPath),
       // Same-path repair must retire the failed image stream, even when it completes before
