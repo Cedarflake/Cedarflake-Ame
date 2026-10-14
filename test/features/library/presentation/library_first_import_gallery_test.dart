@@ -29,6 +29,9 @@ void main() {
     expect(find.byKey(const Key("library-empty-state")), findsNothing);
     expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
     expect(fixture.scanner.startedRoots, isEmpty);
+    expect(find.text(LibraryStrings.firstImportPaused), findsOneWidget);
+    expect(find.text(LibraryStrings.firstImportPausedDetail), findsOneWidget);
+    expect(find.text(LibraryStrings.firstImportInProgress), findsNothing);
 
     await tester.enterText(find.byType(SearchBar), "missing.jpg");
     await tester.pump(const Duration(milliseconds: 400));
@@ -60,6 +63,8 @@ void main() {
     expect(find.byKey(const Key("library-first-import-state")), findsOneWidget);
     expect(find.text(LibraryStrings.noSourceResults), findsNothing);
     expect(find.byKey(const Key("library-resume-button")), findsNothing);
+    expect(find.text(LibraryStrings.firstImportGalleryDetail), findsOneWidget);
+    expect(find.text(LibraryStrings.firstImportPausedDetail), findsNothing);
   });
 
   testWidgets("Continue keeps incomplete feedback until catalog publication", (
@@ -71,6 +76,12 @@ void main() {
     expect(fixture.scanner.resumedIds, [retainedScanCheckpoint.scanId]);
     expect(find.byKey(const Key("library-first-import-state")), findsOneWidget);
     expect(find.text(LibraryStrings.noSourceResults), findsNothing);
+    expect(find.text(LibraryStrings.firstImportInProgress), findsOneWidget);
+    expect(
+      find.text(LibraryStrings.firstImportInProgressDetail),
+      findsOneWidget,
+    );
+    expect(find.text(LibraryStrings.firstImportPausedDetail), findsNothing);
 
     fixture.catalog.didPublish = true;
     fixture.scanner.completeScan(retainedScanCheckpoint.scanId);
@@ -78,6 +89,7 @@ void main() {
     await tester.pump();
     expect(find.byKey(const Key("library-first-import-state")), findsNothing);
     expect(find.byType(LibraryGalleryWall), findsOneWidget);
+    expect(find.text(LibraryStrings.firstImportInProgressDetail), findsNothing);
     expect(
       fixture.container.read(libraryControllerProvider).assets,
       everyElement(

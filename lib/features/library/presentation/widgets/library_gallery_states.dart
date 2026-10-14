@@ -3,6 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
+import "../library_first_import_feedback.dart";
 import "../library_strings.dart";
 
 class EmptyLibraryGallery extends StatelessWidget {
@@ -23,15 +24,27 @@ class EmptyLibraryGallery extends StatelessWidget {
       return const GalleryLoadingState();
     }
     if (_isAwaitingPublishedDisplay) {
-      return _PendingLibraryGallery(
-        state.primaryScanSnapshot.publication ==
-                LibraryScanPublication.confirmationPending
-            ? _PendingGalleryReason.confirmation
-            : _PendingGalleryReason.displayReload,
+      if (state.primaryScanSnapshot.publication ==
+          LibraryScanPublication.confirmationPending) {
+        return const _PendingLibraryGallery(
+          "library-scan-confirmation-state",
+          title: LibraryStrings.scanConfirmationPending,
+          detail: LibraryStrings.scanConfirmationDetail,
+        );
+      }
+      return const _PendingLibraryGallery(
+        "library-published-reload-state",
+        title: LibraryStrings.galleryDisplayReloadPending,
+        detail: LibraryStrings.galleryDisplayReloadDetail,
       );
     }
     if (_hasUnpublishedSource) {
-      return const _PendingLibraryGallery(_PendingGalleryReason.firstImport);
+      final feedback = LibraryFirstImportFeedback.fromState(state);
+      return _PendingLibraryGallery(
+        "library-first-import-state",
+        title: feedback.title,
+        detail: feedback.detail,
+      );
     }
     if (state.roots.isNotEmpty) {
       return NoGalleryResults(query: state.query);
@@ -82,34 +95,21 @@ class EmptyLibraryGallery extends StatelessWidget {
   }
 }
 
-enum _PendingGalleryReason { firstImport, confirmation, displayReload }
-
 class _PendingLibraryGallery extends StatelessWidget {
-  const _PendingLibraryGallery(this.reason);
+  const _PendingLibraryGallery(
+    this.stateKey, {
+    required this.title,
+    required this.detail,
+  });
 
-  final _PendingGalleryReason reason;
+  final String stateKey;
+  final String title;
+  final String detail;
 
   @override
   Widget build(BuildContext context) {
-    final (key, title, detail) = switch (reason) {
-      _PendingGalleryReason.firstImport => (
-        "library-first-import-state",
-        LibraryStrings.firstImportIncomplete,
-        LibraryStrings.firstImportGalleryDetail,
-      ),
-      _PendingGalleryReason.confirmation => (
-        "library-scan-confirmation-state",
-        LibraryStrings.scanConfirmationPending,
-        LibraryStrings.scanConfirmationDetail,
-      ),
-      _PendingGalleryReason.displayReload => (
-        "library-published-reload-state",
-        LibraryStrings.galleryDisplayReloadPending,
-        LibraryStrings.galleryDisplayReloadDetail,
-      ),
-    };
     return Center(
-      key: Key(key),
+      key: Key(stateKey),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
         child: Padding(

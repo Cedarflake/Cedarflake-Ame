@@ -10,7 +10,7 @@ class FileSelectorDirectoryPicker implements DirectoryPicker {
 
   @override
   Future<String?> pickDirectory() {
-    return getDirectoryPath(confirmButtonText: "Import folder");
+    return getDirectoryPath(confirmButtonText: "导入文件夹");
   }
 }
 

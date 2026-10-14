@@ -37,14 +37,29 @@ Synchronization copy now separates automatic retry, incomplete updates and live-
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
 states, and a display-only retry is labeled Reload. `LibraryUpdateFeedback` owns the related task
 labels and accessibility text; the application still owns commands and state transitions. Hosted
-checks and the focused client walkthrough remain pending. Primary-task result recovery now labels
+checks remain pending. Primary-task result recovery now labels
 the action Reread and changes the task/sidebar to Reading while it runs; published display recovery
 uses Reload. Original-image Retry now sits outside image gestures so its first click does not
 wait for double-tap recognition; image double-tap zoom retains coverage. A failed original only
 announces a displayed fallback after preview pixels decode. Missing/corrupt fallback files keep
 the original-image failure and Reopen action; successful retry clears both. Preview and page retry
-labels describe loading, including automatic preview repair. Verify these connected UI changes
-through hosted checks and the focused client walkthrough before resuming cancellation performance.
+labels describe loading, including automatic preview repair. The native Release walkthrough of
+`a6cf1d5` reused `build/test`'s 10,000-image corpus: import paused and resumed, completion displayed
+all images, and an exclusive read-only handle produced original-image failure with a visible
+preview. Zoom/pan retained the recovery action; releasing the handle and clicking Reopen once
+displayed the original and cleared the failure. The client exited normally after 360 seconds;
+original settings, preferences and catalog components matched their pre-run hashes. The selected
+source's content and modification time were unchanged. Missing/corrupt fallback cases remain
+covered by the hosted widget scenarios, outside this native walkthrough. The run's disposable
+catalog, previews and restored-profile backups were removed (41 files, 32 MiB); the existing
+sources, templates and manifest remain available in `build/test`.
+
+Follow-up presentation changes add the broken-image icon to the fallback notice, localize the
+directory picker's confirmation button, and make the empty gallery follow the current import
+state. Active import no longer includes paused/cancelled instructions; paused, cancelled and
+failed states show their applicable next action. `LibraryFirstImportFeedback` owns this copy and
+keeps a different selected folder independent of the primary task. Hosted checks for these
+follow-ups remain pending before resuming cancellation performance.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named

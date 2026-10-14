@@ -34,11 +34,17 @@ abstract final class LibraryStrings {
   static const galleryDisplayReloadPending = "图库已更新，等待刷新显示";
   static const galleryDisplayReloadDetail = "图库已经更新，请在任务面板点击“重新加载”查看最新内容。";
   static const firstImportIncomplete = "尚未完成添加";
+  static const firstImportInProgress = "正在添加图片";
+  static const firstImportInProgressDetail = "添加完成后，图片会显示在这里。";
+  static const firstImportPaused = "已暂停添加";
+  static const firstImportPausedDetail = "在任务面板点击“继续”，接着添加图片。";
+  static const firstImportCancellingDetail = "取消后可以重新添加这个文件夹。";
+  static const firstImportCancelled = "已取消添加";
+  static const firstImportRetryDetail = "请在任务面板查看详情，然后重试。";
   static const firstImportAwaitingUser = "等待手动继续或重新添加";
   static const firstImportRequiredDetail =
       "此文件夹尚未完成首次添加，Ame 不会自动继续扫描。有可恢复任务时，请在任务面板点击“继续”；已取消的任务需要重新添加文件夹。";
-  static const firstImportGalleryDetail =
-      "图片会在首次添加完成后显示。请在任务面板中查看进度或继续已暂停的任务；已取消的任务需要重新添加文件夹。";
+  static const firstImportGalleryDetail = "重新添加这个文件夹，把图片加入图库。";
   static const library = "图库";
   static const import = "导入";
   static const searchHint = "在图库中搜索";
