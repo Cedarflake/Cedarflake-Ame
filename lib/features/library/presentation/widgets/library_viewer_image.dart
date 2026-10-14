@@ -149,6 +149,8 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    const Icon(Symbols.broken_image_rounded, size: 20),
+                    const SizedBox(width: 8),
                     const Flexible(
                       child: Text(LibraryStrings.originalImagePreviewFallback),
                     ),
