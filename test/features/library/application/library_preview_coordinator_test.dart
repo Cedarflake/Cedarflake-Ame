@@ -252,38 +252,75 @@ void main() {
     },
   );
 
-  test("an offline root retains its existing automatic cooldown", () async {
-    final previewer = _ControlledPreviewer();
-    final ready = _readyAsset("offline-ready");
-    final coordinator = LibraryPreviewCoordinator(
-      previewer: previewer,
-      defaultPreviewEdge: 512,
-      maxActive: 1,
-      canPublish: (_) => true,
-      onPublished: (_) {},
-    );
-    addTearDown(coordinator.dispose);
-    coordinator.updateGalleryDemand(visible: [ready]);
-    previewer.fail(
-      ready.locationId,
-      const LibraryPreviewFailure(
-        code: "preview_root_unavailable",
-        message: "Offline root",
-      ),
-    );
-    await _flushAsyncWork();
-    coordinator.updateGalleryDemand(visible: [ready]);
-    expect(previewer.requests, hasLength(1));
-    await Future<void>.delayed(const Duration(milliseconds: 5100));
-    coordinator.updateGalleryDemand(visible: [ready]);
-    expect(previewer.requests, hasLength(2));
-    previewer.succeed(ready.locationId, ready, attempt: 1);
-    await _flushAsyncWork();
-    expect(
-      coordinator.resolve(ready).previewStatus,
-      LibraryPreviewStatus.ready,
-    );
-  });
+  test(
+    "an offline root recovers ready and first previews after cooldown",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final ready = _readyAsset("offline-ready");
+      final first = _asset("offline-first", LibraryPreviewStatus.pending);
+      final peer = _asset("offline-peer", LibraryPreviewStatus.pending);
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      coordinator.updateGalleryDemand(visible: [first]);
+      coordinator.updateGalleryDemand(visible: [first, peer, ready]);
+      previewer.fail(
+        first.locationId,
+        const LibraryPreviewFailure(
+          code: "preview_root_unavailable",
+          message: "Offline root",
+        ),
+      );
+      await _flushAsyncWork();
+      expect(
+        coordinator.resolve(first).previewIssueCode,
+        "preview_root_unavailable",
+      );
+      expect(
+        coordinator.resolve(peer).previewIssueCode,
+        "preview_root_unavailable",
+      );
+      expect(
+        coordinator.resolve(ready).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+      coordinator.updateGalleryDemand(visible: [first, peer, ready]);
+      expect(previewer.requests, hasLength(1));
+      await Future<void>.delayed(const Duration(milliseconds: 5100));
+      coordinator.updateGalleryDemand(visible: [first, peer, ready]);
+      expect(previewer.requests, hasLength(2));
+      for (var index = 0; index < 20; index++) {
+        coordinator.updateGalleryDemand(visible: [first, peer, ready]);
+      }
+      expect(previewer.requests, [first.locationId, first.locationId]);
+      expect(previewer.forcedRequests, [false, true]);
+      previewer.succeed(
+        first.locationId,
+        _readyAsset("offline-first"),
+        attempt: 1,
+      );
+      await _flushAsyncWork();
+      expect(previewer.requests.last, peer.locationId);
+      expect(previewer.forcedRequests.last, isTrue);
+      previewer.succeed(peer.locationId, _readyAsset("offline-peer"));
+      await _flushAsyncWork();
+      expect(previewer.requests.last, ready.locationId);
+      previewer.succeed(ready.locationId, ready);
+      await _flushAsyncWork();
+      for (final asset in [first, peer, ready]) {
+        expect(
+          coordinator.resolve(asset).previewStatus,
+          LibraryPreviewStatus.ready,
+        );
+        expect(coordinator.resolve(asset).previewIssueCode, isNull);
+      }
+    },
+  );
 
   test(
     "unchanged demand does not duplicate active, pending or ready work",
@@ -493,6 +530,7 @@ Future<void> _flushAsyncWork() async {
 class _ControlledPreviewer implements LibraryPreviewer {
   final List<String> requests = [];
   final List<int> previewEdges = [];
+  final List<bool> forcedRequests = [];
   final Map<String, List<Completer<LibraryAsset>>> _attempts = {};
 
   @override
@@ -508,6 +546,7 @@ class _ControlledPreviewer implements LibraryPreviewer {
   }) {
     requests.add(locationId);
     previewEdges.add(previewEdge);
+    forcedRequests.add(force);
     final completer = Completer<LibraryAsset>();
     _attempts.putIfAbsent(locationId, () => []).add(completer);
     return completer.future;

@@ -3096,3 +3096,21 @@ Accessibility includes retained offscreen children, so its first child is not us
 position oracle. The 22.512-second timing lifetime and 146.113-second browsing lifetime close
 normally, restore the original profile and retain 65130 locations, 51 October items and unchanged
 scan/inventory counts. This does not close the historical continuous-frame Retry/jump attribution.
+
+## First-preview recovery after temporary root unavailability
+
+Source inspection on 2026-10-14 identifies a separate recovery defect: the root fuse expires after
+five seconds, but the coordinator retains a failed first preview and the queue rejects ordinary
+demand for that failed asset. The existing cooldown test covered an already-ready artifact only.
+The root-failure owner now returns typed blocked, allowed or recovering admission; only a retained
+`preview_root_unavailable` failure can acquire automatic retry after the fuse releases. Identity
+failures and arbitrary image failures retain their existing explicit-retry boundary. Active/pending
+deduplication, source generations, publication authority and root cooldown remain in force.
+
+The expanded coordinator regression covers the first failed preview, a blocked sibling, retained
+ready pixels, repeated demand and failure-state removal on success. Admission regressions retain
+manual recovery for unproven, changed and missing root identities. Root admission is 99 production
+lines, queue 683 production lines, with no inline tests; coordinator and admission test owners are
+562 and 146 dedicated test lines. Owned Dart formatting and diff checks pass; hosted execution and
+affected native recovery verification remain pending. No source media or original catalog was read
+or changed during this implementation.

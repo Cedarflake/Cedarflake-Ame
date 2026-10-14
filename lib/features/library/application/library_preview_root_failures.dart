@@ -1,6 +1,24 @@
 import "../domain/library_models.dart";
 import "library_previewer.dart";
 
+sealed class LibraryPreviewRootAdmission {
+  const LibraryPreviewRootAdmission();
+}
+
+final class LibraryPreviewRootAllowed extends LibraryPreviewRootAdmission {
+  const LibraryPreviewRootAllowed();
+}
+
+final class LibraryPreviewRootBlocked extends LibraryPreviewRootAdmission {
+  const LibraryPreviewRootBlocked(this.failure);
+
+  final LibraryPreviewFailure failure;
+}
+
+final class LibraryPreviewRootRecovering extends LibraryPreviewRootAdmission {
+  const LibraryPreviewRootRecovering();
+}
+
 /// Owns root failure admission and its scan-scoped retry lifetime.
 class LibraryPreviewRootFailures {
   LibraryPreviewRootFailures({
@@ -21,21 +39,25 @@ class LibraryPreviewRootFailures {
   final Stopwatch _clock = Stopwatch()..start();
   final Map<String, _BlockedPreviewRoot> _roots = {};
 
-  LibraryPreviewFailure? failureFor(
+  LibraryPreviewRootAdmission admit(
     LibraryAsset asset, {
     required bool explicitRetry,
   }) {
     final blocked = _roots[asset.rootId];
-    if (blocked == null) {
-      return null;
-    }
-    if (blocked.activeScanId != asset.activeScanId ||
-        explicitRetry ||
-        blocked.hasCooledDown(_clock.elapsed)) {
+    if (blocked != null) {
+      if (blocked.activeScanId == asset.activeScanId &&
+          !explicitRetry &&
+          !blocked.hasCooledDown(_clock.elapsed)) {
+        return LibraryPreviewRootBlocked(blocked.failure);
+      }
       _roots.remove(asset.rootId);
-      return null;
     }
-    return blocked.failure;
+    if (!explicitRetry &&
+        asset.previewStatus == LibraryPreviewStatus.failed &&
+        asset.previewIssueCode == "preview_root_unavailable") {
+      return const LibraryPreviewRootRecovering();
+    }
+    return const LibraryPreviewRootAllowed();
   }
 
   bool record(LibraryAsset asset, LibraryPreviewFailure failure) {

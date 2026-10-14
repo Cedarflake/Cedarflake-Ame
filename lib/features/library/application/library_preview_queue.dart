@@ -176,25 +176,26 @@ class LibraryPreviewQueue {
       completion?.complete(LibraryPreviewRequestOutcome.disposed);
       return;
     }
-    final rootFailure = _rootFailures.failureFor(asset, explicitRetry: retry);
-    if (rootFailure != null) {
-      _publishBlockedAsset(asset, rootFailure);
-      completion?.complete(_rootFailureOutcome(rootFailure));
+    final admission = _rootFailures.admit(asset, explicitRetry: retry);
+    if (admission case LibraryPreviewRootBlocked(:final failure)) {
+      _publishBlockedAsset(asset, failure);
+      completion?.complete(_rootFailureOutcome(failure));
       return;
     }
+    final shouldRetry = retry || admission is LibraryPreviewRootRecovering;
     if (asset.previewStatus == LibraryPreviewStatus.ready &&
-        !retry &&
+        !shouldRetry &&
         !ensureSize) {
       return;
     }
-    if (asset.previewStatus == LibraryPreviewStatus.failed && !retry) {
+    if (asset.previewStatus == LibraryPreviewStatus.failed && !shouldRetry) {
       return;
     }
 
     final source = LibraryPreviewSourceIdentity.fromAsset(asset);
     final pending = _pending[asset.locationId];
     if (pending != null &&
-        (!retry || pending.retry) &&
+        (!shouldRetry || pending.retry) &&
         pending.source == source &&
         pending.previewEdge >= requestedEdge) {
       if (priority.index > pending.priority.index) {
@@ -206,7 +207,7 @@ class LibraryPreviewQueue {
 
     final active = _active[asset.locationId];
     if (active != null &&
-        (!retry || active.retry) &&
+        (!shouldRetry || active.retry) &&
         active.contextGeneration == _contextGeneration &&
         active.source == source &&
         active.previewEdge >= requestedEdge) {
@@ -228,7 +229,7 @@ class LibraryPreviewQueue {
       sequence: _nextSequence++,
       generation: (_latestGeneration[asset.locationId] ?? 0) + 1,
       contextGeneration: _contextGeneration,
-      retry: retry,
+      retry: shouldRetry,
       previewEdge: requestedEdge,
     );
     _attachCompletion(request, completion);

@@ -7,6 +7,36 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   for (final code in [
+    "preview_root_identity_unproven",
+    "preview_root_identity_changed",
+    "preview_root_not_found",
+  ]) {
+    test("availability recovery cannot automatically retry $code", () async {
+      final previewer = _DeferredPreviewer();
+      final published = <LibraryAsset>[];
+      final queue = LibraryPreviewQueue(
+        previewer: previewer,
+        previewEdge: 512,
+        maxActive: 1,
+        onResult: published.add,
+        rootUnavailableCooldown: Duration.zero,
+      );
+      addTearDown(queue.dispose);
+      queue.request(_asset("blocked"));
+      previewer.fail("blocked", code);
+      await Future<void>.delayed(Duration.zero);
+      queue.request(published.single);
+      queue.request(_asset("sibling"));
+      expect(previewer.requests, ["blocked"]);
+      expect(published.last.previewIssueCode, code);
+      final retry = queue.retry(published.first);
+      expect(previewer.requests, ["blocked", "blocked"]);
+      previewer.succeed("blocked");
+      expect(await retry, LibraryPreviewRequestOutcome.ready);
+    });
+  }
+
+  for (final code in [
     "preview_root_unavailable",
     "preview_root_identity_unproven",
     "preview_root_identity_changed",
