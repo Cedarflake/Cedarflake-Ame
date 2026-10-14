@@ -5,6 +5,7 @@ import "dart:io";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_preview_queue.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
@@ -397,87 +398,118 @@ void main() {
     timeout: const Timeout(Duration(seconds: 30)),
   );
 
-  for (final replacesLocation in [false, true]) {
-    testWidgets(
-      "retires a queued repair when the ${replacesLocation ? "location" : "source generation"} changes",
-      (tester) async {
-        final directory = Directory.systemTemp.createTempSync(
-          "ame-preview-callback-",
-        );
-        addTearDown(() => directory.deleteSync(recursive: true));
-        final previewFile = File(
-          "${directory.path}${Platform.pathSeparator}ready.png",
-        );
-        previewFile.writeAsBytesSync(
-          base64Decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-          ),
-        );
-        final asset = _readyAsset(previewFile.path);
-        final snapshot = LibrarySnapshot(
-          catalogPath: "C:\\AmeData\\ame.sqlite3",
-          revision: BigInt.one,
-          queryId: "query-1",
-          roots: const [],
-          assets: [asset],
-        );
-        final catalog = _FakeCatalog(snapshot);
-        final initialState = LibraryState.fromSnapshot(snapshot);
-        final previewer = _RecordingPreviewer(asset);
-        Widget buildTile(LibraryAsset displayed) {
-          return ProviderScope(
-            overrides: [
-              initialLibraryStateProvider.overrideWithValue(initialState),
-              libraryCatalogProvider.overrideWithValue(catalog),
-              libraryScannerProvider.overrideWithValue(const _FakeScanner()),
-              libraryPreviewerProvider.overrideWithValue(previewer),
-            ],
-            child: MaterialApp(
-              home: Scaffold(
-                body: LibraryPhotoTile(
-                  asset: displayed,
-                  width: 160,
-                  height: 120,
-                  isSelecting: false,
-                  isSelected: false,
-                  onOpen: (_) {},
-                  onToggleSelection: (_) {},
-                  onViewInformation: (_) {},
-                  onCopyPath: (_) {},
-                  onRevealFile: (_) {},
-                ),
+  for (final replacementKind in [
+    "location",
+    "source generation",
+    "preview artifact",
+  ]) {
+    testWidgets("retires a queued repair when the $replacementKind changes", (
+      tester,
+    ) async {
+      final directory = Directory.systemTemp.createTempSync(
+        "ame-preview-callback-",
+      );
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final previewFile = File(
+        "${directory.path}${Platform.pathSeparator}ready.png",
+      );
+      previewFile.writeAsBytesSync(
+        base64Decode(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        ),
+      );
+      final asset = _readyAsset(previewFile.path);
+      final snapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "query-1",
+        roots: const [],
+        assets: [asset],
+      );
+      final catalog = _FakeCatalog(snapshot);
+      final initialState = LibraryState.fromSnapshot(snapshot);
+      final previewer = _ControlledRetryPreviewer();
+      Widget buildTile(LibraryAsset displayed) {
+        return ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(initialState),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(const _FakeScanner()),
+            libraryPreviewerProvider.overrideWithValue(previewer),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryPhotoTile(
+                asset: displayed,
+                width: 160,
+                height: 120,
+                isSelecting: false,
+                isSelected: false,
+                onOpen: (_) {},
+                onToggleSelection: (_) {},
+                onViewInformation: (_) {},
+                onCopyPath: (_) {},
+                onRevealFile: (_) {},
               ),
             ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildTile(asset));
+      final image = find.byType(Image);
+      tester.widget<Image>(image).errorBuilder!(
+        tester.element(image),
+        StateError("The previous preview failed to decode"),
+        StackTrace.current,
+      );
+      final LibraryAsset replacement;
+      String? replacementPath;
+      switch (replacementKind) {
+        case "location":
+          replacement = _pendingAsset();
+        case "source generation":
+          replacement = _readyAsset(
+            previewFile.path,
+            sourceGeneration: BigInt.two,
           );
-        }
+        case "preview artifact":
+          replacementPath =
+              "${directory.path}${Platform.pathSeparator}replacement.png";
+          previewFile.copySync(replacementPath);
+          final controller = ProviderScope.containerOf(
+            tester.element(find.byType(LibraryPhotoTile)),
+          ).read(libraryControllerProvider.notifier);
+          final retry = controller.retryPreview(asset);
+          previewer.complete(_readyAsset(replacementPath));
+          expect(await retry, LibraryPreviewRequestOutcome.ready);
+          replacement = asset;
+        default:
+          throw StateError("Unknown replacement fixture");
+      }
+      await tester.pumpWidget(buildTile(replacement));
+      await tester.pump();
 
-        await tester.pumpWidget(buildTile(asset));
-        final image = find.byType(Image);
-        tester.widget<Image>(image).errorBuilder!(
-          tester.element(image),
-          StateError("The previous preview failed to decode"),
-          StackTrace.current,
-        );
-        final replacement = replacesLocation
-            ? _pendingAsset()
-            : _readyAsset(previewFile.path, sourceGeneration: BigInt.two);
-        await tester.pumpWidget(buildTile(replacement));
-        await tester.pump();
-
-        expect(previewer.requests, isEmpty);
-        expect(find.text(LibraryStrings.retryingPreview), findsNothing);
-        expect(
-          tester.getSize(find.byType(LibraryPhotoTile)),
-          const Size(160, 120),
-        );
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox.shrink());
-      },
-    );
+      expect(previewer.requests, [
+        if (replacementKind == "preview artifact") "location-ready",
+      ]);
+      expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+      if (replacementPath != null) {
+        final provider = tester.widget<Image>(find.byType(Image)).image;
+        final fileImage = (provider as ResizeImage).imageProvider as FileImage;
+        expect(fileImage.file.path, replacementPath);
+      }
+      expect(
+        tester.getSize(find.byType(LibraryPhotoTile)),
+        const Size(160, 120),
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    });
   }
 
   testWidgets(
-    "repairs a ready preview after Flutter cannot decode it",
+    "shows automatic repair from the first failed-decode frame",
     (tester) async {
       final directory = Directory.systemTemp.createTempSync(
         "ame-preview-repair-",
@@ -495,7 +527,7 @@ void main() {
         roots: const [],
         assets: [asset],
       );
-      final previewer = _RecordingPreviewer(asset);
+      final previewer = _ControlledRetryPreviewer();
 
       await tester.pumpWidget(
         ProviderScope(
@@ -534,11 +566,34 @@ void main() {
           await Future<void>.delayed(const Duration(milliseconds: 25));
         });
         await tester.pump();
+        expect(
+          find.byKey(const Key("preview-retry-location-ready")),
+          findsNothing,
+        );
       }
       await tester.pump();
 
-      expect(previewer.requests, [(locationId: "location-ready", retry: true)]);
+      expect(previewer.requests, ["location-ready"]);
+      expect(previewer.forceRequests, [true]);
+      expect(
+        find.byKey(const Key("preview-retry-progress-location-ready")),
+        findsOneWidget,
+      );
+      previewer.complete(
+        asset.withPreview(
+          previewPath: asset.previewPath,
+          width: asset.width,
+          height: asset.height,
+          previewStatus: LibraryPreviewStatus.failed,
+          previewIssueCode: "preview_repair_failed",
+          previewIssueMessage: "Repair failed",
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
       expect(find.byKey(const Key("preview-retry-location-ready")), findsOne);
+      expect(previewer.requests, ["location-ready"]);
+      expect(find.text(LibraryStrings.retryingPreview), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pump();
     },
@@ -641,6 +696,7 @@ class _RecordingPreviewer implements LibraryPreviewer {
 
 class _ControlledRetryPreviewer implements LibraryPreviewer {
   final requests = <String>[];
+  final forceRequests = <bool>[];
   final Completer<LibraryAsset> _completion = Completer<LibraryAsset>();
 
   @override
@@ -655,6 +711,7 @@ class _ControlledRetryPreviewer implements LibraryPreviewer {
     Iterable<String> protectedLocationIds = const [],
   }) {
     requests.add(locationId);
+    forceRequests.add(force);
     return _completion.future;
   }
 

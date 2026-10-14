@@ -238,6 +238,9 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       filterQuality: FilterQuality.low,
       errorBuilder: (context, error, stackTrace) {
         _schedulePreviewRepair(asset, cacheWidth, previewEdge);
+        if (_isRetrying) {
+          return LibraryPreviewFeedback.retrying(locationId: asset.locationId);
+        }
         return LibraryPreviewFeedback.failed(
           locationId: asset.locationId,
           updateRequired: _isPreviewUpdateRequired,
@@ -270,27 +273,31 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     int previewEdge,
   ) {
     final source = LibraryPreviewSourceIdentity.fromAsset(asset);
-    if (_previewRepairSource == source) {
+    if (_previewRepairSource == source || _isRetrying) {
       return;
     }
     _previewRepairSource = source;
-    final retryGeneration = _retryGeneration;
+    final retryGeneration = ++_retryGeneration;
+    _isRetrying = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted ||
-          retryGeneration != _retryGeneration ||
-          _previewRepairSource != source) {
+      if (!mounted || retryGeneration != _retryGeneration) {
         return;
       }
       final current = _controller.resolvePreview(widget.asset);
-      if (!source.isCompatibleWith(current) ||
+      if (_previewRepairSource != source ||
+          !source.isCompatibleWith(current) ||
           current.previewStatus != LibraryPreviewStatus.ready ||
           current.previewPath != asset.previewPath) {
+        setState(() => _isRetrying = false);
         return;
       }
-      _startPreviewRetry(
-        asset,
-        cacheWidth: cacheWidth,
-        previewEdge: previewEdge,
+      unawaited(
+        _retryPreview(
+          asset,
+          retryGeneration: retryGeneration,
+          cacheWidth: cacheWidth,
+          previewEdge: previewEdge,
+        ),
       );
     });
   }
@@ -303,18 +310,24 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     if (_isRetrying) {
       return;
     }
+    final retryGeneration = ++_retryGeneration;
+    setState(() => _isRetrying = true);
     unawaited(
-      _retryPreview(asset, cacheWidth: cacheWidth, previewEdge: previewEdge),
+      _retryPreview(
+        asset,
+        retryGeneration: retryGeneration,
+        cacheWidth: cacheWidth,
+        previewEdge: previewEdge,
+      ),
     );
   }
 
   Future<void> _retryPreview(
     LibraryAsset asset, {
+    required int retryGeneration,
     int? cacheWidth,
     required int previewEdge,
   }) async {
-    final retryGeneration = ++_retryGeneration;
-    setState(() => _isRetrying = true);
     try {
       if (cacheWidth != null && asset.previewPath.isNotEmpty) {
         final provider = ResizeImage.resizeIfNeeded(

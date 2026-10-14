@@ -57,6 +57,8 @@ update checkpoint.
 
 The current preview correction rejects retired sources before they can supersede pending/running
 current work or release a root failure, and retires scheduled image repairs after source replacement.
+Automatic decode repair displays progress from its first frame; a replaced artifact retires its
+queued repair without leaving progress active. Genuine failure retains manual Retry.
 Its focused queue and widget regressions await hosted execution. Continue this affected boundary;
 do not repeat completed import/reopen/position cases or infer that the historical Retry incident is closed.
 

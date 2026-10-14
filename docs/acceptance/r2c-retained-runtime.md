@@ -3277,10 +3277,16 @@ source, ready status and artifact path before cache eviction or request admissio
 retry, root identity requirements, bounded execution and result-time validation remain intact.
 No schema, media-read policy or source mutation is introduced.
 
-Five added regressions cover current pending/running work, retained root failure, and widget source
-generation/location replacement before the repair callback. The existing result-rejection test
-now explicitly revokes publication after admission, preserving that later boundary's coverage.
-Production owners have 115 admission, 696 queue and 424 photo-tile lines, with no inline tests;
-their dedicated test files have 180, 1123 and 770 lines. Owned formatting and diff checks pass.
+Automatic decode repair now owns its loading state in the failed-decode frame, avoiding a transient
+manual Retry action before the scheduled repair starts. A replaced ready artifact retires the queued
+attempt and releases its loading state; a newer attempt retains its own authority. An unsuccessful
+repair still exposes manual Retry, and automatic repair remains limited to one attempt per source.
+
+Six added regressions cover current pending/running work, retained root failure, and widget source
+generation/location/artifact replacement before the repair callback. The decode-repair regression
+checks initial loading, genuine terminal failure and the single automatic attempt. The existing
+result-rejection test explicitly revokes publication after admission, preserving that later boundary.
+Production owners have 115 admission, 696 queue and 437 photo-tile lines, with no inline tests;
+their dedicated test files have 180, 1123 and 827 lines. Owned formatting and diff checks pass.
 GitHub Actions executes these regressions and CI; no local test suite runs. Runtime verification
 of this race and attribution of the historical retained-library Retry incident remain open.
