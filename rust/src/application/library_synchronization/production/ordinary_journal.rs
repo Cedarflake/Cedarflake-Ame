@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 use std::fs;
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -78,15 +79,34 @@ fn run_worker(directory: &Path, phase: &str) {
         if Instant::now() >= deadline {
             child.kill().expect("terminate owned expired subprocess");
             child.wait().expect("reap owned subprocess");
-            panic!("ordinary journal phase {phase} exceeded {PHASE_LIMIT:?}");
+            let diagnostic = report_worker_failure(&log_path, phase);
+            panic!("ordinary journal phase {phase} exceeded {PHASE_LIMIT:?}:\n{diagnostic}");
         }
         std::thread::sleep(Duration::from_millis(10));
     };
-    assert!(
-        status.success(),
-        "ordinary journal phase {phase} failed:\n{}",
-        fs::read_to_string(log_path).expect("owned worker diagnostics")
+    if !status.success() {
+        let diagnostic = report_worker_failure(&log_path, phase);
+        panic!("ordinary journal phase {phase} failed:\n{diagnostic}");
+    }
+}
+
+fn report_worker_failure(log_path: &Path, phase: &str) -> String {
+    const MAX_DIAGNOSTIC_BYTES: u64 = 24 * 1024;
+    let mut log = fs::File::open(log_path).expect("owned worker diagnostics");
+    let length = log.metadata().expect("owned worker log length").len();
+    log.seek(SeekFrom::Start(length.saturating_sub(MAX_DIAGNOSTIC_BYTES)))
+        .expect("owned worker diagnostic tail");
+    let mut bytes = Vec::new();
+    log.take(MAX_DIAGNOSTIC_BYTES)
+        .read_to_end(&mut bytes)
+        .expect("bounded owned worker diagnostics");
+    let diagnostic = String::from_utf8_lossy(&bytes).into_owned();
+    // Bypass test-harness capture so a later suite timeout cannot erase this failure.
+    let _ = writeln!(
+        std::io::stderr().lock(),
+        "ordinary journal phase {phase} failure diagnostics:\n{diagnostic}"
     );
+    diagnostic
 }
 
 #[test]
