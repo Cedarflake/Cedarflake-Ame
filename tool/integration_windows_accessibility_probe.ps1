@@ -90,8 +90,6 @@ $themeDescriptionName = (
     " Windows"
 )
 $unconfirmedName = -join [char[]](
-    0x56FE,
-    0x5E93,
     0x5C1A,
     0x672A,
     0x6838,
@@ -381,7 +379,7 @@ function Get-AmeWindowsUiaPhaseFailure {
                         ControlType = "ControlType.Button"
                     },
                     @{
-                        Name = (-join [char[]](0x91CD, 0x8BD5))
+                        Name = (-join [char[]](0x91CD, 0x65B0, 0x6253, 0x5F00))
                         ControlType = "ControlType.Button"
                     }
                 )
