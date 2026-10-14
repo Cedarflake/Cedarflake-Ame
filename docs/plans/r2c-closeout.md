@@ -85,6 +85,13 @@ entrypoint. Source hashes match. Hosted queue regressions cover deferred path/ro
 lineage and release before baseline completion. Owner sizes (production / inline / dedicated tests):
 replay admission 58 / 0 / 262; readiness 451 / 0 / existing dedicated tests; lease matching
 444 / 0 / existing dedicated tests; capture priority 69 / 0 / 85. Hosted validation is pending.
+The normal Debug rebuild removes the temporary diagnostic entrypoint. Cleanup removes 39 disposable
+files (5.09 MiB); `build/test/derived` again contains only its fixture marker. The synthetic 10,000-file
+check now drives the existing bounded maintenance after timing cancellation, preserving its final
+membership and latency assertions. Continue with the pending hosted run and the mixed-load
+`proof_identity_after` failure: the previous run spent 9.2 seconds closing a temporary metadata handle.
+Slow-check diagnostics now classify namespace spelling without logging paths; determine why held-handle
+reuse was bypassed before changing namespace proof. Preserve the completed native flows above.
 
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
