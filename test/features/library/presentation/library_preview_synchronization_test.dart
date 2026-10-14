@@ -368,15 +368,16 @@ LibraryAsset _asset(int generation) => LibraryAsset(
 
 Future<Uint8List> _previewBytes() async {
   final recorder = ui.PictureRecorder();
-  Canvas(recorder).drawRect(
+  final canvas = Canvas(recorder);
+  canvas.drawRect(
     const Rect.fromLTWH(0, 0, 32, 24),
     Paint()..color = const Color(0xFF1268D4),
   );
-  Canvas(recorder).drawRect(
+  canvas.drawRect(
     const Rect.fromLTWH(8, 4, 12, 8),
     Paint()..color = const Color(0xFFF09824),
   );
-  Canvas(recorder).drawLine(
+  canvas.drawLine(
     const Offset(3, 20),
     const Offset(28, 3),
     Paint()
