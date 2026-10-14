@@ -41,7 +41,20 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 5100)),
     );
     tester.view.physicalSize = const Size(1400, 800);
-    await _pumpUntil(tester, () => fixture.previewer.calls.length == 2);
+    for (
+      var frame = 0;
+      frame < 250 && fixture.previewer.calls.length < 2;
+      frame++
+    ) {
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 20)),
+      );
+      await tester.pump(const Duration(milliseconds: 16));
+      expect(tester.takeException(), isNull);
+    }
+    expect(fixture.previewer.calls, hasLength(2));
+    await tester.pump();
+    expect(find.text(LibraryStrings.retryPreview), findsNothing);
     expect(fixture.previewer.calls.last.force, isTrue);
     fixture.previewer.calls.last.completion.complete(fixture.ready(initial));
     await _pumpUntil(tester, () => _decodedImage(tester) != null);
