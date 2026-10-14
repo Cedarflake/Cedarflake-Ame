@@ -3127,7 +3127,7 @@ fn load_active_baselines(
         .collect()
 }
 
-fn load_baseline_for_root(
+pub(super) fn load_baseline_for_root(
     connection: &Connection,
     root_id: &str,
     root_generation: LibraryRootGeneration,

@@ -146,6 +146,7 @@ pub(super) fn opening_request(
         root_file_reference,
         journal_id,
         next_usn,
+        ..
     } = boundary;
     let authorized_unix_ms = work.authorized_unix_ms(observed_unix_ms);
     let (run_id, authority_reason) = match &work.authority {

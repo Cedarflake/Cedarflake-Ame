@@ -23,6 +23,7 @@ const WORKER: &str =
 const PHASE_LIMIT: Duration = Duration::from_secs(60);
 
 mod fixture_capability;
+mod import_resumption;
 
 fn write_png(path: &Path, color: [u8; 3]) {
     fs::create_dir_all(path.parent().expect("fixture parent")).expect("fixture directory");
@@ -276,6 +277,10 @@ fn ordinary_client_worker() {
         std::env::var_os("CEDARFLAKE_AME_ORDINARY_JOURNAL_SOURCE").expect("owned source argument"),
     );
     let phase = std::env::var("CEDARFLAKE_AME_ORDINARY_JOURNAL_PHASE").expect("worker phase");
+    if import_resumption::is_phase(&phase) {
+        import_resumption::run_worker(&source, &phase);
+        return;
+    }
     assert!(matches!(
         phase.as_str(),
         "import" | "catch-up" | "unchanged"

@@ -42,10 +42,15 @@ maintenance, unrelated storage failures, unwind and independent invalidation. Th
 `SQLITE_INTERRUPT` from an unrelated error even when cancellation arrives concurrently. Boundary
 regressions cover repeated preemption, interleaved reads and concurrent invalidation. A same-input
 ordinary Debug comparison reduces median poll time from 1,729 ms to 25 ms over 110 polls (maximum
-56 ms), with one opening validation instead of 18 repeated validations. Enumeration completes with
-70,078 raw entries; comparison reaches 447 candidates before normal close. The original profile and
-catalog hashes are restored, and the next run continues the same isolated inventory. Full catch-up
-and unchanged reopening remain in progress.
+56 ms), with one opening validation instead of 18 repeated validations. The retained isolated run
+completes 70,078 raw entries and 2,446 candidates, publishes 65,130 locations, saves its journal
+checkpoint and displays Synchronized. The two reported October subtrees contain 9 and 42 files;
+catalog membership matches both sets exactly. Normal reopening reports current synchronization at
+990 ms with unchanged scan/inventory counts and no recovery task over the following ten polls.
+Each process exits normally and restores the original profile and catalog hashes. Cleanup removes
+125 disposable files (416.64 MiB), preserving the reusable corpus and current Debug build. Current hosted
+checks are running; the superseded run's old-copy assertion is corrected, and its later
+service-deletion guardrail and picker-helper timeouts are tracked separately from this native pass.
 Affected owner sizes (production / inline tests / dedicated tests): reclamation adapter 393 / 335 / 0,
 maintenance owner 139 / 0 / 0, incremental policy tests 0 / 0 / 65 and reclamation integration tests
 0 / 0 / 110; the ports file has 1,150 production lines and only its contract comment changes.
@@ -57,6 +62,18 @@ completed directories survive cancellation and source reconstruction. New regres
 of small and empty directories, both work bounds, cancellation, reuse and a seven-entry request.
 Affected owner sizes (production / inline tests / dedicated tests): durable source adapter
 318 / 0 / 0 and its dedicated batch regressions 0 / 0 / 105; the existing test facade only adds a module.
+
+The prepared first-import continuation correction is packaged independently: ordinary-client journal
+coverage preserves accepted counts and the directory checkpoint; expired or changed coverage keeps
+the existing reconciliation path. The catalog transaction rejects a stale boundary without changing
+paused work. The prior current-source Debug walkthrough already pauses at 2,162 images and resumes
+to 10,000 with a current journal checkpoint and no inventory run; reuse that result. Added hosted
+regressions cover pause/process exit, modified hard links, directory rename, addition and deletion,
+alongside changed volume/root/journal identities, expired coverage and transactional rollback.
+Production owner sizes are 321 lines for catalog resumption, 69 for its application probe and 39 for
+coverage policy; their dedicated tests have 276, 172 and 74 lines. The catalog facade shrinks to 3,618
+lines. Journal baseline has 437 production and 326 inline-test lines; persistent journal has 3,440
+production and 4,740 inline-test lines, with only the existing baseline loader's visibility changed.
 
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing

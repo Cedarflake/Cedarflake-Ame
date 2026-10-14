@@ -51,6 +51,7 @@ mod operation_cost;
 mod publication;
 #[cfg(all(test, windows))]
 mod relocation_tests;
+mod resumption;
 #[cfg(test)]
 mod resumption_tests;
 mod retained_cancellation;

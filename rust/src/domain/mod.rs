@@ -15,6 +15,9 @@ pub(crate) mod library_change_queue;
 mod library_metadata_inventory;
 pub(crate) mod library_synchronization;
 pub(crate) mod persistent_journal;
+mod scan_resume_coverage;
+
+pub(crate) use scan_resume_coverage::ScanResumeCoverage;
 
 pub use library_catalog_delta::{
     CatalogDeltaBatch, CatalogDeltaMutation, CatalogDeltaPublication,

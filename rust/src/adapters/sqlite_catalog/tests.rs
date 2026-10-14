@@ -7420,6 +7420,7 @@ fn foreground_resume_rejects_a_different_namespace_identity_without_mutation() {
             "resume-root",
             &request.root_path,
             &publication_identity('b'),
+            None,
         )
         .expect_err("resume cannot replace its original namespace identity");
     assert_eq!(error.code, "catalog_scan_publication_namespace_mismatch");

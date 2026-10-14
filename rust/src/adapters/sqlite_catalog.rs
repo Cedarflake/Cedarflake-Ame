@@ -1328,6 +1328,7 @@ impl SqliteCatalog {
         root_id: &str,
         root_path: &str,
         root_identity: &FileIdentityEvidence,
+        coverage: Option<&crate::domain::ScanResumeCoverage>,
     ) -> Result<ScanCheckpoint, ScanError> {
         self.resume_scan_owned(
             request,
@@ -1335,6 +1336,7 @@ impl SqliteCatalog {
             root_path,
             ScanOwner::Foreground,
             Some(root_identity),
+            coverage,
         )
     }
 
@@ -1450,172 +1452,6 @@ impl SqliteCatalog {
         Ok(())
     }
 
-    fn resume_scan_owned(
-        &mut self,
-        request: &ScanRequest,
-        root_id: &str,
-        root_path: &str,
-        owner: ScanOwner,
-        publication_identity: Option<&FileIdentityEvidence>,
-    ) -> Result<ScanCheckpoint, ScanError> {
-        if let Some(identity) = publication_identity {
-            validate_root_publication_identity(identity)?;
-        }
-        let transaction = self.begin_write()?;
-        let stored = transaction
-            .query_row(
-                "SELECT scans.root_id, roots.path, scans.status,
-                        scans.max_items, scans.max_entries, scans.preview_edge,
-                        scans.last_visited_relative_path, scans.visited_entries,
-                        scans.accepted_items, scans.issue_count,
-                        scans.root_generation_at_start,
-                        scans.requires_previous_snapshot, scans.scan_owner,
-                        state.generation, state.is_active
-                 FROM scan_runs AS scans
-                 JOIN library_roots AS roots ON roots.id = scans.root_id
-                 JOIN library_change_root_state AS state ON state.root_id = scans.root_id
-                 WHERE scans.id = ?1",
-                [&request.scan_id],
-                |row| {
-                    Ok((
-                        row.get::<_, String>(0)?,
-                        row.get::<_, String>(1)?,
-                        row.get::<_, String>(2)?,
-                        row.get::<_, Option<i64>>(3)?,
-                        row.get::<_, Option<i64>>(4)?,
-                        row.get::<_, i64>(5)?,
-                        row.get::<_, Option<String>>(6)?,
-                        row.get::<_, i64>(7)?,
-                        row.get::<_, i64>(8)?,
-                        row.get::<_, i64>(9)?,
-                        row.get::<_, Option<i64>>(10)?,
-                        row.get::<_, bool>(11)?,
-                        row.get::<_, String>(12)?,
-                        row.get::<_, i64>(13)?,
-                        row.get::<_, bool>(14)?,
-                    ))
-                },
-            )
-            .optional()
-            .map_err(database_error)?
-            .ok_or_else(|| {
-                ScanError::new(
-                    "catalog_scan_resume_missing",
-                    "The requested scan checkpoint no longer exists",
-                )
-            })?;
-        let (
-            stored_root_id,
-            stored_root_path,
-            status,
-            max_items,
-            max_entries,
-            preview_edge,
-            last_visited_relative_path,
-            visited_entries,
-            accepted_items,
-            issue_count,
-            stored_root_generation,
-            requires_previous_snapshot,
-            stored_owner,
-            active_root_generation,
-            root_is_active,
-        ) = stored;
-        let stored_max_items = optional_sqlite_u32(max_items, "item limit")?;
-        let stored_max_entries = optional_sqlite_u32(max_entries, "entry limit")?;
-        let stored_preview_edge = sqlite_u32(preview_edge, "preview edge")?;
-        let is_paused = status == "paused";
-        if status != "running" && !is_paused
-            || stored_root_id != root_id
-            || stored_root_path != root_path
-            || stored_max_items != request.max_items
-            || stored_max_entries != request.max_entries
-            || stored_preview_edge != request.preview_edge
-            || stored_root_generation != Some(active_root_generation)
-            || !root_is_active
-            || stored_owner != owner.as_str()
-        {
-            return Err(ScanError::new(
-                "catalog_scan_resume_mismatch",
-                "The stored scan cannot be resumed with different identity, ownership, or parameters",
-            ));
-        }
-        if let Some(identity) = publication_identity {
-            let binding = transaction
-                .query_row(
-                    "SELECT root_id, root_generation, identity_scheme, identity_value
-                     FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
-                    [&request.scan_id],
-                    |row| {
-                        Ok((
-                            row.get::<_, String>(0)?,
-                            row.get::<_, i64>(1)?,
-                            row.get::<_, String>(2)?,
-                            row.get::<_, String>(3)?,
-                        ))
-                    },
-                )
-                .optional()
-                .map_err(database_error)?;
-            if binding
-                .as_ref()
-                .is_none_or(|(binding_root, generation, scheme, value)| {
-                    binding_root != root_id
-                        || Some(*generation) != stored_root_generation
-                        || scheme != &identity.scheme
-                        || value != &identity.value
-                })
-            {
-                return Err(ScanError::new(
-                    "catalog_scan_publication_namespace_mismatch",
-                    "The stored scan lacks its original configured-root namespace binding",
-                ));
-            }
-        }
-        let checkpoint = ScanCheckpoint {
-            last_visited_relative_path,
-            visited_entries: sqlite_unsigned(visited_entries, "visited entry count")?,
-            accepted_items: sqlite_unsigned(accepted_items, "accepted item count")?,
-            issue_count: sqlite_unsigned(issue_count, "issue count")?,
-            requires_previous_snapshot,
-        };
-        let has_conflicting_scan = transaction
-            .query_row(
-                "SELECT EXISTS(
-                   SELECT 1 FROM scan_runs
-                   WHERE root_id = ?1 AND status IN ('running', 'paused') AND id <> ?2
-                 )",
-                params![root_id, request.scan_id],
-                |row| row.get::<_, bool>(0),
-            )
-            .map_err(database_error)?;
-        if has_conflicting_scan {
-            return Err(ScanError::new(
-                "catalog_root_scan_in_progress",
-                "Another authoritative scan already owns this library root",
-            ));
-        }
-        if is_paused {
-            let updated = transaction
-                .execute(
-                    "UPDATE scan_runs SET status = 'running'
-                     WHERE id = ?1 AND status = 'paused'",
-                    [&request.scan_id],
-                )
-                .map_err(database_error)?;
-            if updated != 1 {
-                return Err(ScanError::new(
-                    "catalog_scan_resume_raced",
-                    "The scan checkpoint changed before it could be resumed",
-                ));
-            }
-        }
-        let checkpoint =
-            scan_resumption::resume_checkpoint(&transaction, &request.scan_id, owner, checkpoint)?;
-        transaction.commit().map_err(database_error)?;
-        Ok(checkpoint)
-    }
-
     pub(crate) fn retire_legacy_automatic_full_scans(
         &mut self,
         retired_unix_ms: i64,
@@ -1693,7 +1529,14 @@ impl CatalogRepository for SqliteCatalog {
         root_id: &str,
         root_path: &str,
     ) -> Result<ScanCheckpoint, ScanError> {
-        self.resume_scan_owned(request, root_id, root_path, ScanOwner::Foreground, None)
+        self.resume_scan_owned(
+            request,
+            root_id,
+            root_path,
+            ScanOwner::Foreground,
+            None,
+            None,
+        )
     }
 
     #[cfg(test)]
@@ -1725,6 +1568,7 @@ impl CatalogRepository for SqliteCatalog {
             root_id,
             root_path,
             ScanOwner::AuthoritativeRecovery,
+            None,
             None,
         )
     }

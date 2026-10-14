@@ -152,8 +152,11 @@ page failure remain one boundary, with no second decoded page or per-record clon
 - `scan_resume_inventory.rs` owns retained first-import membership and current-run reuse lookup.
   Its roster is independent of published membership. `scan_staging.rs` owns buffered location
   persistence, transactional acceptance of retained locations, and scoped orphan retirement. The
-  scan-resumption owner still resets unverified directory coverage, while traversal closes the
-  retained roster before final file validation. The v33 migration and its schema/row checks live in
+  scan-resumption owner preserves the checkpoint when `ScanResumeCoverage` proves the original
+  opening boundary remains covered by the same volume, root identity and journal. Its transaction
+  rechecks that exact persisted boundary before accepting the proof. Uncovered resumes reset
+  directory coverage while retaining inspected images; traversal closes the retained roster before
+  final file validation. The v33 migration and its schema/row checks live in
   `migrations/scan_resume_inventory.rs`; they do not widen the historical migration facade.
 - `scan_checkpoint.rs` owns atomic buffered-location and progress persistence for checkpoint and
   directory-completion boundaries. It composes the staging transaction without publishing progress

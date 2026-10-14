@@ -33,6 +33,9 @@ mod observation_diagnostics;
 mod observer_handoff;
 mod production;
 
+#[cfg(windows)]
+pub(super) use journal_baseline::{JournalBoundaryProbe, probe_journal_boundary};
+
 use observation_diagnostics::measure_observation;
 use observer_handoff::ObserverHandoff;
 

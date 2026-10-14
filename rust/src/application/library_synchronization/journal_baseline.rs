@@ -94,17 +94,18 @@ impl JournalBaselineClosingWork {
 }
 
 #[derive(Debug, PartialEq, Eq)]
-enum JournalBoundaryProbe {
+pub(in crate::application) enum JournalBoundaryProbe {
     Supported(SupportedJournalBoundary),
     LiveOnly,
 }
 
 #[derive(Debug, PartialEq, Eq)]
-struct SupportedJournalBoundary {
-    volume: PersistentJournalVolumeIdentity,
-    root_file_reference: JournalFileReference,
-    journal_id: JournalIdentifier,
-    next_usn: JournalUsn,
+pub(in crate::application) struct SupportedJournalBoundary {
+    pub(in crate::application) volume: PersistentJournalVolumeIdentity,
+    pub(in crate::application) root_file_reference: JournalFileReference,
+    pub(in crate::application) journal_id: JournalIdentifier,
+    pub(in crate::application) first_usn: JournalUsn,
+    pub(in crate::application) next_usn: JournalUsn,
 }
 
 pub(super) fn select_closing_work(
@@ -269,6 +270,7 @@ fn closing_request(
         root_file_reference,
         journal_id,
         next_usn,
+        ..
     } = match boundary {
         JournalBoundaryProbe::Supported(supported) => supported,
         JournalBoundaryProbe::LiveOnly => {
@@ -289,7 +291,7 @@ fn closing_request(
     })
 }
 
-fn probe_journal_boundary(
+pub(in crate::application) fn probe_journal_boundary(
     session: &dyn PersistentChangeJournalSession,
     caller: &CallerClaim,
     registration: &ProductionPersistentJournalRoot,
@@ -342,6 +344,7 @@ fn probe_journal_boundary(
                     &registration.authorization.root_identity,
                 )?,
                 journal_id: JournalIdentifier::new(journal_id)?,
+                first_usn: JournalUsn::new(first_usn)?,
                 next_usn: JournalUsn::new(next_usn)?,
             }))
         }
@@ -515,6 +518,7 @@ mod tests {
             },
             root_file_reference: JournalFileReference::V3([3; 16]),
             journal_id: JournalIdentifier::new(44).expect("journal ID"),
+            first_usn: JournalUsn::new(0).expect("first journal USN"),
             next_usn: JournalUsn::new(20).expect("journal USN"),
         })
     }

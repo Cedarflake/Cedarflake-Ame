@@ -93,10 +93,21 @@ impl ScanRootSelection {
                     .begin_scan_with_publication_namespace(
                         request, &root_id, root_path, identity,
                     )?,
-                FullScanReason::ResumeForegroundCheckpoint => catalog
-                    .resume_scan_with_publication_namespace(
-                        request, &root_id, root_path, identity,
-                    )?,
+                FullScanReason::ResumeForegroundCheckpoint => {
+                    let coverage = super::resumption::load_resume_coverage(
+                        catalog,
+                        &request.scan_id,
+                        &root_id,
+                        root_path,
+                    )?;
+                    catalog.resume_scan_with_publication_namespace(
+                        request,
+                        &root_id,
+                        root_path,
+                        identity,
+                        coverage.as_ref(),
+                    )?
+                }
                 #[cfg(test)]
                 FullScanReason::ResumeAuthoritativeCheckpoint => {
                     catalog.resume_authoritative_scan(request, &root_id, root_path)?
