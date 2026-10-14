@@ -2,6 +2,8 @@ import "../domain/library_state.dart";
 import "library_strings.dart";
 import "widgets/library_navigation.dart";
 
+/// 窗口底部主任务卡：添加目录、保留的扫描任务及移除目录的反馈。
+/// 固定状态文案见 LibraryStrings；暂停、继续、取消、关闭按钮见 widgets/library_task_surface.dart。
 class LibraryPrimaryTaskFeedback {
   const LibraryPrimaryTaskFeedback(this.state);
 
@@ -16,6 +18,7 @@ class LibraryPrimaryTaskFeedback {
       state.primaryScanSnapshot.publication ==
       LibraryScanPublication.reloadPending;
 
+  // 卡片首行｜按任务阶段选择标题；添加和更新共用此处的状态分支。
   String get title {
     switch (state.status) {
       case LibraryStatus.choosingDirectory:
@@ -65,6 +68,7 @@ class LibraryPrimaryTaskFeedback {
     }
   }
 
+  // 标题下方｜检查数量、完成数量、移除说明或已识别的错误原因。
   String? get detail {
     if (isConfirmingPublication || isPublishedReload) {
       return null;
@@ -95,6 +99,7 @@ class LibraryPrimaryTaskFeedback {
     return "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
   }
 
+  // 卡片右侧恢复按钮｜失败后按实际动作显示重新读取、重新加载或重试。
   String get retryLabel {
     if (isRootRemoval) {
       return state.isRemovalCommitted ? LibraryStrings.reload : "重试移除";

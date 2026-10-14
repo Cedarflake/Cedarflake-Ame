@@ -6,6 +6,8 @@ import "../../domain/library_state.dart";
 import "../library_first_import_feedback.dart";
 import "../library_strings.dart";
 
+/// 图库中央的空白区域提示入口；按加载、恢复、首次添加及空结果选择对应文案。
+/// 文字集中在 LibraryStrings；首次添加的标题和说明配对见 LibraryFirstImportFeedback。
 class EmptyLibraryGallery extends StatelessWidget {
   const EmptyLibraryGallery({
     required this.state,
@@ -95,6 +97,7 @@ class EmptyLibraryGallery extends StatelessWidget {
   }
 }
 
+// 图库中央｜首次添加或加载恢复时的目录图标、标题和说明。
 class _PendingLibraryGallery extends StatelessWidget {
   const _PendingLibraryGallery(
     this.stateKey, {
@@ -136,6 +139,7 @@ class _PendingLibraryGallery extends StatelessWidget {
   }
 }
 
+/// 图库中央｜加载圆圈及其下方的加载提示。
 class GalleryLoadingState extends StatelessWidget {
   const GalleryLoadingState({super.key});
 
@@ -155,6 +159,7 @@ class GalleryLoadingState extends StatelessWidget {
   }
 }
 
+/// 图库中央｜搜索无结果和所选目录无图片时的两组提示。
 class NoGalleryResults extends StatelessWidget {
   const NoGalleryResults({required this.query, super.key});
 
@@ -195,6 +200,7 @@ class NoGalleryResults extends StatelessWidget {
   }
 }
 
+/// 图库中央｜没有已添加目录时的引导、导入按钮及暂停任务的补充提示。
 class EmptyLibrary extends StatelessWidget {
   const EmptyLibrary({required this.state, required this.onImport, super.key});
 

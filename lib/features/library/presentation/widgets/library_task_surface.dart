@@ -6,6 +6,8 @@ import "../../domain/library_state.dart";
 import "../library_primary_task_feedback.dart";
 import "library_task_live_region.dart";
 
+/// 窗口底部主任务卡；标题、说明和恢复按钮文字来自 LibraryPrimaryTaskFeedback。
+/// 暂停、继续、取消、关闭的固定按钮文字位于下方对应状态分支。
 class LibraryTaskSurface extends StatelessWidget {
   const LibraryTaskSurface({
     required this.state,

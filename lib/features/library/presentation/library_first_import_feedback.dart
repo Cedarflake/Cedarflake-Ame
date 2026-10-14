@@ -1,6 +1,8 @@
 import "../domain/library_state.dart";
 import "library_strings.dart";
 
+/// 图库中央的首次添加提示：为目录图标下方的标题和说明选择对应状态。
+/// 具体文字见 LibraryStrings 的“首次添加”分组；操作按钮由底部主任务卡提供。
 class LibraryFirstImportFeedback {
   const LibraryFirstImportFeedback._(this.title, this.detail);
 

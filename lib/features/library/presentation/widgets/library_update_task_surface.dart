@@ -7,6 +7,8 @@ import "../library_update_feedback.dart";
 import "library_source_navigation_tile.dart";
 import "library_task_live_region.dart";
 
+/// 窗口底部更新任务卡：本组件包含卡片总标题和“清除已结束任务”按钮。
+/// 各目录的状态、数量说明和恢复按钮文字见 LibraryUpdateFeedback。
 class LibraryUpdateTaskSurface extends StatelessWidget {
   const LibraryUpdateTaskSurface({
     required this.state,
@@ -97,6 +99,7 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
   }
 }
 
+// 每个目录任务行：取消按钮是可见文字；含目录名称的 label 用于屏幕阅读器。
 class _LibraryRootUpdateRow extends StatelessWidget {
   const _LibraryRootUpdateRow({
     required this.task,

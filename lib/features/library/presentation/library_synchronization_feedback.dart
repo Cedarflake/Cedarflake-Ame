@@ -3,6 +3,9 @@ import "../domain/library_synchronization_models.dart";
 import "library_strings.dart";
 import "library_synchronization_feedback_state.dart";
 
+/// 自动同步反馈：sourceLabel 用于侧栏；titleForRoot、message 和 detail 用于通知。
+/// 具体文案见 LibraryStrings 的侧栏状态、同步通知分组。
+/// 是否发布通知由 shouldNotify 决定；当前仅受阻和中断状态产生目录通知。
 class LibrarySynchronizationFeedback {
   factory LibrarySynchronizationFeedback.fromStatus(
     LibraryRootSynchronizationStatus status,
@@ -38,6 +41,7 @@ class LibrarySynchronizationFeedback {
 
   bool get shouldNotify => state.shouldNotify;
 
+  // 底部通知和通知详情｜带目录名称的标题；目录名称不可用时使用图库范围的标题。
   String titleForRoot(String? rootName) {
     if (rootName == null) {
       return switch (state) {
@@ -165,6 +169,7 @@ String? _synchronizationIssueMessage(String? issueCode) {
   return null;
 }
 
+// 通知补充说明｜等待处理、等待重试或尚未完成的项目数量。
 String? _synchronizationNotificationDetail(
   LibraryRootSynchronizationStatus status,
   LibrarySynchronizationFeedbackState state,
