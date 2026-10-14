@@ -430,7 +430,7 @@ retain priority over notifications.
 For root reconciliation, the active-condition identity is the root itself: observer-health,
 freshness-cause, and issue-code transitions update one record until the root is synchronized.
 Automatic authoritative recovery remains `正在更新图库`; an eligible deferred retry displays
-`等待重试更新`. Neither publishes a fault notification.
+`等待自动重试`. Neither publishes a fault notification.
 An unconfirmed startup or continuity transition has a neutral source-row label and creates no
 notification history merely because its first snapshot is incomplete.
 Only a failed monitor, exhausted recovery, bridge/catalog refresh failure, or another blocked
@@ -449,6 +449,13 @@ persistent catalog error.
 Resolved condition records are labelled as history, stop their active elapsed timer, and no longer
 offer a recovery action. A notification action rechecks its retained identity and current action
 binding when invoked, so an already-open detail view cannot trigger a retired or replaced action.
+Open notification details follow the same retained notification ID as its explanation and action
+change. Resolution or history eviction removes its timer and action and marks the view as history;
+a later condition on the same root cannot replace the event currently being inspected.
+Manual-update explanations and actions require current blocked recovery authority. Historical
+manual-recovery codes cannot override healthy progress or confirmed convergence. An unavailable
+source explains access restoration before any recovery operation, and a source without a
+synchronization snapshot displays `图库尚未核对` rather than inferred update progress.
 SQLite read-modify-write paths acquire an immediate writer transaction before observing mutable
 state, while an empty path-queue poll remains read-only. This serializes concurrent publication with
 the configured busy timeout instead of failing a deferred WAL snapshot during write upgrade.

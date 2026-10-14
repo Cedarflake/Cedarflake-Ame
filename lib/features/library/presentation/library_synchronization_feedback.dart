@@ -14,7 +14,9 @@ class LibrarySynchronizationFeedback {
       message: _synchronizationNotificationMessage(status, state),
       detail: _synchronizationNotificationDetail(status, state),
       severity: _synchronizationNotificationSeverity(status, state),
-      requiresManualLibraryUpdate: _requiresManualLibraryUpdate(status),
+      requiresManualLibraryUpdate:
+          state == LibrarySynchronizationFeedbackState.blocked &&
+          _requiresManualLibraryUpdate(status),
     );
   }
 
@@ -54,8 +56,7 @@ class LibrarySynchronizationFeedback {
 
 bool _requiresManualLibraryUpdate(LibraryRootSynchronizationStatus status) {
   return status.lastIssueCode == "legacy_recovery_authority_missing" ||
-      (status.recoveryBlocked &&
-          status.lastIssueCode == "live_gap_v30_explicit_recovery_required");
+      status.lastIssueCode == "live_gap_v30_explicit_recovery_required";
 }
 
 String _synchronizationNotificationMessage(
@@ -65,13 +66,16 @@ String _synchronizationNotificationMessage(
   if (status.isAwaitingFirstImport) {
     return LibraryStrings.firstImportRequiredDetail;
   }
-  if (status.lastIssueCode == "legacy_recovery_authority_missing") {
-    return LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing;
+  if (state == LibrarySynchronizationFeedbackState.unavailable) {
+    return LibraryStrings.synchronizationSourceUnavailable;
   }
-  if (status.lastIssueCode == "live_gap_v30_explicit_recovery_required") {
-    return LibraryStrings.synchronizationExplicitRecoveryRequired;
-  }
-  if (status.recoveryBlocked) {
+  if (state == LibrarySynchronizationFeedbackState.blocked) {
+    if (status.lastIssueCode == "legacy_recovery_authority_missing") {
+      return LibraryStrings.synchronizationLegacyRecoveryAuthorityMissing;
+    }
+    if (status.lastIssueCode == "live_gap_v30_explicit_recovery_required") {
+      return LibraryStrings.synchronizationExplicitRecoveryRequired;
+    }
     return LibraryStrings.synchronizationRecoveryBlocked;
   }
   if (state == LibrarySynchronizationFeedbackState.awaitingRetry) {
@@ -162,6 +166,8 @@ String? _synchronizationNotificationDetail(
       LibraryStrings.needsReconciliation,
     LibrarySynchronizationFeedbackState.unconfirmed =>
       LibraryStrings.synchronizationUnconfirmed,
+    LibrarySynchronizationFeedbackState.unavailable =>
+      LibraryStrings.sourceUnavailable,
     _ => _synchronizationPhaseLabel(status.phase),
   };
   final details = <String>["阶段：$phaseLabel"];

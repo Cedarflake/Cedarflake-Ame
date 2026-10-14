@@ -25,6 +25,47 @@ void main() {
 
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
 
+  testWidgets("source without a snapshot does not invent update progress", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: SizedBox(
+            width: 320,
+            child: LibrarySourceNavigationTile(
+              root: const LibraryRoot(
+                id: "unconfirmed",
+                path: r"C:\Generated",
+                displayPath: r"C:\Generated",
+                createdUnixMs: 1,
+                assetCount: 10,
+                issueCount: 0,
+                availability: LibraryRootAvailability.available,
+              ),
+              isCompact: false,
+              isSelected: true,
+              isExpanded: false,
+              isBrowseDisabled: false,
+              onSelect: () {},
+              onToggleExpansion: () {},
+              onUpdate: () {},
+              onOpen: () {},
+              onRemove: () {},
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(
+      find.text(LibraryStrings.synchronizationUnconfirmed),
+      findsOneWidget,
+    );
+    expect(find.text(LibraryStrings.synchronizing), findsNothing);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     "missing source exposes relocation through the existing source menu",
     (tester) async {

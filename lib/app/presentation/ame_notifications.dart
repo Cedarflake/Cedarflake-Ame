@@ -8,6 +8,9 @@ import "../notifications/ame_notification_strings.dart";
 import "ame_menu.dart";
 import "ame_overlay_semantics.dart";
 import "ame_theme.dart";
+import "ame_notification_time.dart";
+
+export "ame_notification_details.dart" show showAmeNotificationDetails;
 
 const _notificationMenuWidth = 360.0;
 const _notificationMenuMaximumHeight = 520.0;
@@ -218,101 +221,6 @@ class _AmeNotificationSurfaceState extends State<AmeNotificationSurface> {
   }
 }
 
-Future<void> showAmeNotificationDetails(
-  BuildContext context,
-  AmeNotificationEntry notification, {
-  required ValueChanged<AmeNotificationEntry> onAction,
-}) {
-  return showDialog<void>(
-    context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text(AmeNotificationStrings.notificationDetails),
-      content: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 520),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                notification.title,
-                style: Theme.of(dialogContext).textTheme.titleMedium,
-              ),
-              if (notification.isResolvedCondition) ...[
-                const SizedBox(height: 8),
-                const Text(AmeNotificationStrings.historicalNotificationDetail),
-              ],
-              if (notification.message.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(notification.message),
-              ],
-              if (notification.detail case final detail?) ...[
-                const SizedBox(height: 8),
-                Text(detail),
-              ],
-              if (notification.elapsedStartedAt case final startedAt?
-                  when !notification.isResolvedCondition) ...[
-                const SizedBox(height: 8),
-                Text(
-                  "已持续 ${_formatElapsed(DateTime.now().difference(startedAt))}",
-                ),
-              ],
-              if (notification.sourcePath case final sourcePath?) ...[
-                const SizedBox(height: 16),
-                Text(
-                  AmeNotificationStrings.sourcePath,
-                  style: Theme.of(dialogContext).textTheme.labelMedium,
-                ),
-                const SizedBox(height: 4),
-                SelectableText(sourcePath),
-              ],
-              if (notification.technicalCode case final technicalCode?) ...[
-                const SizedBox(height: 16),
-                Text(
-                  AmeNotificationStrings.technicalCode,
-                  style: Theme.of(dialogContext).textTheme.labelMedium,
-                ),
-                const SizedBox(height: 4),
-                SelectableText(technicalCode),
-              ],
-              const SizedBox(height: 16),
-              Text(_formatOccurredAt(notification.occurredAt)),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(dialogContext).pop(),
-          child: const Text(AmeNotificationStrings.close),
-        ),
-        if (notification.actionLabel case final actionLabel?
-            when !notification.isResolvedCondition)
-          FilledButton(
-            onPressed: () {
-              Navigator.of(dialogContext).pop();
-              onAction(notification);
-            },
-            child: Text(actionLabel),
-          ),
-      ],
-    ),
-  );
-}
-
-String _formatElapsed(Duration elapsed) {
-  final seconds = elapsed.isNegative ? 0 : elapsed.inSeconds;
-  if (seconds < 60) {
-    return "$seconds 秒";
-  }
-  final minutes = seconds ~/ 60;
-  if (minutes < 60) {
-    return "$minutes 分 ${seconds % 60} 秒";
-  }
-  final hours = minutes ~/ 60;
-  return "$hours 小时 ${minutes % 60} 分";
-}
-
 class _NotificationHistoryItem extends StatelessWidget {
   const _NotificationHistoryItem({required this.notification});
 
@@ -353,8 +261,10 @@ class _NotificationHistoryItem extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   notification.isResolvedCondition
-                      ? "${AmeNotificationStrings.historicalNotification} · ${_formatOccurredAt(notification.occurredAt)}"
-                      : _formatOccurredAt(notification.occurredAt),
+                      ? "${AmeNotificationStrings.historicalNotification} · ${formatAmeNotificationOccurredAt(notification.occurredAt)}"
+                      : formatAmeNotificationOccurredAt(
+                          notification.occurredAt,
+                        ),
                   style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: colorScheme.onSurfaceVariant,
                   ),
@@ -398,11 +308,4 @@ Color _severityColor(
     AmeNotificationSeverity.warning => colorScheme.tertiary,
     AmeNotificationSeverity.error => colorScheme.error,
   };
-}
-
-String _formatOccurredAt(DateTime occurredAt) {
-  final local = occurredAt.toLocal();
-  String twoDigits(int value) => value.toString().padLeft(2, "0");
-  return "${local.year}-${twoDigits(local.month)}-${twoDigits(local.day)} "
-      "${twoDigits(local.hour)}:${twoDigits(local.minute)}";
 }

@@ -4,6 +4,7 @@ import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_notifications.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -17,16 +18,18 @@ void main() {
         elapsedStartedAt: DateTime.now().subtract(const Duration(minutes: 3)),
       ).copyWith(isActive: false);
       await tester.pumpWidget(
-        MaterialApp(
-          theme: buildAmeTheme(),
-          home: Builder(
-            builder: (context) => TextButton(
-              onPressed: () => showAmeNotificationDetails(
-                context,
-                resolved,
-                onAction: (_) => fail("Resolved history invoked an action"),
+        ProviderScope(
+          child: MaterialApp(
+            theme: buildAmeTheme(),
+            home: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showAmeNotificationDetails(
+                  context,
+                  resolved,
+                  onAction: (_) => fail("Resolved history invoked an action"),
+                ),
+                child: const Text("打开详情"),
               ),
-              child: const Text("打开详情"),
             ),
           ),
         ),
@@ -244,24 +247,39 @@ void main() {
   testWidgets("notification details calculate elapsed time when opened", (
     tester,
   ) async {
-    final notification = _notification(
-      isUnread: false,
-      elapsedStartedAt: DateTime.now().subtract(
-        const Duration(minutes: 2, seconds: 3),
-      ),
-    );
+    final container = ProviderContainer();
+    addTearDown(container.dispose);
+    container
+        .read(ameNotificationControllerProvider.notifier)
+        .publish(
+          AmeNotificationDraft(
+            title: "更新受阻",
+            message: "无法访问目录",
+            severity: AmeNotificationSeverity.warning,
+            elapsedStartedAt: DateTime.now().subtract(
+              const Duration(minutes: 2, seconds: 3),
+            ),
+          ),
+        );
+    final notification = container
+        .read(ameNotificationControllerProvider)
+        .history
+        .single;
 
     await tester.pumpWidget(
-      MaterialApp(
-        theme: buildAmeTheme(),
-        home: Builder(
-          builder: (context) => TextButton(
-            onPressed: () => showAmeNotificationDetails(
-              context,
-              notification,
-              onAction: (_) {},
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          theme: buildAmeTheme(),
+          home: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => showAmeNotificationDetails(
+                context,
+                notification,
+                onAction: (_) {},
+              ),
+              child: const Text("打开详情"),
             ),
-            child: const Text("打开详情"),
           ),
         ),
       ),

@@ -336,7 +336,7 @@ class _LibrarySourceNavigationTileState
       return LibraryStrings.needsReconciliation;
     }
     if (synchronizationStatus == null) {
-      return LibraryStrings.synchronizing;
+      return LibraryStrings.synchronizationUnconfirmed;
     }
     return LibrarySynchronizationFeedback.fromStatus(
       synchronizationStatus,

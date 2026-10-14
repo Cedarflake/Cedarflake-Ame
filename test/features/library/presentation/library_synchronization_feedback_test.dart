@@ -277,6 +277,73 @@ void main() {
     expect(feedback.severity, AmeNotificationSeverity.error);
   });
 
+  test("retired manual recovery codes cannot override current progress", () {
+    for (final issue in [
+      "legacy_recovery_authority_missing",
+      "live_gap_v30_explicit_recovery_required",
+    ]) {
+      final progress = LibrarySynchronizationFeedback.fromStatus(
+        _status(
+          issueCode: issue,
+          recoveryBlocked: false,
+          freshness: LibraryCatalogFreshness.updating,
+          phase: LibrarySynchronizationPhase.inventoryComparison,
+        ),
+      );
+      expect(progress.sourceLabel, LibraryStrings.synchronizing);
+      expect(progress.message, LibraryStrings.synchronizationAutomaticProgress);
+      expect(progress.shouldNotify, isFalse);
+      expect(progress.requiresManualLibraryUpdate, isFalse);
+
+      final completed = LibrarySynchronizationFeedback.fromStatus(
+        _status(
+          issueCode: issue,
+          recoveryBlocked: false,
+          freshness: LibraryCatalogFreshness.synchronized,
+          phase: LibrarySynchronizationPhase.synchronized,
+          continuity: LibraryContinuityState.current,
+          retryCount: 0,
+          unknownCount: 0,
+        ),
+      );
+      expect(completed.sourceLabel, LibraryStrings.synchronized);
+      expect(completed.message, LibraryStrings.synchronizationCompleted);
+      expect(completed.shouldNotify, isFalse);
+      expect(completed.requiresManualLibraryUpdate, isFalse);
+    }
+  });
+
+  test("unavailable roots do not expose obsolete manual recovery actions", () {
+    final feedback = LibrarySynchronizationFeedback.fromStatus(
+      _status(
+        availability: LibraryRootAvailability.offline,
+        issueCode: "legacy_recovery_authority_missing",
+      ),
+    );
+    expect(feedback.sourceLabel, LibraryStrings.sourceUnavailable);
+    expect(feedback.message, LibraryStrings.synchronizationSourceUnavailable);
+    expect(feedback.detail, contains("阶段：目录不可用"));
+    expect(feedback.requiresManualLibraryUpdate, isFalse);
+    expect(feedback.detail, isNot(contains("等待重试")));
+  });
+
+  test("unavailable phase cannot claim automatic processing", () {
+    final feedback = LibrarySynchronizationFeedback.fromStatus(
+      _status(
+        recoveryBlocked: false,
+        issueCode: null,
+        freshness: LibraryCatalogFreshness.updating,
+        phase: LibrarySynchronizationPhase.unavailable,
+      ),
+    );
+    expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
+    expect(
+      feedback.message,
+      isNot(LibraryStrings.synchronizationAutomaticProgress),
+    );
+    expect(feedback.shouldNotify, isFalse);
+  });
+
   test("dormant first import retains its separate user-intent explanation", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(
       _status(
@@ -504,6 +571,7 @@ void main() {
 }
 
 LibraryRootSynchronizationStatus _status({
+  LibraryRootAvailability availability = LibraryRootAvailability.available,
   String? issueCode = "directory_unreadable",
   bool recoveryBlocked = true,
   LibraryCatalogFreshnessCause cause = LibraryCatalogFreshnessCause.evidenceGap,
@@ -517,7 +585,7 @@ LibraryRootSynchronizationStatus _status({
 }) => LibraryRootSynchronizationStatus(
   rootId: "root-1",
   rootGeneration: BigInt.one,
-  availability: LibraryRootAvailability.available,
+  availability: availability,
   freshness: freshness,
   freshnessCause: cause,
   continuity: continuity,

@@ -4,7 +4,7 @@ abstract final class LibraryStrings {
   static const synchronizing = "正在更新图库";
   static const needsReconciliation = "更新受阻";
   static const synchronizationUnconfirmed = "图库尚未核对";
-  static const synchronizationRetryPending = "等待重试更新";
+  static const synchronizationRetryPending = "等待自动重试";
   static const continuityBaselineRequired = "正在核对图库";
   static const continuityCatchingUp = "正在补齐近期变化";
   static const continuityRecoveryRequired = "需要重新核对";
@@ -91,6 +91,8 @@ abstract final class LibraryStrings {
   static const synchronizationRefreshFailureMessage = "图库已经发生变化，但当前页面刷新失败。";
   static const synchronizationSourceUnhealthy = "目录监控已中断，当前仍显示上次确认的图库内容。";
   static const synchronizationSourceStarting = "目录监控尚未就绪，当前显示上次确认的图库内容。";
+  static const synchronizationSourceUnavailable =
+      "目录暂时不可用，当前显示已保存的图库内容。请检查目录是否可访问。";
   static const synchronizationEvidenceGap = "部分文件变化尚未核对，当前仍显示上次确认的图库内容。";
   static const synchronizationCapacityExceeded = "短时间内的文件变化过多，图库变化尚未完整核对。";
   static const synchronizationMonitoringAccessDenied =
@@ -104,12 +106,13 @@ abstract final class LibraryStrings {
   static const synchronizationMonitoringFailed = "目录监控发生错误，当前仍显示上次确认的图库内容。";
   static const synchronizationRecoveryFailed = "图库核对未能完成，已保留原有图库内容。";
   static const synchronizationRecoveryBlocked =
-      "自动核对已受阻，Ame 已保留上次图库内容。请检查错误详情，解决后可在文件夹菜单中手动更新图库。";
+      "图库更新受阻，当前显示上次确认的内容。请查看错误详情，排除原因后可通过文件夹菜单更新图库。";
   static const synchronizationPersistenceFailed = "图库更新记录暂未保存，已保留原有图库内容。";
   static const synchronizationNeedsReconciliation = "图库变化尚未完整核对，当前显示上次确认的内容。";
   static const synchronizationCompleted = "图库已更新，当前没有待处理的变化。";
   static const synchronizationAutomaticProgress = "图库正在更新，你可以继续浏览已有图片。";
-  static const synchronizationAutomaticRetry = "上次图库更新未完成，正在等待重试。你可以继续浏览已有图片。";
+  static const synchronizationAutomaticRetry =
+      "上次图库更新未完成，Ame 会自动重试。你可以继续浏览已有图片。";
   static const synchronizationLegacyRecoveryAuthorityMissing =
       "旧版本的更新记录无法直接接续。请手动更新图库以恢复连续更新。";
   static const synchronizationExplicitRecoveryRequired =
@@ -118,7 +121,7 @@ abstract final class LibraryStrings {
   static const synchronizationPhaseInventoryEnumeration = "正在核对文件列表";
   static const synchronizationPhaseInventoryComparison = "正在比较文件变化";
   static const synchronizationPhaseQueuePublication = "发布图库更新";
-  static const synchronizationPhaseRetryWait = "等待重试更新";
+  static const synchronizationPhaseRetryWait = "等待自动重试";
   static const synchronizationPhaseReconciliation = "核对受影响内容";
   static const synchronizationPhaseFullScan = "执行全量扫描";
   static const synchronizationPhaseBlocked = "核对暂未完成";

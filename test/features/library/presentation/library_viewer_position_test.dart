@@ -1609,6 +1609,7 @@ LibrarySynchronizationSnapshot _legacyRecoveryAuthorityMissingSnapshot() {
         pendingChangeCount: BigInt.zero,
         retryWaitCount: BigInt.one,
         freshnessUnknownCount: BigInt.one,
+        recoveryBlocked: true,
         lastIssueCode: "legacy_recovery_authority_missing",
       ),
     },

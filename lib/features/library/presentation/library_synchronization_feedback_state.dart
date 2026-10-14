@@ -22,9 +22,7 @@ enum LibrarySynchronizationFeedbackState {
         status.continuity == LibraryContinuityState.unavailable) {
       return unavailable;
     }
-    if (status.recoveryBlocked ||
-        status.lastIssueCode == "legacy_recovery_authority_missing" ||
-        status.lastIssueCode == "live_gap_v30_explicit_recovery_required") {
+    if (status.recoveryBlocked) {
       return blocked;
     }
     if (status.sourceStatus == LibraryChangeSourceStatus.failed ||
@@ -39,10 +37,19 @@ enum LibrarySynchronizationFeedbackState {
           status.sourceStatus == LibraryChangeSourceStatus.healthy) {
         return awaitingRetry;
       }
-      if (status.phase != LibrarySynchronizationPhase.retryWait &&
-          status.phase != LibrarySynchronizationPhase.blocked &&
-          status.phase != LibrarySynchronizationPhase.synchronized) {
-        return updating;
+      switch (status.phase) {
+        case LibrarySynchronizationPhase.watcherStartup:
+        case LibrarySynchronizationPhase.inventoryEnumeration:
+        case LibrarySynchronizationPhase.inventoryComparison:
+        case LibrarySynchronizationPhase.queuePublication:
+        case LibrarySynchronizationPhase.reconciliation:
+        case LibrarySynchronizationPhase.fullScan:
+          return updating;
+        case LibrarySynchronizationPhase.retryWait:
+        case LibrarySynchronizationPhase.blocked:
+        case LibrarySynchronizationPhase.synchronized:
+        case LibrarySynchronizationPhase.unavailable:
+          break;
       }
     }
     if (status.freshness == LibraryCatalogFreshness.synchronized &&
