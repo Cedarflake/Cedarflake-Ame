@@ -3248,3 +3248,10 @@ blank canvas during detail loading remains visible. Search text injection did no
 small/large-image workflow before the 300-second guard stopped this run; original profile and
 catalog preservation checks pass. This bounded run does not establish complete viewer or timeline
 acceptance. No new source corpus is generated.
+
+The `bc500a1` Release client subsequently opens two existing retained-catalog images directly.
+The 540-by-551 image displays at 100%; the 2000-by-2000 image opens fitted at approximately 30%
+and reaches 100% through the actual-size control. Both returns preserve the prior gallery position.
+The client exits normally and the original profile/catalog checks pass. This selected opening
+workflow passes; pending-load indicator movement and complete timeline interaction still require
+their hosted and applicable client results.
