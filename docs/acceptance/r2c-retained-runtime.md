@@ -3086,3 +3086,13 @@ currently enumerated October locations. Before, during and after this normal 108
 lifetime the catalog remains Supported/Current with one scan and the same prior inventory; neither
 counter increases. Original catalog/settings restoration succeeds. This is populated reopening and
 selected preview evidence, not a measured startup/preview P95 or a remaining middle-timeline replay.
+
+A following warm-start observation begins 500-ms window sampling before process launch. The first
+captured populated frame, including visible previews, is 3117 ms after the OS process start; it is
+an observation upper bound, not an exact first-frame timestamp or P95. The same Release then
+navigates through the middle time rail to July 2026, scrolls up and reverses by the same input.
+Sampled pixels return to the prior rows and show no Retry; date feedback remains July 2026.
+Accessibility includes retained offscreen children, so its first child is not used as a visible
+position oracle. The 22.512-second timing lifetime and 146.113-second browsing lifetime close
+normally, restore the original profile and retain 65130 locations, 51 October items and unchanged
+scan/inventory counts. This does not close the historical continuous-frame Retry/jump attribution.
