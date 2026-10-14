@@ -27,10 +27,12 @@ abstract final class LibraryStrings {
   static const refreshingSourceDisplay = "正在刷新";
   static const sourceAdded = "已添加";
   static const sourceDisplayReloadPending = "等待刷新";
-  static const scanConfirmationPending = "扫描结果尚未确认";
-  static const scanConfirmationDetail = "请在任务面板点击“重试”确认扫描结果，无需重新扫描。";
+  static const scanConfirmationPending = "暂时无法读取扫描结果";
+  static const scanConfirmationDetail = "在任务面板点击“重新读取”再试一次。";
+  static const readingScanResult = "正在读取扫描结果…";
+  static const rereadScanResult = "重新读取";
   static const galleryDisplayReloadPending = "图库已更新，等待刷新显示";
-  static const galleryDisplayReloadDetail = "图库已经更新。请在任务面板中查看刷新进度或重试刷新显示。";
+  static const galleryDisplayReloadDetail = "图库已经更新，请在任务面板点击“重新加载”查看最新内容。";
   static const firstImportIncomplete = "尚未完成添加";
   static const firstImportAwaitingUser = "等待手动继续或重新添加";
   static const firstImportRequiredDetail =
@@ -91,6 +93,7 @@ abstract final class LibraryStrings {
   static const emptyLibraryTitle = "建立你的图片图库";
   static const emptyLibraryBody = "选择要在 Ame 中一起浏览的文件夹。";
   static const updatingLibrary = "正在更新图库…";
+  static const loadingLibrary = "正在加载图库…";
   static const synchronizationRefreshFailureTitle = "页面刷新失败";
   static const synchronizationRefreshFailureMessage = "图库已有新内容，请重新加载页面。";
   static const synchronizationSourceUnhealthy = "自动更新已中断，已有图片仍可浏览。";
@@ -134,8 +137,7 @@ abstract final class LibraryStrings {
     final separator = error.indexOf(":");
     final code = separator < 0 ? error : error.substring(0, separator);
     return switch (code) {
-      "scan_terminal_reconciliation_failed" =>
-        "暂时无法确认扫描结果。点击“重试”重新读取结果，不会启动新扫描。",
+      "scan_terminal_reconciliation_failed" => "点击“重新读取”再试一次。",
       "catalog_root_consolidation_incomplete" =>
         "尚未完整读取父文件夹，原来的子文件夹已保留。请检查访问状态及扫描数量限制后重试。",
       "catalog_root_consolidation_busy" => "子文件夹还有未完成的扫描。请先继续或取消该任务，再添加父文件夹。",

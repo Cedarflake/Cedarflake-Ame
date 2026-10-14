@@ -3,6 +3,8 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/library_scan_control.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/library_pending_source.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_task_surface.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -16,33 +18,46 @@ void main() {
     LibraryScanPublication.reloadPending,
   ]) {
     testWidgets(
-      "unresolved publication keeps a visible retry obligation: $publication",
+      "result recovery labels follow the retry lifecycle: $publication",
       (tester) async {
         var retries = 0;
+        final taskState = ValueNotifier(
+          LibraryState(
+            primaryScan: LibraryPrimaryScanSnapshot(
+              status: LibraryStatus.failed,
+              taskKind: LibraryTaskKind.import,
+              scanId: "parent-import",
+              displayRootPath: r"C:\Fixture\Pictures",
+              publication: publication,
+              errorMessage:
+                  publication == LibraryScanPublication.confirmationPending
+                  ? "scan_terminal_reconciliation_failed: catalog unavailable"
+                  : "显示暂时不可用",
+            ),
+          ),
+        );
+        addTearDown(taskState.dispose);
         await tester.pumpWidget(
           MaterialApp(
             home: Scaffold(
-              body: LibraryTaskSurface(
-                state: LibraryState(
-                  primaryScan: LibraryPrimaryScanSnapshot(
-                    status: LibraryStatus.failed,
-                    taskKind: LibraryTaskKind.import,
-                    scanId: "parent-import",
-                    publication: publication,
-                    errorMessage:
-                        publication ==
-                            LibraryScanPublication.confirmationPending
-                        ? "scan_terminal_reconciliation_failed: catalog unavailable"
-                        : "显示暂时不可用",
-                  ),
+              body: ValueListenableBuilder<LibraryState>(
+                valueListenable: taskState,
+                builder: (context, state, child) => LibraryTaskSurface(
+                  state: state,
+                  onPause: () {},
+                  onCancel: () {},
+                  onResume: () async {},
+                  onRetry: () async {
+                    retries += 1;
+                    taskState.value = state.copyWith(
+                      primaryScan: state.primaryScanSnapshot.copyWith(
+                        status: LibraryStatus.refreshing,
+                        errorMessage: null,
+                      ),
+                    );
+                  },
+                  onDismiss: () {},
                 ),
-                onPause: () {},
-                onCancel: () {},
-                onResume: () async {},
-                onRetry: () async {
-                  retries += 1;
-                },
-                onDismiss: () {},
               ),
             ),
           ),
@@ -50,7 +65,7 @@ void main() {
         expect(
           find.text(
             publication == LibraryScanPublication.confirmationPending
-                ? "扫描结果尚未确认"
+                ? "暂时无法读取扫描结果"
                 : "图库已更新，刷新显示失败",
           ),
           findsOneWidget,
@@ -60,7 +75,54 @@ void main() {
           findsNothing,
         );
         expect(find.byType(LinearProgressIndicator), findsNothing);
+        expect(
+          find.text(
+            publication == LibraryScanPublication.confirmationPending
+                ? "重新读取"
+                : "重新加载",
+          ),
+          findsOneWidget,
+        );
+        expect(
+          LibraryPendingSource.fromState(taskState.value)?.statusLabel,
+          publication == LibraryScanPublication.confirmationPending
+              ? "暂时无法读取扫描结果"
+              : LibraryStrings.sourceDisplayReloadPending,
+        );
         await tester.tap(find.byKey(const Key("library-retry-button")));
+        await tester.pump();
+        expect(retries, 1);
+        expect(
+          find.text(
+            publication == LibraryScanPublication.confirmationPending
+                ? "正在读取扫描结果…"
+                : "正在刷新图库显示…",
+          ),
+          findsOneWidget,
+        );
+        expect(find.text("暂时无法读取扫描结果"), findsNothing);
+        expect(find.text("图库已更新，刷新显示失败"), findsNothing);
+        expect(find.byKey(const Key("library-retry-button")), findsNothing);
+        expect(find.byType(LinearProgressIndicator), findsOneWidget);
+        expect(
+          LibraryPendingSource.fromState(taskState.value)?.statusLabel,
+          publication == LibraryScanPublication.confirmationPending
+              ? "正在读取扫描结果…"
+              : LibraryStrings.refreshingSourceDisplay,
+        );
+        taskState.value = taskState.value.copyWith(
+          primaryScan: taskState.value.primaryScanSnapshot.copyWith(
+            status: LibraryStatus.completed,
+            publication: LibraryScanPublication.visible,
+          ),
+        );
+        await tester.pump();
+        expect(find.text("导入完成"), findsOneWidget);
+        expect(find.byType(LinearProgressIndicator), findsNothing);
+        expect(
+          LibraryPendingSource.fromState(taskState.value)?.statusLabel,
+          LibraryStrings.sourceAdded,
+        );
         expect(retries, 1);
         expect(tester.takeException(), isNull);
       },

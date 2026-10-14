@@ -55,7 +55,8 @@ class LibraryTaskSurface extends StatelessWidget {
             : LibraryStrings.removingFromAme(
                 _rootName(state.removingRootDisplayPath),
               ),
-      LibraryStatus.refreshing when isConfirmingPublication => "正在确认扫描结果…",
+      LibraryStatus.refreshing when isConfirmingPublication =>
+        LibraryStrings.readingScanResult,
       LibraryStatus.refreshing => isPublishedReload ? "正在刷新图库显示…" : "正在更新图库…",
       LibraryStatus.cancelled => isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹",
       LibraryStatus.paused => isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹",
@@ -145,7 +146,7 @@ class LibraryTaskSurface extends StatelessWidget {
                     TextButton(
                       key: const Key("library-retry-button"),
                       onPressed: onRetry,
-                      child: const Text("重试"),
+                      child: Text(_retryLabel),
                     ),
                     if (!state.isCommittedRemovalReloadPending &&
                         !state.primaryScanSnapshot.hasUnresolvedPublication)
@@ -158,7 +159,7 @@ class LibraryTaskSurface extends StatelessWidget {
                     TextButton(
                       key: const Key("library-retry-button"),
                       onPressed: onRetry,
-                      child: const Text("重试"),
+                      child: Text(_retryLabel),
                     )
                   else if (state.status == LibraryStatus.completed)
                     TextButton(
@@ -200,6 +201,18 @@ class LibraryTaskSurface extends StatelessWidget {
           "${state.status.name}:${state.isRemovalCommitted}:${state.removingRootId}",
       child: surface,
     );
+  }
+
+  String get _retryLabel {
+    if (state.taskKind == LibraryTaskKind.remove) {
+      return state.isRemovalCommitted ? LibraryStrings.reload : "重试移除";
+    }
+    return switch (state.primaryScanSnapshot.publication) {
+      LibraryScanPublication.confirmationPending =>
+        LibraryStrings.rereadScanResult,
+      LibraryScanPublication.reloadPending => LibraryStrings.reload,
+      _ => LibraryStrings.retry,
+    };
   }
 
   static String _rootName(String? path) {

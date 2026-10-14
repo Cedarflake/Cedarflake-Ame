@@ -146,7 +146,7 @@ class GalleryLoadingState extends StatelessWidget {
         children: [
           CircularProgressIndicator(),
           SizedBox(height: 16),
-          Text(LibraryStrings.updatingLibrary),
+          Text(LibraryStrings.loadingLibrary),
         ],
       ),
     );

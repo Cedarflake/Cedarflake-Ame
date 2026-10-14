@@ -28,6 +28,9 @@ class LibraryPendingSource {
 
   String get statusLabel {
     if (publication == LibraryScanPublication.confirmationPending) {
+      if (isProcessing) {
+        return LibraryStrings.readingScanResult;
+      }
       return LibraryStrings.scanConfirmationPending;
     }
     if (publication == LibraryScanPublication.reloadPending && !isProcessing) {
