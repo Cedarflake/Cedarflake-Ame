@@ -75,27 +75,34 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-Deliver the following outcomes as individual changes on main, in order:
+The current repair goal contains exactly three outcomes, delivered independently on main in order:
 
-1. **Restore ordinary-client synchronization without installation.** Connect ordinary-token journal
-   reads and file-identity reconstruction to the existing durable queue and catalog publication.
+1. **Restore ordinary-client synchronization and October membership without installation.**
+   Connect ordinary-token journal reads and file-identity reconstruction to the existing durable
+   queue and catalog publication.
    Keep unsigned Debug/Release behavior consistent, including closed-process changes and no-change
    zero-enumeration startup. Preserve the broker correction as a separate supported adapter;
    installing it is not a prerequisite for developing or verifying the ordinary-token path.
    Measure this step by a connected application restart and exact catalog result. Native probes,
    parser changes and isolated gates are supporting work, not additional delivery stages.
-2. **Verify the reported missing October images.** Re-enumerate the reported October subtrees at
+   Re-enumerate the reported October subtrees at
    verification time instead of fixing the expected set to the original count. Restore any missing
    membership through incremental continuity, and prove that displayed
    synchronization status matches actual journal coverage and published membership.
-3. **Correct reopen and update latency.** Verify populated reopening, no-change reopening and
+2. **Correct reopen and update latency.** Verify populated reopening, no-change reopening and
    catch-up after closed-process changes. Verify the existing reclamation/session correction and
    fix remaining owning costs; preserve no-change zero-enumeration and existing latency requirements.
-4. **Finish the affected browsing and preview paths.** Reproduce and resolve remaining retained
+3. **Finish the affected browsing and preview paths.** Reproduce and resolve remaining retained
    middle-timeline Retry/jump and slow-preview incidents, keeping the gallery usable during updates.
-   Preserve completed regression evidence and verify only the remaining affected variants.
-5. **Begin the R3 usable slice.** Deliver exact-duplicate grouping with inspectable physical file
-   locations and source preservation. Remaining independent maintenance items keep their own scope.
+   Preserve completed regression evidence and verify only the remaining affected variants. The
+   requested fixed viewer loading indicator, automatic opening preference and stable time-rail
+   distribution belong to this outcome; they do not reopen already delivered synchronization work.
+
+R3 remains the next product stage in the delivery sequence, outside this three-outcome repair goal.
+Installer lifecycle, signing, Sandbox troubleshooting and unrelated historical acceptance variants
+are not additional steps in this goal. A validation failure stays with its owning correction rather
+than creating another stage. New findings interrupt the order only for a reproduced core-workflow
+or source-safety failure; other maintenance retains separate scope.
 
 Each correction is committed and pushed before moving to the next independent issue. GitHub Actions
 executes CI, including boundary regressions; local work is limited to diagnosis, formatting/diff
@@ -103,9 +110,13 @@ inspection and affected client workflows. Existing three Rust failures belong to
 retain their workloads and assertions. The [ordinary-token capability checkpoint](acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
 establishes native feasibility and a typed parser boundary, not complete client synchronization.
 Ordinary-token directory/path identity reconstruction and atomic enrollment are implemented.
-Selected retained-library recovery restores the current October membership and survives ordinary
-unsigned Release reopening without another inventory. Complete closed-process replay, including
-volume-wide unrelated changes, and remaining current-source verification stay open. The workstation installation remains removed;
+Selected ordinary Debug/Release three-process workflows already pass closed-process
+deletion/replacement/rename/move-in/hardlink catch-up and unchanged restart, with exact membership
+and unchanged scan/inventory counts. Retained-library recovery restores current October membership
+and survives ordinary unsigned Release reopening without another inventory. Preserve these results;
+do not reopen the whole synchronization step because latency measurements, instrumented
+zero-source-call proof or a specifically identified platform boundary remain. Those gaps retain
+their named verification under the affected outcome. The workstation installation remains removed;
 any later system installation retains its explicit-authorization requirement. The full installer
 upgrade/repair/rollback matrix must not precede the missing-image and latency work.
 Historical readiness matrices retain their recorded gaps; they do not reopen the completed merge
@@ -116,8 +127,9 @@ The current direction prioritizes defects that directly impair functions and use
 The requested rule/document organization is verified. The execution plan's
 [complete scope map](plans/r2c-closeout.md#complete-scope-and-retained-readability-findings) retains
 the four required state/queue/scan/viewport maintenance deliveries and all 24 functional variants.
-The explicit completion goal admits their bounded implementation and verification within R2c;
-rule organization does not complete them. C05 continuation
+That historical roster is retained evidence and maintenance scope, not automatic expansion of the
+current three-outcome goal. Verify affected boundaries without restarting the entire R2c matrix;
+rule organization does not complete a functional correction. C05 continuation
 has owning-layer corrections and selected generated-client evidence, with the remaining exits below.
 Item 3 selects functional synchronization and browsing. **R2C-C04 now has focused and generated-client
 verification** for fresh bulk changes and recovery of retained terminal work. The new

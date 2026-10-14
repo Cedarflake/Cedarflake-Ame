@@ -27,10 +27,13 @@ Updated 2026-10-14. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-Follow the [roadmap's functional recovery order](../roadmap.md#current-execution-queue): ordinary
-client synchronization without installation, reported October membership, reopening/update latency, then
-remaining retained browsing/preview incidents, followed by the first usable R3 slice. Deliver each
-fix independently on main. Prepared Release fixtures and historical diagnostic work
+Follow the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
+client synchronization and current October membership, reopening/update latency, then the named
+browsing/preview incidents and explicitly requested viewer/time-rail corrections. R3 is outside
+this repair goal. Deliver each fix independently on main; a supporting test or verification failure
+does not create another delivery stage. Preserve completed ordinary restart and membership results
+instead of treating the whole synchronization step as unfinished. Prepared Release fixtures and
+historical diagnostic work
 remain retained work; their preparation does not move them ahead of these incidents.
 
 The selected unified application/broker installation succeeded, but its ordinary-token connection
@@ -62,8 +65,10 @@ continuous journal range into exact published membership. A following unchanged 
 zero source enumeration. The selected [ordinary Debug/Release three-process workflows](../acceptance/r2c-retained-runtime.md#ordinary-release-restart-on-2026-10-14)
 now verify fresh import, deletion/replacement/rename/move-in/hardlink catch-up and unchanged restart
 without another scan or inventory. Current populated Release reopening retains the October membership
-and prior scan/inventory counts. Instrumented no-source-call proof, hosted first-import/P0 failures
-and the remaining client variants stay open. Keep namespace capture, identity lookup and atomic enrollment inside this
+and prior scan/inventory counts. Instrumented no-source-call proof and specifically identified
+client boundaries retain their own status. Historical hosted first-import/P0 failures remain in the
+owning record alongside subsequent passing Rust results; do not treat them as unconditionally open.
+Keep namespace capture, identity lookup and atomic enrollment inside this
 slice; another standalone capability probe or parser pass does not finish it. Candidate packaging
 and the final client/platform matrix follow the connected outcome. Required per-change correctness
 gates remain in force, and incomplete identity coverage must retain an explicit non-current state.
