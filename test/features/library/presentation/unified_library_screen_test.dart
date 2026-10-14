@@ -779,7 +779,7 @@ void main() {
       ),
     );
 
-    expect(find.text("正在添加文件夹“Pictures”…"), findsOneWidget);
+    expect(find.text("正在添加“Pictures”…"), findsOneWidget);
     expect(find.text("已检查 128 个文件 · 已找到 64 张图片"), findsOneWidget);
     expect(find.byKey(const Key("library-pause-button")), findsOneWidget);
     expect(find.byKey(const Key("library-cancel-button")), findsOneWidget);
@@ -815,8 +815,8 @@ void main() {
       ),
     );
 
-    expect(find.text("正在核对文件夹“Pictures”…"), findsOneWidget);
-    expect(find.text("正在核对 128 / 48384 张图片 · 已检查 50304 个文件"), findsOneWidget);
+    expect(find.text("正在检查“Pictures”的图片…"), findsOneWidget);
+    expect(find.text("已检查 128 / 48384 张图片 · 已检查 50304 个文件"), findsOneWidget);
     final progress = tester.widget<LinearProgressIndicator>(
       find.byType(LinearProgressIndicator),
     );
@@ -999,8 +999,8 @@ void main() {
     );
     expect(container.read(libraryControllerProvider).scanId, "scan-completed");
     expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
-    expect(find.text("导入完成"), findsOneWidget);
-    expect(find.text("已检查 128 个文件 · 已导入 64 张图片"), findsOneWidget);
+    expect(find.text("添加完成"), findsOneWidget);
+    expect(find.text("已检查 128 个文件 · 已添加 64 张图片"), findsOneWidget);
     expect(
       find.byKey(const Key("library-task-dismiss-button")),
       findsOneWidget,
@@ -1021,7 +1021,7 @@ void main() {
     await tester.tap(find.byKey(const Key("library-task-dismiss-button")));
     await tester.pump();
 
-    expect(find.text("导入完成"), findsNothing);
+    expect(find.text("添加完成"), findsNothing);
     expect(find.byKey(const Key("library-task-dismiss-button")), findsNothing);
   });
 
@@ -1069,7 +1069,7 @@ void main() {
     await tester.pump();
 
     expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
-    expect(find.text("正在添加文件夹“NewPictures”…"), findsOneWidget);
+    expect(find.text("正在添加“NewPictures”…"), findsOneWidget);
     expect(find.byKey(const Key("library-update-task-surface")), findsNothing);
   });
 
@@ -2435,7 +2435,7 @@ void main() {
 
     expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
     expect(find.text("正在从 Ame 中移除“Pictures”…"), findsOneWidget);
-    expect(find.text("正在清理该文件夹的图库记录。磁盘上的文件夹和图片不会被删除或修改。"), findsOneWidget);
+    expect(find.text("原文件夹和图片都会保留。"), findsOneWidget);
     expect(catalog.unregisteredRootIds, ["root-1"]);
     expect(feedbackWasLaidOutBeforeCatalogEntry, isTrue);
 
@@ -2595,7 +2595,7 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text("导入完成"), findsOneWidget);
+    expect(find.text("添加完成"), findsOneWidget);
 
     await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
     await tester.pumpAndSettle();
@@ -2605,9 +2605,9 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(catalog.unregisteredRootIds, ["root-1"]);
-    expect(find.text("导入完成"), findsNothing);
+    expect(find.text("添加完成"), findsNothing);
     expect(find.byKey(const Key("library-task-surface")), findsNothing);
-    expect(find.text("已从 Ame 中移除，原图片未作任何修改"), findsOneWidget);
+    expect(find.text("已从 Ame 中移除“Pictures”"), findsOneWidget);
   });
 
   testWidgets("routes source update to the configured-root selection dialog", (
@@ -2695,7 +2695,7 @@ void main() {
       find.byKey(const Key("library-update-task-surface")),
       findsOneWidget,
     );
-    expect(find.text("正在处理 2 个文件夹的更新…"), findsOneWidget);
+    expect(find.text("图库更新"), findsOneWidget);
     expect(
       find.byKey(const ValueKey("library-update-task-root-1")),
       findsOneWidget,
@@ -2704,7 +2704,7 @@ void main() {
       find.byKey(const ValueKey("library-update-task-root-2")),
       findsOneWidget,
     );
-    expect(find.textContaining("正在添加文件夹"), findsNothing);
+    expect(find.textContaining("正在添加“"), findsNothing);
   });
 
   testWidgets("select all covers the complete query instead of loaded tiles", (

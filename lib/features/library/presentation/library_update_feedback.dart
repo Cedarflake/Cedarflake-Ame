@@ -9,29 +9,30 @@ class LibraryUpdateFeedback {
   String get phaseLabel => switch (task.phase) {
     LibraryRootUpdatePhase.queued => "等待更新",
     LibraryRootUpdatePhase.discovering => "正在更新",
-    LibraryRootUpdatePhase.finalizing => "正在核对",
-    LibraryRootUpdatePhase.refreshing => "正在刷新",
-    LibraryRootUpdatePhase.cancelling => "正在取消",
+    LibraryRootUpdatePhase.finalizing => "正在检查图片",
+    LibraryRootUpdatePhase.refreshing => "正在加载图片",
+    LibraryRootUpdatePhase.cancelling => "正在停止",
     LibraryRootUpdatePhase.completed => "更新完成",
     LibraryRootUpdatePhase.cancelled => "已取消",
-    LibraryRootUpdatePhase.stale => "需要重新更新",
-    LibraryRootUpdatePhase.refreshFailed => "页面刷新失败",
+    LibraryRootUpdatePhase.stale => "文件已变化",
+    LibraryRootUpdatePhase.refreshFailed => "图片加载失败",
     LibraryRootUpdatePhase.failed => "更新失败",
   };
 
   String? get detail {
     return switch (task.phase) {
-      LibraryRootUpdatePhase.queued => "正在排队，你可以继续浏览。",
+      LibraryRootUpdatePhase.queued ||
+      LibraryRootUpdatePhase.cancelling ||
+      LibraryRootUpdatePhase.cancelled ||
+      LibraryRootUpdatePhase.stale => null,
       LibraryRootUpdatePhase.finalizing =>
-        "正在核对 ${task.validatedItems} / ${task.validationItemCount} 张图片 · "
+        "已检查 ${task.validatedItems} / ${task.validationItemCount} 张图片 · "
             "已检查 ${task.visitedEntries} 个文件",
-      LibraryRootUpdatePhase.refreshing => "图库已更新，正在加载最新内容。",
-      LibraryRootUpdatePhase.cancelling => "正在停止这次更新，已有图片仍可浏览。",
-      LibraryRootUpdatePhase.cancelled => "这次更新已取消，已有图片仍可浏览。",
+      LibraryRootUpdatePhase.refreshing => null,
       LibraryRootUpdatePhase.completed =>
         "已检查 ${task.visitedEntries} 个文件 · 图库包含 ${task.acceptedItems} 张图片",
-      LibraryRootUpdatePhase.stale => "更新期间文件发生了变化。",
-      LibraryRootUpdatePhase.refreshFailed => "图库更新已保存。",
+      LibraryRootUpdatePhase.refreshFailed =>
+        LibraryStrings.scanFailureDetail(task.errorMessage) ?? "扫描已完成。",
       LibraryRootUpdatePhase.failed => LibraryStrings.scanFailureDetail(
         task.errorMessage,
       ),
@@ -42,22 +43,14 @@ class LibraryUpdateFeedback {
 
   String get retryLabel => switch (task.phase) {
     LibraryRootUpdatePhase.refreshFailed => LibraryStrings.reload,
-    LibraryRootUpdatePhase.stale => "重新更新",
+    LibraryRootUpdatePhase.stale => LibraryStrings.updateLibrary,
     _ => "重试",
   };
 
   String retrySemanticsLabel(String rootName) => switch (task.phase) {
     LibraryRootUpdatePhase.refreshFailed => "重新加载 $rootName",
-    LibraryRootUpdatePhase.stale => "重新更新 $rootName",
+    LibraryRootUpdatePhase.stale => "更新图库 $rootName",
     _ => "重试更新 $rootName",
-  };
-
-  String activeTitle(String rootName) => switch (task.phase) {
-    LibraryRootUpdatePhase.queued => "“$rootName”正在排队",
-    LibraryRootUpdatePhase.cancelling => "正在取消“$rootName”的更新…",
-    LibraryRootUpdatePhase.refreshing => "正在刷新“$rootName”…",
-    LibraryRootUpdatePhase.finalizing => "正在核对“$rootName”…",
-    _ => "正在更新图库“$rootName”…",
   };
 
   String get progressSemanticsValue {

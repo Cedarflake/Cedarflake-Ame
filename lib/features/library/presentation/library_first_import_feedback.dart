@@ -17,7 +17,7 @@ class LibraryFirstImportFeedback {
       ),
       LibraryStatus.pausing => const LibraryFirstImportFeedback._(
         LibraryStrings.pausingSource,
-        LibraryStrings.firstImportInProgressDetail,
+        null,
       ),
       LibraryStatus.paused => const LibraryFirstImportFeedback._(
         LibraryStrings.firstImportPaused,
@@ -26,7 +26,7 @@ class LibraryFirstImportFeedback {
       LibraryStatus.cancelling ||
       LibraryStatus.discarding => const LibraryFirstImportFeedback._(
         LibraryStrings.cancellingSource,
-        LibraryStrings.firstImportCancellingDetail,
+        null,
       ),
       LibraryStatus.cancelled => const LibraryFirstImportFeedback._(
         LibraryStrings.firstImportCancelled,
@@ -42,7 +42,7 @@ class LibraryFirstImportFeedback {
   }
 
   final String title;
-  final String detail;
+  final String? detail;
 
   static const _incomplete = LibraryFirstImportFeedback._(
     LibraryStrings.firstImportIncomplete,

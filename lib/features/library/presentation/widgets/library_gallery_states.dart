@@ -104,7 +104,7 @@ class _PendingLibraryGallery extends StatelessWidget {
 
   final String stateKey;
   final String title;
-  final String detail;
+  final String? detail;
 
   @override
   Widget build(BuildContext context) {
@@ -124,8 +124,10 @@ class _PendingLibraryGallery extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleLarge,
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 8),
-              Text(detail, textAlign: TextAlign.center),
+              if (detail case final message?) ...[
+                const SizedBox(height: 8),
+                Text(message, textAlign: TextAlign.center),
+              ],
             ],
           ),
         ),

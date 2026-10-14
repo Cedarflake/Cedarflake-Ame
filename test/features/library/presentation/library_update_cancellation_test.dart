@@ -138,7 +138,7 @@ void main() {
       expect(refreshCount, 2);
       expect(execution.hasUpdateScans, isFalse);
       expect(execution.canStartPrimary, isTrue);
-      expect(find.text("图库更新已结束"), findsOneWidget);
+      expect(find.text("图库更新"), findsOneWidget);
       expect(tester.takeException(), isNull);
     },
   );

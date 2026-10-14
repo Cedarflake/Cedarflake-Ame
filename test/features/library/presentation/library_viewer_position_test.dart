@@ -895,7 +895,13 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text("正在更新图库“Pictures”…"), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const Key("library-update-task-surface")),
+          matching: find.text("正在更新"),
+        ),
+        findsOneWidget,
+      );
       expect(find.text("已检查 128 个文件 · 已找到 64 张图片"), findsOneWidget);
       expect(find.bySemanticsLabel("取消更新 Pictures"), findsOneWidget);
       expect(find.byKey(const Key("library-pause-button")), findsNothing);
@@ -916,7 +922,7 @@ void main() {
       await tester.pump();
       await tester.pump();
 
-      expect(find.text("图库更新已结束"), findsOneWidget);
+      expect(find.text("图库更新"), findsOneWidget);
       expect(find.text("更新完成"), findsOneWidget);
       expect(
         find.byKey(const Key("library-update-dismiss-terminal")),
@@ -1377,7 +1383,7 @@ Future<void> _verifyTerminalScanFeedbackAcknowledgement(
   await tester.pump();
   await tester.pump();
 
-  expect(find.text("图库更新已结束"), findsOneWidget);
+  expect(find.text("图库更新"), findsOneWidget);
   expect(find.text(terminalTitle), findsOneWidget);
   expect(
     find.bySemanticsLabel("重试更新 Pictures"),

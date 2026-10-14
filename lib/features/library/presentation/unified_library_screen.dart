@@ -1721,8 +1721,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       builder: (context) => AlertDialog(
         title: const Text("从 Ame 中移除文件夹？"),
         content: Text(
-          "将停止在 Ame 中显示“${librarySourceName(root.displayPath)}”。"
-          "磁盘上的文件夹和图片不会被删除或修改。",
+          "“${librarySourceName(root.displayPath)}”中的图片将不再显示在 Ame 中。"
+          "原文件夹和图片都会保留。",
         ),
         actions: [
           TextButton(
@@ -1755,7 +1755,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     final didRemove = await controller.executeRootRemoval(prepared);
     if (mounted && didRemove) {
-      _publishSuccessNotification("已从 Ame 中移除，原图片未作任何修改");
+      _publishSuccessNotification(
+        "已从 Ame 中移除“${librarySourceName(root.displayPath)}”",
+      );
     }
   }
 

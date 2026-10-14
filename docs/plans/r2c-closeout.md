@@ -65,16 +65,21 @@ exited normally after 158 seconds, restored the original profile and catalog has
 its 41 disposable derived files (32 MiB). The `c6d859b` hosted Flutter, Accessibility, Scan,
 unsigned Release and synthetic jobs now pass; Static and Rust is still running.
 
-The final UI feedback follow-up keeps unfinished-import guidance in the existing gallery and task
-panel, removing the duplicate persistent notification. Sidebar admission hints follow Reread versus
-Reload and change to progress while recovery runs. Query failures show a concise message beside
-Reload; task failures retain their available actions and use known user-facing causes, keeping raw
-diagnostics in the underlying state. Recovery instructions wrap in update rows. Existing regressions
-retain command counts, diagnostic data, retry transitions and the absence of automatic first import;
-hosted verification of this follow-up is pending. No new controls or architectural owners are added.
-Affected production owners are the 2,125-line screen (composition only), 234-line task surface and
-67-line pending-source feedback; the primary feedback regression file has 265 lines and no inline
-production tests. Continue cancellation performance after this UI follow-up is verified.
+The UI feedback follow-up keeps unfinished-import guidance in the gallery and task panel and removes
+the duplicate notification. Sidebar hints distinguish Reread from Reload and show progress while
+recovery runs. Query and task failures use concise messages with existing recovery actions. Known
+folder-access failures remain visible when reloading an already published update; raw diagnostics
+remain in application state. Recovery instructions wrap in update rows.
+Task rows now carry their own progress below one update-panel heading. Pausing and stopping omit
+premature next-step instructions; removal explains source preservation once per surface. Automatic
+update feedback names the current operation without repeating it in the detail line. Existing tests
+retain command counts, diagnostics, recovery transitions, accessibility and position checks; the
+reload-access regression covers a failed retry without replacing it with generic completion text.
+The changed files pass formatting and whitespace checks; hosted verification remains pending.
+Affected production owners are the 2,127-line screen (existing presentation text only), 234-line primary
+task surface, 199-line update surface and 71-line update feedback owner, with no inline tests. The
+primary and update feedback regression files have 265 and 166 lines. No new controls or architectural
+owners are added. Continue cancellation performance after this UI follow-up is verified.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named

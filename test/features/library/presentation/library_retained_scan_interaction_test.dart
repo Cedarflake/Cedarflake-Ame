@@ -66,7 +66,7 @@ void main() {
       await tester.tap(find.byKey(const Key("library-cancel-button")));
       await tester.pump();
       expect(fixture.state.status, LibraryStatus.discarding);
-      expect(find.text("正在取消…"), findsOneWidget);
+      expect(find.text("正在停止…"), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(LibraryTaskSurface),

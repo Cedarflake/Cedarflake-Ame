@@ -82,7 +82,7 @@ String _synchronizationNotificationMessage(
     return LibraryStrings.synchronizationAutomaticRetry;
   }
   if (state == LibrarySynchronizationFeedbackState.updating) {
-    return LibraryStrings.synchronizationAutomaticProgress;
+    return _synchronizationPhaseLabel(status.phase);
   }
   if (state == LibrarySynchronizationFeedbackState.synchronized) {
     if (status.continuity == LibraryContinuityState.liveOnly) {
@@ -164,9 +164,6 @@ String? _synchronizationNotificationDetail(
     return null;
   }
   final details = <String>[];
-  if (state == LibrarySynchronizationFeedbackState.updating) {
-    details.add(_synchronizationPhaseLabel(status.phase));
-  }
   if (status.pendingChangeCount > BigInt.zero) {
     details.add("${status.pendingChangeCount} 项等待处理");
   }

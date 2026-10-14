@@ -22,26 +22,26 @@ void main() {
       },
     );
 
-    expect(find.text("“Pictures”正在排队"), findsOneWidget);
-    expect(find.text("正在排队，你可以继续浏览。"), findsOneWidget);
-    expect(find.textContaining("正在更新图库"), findsNothing);
+    expect(find.text("图库更新"), findsOneWidget);
+    expect(find.text("Pictures"), findsOneWidget);
+    expect(find.text("等待更新"), findsOneWidget);
+    expect(find.text("正在更新"), findsNothing);
     task.value = task.value.copyWith(phase: LibraryRootUpdatePhase.discovering);
     await tester.pump();
-    expect(find.text("正在更新图库“Pictures”…"), findsOneWidget);
-    expect(find.text("“Pictures”正在排队"), findsNothing);
+    expect(find.text("正在更新"), findsOneWidget);
+    expect(find.text("等待更新"), findsNothing);
     await tester.tap(find.text("取消"));
     await tester.pump();
 
     expect(cancelled, ["root-a"]);
-    expect(find.text("正在取消“Pictures”的更新…"), findsOneWidget);
+    expect(find.text("正在停止"), findsOneWidget);
     expect(find.text("取消"), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     task.value = task.value.copyWith(phase: LibraryRootUpdatePhase.cancelled);
     await tester.pump();
 
     expect(find.text("已取消"), findsOneWidget);
-    expect(find.text("这次更新已取消，已有图片仍可浏览。"), findsOneWidget);
-    expect(find.textContaining("正在取消"), findsNothing);
+    expect(find.text("正在停止"), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(cancelled, ["root-a"]);
   });
@@ -68,8 +68,8 @@ void main() {
       },
     );
 
-    expect(find.text("页面刷新失败"), findsOneWidget);
-    expect(find.text("图库更新已保存。"), findsOneWidget);
+    expect(find.text("图片加载失败"), findsOneWidget);
+    expect(find.text("扫描已完成。"), findsOneWidget);
     expect(find.textContaining("catalog busy"), findsNothing);
     expect(task.value.errorMessage, contains("catalog busy"));
     expect(find.bySemanticsLabel("重新加载 Pictures"), findsOneWidget);
@@ -78,8 +78,7 @@ void main() {
     await tester.pump();
 
     expect(retried, ["root-a"]);
-    expect(find.text("正在刷新“Pictures”…"), findsOneWidget);
-    expect(find.text("图库已更新，正在加载最新内容。"), findsOneWidget);
+    expect(find.text("正在加载图片"), findsOneWidget);
     expect(find.textContaining("失败"), findsNothing);
     expect(find.text("重新加载"), findsNothing);
     expect(find.text("取消"), findsNothing);
@@ -91,6 +90,34 @@ void main() {
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(find.bySemanticsLabel("关闭 Pictures 更新任务"), findsOneWidget);
     expect(retried, ["root-a"]);
+  });
+
+  testWidgets("reload failure explains a root that became unavailable", (
+    tester,
+  ) async {
+    final task = ValueNotifier(_task(LibraryRootUpdatePhase.refreshFailed));
+    addTearDown(task.dispose);
+    var retries = 0;
+    await _pumpTask(
+      tester,
+      task,
+      onRetry: (_) {
+        retries += 1;
+        task.value = task.value.copyWith(
+          errorMessage: "library_update_root_changed: source unavailable",
+        );
+      },
+    );
+
+    await tester.tap(find.text("重新加载"));
+    await tester.pump();
+
+    expect(retries, 1);
+    expect(find.text("无法更新这个文件夹，请检查它能否打开。"), findsOneWidget);
+    expect(find.text("扫描已完成。"), findsNothing);
+    expect(find.textContaining("source unavailable"), findsNothing);
+    expect(task.value.errorMessage, contains("source unavailable"));
+    expect(find.byType(LinearProgressIndicator), findsNothing);
   });
 }
 

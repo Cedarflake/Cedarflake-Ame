@@ -28,11 +28,9 @@ void main() {
         retryCount: 0,
       ),
     );
-    expect(feedback.message, LibraryStrings.synchronizationAutomaticProgress);
+    expect(feedback.message, "正在检查文件夹");
     expect(feedback.severity, AmeNotificationSeverity.info);
-    expect(feedback.detail, "正在检查文件夹");
-    expect(feedback.detail, isNot(contains("故障")));
-    expect(feedback.detail, isNot(contains("项状态尚未确认")));
+    expect(feedback.detail, isNull);
     expect(feedback.requiresManualLibraryUpdate, isFalse);
     expect(feedback.shouldNotify, isFalse);
     expect(feedback.sourceLabel, LibraryStrings.synchronizing);
@@ -220,7 +218,7 @@ void main() {
         expect(feedback.sourceLabel, LibraryStrings.synchronizing);
         expect(
           feedback.message,
-          LibraryStrings.synchronizationAutomaticProgress,
+          LibraryStrings.synchronizationPhaseInventoryEnumeration,
         );
         expect(feedback.severity, AmeNotificationSeverity.info);
       }
@@ -296,7 +294,10 @@ void main() {
         ),
       );
       expect(progress.sourceLabel, LibraryStrings.synchronizing);
-      expect(progress.message, LibraryStrings.synchronizationAutomaticProgress);
+      expect(
+        progress.message,
+        LibraryStrings.synchronizationPhaseInventoryComparison,
+      );
       expect(progress.shouldNotify, isFalse);
       expect(progress.requiresManualLibraryUpdate, isFalse);
 
@@ -342,10 +343,7 @@ void main() {
       ),
     );
     expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
-    expect(
-      feedback.message,
-      isNot(LibraryStrings.synchronizationAutomaticProgress),
-    );
+    expect(feedback.message, LibraryStrings.synchronizationEvidenceGap);
     expect(feedback.shouldNotify, isFalse);
   });
 
@@ -505,7 +503,7 @@ void main() {
         findsNothing,
       );
       expect(
-        find.text(LibraryStrings.synchronizationAutomaticProgress),
+        find.text(LibraryStrings.synchronizationPhaseInventoryEnumeration),
         findsNothing,
       );
 

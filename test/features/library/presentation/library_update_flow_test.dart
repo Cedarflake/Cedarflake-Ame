@@ -127,9 +127,13 @@ void main() {
         ),
       );
 
-      expect(find.text("正在更新图库“Pictures”…"), findsOneWidget);
-      expect(find.textContaining("正在添加文件夹"), findsNothing);
-      expect(find.text("archive_failed: Archive failed"), findsOneWidget);
+      expect(find.text("正在更新"), findsOneWidget);
+      expect(find.textContaining("正在添加“"), findsNothing);
+      expect(find.text("archive_failed: Archive failed"), findsNothing);
+      expect(
+        state.tasksByRootId["root-b"]?.errorMessage,
+        "archive_failed: Archive failed",
+      );
       expect(find.bySemanticsLabel("取消更新 Pictures"), findsOneWidget);
       expect(find.bySemanticsLabel("重试更新 Archive"), findsOneWidget);
       expect(find.bySemanticsLabel("关闭 Reference 更新任务"), findsOneWidget);
@@ -142,7 +146,7 @@ void main() {
       final cancelAction = find.bySemanticsLabel("取消更新 Pictures");
       final retryAction = find.bySemanticsLabel("重试更新 Archive");
       final dismissAction = find.bySemanticsLabel("关闭 Reference 更新任务");
-      final dismissAllAction = find.bySemanticsLabel("关闭已结束的任务");
+      final dismissAllAction = find.bySemanticsLabel("清除已结束任务");
       for (final action in [
         cancelAction,
         retryAction,
@@ -212,7 +216,7 @@ void main() {
       expect(liveSemantics.label, contains("10 / 100 张图片，10%"));
       expect(
         tester.getSemantics(find.bySemanticsLabel("Pictures 更新进度")).value,
-        "正在核对，10 / 100 张图片，10%",
+        "正在检查图片，10 / 100 张图片，10%",
       );
 
       updateState.value = _multiRootProgressState(validated: 35);
@@ -237,7 +241,10 @@ void main() {
         firstPhase: LibraryRootUpdatePhase.refreshing,
       );
       await tester.pump();
-      expect(tester.getSemantics(liveRegion).label, contains("Pictures，正在刷新"));
+      expect(
+        tester.getSemantics(liveRegion).label,
+        contains("Pictures，正在加载图片"),
+      );
     } finally {
       semantics.dispose();
     }
@@ -274,8 +281,8 @@ void main() {
         roots: [existingRoot],
       ),
     );
-    expect(find.text("正在更新图库“Pictures”…"), findsOneWidget);
-    expect(find.textContaining("正在添加文件夹"), findsNothing);
+    expect(find.text("正在更新“Pictures”…"), findsOneWidget);
+    expect(find.textContaining("正在添加"), findsNothing);
 
     await pumpTask(
       const LibraryState(
@@ -285,8 +292,8 @@ void main() {
         taskKind: LibraryTaskKind.import,
       ),
     );
-    expect(find.text("正在添加文件夹“New”…"), findsOneWidget);
-    expect(find.textContaining("正在更新图库"), findsNothing);
+    expect(find.text("正在添加“New”…"), findsOneWidget);
+    expect(find.textContaining("正在更新"), findsNothing);
   });
 
   testWidgets("keeps committed removal refresh recovery visible", (
@@ -320,7 +327,7 @@ void main() {
           isRemovalCommitted: true,
         ),
       );
-      expect(find.text("已从 Ame 中移除“Pictures”，正在刷新显示…"), findsOneWidget);
+      expect(find.text("已移除“Pictures”，正在加载图片…"), findsOneWidget);
       expect(
         find.text(LibraryStrings.refreshingAfterRemovalDetail),
         findsOneWidget,
@@ -332,7 +339,7 @@ void main() {
       );
       expect(
         tester.getSemantics(liveRegion).label,
-        contains("已从 Ame 中移除“Pictures”，正在刷新显示"),
+        contains("已移除“Pictures”，正在加载图片"),
       );
 
       await pumpTask(

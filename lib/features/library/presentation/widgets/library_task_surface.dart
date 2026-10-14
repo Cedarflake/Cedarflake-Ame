@@ -39,14 +39,14 @@ class LibraryTaskSurface extends StatelessWidget {
       LibraryStatus.choosingDirectory => "正在选择文件夹…",
       LibraryStatus.scanning =>
         isLibraryUpdate && state.scanPhase == LibraryScanPhase.finalizing
-            ? "正在核对图库“${_rootName(state.displayRootPath)}”…"
+            ? "正在检查“${_rootName(state.displayRootPath)}”的图片…"
             : isLibraryUpdate
-            ? "正在更新图库“${_rootName(state.displayRootPath)}”…"
+            ? "正在更新“${_rootName(state.displayRootPath)}”…"
             : state.scanPhase == LibraryScanPhase.finalizing
-            ? "正在核对文件夹“${_rootName(state.displayRootPath)}”…"
-            : "正在添加文件夹“${_rootName(state.displayRootPath)}”…",
+            ? "正在检查“${_rootName(state.displayRootPath)}”的图片…"
+            : "正在添加“${_rootName(state.displayRootPath)}”…",
       LibraryStatus.pausing => "正在暂停…",
-      LibraryStatus.cancelling || LibraryStatus.discarding => "正在取消…",
+      LibraryStatus.cancelling || LibraryStatus.discarding => "正在停止…",
       LibraryStatus.removing =>
         state.isRemovalCommitted
             ? LibraryStrings.refreshingAfterRemoval(
@@ -57,10 +57,10 @@ class LibraryTaskSurface extends StatelessWidget {
               ),
       LibraryStatus.refreshing when isConfirmingPublication =>
         LibraryStrings.readingScanResult,
-      LibraryStatus.refreshing => isPublishedReload ? "正在刷新图库显示…" : "正在加载图库…",
+      LibraryStatus.refreshing => "正在加载图片…",
       LibraryStatus.cancelled => isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹",
       LibraryStatus.paused => isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹",
-      LibraryStatus.stale => "源文件发生变化，需要重新更新",
+      LibraryStatus.stale => "文件已变化，请重试",
       LibraryStatus.failed when isConfirmingPublication =>
         LibraryStrings.scanConfirmationPending,
       LibraryStatus.failed =>
@@ -69,21 +69,21 @@ class LibraryTaskSurface extends StatelessWidget {
                   ? LibraryStrings.removedFolderRefreshFailed
                   : LibraryStrings.removeFolderFailed
             : isPublishedReload
-            ? "图库已更新，刷新显示失败"
+            ? LibraryStrings.galleryDisplayReloadPending
             : isLibraryUpdate
             ? "更新图库失败"
             : "添加文件夹失败",
-      LibraryStatus.completed => isLibraryUpdate ? "图库更新完成" : "导入完成",
+      LibraryStatus.completed => isLibraryUpdate ? "更新完成" : "添加完成",
       LibraryStatus.empty => "",
     };
     final completedDetail = isLibraryUpdate
         ? "已检查 ${state.visitedEntries} 个文件 · 图库包含 ${state.stagedAssetCount} 张图片"
-        : "已检查 ${state.visitedEntries} 个文件 · 已导入 ${state.stagedAssetCount} 张图片";
+        : "已检查 ${state.visitedEntries} 个文件 · 已添加 ${state.stagedAssetCount} 张图片";
     final isFinalizing =
         state.status == LibraryStatus.scanning &&
         state.scanPhase == LibraryScanPhase.finalizing;
     final scanningDetail = isFinalizing
-        ? "正在核对 ${state.validatedAssetCount} / ${state.validationAssetCount} 张图片 · "
+        ? "已检查 ${state.validatedAssetCount} / ${state.validationAssetCount} 张图片 · "
               "已检查 ${state.visitedEntries} 个文件"
         : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
     final String? detail;
@@ -93,7 +93,7 @@ class LibraryTaskSurface extends StatelessWidget {
       detail = LibraryStrings.scanFailureDetail(state.errorMessage);
     } else if (state.status == LibraryStatus.cancelling ||
         state.status == LibraryStatus.discarding) {
-      detail = "正在停止当前任务。";
+      detail = null;
     } else if (state.status == LibraryStatus.removing) {
       detail = state.isRemovalCommitted
           ? LibraryStrings.refreshingAfterRemovalDetail
@@ -161,7 +161,7 @@ class LibraryTaskSurface extends StatelessWidget {
                       TextButton(
                         key: const Key("library-task-dismiss-button"),
                         onPressed: onDismiss,
-                        child: const Text("知道了"),
+                        child: const Text("关闭"),
                       ),
                   ] else if (state.status == LibraryStatus.stale)
                     TextButton(
@@ -173,7 +173,7 @@ class LibraryTaskSurface extends StatelessWidget {
                     TextButton(
                       key: const Key("library-task-dismiss-button"),
                       onPressed: onDismiss,
-                      child: const Text("知道了"),
+                      child: const Text("关闭"),
                     ),
                 ],
               ),

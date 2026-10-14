@@ -9,13 +9,13 @@ abstract final class LibraryStrings {
   static const continuityCatchingUp = "正在同步";
   static const continuityRecoveryRequired = "需要核对";
   static const continuityLiveOnly = "关闭后需手动更新";
-  static const continuityUnavailable = "自动更新暂不可用";
+  static const continuityUnavailable = "无法自动更新";
   static const continuityLiveOnlyDetail =
-      "这个文件夹目前只能在 Ame 打开时自动更新。重新打开 Ame 后，请从文件夹菜单选择“更新图库”，补上关闭期间的文件变化。";
+      "重新打开 Ame 后，从文件夹菜单选择“更新图库”，补上关闭期间的变化。";
   static const continuityLiveOnlyNotice = "部分文件夹需要手动更新";
   static const continuityLiveOnlyNoticeDetail =
-      "文件夹标有“关闭后需手动更新”时，重新打开 Ame 后请从该文件夹菜单选择“更新图库”。";
-  static const sourceUnavailable = "文件夹暂不可用";
+      "关闭期间的变化需要手动补上。重新打开 Ame 后，从文件夹菜单选择“更新图库”。";
+  static const sourceUnavailable = "无法访问";
   static const sourceAvailable = "可用";
   static const sourceMissing = "文件夹不存在";
   static const sourceInaccessible = "无法访问";
@@ -27,21 +27,20 @@ abstract final class LibraryStrings {
   static const refreshingSourceDisplay = "正在刷新";
   static const sourceAdded = "已添加";
   static const sourceDisplayReloadPending = "需要重新加载";
-  static const scanConfirmationPending = "暂时无法读取扫描结果";
-  static const scanConfirmationDetail = "在任务面板点击“重新读取”再试一次。";
+  static const scanConfirmationPending = "扫描结果读取失败";
+  static const scanConfirmationDetail = "在任务面板选择“重新读取”。";
   static const readingScanResult = "正在读取扫描结果…";
   static const rereadScanResult = "重新读取";
-  static const galleryDisplayReloadPending = "暂时无法显示最新图片";
-  static const galleryDisplayReloadDetail = "图库已经更新，请在任务面板点击“重新加载”查看最新内容。";
+  static const galleryDisplayReloadPending = "图片加载失败";
+  static const galleryDisplayReloadDetail = "在任务面板选择“重新加载”查看图片。";
   static const firstImportIncomplete = "尚未完成添加";
   static const firstImportInProgress = "正在添加图片";
   static const firstImportInProgressDetail = "添加完成后，图片会显示在这里。";
   static const firstImportPaused = "已暂停添加";
-  static const firstImportPausedDetail = "在任务面板点击“继续”，接着添加图片。";
-  static const firstImportCancellingDetail = "取消后可以重新添加这个文件夹。";
+  static const firstImportPausedDetail = "在任务面板选择“继续”接着添加。";
   static const firstImportCancelled = "已取消添加";
-  static const firstImportRetryDetail = "在任务面板点击“重试”重新添加。";
-  static const firstImportGalleryDetail = "重新添加这个文件夹，把图片加入图库。";
+  static const firstImportRetryDetail = "在任务面板选择“重试”。";
+  static const firstImportGalleryDetail = "重新添加这个文件夹。";
   static const library = "图库";
   static const import = "导入";
   static const searchHint = "在图库中搜索";
@@ -73,12 +72,11 @@ abstract final class LibraryStrings {
   static const relocateLibrary = "重新定位文件夹";
   static const removeFromAme = "从 Ame 中移除";
   static const removeFolderFailed = "移除文件夹失败";
-  static const removedFolderRefreshFailed = "文件夹已移除，刷新显示失败";
+  static const removedFolderRefreshFailed = "文件夹已移除，图片加载失败";
   static String refreshingAfterRemoval(String sourceName) =>
-      "已从 Ame 中移除“$sourceName”，正在刷新显示…";
-  static const removingFolderDetail = "正在清理该文件夹的图库记录。磁盘上的文件夹和图片不会被删除或修改。";
-  static const refreshingAfterRemovalDetail =
-      "移除已经完成。正在加载最新图库显示，磁盘上的文件夹和图片未被删除或修改。";
+      "已移除“$sourceName”，正在加载图片…";
+  static const removingFolderDetail = "原文件夹和图片都会保留。";
+  static const refreshingAfterRemovalDetail = "原文件夹和图片已保留。";
   static const expandFolder = "展开文件夹";
   static const collapseFolder = "折叠文件夹";
   static const loadingFolders = "正在加载文件夹…";
@@ -100,35 +98,33 @@ abstract final class LibraryStrings {
   static const emptyLibraryBody = "选择要在 Ame 中一起浏览的文件夹。";
   static const updatingLibrary = "正在更新图库…";
   static const loadingLibrary = "正在加载图库…";
-  static const synchronizationRefreshFailureTitle = "页面刷新失败";
-  static const synchronizationRefreshFailureMessage = "图库已有新内容，请重新加载页面。";
-  static const synchronizationSourceUnhealthy = "自动更新已中断，已有图片仍可浏览。";
-  static const synchronizationSourceStarting = "正在准备自动更新，你可以继续浏览。";
-  static const synchronizationSourceUnavailable = "暂时无法访问这个文件夹，已有图片仍可浏览。";
+  static const synchronizationRefreshFailureTitle = "图片加载失败";
+  static const synchronizationRefreshFailureMessage = "重新加载以查看最新图片。";
+  static const synchronizationSourceUnhealthy = "自动更新已中断。";
+  static const synchronizationSourceStarting = "正在准备自动更新。";
+  static const synchronizationSourceUnavailable = "打不开这个文件夹。";
   static const synchronizationEvidenceGap = "部分文件变化还没有更新到图库。";
   static const synchronizationCapacityExceeded = "文件变化较多，图库还未更新完成。";
   static const synchronizationMonitoringAccessDenied =
       "没有权限读取这个文件夹的变化，请检查访问权限。";
-  static const synchronizationMonitoringPathUnavailable =
-      "暂时无法访问这个文件夹，已有图片仍可浏览。";
+  static const synchronizationMonitoringPathUnavailable = "打不开这个文件夹。";
   static const synchronizationMonitoringCapacityExceeded = "文件变化较多，图库还未更新完成。";
-  static const synchronizationMonitoringEventIncomplete = "部分文件变化暂时无法读取。";
-  static const synchronizationMonitoringFailed = "自动更新已中断，已有图片仍可浏览。";
-  static const synchronizationRecoveryFailed = "文件夹检查未完成，已有图片仍可浏览。";
-  static const synchronizationRecoveryBlocked =
-      "部分文件变化未能更新。可从文件夹菜单选择“更新图库”再次尝试。";
-  static const synchronizationPersistenceFailed = "暂时无法保存图库更新，已有内容仍可浏览。";
+  static const synchronizationMonitoringEventIncomplete = "无法读取部分文件的变化。";
+  static const synchronizationMonitoringFailed = "自动更新已中断。";
+  static const synchronizationRecoveryFailed = "文件夹检查未完成。";
+  static const synchronizationRecoveryBlocked = "在文件夹菜单中选择“更新图库”重试。";
+  static const synchronizationPersistenceFailed = "图库更新未能保存。";
   static const synchronizationNeedsReconciliation = "图库还没有完成更新。";
   static const synchronizationCompleted = "文件夹中的变化已更新到图库。";
-  static const synchronizationAutomaticProgress = "正在更新，你可以继续浏览。";
   static const synchronizationAutomaticRetry = "部分内容还未更新，稍后会自动重试。";
   static const synchronizationLegacyRecoveryAuthorityMissing =
-      "请更新一次图库，让 Ame 重新开始自动更新。";
-  static const synchronizationExplicitRecoveryRequired = "请更新一次图库，之后即可恢复自动更新。";
+      "在文件夹菜单中选择“更新图库”，恢复自动更新。";
+  static const synchronizationExplicitRecoveryRequired =
+      "在文件夹菜单中选择“更新图库”，恢复自动更新。";
   static const synchronizationPhaseWatcherStartup = "正在准备自动更新";
   static const synchronizationPhaseInventoryEnumeration = "正在检查文件夹";
-  static const synchronizationPhaseInventoryComparison = "正在整理文件变化";
-  static const synchronizationPhaseQueuePublication = "正在保存更新";
+  static const synchronizationPhaseInventoryComparison = "正在检查文件变化";
+  static const synchronizationPhaseQueuePublication = "正在更新图库";
   static const synchronizationPhaseRetryWait = "稍后自动重试";
   static const synchronizationPhaseReconciliation = "正在检查文件变化";
   static const synchronizationPhaseFullScan = "正在扫描文件夹";
@@ -146,12 +142,11 @@ abstract final class LibraryStrings {
       "catalog_root_consolidation_incomplete" =>
         "上级文件夹没有扫描完整。请检查文件夹能否打开，以及扫描数量是否达到上限。已添加的子文件夹仍会保留。",
       "catalog_root_consolidation_busy" => "子文件夹还有未完成的扫描。请先继续或取消该任务，再添加父文件夹。",
-      "catalog_root_consolidation_unpublished" =>
-        "暂时无法合并已添加的子文件夹。请先更新子文件夹，再添加上级文件夹。",
+      "catalog_root_consolidation_unpublished" => "先更新已添加的子文件夹，再添加上级文件夹。",
       "catalog_root_consolidation_changed" ||
       "catalog_root_consolidation_identity_changed" =>
-        "暂时无法合并已添加的子文件夹。请检查文件夹位置，然后重试。",
-      "library_update_root_changed" => "暂时无法更新这个文件夹，请检查它能否打开。",
+        "无法合并已添加的子文件夹。请检查文件夹位置后重试。",
+      "library_update_root_changed" => "无法更新这个文件夹，请检查它能否打开。",
       _ => null,
     };
   }

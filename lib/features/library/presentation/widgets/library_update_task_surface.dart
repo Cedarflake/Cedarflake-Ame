@@ -26,19 +26,8 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tasks = state.tasks;
-    final activeTasks = tasks.where((task) => task.isActive).toList();
     final hasTerminalTasks = tasks.any((task) => !task.isActive);
-    final String title;
-    if (activeTasks.length == 1) {
-      final task = activeTasks.single;
-      title = LibraryUpdateFeedback(
-        task,
-      ).activeTitle(librarySourceName(task.root.displayPath));
-    } else if (activeTasks.isNotEmpty) {
-      title = "正在处理 ${activeTasks.length} 个文件夹的更新…";
-    } else {
-      title = "图库更新已结束";
-    }
+    const title = "图库更新";
     final announcementScope = tasks
         .map((task) => "${task.root.id}:${task.phase.name}")
         .join("|");
@@ -73,7 +62,7 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
                     TextButton(
                       key: const Key("library-update-dismiss-terminal"),
                       onPressed: onDismissTerminalTasks,
-                      child: const Text("关闭已结束的任务"),
+                      child: const Text("清除已结束任务"),
                     ),
                 ],
               ),

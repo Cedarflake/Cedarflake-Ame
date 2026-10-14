@@ -65,8 +65,8 @@ void main() {
         expect(
           find.text(
             publication == LibraryScanPublication.confirmationPending
-                ? "暂时无法读取扫描结果"
-                : "图库已更新，刷新显示失败",
+                ? "扫描结果读取失败"
+                : "图片加载失败",
           ),
           findsOneWidget,
         );
@@ -94,7 +94,7 @@ void main() {
         expect(
           LibraryPendingSource.fromState(taskState.value)?.statusLabel,
           publication == LibraryScanPublication.confirmationPending
-              ? "暂时无法读取扫描结果"
+              ? "扫描结果读取失败"
               : LibraryStrings.sourceDisplayReloadPending,
         );
         await tester.tap(find.byKey(const Key("library-retry-button")));
@@ -104,12 +104,12 @@ void main() {
           find.text(
             publication == LibraryScanPublication.confirmationPending
                 ? "正在读取扫描结果…"
-                : "正在刷新图库显示…",
+                : "正在加载图片…",
           ),
           findsOneWidget,
         );
-        expect(find.text("暂时无法读取扫描结果"), findsNothing);
-        expect(find.text("图库已更新，刷新显示失败"), findsNothing);
+        expect(find.text("扫描结果读取失败"), findsNothing);
+        expect(find.text("图片加载失败"), findsNothing);
         expect(find.byKey(const Key("library-retry-button")), findsNothing);
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
         expect(
@@ -133,7 +133,7 @@ void main() {
           ),
         );
         await tester.pump();
-        expect(find.text("导入完成"), findsOneWidget);
+        expect(find.text("添加完成"), findsOneWidget);
         expect(
           LibraryPendingSource.addFolderDisabledReason(
             taskState.value.primaryScanSnapshot,
@@ -191,7 +191,7 @@ void main() {
       await tester.tap(cancel);
       taskState.value = fixture.state;
       await tester.pump();
-      expect(find.text("正在取消…"), findsOneWidget);
+      expect(find.text("正在停止…"), findsOneWidget);
       expect(cancel, findsNothing);
       fixture.scanner.started(id);
       expect(fixture.state.status, LibraryStatus.cancelling);
@@ -243,8 +243,8 @@ void main() {
         ),
       ),
     );
-    expect(find.text("正在取消…"), findsOneWidget);
-    expect(find.text("正在停止当前任务。"), findsOneWidget);
+    expect(find.text("正在停止…"), findsOneWidget);
+    expect(find.text("正在停止当前任务。"), findsNothing);
     expect(find.text(originalError), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(find.byKey(const Key("library-retry-button")), findsNothing);
