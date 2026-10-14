@@ -17,6 +17,12 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 
 void main() {
+  test("a notification without a loaded folder name uses a readable title", () {
+    final feedback = LibrarySynchronizationFeedback.fromStatus(_status());
+    expect(feedback.titleForRoot(null), "图库更新受阻");
+    expect(feedback.titleForRoot("Pictures"), "“Pictures”更新受阻");
+  });
+
   test("active baseline is progress rather than an unresolved fault", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(
       _status(

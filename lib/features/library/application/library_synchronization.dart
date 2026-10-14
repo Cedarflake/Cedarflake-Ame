@@ -10,6 +10,7 @@ import "../../../src/rust/domain/library_synchronization.dart" as rust_sync;
 import "../../../src/rust/domain/persistent_journal.dart" as rust_journal;
 import "../domain/library_models.dart";
 import "../domain/library_synchronization_models.dart";
+import "library_synchronization_failure_retention.dart";
 import "library_synchronization_policy.g.dart";
 
 enum LibrarySynchronizationStartResult { started, failed, skipped }
@@ -305,8 +306,10 @@ class RustLibrarySynchronization implements LibrarySynchronization {
   }) async {
     final stopwatch = Stopwatch()..start();
     try {
-      final snapshot = _retainUnresolvedFailures(
-        _mapSnapshot(await call(ownerTicket)),
+      final incoming = _mapSnapshot(await call(ownerTicket));
+      final snapshot = retainUnresolvedSynchronizationFailures(
+        previous: _current,
+        incoming: incoming,
       );
       if (generation != _generation) {
         return const _SynchronizationCallResult.stale();
@@ -475,49 +478,6 @@ class RustLibrarySynchronization implements LibrarySynchronization {
     if (!_updates.isClosed) {
       _updates.add(snapshot);
     }
-  }
-
-  LibrarySynchronizationSnapshot _retainUnresolvedFailures(
-    LibrarySynchronizationSnapshot incoming,
-  ) {
-    var retainedFailure = false;
-    final roots = <String, LibraryRootSynchronizationStatus>{};
-    for (final entry in incoming.roots.entries) {
-      final current = entry.value;
-      final previous = _current.roots[entry.key];
-      if (previous?.freshness == LibraryCatalogFreshness.needsReconciliation &&
-          previous?.rootGeneration == current.rootGeneration &&
-          current.freshness == LibraryCatalogFreshness.updating) {
-        retainedFailure = true;
-        roots[entry.key] = LibraryRootSynchronizationStatus(
-          rootId: current.rootId,
-          rootGeneration: current.rootGeneration,
-          availability: current.availability,
-          freshness: LibraryCatalogFreshness.needsReconciliation,
-          freshnessCause: previous!.freshnessCause,
-          continuity: current.continuity,
-          phase: previous.phase,
-          phaseStartedAt: previous.phaseStartedAt,
-          sourceStatus: current.sourceStatus,
-          pendingChangeCount: current.pendingChangeCount,
-          retryWaitCount: current.retryWaitCount,
-          freshnessUnknownCount: current.freshnessUnknownCount,
-          lastIssueCode: previous.lastIssueCode,
-        );
-      } else {
-        roots[entry.key] = current;
-      }
-    }
-    if (!retainedFailure) {
-      return incoming;
-    }
-    return LibrarySynchronizationSnapshot(
-      isRunning: incoming.isRunning,
-      catalogRevision: incoming.catalogRevision,
-      appliedMutationCount: incoming.appliedMutationCount,
-      roots: roots,
-      lastErrorCode: _current.lastErrorCode ?? incoming.lastErrorCode,
-    );
   }
 
   bool _shouldRetryTransiently(String errorCode) {

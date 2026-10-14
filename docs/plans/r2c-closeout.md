@@ -79,7 +79,22 @@ The changed files pass formatting and whitespace checks; hosted verification rem
 Affected production owners are the 2,127-line screen (existing presentation text only), 234-line primary
 task surface, 199-line update surface and 71-line update feedback owner, with no inline tests. The
 primary and update feedback regression files have 265 and 166 lines. No new controls or architectural
-owners are added. Continue cancellation performance after this UI follow-up is verified.
+owners are added by that follow-up.
+
+The subsequent native Debug walkthrough removes the redundant historical-notification guidance
+and verifies its detail dialog, import/pause/continue, update cancellation and original-image retry.
+It exposed an active first import incorrectly retaining the paused state's update-failure notice.
+Failure retention now excludes the exact awaiting-first-import state; genuine unresolved failures
+keep their existing recovery rule. Unknown folder names no longer expose internal root identifiers.
+Repeating pause/continue with the changed client completes all 10,000 images without the false
+warning. A read-only lock produces the fallback icon, preview and Reopen action; releasing it and
+clicking Reopen displays the original and removes the notice. The client exits normally, original
+profile/catalog hashes match, and both runs' disposable derived data are removed (54.5 and 32.1 MiB).
+Sources, templates and the reusable fixture remain in `build/test`. The 759-line synchronization
+adapter delegates retention to a 49-line owner; its dedicated regression file has 131 lines. The
+feedback owner has 260 production lines and 644 test lines, with no inline tests. Hosted checks
+remain pending. Pause/continue still visibly resets the imported count from 2,318 to zero; preserve
+this exact open incident for the next resumption correction alongside the prepared cancellation work.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named

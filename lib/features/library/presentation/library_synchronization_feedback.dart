@@ -38,20 +38,29 @@ class LibrarySynchronizationFeedback {
 
   bool get shouldNotify => state.shouldNotify;
 
-  String titleForRoot(String rootName) => switch (state) {
-    LibrarySynchronizationFeedbackState.awaitingFirstImport =>
-      LibraryStrings.firstImportRequiredTitle(rootName),
-    LibrarySynchronizationFeedbackState.unconfirmed =>
-      LibraryStrings.synchronizationUnconfirmedTitle(rootName),
-    LibrarySynchronizationFeedbackState.updating ||
-    LibrarySynchronizationFeedbackState.awaitingRetry ||
-    LibrarySynchronizationFeedbackState.synchronized ||
-    LibrarySynchronizationFeedbackState.unavailable =>
-      "“$rootName”$sourceLabel",
-    LibrarySynchronizationFeedbackState.blocked ||
-    LibrarySynchronizationFeedbackState.interrupted =>
-      LibraryStrings.synchronizationReconciliationTitle(rootName),
-  };
+  String titleForRoot(String? rootName) {
+    if (rootName == null) {
+      return switch (state) {
+        LibrarySynchronizationFeedbackState.blocked ||
+        LibrarySynchronizationFeedbackState.interrupted => "图库更新受阻",
+        _ => sourceLabel,
+      };
+    }
+    return switch (state) {
+      LibrarySynchronizationFeedbackState.awaitingFirstImport =>
+        LibraryStrings.firstImportRequiredTitle(rootName),
+      LibrarySynchronizationFeedbackState.unconfirmed =>
+        LibraryStrings.synchronizationUnconfirmedTitle(rootName),
+      LibrarySynchronizationFeedbackState.updating ||
+      LibrarySynchronizationFeedbackState.awaitingRetry ||
+      LibrarySynchronizationFeedbackState.synchronized ||
+      LibrarySynchronizationFeedbackState.unavailable =>
+        "“$rootName”$sourceLabel",
+      LibrarySynchronizationFeedbackState.blocked ||
+      LibrarySynchronizationFeedbackState.interrupted =>
+        LibraryStrings.synchronizationReconciliationTitle(rootName),
+    };
+  }
 }
 
 bool _requiresManualLibraryUpdate(LibraryRootSynchronizationStatus status) {

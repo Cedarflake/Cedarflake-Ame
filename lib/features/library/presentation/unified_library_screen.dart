@@ -380,7 +380,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         _synchronizationNotificationKeys[rootId] = key;
         _notificationController.publish(
           AmeNotificationDraft(
-            title: feedback.titleForRoot(_notificationRootName(root, rootId)),
+            title: feedback.titleForRoot(_notificationRootName(root)),
             message: feedback.message,
             severity: feedback.severity,
             dedupeKey: key,
@@ -447,10 +447,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     return "library.rootReconciliation:${status.rootId}:${status.rootGeneration}";
   }
 
-  String _notificationRootName(LibraryRoot? root, String rootId) {
+  String? _notificationRootName(LibraryRoot? root) {
     final displayPath = root?.displayPath.trim();
     if (displayPath == null || displayPath.isEmpty) {
-      return rootId;
+      return null;
     }
     final normalized = displayPath.replaceAll("\\", "/");
     final segments = normalized
