@@ -232,6 +232,9 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     final previewEdge = _requestedPreviewEdge(context);
     return Image.file(
       File(asset.previewPath),
+      // Same-path repair must retire the failed image stream, even when it completes before
+      // a frame replaces the Image widget with progress feedback.
+      key: ValueKey(_retryGeneration),
       fit: BoxFit.cover,
       cacheWidth: cacheWidth,
       gaplessPlayback: true,
@@ -329,18 +332,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     required int previewEdge,
   }) async {
     try {
-      if (cacheWidth != null && asset.previewPath.isNotEmpty) {
-        final provider = ResizeImage.resizeIfNeeded(
-          cacheWidth,
-          null,
-          FileImage(File(asset.previewPath)),
-        );
-        try {
-          await provider.evict();
-        } on Object {
-          // Cache eviction is best-effort; the backend still owns validation.
-        }
-      }
+      await _evictPreviewImage(asset, cacheWidth);
       if (!mounted || retryGeneration != _retryGeneration) {
         return;
       }
@@ -348,6 +340,13 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
         asset,
         previewEdge: previewEdge,
       );
+      if (!mounted || retryGeneration != _retryGeneration) {
+        return;
+      }
+      if (outcome == LibraryPreviewRequestOutcome.ready) {
+        // Another listener can resolve the old path while replacement is in flight.
+        await _evictPreviewImage(asset, cacheWidth);
+      }
       if (mounted && retryGeneration == _retryGeneration) {
         setState(() {
           _isPreviewUpdateRequired =
@@ -358,6 +357,22 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       if (mounted && retryGeneration == _retryGeneration) {
         setState(() => _isRetrying = false);
       }
+    }
+  }
+
+  Future<void> _evictPreviewImage(LibraryAsset asset, int? cacheWidth) async {
+    if (cacheWidth == null || asset.previewPath.isEmpty) {
+      return;
+    }
+    final provider = ResizeImage.resizeIfNeeded(
+      cacheWidth,
+      null,
+      FileImage(File(asset.previewPath)),
+    );
+    try {
+      await provider.evict();
+    } on Object {
+      // Cache eviction is best-effort; the backend still owns validation.
     }
   }
 

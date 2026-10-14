@@ -789,3 +789,24 @@ and source hashes/times remain unchanged. The window still retains a failed imag
 already repaired preview; that presentation defect remains open. The client exits normally after
 72,909 ms and restores the original profile/catalog hashes. The native build, owned formatting and
 diff checks pass; this result establishes cache recovery, with visible recovery still to correct.
+
+The remaining display failure comes from reusing the same `Image` state after same-path repair.
+The pinned Flutter implementation only resolves another stream when its image provider changes;
+a repair can complete before a progress frame removes the old failed Image. The tile now keys the
+image by its existing retry generation and evicts the path's decoded cache again after successful
+repair. Existing generation checks retire stale completions. A widget regression replaces corrupt
+bytes at the same path and completes repair immediately, then requires decoded pixels, one repair
+request, no remaining failure/progress control and unchanged tile dimensions.
+
+The final ordinary Debug comparison reuses the same catalog and three preview paths, including the
+controlled native reader. The three automatic repairs finish in 302, 311 and 705 ms including queue
+wait; the visible window shows all three images with no Reload Preview control. No manual Retry is
+used. All selected preview hashes match their pre-corruption encodings, and source hashes and times
+remain unchanged. Normal exit takes place after 62,679 ms; original profile/catalog hashes match.
+After process retirement and reparse/containment checks, cleanup removes 53 disposable files totaling
+33,677,610 bytes. The corpus, templates, manifest, oracle, fixture and current builds remain.
+
+Affected sizes: the installation owner has 311 non-inline-test lines including test hooks, 174 inline
+test lines and 127 dedicated sharing-conflict test lines. The photo tile has 452 production lines,
+no inline tests and a 921-line existing dedicated test file. Owned formatting, diff inspection and
+the Debug build pass; new Rust and widget regressions run in Actions.

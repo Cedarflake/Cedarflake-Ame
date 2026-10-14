@@ -27,7 +27,7 @@ Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-**Current priority: visible preview recovery and remaining affected hosted checks.** Follow the roadmap's
+**Current priority: remaining affected hosted checks and scoped acceptance closeout.** Follow the roadmap's
 synchronization, latency, browsing and final acceptance order. Preserve the user's string edits,
 layout and completed viewer/time-rail changes. The reported Debug timeout concerns an existing
 catalog without directory-identity coverage or a durable journal checkpoint. Its retained inventory
@@ -216,6 +216,13 @@ Original-image failure and Retry now remain in the viewport while the fallback p
 zoom/pan transform; guarded source retry and lease release keep their existing owners.
 Its focused queue and widget regressions await hosted execution. Continue this affected boundary;
 do not repeat completed import/reopen/position cases or infer that the historical Retry incident is closed.
+
+The selected corrupt-cache path now has a connected native correction: bounded Windows sharing-
+conflict recovery installs the already generated preview, and same-path display refresh retires the
+old failed image stream. All three selected previews recover automatically in the same reused test
+library, without manual Retry. Source/profile integrity and normal exit pass; disposable output is
+cleaned. Preserve the preceding failure and this comparison in the update checkpoint. Hosted checks
+remain pending; the older middle-timeline report remains unattributed to this distinct reproduction.
 
 For final import, update and UI acceptance, use the actual large library with one reusable isolated
 derived environment. Reset its database and preview cache before each independent case; an update
