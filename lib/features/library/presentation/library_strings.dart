@@ -26,12 +26,12 @@ abstract final class LibraryStrings {
   static const cancellingSource = "正在取消…";
   static const refreshingSourceDisplay = "正在刷新";
   static const sourceAdded = "已添加";
-  static const sourceDisplayReloadPending = "等待刷新";
+  static const sourceDisplayReloadPending = "需要重新加载";
   static const scanConfirmationPending = "暂时无法读取扫描结果";
   static const scanConfirmationDetail = "在任务面板点击“重新读取”再试一次。";
   static const readingScanResult = "正在读取扫描结果…";
   static const rereadScanResult = "重新读取";
-  static const galleryDisplayReloadPending = "图库已更新，等待刷新显示";
+  static const galleryDisplayReloadPending = "暂时无法显示最新图片";
   static const galleryDisplayReloadDetail = "图库已经更新，请在任务面板点击“重新加载”查看最新内容。";
   static const firstImportIncomplete = "尚未完成添加";
   static const firstImportInProgress = "正在添加图片";
@@ -40,10 +40,7 @@ abstract final class LibraryStrings {
   static const firstImportPausedDetail = "在任务面板点击“继续”，接着添加图片。";
   static const firstImportCancellingDetail = "取消后可以重新添加这个文件夹。";
   static const firstImportCancelled = "已取消添加";
-  static const firstImportRetryDetail = "请在任务面板查看详情，然后重试。";
-  static const firstImportAwaitingUser = "等待手动继续或重新添加";
-  static const firstImportRequiredDetail =
-      "此文件夹尚未完成首次添加，Ame 不会自动继续扫描。有可恢复任务时，请在任务面板点击“继续”；已取消的任务需要重新添加文件夹。";
+  static const firstImportRetryDetail = "在任务面板点击“重试”重新添加。";
   static const firstImportGalleryDetail = "重新添加这个文件夹，把图片加入图库。";
   static const library = "图库";
   static const import = "导入";
@@ -146,16 +143,16 @@ abstract final class LibraryStrings {
     final separator = error.indexOf(":");
     final code = separator < 0 ? error : error.substring(0, separator);
     return switch (code) {
-      "scan_terminal_reconciliation_failed" => "点击“重新读取”再试一次。",
       "catalog_root_consolidation_incomplete" =>
-        "尚未完整读取父文件夹，原来的子文件夹已保留。请检查访问状态及扫描数量限制后重试。",
+        "上级文件夹没有扫描完整。请检查文件夹能否打开，以及扫描数量是否达到上限。已添加的子文件夹仍会保留。",
       "catalog_root_consolidation_busy" => "子文件夹还有未完成的扫描。请先继续或取消该任务，再添加父文件夹。",
       "catalog_root_consolidation_unpublished" =>
-        "无法确认子文件夹的目录身份，原有内容已保留。请确认该目录可访问后重试。",
+        "暂时无法合并已添加的子文件夹。请先更新子文件夹，再添加上级文件夹。",
       "catalog_root_consolidation_changed" ||
       "catalog_root_consolidation_identity_changed" =>
-        "文件夹位置或登记已变化，原来的子文件夹已保留。请确认目录后重试。",
-      _ => error,
+        "暂时无法合并已添加的子文件夹。请检查文件夹位置，然后重试。",
+      "library_update_root_changed" => "暂时无法更新这个文件夹，请检查它能否打开。",
+      _ => null,
     };
   }
 

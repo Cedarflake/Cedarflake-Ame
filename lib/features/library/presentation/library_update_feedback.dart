@@ -19,11 +19,7 @@ class LibraryUpdateFeedback {
     LibraryRootUpdatePhase.failed => "更新失败",
   };
 
-  String get detail {
-    final error = task.errorMessage;
-    if (error != null) {
-      return error;
-    }
+  String? get detail {
     return switch (task.phase) {
       LibraryRootUpdatePhase.queued => "正在排队，你可以继续浏览。",
       LibraryRootUpdatePhase.finalizing =>
@@ -34,10 +30,12 @@ class LibraryUpdateFeedback {
       LibraryRootUpdatePhase.cancelled => "这次更新已取消，已有图片仍可浏览。",
       LibraryRootUpdatePhase.completed =>
         "已检查 ${task.visitedEntries} 个文件 · 图库包含 ${task.acceptedItems} 张图片",
-      LibraryRootUpdatePhase.discovering ||
-      LibraryRootUpdatePhase.stale ||
-      LibraryRootUpdatePhase.refreshFailed ||
-      LibraryRootUpdatePhase.failed =>
+      LibraryRootUpdatePhase.stale => "更新期间文件发生了变化。",
+      LibraryRootUpdatePhase.refreshFailed => "图库更新已保存。",
+      LibraryRootUpdatePhase.failed => LibraryStrings.scanFailureDetail(
+        task.errorMessage,
+      ),
+      LibraryRootUpdatePhase.discovering =>
         "已检查 ${task.visitedEntries} 个文件 · 已找到 ${task.acceptedItems} 张图片",
     };
   }

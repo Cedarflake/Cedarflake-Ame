@@ -64,7 +64,7 @@ String _synchronizationNotificationMessage(
   LibrarySynchronizationFeedbackState state,
 ) {
   if (status.isAwaitingFirstImport) {
-    return LibraryStrings.firstImportRequiredDetail;
+    return LibraryStrings.firstImportIncomplete;
   }
   if (state == LibrarySynchronizationFeedbackState.unavailable) {
     return LibraryStrings.synchronizationSourceUnavailable;
@@ -161,7 +161,7 @@ String? _synchronizationNotificationDetail(
   LibrarySynchronizationFeedbackState state,
 ) {
   if (status.isAwaitingFirstImport) {
-    return LibraryStrings.firstImportAwaitingUser;
+    return null;
   }
   final details = <String>[];
   if (state == LibrarySynchronizationFeedbackState.updating) {

@@ -57,7 +57,7 @@ class LibraryTaskSurface extends StatelessWidget {
               ),
       LibraryStatus.refreshing when isConfirmingPublication =>
         LibraryStrings.readingScanResult,
-      LibraryStatus.refreshing => isPublishedReload ? "正在刷新图库显示…" : "正在更新图库…",
+      LibraryStatus.refreshing => isPublishedReload ? "正在刷新图库显示…" : "正在加载图库…",
       LibraryStatus.cancelled => isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹",
       LibraryStatus.paused => isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹",
       LibraryStatus.stale => "源文件发生变化，需要重新更新",
@@ -86,15 +86,23 @@ class LibraryTaskSurface extends StatelessWidget {
         ? "正在核对 ${state.validatedAssetCount} / ${state.validationAssetCount} 张图片 · "
               "已检查 ${state.visitedEntries} 个文件"
         : "已检查 ${state.visitedEntries} 个文件 · 已找到 ${state.stagedAssetCount} 张图片";
-    final detail =
-        LibraryStrings.scanFailureDetail(state.errorMessage) ??
-        (state.status == LibraryStatus.removing
-            ? state.isRemovalCommitted
-                  ? LibraryStrings.refreshingAfterRemovalDetail
-                  : LibraryStrings.removingFolderDetail
-            : state.status == LibraryStatus.completed
-            ? completedDetail
-            : scanningDetail);
+    final String? detail;
+    if (isConfirmingPublication || isPublishedReload) {
+      detail = null;
+    } else if (state.status == LibraryStatus.failed) {
+      detail = LibraryStrings.scanFailureDetail(state.errorMessage);
+    } else if (state.status == LibraryStatus.cancelling ||
+        state.status == LibraryStatus.discarding) {
+      detail = "正在停止当前任务。";
+    } else if (state.status == LibraryStatus.removing) {
+      detail = state.isRemovalCommitted
+          ? LibraryStrings.refreshingAfterRemovalDetail
+          : LibraryStrings.removingFolderDetail;
+    } else {
+      detail = state.status == LibraryStatus.completed
+          ? completedDetail
+          : scanningDetail;
+    }
     final surface = Material(
       key: const Key("library-task-surface"),
       elevation: ameNotificationElevation,
@@ -169,13 +177,15 @@ class LibraryTaskSurface extends StatelessWidget {
                     ),
                 ],
               ),
-              const SizedBox(height: 4),
-              Text(
-                detail,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+              if (detail != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  detail,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
+              ],
               if (state.isTaskProcessing) ...[
                 const SizedBox(height: 10),
                 LinearProgressIndicator(
@@ -196,7 +206,7 @@ class LibraryTaskSurface extends StatelessWidget {
       return surface;
     }
     return LibraryTaskLiveRegion(
-      message: "$title。$detail",
+      message: detail == null ? title : "$title。$detail",
       announcementScope:
           "${state.status.name}:${state.isRemovalCommitted}:${state.removingRootId}",
       child: surface,

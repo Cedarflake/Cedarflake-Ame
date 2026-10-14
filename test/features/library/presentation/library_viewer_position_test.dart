@@ -403,7 +403,7 @@ void main() {
   );
 
   testWidgets(
-    "unfinished first import reports manual intent without recovery claims",
+    "unfinished first import shows gallery guidance without a duplicate notification",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1;
@@ -447,13 +447,16 @@ void main() {
 
       expect(
         find.text(LibraryStrings.firstImportRequiredTitle("Pictures")),
+        findsNothing,
+      );
+      expect(
+        find.byKey(const Key("library-first-import-state")),
         findsOneWidget,
       );
       expect(
-        find.text(LibraryStrings.firstImportRequiredDetail),
+        find.text(LibraryStrings.firstImportGalleryDetail),
         findsOneWidget,
       );
-      expect(find.text(LibraryStrings.firstImportAwaitingUser), findsOneWidget);
       expect(find.text("“Pictures”更新受阻"), findsNothing);
       expect(
         find.textContaining("阶段：${LibraryStrings.synchronizationPhaseBlocked}"),
@@ -471,12 +474,10 @@ void main() {
       final container = ProviderScope.containerOf(
         tester.element(find.byType(AmeApp)),
       );
-      final notice = container
-          .read(ameNotificationControllerProvider)
-          .history
-          .single;
-      expect(notice.severity, AmeNotificationSeverity.info);
-      expect(notice.technicalCode, "library_first_import_required");
+      expect(
+        container.read(ameNotificationControllerProvider).history,
+        isEmpty,
+      );
       expect(
         container.read(libraryControllerProvider).roots.single.activeScanId,
         isNull,

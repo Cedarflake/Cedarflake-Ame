@@ -1075,13 +1075,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                   updateState.hasActive ||
                   state.hasRetainedScan ||
                   state.primaryScanSnapshot.hasUnresolvedPublication,
-              addingSourceDisabledReason: switch (state.primaryScanSnapshot) {
-                LibraryPrimaryScanSnapshot(hasRetainedScan: true) =>
-                  "请先继续或取消已暂停的任务",
-                LibraryPrimaryScanSnapshot(hasUnresolvedPublication: true) =>
-                  "请先在任务面板重试刷新结果",
-                _ => null,
-              },
+              addingSourceDisabledReason:
+                  LibraryPendingSource.addFolderDisabledReason(
+                    state.primaryScanSnapshot,
+                  ),
               retainedScanRootId: state.retainedScanRootId,
               onSelectLibrary: () => _selectLibrary(state),
               onSelectRoot: (root) => _selectRoot(state, root),
@@ -1151,7 +1148,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           if (state.queryActivity
                               case final LibraryQueryFailed failure)
                             LibraryQueryFailureBanner(
-                              failure: failure,
                               onRetry: !LibraryBrowseAdmission(state).canBrowse
                                   ? null
                                   : () => unawaited(

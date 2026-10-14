@@ -180,14 +180,13 @@ class _LibraryRootUpdateRow extends StatelessWidget {
               ),
           ],
         ),
-        Text(
-          feedback.detail,
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Theme.of(context).colorScheme.onSurfaceVariant,
+        if (feedback.detail case final detail?)
+          Text(
+            detail,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
           ),
-        ),
         if (task.isActive) ...[
           const SizedBox(height: 8),
           Semantics(

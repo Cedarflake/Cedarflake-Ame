@@ -69,7 +69,8 @@ enum LibrarySynchronizationFeedbackState {
   }
 
   bool get shouldNotify => switch (this) {
-    awaitingFirstImport || blocked || interrupted => true,
+    blocked || interrupted => true,
+    awaitingFirstImport ||
     unavailable ||
     awaitingRetry ||
     updating ||

@@ -185,7 +185,16 @@ void main() {
     await tester.pump();
     await tester.pump();
     expect(find.byKey(const Key("library-query-failure")), findsOneWidget);
-    expect(find.textContaining("catalog query blocked"), findsOneWidget);
+    expect(find.text("图片列表加载失败"), findsOneWidget);
+    expect(find.textContaining("catalog query blocked"), findsNothing);
+    expect(
+      fixture.state.queryActivity,
+      isA<LibraryQueryFailed>().having(
+        (failure) => failure.message,
+        "diagnostic message",
+        contains("catalog query blocked"),
+      ),
+    );
     expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
     expect(find.byKey(const Key("library-cancel-button")), findsOneWidget);
     fixture.catalog.loadFailure = null;

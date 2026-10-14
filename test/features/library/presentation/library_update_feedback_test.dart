@@ -52,7 +52,7 @@ void main() {
     final task = ValueNotifier(
       _task(
         LibraryRootUpdatePhase.refreshFailed,
-      ).copyWith(errorMessage: "图库已更新，但刷新显示失败"),
+      ).copyWith(errorMessage: "图库已更新，但刷新显示失败：Bad state: catalog busy"),
     );
     addTearDown(task.dispose);
     final retried = <String>[];
@@ -69,6 +69,9 @@ void main() {
     );
 
     expect(find.text("页面刷新失败"), findsOneWidget);
+    expect(find.text("图库更新已保存。"), findsOneWidget);
+    expect(find.textContaining("catalog busy"), findsNothing);
+    expect(task.value.errorMessage, contains("catalog busy"));
     expect(find.bySemanticsLabel("重新加载 Pictures"), findsOneWidget);
     expect(find.bySemanticsLabel("重试更新 Pictures"), findsNothing);
     await tester.tap(find.text("重新加载"));

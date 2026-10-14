@@ -8,6 +8,24 @@ class LibraryPendingSource {
   final LibraryStatus status;
   final LibraryScanPublication publication;
 
+  static String? addFolderDisabledReason(LibraryPrimaryScanSnapshot scan) {
+    if (scan.status == LibraryStatus.discarding) {
+      return "正在停止当前任务";
+    }
+    if (scan.hasRetainedScan) {
+      return "请先继续或取消已暂停的任务";
+    }
+    if (!scan.hasUnresolvedPublication) return null;
+    if (scan.status == LibraryStatus.refreshing) {
+      return scan.publication == LibraryScanPublication.confirmationPending
+          ? LibraryStrings.readingScanResult
+          : "正在加载图库…";
+    }
+    return scan.publication == LibraryScanPublication.confirmationPending
+        ? LibraryStrings.scanConfirmationDetail
+        : LibraryStrings.galleryDisplayReloadDetail;
+  }
+
   static LibraryPendingSource? fromState(LibraryState state) {
     final scan = state.primaryScanSnapshot;
     final path = scan.displayRootPath;

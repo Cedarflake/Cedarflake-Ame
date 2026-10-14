@@ -76,6 +76,14 @@ void main() {
         );
         expect(find.byType(LinearProgressIndicator), findsNothing);
         expect(
+          LibraryPendingSource.addFolderDisabledReason(
+            taskState.value.primaryScanSnapshot,
+          ),
+          publication == LibraryScanPublication.confirmationPending
+              ? LibraryStrings.scanConfirmationDetail
+              : LibraryStrings.galleryDisplayReloadDetail,
+        );
+        expect(
           find.text(
             publication == LibraryScanPublication.confirmationPending
                 ? "重新读取"
@@ -105,6 +113,14 @@ void main() {
         expect(find.byKey(const Key("library-retry-button")), findsNothing);
         expect(find.byType(LinearProgressIndicator), findsOneWidget);
         expect(
+          LibraryPendingSource.addFolderDisabledReason(
+            taskState.value.primaryScanSnapshot,
+          ),
+          publication == LibraryScanPublication.confirmationPending
+              ? LibraryStrings.readingScanResult
+              : "正在加载图库…",
+        );
+        expect(
           LibraryPendingSource.fromState(taskState.value)?.statusLabel,
           publication == LibraryScanPublication.confirmationPending
               ? "正在读取扫描结果…"
@@ -118,6 +134,12 @@ void main() {
         );
         await tester.pump();
         expect(find.text("导入完成"), findsOneWidget);
+        expect(
+          LibraryPendingSource.addFolderDisabledReason(
+            taskState.value.primaryScanSnapshot,
+          ),
+          isNull,
+        );
         expect(find.byType(LinearProgressIndicator), findsNothing);
         expect(
           LibraryPendingSource.fromState(taskState.value)?.statusLabel,
@@ -222,7 +244,8 @@ void main() {
       ),
     );
     expect(find.text("正在取消…"), findsOneWidget);
-    expect(find.text(originalError), findsOneWidget);
+    expect(find.text("正在停止当前任务。"), findsOneWidget);
+    expect(find.text(originalError), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsOneWidget);
     expect(find.byKey(const Key("library-retry-button")), findsNothing);
     final closed = fixture.scanner.close(id);
@@ -231,7 +254,9 @@ void main() {
     taskState.value = fixture.state;
     await tester.pump();
     expect(fixture.state.errorMessage, originalError);
-    expect(find.text(originalError), findsOneWidget);
+    expect(find.text(originalError), findsNothing);
+    expect(find.text("正在停止当前任务。"), findsNothing);
+    expect(find.text("添加文件夹失败"), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     final retry = find.byKey(const Key("library-retry-button"));
     expect(retry, findsOneWidget);

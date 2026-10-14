@@ -62,8 +62,19 @@ keeps a different selected folder independent of the primary task. The `c6d859b`
 displayed the localized picker, active/pausing/paused/resumed gallery copy and the fallback icon
 with its reachable Reopen button. Successful reopening cleared both icon and failure text. It
 exited normally after 158 seconds, restored the original profile and catalog hashes, and removed
-its 41 disposable derived files (32 MiB). Hosted checks for these follow-ups remain pending before
-resuming cancellation performance.
+its 41 disposable derived files (32 MiB). The `c6d859b` hosted Flutter, Accessibility, Scan,
+unsigned Release and synthetic jobs now pass; Static and Rust is still running.
+
+The final UI feedback follow-up keeps unfinished-import guidance in the existing gallery and task
+panel, removing the duplicate persistent notification. Sidebar admission hints follow Reread versus
+Reload and change to progress while recovery runs. Query failures show a concise message beside
+Reload; task failures retain their available actions and use known user-facing causes, keeping raw
+diagnostics in the underlying state. Recovery instructions wrap in update rows. Existing regressions
+retain command counts, diagnostic data, retry transitions and the absence of automatic first import;
+hosted verification of this follow-up is pending. No new controls or architectural owners are added.
+Affected production owners are the 2,125-line screen (composition only), 234-line task surface and
+67-line pending-source feedback; the primary feedback regression file has 265 lines and no inline
+production tests. Continue cancellation performance after this UI follow-up is verified.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named

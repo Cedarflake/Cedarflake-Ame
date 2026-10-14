@@ -349,21 +349,25 @@ void main() {
     expect(feedback.shouldNotify, isFalse);
   });
 
-  test("dormant first import retains its separate user-intent explanation", () {
-    final feedback = LibrarySynchronizationFeedback.fromStatus(
-      _status(
-        issueCode: "library_first_import_required",
-        recoveryBlocked: false,
-        continuity: LibraryContinuityState.baselineRequired,
-        sourceStatus: LibraryChangeSourceStatus.stopped,
-        retryCount: 0,
-      ),
-    );
-    expect(feedback.message, LibraryStrings.firstImportRequiredDetail);
-    expect(feedback.detail, LibraryStrings.firstImportAwaitingUser);
-    expect(feedback.severity, AmeNotificationSeverity.info);
-    expect(feedback.requiresManualLibraryUpdate, isFalse);
-  });
+  test(
+    "dormant first import leaves guidance in the gallery and task panel",
+    () {
+      final feedback = LibrarySynchronizationFeedback.fromStatus(
+        _status(
+          issueCode: "library_first_import_required",
+          recoveryBlocked: false,
+          continuity: LibraryContinuityState.baselineRequired,
+          sourceStatus: LibraryChangeSourceStatus.stopped,
+          retryCount: 0,
+        ),
+      );
+      expect(feedback.message, LibraryStrings.firstImportIncomplete);
+      expect(feedback.detail, isNull);
+      expect(feedback.shouldNotify, isFalse);
+      expect(feedback.severity, AmeNotificationSeverity.info);
+      expect(feedback.requiresManualLibraryUpdate, isFalse);
+    },
+  );
 
   test(
     "legacy and explicit manual recovery preserve their distinct contracts",
