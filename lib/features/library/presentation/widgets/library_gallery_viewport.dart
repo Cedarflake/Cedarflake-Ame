@@ -31,7 +31,7 @@ class LibraryGalleryViewport extends StatelessWidget {
         Column(
           children: [
             Semantics(sortKey: const OrdinalSortKey(0), child: header),
-            if (failure case final message?) message,
+            ?failure,
             Expanded(
               child: LibraryGalleryLoadingRegion(
                 isLoading: isLoading,

@@ -64,7 +64,10 @@ Future<void> verifyLibraryManagementWorkflow(
   await tester.pumpAndSettle();
   final confirmation = find.byType(AlertDialog);
   expect(confirmation, findsOneWidget);
-  expect(find.textContaining("不会被删除或修改"), findsOneWidget);
+  expect(
+    find.descendant(of: confirmation, matching: find.textContaining("图片都会保留")),
+    findsOneWidget,
+  );
   await tester.tap(
     find.descendant(of: confirmation, matching: find.byType(FilledButton)),
   );
