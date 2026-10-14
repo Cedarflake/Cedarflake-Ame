@@ -310,11 +310,12 @@ void main() {
         findsOneWidget,
       );
       expect(
-        find.textContaining("阶段：${LibraryStrings.synchronizationPhaseBlocked}"),
+        find.textContaining("阶段：${LibraryStrings.needsReconciliation}"),
         findsOneWidget,
       );
       expect(find.textContaining("3 项等待处理"), findsOneWidget);
-      expect(find.textContaining("2 项等待重试"), findsOneWidget);
+      expect(find.textContaining("2 项更新尚未完成"), findsOneWidget);
+      expect(find.textContaining("2 项等待重试"), findsNothing);
       expect(find.textContaining("尚有未核对的图库变化"), findsOneWidget);
       expect(find.byKey(const Key("notification-unread-icon")), findsOneWidget);
 

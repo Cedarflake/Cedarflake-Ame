@@ -439,9 +439,10 @@ recovery resolves that active error without adding a success notice.
 An active error remains visible while the current snapshot still reports blocked recovery or an
 unhealthy monitor, including when unrelated automatic work is running. A healthy, unblocked
 processing or eligible-retry snapshot withdraws that error surface and displays progress in the
-source row; the historical error remains in current-session history. A processing snapshot retains
-an unresolved issue until the issue is cleared; an eligible deferred retry may retain its previous
-attempt's issue. Processing does not imply `已同步`, which requires a synchronized snapshot. Short
+source row; the historical error remains in current-session history. The last issue code can remain
+as historical context during healthy, unblocked processing, retry or confirmed convergence; it
+does not alone establish a current fault. Blocked recovery and unhealthy monitoring retain their
+priority over progress. Processing does not imply `已同步`, which requires a synchronized snapshot. Short
 SQLite writer contention during another Ame publication keeps the prior snapshot
 and retries silently for a bounded interval; only contention beyond that interval becomes a
 persistent catalog error.

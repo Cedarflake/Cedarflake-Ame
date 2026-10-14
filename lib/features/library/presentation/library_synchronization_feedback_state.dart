@@ -39,15 +39,11 @@ enum LibrarySynchronizationFeedbackState {
           status.sourceStatus == LibraryChangeSourceStatus.healthy) {
         return awaitingRetry;
       }
-      if (status.lastIssueCode == null &&
-          status.phase != LibrarySynchronizationPhase.retryWait &&
+      if (status.phase != LibrarySynchronizationPhase.retryWait &&
           status.phase != LibrarySynchronizationPhase.blocked &&
           status.phase != LibrarySynchronizationPhase.synchronized) {
         return updating;
       }
-    }
-    if (status.lastIssueCode != null) {
-      return interrupted;
     }
     if (status.freshness == LibraryCatalogFreshness.synchronized &&
         (status.continuity == LibraryContinuityState.current ||
@@ -58,6 +54,9 @@ enum LibrarySynchronizationFeedbackState {
         status.retryWaitCount == BigInt.zero &&
         status.freshnessUnknownCount == BigInt.zero) {
       return synchronized;
+    }
+    if (status.lastIssueCode != null) {
+      return interrupted;
     }
     return unconfirmed;
   }

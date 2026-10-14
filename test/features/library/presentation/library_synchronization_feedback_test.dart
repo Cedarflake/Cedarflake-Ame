@@ -201,20 +201,31 @@ void main() {
     expect(feedback.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
   });
 
-  test("an unresolved issue is not cleared by inventory progress alone", () {
-    final feedback = LibrarySynchronizationFeedback.fromStatus(
-      _status(
-        recoveryBlocked: false,
-        issueCode: "catalog_database_busy",
-        freshness: LibraryCatalogFreshness.updating,
-        phase: LibrarySynchronizationPhase.inventoryEnumeration,
-      ),
-    );
-    expect(feedback.shouldNotify, isTrue);
-    expect(feedback.sourceLabel, LibraryStrings.needsReconciliation);
-    expect(feedback.message, LibraryStrings.synchronizationPersistenceFailed);
-    expect(feedback.severity, AmeNotificationSeverity.error);
-  });
+  test(
+    "healthy active recovery does not turn historical issues into faults",
+    () {
+      for (final issue in [
+        "catalog_database_busy",
+        "change_source_rescan_required",
+      ]) {
+        final feedback = LibrarySynchronizationFeedback.fromStatus(
+          _status(
+            recoveryBlocked: false,
+            issueCode: issue,
+            freshness: LibraryCatalogFreshness.updating,
+            phase: LibrarySynchronizationPhase.inventoryEnumeration,
+          ),
+        );
+        expect(feedback.shouldNotify, isFalse);
+        expect(feedback.sourceLabel, LibraryStrings.synchronizing);
+        expect(
+          feedback.message,
+          LibraryStrings.synchronizationAutomaticProgress,
+        );
+        expect(feedback.severity, AmeNotificationSeverity.info);
+      }
+    },
+  );
 
   test("synchronized text requires continuity and no unresolved work", () {
     for (final continuity in [
