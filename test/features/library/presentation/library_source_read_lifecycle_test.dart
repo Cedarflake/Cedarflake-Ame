@@ -1,5 +1,7 @@
 import "dart:async";
 import "dart:convert";
+import "dart:io";
+import "dart:typed_data";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
@@ -78,6 +80,104 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final hasPreview in [false, true]) {
+    testWidgets(
+      "original retry remains visible after zoom and pan with preview $hasPreview",
+      (tester) async {
+        tester.view.physicalSize = const Size(1000, 700);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final fixture = _Fixture();
+        var asset = _asset("first", width: 4000, height: 2000);
+        if (hasPreview) {
+          final directory = Directory.systemTemp.createTempSync(
+            "ame-viewer-fallback-",
+          );
+          addTearDown(() => directory.deleteSync(recursive: true));
+          final preview = File(
+            "${directory.path}${Platform.pathSeparator}preview.png",
+          )..writeAsBytesSync(_fixtureImageBytes());
+          asset = asset.withPreview(
+            previewPath: preview.path,
+            width: asset.width,
+            height: asset.height,
+            previewStatus: LibraryPreviewStatus.ready,
+          );
+        }
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              home: LibraryViewerSourceScope(
+                scheduler: fixture.scheduler,
+                bufferLoader: fixture.loadBuffer,
+                child: Scaffold(
+                  body: LibraryImageViewer(
+                    asset: asset,
+                    openBehavior: ImageViewerOpenBehavior.actualSize,
+                    onBack: () {},
+                    onInformation: () {},
+                    onCopyPath: () {},
+                    onRevealFile: () {},
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        final viewport = find.byKey(
+          const Key("library-image-interactive-viewer"),
+        );
+        final bounds = tester.getRect(viewport);
+        await tester.tap(find.byKey(const Key("viewer-zoom-in")));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        final transform = tester
+            .widget<InteractiveViewer>(viewport)
+            .transformationController!;
+        final beforePan = transform.value.getTranslation().clone();
+        await tester.drag(viewport, const Offset(180, 100));
+        await tester.pump(kDoubleTapMinTime);
+        expect(transform.value.getTranslation().x, isNot(beforePan.x));
+        final beforeFailure = transform.value.clone();
+
+        fixture.buffers["approved-first"]!.completeError(
+          StateError("fixture copy failed"),
+        );
+        await tester.pump();
+        final retry = find.text("重试");
+        final retryBounds = tester.getRect(retry);
+        expect(bounds.contains(retryBounds.topLeft), isTrue);
+        expect(bounds.contains(retryBounds.bottomRight), isTrue);
+        expect(
+          find.text(hasPreview ? "原图暂不可用，当前显示缩略图" : "无法打开原图"),
+          findsOneWidget,
+        );
+        expect(transform.value, beforeFailure);
+        expect(fixture.reader.leases.single.closed, 1);
+
+        await tester.tap(find.byKey(const Key("viewer-zoom-in")));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(tester.getRect(retry), retryBounds);
+        final retryTransform = transform.value.clone();
+        await tester.tap(retry);
+        await tester.pump();
+        expect(fixture.reader.opened, ["first", "first"]);
+        expect(find.byKey(const Key("viewer-image-loading")), findsOneWidget);
+        expect(transform.value, retryTransform);
+        await tester.runAsync(() => fixture.finishBuffer("approved-first"));
+        await _waitForImage(tester);
+        expect(retry, findsNothing);
+        expect(fixture.reader.leases.map((lease) => lease.closed), [1, 1]);
+        expect(transform.value, retryTransform);
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets("inherited source dependencies keep an unchanged read alive", (
     tester,
@@ -405,15 +505,15 @@ class _Fixture {
   }
 
   Future<ui.ImmutableBuffer> finishBuffer(String path) async {
-    final buffer = await ui.ImmutableBuffer.fromUint8List(
-      base64Decode(
-        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-      ),
-    );
+    final buffer = await ui.ImmutableBuffer.fromUint8List(_fixtureImageBytes());
     buffers[path]!.complete(buffer);
     return buffer;
   }
 }
+
+Uint8List _fixtureImageBytes() => base64Decode(
+  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+);
 
 class _Reader implements LibrarySourceReader {
   final List<String> opened = [];
@@ -453,9 +553,10 @@ Future<void> _waitForImage(WidgetTester tester) async {
       () => Future<void>.delayed(const Duration(milliseconds: 10)),
     );
     await tester.pump();
-    if (tester
-        .widgetList<RawImage>(find.byType(RawImage))
-        .any((image) => image.image != null)) {
+    if (find.byKey(const Key("viewer-image-loading")).evaluate().isEmpty &&
+        tester
+            .widgetList<RawImage>(find.byType(RawImage))
+            .any((image) => image.image != null)) {
       return;
     }
   }

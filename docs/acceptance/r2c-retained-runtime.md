@@ -3290,3 +3290,12 @@ Production owners have 115 admission, 696 queue and 437 photo-tile lines, with n
 their dedicated test files have 180, 1123 and 827 lines. Owned formatting and diff checks pass.
 GitHub Actions executes these regressions and CI; no local test suite runs. Runtime verification
 of this race and attribution of the historical retained-library Retry incident remain open.
+
+Original-image failure feedback also remained inside the image transformation, which could scale
+or pan its Retry action beyond the viewport. The viewer now transforms only the fallback preview;
+failure text and Retry retain viewport geometry. The source provider, guarded retry and saved image
+transform remain unchanged. Two regressions exercise failure after actual-size zoom/pan, with and
+without a fallback preview, then verify visible controls, a fresh guarded retry and released leases.
+The image widget has 191 production lines and its source-lifecycle test file has 603 lines, with no
+inline tests. Owned formatting and diff checks pass; hosted execution and client verification of
+these failure states remain pending. No completed opening/zoom workflow is replayed for this change.

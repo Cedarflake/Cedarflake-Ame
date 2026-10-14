@@ -59,6 +59,8 @@ The current preview correction rejects retired sources before they can supersede
 current work or release a root failure, and retires scheduled image repairs after source replacement.
 Automatic decode repair displays progress from its first frame; a replaced artifact retires its
 queued repair without leaving progress active. Genuine failure retains manual Retry.
+Original-image failure and Retry now remain in the viewport while the fallback preview retains its
+zoom/pan transform; guarded source retry and lease release keep their existing owners.
 Its focused queue and widget regressions await hosted execution. Continue this affected boundary;
 do not repeat completed import/reopen/position cases or infer that the historical Retry incident is closed.
 

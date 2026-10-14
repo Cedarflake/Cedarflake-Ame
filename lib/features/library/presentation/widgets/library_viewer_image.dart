@@ -104,8 +104,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
           ],
         );
       },
-      errorBuilder: (context, error, stackTrace) =>
-          _buildImage(context, _buildFailure(context)),
+      errorBuilder: (context, error, stackTrace) => _buildFailure(context),
     );
   }
 
@@ -117,7 +116,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
       return Stack(
         fit: StackFit.expand,
         children: [
-          _buildPreview(),
+          _buildImage(context, _buildPreview()),
           Positioned(
             left: 16,
             right: 16,

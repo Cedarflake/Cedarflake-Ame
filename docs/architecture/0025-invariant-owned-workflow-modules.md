@@ -586,7 +586,8 @@ page failure remain one boundary, with no second decoded page or per-record clon
   while `library_source_image_stream.dart` owns retired stream errors and late codec/frame resource
   release without replacing Flutter's decoding or animation scheduler.
   `LibraryViewerImage` composes its current source frame with an image-only transformation builder;
-  pending-load feedback stays outside that transformed child without another loading-state owner.
+  pending-load feedback and failure/retry controls stay outside that transformed child without
+  another loading-state owner. A fallback preview retains the image transform independently.
   `library_viewer_zoom_geometry.dart` owns fitted versus actual-pixel scale, bounded zoom, slider
   mapping and source-pixel percentage. The viewer retains input, animation and navigation.
   `local_files/viewer_source_guard.rs` owns the held Windows namespace. Opaque bridge methods
