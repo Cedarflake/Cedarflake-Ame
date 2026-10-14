@@ -82,13 +82,16 @@ abstract final class LibraryStrings {
   static const showMoreFolders = "显示更多文件夹";
   static const retryFolders = "重新加载文件夹";
   static const unknownCaptureDate = "拍摄日期未知";
-  static const retryPreview = "重试预览";
-  static const retryingPreview = "正在重试预览…";
+  static const retryPreview = "重新加载预览";
+  static const retryingPreview = "正在加载预览…";
+  static const originalImageUnavailable = "无法打开原图";
+  static const originalImagePreviewFallback = "原图无法打开，已显示预览图";
+  static const retryOriginalImage = "重新打开";
 
   static String removingFromAme(String sourceName) =>
       "正在从 Ame 中移除“$sourceName”…";
-  static const previewUpdateRequired = "请先更新图库，再重试预览。";
-  static const retryLoading = "重试加载";
+  static const previewUpdateRequired = "请先更新图库，再重新加载预览。";
+  static const retryLoading = "重新加载";
   static const noFolder = "还没有添加文件夹";
   static const emptyLibraryTitle = "建立你的图片图库";
   static const emptyLibraryBody = "选择要在 Ame 中一起浏览的文件夹。";

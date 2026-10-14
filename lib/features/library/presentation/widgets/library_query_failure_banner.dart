@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 
 import "../../domain/library_query_activity.dart";
+import "../library_strings.dart";
 
 class LibraryQueryFailureBanner extends StatelessWidget {
   const LibraryQueryFailureBanner({
@@ -20,7 +21,7 @@ class LibraryQueryFailureBanner extends StatelessWidget {
       TextButton(
         key: const Key("library-query-retry"),
         onPressed: onRetry,
-        child: const Text("重试加载"),
+        child: const Text(LibraryStrings.retryLoading),
       ),
     ],
   );

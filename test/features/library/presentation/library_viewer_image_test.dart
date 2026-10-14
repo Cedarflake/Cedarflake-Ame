@@ -106,7 +106,7 @@ void main() {
 
     final bytes = await tester.runAsync(() => _png(Colors.blue));
     file.writeAsBytesSync(bytes!);
-    await tester.tap(find.text("重试"));
+    await tester.tap(find.byKey(const Key("viewer-original-retry")));
     await tester.pump();
     final after = tester.widget<Image>(find.byType(Image)).image;
     expect(after, isNot(before));
@@ -125,6 +125,64 @@ void main() {
     await tester.pumpWidget(const SizedBox.shrink());
     expect(tester.takeException(), isNull);
   });
+
+  for (final corruptPreview in [false, true]) {
+    testWidgets(
+      "unreadable fallback does not claim to display a preview: corrupt $corruptPreview",
+      (tester) async {
+        final directory = Directory.systemTemp.createTempSync(
+          "ame-viewer-unavailable-preview-",
+        );
+        addTearDown(() => directory.deleteSync(recursive: true));
+        final source = File(
+          "${directory.path}${Platform.pathSeparator}source.png",
+        )..writeAsBytesSync(const []);
+        final preview = File(
+          "${directory.path}${Platform.pathSeparator}preview.png",
+        );
+        if (corruptPreview) {
+          preview.writeAsBytesSync(const [0xFF, 0xD8, 0xFF]);
+        }
+        final asset = _asset(source.path).withPreview(
+          previewPath: preview.path,
+          width: 2,
+          height: 2,
+          previewStatus: LibraryPreviewStatus.ready,
+        );
+        await tester.pumpWidget(_viewer(asset));
+        await _waitForFrame(
+          tester,
+          () => find.text("无法打开原图").evaluate().isNotEmpty,
+        );
+        expect(find.text("原图无法打开，已显示预览图"), findsNothing);
+        expect(find.text("重新打开"), findsOneWidget);
+
+        final bytes = await tester.runAsync(() => _png(Colors.blue));
+        source.writeAsBytesSync(bytes!);
+        await tester.tap(find.byKey(const Key("viewer-original-retry")));
+        await tester.pump();
+        await _waitForFrame(
+          tester,
+          () =>
+              find
+                  .byKey(const Key("viewer-image-loading"))
+                  .evaluate()
+                  .isEmpty &&
+              find.byType(RawImage).evaluate().isNotEmpty,
+        );
+        expect(await tester.runAsync(() => _visiblePixel(tester)), [
+          33,
+          150,
+          243,
+          255,
+        ]);
+        expect(find.text("无法打开原图"), findsNothing);
+        expect(find.byKey(const Key("viewer-original-retry")), findsNothing);
+        await tester.pumpWidget(const SizedBox.shrink());
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 }
 
 final _sourceScheduler = LibrarySourceReadScheduler(

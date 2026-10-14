@@ -40,8 +40,11 @@ labels and accessibility text; the application still owns commands and state tra
 checks and the focused client walkthrough remain pending. Primary-task result recovery now labels
 the action Reread and changes the task/sidebar to Reading while it runs; published display recovery
 uses Reload. Original-image Retry now sits outside image gestures so its first click does not
-wait for double-tap recognition; image double-tap zoom retains coverage. Continue affected preview
-retry feedback next, preserving completed viewer geometry and preferences.
+wait for double-tap recognition; image double-tap zoom retains coverage. A failed original only
+announces a displayed fallback after preview pixels decode. Missing/corrupt fallback files keep
+the original-image failure and Reopen action; successful retry clears both. Preview and page retry
+labels describe loading, including automatic preview repair. Verify these connected UI changes
+through hosted checks and the focused client walkthrough before resuming cancellation performance.
 
 Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named

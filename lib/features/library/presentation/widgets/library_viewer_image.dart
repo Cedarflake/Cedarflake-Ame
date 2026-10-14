@@ -6,6 +6,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
+import "../library_strings.dart";
 import "library_loading_indicator.dart";
 import "library_source_image.dart";
 import "library_viewer_source_scope.dart";
@@ -112,48 +113,74 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
       widget.imageBuilder?.call(context, image) ?? image;
 
   Widget _buildFailure(BuildContext context) {
-    if (_hasPreview) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildImage(context, _buildPreview()),
-          Positioned(
-            left: 16,
-            right: 16,
-            top: 16,
-            child: Center(
-              child: Material(
-                color: Theme.of(context).colorScheme.surfaceContainerHigh,
-                elevation: 2,
-                borderRadius: BorderRadius.circular(20),
-                child: Padding(
-                  padding: const EdgeInsets.only(left: 14, right: 6),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Flexible(child: Text("原图暂不可用，当前显示缩略图")),
-                      TextButton(onPressed: _retry, child: const Text("重试")),
-                    ],
-                  ),
+    if (!_hasPreview) {
+      return _buildUnavailableSource();
+    }
+    return Image.file(
+      File(widget.asset.previewPath),
+      fit: BoxFit.contain,
+      filterQuality: FilterQuality.medium,
+      frameBuilder: (context, image, frame, wasSynchronouslyLoaded) {
+        if (frame == null && !wasSynchronouslyLoaded) {
+          return _buildUnavailableSource();
+        }
+        return _buildPreviewFallback(context, image);
+      },
+      errorBuilder: (context, error, stackTrace) => _buildUnavailableSource(),
+    );
+  }
+
+  Widget _buildPreviewFallback(BuildContext context, Widget image) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        _buildImage(context, image),
+        Positioned(
+          left: 16,
+          right: 16,
+          top: 16,
+          child: Center(
+            child: Material(
+              color: Theme.of(context).colorScheme.surfaceContainerHigh,
+              elevation: 2,
+              borderRadius: BorderRadius.circular(20),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 14, right: 6),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Flexible(
+                      child: Text(LibraryStrings.originalImagePreviewFallback),
+                    ),
+                    TextButton(
+                      key: const Key("viewer-original-retry"),
+                      onPressed: _retry,
+                      child: const Text(LibraryStrings.retryOriginalImage),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ],
-      );
-    }
+        ),
+      ],
+    );
+  }
+
+  Widget _buildUnavailableSource() {
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(Symbols.broken_image_rounded, size: 64),
           const SizedBox(height: 12),
-          const Text("无法打开原图"),
+          const Text(LibraryStrings.originalImageUnavailable),
           const SizedBox(height: 8),
           OutlinedButton.icon(
+            key: const Key("viewer-original-retry"),
             onPressed: _retry,
             icon: const Icon(Symbols.refresh_rounded),
-            label: const Text("重试"),
+            label: const Text(LibraryStrings.retryOriginalImage),
           ),
         ],
       ),

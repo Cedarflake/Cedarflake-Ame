@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/application/rust_library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_loading_indicator.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
@@ -20,7 +21,10 @@ Future<void> verifyViewerSourceWorkflow(WidgetTester tester) async {
     );
     // An unchecked FileImage would decode despite both native slots being occupied.
     final deadline = DateTime.now().add(const Duration(seconds: 10));
-    while (find.text("原图暂不可用，当前显示缩略图").evaluate().isEmpty &&
+    while (find
+            .text(LibraryStrings.originalImagePreviewFallback)
+            .evaluate()
+            .isEmpty &&
         find.text("无法打开原图").evaluate().isEmpty) {
       if (DateTime.now().isAfter(deadline)) {
         throw TestFailure("The viewer bypassed guarded source-read admission");
@@ -31,7 +35,7 @@ Future<void> verifyViewerSourceWorkflow(WidgetTester tester) async {
   await tester.tap(
     find.descendant(
       of: find.byType(LibraryViewerImage),
-      matching: find.text("重试"),
+      matching: find.byKey(const Key("viewer-original-retry")),
     ),
   );
   await _waitForOriginal(tester);
@@ -106,7 +110,7 @@ Future<void> _waitForOriginal(
     }
     await tester.pump(const Duration(milliseconds: 25));
   }
-  expect(find.text("原图暂不可用，当前显示缩略图"), findsNothing);
+  expect(find.text(LibraryStrings.originalImagePreviewFallback), findsNothing);
   expect(find.text("无法打开原图"), findsNothing);
 }
 
@@ -136,6 +140,9 @@ bool _hasDecodedOriginal(WidgetTester tester, String? differentFrom) {
           )
           .evaluate()
           .isEmpty &&
-      find.text("原图暂不可用，当前显示缩略图").evaluate().isEmpty &&
+      find
+          .text(LibraryStrings.originalImagePreviewFallback)
+          .evaluate()
+          .isEmpty &&
       find.text("无法打开原图").evaluate().isEmpty;
 }

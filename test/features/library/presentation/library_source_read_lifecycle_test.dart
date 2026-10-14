@@ -143,16 +143,19 @@ void main() {
         expect(transform.value.getTranslation().x, isNot(beforePan.x));
         final beforeFailure = transform.value.clone();
 
+        if (hasPreview) {
+          await _waitForDecodedPixels(tester);
+        }
         fixture.buffers["approved-first"]!.completeError(
           StateError("fixture copy failed"),
         );
         await tester.pump();
-        final retry = find.text("重试");
+        final retry = find.byKey(const Key("viewer-original-retry"));
         final retryBounds = tester.getRect(retry);
         expect(bounds.contains(retryBounds.topLeft), isTrue);
         expect(bounds.contains(retryBounds.bottomRight), isTrue);
         expect(
-          find.text(hasPreview ? "原图暂不可用，当前显示缩略图" : "无法打开原图"),
+          find.text(hasPreview ? "原图无法打开，已显示预览图" : "无法打开原图"),
           findsOneWidget,
         );
         expect(transform.value, beforeFailure);
@@ -433,7 +436,7 @@ void main() {
       expect(find.text("无法打开原图"), findsOneWidget);
       expect(fixture.buffers, isEmpty);
       fixture.reader.failure = null;
-      await tester.tap(find.text("重试"));
+      await tester.tap(find.byKey(const Key("viewer-original-retry")));
       await tester.pump();
       expect(fixture.reader.opened, ["first", "first"]);
       expect(find.byType(CircularProgressIndicator), findsOneWidget);
@@ -561,6 +564,21 @@ Future<void> _waitForImage(WidgetTester tester) async {
     }
   }
   fail("The guarded viewer did not display its decoded source");
+}
+
+Future<void> _waitForDecodedPixels(WidgetTester tester) async {
+  for (var attempt = 0; attempt < 100; attempt += 1) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pump();
+    if (tester
+        .widgetList<RawImage>(find.byType(RawImage))
+        .any((image) => image.image != null)) {
+      return;
+    }
+  }
+  fail("The fallback preview did not display decoded pixels");
 }
 
 ImageStreamCompleter _sourceCompleter(WidgetTester tester) {
