@@ -37,7 +37,7 @@ import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
-import "widgets/library_gallery_loading_region.dart";
+import "widgets/library_gallery_viewport.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
 import "widgets/library_global_bar.dart";
@@ -1095,32 +1095,31 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                               root.id,
                         },
                       )
-                    : Column(
-                        children: [
-                          LibraryGalleryHeader(
-                            galleryTitle: _galleryTitle(state),
-                            totalItems: _totalItems(state),
-                            selectedCount: _selection.selectedCount(
-                              _totalItems(state),
-                            ),
-                            isSelecting: _isSelecting,
-                            layoutShape: _layoutShape,
-                            thumbnailSize: _thumbnailSize,
-                            sortKey: state.query.sortKey,
-                            sortDirection: state.query.sortDirection,
-                            onBeginSelection: () =>
-                                setState(() => _isSelecting = true),
-                            onCancelSelection: _clearSelection,
-                            onSelectAll: () => _selectAll(state),
-                            onLayoutShapeChanged: _changeLayoutShape,
-                            onThumbnailSizeChanged: _changeThumbnailSize,
-                            onSortKeyChanged: (value) =>
-                                _changeSortKey(state, value),
-                            onSortDirectionChanged: (value) =>
-                                _changeSortDirection(state, value),
+                    : LibraryGalleryViewport(
+                        header: LibraryGalleryHeader(
+                          galleryTitle: _galleryTitle(state),
+                          totalItems: _totalItems(state),
+                          selectedCount: _selection.selectedCount(
+                            _totalItems(state),
                           ),
-                          if (state.queryActivity
-                              case final LibraryQueryFailed failure)
+                          isSelecting: _isSelecting,
+                          layoutShape: _layoutShape,
+                          thumbnailSize: _thumbnailSize,
+                          sortKey: state.query.sortKey,
+                          sortDirection: state.query.sortDirection,
+                          onBeginSelection: () =>
+                              setState(() => _isSelecting = true),
+                          onCancelSelection: _clearSelection,
+                          onSelectAll: () => _selectAll(state),
+                          onLayoutShapeChanged: _changeLayoutShape,
+                          onThumbnailSizeChanged: _changeThumbnailSize,
+                          onSortKeyChanged: (value) =>
+                              _changeSortKey(state, value),
+                          onSortDirectionChanged: (value) =>
+                              _changeSortDirection(state, value),
+                        ),
+                        failure: switch (state.queryActivity) {
+                          LibraryQueryFailed failure =>
                             LibraryQueryFailureBanner(
                               onRetry: !LibraryBrowseAdmission(state).canBrowse
                                   ? null
@@ -1131,22 +1130,20 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                                       ),
                                     ),
                             ),
-                          Expanded(
-                            child: LibraryGalleryLoadingRegion(
-                              isLoading:
-                                  state.isRefreshingQuery ||
-                                  state.isLoadingPage ||
-                                  state.isLoadingPreviousPage ||
-                                  state.isLoadingTimeAnchor ||
-                                  state.isLoadingVisibleRange,
-                              child: _buildGalleryBody(
-                                state,
-                                controller,
-                                layoutManifest,
-                              ),
-                            ),
-                          ),
-                        ],
+                          _ => null,
+                        },
+                        isEmpty: state.assets.isEmpty,
+                        isLoading:
+                            state.isRefreshingQuery ||
+                            state.isLoadingPage ||
+                            state.isLoadingPreviousPage ||
+                            state.isLoadingTimeAnchor ||
+                            state.isLoadingVisibleRange,
+                        body: _buildGalleryBody(
+                          state,
+                          controller,
+                          layoutManifest,
+                        ),
                       ),
               ),
             ),
