@@ -3134,3 +3134,22 @@ neutral unconfirmed label for all three source controls; the connected Flutter s
 same merged semantics before the checkpoint. Control types, reachability, later phases and the
 eight-second parent deadline remain unchanged. Owned Dart formatting, PowerShell syntax parsing
 and diff checks pass; the native integration path is delegated to the next hosted run.
+
+Hosted run `38505530640` at `094382f` passes the complete Flutter component and Windows
+accessibility integration, including the retained first-preview admission and neutral source-label
+corrections. Rust remains separate: the preceding complete run passes 1860 tests with two failures,
+P1/P2 sample advancement and baseline shutdown, which return to their owning latency/lifecycle work.
+
+The subsequent recovery projection publishes pending state when a source-authorized temporary-root
+retry is admitted, removing the old failure action while work is active. The root owner remains 108
+production lines, queue 692, with no inline tests; coordinator and full-gallery test owners contain
+569 and 428 dedicated test lines. The full-gallery regression keeps the failed first preview mounted,
+allows the existing cooldown, resizes the gallery, then verifies retry admission, decoded textured
+pixels, retired failure feedback, unchanged scroll offset and no new catalog query. This new
+projection and regression await hosted execution; no local CI suite runs.
+
+Local gallery verification now reuses `build/test`: the existing complete 10000-image corpus is moved
+there on the same volume, retaining 1000 PNGs, 9000 JPEGs, 72 textured encodings, varying dimensions,
+dates and encoded sizes, including 3000 JPEGs with EXIF. Original profile and catalog checks pass.
+Obsolete build outputs have an inspected cleanup list; bulk deletion awaits explicit approval after
+automatic review rejects it. The reusable corpus and current Release are excluded from cleanup.

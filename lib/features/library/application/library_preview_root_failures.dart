@@ -16,7 +16,9 @@ final class LibraryPreviewRootBlocked extends LibraryPreviewRootAdmission {
 }
 
 final class LibraryPreviewRootRecovering extends LibraryPreviewRootAdmission {
-  const LibraryPreviewRootRecovering();
+  const LibraryPreviewRootRecovering(this.asset);
+
+  final LibraryAsset asset;
 }
 
 /// Owns root failure admission and its scan-scoped retry lifetime.
@@ -55,7 +57,14 @@ class LibraryPreviewRootFailures {
     if (!explicitRetry &&
         asset.previewStatus == LibraryPreviewStatus.failed &&
         asset.previewIssueCode == "preview_root_unavailable") {
-      return const LibraryPreviewRootRecovering();
+      return LibraryPreviewRootRecovering(
+        asset.withPreview(
+          previewPath: asset.previewPath,
+          width: asset.width,
+          height: asset.height,
+          previewStatus: LibraryPreviewStatus.pending,
+        ),
+      );
     }
     return const LibraryPreviewRootAllowed();
   }

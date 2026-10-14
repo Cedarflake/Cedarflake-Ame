@@ -294,6 +294,13 @@ void main() {
       await Future<void>.delayed(const Duration(milliseconds: 5100));
       coordinator.updateGalleryDemand(visible: [first, peer, ready]);
       expect(previewer.requests, hasLength(2));
+      for (final asset in [first, peer]) {
+        expect(
+          coordinator.resolve(asset).previewStatus,
+          LibraryPreviewStatus.pending,
+        );
+        expect(coordinator.resolve(asset).previewIssueCode, isNull);
+      }
       for (var index = 0; index < 20; index++) {
         coordinator.updateGalleryDemand(visible: [first, peer, ready]);
       }

@@ -22,6 +22,40 @@ import "../support/library_query_snapshot_fixture.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  testWidgets("a resized gallery recovers its first unavailable-root preview", (
+    tester,
+  ) async {
+    final fixture = await _GalleryFixture.mount(tester);
+    final initial = fixture.catalog.assets.single;
+    final originalOffset = fixture.scrollPosition(tester).pixels;
+    fixture.previewer.calls.single.completion.completeError(
+      const LibraryPreviewFailure(
+        code: "preview_root_unavailable",
+        message: "The source directory is temporarily unavailable",
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text(LibraryStrings.retryPreview), findsOneWidget);
+    expect(fixture.previewer.calls, hasLength(1));
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 5100)),
+    );
+    tester.view.physicalSize = const Size(1400, 800);
+    await _pumpUntil(tester, () => fixture.previewer.calls.length == 2);
+    expect(fixture.previewer.calls.last.force, isTrue);
+    fixture.previewer.calls.last.completion.complete(fixture.ready(initial));
+    await _pumpUntil(tester, () => _decodedImage(tester) != null);
+    final pixels = await tester.runAsync(
+      () => _decodedImage(tester)!.toByteData(),
+    );
+    expect(pixels!.buffer.asUint8List().take(4), [18, 104, 212, 255]);
+    expect(find.text(LibraryStrings.retryPreview), findsNothing);
+    expect(fixture.scrollPosition(tester).pixels, originalOffset);
+    expect(fixture.catalog.queryReads, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
   for (final obsoleteResultFirst in [true, false]) {
     testWidgets("stationary gallery loads the new source after supersession, "
         "obsolete result first: $obsoleteResultFirst", (tester) async {
@@ -337,6 +371,17 @@ Future<Uint8List> _previewBytes() async {
   Canvas(recorder).drawRect(
     const Rect.fromLTWH(0, 0, 32, 24),
     Paint()..color = const Color(0xFF1268D4),
+  );
+  Canvas(recorder).drawRect(
+    const Rect.fromLTWH(8, 4, 12, 8),
+    Paint()..color = const Color(0xFFF09824),
+  );
+  Canvas(recorder).drawLine(
+    const Offset(3, 20),
+    const Offset(28, 3),
+    Paint()
+      ..color = const Color(0xFF36B078)
+      ..strokeWidth = 2,
   );
   final picture = recorder.endRecording();
   final image = await picture.toImage(32, 24);

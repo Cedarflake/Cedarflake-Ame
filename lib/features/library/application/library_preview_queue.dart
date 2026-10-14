@@ -183,6 +183,10 @@ class LibraryPreviewQueue {
       return;
     }
     final shouldRetry = retry || admission is LibraryPreviewRootRecovering;
+    final requestAsset = switch (admission) {
+      LibraryPreviewRootRecovering(:final asset) => asset,
+      _ => asset,
+    };
     if (asset.previewStatus == LibraryPreviewStatus.ready &&
         !shouldRetry &&
         !ensureSize) {
@@ -223,7 +227,7 @@ class LibraryPreviewQueue {
     }
 
     final request = _PreviewRequest(
-      asset: asset,
+      asset: requestAsset,
       source: source,
       priority: priority,
       sequence: _nextSequence++,
@@ -235,6 +239,11 @@ class LibraryPreviewQueue {
     _attachCompletion(request, completion);
     _latestGeneration[asset.locationId] = request.generation;
     _pending[asset.locationId] = request;
+    if (admission case LibraryPreviewRootRecovering(:final asset)) {
+      if (_canPublishResult?.call(asset) ?? true) {
+        _onResult(asset);
+      }
+    }
   }
 
   void cancel(String locationId) {

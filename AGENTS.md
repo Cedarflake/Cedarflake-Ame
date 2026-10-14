@@ -354,6 +354,13 @@ Hosted workflows use minimal token permissions, full-SHA action pins, no untrust
 `pull_request_target` execution, and no restored compiled output as trusted build evidence.
 Real-library paths, tokens, catalogs, and scans never enter hosted workflows.
 
+For local gallery workflows, reuse the established library in `build/test` instead of generating
+another library per run. Cover varying image dimensions, dates, encoded sizes and non-uniform
+content. Keep the reusable corpus, original catalogs and user data; after a run ends, clean up
+disposable test storage, caches and outputs. Before cleanup, verify process retirement, profile
+restoration, exact workspace-contained targets and absence of reparse traversal. Do not delete
+active outputs or unresolved restoration backups. Hosted and unit fixtures retain isolated storage.
+
 ### 12.2 Required engineering workflow
 
 For every material code/configuration change:
