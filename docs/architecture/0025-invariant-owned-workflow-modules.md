@@ -309,7 +309,11 @@ page failure remain one boundary, with no second decoded page or per-record clon
   the session cache's validation and foreground-scan protection transitions. It releases the
   transition mutex before the operation and wakes waiters on success, failure, interruption, and
   unwind. Its dedicated bounded page-reclamation entrypoint preserves validated proof only after
-  successful incremental reclamation; structural conversion and uncertain outcomes still retire it.
+  successful or normally interrupted incremental reclamation: SQLite's
+  [incremental vacuum](https://www.sqlite.org/pragma.html#pragma_incremental_vacuum) changes physical
+  pages, not logical schema or rows. The adapter recognizes `SQLITE_INTERRUPT` separately from
+  unrelated errors even when cancellation arrives concurrently. Structural conversion, errors and
+  unwind still retire the proof.
   Independent invalidation takes precedence over retention. Checkpointing remains outside structural
   invalidation. The reclamation facade selects
   these contracts rather than maintaining a second active-scan flag or invalidation protocol.

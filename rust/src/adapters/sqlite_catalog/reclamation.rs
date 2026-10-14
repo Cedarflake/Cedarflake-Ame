@@ -230,20 +230,13 @@ impl CatalogSpaceRepository for SqliteCatalogSpaceMaintenance {
         connection
             .progress_handler(0, None::<fn() -> bool>)
             .map_err(database_error)?;
-        match result {
-            Ok(()) if control.is_interrupted() => Ok(CatalogMaintenanceAttempt::Interrupted),
-            Ok(()) => inspect_connection(connection)
+        match incremental_reclamation_outcome(result, control)? {
+            CatalogMaintenanceAttempt::Completed(()) => inspect_connection(connection)
                 .map_err(database_error)?
                 .try_into()
                 .map(CatalogMaintenanceAttempt::Completed),
-            Err(error) if is_busy(&error) => Ok(CatalogMaintenanceAttempt::Busy),
-            Err(error)
-                if error.sqlite_error_code() == Some(ErrorCode::OperationInterrupted)
-                    || control.is_interrupted() =>
-            {
-                Ok(CatalogMaintenanceAttempt::Interrupted)
-            }
-            Err(error) => Err(database_error(error)),
+            CatalogMaintenanceAttempt::Busy => Ok(CatalogMaintenanceAttempt::Busy),
+            CatalogMaintenanceAttempt::Interrupted => Ok(CatalogMaintenanceAttempt::Interrupted),
         }
     }
 
@@ -287,6 +280,22 @@ impl CatalogSpaceRepository for SqliteCatalogSpaceMaintenance {
             }
             Err(error) => Err(database_error(error)),
         }
+    }
+}
+
+fn incremental_reclamation_outcome(
+    result: rusqlite::Result<()>,
+    control: &CatalogMaintenanceControl,
+) -> Result<CatalogMaintenanceAttempt<()>, ScanError> {
+    match result {
+        Ok(()) if control.is_interrupted() => Ok(CatalogMaintenanceAttempt::Interrupted),
+        Ok(()) => Ok(CatalogMaintenanceAttempt::Completed(())),
+        Err(error) if is_busy(&error) => Ok(CatalogMaintenanceAttempt::Busy),
+        Err(error) if error.sqlite_error_code() == Some(ErrorCode::OperationInterrupted) => {
+            Ok(CatalogMaintenanceAttempt::Interrupted)
+        }
+        // A simultaneous cancellation must not hide an I/O or corruption error.
+        Err(error) => Err(database_error(error)),
     }
 }
 
@@ -392,6 +401,43 @@ mod tests {
 
     use super::*;
     use crate::adapters::SqliteCatalog;
+
+    #[test]
+    fn incremental_reclamation_reports_sqlite_errors_despite_late_preemption() {
+        let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
+        control.preempt();
+        for code in [
+            rusqlite::ffi::SQLITE_IOERR,
+            rusqlite::ffi::SQLITE_CORRUPT,
+            rusqlite::ffi::SQLITE_NOTADB,
+        ] {
+            let error = rusqlite::Error::SqliteFailure(rusqlite::ffi::Error::new(code), None);
+            assert!(incremental_reclamation_outcome(Err(error), &control).is_err());
+        }
+    }
+
+    #[test]
+    fn incremental_reclamation_distinguishes_sqlite_interrupt_from_late_preemption() {
+        let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
+        let interrupted = rusqlite::Error::SqliteFailure(
+            rusqlite::ffi::Error::new(rusqlite::ffi::SQLITE_INTERRUPT),
+            None,
+        );
+        assert!(matches!(
+            incremental_reclamation_outcome(Err(interrupted), &control)
+                .expect("SQLite confirmed interruption"),
+            CatalogMaintenanceAttempt::Interrupted
+        ));
+        assert!(matches!(
+            incremental_reclamation_outcome(Ok(()), &control).expect("completed operation"),
+            CatalogMaintenanceAttempt::Completed(())
+        ));
+        control.preempt();
+        assert!(matches!(
+            incremental_reclamation_outcome(Ok(()), &control).expect("late preemption"),
+            CatalogMaintenanceAttempt::Interrupted
+        ));
+    }
 
     #[test]
     fn legacy_catalog_conversion_is_interruptible_and_enables_incremental_mode() {

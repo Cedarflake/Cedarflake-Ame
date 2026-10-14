@@ -119,11 +119,13 @@ fn with_reserved_catalog_maintenance<T>(
     let result = attempt();
     let retain_previous = match &result {
         Ok(CatalogMaintenanceAttempt::Busy) => true,
-        Ok(CatalogMaintenanceAttempt::Completed(_)) => {
+        Ok(CatalogMaintenanceAttempt::Completed(_) | CatalogMaintenanceAttempt::Interrupted) => {
+            // Incremental vacuum only moves or releases pages. Its normal interruption
+            // preserves the schema and rows that the reusable session already validated.
             matches!(kind, CatalogMaintenanceKind::IncrementalReclamation)
                 && matches!(&previous, CatalogSessionState::Ready(_))
         }
-        Ok(CatalogMaintenanceAttempt::Interrupted) | Err(_) => false,
+        Err(_) => false,
     };
     if retain_previous {
         reservation.previous = Some(previous);

@@ -3,6 +3,42 @@ use crate::application::catalog_session::{open_catalog_reader, validated_catalog
 use crate::domain::LibraryChangeLane;
 
 #[test]
+fn preempted_incremental_reclamation_preserves_interleaved_sync_reads() {
+    let directory = tempdir().expect("catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let session = validated_catalog_session(&path).expect("validate catalog once");
+    let retained = session
+        .open_in_lane(LibraryChangeLane::Live)
+        .expect("retain synchronization connection");
+    let maintenance = SqliteCatalogSpaceMaintenance::new(path.clone());
+    crate::adapters::reset_full_schema_validation_count(&path);
+
+    for _ in 0..3 {
+        let control = CatalogMaintenanceControl::new(Arc::new(AtomicBool::new(false)));
+        control.preempt();
+        assert!(matches!(
+            crate::application::catalog_session::reclaim_catalog_pages(
+                &path,
+                &maintenance,
+                INCREMENTAL_BATCH_PAGES,
+                &control,
+            )
+            .expect("normal priority preemption"),
+            CatalogMaintenanceAttempt::Interrupted
+        ));
+        session
+            .revalidate_connection(&retained)
+            .expect("retained connection remains valid after preemption");
+        drop(open_catalog_reader(&path).expect("read without a full catalog validation"));
+        assert!(Arc::ptr_eq(
+            &session,
+            &validated_catalog_session(&path).expect("reuse validated session")
+        ));
+        assert_eq!(crate::adapters::full_schema_validation_count(&path), 0);
+    }
+}
+
+#[test]
 fn incremental_batches_preserve_validation_for_interleaved_catalog_reads() {
     let directory = tempdir().expect("catalog directory");
     let path = directory.path().join("catalog.sqlite3");

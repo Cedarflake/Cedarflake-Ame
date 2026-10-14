@@ -75,11 +75,10 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-The current priority is UI copy and interaction: synchronization/task feedback first, then loading,
-cancel and retry transitions. Complete and push that slice before resuming cancellation performance
-work or remaining real-library acceptance. Preserve the already delivered viewer/time-rail behavior
-and current ordinary-client synchronization results. Apply `microsoft-ui-ux` to the affected flows,
-including their actual states, buttons, focus and feedback; retain the user's chosen wording.
+The current priority is the reported ordinary Debug catch-up timeout and retained-import continuation.
+Follow the synchronization, latency, browsing and final acceptance order below. Preserve the user's
+current copy and layout and the already delivered viewer/time-rail behavior. Apply `microsoft-ui-ux`
+when a correction affects the interface, including its actual states, buttons, focus and feedback.
 
 The repair goal retains these three outcomes, delivered independently on main:
 

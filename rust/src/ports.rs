@@ -140,6 +140,8 @@ pub(crate) trait CatalogSpaceRepository {
         &self,
         control: &CatalogMaintenanceControl,
     ) -> Result<CatalogMaintenanceAttempt<CatalogSpaceUsage>, ScanError>;
+    /// Completed or interrupted incremental page reclamation preserves logical schema and rows.
+    /// An unrelated storage error must remain an error even if cancellation arrives concurrently.
     fn try_reclaim_incremental(
         &self,
         max_pages: u32,

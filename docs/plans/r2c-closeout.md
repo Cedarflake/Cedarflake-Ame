@@ -27,14 +27,25 @@ Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-**Current priority: UI copy and interaction.** Finish synchronization notices and task feedback,
-then the affected loading, cancel and retry transitions. Preserve the user's current string edits
-and the completed viewer/time-rail changes. Use `microsoft-ui-ux`, submit each connected correction
-and let Actions run CI. The prepared cancellation-cache changes remain uncommitted while this UI
-slice takes priority; do not start their build or real-library comparison ahead of it.
-Check three outcomes in the client: immediate feedback for add/pause/continue; a brief successful
-result that gives the image area back; and failures with a working local recovery action whose
-old message clears after recovery. Keep this pass on those workflows rather than unrelated wording.
+**Current priority: ordinary Debug catch-up and retained-import continuation.** Follow the roadmap's
+synchronization, latency, browsing and final acceptance order. Preserve the user's string edits,
+layout and completed viewer/time-rail changes. The reported Debug timeout concerns an existing
+catalog without directory-identity coverage or a durable journal checkpoint; its persisted metadata
+inventory must finish before normal incremental continuity can begin. Continue that inventory in
+the reused isolated profile rather than resetting its progress. Submit each connected correction
+and let Actions run CI. Apply `microsoft-ui-ux` to affected interface flows.
+
+The repeated catalog-session delay is reproduced: normal preemption of incremental page reclamation
+retired the validated session, so synchronization repeatedly performed full catalog validation.
+The correction retains the proof after normal interruption and preserves invalidation for structural
+maintenance, unrelated storage failures, unwind and independent invalidation. The adapter distinguishes
+`SQLITE_INTERRUPT` from an unrelated error even when cancellation arrives concurrently. Boundary
+regressions cover repeated preemption, interleaved reads and concurrent invalidation. A same-input
+ordinary Debug comparison reduces median poll time from 1,729 ms to 28.5 ms in the first six polls,
+with one opening validation instead of 18 repeated validations; complete catch-up is still running.
+Affected owner sizes (production / inline tests / dedicated tests): reclamation adapter 393 / 335 / 0,
+maintenance owner 139 / 0 / 0, incremental policy tests 0 / 0 / 65 and reclamation integration tests
+0 / 0 / 110; the ports file has 1,150 production lines and only its contract comment changes.
 
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
