@@ -3114,3 +3114,14 @@ lines, queue 683 production lines, with no inline tests; coordinator and admissi
 562 and 146 dedicated test lines. Owned Dart formatting and diff checks pass; hosted execution and
 affected native recovery verification remain pending. No source media or original catalog was read
 or changed during this implementation.
+
+## Native accessibility expectation for absent synchronization evidence
+
+Hosted run `38499204870` at `128a450` fails the application-ready UIA contract: the probe expects
+`Pictures\n正在更新图库. 展开文件夹`, while the application exposes
+`Pictures\n图库尚未核对. 展开文件夹`. This fixture supplies an inert synchronization adapter and no
+root synchronization snapshot, so updating is not established. The native probe now requires the
+neutral unconfirmed label for all three source controls; the connected Flutter scenario asserts the
+same merged semantics before the checkpoint. Control types, reachability, later phases and the
+eight-second parent deadline remain unchanged. Owned Dart formatting, PowerShell syntax parsing
+and diff checks pass; the native integration path is delegated to the next hosted run.

@@ -287,6 +287,14 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(find.byType(MenuAnchor), findsNothing);
+        for (final name in const ["Pictures", "Documents", "Archive"]) {
+          expect(
+            find.bySemanticsLabel(
+              "$name\n${LibraryStrings.synchronizationUnconfirmed}",
+            ),
+            findsOneWidget,
+          );
+        }
         await nativeUiaProbe.checkpoint(tester, "application-ready");
 
         final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);

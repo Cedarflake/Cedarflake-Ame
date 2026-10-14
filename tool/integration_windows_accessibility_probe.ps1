@@ -89,13 +89,13 @@ $themeDescriptionName = (
     )) +
     " Windows"
 )
-$synchronizingName = -join [char[]](
-    0x6B63,
-    0x5728,
-    0x66F4,
-    0x65B0,
+$unconfirmedName = -join [char[]](
     0x56FE,
-    0x5E93
+    0x5E93,
+    0x5C1A,
+    0x672A,
+    0x6838,
+    0x5BF9
 )
 $expandFolderName = -join [char[]](
     0x5C55,
@@ -104,7 +104,7 @@ $expandFolderName = -join [char[]](
     0x4EF6,
     0x5939
 )
-$sourceButtonSuffix = "$synchronizingName. $expandFolderName"
+$sourceButtonSuffix = "$unconfirmedName. $expandFolderName"
 
 function ConvertTo-AmeWindowsUiaDiagnosticName {
     param(
