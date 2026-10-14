@@ -73,7 +73,6 @@ $dialogCondition = New-Object System.Windows.Automation.PropertyCondition(
   [System.Windows.Automation.AutomationElement]::ClassNameProperty,
   "#32770"
 )
-$deadline = [DateTime]::UtcNow.AddSeconds(12)
 $dialog = $null
 $controlId = if ($Action -eq "Confirm") { 1 } else { 2 }
 $successMarker = if ($Action -eq "Confirm") {
@@ -81,6 +80,9 @@ $successMarker = if ($Action -eq "Confirm") {
 } else {
   "NATIVE_PICKER_CANCELLED"
 }
+
+Write-Output "NATIVE_PICKER_READY"
+$deadline = [DateTime]::UtcNow.AddSeconds(12)
 
 do {
   $app = [System.Windows.Automation.AutomationElement]::RootElement.FindFirst(

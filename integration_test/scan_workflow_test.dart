@@ -22,6 +22,7 @@ import "package:integration_test/integration_test.dart";
 
 import "support/covered_folder_workflow.dart";
 import "support/library_management_workflow.dart";
+import "support/native_directory_picker.dart";
 import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
 import "support/viewer_source_workflow.dart";
@@ -94,14 +95,12 @@ void main() {
       ),
     );
 
-    final pickerAutomation = await _startPickerCancellationAutomation();
-    final output = pickerAutomation.stdout
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .join();
-    final error = pickerAutomation.stderr
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .join();
-    addTearDown(() => pickerAutomation.kill());
+    final pickerAutomation = await startNativeDirectoryPickerAutomation(
+      NativeDirectoryPickerAction.cancel,
+    );
+    final output = pickerAutomation.output;
+    final error = pickerAutomation.error;
+    addTearDown(() => pickerAutomation.process.kill());
 
     await tester.tap(find.byKey(const Key("library-sidebar-import")));
     await tester.pump();
@@ -109,10 +108,10 @@ void main() {
     final libraryContext = tester.element(find.byType(UnifiedLibraryScreen));
     final container = ProviderScope.containerOf(libraryContext);
 
-    final exitCode = await pickerAutomation.exitCode.timeout(
+    final exitCode = await pickerAutomation.process.exitCode.timeout(
       const Duration(seconds: 15),
       onTimeout: () {
-        pickerAutomation.kill();
+        pickerAutomation.process.kill();
         return -1;
       },
     );
@@ -194,22 +193,20 @@ void main() {
     final libraryContext = tester.element(find.byType(UnifiedLibraryScreen));
     final container = ProviderScope.containerOf(libraryContext);
 
-    final pickerAutomation = await _startPickerConfirmationAutomation();
-    final output = pickerAutomation.stdout
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .join();
-    final error = pickerAutomation.stderr
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .join();
-    addTearDown(() => pickerAutomation.kill());
+    final pickerAutomation = await startNativeDirectoryPickerAutomation(
+      NativeDirectoryPickerAction.confirm,
+    );
+    final output = pickerAutomation.output;
+    final error = pickerAutomation.error;
+    addTearDown(() => pickerAutomation.process.kill());
 
     await tester.tap(find.byKey(const Key("library-sidebar-import")));
     await tester.pump();
 
-    final exitCode = await pickerAutomation.exitCode.timeout(
+    final exitCode = await pickerAutomation.process.exitCode.timeout(
       const Duration(seconds: 15),
       onTimeout: () {
-        pickerAutomation.kill();
+        pickerAutomation.process.kill();
         return -1;
       },
     );
@@ -340,25 +337,24 @@ void main() {
 
     expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
 
-    final secondPickerAutomation = await _startPickerConfirmationAutomation();
-    final secondOutput = secondPickerAutomation.stdout
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .join();
-    final secondError = secondPickerAutomation.stderr
-        .transform(const Utf8Decoder(allowMalformed: true))
-        .join();
-    addTearDown(() => secondPickerAutomation.kill());
+    final secondPickerAutomation = await startNativeDirectoryPickerAutomation(
+      NativeDirectoryPickerAction.confirm,
+    );
+    final secondOutput = secondPickerAutomation.output;
+    final secondError = secondPickerAutomation.error;
+    addTearDown(() => secondPickerAutomation.process.kill());
 
     await tester.tap(find.byKey(const Key("library-sidebar-import")));
     await tester.pump();
 
-    final secondExitCode = await secondPickerAutomation.exitCode.timeout(
-      const Duration(seconds: 15),
-      onTimeout: () {
-        secondPickerAutomation.kill();
-        return -1;
-      },
-    );
+    final secondExitCode = await secondPickerAutomation.process.exitCode
+        .timeout(
+          const Duration(seconds: 15),
+          onTimeout: () {
+            secondPickerAutomation.process.kill();
+            return -1;
+          },
+        );
     final secondAutomationOutput = await secondOutput;
     final secondAutomationError = await secondError;
     expect(
@@ -473,40 +469,4 @@ String _normalizedPath(String path) {
   return normalized.startsWith(extendedPathPrefix)
       ? normalized.substring(extendedPathPrefix.length)
       : normalized;
-}
-
-Future<Process> _startPickerCancellationAutomation() {
-  final scriptPath =
-      "${Directory.current.path}${Platform.pathSeparator}integration_test"
-      "${Platform.pathSeparator}support${Platform.pathSeparator}"
-      "control_native_directory.ps1";
-
-  return Process.start("powershell.exe", [
-    "-NoLogo",
-    "-NoProfile",
-    "-NonInteractive",
-    "-File",
-    scriptPath,
-    "-TargetProcessId",
-    "$pid",
-    "-Action",
-    "Cancel",
-  ]);
-}
-
-Future<Process> _startPickerConfirmationAutomation() {
-  final scriptPath =
-      "${Directory.current.path}${Platform.pathSeparator}integration_test"
-      "${Platform.pathSeparator}support${Platform.pathSeparator}"
-      "control_native_directory.ps1";
-
-  return Process.start("powershell.exe", [
-    "-NoLogo",
-    "-NoProfile",
-    "-NonInteractive",
-    "-File",
-    scriptPath,
-    "-TargetProcessId",
-    "$pid",
-  ]);
 }

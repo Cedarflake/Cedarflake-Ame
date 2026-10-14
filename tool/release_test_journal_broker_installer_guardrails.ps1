@@ -976,8 +976,9 @@ if (-not $serviceCreated -or ($creationTrace -join ",") -cne "create,sidtype") {
 }
 
 $deleteProbe = [pscustomobject]@{ Calls = 0 }
+# Probe ordering is independent of hosted-runner scheduling latency.
 Wait-AmeBrokerServiceDeletion `
-    -TimeoutMilliseconds 100 `
+    -TimeoutMilliseconds 30000 `
     -PollMilliseconds 1 `
     -ServiceExistsProbe {
         $deleteProbe.Calls += 1
@@ -986,6 +987,15 @@ Wait-AmeBrokerServiceDeletion `
 if ($deleteProbe.Calls -ne 3) {
     throw "The service deletion wait did not observe disappearance deterministically"
 }
+Assert-Rejected `
+    -Action {
+        Wait-AmeBrokerServiceDeletion `
+            -TimeoutMilliseconds 1 `
+            -PollMilliseconds 1 `
+            -ServiceExistsProbe { $true }
+    } `
+    -Message "The service deletion wait accepted a service that never disappeared" `
+    -Expected "The journal broker service object did not disappear before the deadline"
 
 $programFilesFixture = Get-AmeBrokerProgramFilesX64
 $expectedInstallDirectory = Join-Path $programFilesFixture "Cedarflake Ame\Journal Broker"
