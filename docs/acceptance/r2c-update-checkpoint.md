@@ -507,3 +507,38 @@ warm-update cost remains open rather than being closed by an unrelated microbenc
 
 Evidence remains under ignored `.build/r2c-directory-cost-20261009/`, including source/executable
 bindings, the restored-source snapshot, owned build/test receipts and per-operation output.
+
+## Idle journal opening admission on 2026-10-14
+
+A retained-library Release update reached 64,451/64,451 finalization without publishing before its
+300-second process bound. A subsequent Debug diagnosis recorded 125 publication attempts entering
+the payload proof and zero completed publications. Ordinary journal pages supplied opening boundaries
+even when no recovery window needed writing. Their attachment method requested Journal writer
+priority before checking that condition, repeatedly preempting the Recovery publication transaction.
+
+`c7737c6` moves this responsibility into `persistent_journal/recovery_opening.rs`: a deferred read
+snapshot returns unnecessary or already-attached outcomes without writer admission. A missing window
+still requests Journal priority and rechecks root generation, capability, checkpoint identity,
+authority and existing window inside the write transaction. No schema, durability, publication-proof
+or source-access policy changes. Temporary diagnostic instrumentation was removed before commit.
+The owning module has 158 production lines and no inline tests; its dedicated regression file has
+209 lines. The facade retains 3,440 production and 4,740 inline-test lines; this slice adds no other
+responsibility to that retained decomposition debt.
+
+The same retained environment's corrected unsigned Release completed its update in 141,770 ms,
+checking 70,078 entries and publishing 64,451 locations with 678 inspection issues. Its interface
+displayed completion and synchronized state, and the catalog held supported/current journal state
+without a failure code. A fresh metadata-only enumeration of the two reported October subtrees found
+51 files, all present in the published catalog. The process exited normally with code zero; its
+208,798-ms lifetime is not the update latency. Original profile/catalog hashes were restored.
+
+Four regressions cover no-op and idempotent reads during a held publication, real attachment priority,
+and a conflicting attachment arriving after the read hint. The first hosted run exposed two missing
+test imports; `9355b87` corrects those imports without changing production behavior. Hosted verification
+for that revision remains pending at this checkpoint. No local CI or unit suite was run.
+
+This comparison diagnoses the retained failure; it is not fresh-database acceptance. After normal
+retirement and restoration checks, cleanup removed the obsolete Debug output, downloaded failure
+logs and this environment's catalog/preview cache, totaling 687,092,599 bytes. The current Release,
+reusable source corpus, original profile backups and small result records remain. Subsequent
+independent acceptance cases reuse this environment with a fresh database and empty preview cache.

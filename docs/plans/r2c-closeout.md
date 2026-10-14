@@ -36,6 +36,20 @@ instead of treating the whole synchronization step as unfinished. Prepared Relea
 historical diagnostic work
 remain retained work; their preparation does not move them ahead of these incidents.
 
+The retained update's 100-percent publication stall now has an owning correction and a normally
+closed Release comparison in the [update checkpoint](../acceptance/r2c-update-checkpoint.md#idle-journal-opening-admission-on-2026-10-14).
+Preserve that diagnosis and completed comparison. The corrected regression-test imports are pushed;
+their hosted checks and the clean-environment acceptance below still need to complete.
+
+For final import, update and UI acceptance, use the actual large library with one reusable isolated
+derived environment. Reset its database and preview cache before each independent case; an update
+case first imports its baseline and then updates that baseline. Keep intermediate state within
+continuity cases such as closed-process synchronization. Retain `build/test` for varied controlled
+fixtures, but do not substitute it for real-library acceptance or create another full fixture per run.
+Preserve source media, placeholder state, original catalogs and user decisions. Clean disposable
+outputs after process retirement and profile restoration. Final R2c acceptance remains required;
+the goal text defines outcomes and constraints, while this plan and linked evidence own progress.
+
 The selected unified application/broker installation succeeded, but its ordinary-token connection
 probe returned `TransportUnavailable`. The failure has not yet been attributed to a specific Windows
 operation. The subsequent requested uninstall completed, including service and package removal,

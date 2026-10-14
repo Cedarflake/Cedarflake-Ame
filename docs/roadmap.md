@@ -99,6 +99,9 @@ The current repair goal contains exactly three outcomes, delivered independently
    distribution belong to this outcome; they do not reopen already delivered synchronization work.
 
 R3 remains the next product stage in the delivery sequence, outside this three-outcome repair goal.
+After these outcomes, complete applicable final R2c acceptance, preserving still-valid evidence.
+The active plan owns fresh-database real-library cases and reuse/reset boundaries; the goal text
+does not carry changing completion status.
 Installer lifecycle, signing, Sandbox troubleshooting and unrelated historical acceptance variants
 are not additional steps in this goal. A validation failure stays with its owning correction rather
 than creating another stage. New findings interrupt the order only for a reproduced core-workflow
