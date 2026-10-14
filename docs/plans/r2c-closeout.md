@@ -27,7 +27,7 @@ Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-**Current priority: cancellation delivery and remaining browsing/preview verification.** Follow the roadmap's
+**Current priority: visible preview recovery and remaining affected hosted checks.** Follow the roadmap's
 synchronization, latency, browsing and final acceptance order. Preserve the user's string edits,
 layout and completed viewer/time-rail changes. The reported Debug timeout concerns an existing
 catalog without directory-identity coverage or a durable journal checkpoint. Its retained inventory

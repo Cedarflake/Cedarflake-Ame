@@ -75,7 +75,7 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-The current priority is cancellation latency and the remaining browsing/preview paths.
+The current priority is visible preview recovery and the remaining affected hosted checks.
 Follow the synchronization, latency, browsing and final acceptance order below. Preserve the user's
 current copy and layout and the already delivered viewer/time-rail behavior. Apply `microsoft-ui-ux`
 when a correction affects the interface, including its actual states, buttons, focus and feedback.

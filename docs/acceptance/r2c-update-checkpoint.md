@@ -768,3 +768,24 @@ button invocation, action deadlines and picker-result assertions remain. A new b
 requires the cancellation helper to preserve the actual platform semantics-enabled state. Dedicated
 accessibility tests keep their existing real UI Automation coverage. PowerShell parsing, embedded
 C# compilation, Dart formatting and diff checks pass; the native workflow runs in Actions.
+
+## Preview replacement sharing conflict on 2026-10-15
+
+The ordinary Debug client reuses `build/test` and its 10,000 varied images. After a completed import
+and normal exit, three derived previews are replaced with invalid bytes. Two recover automatically;
+the 2160-by-3840 source's preview reports `preview_publish_failed` with Windows error 32. Its new
+encoding already exists; the atomic installation fails. Manual Retry then restores it. All three
+source hashes and modification times remain unchanged. The blocking reader's process is unidentified.
+
+The Windows installation owner now retries only sharing violations, using the same staged encoding
+and exclusive backup. Three waits total at most 140 ms. Terminal and partial-replacement errors keep
+their existing rollback and accounting paths. Five native regressions cover target/staging readers,
+persistent contention, bounded attempts and unrelated errors; Actions executes them.
+
+The changed client reuses the same catalog and the same three corrupted previews. A read-only handle
+blocks one cache replacement until the Debug log observes the actual sharing conflict, then retires.
+Two installations take one 20-ms retry each. All three preview hashes match their original encodings,
+and source hashes/times remain unchanged. The window still retains a failed image stream on one
+already repaired preview; that presentation defect remains open. The client exits normally after
+72,909 ms and restores the original profile/catalog hashes. The native build, owned formatting and
+diff checks pass; this result establishes cache recovery, with visible recovery still to correct.

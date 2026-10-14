@@ -6,6 +6,8 @@ use std::sync::atomic::Ordering;
 #[cfg(windows)]
 use std::os::windows::ffi::OsStrExt;
 #[cfg(windows)]
+use windows_sys::Win32::Foundation::ERROR_SHARING_VIOLATION;
+#[cfg(windows)]
 use windows_sys::Win32::Storage::FileSystem::{MoveFileExW, ReplaceFileW};
 
 pub(super) struct InstalledPreview {
@@ -177,6 +179,32 @@ fn replace_with(
 
 #[cfg(windows)]
 fn replace_file(staged: &Path, target: &Path, backup: Option<&Path>) -> io::Result<()> {
+    retry_sharing_conflict(|| replace_file_once(staged, target, backup))
+}
+
+#[cfg(windows)]
+fn retry_sharing_conflict(mut replace: impl FnMut() -> io::Result<()>) -> io::Result<()> {
+    let mut result = replace();
+    // Readers can briefly deny deletion of the target or exclusive access to staging. Keep the
+    // same staged bytes and backup authority; other errors retain their existing rollback path.
+    // Three waits add at most 140 ms before returning a persistent sharing conflict.
+    for delay_ms in [20, 40, 80] {
+        if !result
+            .as_ref()
+            .is_err_and(|error| error.raw_os_error() == Some(ERROR_SHARING_VIOLATION as i32))
+        {
+            return result;
+        }
+        #[cfg(debug_assertions)]
+        eprintln!("ame_preview_installation action=retry_sharing_conflict delay_ms={delay_ms}");
+        std::thread::sleep(std::time::Duration::from_millis(delay_ms));
+        result = replace();
+    }
+    result
+}
+
+#[cfg(windows)]
+fn replace_file_once(staged: &Path, target: &Path, backup: Option<&Path>) -> io::Result<()> {
     let staged = wide_path(staged)?;
     let target = wide_path(target)?;
     let backup = backup.map(wide_path).transpose()?;
@@ -246,6 +274,9 @@ fn wide_path(path: &Path) -> io::Result<Vec<u16>> {
 #[cfg(all(test, windows))]
 mod long_path_tests;
 
+#[cfg(all(test, windows))]
+mod sharing_conflict_tests;
+
 #[cfg(not(windows))]
 fn replace_file(staged: &Path, target: &Path, backup: Option<&Path>) -> io::Result<()> {
     if let Some(backup) = backup {
@@ -289,10 +320,10 @@ mod tests {
     };
     use crate::domain::{PreviewArtifact, PreviewMaterialization};
 
-    const OLD: &[u8] = b"previous-preview-bytes";
-    const NEW: &[u8] = b"new-preview";
+    pub(super) const OLD: &[u8] = b"previous-preview-bytes";
+    pub(super) const NEW: &[u8] = b"new-preview";
 
-    fn staged_fixture(
+    pub(super) fn staged_fixture(
         root: &Path,
         fault: ReplacementFault,
     ) -> (LocalPreviewStore, PreviewMaterialization, PathBuf) {

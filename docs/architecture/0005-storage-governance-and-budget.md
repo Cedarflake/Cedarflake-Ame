@@ -172,6 +172,12 @@ A missing target after failed installation preserves the original installation e
 replacing it with the subsequent metadata error. Only successful physical installation
 permits exact SQLite lease publication.
 
+A Windows sharing violation during replacement retains the staged encoding and the same exclusive
+backup while making at most three further attempts, with 20, 40 and 80 ms waits. This bounds added
+waiting to 140 ms and avoids decoding the source again for a short-lived reader. Other errors,
+including partial replacement, enter the existing failure/restoration path immediately. A persistent
+sharing conflict still reports failure and discards staged bytes through the existing accounting owner.
+
 The platform contract is verified against Microsoft's
 [ReplaceFileW failure states](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew),
 [MoveFileExW flags](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw),
