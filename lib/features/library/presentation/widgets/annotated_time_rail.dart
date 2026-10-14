@@ -2,10 +2,9 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
-import "timeline_annotation_visibility.dart";
 import "timeline_linear_projection.dart";
+import "timeline_rail_layout.dart";
 import "timeline_rail_model.dart";
-import "timeline_visual_projection.dart";
 import "vertical_material_timeline_slider.dart";
 
 export "timeline_rail_model.dart"
@@ -45,7 +44,6 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
   static const double _markerExtent = 4;
   static const double _markerMinimumGap = 6;
   static const double _labelExtent = 24;
-  static const double _labelMinimumGap = 16;
   static const double _positionLineHeight = 3;
   static const double _positionLineWidth = 30;
   static const double _axisX = AnnotatedTimeRail.width - (_controlWidth / 2);
@@ -93,54 +91,13 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final labelPlacements = layoutTimelineAnnotations(
-                    [
-                      for (final anchor in anchors)
-                        if (anchor.isYearStart || anchor.bucket.isUnknown)
-                          TimelineAnnotationCandidate(
-                            id: anchor.bucket.id,
-                            value: anchor.value,
-                            extent: _labelExtent,
-                          ),
-                    ],
+                  final layout = TimelineRailLayout(
+                    anchors: anchors,
                     railExtent: constraints.maxHeight,
-                    startInset: _endpointInset,
-                    endInset: _endpointInset,
-                    minimumGap: _labelMinimumGap,
-                  );
-                  final labelCenters = {
-                    for (final placement in labelPlacements)
-                      placement.id: placement.center,
-                  };
-                  final usableHeight =
-                      constraints.maxHeight - (_endpointInset * 2);
-                  final visualProjection = TimelineVisualProjection([
-                    if (usableHeight > 0)
-                      for (final anchor in anchors)
-                        if (labelCenters[anchor.bucket.id]
-                            case final labelCenter?)
-                          TimelineVisualMappingPoint(
-                            logicalValue: anchor.value,
-                            visualValue:
-                                ((labelCenter - _endpointInset) / usableHeight)
-                                    .clamp(0.0, 1.0)
-                                    .toDouble(),
-                          ),
-                  ]);
-                  final unlabeledMarkerIds = visibleTimelineAnnotationIds(
-                    [
-                      for (final anchor in anchors)
-                        if (!labelCenters.containsKey(anchor.bucket.id))
-                          TimelineAnnotationCandidate(
-                            id: anchor.bucket.id,
-                            value: visualProjection.toVisual(anchor.value),
-                            extent: _markerExtent,
-                          ),
-                    ],
-                    railExtent: constraints.maxHeight,
-                    startInset: _endpointInset,
-                    endInset: _endpointInset,
-                    minimumGap: _markerMinimumGap,
+                    endpointInset: _endpointInset,
+                    labelExtent: _labelExtent,
+                    markerExtent: _markerExtent,
+                    markerMinimumGap: _markerMinimumGap,
                   );
                   final currentBucketId = timelineRailBucketAtValue(
                     anchors,
@@ -169,33 +126,29 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                             bottom: 0,
                             width: _controlWidth,
                             child: VerticalMaterialTimelineSlider(
-                              value: visualProjection.toVisual(widget.value),
+                              value: widget.value,
                               endpointInset: _endpointInset,
                               onChangeStart: widget.onChanged == null
                                   ? null
-                                  : (visualValue) => _startInteraction(
-                                      visualProjection.toLogical(visualValue),
-                                    ),
+                                  : (visualValue) =>
+                                        _startInteraction(visualValue),
                               onChanged: widget.onChanged == null
                                   ? null
-                                  : (visualValue) => widget.onChanged?.call(
-                                      visualProjection.toLogical(visualValue),
-                                    ),
+                                  : (visualValue) =>
+                                        widget.onChanged?.call(visualValue),
                               onChangeEnd: widget.onChanged == null
                                   ? null
-                                  : (visualValue) => _commit(
-                                      visualProjection.toLogical(visualValue),
-                                    ),
+                                  : (visualValue) => _commit(visualValue),
                               semanticLabelFor: (sliderValue) =>
                                   timelineRailBucketAtValue(
                                     anchors,
-                                    visualProjection.toLogical(sliderValue),
+                                    sliderValue,
                                   ).bucket.label,
                             ),
                           ),
                           _buildPositionLine(
                             key: const Key("timeline-current-line"),
-                            value: visualProjection.toVisual(widget.value),
+                            value: widget.value,
                             railHeight: constraints.maxHeight,
                             color: colorScheme.primary,
                           ),
@@ -204,21 +157,13 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                               context,
                               anchor: anchor,
                               railHeight: constraints.maxHeight,
-                              visualValue: visualProjection.toVisual(
-                                anchor.value,
-                              ),
-                              hasLabel: labelCenters.containsKey(
+                              visualValue: anchor.value,
+                              hasLabel: layout.labelIds.contains(
                                 anchor.bucket.id,
                               ),
-                              hasMarker:
-                                  labelCenters.containsKey(anchor.bucket.id) ||
-                                  _isUnlabeledMarkerVisible(
-                                    anchor: anchor,
-                                    railHeight: constraints.maxHeight,
-                                    visualProjection: visualProjection,
-                                    visibleMarkerIds: unlabeledMarkerIds,
-                                    labelCenters: labelCenters.values,
-                                  ),
+                              hasMarker: layout.markerIds.contains(
+                                anchor.bucket.id,
+                              ),
                               isCurrent: currentBucketId == anchor.bucket.id,
                             ),
                           if (_isDragging)
@@ -226,17 +171,13 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                               context,
                               key: const Key("timeline-drag-label"),
                               anchors: anchors,
-                              visualProjection: visualProjection,
-                              visualValue: visualProjection.toVisual(
-                                widget.value,
-                              ),
+                              visualValue: widget.value,
                               railHeight: constraints.maxHeight,
                             )
                           else if (_hoverValue case final hoverValue?)
                             ..._buildHoverPreview(
                               context,
                               anchors: anchors,
-                              visualProjection: visualProjection,
                               visualValue: hoverValue,
                               railHeight: constraints.maxHeight,
                             ),
@@ -364,7 +305,6 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
   List<Widget> _buildHoverPreview(
     BuildContext context, {
     required List<TimelineRailAnchor> anchors,
-    required TimelineVisualProjection visualProjection,
     required double visualValue,
     required double railHeight,
   }) {
@@ -380,7 +320,6 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
         context,
         key: const Key("timeline-hover-label"),
         anchors: anchors,
-        visualProjection: visualProjection,
         visualValue: visualValue,
         railHeight: railHeight,
       ),
@@ -391,17 +330,13 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
     BuildContext context, {
     required Key key,
     required List<TimelineRailAnchor> anchors,
-    required TimelineVisualProjection visualProjection,
     required double visualValue,
     required double railHeight,
   }) {
     final colorScheme = Theme.of(context).colorScheme;
     final lineTop = _topForValue(visualValue, railHeight);
     final labelTop = (lineTop - 14).clamp(0.0, railHeight - 28).toDouble();
-    final label = timelineRailBucketAtValue(
-      anchors,
-      visualProjection.toLogical(visualValue),
-    ).bucket.label;
+    final label = timelineRailBucketAtValue(anchors, visualValue).bucket.label;
     return Positioned(
       right: _controlWidth - 8,
       top: labelTop,
@@ -474,27 +409,6 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
       _hoverValue = null;
     });
     widget.onChangeStart?.call(value);
-  }
-
-  bool _isUnlabeledMarkerVisible({
-    required TimelineRailAnchor anchor,
-    required double railHeight,
-    required TimelineVisualProjection visualProjection,
-    required Set<String> visibleMarkerIds,
-    required Iterable<double> labelCenters,
-  }) {
-    if (!visibleMarkerIds.contains(anchor.bucket.id)) {
-      return false;
-    }
-    final markerCenter = _topForValue(
-      visualProjection.toVisual(anchor.value),
-      railHeight,
-    );
-    final reservedDistance =
-        (_labelExtent / 2) + (_markerExtent / 2) + _markerMinimumGap;
-    return labelCenters.every(
-      (labelCenter) => (labelCenter - markerCenter).abs() >= reservedDistance,
-    );
   }
 
   static double _topForValue(double value, double railHeight) {

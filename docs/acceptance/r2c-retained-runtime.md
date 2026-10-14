@@ -3210,3 +3210,17 @@ tests; affected dedicated tests contain 624, 501 and 115 lines. Preference and s
 96 and 224 production lines; settings presentation is 255 lines. The 129-line dedicated store test
 covers the automatic default and preservation of all three explicit choices. Owned Dart formatting and diff checks
 pass. Current hosted regressions and affected client verification remain pending; no local CI runs.
+
+## Timeline annotation distribution
+
+Year-label avoidance no longer displaces the scroll axis. Month points, current position, hover,
+click and Material Slider input keep their original linear values. A dedicated rail-layout owner
+hides colliding labels and dots separately, preventing year text in another column from suppressing
+otherwise readable month points. The prior displaced-label projection is removed. This corrects
+the conflicting annotation rules in ADR 0010 and the product contract without adding another control.
+
+The rail, annotation visibility and rail-layout owners contain 420, 123 and 60 production lines,
+with no inline tests. Dedicated tests contain 565, 87 and 57 lines. Regressions cover clustered years,
+unchanged midpoint positions across two rail heights, hover/input agreement, markers beside year
+text and undersized rails. Owned formatting and diff checks pass; hosted and populated-client results
+remain pending. No new image corpus or source-media changes are involved.

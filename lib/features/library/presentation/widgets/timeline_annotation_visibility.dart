@@ -27,21 +27,13 @@ List<TimelineAnnotationPlacement> layoutTimelineAnnotations(
   if (candidates.isEmpty || railExtent <= 0) {
     return const [];
   }
-  final requiredExtent =
-      candidates.fold<double>(
-        0,
-        (total, candidate) => total + candidate.extent,
-      ) +
-      (minimumGap * (candidates.length - 1));
-  final visibleIds = requiredExtent <= railExtent
-      ? {for (final candidate in candidates) candidate.id}
-      : visibleTimelineAnnotationIds(
-          candidates,
-          railExtent: railExtent,
-          startInset: startInset,
-          endInset: endInset,
-          minimumGap: minimumGap,
-        );
+  final visibleIds = visibleTimelineAnnotationIds(
+    candidates,
+    railExtent: railExtent,
+    startInset: startInset,
+    endInset: endInset,
+    minimumGap: minimumGap,
+  );
   final placements = _placements(
     [
       for (final candidate in candidates)
@@ -51,25 +43,6 @@ List<TimelineAnnotationPlacement> layoutTimelineAnnotations(
     startInset: startInset,
     endInset: endInset,
   );
-  if (placements.isEmpty) {
-    return const [];
-  }
-  for (var index = 1; index < placements.length; index++) {
-    final previous = placements[index - 1];
-    final current = placements[index];
-    current.top = current.top
-        .clamp(previous.bottom + minimumGap, double.infinity)
-        .toDouble();
-  }
-  final last = placements.last;
-  last.top = last.top.clamp(0.0, railExtent - last.candidate.extent).toDouble();
-  for (var index = placements.length - 2; index >= 0; index--) {
-    final current = placements[index];
-    final lower = placements[index + 1];
-    current.top = current.top
-        .clamp(0.0, lower.top - minimumGap - current.candidate.extent)
-        .toDouble();
-  }
   return List.unmodifiable([
     for (final placement in placements)
       TimelineAnnotationPlacement(
@@ -144,7 +117,7 @@ class _AnnotationPlacement {
   _AnnotationPlacement({required this.candidate, required this.top});
 
   final TimelineAnnotationCandidate candidate;
-  double top;
+  final double top;
 
   double get bottom => top + candidate.extent;
 }

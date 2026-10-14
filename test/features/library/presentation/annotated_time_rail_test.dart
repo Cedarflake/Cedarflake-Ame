@@ -182,96 +182,94 @@ void main() {
     expect(find.byKey(const Key("timeline-hover-line")), findsNothing);
   });
 
-  testWidgets("separates colliding year labels when the rail has room", (
+  testWidgets("keeps markers and input linear when year labels collide", (
     tester,
   ) async {
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              height: 300,
-              child: AnnotatedTimeRail(
-                value: 0,
-                maximumScrollOffset: 1000,
-                buckets: const [
-                  TimelineRailBucket(
-                    id: "year-2026",
-                    label: "2026年1月1日",
-                    contentExtent: 10,
-                    scrollOffset: 0,
-                    year: 2026,
-                  ),
-                  TimelineRailBucket(
-                    id: "year-2025",
-                    label: "2025年1月1日",
-                    contentExtent: 990,
-                    scrollOffset: 10,
-                    year: 2025,
-                  ),
-                  TimelineRailBucket(
-                    id: "year-2024",
-                    label: "2024年1月1日",
-                    contentExtent: 1,
-                    scrollOffset: 1000,
-                    year: 2024,
-                  ),
-                ],
-                onChanged: (_) {},
+    const buckets = [
+      TimelineRailBucket(
+        id: "first",
+        label: "2026年1月1日",
+        contentExtent: 10,
+        scrollOffset: 0,
+        year: 2026,
+      ),
+      TimelineRailBucket(
+        id: "crowded",
+        label: "2025年1月1日",
+        contentExtent: 490,
+        scrollOffset: 10,
+        year: 2025,
+      ),
+      TimelineRailBucket(
+        id: "middle",
+        label: "2024年1月1日",
+        contentExtent: 500,
+        scrollOffset: 500,
+        year: 2024,
+      ),
+      TimelineRailBucket(
+        id: "last",
+        label: "2023年1月1日",
+        contentExtent: 1,
+        scrollOffset: 1000,
+        year: 2023,
+      ),
+    ];
+    for (final height in [300.0, 500.0]) {
+      double? selectedValue;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: height,
+                child: AnnotatedTimeRail(
+                  value: 0.5,
+                  maximumScrollOffset: 1000,
+                  buckets: buckets,
+                  onChanged: (_) {},
+                  onChangeEnd: (value) => selectedValue = value,
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
-
-    expect(find.byKey(const ValueKey("time-label-year-2026")), findsOneWidget);
-    expect(find.byKey(const ValueKey("time-label-year-2025")), findsOneWidget);
-    expect(find.byKey(const ValueKey("time-label-year-2024")), findsOneWidget);
-    final first = tester.getRect(
-      find.byKey(const ValueKey("time-label-year-2026")),
-    );
-    final middle = tester.getRect(
-      find.byKey(const ValueKey("time-label-year-2025")),
-    );
-    final last = tester.getRect(
-      find.byKey(const ValueKey("time-label-year-2024")),
-    );
-    expect(middle.top - first.bottom, greaterThanOrEqualTo(16));
-    expect(last.top - middle.bottom, greaterThanOrEqualTo(16));
-
-    final currentLine = tester.getRect(
-      find.byKey(const Key("timeline-current-line")),
-    );
-    expect(currentLine.center.dy, closeTo(first.center.dy, 0.001));
-
-    final middleMarker = tester.getRect(
-      find.byKey(const ValueKey("time-marker-year-2025")),
-    );
-    expect(middleMarker.center.dy, closeTo(middle.center.dy, 0.001));
-
-    final hoverRegion = tester.getRect(
-      find.byKey(const Key("timeline-hover-region")),
-    );
-    final listener = tester.widget<Listener>(
-      find.byKey(const Key("timeline-hover-region")),
-    );
-    listener.onPointerHover?.call(
-      PointerHoverEvent(
-        position: Offset(56, middleMarker.center.dy - hoverRegion.top),
-        kind: PointerDeviceKind.mouse,
-      ),
-    );
-    await tester.pump();
-
-    expect(
-      tester.widget<Text>(find.byKey(const Key("timeline-hover-label"))).data,
-      "2025年1月1日",
-    );
+      );
+      expect(find.byKey(const ValueKey("time-label-crowded")), findsNothing);
+      final region = tester.getRect(
+        find.byKey(const Key("timeline-hover-region")),
+      );
+      final line = tester.getRect(
+        find.byKey(const Key("timeline-current-line")),
+      );
+      final marker = tester.getRect(
+        find.byKey(const ValueKey("time-marker-middle")),
+      );
+      expect(marker.center.dy, closeTo(region.center.dy, 0.001));
+      expect(line.center.dy, closeTo(marker.center.dy, 0.001));
+      final listener = tester.widget<Listener>(
+        find.byKey(const Key("timeline-hover-region")),
+      );
+      listener.onPointerHover?.call(
+        PointerHoverEvent(
+          position: Offset(56, region.height / 2),
+          kind: PointerDeviceKind.mouse,
+        ),
+      );
+      await tester.pump();
+      expect(
+        tester.widget<Text>(find.byKey(const Key("timeline-hover-label"))).data,
+        "2024年1月1日",
+      );
+      final slider = tester.widget<Slider>(find.byType(Slider));
+      slider.onChangeEnd?.call(0.5);
+      await tester.pump();
+      expect(selectedValue, closeTo(0.5, 0.000001));
+    }
   });
 
-  testWidgets("thins crowded month markers around persistent year labels", (
+  testWidgets("only hides month markers colliding with dots, not year text", (
     tester,
   ) async {
     await tester.pumpWidget(
@@ -300,6 +298,13 @@ void main() {
                     year: 2026,
                   ),
                   TimelineRailBucket(
+                    id: "near-year-text",
+                    label: "2026年2月15日",
+                    contentExtent: 400,
+                    scrollOffset: 100,
+                    year: 2026,
+                  ),
+                  TimelineRailBucket(
                     id: "separated-month",
                     label: "2026年3月1日",
                     contentExtent: 500,
@@ -321,6 +326,10 @@ void main() {
     );
     expect(
       find.byKey(const ValueKey("time-marker-separated-month")),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const ValueKey("time-marker-near-year-text")),
       findsOneWidget,
     );
   });
@@ -367,93 +376,94 @@ void main() {
     expect(completedValue, closeTo(0.63, 0.000001));
   });
 
-  testWidgets("maps a tap on a displaced year marker to its logical anchor", (
-    tester,
-  ) async {
-    double? completedValue;
-    const buckets = [
-      TimelineRailBucket(
-        id: "year-2026",
-        label: "2026年1月1日",
-        contentExtent: 10,
-        scrollOffset: 0,
-        year: 2026,
-      ),
-      TimelineRailBucket(
-        id: "year-2025",
-        label: "2025年1月1日",
-        contentExtent: 10,
-        scrollOffset: 10,
-        year: 2025,
-      ),
-      TimelineRailBucket(
-        id: "year-2024",
-        label: "2024年1月1日",
-        contentExtent: 10,
-        scrollOffset: 20,
-        year: 2024,
-      ),
-      TimelineRailBucket(
-        id: "year-2022",
-        label: "2022年1月1日",
-        contentExtent: 10,
-        scrollOffset: 30,
-        year: 2022,
-      ),
-      TimelineRailBucket(
-        id: "year-2021",
-        label: "2021年1月1日",
-        contentExtent: 10,
-        scrollOffset: 40,
-        year: 2021,
-      ),
-      TimelineRailBucket(
-        id: "year-2019",
-        label: "2019年1月1日",
-        contentExtent: 950,
-        scrollOffset: 50,
-        year: 2019,
-      ),
-    ];
-    await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: Align(
-            alignment: Alignment.centerRight,
-            child: SizedBox(
-              height: 500,
-              child: AnnotatedTimeRail(
-                value: 0,
-                maximumScrollOffset: 1000,
-                buckets: buckets,
-                onChanged: (_) {},
-                onChangeEnd: (value) => completedValue = value,
+  testWidgets(
+    "maps a tap on a visible year marker to its exact scroll offset",
+    (tester) async {
+      double? completedValue;
+      const buckets = [
+        TimelineRailBucket(
+          id: "year-2026",
+          label: "2026年1月1日",
+          contentExtent: 10,
+          scrollOffset: 0,
+          year: 2026,
+        ),
+        TimelineRailBucket(
+          id: "year-2025",
+          label: "2025年1月1日",
+          contentExtent: 10,
+          scrollOffset: 200,
+          year: 2025,
+        ),
+        TimelineRailBucket(
+          id: "year-2024",
+          label: "2024年1月1日",
+          contentExtent: 10,
+          scrollOffset: 400,
+          year: 2024,
+        ),
+        TimelineRailBucket(
+          id: "year-2022",
+          label: "2022年1月1日",
+          contentExtent: 10,
+          scrollOffset: 600,
+          year: 2022,
+        ),
+        TimelineRailBucket(
+          id: "year-2021",
+          label: "2021年1月1日",
+          contentExtent: 10,
+          scrollOffset: 800,
+          year: 2021,
+        ),
+        TimelineRailBucket(
+          id: "year-2019",
+          label: "2019年1月1日",
+          contentExtent: 950,
+          scrollOffset: 50,
+          year: 2019,
+        ),
+      ];
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Align(
+              alignment: Alignment.centerRight,
+              child: SizedBox(
+                height: 500,
+                child: AnnotatedTimeRail(
+                  value: 0,
+                  maximumScrollOffset: 1000,
+                  buckets: buckets,
+                  onChanged: (_) {},
+                  onChangeEnd: (value) => completedValue = value,
+                ),
               ),
             ),
           ),
         ),
-      ),
-    );
+      );
 
-    await tester.tapAt(
-      tester
-          .getRect(find.byKey(const ValueKey("time-marker-year-2022")))
-          .center,
-    );
-    await tester.pump();
+      await tester.tapAt(
+        tester
+            .getRect(find.byKey(const ValueKey("time-marker-year-2022")))
+            .center,
+      );
+      await tester.pump();
 
-    expect(
-      completedValue,
-      closeTo(
-        timelineRailValueForBucket(
-          buckets,
-          "year-2022",
-          maximumScrollOffset: 1000,
+      expect(
+        completedValue,
+        closeTo(
+          timelineRailValueForBucket(
+            buckets,
+            "year-2022",
+            maximumScrollOffset: 1000,
+          ),
+          0.002,
         ),
-        0.002,
-      ),
-    );
-  });
+      );
+    },
+  );
 
   testWidgets("uses a passive current line without date cluster menus", (
     tester,

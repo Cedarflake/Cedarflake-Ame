@@ -68,7 +68,7 @@ void main() {
     expect(visible, {"lower"});
   });
 
-  test("keeps sparse labels and separates their display positions", () {
+  test("hides colliding labels without shifting the remaining labels", () {
     const candidates = [
       TimelineAnnotationCandidate(id: "year", value: 0, extent: 24),
       TimelineAnnotationCandidate(id: "unknown", value: 0.05, extent: 24),
@@ -81,10 +81,7 @@ void main() {
       endInset: 12,
     );
 
-    expect(placements.map((placement) => placement.id), ["year", "unknown"]);
-    expect(
-      placements[1].center - placements[0].center,
-      greaterThanOrEqualTo(32),
-    );
+    expect(placements.map((placement) => placement.id), ["unknown"]);
+    expect(placements.single.center, closeTo(25.8, 0.001));
   });
 }

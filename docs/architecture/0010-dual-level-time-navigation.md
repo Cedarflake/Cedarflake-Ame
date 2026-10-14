@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-08
-- Last amended: 2026-09-22
+- Last amended: 2026-10-14
 - Supersedes: the earlier dual-level navigation and annotation-cluster experiments
 
 ## Context
@@ -38,10 +38,11 @@ without introducing a second scroll state.
 - Within the loaded window, item-to-scroll conversion uses the rendered gallery row offsets from
   the current layout metrics. It must not approximate a target as an item-count percentage of the
   total pixel extent because justified rows contain different numbers of images.
-- Gallery offsets remain the logical source of truth. When persistent year labels would overlap,
-  the rail derives one monotonic reversible visual projection that expands only the conflicting
-  annotation intervals. Marker dots, labels, the current-position line, hover previews, pointer
-  input, and Slider semantics all use that same projection or its inverse.
+- Gallery offsets remain the source of truth for the linear rail. Year-label avoidance must not
+  stretch the scroll axis or move month dots. Colliding labels are hidden at their original offsets;
+  the current-position line, hover previews, pointer input and Slider semantics use the same linear
+  mapping. This supersedes the displaced-label projection, whose changing segments made the marker
+  distribution and pointer-to-scroll relationship depend on which year labels could fit.
 - Clicking or dragging within the materialized window writes the corresponding offset directly to
   the same gallery position. Pointer updates are coalesced to at most one gallery jump per rendered
   frame so duplicate events cannot force repeated layout work inside one frame.
@@ -61,10 +62,9 @@ without introducing a second scroll state.
   unchanged anchor offsets do not write back to the scroll position. Preview decode widths use a
   small set of bounded cache buckets so pixel-by-pixel window resizing cannot create a new image-
   cache identity and decode request for every intermediate width.
-- Outside the minimum label-spacing adjustment, time density remains proportional to the complete
-  catalog projection. Square layouts use the complete item count and equal-height layouts use the
-  catalog's bounded aspect-ratio aggregate, so a denser period still owns more rail extent from the
-  initial render.
+- Time density remains proportional to the complete catalog projection. Square layouts use the
+  complete item count and equal-height layouts use the catalog's bounded aspect-ratio aggregate,
+  so a denser period still owns more rail extent from the initial render.
 
 ### Flutter control composition
 
@@ -81,12 +81,12 @@ without introducing a second scroll state.
 
 ### Annotations
 
-- Each date annotation keeps its exact logical projected scroll offset. Year labels are shown at
-  the first date of a year and may move only enough to maintain the minimum visual gap. The
-  resulting monotonic visual projection moves the corresponding marker and every interactive
-  position consistently; inverse mapping restores the exact logical gallery offset before a seek
-  is committed. Remaining dates may use small dot markers. Every visible annotation retains its
-  standard dot when the current-position line intersects it, including the unknown-date annotation.
+- Each date annotation keeps its exact projected scroll offset. Year labels are shown at the
+  first date of a year with at least 4 px between visible text bounds. Remaining dates use small
+  dot markers. Text occupies a separate column and cannot reserve blank intervals on the dot axis;
+  marker thinning considers only dot bounds and their minimum gap. Every visible annotation retains
+  its standard dot when the current-position line intersects it, including the unknown-date
+  annotation.
   The primary line is drawn beneath annotation dots so direct manipulation never makes the nearest
   visible point disappear.
 - An annotation outside the rail bounds is hidden. Visible annotations must also retain a small
@@ -159,8 +159,9 @@ an actual window resize continues to use the normal gallery geometry/anchor owne
   hiding.
 - The local WinUI Gallery example derives label offsets from rendered row geometry and connects the
   annotated rail directly to the scroll view.
-- Pure tests cover the catalog's linear projection, reversible visual projection, and deterministic
-  collision fallback.
+- Pure regressions cover the catalog's linear projection and deterministic collision hiding.
+  The 2026-10-14 annotation correction adds resize, hover and input cases; its hosted and populated
+  client results remain pending.
 - Widget tests cover passive current and hover lines, a drag-following date label without a stale
   hover line, persistent points beneath the primary line, absence of cluster menus, Slider release
   without date snapping, frame-coalesced gallery-controller movement, immediate global placeholder

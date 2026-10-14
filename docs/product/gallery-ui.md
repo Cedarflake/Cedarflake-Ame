@@ -386,8 +386,9 @@ position when possible.
   removed only after the ADR 0014 parity tests pass. They are no longer accepted target behavior.
 - Month points and year labels use their real content scroll offsets. They are not evenly spaced:
   months containing more rendered gallery height occupy more rail distance, while dense anchors
-  may cluster. The current-position indicator has a fixed visual height and does not represent the
-  viewport height.
+  may cluster. Year-text collision handling never redistributes the scroll axis or month points;
+  marker thinning uses only dot collisions because text has a separate column. The current-position
+  indicator has a fixed visual height and does not represent the viewport height.
 - Year-label collision handling follows the annotated-scrollbar rule: retain the first collection
   label, remove colliding upper labels, and keep at least 4 px between visible labels.
 - During drag, the active date label follows the current-position line, the gray hover preview is
