@@ -652,3 +652,24 @@ Following hosted run [38554959576](https://github.com/Cedarflake/Cedarflake-Ame/
 passes the unchanged Accessibility gate. This preserves the earlier timeout without claiming its
 cause was fixed. At this checkpoint its Rust job still runs, while the `8a671a6` empty-journal fixture
 correction waits for its main-branch CI run. No local CI or unit suite was run.
+
+## Scoped cancellation cache correction on 2026-10-15
+
+The `99888cc` Release reused the isolated environment for a fresh actual-library baseline and update.
+Late Cancel committed after 15,761 ms; the 64,451 published locations remained and cancelled staging
+was empty. The client exited normally with code zero and restored the original profile/catalog.
+Hosted run [38581201784](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38581201784) passes
+Rust, including scoped retirement, and unsigned Release. Flutter viewer fixtures fail separately.
+
+A bounded, rollback-only SQL comparison on the retired isolated catalog attributes most cleanup
+time to deleting 64,451 staged locations: 7,862 ms with a 2-MiB pager suggestion and 2,562 ms with
+64 MiB applied only during cleanup. Collection took 897 and 501 ms respectively. These measurements
+exclude commit and client feedback. Each diagnostic transaction rolled back and preserved row counts.
+
+The retirement owner now scopes that cache suggestion to its atomic deletion and restores the prior
+value on success or SQL failure. SQLite's [cache-size contract](https://www.sqlite.org/pragma.html#pragma_cache_size)
+allocates on demand; the suggestion is connection-local, not a total-process memory cap. Regressions
+cover byte/page-unit restoration, injected deletion failure, terminal rollback, retry and FULL reopen.
+Staging and retirement have 62 and 77 production lines with no inline tests; lifecycle tests have
+575 lines. Owned formatting and diff checks are local; Actions runs CI. Changed-client cancellation
+latency remains pending.

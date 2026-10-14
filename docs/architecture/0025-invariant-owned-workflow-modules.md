@@ -151,7 +151,10 @@ page failure remain one boundary, with no second decoded page or per-record clon
   application publication owns retry admission and the pause/cancel/suspend terminal policy.
 - `scan_resume_inventory.rs` owns retained first-import membership and current-run reuse lookup.
   Its roster is independent of published membership. `scan_staging.rs` owns buffered location
-  persistence, transactional acceptance of retained locations, and scoped orphan retirement. The
+  persistence and transactional acceptance of retained locations. Its `scan_staging/retirement.rs`
+  owner retires affected rows and unreferenced assets in the caller's transaction. Retirement uses
+  a temporary 64-MiB pager-cache suggestion and restores the connection's previous setting after
+  success or SQL failure; atomicity, handoff protection and caller-owned commit remain unchanged. The
   scan-resumption owner preserves the checkpoint when `ScanResumeCoverage` proves the original
   opening boundary remains covered by the same volume, root identity and journal. Its transaction
   rechecks that exact persisted boundary before accepting the proof. Uncovered resumes reset

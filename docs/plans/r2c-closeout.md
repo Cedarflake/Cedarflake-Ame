@@ -193,7 +193,7 @@ update checkpoint.
 Cancellation and interrupted-update retirement no longer repeat a whole-library orphan sweep
 after scoped staging cleanup. Hosted work-bound regressions pass. The changed Release still takes
 15.8 seconds to commit late cancellation. Staged-location deletion dominates the isolated SQL
-comparison; a prepared, uncommitted correction temporarily increases the retirement pager-cache
+comparison; the retirement owner temporarily increases its pager-cache
 budget and restores it on success or failure. Hosted cache-restoration/rollback regressions and the changed-client
 cancellation comparison remain pending.
 

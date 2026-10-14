@@ -9,6 +9,10 @@ use super::{
     persist_location, scan_resume_inventory,
 };
 
+mod retirement;
+
+pub(super) use retirement::{StagingRetirement, discard_scan_staging};
+
 pub(super) fn flush_pending_locations(catalog: &mut SqliteCatalog) -> Result<(), ScanError> {
     if catalog.pending_locations.is_empty() {
         return Ok(());
@@ -54,54 +58,5 @@ pub(super) fn persist_pending_locations(
             ));
         }
     }
-    Ok(())
-}
-
-pub(super) enum StagingRetirement {
-    CompleteScan,
-    UnobservedResumeLocations,
-}
-
-pub(super) fn discard_scan_staging(
-    transaction: &Transaction<'_>,
-    scan_id: &str,
-    scope: StagingRetirement,
-) -> Result<(), ScanError> {
-    transaction.execute_batch(
-        "CREATE TEMP TABLE IF NOT EXISTS ame_scan_discard_assets(asset_id TEXT PRIMARY KEY) WITHOUT ROWID;
-         DELETE FROM temp.ame_scan_discard_assets;",
-    ).map_err(database_error)?;
-    let predicate = match scope {
-        StagingRetirement::CompleteScan => "scan_id = ?1",
-        StagingRetirement::UnobservedResumeLocations => {
-            "scan_id = ?1 AND location_id IN (
-                SELECT location_id FROM scan_resume_pending_locations WHERE scan_id = ?1
-            )"
-        }
-    };
-    transaction
-        .execute(
-            &format!(
-                "INSERT OR IGNORE INTO temp.ame_scan_discard_assets(asset_id)
-                SELECT asset_id FROM asset_locations WHERE {predicate}"
-            ),
-            [scan_id],
-        )
-        .map_err(database_error)?;
-    transaction
-        .execute(
-            &format!("DELETE FROM asset_locations WHERE {predicate}"),
-            [scan_id],
-        )
-        .map_err(database_error)?;
-    transaction.execute(
-        "DELETE FROM assets WHERE id IN (SELECT asset_id FROM temp.ame_scan_discard_assets)
-           AND NOT EXISTS(SELECT 1 FROM asset_locations WHERE asset_id = assets.id)
-           AND NOT EXISTS(SELECT 1 FROM library_change_catch_up_handoffs WHERE asset_id = assets.id)
-           AND NOT EXISTS(SELECT 1 FROM library_change_scan_handoff_items WHERE asset_id = assets.id)", [],
-    ).map_err(database_error)?;
-    transaction
-        .execute("DELETE FROM temp.ame_scan_discard_assets", [])
-        .map_err(database_error)?;
     Ok(())
 }

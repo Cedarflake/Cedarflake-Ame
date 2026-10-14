@@ -176,6 +176,84 @@ fn interrupted_update_retirement_does_not_sweep_the_whole_library() {
     assert_scoped_retirement_work(Retirement::RecoverInterruptedUpdate);
 }
 
+#[test]
+fn cancellation_restores_the_connection_cache_after_atomic_retirement() {
+    for previous_cache_size in [-1024, 256] {
+        let mut fixture = PublicationFixture::new();
+        fixture.publish("active", "root");
+        fixture.begin_and_stage("cancelled", "root");
+        fixture
+            .catalog
+            .connection
+            .pragma_update(None, "cache_size", previous_cache_size)
+            .expect("original pager setting");
+        fixture
+            .catalog
+            .abandon_scan("cancelled", "cancelled", 0)
+            .expect("atomic cancellation");
+
+        let restored: i64 = fixture
+            .catalog
+            .connection
+            .pragma_query_value(None, "cache_size", |row| row.get(0))
+            .expect("restored pager setting");
+        assert_eq!(restored, previous_cache_size);
+        assert_eq!(fixture.count("asset_locations", "scan_id = 'cancelled'"), 0);
+        assert_eq!(fixture.count("asset_locations", "scan_id = 'active'"), 1);
+        let after = durable_state(&fixture.catalog);
+        fixture.reopen_and_assert(after);
+    }
+}
+
+#[test]
+fn failed_retirement_restores_cache_and_rolls_back_the_terminal_transition() {
+    let mut fixture = PublicationFixture::new();
+    fixture.publish("active", "root");
+    fixture.begin_and_stage("cancelled", "root");
+    fixture
+        .catalog
+        .connection
+        .pragma_update(None, "cache_size", -1024)
+        .expect("original pager setting");
+    fixture
+        .catalog
+        .connection
+        .execute_batch(
+            "CREATE TEMP TRIGGER reject_retirement BEFORE DELETE ON asset_locations
+             WHEN OLD.scan_id = 'cancelled'
+             BEGIN
+               SELECT RAISE(ABORT, 'injected retirement failure');
+             END;",
+        )
+        .expect("fail the affected location deletion");
+    let before = durable_state(&fixture.catalog);
+
+    let error = fixture
+        .catalog
+        .abandon_scan("cancelled", "cancelled", 0)
+        .expect_err("failed cleanup cannot commit cancellation");
+
+    assert!(error.message.contains("injected retirement failure"));
+    assert_eq!(durable_state(&fixture.catalog), before);
+    let restored: i64 = fixture
+        .catalog
+        .connection
+        .pragma_query_value(None, "cache_size", |row| row.get(0))
+        .expect("pager setting after failed cleanup");
+    assert_eq!(restored, -1024);
+    fixture
+        .catalog
+        .connection
+        .execute_batch("DROP TRIGGER reject_retirement;")
+        .expect("retire the injected failure");
+    fixture
+        .catalog
+        .abandon_scan("cancelled", "cancelled", 0)
+        .expect("retry the same cancellation after rollback");
+    let after = durable_state(&fixture.catalog);
+    fixture.reopen_and_assert(after);
+}
+
 fn assert_scoped_retirement_work(retirement: Retirement) {
     let small = retire_with_unrelated_assets(retirement, 128);
     let large = retire_with_unrelated_assets(retirement, 4096);
