@@ -14,6 +14,8 @@ use crate::ports::{CatalogRepository, LibraryChangeQueue};
 
 use super::super::SqliteCatalog;
 
+mod bounded_retirement;
+
 #[test]
 fn cancelling_unpublished_foreground_claim_restores_consumer_before_root_retirement() {
     let directory = tempfile::tempdir().expect("catalog directory");

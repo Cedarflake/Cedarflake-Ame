@@ -20,5 +20,9 @@ fn cancel_retained_scan_at_path(scan_id: &str, catalog_path: &Path) -> Result<()
         LibraryChangeLane::Recovery,
         scan_id,
     )?;
-    catalog.cancel_retained_scan(scan_id)
+    catalog.cancel_retained_scan(scan_id)?;
+    drop(catalog);
+    #[cfg(not(test))]
+    crate::application::schedule_catalog_reclamation(catalog_path.to_path_buf());
+    Ok(())
 }

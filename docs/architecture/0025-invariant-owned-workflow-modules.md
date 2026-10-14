@@ -152,9 +152,16 @@ page failure remain one boundary, with no second decoded page or per-record clon
 - `scan_resume_inventory.rs` owns retained first-import membership and current-run reuse lookup.
   Its roster is independent of published membership. `scan_staging.rs` owns buffered location
   persistence and transactional acceptance of retained locations. Its `scan_staging/retirement.rs`
-  owner retires affected rows and unreferenced assets in the caller's transaction. Retirement uses
-  a temporary 64-MiB pager-cache suggestion and restores the connection's previous setting after
-  success or SQL failure; atomicity, handoff protection and caller-owned commit remain unchanged. The
+  owner retires affected rows and unreferenced assets in the caller's transaction. Foreground
+  cancellation atomically retires task authority and removes at most 128 staged locations; terminal
+  scan rows retain the remaining cleanup identity across restart. The reclamation application owner
+  drains those rows through bounded adapter transactions before reclaiming free database pages.
+  Each batch excludes published, running and paused scans and preserves referenced assets and
+  handoffs. Failure rolls back that batch; foreground work can preempt between batches. Unobserved
+  resume locations and authoritative recovery retain their synchronous transactional cleanup.
+  Retirement uses a temporary 64-MiB pager-cache suggestion and restores the previous setting on
+  success or SQL failure. The incremental-vacuum adapter consumes the statement through completion
+  so its admitted page limit is actually executed; SQLite progress cancellation remains active. The
   scan-resumption owner preserves the checkpoint when `ScanResumeCoverage` proves the original
   opening boundary remains covered by the same volume, root identity and journal. Its transaction
   rechecks that exact persisted boundary before accepting the proof. Uncovered resumes reset

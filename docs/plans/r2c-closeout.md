@@ -27,12 +27,12 @@ Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-**Current priority: ordinary Debug catch-up and retained-import continuation.** Follow the roadmap's
+**Current priority: cancellation delivery and remaining browsing/preview verification.** Follow the roadmap's
 synchronization, latency, browsing and final acceptance order. Preserve the user's string edits,
 layout and completed viewer/time-rail changes. The reported Debug timeout concerns an existing
-catalog without directory-identity coverage or a durable journal checkpoint; its persisted metadata
-inventory must finish before normal incremental continuity can begin. Continue that inventory in
-the reused isolated profile rather than resetting its progress. Submit each connected correction
+catalog without directory-identity coverage or a durable journal checkpoint. Its retained inventory
+now completes and ordinary reopening stays current, as verified below. Preserve that result and the
+completed retained-import continuation. Submit each connected correction
 and let Actions run CI. Apply `microsoft-ui-ux` to affected interface flows.
 
 The repeated catalog-session delay is reproduced: normal preemption of incremental page reclamation
@@ -196,11 +196,17 @@ after scoped staging cleanup. Hosted work-bound regressions pass. The changed Re
 comparison; the retirement owner temporarily increases its pager-cache
 budget and restores it on success or failure. The changed ordinary Debug client still takes
 15,567 ms from Cancel input to committed cancellation, preserving 64,452 published locations and
-leaving no cancelled staging. It exits normally and restores the original profile/catalog.
-Hosted cache-restoration/rollback regressions remain pending. Native per-phase retirement and
-commit attribution is the next latency check; the same-size SQLite compiler-optimization experiment
-did not improve elapsed time and was removed. Preserve the completed Debug synchronization and
-retained-import continuation results above instead of repeating those scenarios.
+leaving no cancelled staging. Per-phase attribution confirms deletion and commit dominate that
+wait. Foreground retirement now clears task authority atomically and deletes at most 128 locations;
+the existing background worker drains the rest across restart. The changed ordinary Debug client
+commits late cancellation in 344 ms and starts the next update in 288 ms while old staging remains;
+the second cancellation commits in 455 ms. Published membership and visible previews stay intact,
+the process exits normally, and original profile/catalog hashes match. The separate native restart
+check completes all staging and page reclamation. The one-page incremental-vacuum call was corrected
+to execute its admitted batch. See the [bounded retirement record](../acceptance/r2c-update-checkpoint.md#bounded-cancellation-retirement-on-2026-10-15)
+for the retained failed attempts, measurements and regressions. Owned format/diff checks and Debug
+build pass; hosted validation remains pending. Preserve the completed synchronization and
+retained-import continuation instead of repeating those scenarios.
 
 The current preview correction rejects retired sources before they can supersede pending/running
 current work or release a root failure, and retires scheduled image repairs after source replacement.

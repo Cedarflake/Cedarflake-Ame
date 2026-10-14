@@ -75,7 +75,7 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-The current priority is the reported ordinary Debug catch-up timeout and retained-import continuation.
+The current priority is cancellation latency and the remaining browsing/preview paths.
 Follow the synchronization, latency, browsing and final acceptance order below. Preserve the user's
 current copy and layout and the already delivered viewer/time-rail behavior. Apply `microsoft-ui-ux`
 when a correction affects the interface, including its actual states, buttons, focus and feedback.

@@ -2,7 +2,7 @@ use rusqlite::{OptionalExtension, Transaction, params};
 
 use crate::domain::{IncrementalCatalogRoot, LibraryRootGeneration, ScanError};
 
-use super::scan_staging::{StagingRetirement, discard_scan_staging};
+use super::scan_staging::retire_scan_staging;
 
 use super::{
     SqliteCatalog, database_error, restore_explicit_recovery_claims_from_foreground_scan,
@@ -65,12 +65,13 @@ pub(super) fn abandon_scan_transaction(
         "DELETE FROM scan_directory_entries WHERE scan_id = ?1",
         "DELETE FROM scan_directory_identities WHERE scan_id = ?1",
         "DELETE FROM library_scan_publication_namespace_bindings WHERE scan_id = ?1",
+        "DELETE FROM scan_resume_pending_locations WHERE scan_id = ?1",
     ] {
         transaction
             .execute(sql, [scan_id])
             .map_err(database_error)?;
     }
-    discard_scan_staging(transaction, scan_id, StagingRetirement::CompleteScan)?;
+    retire_scan_staging(transaction, scan_id)?;
     Ok(())
 }
 

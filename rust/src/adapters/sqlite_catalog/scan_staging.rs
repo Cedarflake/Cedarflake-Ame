@@ -11,7 +11,9 @@ use super::{
 
 mod retirement;
 
-pub(super) use retirement::{StagingRetirement, discard_scan_staging};
+pub(super) use retirement::{
+    StagingRetirement, discard_next_retired_batch, discard_scan_staging, retire_scan_staging,
+};
 
 pub(super) fn flush_pending_locations(catalog: &mut SqliteCatalog) -> Result<(), ScanError> {
     if catalog.pending_locations.is_empty() {

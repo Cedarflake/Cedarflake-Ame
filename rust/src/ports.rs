@@ -133,6 +133,11 @@ pub(crate) trait RetainedScanRepository {
 }
 
 pub(crate) trait CatalogSpaceRepository {
+    /// Removes one bounded batch of terminal foreground staging, preserving published locations.
+    fn try_discard_retired_scan_staging(
+        &self,
+        control: &CatalogMaintenanceControl,
+    ) -> Result<CatalogMaintenanceAttempt<usize>, ScanError>;
     fn inspect_catalog_space(
         &self,
     ) -> Result<CatalogMaintenanceAttempt<CatalogSpaceUsage>, ScanError>;

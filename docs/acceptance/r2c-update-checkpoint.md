@@ -693,3 +693,64 @@ After rebuilding Debug without that experiment, process retirement and original-
 were verified. Exact-path and reparse checks preceded removal of 50 disposable catalog/cache,
 profile-backup, log and diagnostic-script files totaling 429,824,941 bytes. The reusable `build/test`
 sources, templates, fixture and current builds remain.
+
+## Bounded cancellation retirement on 2026-10-15
+
+Native phase timing attributes the remaining Debug delay to deleting staged locations and
+committing their index changes. On the retained 63,669-location fixture, deletion reached 12,402 ms,
+orphan cleanup 13,682 ms and commit 17,352 ms, excluding 2,491 ms of opening validation. Increasing
+the temporary cache to 256 MiB still leaves a 13,971-ms complete native call; that experiment was
+removed. The production suggestion remains 64 MiB.
+
+Foreground cancellation now retires the task and clears its continuation authority in one
+transaction, deleting at most 128 staged locations. The existing reclamation worker drains the
+remaining terminal staging in bounded transactions and resumes after reopening. Published locations,
+running or paused tasks, other asset references and handoffs remain protected. Six adapter
+regressions cover FULL reopen, immediate next-task admission, retained-first-import cancellation,
+interrupted update retirement, batch rollback/retry, contention/preemption and bounded foreground
+SQL work. CI runs these regressions; no local unit suite was run.
+
+The first changed native run returns after 2,681 ms including full catalog validation and commits
+exactly 128 deletions. Reopening clears the remaining rows but exceeds the 180-second deadline
+during file reclamation. The old SQLite call used `execute_batch` for `incremental_vacuum`, stepping
+only the first result row and reclaiming one page instead of the requested batch. The dedicated
+adapter now consumes all rows with the existing progress handler. Its regression requires exactly
+32 reclaimed pages when more than 32 are free. The subsequent 113-ms continuation had already
+fallen below the reclamation threshold and is not a valid whole-cleanup timing comparison.
+
+A fresh reconstruction of the same 63,669 staged locations and 3,300 directory identities verifies
+the corrected native path. Foreground retirement returns in 2,879 ms, cancellation of the background
+worker completes in 116 ms, and 63,541 staged rows remain durably terminal. A new process opens and
+validates in 2,426 ms, then completes staging cleanup and file reclamation in 100,780 ms. Both
+processes exit with code zero. All 64,451 published locations remain and terminal staging is empty;
+peak Dart VM RSS is 254.93 MiB. This diagnostic only changes the isolated catalog and reads no source
+images. Earlier command-launcher working-set samples do not measure the Dart VM and are excluded.
+
+Affected owner sizes (production / inline tests / dedicated tests): reclamation adapter 403 / 334 / 0,
+incremental-vacuum owner 10 / 0 / 0, staged-cleanup adapter 39 / 0 / 0, scan lifecycle 187 / 0 / 936,
+staging facade 64 / 0 / 0 and retirement owner 134 / 0 / 0. The application reclamation facade has
+458 production lines and its new staging loop 24; scan application facade has 749, retained
+cancellation 28 and terminal retirement 52, with no inline test modules. The shared ports file has
+1,155 lines; this change adds only the bounded staging-cleanup contract. Existing application tests
+stay with their current owners. Owned Rust formatting, whitespace checks and the native Debug build
+pass; Actions owns lint and test execution.
+
+The actual Debug window reuses the same isolated environment after resetting its derived catalog
+and preview cache and restoring the retained update baseline. Existing incremental continuity adds
+one current location at startup, leaving 64,452 published locations before explicit update. At
+68,266 visited entries and 63,482 accepted locations, Cancel commits after 344 ms. The window
+shows Stopping followed by Cancelled, retains visible images and returns the folder to synchronized
+state. Clicking Update again starts a new scan after 288 ms; the old cancelled scan still has
+47,098 staged locations while the new task progresses. Cancelling the new task at 8,158 visited
+entries and 7,848 accepted locations commits after 455 ms. These are input-to-committed-observation
+measurements with a 100-ms read-only observer, not sub-frame rendering timings.
+
+The client exits normally with code zero after 256,415 ms, including preparation and interaction,
+while background cleanup is still permitted to resume on a later opening. The original settings,
+preferences and catalog components match their pre-run hashes. The known actual root is read-only,
+with a 120,000-entry, ten-minute and 2-GiB process bound; only visible previews are decoded and cloud
+placeholders remain unhydrated. No source files, user copy or layout are changed by this correction.
+
+After verifying process exit and restored hashes, explicit contained-path and reparse checks precede
+removal of 54 disposable files totaling 455,630,955 bytes. The reusable sources, templates, manifest,
+oracle and fixture remain in `build/test`, alongside the current Debug and Release build outputs.

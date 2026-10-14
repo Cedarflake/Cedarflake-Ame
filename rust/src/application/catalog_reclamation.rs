@@ -12,6 +12,7 @@ use crate::domain::{
 use crate::ports::{CatalogMaintenanceAttempt, CatalogMaintenanceControl, CatalogSpaceRepository};
 
 mod operation_registry;
+mod scan_staging;
 
 use operation_registry::{CatalogReclamationOperation, ReclamationCompletion, registry};
 
@@ -151,6 +152,9 @@ fn run_reclamation_inner(
         snapshot.available_temporary_bytes = None;
     });
     let maintenance = SqliteCatalogSpaceMaintenance::new(path.to_path_buf());
+    if scan_staging::discard_retired_staging(&maintenance, operation)?.is_none() {
+        return Ok(ReclamationCompletion::Cancelled);
+    }
     let Some(mut usage) = inspect_with_retry(&maintenance, operation)? else {
         return Ok(ReclamationCompletion::Cancelled);
     };

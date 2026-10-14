@@ -12,6 +12,9 @@ use super::{
     open_catalog_database_identity_guard, sqlite_write_admission,
 };
 
+mod incremental;
+mod scan_staging;
+
 pub(crate) struct SqliteCatalogSpaceMaintenance {
     path: std::path::PathBuf,
 }
@@ -91,6 +94,13 @@ impl SqliteCatalogSpaceMaintenance {
 }
 
 impl CatalogSpaceRepository for SqliteCatalogSpaceMaintenance {
+    fn try_discard_retired_scan_staging(
+        &self,
+        control: &CatalogMaintenanceControl,
+    ) -> Result<CatalogMaintenanceAttempt<usize>, ScanError> {
+        scan_staging::discard_retired_batch(self, control)
+    }
+
     fn inspect_catalog_space(
         &self,
     ) -> Result<CatalogMaintenanceAttempt<CatalogSpaceUsage>, ScanError> {
@@ -226,7 +236,7 @@ impl CatalogSpaceRepository for SqliteCatalogSpaceMaintenance {
         connection
             .progress_handler(1_000, Some(move || progress_control.is_interrupted()))
             .map_err(database_error)?;
-        let result = connection.execute_batch(&format!("PRAGMA incremental_vacuum({max_pages});"));
+        let result = incremental::reclaim_pages(connection, max_pages);
         connection
             .progress_handler(0, None::<fn() -> bool>)
             .map_err(database_error)?;
@@ -514,8 +524,7 @@ mod tests {
         );
 
         let reclaimed_pages = before.freelist_count.saturating_sub(after.freelist_count);
-        assert!(reclaimed_pages > 0);
-        assert!(reclaimed_pages <= 32);
+        assert_eq!(reclaimed_pages, 32);
     }
 
     #[test]

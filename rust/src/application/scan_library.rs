@@ -59,6 +59,7 @@ mod root_consolidation;
 #[cfg(all(test, windows))]
 mod root_coverage_tests;
 mod root_selection;
+mod terminal_retirement;
 mod traversal;
 
 #[cfg(test)]
@@ -80,6 +81,7 @@ use publication::{
     ForegroundPublicationContext, ForegroundPublicationOutcome, publish_foreground_scan,
 };
 use root_selection::{ScanRootAdmission, ScanRootSelection};
+use terminal_retirement::scan_cleanup_failure;
 use traversal::{ScanTraversalContext, ScanTraversalOutcome, traverse_scan};
 
 const CHECKPOINT_INTERVAL: u64 = 128;
@@ -136,12 +138,18 @@ pub fn relocate_root_and_scan(
 
 pub fn load_recoverable_scan() -> Result<Option<RecoverableScan>, ScanError> {
     let storage = storage_paths()?;
-    load_recoverable_scan_from_path(&storage.catalog_path)
+    let scan = load_recoverable_scan_from_path(&storage.catalog_path)?;
+    #[cfg(not(test))]
+    super::schedule_catalog_reclamation(storage.catalog_path);
+    Ok(scan)
 }
 
 pub fn load_paused_scan() -> Result<Option<RecoverableScan>, ScanError> {
     let storage = storage_paths()?;
-    load_paused_scan_from_path(&storage.catalog_path)
+    let scan = load_paused_scan_from_path(&storage.catalog_path)?;
+    #[cfg(not(test))]
+    super::schedule_catalog_reclamation(storage.catalog_path);
+    Ok(scan)
 }
 
 fn load_recoverable_scan_from_path(path: &Path) -> Result<Option<RecoverableScan>, ScanError> {
@@ -594,55 +602,7 @@ fn run_scan_with_storage_selection(
         });
         Ok(())
     })();
-    match result {
-        Ok(()) => Ok(()),
-        Err(primary) => Err(abandon_failed_scan(
-            &mut catalog,
-            &request.scan_id,
-            issue_count,
-            primary,
-        )),
-    }
-}
-
-fn abandon_failed_scan(
-    catalog: &mut impl CatalogRepository,
-    scan_id: &str,
-    issue_count: u64,
-    primary: ScanError,
-) -> ScanError {
-    match catalog.abandon_scan(scan_id, "failed", issue_count) {
-        Ok(()) => primary,
-        Err(cleanup) => scan_cleanup_failure(&primary, &cleanup),
-    }
-}
-
-fn scan_cleanup_failure(primary: &ScanError, cleanup: &ScanError) -> ScanError {
-    let primary_code = bounded_error_text(&primary.code, 256);
-    let cleanup_code = bounded_error_text(&cleanup.code, 256);
-    let primary_message = bounded_error_text(&primary.message, 1_600);
-    let cleanup_message = bounded_error_text(&cleanup.message, 1_600);
-    ScanError::new(
-        "scan_failure_cleanup_failed",
-        bounded_error_text(
-            &format!(
-                "Scan failed [{primary_code}]; cleanup failed [{cleanup_code}]; primary: \
-                 {primary_message}; cleanup: {cleanup_message}",
-            ),
-            4_096,
-        ),
-    )
-}
-
-fn bounded_error_text(value: &str, max_bytes: usize) -> String {
-    if value.len() <= max_bytes {
-        return value.to_owned();
-    }
-    let mut end = max_bytes;
-    while !value.is_char_boundary(end) {
-        end -= 1;
-    }
-    value[..end].to_owned()
+    terminal_retirement::finish(catalog, &request.scan_id, issue_count, result)
 }
 
 fn user_visible_issue(mut issue: ScanIssue) -> ScanIssue {
