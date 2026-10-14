@@ -86,7 +86,7 @@ void main() {
           theme: buildAmeTheme(),
           home: Scaffold(
             body: LibraryImageViewer(
-              asset: _asset(width: 200, height: 100),
+              asset: _asset(width: 4000, height: 2000),
               position: 4,
               totalItems: 12,
               onBack: () {},
