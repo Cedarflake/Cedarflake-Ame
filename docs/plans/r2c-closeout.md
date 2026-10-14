@@ -59,8 +59,10 @@ outside it; unrelated or inaccessible volume identities cannot become guessed ro
 The generated Debug checkpoint covers one connected ordinary-client workflow: publish an isolated NTFS
 root, exit the process, change the generated source, restart the unsigned client and consume the
 continuous journal range into exact published membership. A following unchanged restart must do
-zero source enumeration. Retained-library recovery and current Debug/Release verification remain
-open. Keep namespace capture, identity lookup and atomic enrollment inside this
+zero source enumeration. The selected [ordinary Release three-process workflow](../acceptance/r2c-retained-runtime.md#ordinary-release-restart-on-2026-10-14)
+now verifies fresh import, deletion/replacement/rename/move-in/hardlink catch-up and unchanged restart
+without another scan or inventory. Instrumented no-source-call proof, hosted first-import/P0 failures
+and the remaining client variants stay open. Keep namespace capture, identity lookup and atomic enrollment inside this
 slice; another standalone capability probe or parser pass does not finish it. Candidate packaging
 and the final client/platform matrix follow the connected outcome. Required per-change correctness
 gates remain in force, and incomplete identity coverage must retain an explicit non-current state.
