@@ -57,10 +57,6 @@ class _AmeNotificationDetails extends ConsumerWidget {
                 notification.title,
                 style: Theme.of(context).textTheme.titleMedium,
               ),
-              if (isHistorical) ...[
-                const SizedBox(height: 8),
-                const Text(AmeNotificationStrings.historicalNotificationDetail),
-              ],
               if (notification.message.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Text(notification.message),

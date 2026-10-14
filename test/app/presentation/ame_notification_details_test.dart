@@ -1,5 +1,4 @@
 import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
-import "package:cedarflake_ame/app/notifications/ame_notification_strings.dart";
 import "package:cedarflake_ame/app/presentation/ame_notification_details.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
@@ -33,10 +32,6 @@ void main() {
 
       controller.resolve("root-a:1");
       await tester.pump();
-      expect(
-        find.text(AmeNotificationStrings.historicalNotificationDetail),
-        findsOneWidget,
-      );
       expect(find.text("更新图库"), findsNothing);
       expect(find.textContaining("已持续"), findsNothing);
       expect(actions, isEmpty);
@@ -101,10 +96,6 @@ void main() {
     await tester.pump();
     expect(find.text("原问题"), findsOneWidget);
     expect(find.text("新问题"), findsNothing);
-    expect(
-      find.text(AmeNotificationStrings.historicalNotificationDetail),
-      findsOneWidget,
-    );
     expect(find.text("更新图库"), findsNothing);
     expect(find.textContaining("已持续"), findsNothing);
     expect(actions, isEmpty);
