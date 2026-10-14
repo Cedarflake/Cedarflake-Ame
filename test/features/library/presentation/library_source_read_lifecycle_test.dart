@@ -10,6 +10,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_sou
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_scope.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -64,7 +65,7 @@ void main() {
           .transformationController!;
       final beforePan = transform.value.getTranslation().clone();
       await tester.drag(viewport, const Offset(180, 100));
-      await tester.pump();
+      await tester.pump(kDoubleTapMinTime);
       expect(transform.value.getTranslation().x, isNot(beforePan.x));
       expect(tester.getRect(indicator), bounds);
       expect(fixture.reader.opened, ["first"]);

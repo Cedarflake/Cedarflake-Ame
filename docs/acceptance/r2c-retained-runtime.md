@@ -3255,3 +3255,11 @@ and reaches 100% through the actual-size control. Both returns preserve the prio
 The client exits normally and the original profile/catalog checks pass. This selected opening
 workflow passes; pending-load indicator movement and complete timeline interaction still require
 their hosted and applicable client results.
+
+Hosted run `38521863628` at `9a175bf` passes Static/Rust, Windows scan/accessibility, unsigned Release
+and all six synthetic workloads. Rust reports 1866 passing tests, no failures and 24 ignored tests;
+the original mixed-priority and atomic-baseline shutdown cases pass. Viewer opening/input tests
+also pass. Flutter stops in the pending-image indicator regression after its bounds, pan, source
+read and lease checks, because the synthetic drag leaves Flutter's 40 ms double-tap countdown.
+The test now advances the installed SDK's `kDoubleTapMinTime` after dragging. All existing assertions
+remain; the corrected hosted result is pending. No product behavior or local CI execution changes.
