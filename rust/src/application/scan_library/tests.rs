@@ -29,6 +29,8 @@ use super::*;
 mod finalization_live;
 #[cfg(windows)]
 mod phase_cost;
+#[cfg(windows)]
+mod staging_cleanup;
 
 fn load_test_snapshot(storage: &StoragePaths) -> crate::domain::CatalogSnapshot {
     SqliteCatalog::open(storage.catalog_path.clone())
@@ -3419,6 +3421,8 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
     let cancellation_elapsed = cancellation_requested
         .expect("cancellation request")
         .elapsed();
+
+    staging_cleanup::finish_retired_staging(&storage_paths.catalog_path, CANCEL_AFTER);
 
     let connection = Connection::open(&storage_paths.catalog_path).expect("benchmark catalog");
     let (active_locations, all_locations, assets, cancelled_locations): (i64, i64, i64, i64) =
