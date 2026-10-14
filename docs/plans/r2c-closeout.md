@@ -194,8 +194,13 @@ Cancellation and interrupted-update retirement no longer repeat a whole-library 
 after scoped staging cleanup. Hosted work-bound regressions pass. The changed Release still takes
 15.8 seconds to commit late cancellation. Staged-location deletion dominates the isolated SQL
 comparison; the retirement owner temporarily increases its pager-cache
-budget and restores it on success or failure. Hosted cache-restoration/rollback regressions and the changed-client
-cancellation comparison remain pending.
+budget and restores it on success or failure. The changed ordinary Debug client still takes
+15,567 ms from Cancel input to committed cancellation, preserving 64,452 published locations and
+leaving no cancelled staging. It exits normally and restores the original profile/catalog.
+Hosted cache-restoration/rollback regressions remain pending. Native per-phase retirement and
+commit attribution is the next latency check; the same-size SQLite compiler-optimization experiment
+did not improve elapsed time and was removed. Preserve the completed Debug synchronization and
+retained-import continuation results above instead of repeating those scenarios.
 
 The current preview correction rejects retired sources before they can supersede pending/running
 current work or release a root failure, and retires scheduled image repairs after source replacement.

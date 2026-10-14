@@ -671,5 +671,25 @@ value on success or SQL failure. SQLite's [cache-size contract](https://www.sqli
 allocates on demand; the suggestion is connection-local, not a total-process memory cap. Regressions
 cover byte/page-unit restoration, injected deletion failure, terminal rollback, retry and FULL reopen.
 Staging and retirement have 62 and 77 production lines with no inline tests; lifecycle tests have
-575 lines. Owned formatting and diff checks are local; Actions runs CI. Changed-client cancellation
-latency remains pending.
+575 lines. Owned formatting and diff checks are local; Actions runs CI.
+
+The changed ordinary Debug client reused the retained baseline in `build/test/derived`. Its update
+reached 69,142 visited entries and 63,669 accepted locations. Native Cancel immediately displayed
+Stopping; a read-only observer saw the committed cancelled state 15,567 ms after input. All 64,452
+published locations remained and cancelled staging was empty. The process exited normally after
+314,101 ms and restored the original settings, preferences and catalog hashes. This Debug result
+still exposes slow cancellation; the earlier 15,761-ms measurement used Release and is not a
+same-build speed comparison.
+
+A same-storage diagnostic reconstructed 63,669 staged locations and 3,300 directory identities
+without reading images. The native interrupted-update recovery call took 26,084 ms. An experimental
+optimization of the SQLite dependency took 28,982 ms with the same row counts and was removed.
+Those calls include catalog opening and retirement and do not isolate deletion. The separate SQL
+measurement records 3,680 ms for staged-location deletion and 3,461 ms for commit. Continue from
+native per-phase attribution of retirement and commit; do not repeat the compiler experiment or
+infer client completion from the pre-commit terminal timestamp.
+
+After rebuilding Debug without that experiment, process retirement and original-profile hashes
+were verified. Exact-path and reparse checks preceded removal of 50 disposable catalog/cache,
+profile-backup, log and diagnostic-script files totaling 429,824,941 bytes. The reusable `build/test`
+sources, templates, fixture and current builds remain.
