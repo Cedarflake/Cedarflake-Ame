@@ -112,8 +112,8 @@ fn direct_disk_namespace(path: &Path, canonical: &Path) -> bool {
         }
         for component in value[3..].split(|unit| *unit == BACKSLASH) {
             if component.is_empty()
-                || matches!(component.last(), Some(SPACE | DOT))
-                || component.iter().any(|unit| matches!(unit, SLASH | COLON))
+                || matches!(component.last().copied(), Some(SPACE | DOT))
+                || component.iter().any(|unit| matches!(*unit, SLASH | COLON))
             {
                 return None;
             }
