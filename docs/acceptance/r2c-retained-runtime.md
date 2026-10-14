@@ -3234,3 +3234,17 @@ and cache contain 782, 202, 81 and 61 production lines, with no inline tests. Ne
 contain 116 and 103 lines, covering unequal month weights, date headers, shared rows, within-row
 dragging, scroll observation and range replacement. Owned formatting and diff checks pass; hosted
 and populated-client verification remain pending.
+
+The `be27770` hosted Rust run reports 1865 passing tests, one failure and 24 ignored tests. The
+original P0/P1/P2 priority workload and atomic baseline shutdown tests pass. The remaining failure
+is the priority fixture's nested-unwind close-count assertion. Its test-only drain injection now
+uses `resume_unwind` to avoid invoking diagnostic panic hooks within the unchanged shutdown
+deadline. Original assertion preservation, the two-second bound, owner retention and close-count
+assertions remain intact; the new hosted result is pending.
+
+The `7c924ab` Release client builds and reuses the retained 65129-location catalog. A rail click
+moves the position line into the middle and subsequently displays the selected range. A transient
+blank canvas during detail loading remains visible. Search text injection did not complete the
+small/large-image workflow before the 300-second guard stopped this run; original profile and
+catalog preservation checks pass. This bounded run does not establish complete viewer or timeline
+acceptance. No new source corpus is generated.

@@ -3624,7 +3624,11 @@ impl ProductionSynchronization {
                 true
             }
         };
-        assert!(!should_panic, "controlled draining owner panic");
+        if should_panic {
+            // Fault injection must unwind without running diagnostic hooks inside
+            // the existing shutdown deadline, especially during assertion unwind.
+            std::panic::resume_unwind(Box::new("controlled draining owner panic"));
+        }
     }
 
     fn request_stop(&mut self) -> Result<(), ScanError> {
