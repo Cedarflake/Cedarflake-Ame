@@ -3224,3 +3224,13 @@ with no inline tests. Dedicated tests contain 565, 87 and 57 lines. Regressions 
 unchanged midpoint positions across two rail heights, hover/input agreement, markers beside year
 text and undersized rails. Owned formatting and diff checks pass; hosted and populated-client results
 remain pending. No new image corpus or source-media changes are involved.
+
+The query-wide rail now derives month starts from actual date headers, maps current position from
+the gallery's exact scroll offset and writes continuous pixel positions during dragging. Detail
+requests retain row-aligned item targets, including month headers before their first photo row.
+A typed layout projection and cache own geometry selection; partial or mismatched layouts retain
+the existing aggregate fallback. The navigation facade, aggregate facade, exact-layout projection
+and cache contain 782, 202, 81 and 61 production lines, with no inline tests. New dedicated tests
+contain 116 and 103 lines, covering unequal month weights, date headers, shared rows, within-row
+dragging, scroll observation and range replacement. Owned formatting and diff checks pass; hosted
+and populated-client verification remain pending.

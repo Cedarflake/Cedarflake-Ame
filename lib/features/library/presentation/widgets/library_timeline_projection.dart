@@ -1,5 +1,7 @@
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_gallery_layout.dart";
+import "library_timeline_layout_projection.dart";
 import "timeline_linear_projection.dart";
 import "timeline_rail_model.dart";
 
@@ -20,19 +22,49 @@ class LibraryTimelineProjection {
     required LibraryTimeline timeline,
     required bool useAspectRatioWeight,
   }) : _timeline = timeline,
+       _layout = null,
        railBuckets = _buildRailBuckets(timeline, useAspectRatioWeight) {
     projection = TimelineLinearProjection(
       maximumOffset: inferredTimelineMaximumOffset(railBuckets),
     );
   }
 
+  factory LibraryTimelineProjection.fromLayout({
+    required LibraryTimeline timeline,
+    required LibraryGalleryLayoutMetrics metrics,
+    required double maximumScrollOffset,
+  }) {
+    final layout = LibraryTimelineLayoutProjection(
+      timeline: timeline,
+      metrics: metrics,
+      maximumScrollOffset: maximumScrollOffset,
+      buckets: _buildRailBuckets(timeline, false),
+    );
+    return LibraryTimelineProjection._fromLayout(timeline, layout);
+  }
+
+  LibraryTimelineProjection._fromLayout(
+    LibraryTimeline timeline,
+    LibraryTimelineLayoutProjection layout,
+  ) : _timeline = timeline,
+      _layout = layout,
+      railBuckets = layout.railBuckets {
+    projection = layout.projection;
+  }
+
   final LibraryTimeline _timeline;
+  final LibraryTimelineLayoutProjection? _layout;
   final List<TimelineRailBucket> railBuckets;
   late final TimelineLinearProjection projection;
 
   double get maximumOffset => projection.maximumOffset;
 
+  LibraryGalleryLayoutMetrics? get layoutMetrics => _layout?.metrics;
+
   double valueForGlobalItemOffset(double globalItemOffset) {
+    if (_layout case final layout?) {
+      return layout.valueForGlobalItemOffset(globalItemOffset);
+    }
     if (_timeline.buckets.isEmpty || _timeline.totalItems <= 0) {
       return 0;
     }
@@ -101,6 +133,9 @@ class LibraryTimelineProjection {
   }
 
   double globalItemOffsetForValue(double value) {
+    if (_layout case final layout?) {
+      return layout.globalItemOffsetForValue(value);
+    }
     if (_timeline.buckets.isEmpty || _timeline.totalItems <= 0) {
       return 0;
     }

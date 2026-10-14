@@ -10,6 +10,7 @@ import "library_gallery_layout.dart";
 import "library_time_rail_presentation.dart";
 import "library_time_seek_alignment.dart";
 import "library_timeline_projection.dart";
+import "library_timeline_projection_cache.dart";
 import "library_virtual_gallery_geometry.dart";
 
 typedef LibraryTimelineSeekCallback =
@@ -74,7 +75,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   Timer? _galleryScrollSettleTimer;
   Timer? _userScrollCancellationResetTimer;
   double? _pendingGalleryScrollValue;
-  LibraryTimelineProjection? _cachedProjection;
+  final _projectionCache = LibraryTimelineProjectionCache();
   LibraryGalleryLayoutMetrics? _stableLayoutMetrics;
   LibraryVirtualGalleryGeometry? _stableVirtualGeometry;
   var _stableWindowStartItemOffset = 0;
@@ -129,7 +130,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       _didCancelForCurrentUserScroll = false;
       _isFrameScheduled = false;
       _lastSeekStartedAt = null;
-      _cachedProjection = null;
+      _projectionCache.clear();
       _stableLayoutMetrics = null;
       _stableVirtualGeometry = null;
       _stableWindowStartItemOffset = 0;
@@ -155,10 +156,10 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   Widget build(BuildContext context) {
     _rememberStableLayout();
     final metrics = widget.layoutMetrics ?? _stableLayoutMetrics;
-    final globalProjection = _projectionForCurrentTimeline();
     return AnimatedBuilder(
       animation: widget.scrollController,
       builder: (context, child) {
+        final globalProjection = _projectionForCurrentTimeline();
         final position = widget.scrollController.hasClients
             ? widget.scrollController.position
             : null;
@@ -221,6 +222,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       );
     }
     if (metrics.isQueryWide) {
+      if (identical(globalProjection.layoutMetrics, metrics)) {
+        return globalProjection.projection.offsetToValue(position.pixels);
+      }
       final globalItemOffset =
           metrics.itemIndexBase +
           metrics.itemIndexForScrollOffset(position.pixels);
@@ -495,11 +499,30 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   void _moveGalleryToValue(
     LibraryTimelineProjection globalProjection,
     double value,
-  ) => _moveGalleryToGlobalTarget(
-    globalProjection,
-    globalProjection.targetForValue(value).globalItemOffset,
-    fallbackValue: value,
-  );
+  ) {
+    if (identical(globalProjection.layoutMetrics, widget.layoutMetrics) &&
+        globalProjection.layoutMetrics != null) {
+      final position = widget.scrollController.hasClients
+          ? widget.scrollController.position
+          : null;
+      if (position == null || !position.hasContentDimensions) {
+        return;
+      }
+      final pixels = globalProjection.projection
+          .valueToOffset(value)
+          .clamp(position.minScrollExtent, position.maxScrollExtent)
+          .toDouble();
+      if ((position.pixels - pixels).abs() >= 0.5) {
+        position.jumpTo(pixels);
+      }
+      return;
+    }
+    _moveGalleryToGlobalTarget(
+      globalProjection,
+      globalProjection.targetForValue(value).globalItemOffset,
+      fallbackValue: value,
+    );
+  }
 
   void _moveGalleryToGlobalTarget(
     LibraryTimelineProjection globalProjection,
@@ -645,16 +668,15 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   }
 
   LibraryTimelineProjection? _projectionForCurrentTimeline() {
-    final cachedProjection = _cachedProjection;
-    if (cachedProjection != null) {
-      return cachedProjection;
-    }
-    final timeline = widget.timeline;
-    if (timeline == null || timeline.buckets.isEmpty) {
-      return null;
-    }
-    return _cachedProjection = LibraryTimelineProjection(
-      timeline: timeline,
+    final position = widget.scrollController.hasClients
+        ? widget.scrollController.position
+        : null;
+    final hasScrollRange = position != null && position.hasContentDimensions;
+    return _projectionCache.resolve(
+      timeline: widget.timeline,
+      metrics: widget.layoutMetrics ?? _stableLayoutMetrics,
+      maximumScrollOffset: hasScrollRange ? position.maxScrollExtent : null,
+      viewportExtent: hasScrollRange ? position.viewportDimension : null,
       useAspectRatioWeight:
           widget.layoutShape == GalleryLayoutShape.equalHeight,
     );

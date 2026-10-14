@@ -62,9 +62,11 @@ without introducing a second scroll state.
   unchanged anchor offsets do not write back to the scroll position. Preview decode widths use a
   small set of bounded cache buckets so pixel-by-pixel window resizing cannot create a new image-
   cache identity and decode request for every intermediate width.
-- Time density remains proportional to the complete catalog projection. Square layouts use the
-  complete item count and equal-height layouts use the catalog's bounded aspect-ratio aggregate,
-  so a denser period still owns more rail extent from the initial render.
+- With an attached query-wide layout, month points use its actual date-header offsets and the
+  gallery's maximum scroll extent. The position line reads the exact scroll offset, including
+  movement within a row, and rail input writes the inverse pixel position to the same controller.
+  The aggregate item/aspect-ratio projection remains only a fallback before complete matching
+  geometry is available. Detail-page loading cannot change this query-wide mapping.
 
 ### Flutter control composition
 
