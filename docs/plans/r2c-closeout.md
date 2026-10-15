@@ -93,6 +93,19 @@ membership and latency assertions. Continue with the pending hosted run and the 
 Slow-check diagnostics now classify namespace spelling without logging paths; determine why held-handle
 reuse was bypassed before changing namespace proof. Preserve the completed native flows above.
 
+The subsequent `32981d2` hosted run passes the mixed-load connection-lifetime workload and reports
+1,892 Rust passes, with four failures: the two availability source-contract checks, resumed-import
+identity, and bounded foreground retirement. The first three have the independently pushed corrections
+above. Retirement SQL still scanned every remaining row because its outer `scan_id` condition won over
+the bounded rowid list. The corrected predicate binds the scan inside that list and uses rowid seeks
+outside it, retaining the terminal-owner and inactive-projection guards. Read-only catalog extraction
+and in-memory SQL diagnosis show collection/deletion work staying at 3,410/14,811 instructions for both
+512 and 4,096 extra rows; previously it grew from 7,664/18,550 to 39,920/47,222. Both cases delete exactly
+128 rows. The existing bounded-work, rollback, restart and active-scan preservation regressions remain
+unchanged for hosted execution. The retirement owner has 136 production lines and no inline tests;
+its dedicated bounded-retirement tests have 359 lines. The earlier 9.2-second handle-close incident
+still needs its namespace classification; one passing mixed-load run does not explain that delay.
+
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
 states, and a display-only retry is labeled Reload. `LibraryUpdateFeedback` owns the related task

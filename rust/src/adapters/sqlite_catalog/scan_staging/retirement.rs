@@ -94,8 +94,10 @@ fn discard_rows(
                 SELECT location_id FROM scan_resume_pending_locations WHERE scan_id = ?1
             )"
         .to_owned(),
+        // The inner scan index binds ownership and limits membership. An outer scan_id
+        // predicate lets SQLite scan the whole remaining scan instead of seeking these rowids.
         StagingRetirement::RetiredForegroundBatch => format!(
-            "scan_id = ?1 AND rowid IN (
+            "rowid IN (
                 SELECT rowid FROM asset_locations WHERE scan_id = ?1 ORDER BY location_id
                 LIMIT {FOREGROUND_RETIREMENT_BATCH}
              ) AND EXISTS (
