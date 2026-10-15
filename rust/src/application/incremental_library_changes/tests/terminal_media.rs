@@ -1,6 +1,95 @@
 use super::*;
 
 #[test]
+fn scan_and_incremental_changes_agree_on_download_errors_with_image_suffixes() {
+    use crate::application::{StoragePaths, run_scan_with_storage};
+    use crate::domain::ScanEvent;
+
+    let mut fixture = seed_catalog(tempdir().expect("source directory"), &[]);
+    write_png_with_format(
+        &fixture.source.path().join("valid.data"),
+        31,
+        17,
+        [30, 60, 90],
+    );
+    let error_bytes = br#"{"retcode":-1,"retmsg":"download failed"}"#;
+    let paths = (0..32)
+        .map(|index| format!("download-{index:02}.{}", ["jpg", "png"][index % 2]))
+        .collect::<Vec<_>>();
+    for path in &paths {
+        fs::write(fixture.source.path().join(path), error_bytes).expect("download error fixture");
+    }
+    let catalog_path = fixture.catalog.catalog_path().to_path_buf();
+    drop(fixture.catalog);
+    let mut completion = None;
+    run_scan_with_storage(
+        ScanRequest {
+            scan_id: "download-errors-scan".to_owned(),
+            root_path: fixture.root_path.clone(),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 128,
+        },
+        |event| {
+            if let ScanEvent::Completed { asset_count, .. } = event {
+                completion = Some(asset_count);
+            }
+            true
+        },
+        StoragePaths {
+            catalog_path: catalog_path.clone(),
+            preview_root: fixture._storage.path().join("previews"),
+            preview_budget_bytes: 64 * 1024 * 1024,
+            settings_path: fixture._storage.path().join("settings.sqlite3"),
+        },
+    )
+    .expect("scan excludes unrecognized files");
+    assert_eq!(completion, Some(1));
+    fixture.catalog = SqliteCatalog::open(catalog_path.clone()).expect("reopen scanned catalog");
+    let valid = fixture
+        .location("valid.data")
+        .expect("recognized image without image suffix");
+
+    let changes = paths
+        .iter()
+        .enumerate()
+        .map(|(index, path)| {
+            catch_up_intent(
+                &fixture.root_id,
+                path,
+                u64::try_from(index + 1).expect("sequence"),
+            )
+        })
+        .collect::<Vec<_>>();
+    fixture.enqueue(&changes);
+    let revision = fixture.revision();
+    let report = fixture.process();
+    assert_eq!(report.completed_count, 32);
+    assert_eq!(report.retried_count, 0);
+    assert_eq!(report.applied_mutation_count, 0);
+    assert_eq!(fixture.revision(), revision);
+    assert_eq!(fixture.location("valid.data"), Some(valid));
+    drop(fixture.catalog);
+    fixture.catalog = SqliteCatalog::open(catalog_path).expect("reopen completed catch-up");
+    assert_eq!(fixture.process().leased_count, 0);
+    assert_eq!(
+        fixture
+            .catalog
+            .load_terminal_media_evidence_by_relative_paths(&fixture.root_id, &paths)
+            .expect("negative observations survive restart")
+            .len(),
+        32
+    );
+    for path in &paths {
+        assert!(fixture.location(path).is_none());
+        assert_eq!(
+            fs::read(fixture.source.path().join(path)).expect("unchanged source"),
+            error_bytes
+        );
+    }
+}
+
+#[test]
 fn paired_rename_retains_current_negative_evidence_when_previous_path_is_absent() {
     verify_paired_negative_evidence(false);
 }

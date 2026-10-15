@@ -225,7 +225,7 @@ fn p1_revision_rebase_reconciles_absent_path_that_becomes_terminal_media() {
             .catalog
             .load_incremental_location_by_relative_path(&fixture.root_id, "broken.jpg")
             .expect("terminal location query")
-            .is_some()
+            .is_none()
     );
     assert_eq!(fs::read(path).expect("source preserved"), b"not-a-jpeg");
 }

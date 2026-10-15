@@ -35,14 +35,14 @@ pub(super) fn terminal_media_change(
             issue: issue.clone(),
         },
     };
-    // Signature probing admits images without recognized suffixes, not arbitrary documents.
-    // Known media (including another File ID alias) still retains terminal gallery evidence.
-    if !report_issue && prior.is_none() && removals.is_empty() {
+    // A failed inspection cannot introduce a new image, regardless of its suffix.
+    // Existing media (including another File ID alias) retains its recovery entry.
+    if prior.is_none() && removals.is_empty() {
         return PreparedChange {
             completion: LibraryChangeCompletion {
                 change_id: leased.change.id,
                 lease_generation: leased.lease_generation,
-                issue: None,
+                issue: report_issue.then_some(issue),
             },
             mutations: Vec::new(),
             terminal_media_evidence: vec![evidence],

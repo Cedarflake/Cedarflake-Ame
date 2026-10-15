@@ -1260,18 +1260,9 @@ fn malformed_image_completes_once_without_blocking_a_valid_sibling() {
     assert_eq!(report.leased_count, 2);
     assert_eq!(report.completed_count, 2);
     assert_eq!(report.retried_count, 0);
-    assert_eq!(report.applied_mutation_count, 2);
+    assert_eq!(report.applied_mutation_count, 1);
     assert!(fixture.location("valid.png").is_some());
-    let failed = fixture
-        .location("broken.jpg")
-        .expect("terminal image placeholder");
-    assert!(matches!(failed.preview_status, PreviewStatus::Failed));
-    assert_eq!((failed.width, failed.height), (0, 0));
-    assert!(failed.preview_path.is_empty());
-    assert_eq!(
-        failed.preview_issue_code.as_deref(),
-        Some("image_format_unsupported")
-    );
+    assert!(fixture.location("broken.jpg").is_none());
     let metrics = fixture
         .catalog
         .load_library_change_queue_metrics(2_000, policy())
@@ -1309,8 +1300,7 @@ fn malformed_image_completes_once_without_blocking_a_valid_sibling() {
     assert_eq!(recovered.completed_count, 1);
     assert_eq!(recovered.applied_mutation_count, 1);
     let repaired = fixture.location("broken.jpg").expect("repaired image");
-    assert_eq!(repaired.asset_id, failed.asset_id);
-    assert_ne!(repaired.source_generation, failed.source_generation);
+    assert_ne!(repaired.source_generation, evidence[0].source_generation);
     assert_eq!((repaired.width, repaired.height), (2, 3));
     assert!(matches!(repaired.preview_status, PreviewStatus::Pending));
     assert!(

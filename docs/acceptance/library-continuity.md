@@ -186,7 +186,10 @@ For every stable path or subtree intent:
 8. Publish the complete bounded batch and one new catalog revision in a single transaction.
 9. Admit only formats supported by the pinned decoder. Unsupported formats, malformed content, and
    decoder-limit violations complete once as terminal per-file evidence; only open, lock, read, and
-   source-race failures consume retry attempts.
+   source-race failures consume retry attempts. A new file that fails inspection remains outside the
+   gallery, including a download error saved with an image suffix. Keep its negative observation so
+   unchanged input is not repeatedly inspected; admit it when a later source version is recognized.
+   Previously admitted images and their physical aliases retain recoverable failure entries.
 
 Required semantics:
 

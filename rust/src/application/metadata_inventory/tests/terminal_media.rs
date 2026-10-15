@@ -24,13 +24,17 @@ fn unchanged_terminal_media_evidence_is_reused_after_catalog_reopen() {
     .expect("process terminal media candidate");
     assert_eq!(processed.completed_count, 1);
     assert_eq!(processed.retried_count, 0);
-    assert_eq!(processed.applied_mutation_count, 1);
-    let failed = fixture
-        .location("broken.jpg")
-        .expect("terminal media placeholder");
-    assert!(matches!(failed.preview_status, PreviewStatus::Failed));
-    assert!(failed.source_revision.is_some());
-    assert!(failed.source_generation > 0);
+    assert_eq!(processed.applied_mutation_count, 0);
+    assert!(fixture.location("broken.jpg").is_none());
+    let evidence = fixture
+        .catalog
+        .load_terminal_media_evidence_by_relative_paths(
+            &fixture.root_id,
+            &["broken.jpg".to_owned()],
+        )
+        .expect("terminal observation without a gallery entry");
+    assert_eq!(evidence.len(), 1);
+    assert_current_negative(&fixture, &evidence[0]);
     let catalog_path = fixture._storage.path().join("catalog.sqlite3");
     drop(fixture.catalog);
     fixture.catalog = SqliteCatalog::open(catalog_path).expect("reopen catalog");
@@ -88,7 +92,7 @@ fn mixed_non_media_and_malformed_batch_converges_without_retry_growth() {
     assert_eq!(processed.leased_count, 128);
     assert_eq!(processed.completed_count, 128);
     assert_eq!(processed.retried_count, 0);
-    assert_eq!(processed.applied_mutation_count, 32);
+    assert_eq!(processed.applied_mutation_count, 0);
     let paths = (0..96)
         .map(|index| format!("clip-{index:03}.mp4"))
         .chain((0..32).map(|index| format!("broken-{index:03}.jpg")))
@@ -97,16 +101,9 @@ fn mixed_non_media_and_malformed_batch_converges_without_retry_growth() {
         .catalog
         .load_incremental_locations_by_relative_paths(&fixture.root_id, &paths)
         .expect("actual gallery locations");
-    assert_eq!(
-        locations.len(),
-        32,
-        "ordinary videos must not become gallery cards"
-    );
     assert!(
-        locations
-            .iter()
-            .all(|location| location.relative_path.starts_with("broken-")
-                && matches!(location.preview_status, PreviewStatus::Failed))
+        locations.is_empty(),
+        "neither videos nor unrecognized image files become gallery cards"
     );
     let evidence = fixture
         .catalog
