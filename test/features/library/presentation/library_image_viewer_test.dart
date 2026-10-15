@@ -210,6 +210,15 @@ void main() {
     expect(find.byType(AmeMenuItemContent), findsNWidgets(2));
     expect(copyPathItemRect.width, lessThan(280));
     expect(copyPathItemRect.right, lessThanOrEqualTo(984));
+    final popupSurface = find
+        .ancestor(of: copyPathItem, matching: find.byType(Material))
+        .first;
+    expect(
+      tester.getRect(popupSurface).bottom,
+      lessThanOrEqualTo(
+        tester.getRect(find.byKey(const Key("viewer-more-menu"))).top - 4,
+      ),
+    );
     final moreButtonCenter = tester.getCenter(
       find.byKey(const Key("viewer-more-menu")),
     );

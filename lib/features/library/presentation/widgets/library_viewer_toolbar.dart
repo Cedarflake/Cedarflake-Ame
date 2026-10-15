@@ -125,6 +125,7 @@ class LibraryViewerToolbar extends StatelessWidget {
                           onPressed: onInformation,
                         ),
                         AmePopupMenuButton<_ViewerMenuAction>(
+                          openAboveAnchor: true,
                           labels: const [
                             LibraryStrings.copyPath,
                             LibraryStrings.openInExplorer,

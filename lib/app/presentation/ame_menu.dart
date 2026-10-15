@@ -106,6 +106,7 @@ class AmePopupMenuButton<T> extends StatefulWidget {
     this.maximumHeight,
     this.leadingIconWidth = 0,
     this.verticalGap = 4,
+    this.openAboveAnchor = false,
     this.viewportRightMargin,
     this.onOpened,
     this.onOpenChanged,
@@ -122,6 +123,7 @@ class AmePopupMenuButton<T> extends StatefulWidget {
   final double? maximumHeight;
   final double leadingIconWidth;
   final double verticalGap;
+  final bool openAboveAnchor;
   final double? viewportRightMargin;
   final VoidCallback? onOpened;
   final ValueChanged<bool>? onOpenChanged;
@@ -154,12 +156,27 @@ class _AmePopupMenuButtonState<T> extends State<AmePopupMenuButton<T>> {
     if (anchorContext == null) {
       return;
     }
-    final position = amePopupMenuBelowAnchor(
-      context: context,
-      anchorContext: anchorContext,
-      verticalGap: widget.verticalGap,
-      viewportRightMargin: widget.viewportRightMargin,
-    );
+    final above = widget.openAboveAnchor
+        ? amePopupMenuAboveAnchor(
+            context: context,
+            anchorContext: anchorContext,
+            menuHeight: widget.items.fold<double>(
+              AmeMenuMetrics.menuPadding.vertical,
+              (height, item) => height + item.height,
+            ),
+            verticalGap: widget.verticalGap,
+            viewportRightMargin: widget.viewportRightMargin,
+          )
+        : null;
+    if (widget.openAboveAnchor && above == null) return;
+    final position =
+        above?.position ??
+        amePopupMenuBelowAnchor(
+          context: context,
+          anchorContext: anchorContext,
+          verticalGap: widget.verticalGap,
+          viewportRightMargin: widget.viewportRightMargin,
+        );
     if (position == null) {
       return;
     }
@@ -174,7 +191,11 @@ class _AmePopupMenuButtonState<T> extends State<AmePopupMenuButton<T>> {
         shortcuts: widget.shortcuts,
         items: widget.items,
         menuWidth: widget.menuWidth,
-        maximumHeight: widget.maximumHeight,
+        maximumHeight: above == null
+            ? widget.maximumHeight
+            : (widget.maximumHeight ?? above.maximumHeight)
+                  .clamp(0.0, above.maximumHeight)
+                  .toDouble(),
         leadingIconWidth: widget.leadingIconWidth,
         initialValue: widget.initialValue,
       );

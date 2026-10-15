@@ -458,6 +458,8 @@ visibility. It uses bounded catalog paging and lazily creates visible thumbnails
 that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
 scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
 
+The bottom more-actions menu opens above its button with a small gap, keeping the toolbar visible.
+
 Slideshow playback uses the current query order and gives each decoded image three seconds. It waits
 for pending navigation and decoding, pauses on a failed image or navigation, and stops at the last
 image. Manual navigation, thumbnail selection, zoom and opening information or the action menu pause
