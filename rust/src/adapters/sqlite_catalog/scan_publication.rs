@@ -38,7 +38,7 @@ use super::{
     delete_orphan_assets, detach_preview_references_for_root_locations,
     establish_root_publication_namespace, load_active_identity_group_state, load_catalog_revision,
     load_scan_identity_group_state, mark_unreferenced_preview_artifacts_stale, revisions_conflict,
-    sqlite_integer, sqlite_unsigned,
+    sqlite_unsigned,
 };
 use crate::ports::{RootConsolidationPlan, ScanPublicationControl};
 pub(crate) use rejected_input_validation::RejectedInputValidationRoster;
