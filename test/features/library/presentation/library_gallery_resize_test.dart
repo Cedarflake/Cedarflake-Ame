@@ -1131,7 +1131,7 @@ void main() {
       expect(unloadedSlot.hitTestable(), findsNothing);
       expect(
         find.descendant(of: unloadedSlot, matching: find.byType(DecoratedBox)),
-        findsNothing,
+        findsOneWidget,
       );
       expect(
         previousController.previewDemandRequests.last.visible,
@@ -1145,6 +1145,23 @@ void main() {
       expect(previousVisibleRange.end, greaterThanOrEqualTo(rowEnd));
       expect(previousController.previousPageRequests, 0);
       expect(previousController.nextPageRequests, 0);
+
+      final unloadedRect = tester.getRect(unloadedSlot);
+      final unloadedOffset = previousScrollController.offset;
+      await pumpBoundary(
+        state: _boundaryState(
+          itemCount: itemCount,
+          windowStart: rowStart,
+          windowEnd: rowEnd,
+          hasPrevious: true,
+          hasNext: false,
+        ),
+        controller: previousController,
+        scrollController: previousScrollController,
+      );
+      expect(tester.widget(unloadedSlot), isA<LibraryPhotoTile>());
+      expect(tester.getRect(unloadedSlot), unloadedRect);
+      expect(previousScrollController.offset, unloadedOffset);
 
       final nextController = _RecordingGalleryController();
       final nextScrollController = ScrollController(

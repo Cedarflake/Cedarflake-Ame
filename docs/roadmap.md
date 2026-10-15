@@ -75,6 +75,14 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
+The separately selected `codex/gallery-motion` scope adds restrained gallery/viewer transitions:
+first expose exact-layout unloaded slots and preserve precise rail positioning during detail
+arrival, then add first-frame thumbnail reveal and viewer entry/exit and preview-to-original
+transitions. Preserve scrolling, immediate input takeover, reduced-motion preferences, existing
+copy, layout rules, viewer zoom preferences and source-read cancellation. Deliver each correction
+on the branch with hosted regressions and focused client checks; this scope does not reopen the
+completed synchronization repair goal or start R3.
+
 The current repair goal is complete. Native synchronization/browsing flows, large-sample paused-import
 changes, scoped closing review and the final hosted gates pass; profile restoration and disposable-output
 cleanup are complete. The [current checkpoint](plans/r2c-closeout.md#current-execution-checkpoint)

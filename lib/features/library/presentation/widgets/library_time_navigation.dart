@@ -406,6 +406,15 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
             generation: seekIntentGeneration,
             timeline: widget.timeline!,
             target: globalProjection.targetForValue(value),
+            positionedLayout:
+                identical(
+                      globalProjection.layoutMetrics,
+                      widget.layoutMetrics,
+                    ) &&
+                    widget.scrollController.hasClients &&
+                    widget.scrollController.position.hasContentDimensions
+                ? globalProjection.layoutMetrics
+                : null,
           )
         : null;
     if (alignment != null) {
@@ -490,6 +499,10 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
           widget.layoutMetrics == null ||
           !_isGlobalTargetLoaded(offset)) {
         continue;
+      }
+      // The rail already positioned this complete layout, including the fraction within a row.
+      if (alignment.retainsExactPosition(timeline, widget.layoutMetrics)) {
+        return;
       }
       _moveGalleryToGlobalTarget(projection, offset);
       return;

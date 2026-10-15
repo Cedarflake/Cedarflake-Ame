@@ -365,8 +365,9 @@ position when possible.
   query- and revision-bound logical viewport anchor rather than synchronizing several pixel offsets.
 - Wheel and touchpad movement use native relative scrolling. Crossing a detail-page boundary
   prefetches bounded pages before and after the viewport without replacing the canvas. A cold page
-  keeps unpainted, non-interactive slots in its final equal-height rectangles behind the shared
-  loading line, as specified by ADR 0014. It does not replace the gallery with a generic square grid.
+  paints non-interactive card backgrounds in its final equal-height rectangles behind the shared
+  loading line, as specified by ADR 0014. Detail and preview arrival preserve those rectangles and
+  the precise position already reached by the rail in an unchanged layout.
 - Scroll-triggered detail paging uses one thin linear progress indicator at the top of the gallery.
   It overlays the gallery without resizing its viewport or intercepting gallery input. It does not
   add circular loaders to the photo wall or its boundaries.
