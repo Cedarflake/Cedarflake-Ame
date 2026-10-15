@@ -7,6 +7,7 @@ import "dart:ui" as ui;
 import "package:cedarflake_ame/features/library/application/library_source_read_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
@@ -155,7 +156,11 @@ void main() {
         expect(bounds.contains(retryBounds.topLeft), isTrue);
         expect(bounds.contains(retryBounds.bottomRight), isTrue);
         expect(
-          find.text(hasPreview ? "原图无法打开，已显示预览图" : "无法打开原图"),
+          find.text(
+            hasPreview
+                ? LibraryStrings.originalImagePreviewFallback
+                : LibraryStrings.originalImageUnavailable,
+          ),
           findsOneWidget,
         );
         expect(transform.value, beforeFailure);
