@@ -99,9 +99,8 @@ $unconfirmedName = -join [char[]](
 $expandFolderName = -join [char[]](
     0x5C55,
     0x5F00,
-    0x6587,
-    0x4EF6,
-    0x5939
+    0x76EE,
+    0x5F55
 )
 $sourceButtonSuffix = "$unconfirmedName. $expandFolderName"
 
