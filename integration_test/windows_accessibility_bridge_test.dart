@@ -497,17 +497,41 @@ void main() {
             );
             for (var expansion = 0; expansion < 2; expansion += 1) {
               await tester.tap(filmstripToggle);
-              await tester.pumpAndSettle();
+              await tester.pumpAndSettle(
+                const Duration(milliseconds: 100),
+                EnginePhase.sendSemanticsUpdate,
+                const Duration(seconds: 5),
+              );
               for (final direction in ["right", "left"]) {
                 final arrow = find.byKey(
                   Key("viewer-filmstrip-scroll-$direction"),
                 );
                 await mouse.moveTo(tester.getCenter(arrow));
                 await tester.pump(const Duration(milliseconds: 700));
-                await tester.pumpAndSettle();
+                await tester.pumpAndSettle(
+                  const Duration(milliseconds: 100),
+                  EnginePhase.sendSemanticsUpdate,
+                  const Duration(seconds: 5),
+                );
+                expect(
+                  find.text(
+                    direction == "right"
+                        ? LibraryStrings.scrollFilmstripRight
+                        : LibraryStrings.scrollFilmstripLeft,
+                  ),
+                  findsOneWidget,
+                );
               }
               await tester.tap(filmstripToggle);
-              await tester.pumpAndSettle();
+              await tester.pumpAndSettle(
+                const Duration(milliseconds: 100),
+                EnginePhase.sendSemanticsUpdate,
+                const Duration(seconds: 5),
+              );
+              expect(
+                find.text(LibraryStrings.scrollFilmstripLeft),
+                findsNothing,
+              );
             }
             await nativeUiaProbe.checkpoint(tester, "viewer-open");
           }
@@ -922,7 +946,18 @@ class _StaticPreviewer implements LibraryPreviewer {
     required int previewEdge,
     bool force = false,
     Iterable<String> protectedLocationIds = const [],
-  }) async => _assets[locationId]!;
+  }) async {
+    final asset = _assets[locationId]!;
+    // These fixtures contain no image bytes; completed work must be terminal.
+    return asset.withPreview(
+      previewPath: "",
+      width: asset.width,
+      height: asset.height,
+      previewStatus: LibraryPreviewStatus.failed,
+      previewIssueCode: "fixture_preview_unavailable",
+      previewIssueMessage: "This accessibility fixture contains no image bytes",
+    );
+  }
 }
 
 class _StaticManifestLoader implements LibraryGalleryLayoutManifestLoader {
