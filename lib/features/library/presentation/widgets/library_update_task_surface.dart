@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_theme.dart";
 import "../../application/library_update_controller.dart";
 import "../library_update_feedback.dart";
@@ -70,20 +71,22 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: tasks.length,
-                  separatorBuilder: (_, _) => const Divider(height: 16),
-                  itemBuilder: (context, index) {
-                    final task = tasks[index];
-                    return _LibraryRootUpdateRow(
-                      key: ValueKey("library-update-task-${task.root.id}"),
-                      task: task,
-                      onCancel: () => onCancel(task.root.id),
-                      onRetry: () => onRetry(task.root.id),
-                      onDismiss: () => onDismiss(task.root.id),
-                    );
-                  },
+                child: AmeScrollMotion(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: tasks.length,
+                    separatorBuilder: (_, _) => const Divider(height: 16),
+                    itemBuilder: (context, index) {
+                      final task = tasks[index];
+                      return _LibraryRootUpdateRow(
+                        key: ValueKey("library-update-task-${task.root.id}"),
+                        task: task,
+                        onCancel: () => onCancel(task.root.id),
+                        onRetry: () => onRetry(task.root.id),
+                        onDismiss: () => onDismiss(task.root.id),
+                      );
+                    },
+                  ),
                 ),
               ),
             ],

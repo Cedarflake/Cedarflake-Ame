@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
 import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
@@ -17,7 +18,6 @@ import "library_gallery_layout.dart";
 import "library_gallery_layout_snapshot.dart";
 import "library_gallery_position.dart";
 import "library_gallery_reflow.dart";
-import "library_gallery_scroll_motion.dart";
 import "library_photo_tile.dart";
 import "library_virtual_gallery_geometry.dart";
 
@@ -347,7 +347,7 @@ class LibraryGalleryWall extends StatelessWidget {
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
-              LibraryGalleryScrollMotion(
+              AmeScrollMotion(
                 controller: scrollController,
                 onPointerSignal: (event) {
                   if (event is! PointerScrollEvent ||
@@ -1264,7 +1264,7 @@ class _ManifestLibraryGalleryWallState
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
-              LibraryGalleryScrollMotion(
+              AmeScrollMotion(
                 controller: widget.scrollController,
                 onPointerSignal: (event) {
                   if (event is! PointerScrollEvent ||

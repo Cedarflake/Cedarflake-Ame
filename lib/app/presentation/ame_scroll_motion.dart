@@ -4,9 +4,11 @@ import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 
-class LibraryGalleryScrollController extends ScrollController {
-  LibraryGalleryScrollController({
+class AmeScrollController extends ScrollController {
+  AmeScrollController({
     super.initialScrollOffset,
+    super.keepScrollOffset,
+    super.debugLabel,
     super.onAttach,
     super.onDetach,
   });
@@ -16,52 +18,73 @@ class LibraryGalleryScrollController extends ScrollController {
     ScrollPhysics physics,
     ScrollContext context,
     ScrollPosition? oldPosition,
-  ) => _GalleryScrollPosition(
+  ) => _AmeScrollPosition(
     physics: physics,
     context: context,
     initialPixels: initialScrollOffset,
+    keepScrollOffset: keepScrollOffset,
+    debugLabel: debugLabel,
     oldPosition: oldPosition,
   );
 
   void preparePointerScroll({required bool animate}) {
-    for (final position in positions.whereType<_GalleryScrollPosition>()) {
+    for (final position in positions.whereType<_AmeScrollPosition>()) {
       position.animateNextPointerScroll = animate;
     }
   }
 
   void stopWheelMotion() {
-    for (final position in positions.whereType<_GalleryScrollPosition>()) {
+    for (final position in positions.whereType<_AmeScrollPosition>()) {
       position.stopWheelMotion();
     }
   }
 }
 
-class LibraryGalleryScrollMotion extends StatelessWidget {
-  const LibraryGalleryScrollMotion({
-    required this.controller,
+/// Wrap one native scroll view. Omit [controller] to own its primary controller.
+class AmeScrollMotion extends StatefulWidget {
+  const AmeScrollMotion({
     required this.child,
+    this.controller,
+    this.scrollDirection = Axis.vertical,
     this.onPointerSignal,
     super.key,
   });
 
-  final ScrollController controller;
+  final ScrollController? controller;
+  final Axis scrollDirection;
   final Widget child;
   final PointerSignalEventListener? onPointerSignal;
 
   @override
+  State<AmeScrollMotion> createState() => _AmeScrollMotionState();
+}
+
+class _AmeScrollMotionState extends State<AmeScrollMotion> {
+  AmeScrollController? _ownedController;
+
+  ScrollController get _controller =>
+      widget.controller ?? (_ownedController ??= AmeScrollController());
+
+  @override
+  void dispose() {
+    _ownedController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final disableAnimations = MediaQuery.disableAnimationsOf(context);
-    final scrollController = controller;
+    final scrollController = _controller;
     return Listener(
       onPointerDown: (_) {
-        if (scrollController is LibraryGalleryScrollController) {
+        if (scrollController is AmeScrollController) {
           scrollController.stopWheelMotion();
         }
       },
       onPointerSignal: (event) {
         // Scrollable resolves the signal after its hit-test path is dispatched.
         // It still owns axis modifiers, nested scrolling and event admission.
-        if (scrollController is LibraryGalleryScrollController) {
+        if (scrollController is AmeScrollController) {
           scrollController.preparePointerScroll(
             animate:
                 event is PointerScrollEvent &&
@@ -69,18 +92,57 @@ class LibraryGalleryScrollMotion extends StatelessWidget {
                 !disableAnimations,
           );
         }
-        onPointerSignal?.call(event);
+        _routeHorizontalWheel(event);
+        widget.onPointerSignal?.call(event);
       },
-      child: child,
+      child: PrimaryScrollController(
+        controller: scrollController,
+        scrollDirection: widget.scrollDirection,
+        automaticallyInheritForPlatforms: const {...TargetPlatform.values},
+        child: widget.child,
+      ),
     );
+  }
+
+  void _routeHorizontalWheel(PointerSignalEvent event) {
+    if (widget.scrollDirection != Axis.horizontal ||
+        event is! PointerScrollEvent ||
+        event.kind != PointerDeviceKind.mouse ||
+        event.scrollDelta.dx != 0 ||
+        event.scrollDelta.dy == 0 ||
+        _controller.positions.length != 1) {
+      return;
+    }
+    final position = _controller.position;
+    if (!position.hasContentDimensions ||
+        !position.physics.shouldAcceptUserOffset(position)) {
+      return;
+    }
+    final delta = axisDirectionIsReversed(position.axisDirection)
+        ? -event.scrollDelta.dy
+        : event.scrollDelta.dy;
+    final target = (position.pixels + delta).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    if (target == position.pixels) return;
+    // The inner Scrollable has first claim on horizontal and Shift-wheel input.
+    // At an edge, leave the event available to an enclosing scroll view.
+    GestureBinding.instance.pointerSignalResolver.register(event, (_) {
+      if (mounted && _controller.positions.contains(position)) {
+        position.pointerScroll(delta);
+      }
+    });
   }
 }
 
-class _GalleryScrollPosition extends ScrollPositionWithSingleContext {
-  _GalleryScrollPosition({
+class _AmeScrollPosition extends ScrollPositionWithSingleContext {
+  _AmeScrollPosition({
     required super.physics,
     required super.context,
     required super.initialPixels,
+    super.keepScrollOffset,
+    super.debugLabel,
     super.oldPosition,
   });
 

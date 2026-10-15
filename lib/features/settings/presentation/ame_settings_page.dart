@@ -6,6 +6,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../../../app/notifications/ame_notification_strings.dart";
+import "../../../app/presentation/ame_scroll_motion.dart";
 import "../application/ame_preferences.dart";
 import "widgets/settings_section.dart";
 import "widgets/storage_settings_section.dart";
@@ -25,207 +26,212 @@ class AmeSettingsPage extends ConsumerWidget {
     final preferences = ref.watch(amePreferencesControllerProvider);
     return ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
-      child: CustomScrollView(
-        key: const Key("ame-settings-page"),
-        slivers: [
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(32, 24, 32, 64),
-            sliver: SliverToBoxAdapter(
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 980),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Row(
-                        children: [
-                          const Icon(Symbols.settings_rounded, size: 30),
-                          const SizedBox(width: 12),
-                          Text(
-                            "设置",
-                            style: Theme.of(context).textTheme.headlineMedium,
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 36),
-                      SettingsSection(
-                        title: "个性化",
-                        children: [
-                          SettingsRow(
-                            icon: Symbols.palette_rounded,
-                            title: "应用主题",
-                            subtitle: const Text("选择明暗外观，主题色跟随 Windows"),
-                            trailing: SettingsChoice<AmeThemePreference>(
-                              value: preferences.theme,
-                              entries: const [
-                                SettingsChoiceEntry(
-                                  value: AmeThemePreference.system,
-                                  label: "跟随系统",
-                                ),
-                                SettingsChoiceEntry(
-                                  value: AmeThemePreference.light,
-                                  label: "浅色",
-                                ),
-                                SettingsChoiceEntry(
-                                  value: AmeThemePreference.dark,
-                                  label: "深色",
-                                ),
-                              ],
-                              onSelected: (value) {
-                                if (value != null) {
-                                  unawaited(
-                                    _savePreferences(
-                                      ref,
-                                      preferences.copyWith(theme: value),
-                                    ),
-                                  );
-                                }
-                              },
+      child: AmeScrollMotion(
+        child: CustomScrollView(
+          key: const Key("ame-settings-page"),
+          slivers: [
+            SliverPadding(
+              padding: const EdgeInsets.fromLTRB(32, 24, 32, 64),
+              sliver: SliverToBoxAdapter(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 980),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Row(
+                          children: [
+                            const Icon(Symbols.settings_rounded, size: 30),
+                            const SizedBox(width: 12),
+                            Text(
+                              "设置",
+                              style: Theme.of(context).textTheme.headlineMedium,
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-                      SettingsSection(
-                        title: "浏览",
-                        children: [
-                          SettingsRow(
-                            icon: Symbols.mouse_rounded,
-                            title: "鼠标滚轮",
-                            subtitle: const Text("查看单张图片时滚动滚轮的行为"),
-                            trailing: SettingsChoice<ImageViewerWheelBehavior>(
-                              value: preferences.viewerWheelBehavior,
-                              entries: const [
-                                SettingsChoiceEntry(
-                                  value: ImageViewerWheelBehavior.zoom,
-                                  label: "放大或缩小",
-                                ),
-                                SettingsChoiceEntry(
-                                  value:
-                                      ImageViewerWheelBehavior.previousOrNext,
-                                  label: "上一张或下一张",
-                                ),
-                              ],
-                              onSelected: (value) {
-                                if (value != null) {
-                                  unawaited(
-                                    _savePreferences(
-                                      ref,
-                                      preferences.copyWith(
-                                        viewerWheelBehavior: value,
+                          ],
+                        ),
+                        const SizedBox(height: 36),
+                        SettingsSection(
+                          title: "个性化",
+                          children: [
+                            SettingsRow(
+                              icon: Symbols.palette_rounded,
+                              title: "应用主题",
+                              subtitle: const Text("选择明暗外观，主题色跟随 Windows"),
+                              trailing: SettingsChoice<AmeThemePreference>(
+                                value: preferences.theme,
+                                entries: const [
+                                  SettingsChoiceEntry(
+                                    value: AmeThemePreference.system,
+                                    label: "跟随系统",
+                                  ),
+                                  SettingsChoiceEntry(
+                                    value: AmeThemePreference.light,
+                                    label: "浅色",
+                                  ),
+                                  SettingsChoiceEntry(
+                                    value: AmeThemePreference.dark,
+                                    label: "深色",
+                                  ),
+                                ],
+                                onSelected: (value) {
+                                  if (value != null) {
+                                    unawaited(
+                                      _savePreferences(
+                                        ref,
+                                        preferences.copyWith(theme: value),
                                       ),
-                                    ),
-                                  );
-                                }
-                              },
+                                    );
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                          SettingsRow(
-                            icon: Symbols.image_rounded,
-                            title: "打开图片",
-                            subtitle: const Text("自动模式缩小大图，小图保持实际大小"),
-                            trailing: SettingsChoice<ImageViewerOpenBehavior>(
-                              value: preferences.viewerOpenBehavior,
-                              entries: const [
-                                SettingsChoiceEntry(
-                                  value: ImageViewerOpenBehavior.automatic,
-                                  label: "自动",
-                                ),
-                                SettingsChoiceEntry(
-                                  value: ImageViewerOpenBehavior.fitWindow,
-                                  label: "适应窗口",
-                                ),
-                                SettingsChoiceEntry(
-                                  value: ImageViewerOpenBehavior.actualSize,
-                                  label: "实际大小",
-                                ),
-                              ],
-                              onSelected: (value) {
-                                if (value != null) {
-                                  unawaited(
-                                    _savePreferences(
-                                      ref,
-                                      preferences.copyWith(
-                                        viewerOpenBehavior: value,
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        SettingsSection(
+                          title: "浏览",
+                          children: [
+                            SettingsRow(
+                              icon: Symbols.mouse_rounded,
+                              title: "鼠标滚轮",
+                              subtitle: const Text("查看单张图片时滚动滚轮的行为"),
+                              trailing:
+                                  SettingsChoice<ImageViewerWheelBehavior>(
+                                    value: preferences.viewerWheelBehavior,
+                                    entries: const [
+                                      SettingsChoiceEntry(
+                                        value: ImageViewerWheelBehavior.zoom,
+                                        label: "放大或缩小",
                                       ),
-                                    ),
-                                  );
-                                }
-                              },
-                            ),
-                          ),
-                          SettingsRow(
-                            key: const Key("preview-loading-speed-setting"),
-                            icon: Symbols.speed_rounded,
-                            title: "缩略图加载速度",
-                            subtitle: const Text("档位越大，同时加载越多，占用资源也越高"),
-                            trailing: SettingsChoice<PreviewLoadingSpeed>(
-                              value: preferences.previewLoadingSpeed,
-                              entries: const [
-                                SettingsChoiceEntry(
-                                  value: PreviewLoadingSpeed.small,
-                                  label: "小",
-                                ),
-                                SettingsChoiceEntry(
-                                  value: PreviewLoadingSpeed.medium,
-                                  label: "中",
-                                ),
-                                SettingsChoiceEntry(
-                                  value: PreviewLoadingSpeed.large,
-                                  label: "大",
-                                ),
-                              ],
-                              onSelected: (value) {
-                                if (value != null) {
-                                  unawaited(
-                                    _savePreferences(
-                                      ref,
-                                      preferences.copyWith(
-                                        previewLoadingSpeed: value,
+                                      SettingsChoiceEntry(
+                                        value: ImageViewerWheelBehavior
+                                            .previousOrNext,
+                                        label: "上一张或下一张",
                                       ),
-                                    ),
-                                  );
-                                }
-                              },
+                                    ],
+                                    onSelected: (value) {
+                                      if (value != null) {
+                                        unawaited(
+                                          _savePreferences(
+                                            ref,
+                                            preferences.copyWith(
+                                              viewerWheelBehavior: value,
+                                            ),
+                                          ),
+                                        );
+                                      }
+                                    },
+                                  ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 28),
-                      StorageSettingsSection(
-                        hasLibraryRoots: hasLibraryRoots,
-                        libraryRootIds: libraryRootIds,
-                      ),
-                      const SizedBox(height: 28),
-                      SettingsSection(
-                        title: "关于",
-                        children: [
-                          const SettingsRow(
-                            icon: Symbols.info_rounded,
-                            title: "版本",
-                            subtitle: Text("Cedarflake Ame 0.1.0"),
-                          ),
-                          SettingsRow(
-                            key: const Key("open-source-notices-setting"),
-                            icon: Symbols.code_rounded,
-                            title: "开源软件声明",
-                            subtitle: const Text("查看 Ame 使用的开源软件与许可"),
-                            trailing: const Icon(Symbols.chevron_right_rounded),
-                            onTap: () => showLicensePage(
-                              context: context,
-                              applicationName: "Cedarflake Ame",
-                              applicationVersion: "0.1.0",
+                            SettingsRow(
+                              icon: Symbols.image_rounded,
+                              title: "打开图片",
+                              subtitle: const Text("自动模式缩小大图，小图保持实际大小"),
+                              trailing: SettingsChoice<ImageViewerOpenBehavior>(
+                                value: preferences.viewerOpenBehavior,
+                                entries: const [
+                                  SettingsChoiceEntry(
+                                    value: ImageViewerOpenBehavior.automatic,
+                                    label: "自动",
+                                  ),
+                                  SettingsChoiceEntry(
+                                    value: ImageViewerOpenBehavior.fitWindow,
+                                    label: "适应窗口",
+                                  ),
+                                  SettingsChoiceEntry(
+                                    value: ImageViewerOpenBehavior.actualSize,
+                                    label: "实际大小",
+                                  ),
+                                ],
+                                onSelected: (value) {
+                                  if (value != null) {
+                                    unawaited(
+                                      _savePreferences(
+                                        ref,
+                                        preferences.copyWith(
+                                          viewerOpenBehavior: value,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                    ],
+                            SettingsRow(
+                              key: const Key("preview-loading-speed-setting"),
+                              icon: Symbols.speed_rounded,
+                              title: "缩略图加载速度",
+                              subtitle: const Text("档位越大，同时加载越多，占用资源也越高"),
+                              trailing: SettingsChoice<PreviewLoadingSpeed>(
+                                value: preferences.previewLoadingSpeed,
+                                entries: const [
+                                  SettingsChoiceEntry(
+                                    value: PreviewLoadingSpeed.small,
+                                    label: "小",
+                                  ),
+                                  SettingsChoiceEntry(
+                                    value: PreviewLoadingSpeed.medium,
+                                    label: "中",
+                                  ),
+                                  SettingsChoiceEntry(
+                                    value: PreviewLoadingSpeed.large,
+                                    label: "大",
+                                  ),
+                                ],
+                                onSelected: (value) {
+                                  if (value != null) {
+                                    unawaited(
+                                      _savePreferences(
+                                        ref,
+                                        preferences.copyWith(
+                                          previewLoadingSpeed: value,
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 28),
+                        StorageSettingsSection(
+                          hasLibraryRoots: hasLibraryRoots,
+                          libraryRootIds: libraryRootIds,
+                        ),
+                        const SizedBox(height: 28),
+                        SettingsSection(
+                          title: "关于",
+                          children: [
+                            const SettingsRow(
+                              icon: Symbols.info_rounded,
+                              title: "版本",
+                              subtitle: Text("Cedarflake Ame 0.1.0"),
+                            ),
+                            SettingsRow(
+                              key: const Key("open-source-notices-setting"),
+                              icon: Symbols.code_rounded,
+                              title: "开源软件声明",
+                              subtitle: const Text("查看 Ame 使用的开源软件与许可"),
+                              trailing: const Icon(
+                                Symbols.chevron_right_rounded,
+                              ),
+                              onTap: () => showLicensePage(
+                                context: context,
+                                applicationName: "Cedarflake Ame",
+                                applicationVersion: "0.1.0",
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

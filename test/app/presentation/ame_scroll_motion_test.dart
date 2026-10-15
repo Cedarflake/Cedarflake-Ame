@@ -1,4 +1,4 @@
-import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_scroll_motion.dart";
+import "package:cedarflake_ame/app/presentation/ame_scroll_motion.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -66,7 +66,7 @@ void main() {
     expect(controller.offset, closeTo(547, 0.001));
   });
 
-  testWidgets("photos remain clickable and pointer down stops the tail", (
+  testWidgets("content remains clickable and pointer down stops the tail", (
     tester,
   ) async {
     var taps = 0;
@@ -116,10 +116,7 @@ void main() {
     "precision trackpad movement matches the native scroll position",
     (tester) async {
       final trajectories = <List<double>>[];
-      for (final controller in [
-        ScrollController(),
-        LibraryGalleryScrollController(),
-      ]) {
+      for (final controller in [ScrollController(), AmeScrollController()]) {
         await _mount(tester, scrollController: controller);
         controller.jumpTo(500);
         final center = tester.getCenter(find.byType(ListView));
@@ -194,14 +191,14 @@ Future<ScrollController> _mount(
   VoidCallback? onTap,
   ScrollController? scrollController,
 }) async {
-  final controller = scrollController ?? LibraryGalleryScrollController();
+  final controller = scrollController ?? AmeScrollController();
   addTearDown(controller.dispose);
   await tester.pumpWidget(
     MaterialApp(
       home: MediaQuery(
         data: MediaQueryData(disableAnimations: reducedMotion),
         child: Scaffold(
-          body: LibraryGalleryScrollMotion(
+          body: AmeScrollMotion(
             controller: controller,
             child: ListView.builder(
               controller: controller,

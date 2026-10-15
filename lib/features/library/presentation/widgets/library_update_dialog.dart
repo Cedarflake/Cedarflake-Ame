@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_source_navigation_tile.dart";
@@ -67,44 +68,46 @@ class _LibraryUpdateDialogState extends State<_LibraryUpdateDialog> {
         width: 440,
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxHeight: 360),
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: widget.roots.length,
-            itemBuilder: (context, index) {
-              final root = widget.roots[index];
-              final isActive = widget.activeRootIds.contains(root.id);
-              final isAvailable =
-                  root.availability == LibraryRootAvailability.available;
-              final isEnabled = !isActive && isAvailable;
-              final isSelected = _selectedRootIds.contains(root.id);
-              return CheckboxListTile(
-                key: ValueKey("library-update-root-${root.id}"),
-                value: isSelected,
-                enabled: isEnabled,
-                controlAffinity: ListTileControlAffinity.leading,
-                title: Text(librarySourceName(root.displayPath)),
-                subtitle: Text(
-                  isActive
-                      ? LibraryStrings.updatingLibrary
-                      : isAvailable
-                      ? root.displayPath
-                      : LibraryStrings.sourceUnavailable,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                onChanged: isEnabled
-                    ? (value) {
-                        setState(() {
-                          if (value ?? false) {
-                            _selectedRootIds.add(root.id);
-                          } else {
-                            _selectedRootIds.remove(root.id);
-                          }
-                        });
-                      }
-                    : null,
-              );
-            },
+          child: AmeScrollMotion(
+            child: ListView.builder(
+              shrinkWrap: true,
+              itemCount: widget.roots.length,
+              itemBuilder: (context, index) {
+                final root = widget.roots[index];
+                final isActive = widget.activeRootIds.contains(root.id);
+                final isAvailable =
+                    root.availability == LibraryRootAvailability.available;
+                final isEnabled = !isActive && isAvailable;
+                final isSelected = _selectedRootIds.contains(root.id);
+                return CheckboxListTile(
+                  key: ValueKey("library-update-root-${root.id}"),
+                  value: isSelected,
+                  enabled: isEnabled,
+                  controlAffinity: ListTileControlAffinity.leading,
+                  title: Text(librarySourceName(root.displayPath)),
+                  subtitle: Text(
+                    isActive
+                        ? LibraryStrings.updatingLibrary
+                        : isAvailable
+                        ? root.displayPath
+                        : LibraryStrings.sourceUnavailable,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  onChanged: isEnabled
+                      ? (value) {
+                          setState(() {
+                            if (value ?? false) {
+                              _selectedRootIds.add(root.id);
+                            } else {
+                              _selectedRootIds.remove(root.id);
+                            }
+                          });
+                        }
+                      : null,
+                );
+              },
+            ),
           ),
         ),
       ),

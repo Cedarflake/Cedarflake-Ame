@@ -368,6 +368,19 @@ position when possible.
   paints non-interactive card backgrounds in its final equal-height rectangles behind the shared
   loading line, as specified by ADR 0014. Detail and preview arrival preserve those rectangles and
   the precise position already reached by the rail in an unchanged layout.
+- Mouse-wheel deceleration is shared across Ame scroll regions through `AmeScrollMotion` and
+  `AmeScrollController`, including navigation, settings, details, tasks and the viewer filmstrip.
+  Each region retains its own native scroll position. Wheel movement is immediate except for a
+  90 ms ease-out tail of at most 24 logical pixels; repeated input preserves its total distance,
+  and reversal, pointer-down, direct positioning or layout correction retires the old tail.
+  Reduced-motion mode and precision touchpad input retain native movement. Vertical mouse-wheel
+  input also scrolls horizontal regions; native horizontal/Shift input has first claim, and an
+  inner region at its boundary leaves the event available to its parent.
+  The pinned SDK's `ScrollController.createScrollPosition` and `PrimaryScrollController` provide
+  the extension points. Material `ScrollBehavior` has no controller factory, and `ScrollPhysics`
+  alone does not animate mouse-wheel jumps. `AmeScrollMotionTheme` carries a separate primary
+  controller into captured Material routes without replacing their menus, focus or semantics.
+  Framework controls that require their own private controllers retain those controllers.
 - A cold thumbnail reveals its first decoded frame with a 120 ms ease-out opacity transition
   inside the existing rectangle. Synchronous cache hits appear immediately. Active or recent
   scrolling, disabled animations and initially inactive ticker scopes skip the reveal; further scrolling

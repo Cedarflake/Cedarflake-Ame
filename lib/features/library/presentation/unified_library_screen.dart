@@ -7,6 +7,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../app/notifications/ame_notification_controller.dart";
 import "../../../app/notifications/ame_notification_strings.dart";
 import "../../../app/presentation/ame_notifications.dart";
+import "../../../app/presentation/ame_scroll_motion.dart";
 import "../adapters/windows_library_platform_actions.dart";
 import "../../settings/application/ame_preferences.dart";
 import "../../settings/presentation/ame_settings_page.dart";
@@ -37,7 +38,6 @@ import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
-import "widgets/library_gallery_scroll_motion.dart";
 import "widgets/library_gallery_viewport.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
@@ -75,7 +75,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   static const _liveOnlyCapabilityNotificationKey =
       "library.liveOnlyCapability";
 
-  late final LibraryGalleryScrollController _galleryScrollController;
+  late final AmeScrollController _galleryScrollController;
   final Set<ScrollPosition> _galleryScrollPositions = {};
   late final LibraryController _libraryController;
   late final AmeNotificationController _notificationController;
@@ -137,7 +137,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _galleryScrollController = LibraryGalleryScrollController(
+    _galleryScrollController = AmeScrollController(
       onAttach: _handleGalleryScrollPositionAttached,
       onDetach: _handleGalleryScrollPositionDetached,
     );

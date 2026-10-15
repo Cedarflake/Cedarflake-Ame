@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "../library_asset_summary.dart";
@@ -14,54 +15,56 @@ Future<void> showLibraryAssetInformation(
     showDragHandle: true,
     isScrollControlled: true,
     builder: (context) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              LibraryStrings.viewInformation,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 16),
-            _InformationRow(
-              label: "文件",
-              value: displayLibraryFileName(asset.displayPath),
-            ),
-            _InformationRow(label: "路径", value: asset.displayPath),
-            _InformationRow(
-              label: "类型",
-              value: libraryFileType(asset.displayPath),
-            ),
-            _InformationRow(
-              label: "尺寸",
-              value: asset.width > 0 && asset.height > 0
-                  ? "${asset.width} × ${asset.height}"
-                  : "未知",
-            ),
-            _InformationRow(
-              label: "大小",
-              value: libraryFileSize(asset.fileSize),
-            ),
-            _InformationRow(
-              label: "拍摄时间",
-              value: _formatCaptureTime(asset.captureTime),
-            ),
-            if (asset.captureTime case final captureTime?)
-              _InformationRow(
-                label: "时间来源",
-                value: _captureSourceLabel(captureTime.source),
+      child: AmeScrollMotion(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text(
+                LibraryStrings.viewInformation,
+                style: Theme.of(context).textTheme.titleLarge,
               ),
-            _InformationRow(
-              label: "创建时间",
-              value: _formatUnixTime(asset.createdUnixMs),
-            ),
-            _InformationRow(
-              label: "修改时间",
-              value: _formatUnixTime(asset.modifiedUnixMs),
-            ),
-          ],
+              const SizedBox(height: 16),
+              _InformationRow(
+                label: "文件",
+                value: displayLibraryFileName(asset.displayPath),
+              ),
+              _InformationRow(label: "路径", value: asset.displayPath),
+              _InformationRow(
+                label: "类型",
+                value: libraryFileType(asset.displayPath),
+              ),
+              _InformationRow(
+                label: "尺寸",
+                value: asset.width > 0 && asset.height > 0
+                    ? "${asset.width} × ${asset.height}"
+                    : "未知",
+              ),
+              _InformationRow(
+                label: "大小",
+                value: libraryFileSize(asset.fileSize),
+              ),
+              _InformationRow(
+                label: "拍摄时间",
+                value: _formatCaptureTime(asset.captureTime),
+              ),
+              if (asset.captureTime case final captureTime?)
+                _InformationRow(
+                  label: "时间来源",
+                  value: _captureSourceLabel(captureTime.source),
+                ),
+              _InformationRow(
+                label: "创建时间",
+                value: _formatUnixTime(asset.createdUnixMs),
+              ),
+              _InformationRow(
+                label: "修改时间",
+                value: _formatUnixTime(asset.modifiedUnixMs),
+              ),
+            ],
+          ),
         ),
       ),
     ),

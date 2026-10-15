@@ -4,10 +4,10 @@ import "dart:math" as math;
 
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
-import "package:flutter/gestures.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 import "../../domain/library_models.dart";
@@ -37,7 +37,7 @@ class _LibraryViewerFilmstripState
     extends ConsumerState<LibraryViewerFilmstrip> {
   static const _extent = 100.0;
   late final _controller = ref.read(libraryControllerProvider.notifier);
-  final _scroll = ScrollController();
+  final _scroll = AmeScrollController();
   final _previewOwner = Object();
   int? _windowStart;
   String? _queryId;
@@ -88,8 +88,9 @@ class _LibraryViewerFilmstripState
           _scheduleDemand();
           return Stack(
             children: [
-              Listener(
-                onPointerSignal: _handleWheel,
+              AmeScrollMotion(
+                controller: _scroll,
+                scrollDirection: Axis.horizontal,
                 child: Scrollbar(
                   controller: _scroll,
                   thumbVisibility: true,
@@ -181,23 +182,6 @@ class _LibraryViewerFilmstripState
       );
       if (!_isPaging && !_pagingFailed) {
         unawaited(_loadAtEdge(state, start, end));
-      }
-    });
-  }
-
-  void _handleWheel(PointerSignalEvent event) {
-    if (!_isActive ||
-        !_scroll.hasClients ||
-        event is! PointerScrollEvent ||
-        event.kind != PointerDeviceKind.mouse ||
-        event.scrollDelta.dx != 0 ||
-        event.scrollDelta.dy == 0) {
-      return;
-    }
-    // Horizontal wheels and Shift-wheel remain owned by the inner Scrollable.
-    GestureBinding.instance.pointerSignalResolver.register(event, (_) {
-      if (mounted && _isActive && _scroll.hasClients) {
-        _scroll.position.pointerScroll(event.scrollDelta.dy);
       }
     });
   }

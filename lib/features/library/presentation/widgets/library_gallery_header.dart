@@ -3,6 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
@@ -95,9 +96,12 @@ class LibraryGalleryHeader extends StatelessWidget {
                   children: [
                     titleBlock,
                     const SizedBox(height: 12),
-                    SingleChildScrollView(
+                    AmeScrollMotion(
                       scrollDirection: Axis.horizontal,
-                      child: toolbar,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: toolbar,
+                      ),
                     ),
                   ],
                 );
@@ -107,16 +111,19 @@ class LibraryGalleryHeader extends StatelessWidget {
                   titleBlock,
                   const SizedBox(width: 24),
                   Expanded(
-                    child: SingleChildScrollView(
+                    child: AmeScrollMotion(
                       scrollDirection: Axis.horizontal,
-                      reverse: true,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth - 210,
-                        ),
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: toolbar,
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        reverse: true,
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            minWidth: constraints.maxWidth - 210,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: toolbar,
+                          ),
                         ),
                       ),
                     ),

@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../features/library/presentation/unified_library_screen.dart";
 import "../features/settings/application/ame_preferences.dart";
 import "presentation/ame_localizations.dart";
+import "presentation/ame_scroll_motion_theme.dart";
 import "presentation/ame_system_theme.dart";
 import "presentation/ame_theme.dart";
 
@@ -26,7 +27,7 @@ class AmeApp extends ConsumerWidget {
           seedColor: seedColor,
         ),
         themeMode: ameThemeMode(preferences.theme),
-        home: const UnifiedLibraryScreen(),
+        home: const AmeScrollMotionTheme(child: UnifiedLibraryScreen()),
       ),
     );
   }

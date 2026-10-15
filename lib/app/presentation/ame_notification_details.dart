@@ -4,6 +4,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../notifications/ame_notification_controller.dart";
 import "../notifications/ame_notification_strings.dart";
 import "ame_notification_time.dart";
+import "ame_scroll_motion.dart";
 
 Future<void> showAmeNotificationDetails(
   BuildContext context,
@@ -48,51 +49,53 @@ class _AmeNotificationDetails extends ConsumerWidget {
       title: const Text(AmeNotificationStrings.notificationDetails),
       content: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 520),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                notification.title,
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              if (notification.message.isNotEmpty) ...[
-                const SizedBox(height: 8),
-                Text(notification.message),
-              ],
-              if (notification.detail case final detail?) ...[
-                const SizedBox(height: 8),
-                Text(detail),
-              ],
-              if (notification.elapsedStartedAt case final startedAt?
-                  when !isHistorical) ...[
-                const SizedBox(height: 8),
+        child: AmeScrollMotion(
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
                 Text(
-                  "已持续 ${formatAmeNotificationElapsed(DateTime.now().difference(startedAt))}",
+                  notification.title,
+                  style: Theme.of(context).textTheme.titleMedium,
                 ),
-              ],
-              if (notification.sourcePath case final sourcePath?) ...[
+                if (notification.message.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(notification.message),
+                ],
+                if (notification.detail case final detail?) ...[
+                  const SizedBox(height: 8),
+                  Text(detail),
+                ],
+                if (notification.elapsedStartedAt case final startedAt?
+                    when !isHistorical) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    "已持续 ${formatAmeNotificationElapsed(DateTime.now().difference(startedAt))}",
+                  ),
+                ],
+                if (notification.sourcePath case final sourcePath?) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    AmeNotificationStrings.sourcePath,
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  SelectableText(sourcePath),
+                ],
+                if (notification.technicalCode case final technicalCode?) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    AmeNotificationStrings.technicalCode,
+                    style: Theme.of(context).textTheme.labelMedium,
+                  ),
+                  const SizedBox(height: 4),
+                  SelectableText(technicalCode),
+                ],
                 const SizedBox(height: 16),
-                Text(
-                  AmeNotificationStrings.sourcePath,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-                const SizedBox(height: 4),
-                SelectableText(sourcePath),
+                Text(formatAmeNotificationOccurredAt(notification.occurredAt)),
               ],
-              if (notification.technicalCode case final technicalCode?) ...[
-                const SizedBox(height: 16),
-                Text(
-                  AmeNotificationStrings.technicalCode,
-                  style: Theme.of(context).textTheme.labelMedium,
-                ),
-                const SizedBox(height: 4),
-                SelectableText(technicalCode),
-              ],
-              const SizedBox(height: 16),
-              Text(formatAmeNotificationOccurredAt(notification.occurredAt)),
-            ],
+            ),
           ),
         ),
       ),

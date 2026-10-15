@@ -91,6 +91,13 @@ native full screen. Preserve opening preferences, gallery return position, bound
 reads and normal window placement. Deliver connected viewer controls and their relevant regressions
 on this branch; the existing animation PR retains its scope.
 
+Extend the existing wheel deceleration into a shared presentation component on the same branch.
+Use it in the gallery, navigation, settings, task lists, information/notification details, horizontal
+toolbars and viewer filmstrip, and carry it into captured Material menu/dialog routes. Keep each
+scroll region's controller independent, preserve native input arbitration and reduced-motion
+behavior, and verify nested edge handoff and route disposal. Complete this increment before the
+selected PR stack review and merge; then address the retained-library reopening failure below.
+
 An isolated retained-library reopening failure remains open: a completed journal baseline followed
 by `identity_journal_hardlinks_not_supported` leaves its checkpoint in `recovery_required`, and the
 next startup rejects that state with `catalog_persistent_journal_baseline_contract_unverifiable`.
