@@ -466,8 +466,9 @@ source retains the already decoded image, and scrolling skips the first-frame fa
 
 The strip is first created when expanded. Collapsing retains its lazy visible elements until the
 viewer closes, while removing its preview demand, focus and animation activity. Every expansion
-centers the current image while reusing compatible previews; horizontal end padding also allows
-the first and last images to center. Selection changes while the strip remains open only scroll
+centers the current image within the natural scroll bounds while reusing compatible previews.
+Near the start or end, the strip aligns to that boundary without adding empty space to force
+centering. Selection changes while the strip remains open only scroll
 when needed to bring the thumbnail fully into view. Manual strip scrolling leaves the main image
 unchanged.
 

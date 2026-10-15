@@ -121,12 +121,12 @@ void main() {
     await tester.pumpAndSettle();
     final strip = find.byKey(const Key("viewer-filmstrip"));
     final scroll = tester.widget<ListView>(strip).controller!;
-    expect(scroll.offset, 2000);
+    expect(scroll.offset, 1700);
     final initialDemands = controller.demands;
     await tester.tap(find.byKey(const ValueKey("location-21")));
     await tester.pumpAndSettle();
     expect(selection.value.locationId, "location-21");
-    expect(scroll.offset, 2000);
+    expect(scroll.offset, 1700);
     scroll.jumpTo(3000);
     await tester.pumpAndSettle();
     visible.value = false;
@@ -179,7 +179,9 @@ void main() {
       tester.getCenter(find.byKey(const ValueKey("location-45"))).dx,
       closeTo(tester.getCenter(strip).dx, 0.1),
     );
-    for (final edge in [assets.first, assets.last]) {
+    for (final index in [0, 2, assets.length - 3, assets.length - 1]) {
+      final nearStart = index < 3;
+      final edge = assets[index];
       visible.value = false;
       await tester.pumpAndSettle();
       selection.value = edge;
@@ -188,8 +190,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.widget<ListView>(strip).controller, same(scroll));
       expect(
-        tester.getCenter(find.byKey(ValueKey(edge.locationId))).dx,
-        closeTo(tester.getCenter(strip).dx, 0.1),
+        find.byKey(ValueKey(edge.locationId)).hitTestable(),
+        findsOneWidget,
+      );
+      expect(scroll.offset, nearStart ? 0 : scroll.position.maxScrollExtent);
+      final boundaryAsset = nearStart ? assets.first : assets.last;
+      final boundary = tester.getRect(
+        find.byKey(ValueKey(boundaryAsset.locationId)),
+      );
+      final viewport = tester.getRect(strip);
+      expect(
+        nearStart ? boundary.left : boundary.right,
+        closeTo(nearStart ? viewport.left : viewport.right, 0.1),
       );
     }
     final beforeDispose = controller.releases;
