@@ -10,6 +10,7 @@ import "../../../../app/window/ame_window_fullscreen.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../domain/library_models.dart";
 import "library_viewer_controls.dart";
+import "library_viewer_filmstrip_slot.dart";
 import "library_viewer_image.dart";
 import "../library_viewer_zoom.dart";
 import "library_viewer_toolbar.dart";
@@ -170,7 +171,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
                 0,
                 constraints.maxHeight -
                     LibraryViewerToolbar.height -
-                    (showFilmstrip ? 104 : 0),
+                    (showFilmstrip ? LibraryViewerFilmstripSlot.height : 0),
               ),
             ),
             opening: widget.openBehavior,
@@ -178,7 +179,11 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
           return Column(
             children: [
               Expanded(child: _buildImageViewport()),
-              if (showFilmstrip) SizedBox(height: 104, child: widget.filmstrip),
+              if (widget.filmstrip case final filmstrip?)
+                LibraryViewerFilmstripSlot(
+                  visible: showFilmstrip,
+                  child: filmstrip,
+                ),
               LibraryViewerToolbar(
                 asset: widget.asset,
                 positionLabel: _positionLabel,

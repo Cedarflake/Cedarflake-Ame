@@ -1,10 +1,13 @@
+import "dart:async";
 import "dart:io";
 import "dart:ui" as ui;
 
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_preview_queue.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_filmstrip_slot.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -97,13 +100,86 @@ void main() {
     expect(_rawImage(tester).image!.isCloneOf(replacementPixels), isTrue);
     expect(tester.takeException(), isNull);
   });
+
+  testWidgets(
+    "reopening a retained strip preserves pixels without another fade",
+    (tester) async {
+      final asset = _asset("retained.jpg");
+      final frames = await _cacheFrames(asset);
+      frames.show(firstPixels);
+      final visible = ValueNotifier(true);
+      addTearDown(visible.dispose);
+      await _mount(tester, asset, _PreviewController(), visibility: visible);
+      final originalState = tester.state(find.byType(Image));
+      expect(_rawImage(tester).image!.isCloneOf(firstPixels), isTrue);
+      visible.value = false;
+      await tester.pumpAndSettle();
+      PaintingBinding.instance.imageCache.clear();
+      visible.value = true;
+      await tester.pump();
+      expect(tester.state(find.byType(Image)), same(originalState));
+      expect(_rawImage(tester).image!.isCloneOf(firstPixels), isTrue);
+      expect(_opacity(tester), 1);
+      expect(find.byIcon(Symbols.image_rounded), findsNothing);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    "a missing cached thumbnail repairs once and displays the new result",
+    (tester) async {
+      final asset = _asset("missing.jpg");
+      final frames = await _cacheFrames(asset);
+      final controller = _RepairController();
+      addTearDown(controller.changes.close);
+      await _mount(tester, asset, controller);
+      frames.fail();
+      await tester.pump();
+      await tester.pump();
+      expect(controller.repairs, 1);
+      expect(find.byIcon(Symbols.broken_image_rounded), findsOneWidget);
+      await tester.pump(const Duration(seconds: 1));
+      expect(controller.repairs, 1);
+
+      final repaired = _asset("repaired.jpg");
+      (await _cacheFrames(repaired)).show(replacementPixels);
+      controller.publish(repaired);
+      await tester.pumpAndSettle();
+      expect(_rawImage(tester).image?.isCloneOf(replacementPixels), isTrue);
+      expect(find.byIcon(Symbols.broken_image_rounded), findsNothing);
+      expect(controller.repairs, 1);
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets("a hidden thumbnail cannot begin automatic cache repair", (
+    tester,
+  ) async {
+    final asset = _asset("hidden-missing.jpg");
+    final frames = await _cacheFrames(asset);
+    final controller = _RepairController();
+    final visible = ValueNotifier(true);
+    addTearDown(visible.dispose);
+    addTearDown(controller.changes.close);
+    await _mount(tester, asset, controller, visibility: visible);
+    visible.value = false;
+    frames.fail();
+    await tester.pumpAndSettle();
+    expect(controller.repairs, 0);
+    visible.value = true;
+    await tester.pump();
+    await tester.pump();
+    expect(controller.repairs, 1);
+    expect(tester.takeException(), isNull);
+  });
 }
 
 Future<void> _mount(
   WidgetTester tester,
   LibraryAsset asset,
-  _PreviewController controller,
-) async {
+  _PreviewController controller, {
+  ValueNotifier<bool>? visibility,
+}) async {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.resetDevicePixelRatio);
   await tester.pumpWidget(
@@ -119,12 +195,27 @@ Future<void> _mount(
           body: Center(
             child: SizedBox(
               width: 400,
-              height: 104,
-              child: LibraryViewerFilmstrip(
-                selection: asset,
-                onSelected: (_) {},
-                loadPrevious: () async {},
-              ),
+              child: visibility == null
+                  ? SizedBox(
+                      height: 104,
+                      child: LibraryViewerFilmstrip(
+                        selection: asset,
+                        onSelected: (_) {},
+                        loadPrevious: () async {},
+                      ),
+                    )
+                  : ValueListenableBuilder(
+                      valueListenable: visibility,
+                      builder: (context, visible, _) =>
+                          LibraryViewerFilmstripSlot(
+                            visible: visible,
+                            child: LibraryViewerFilmstrip(
+                              selection: asset,
+                              onSelected: (_) {},
+                              loadPrevious: () async {},
+                            ),
+                          ),
+                    ),
             ),
           ),
         ),
@@ -163,10 +254,43 @@ Future<ui.Image> _pixels(int width, int height) async {
 
 class _Frames extends ImageStreamCompleter {
   void show(ui.Image image) => setImage(ImageInfo(image: image.clone()));
+
+  void fail() => reportError(
+    exception: const FileSystemException("Missing preview"),
+    silent: true,
+  );
 }
 
 class _PreviewController extends LibraryController {
   void replace(LibraryAsset asset) => state = state.copyWith(assets: [asset]);
+}
+
+class _RepairController extends _PreviewController {
+  final changes = StreamController<void>.broadcast(sync: true);
+  LibraryAsset? _published;
+  int repairs = 0;
+
+  @override
+  Stream<void> watchPreview(String locationId) => changes.stream;
+
+  @override
+  LibraryAsset resolvePreview(LibraryAsset asset) => _published ?? asset;
+
+  @override
+  void requestPreview(
+    LibraryAsset asset, {
+    bool retry = false,
+    LibraryPreviewPriority priority = LibraryPreviewPriority.visible,
+    int previewEdge = 512,
+  }) {
+    expect(retry, isTrue);
+    repairs++;
+  }
+
+  void publish(LibraryAsset asset) {
+    _published = asset;
+    changes.add(null);
+  }
 }
 
 LibraryAsset _asset(String previewPath, {int generation = 1}) => LibraryAsset(

@@ -464,6 +464,24 @@ the installed `ScrollbarThemeData.mainAxisMargin` reserves their space outside t
 New thumbnail pixels retain the placeholder until decoding finishes; a larger preview of the same
 source retains the already decoded image, and scrolling skips the first-frame fade.
 
+The strip is first created when expanded. Collapsing keeps its current scroll position and lazy
+visible elements until the viewer closes, while removing its preview demand, focus and animation
+activity. Reopening resumes that position without another reveal of retained pixels. Initial opening
+centers the selected image; subsequent selection changes only scroll when needed to bring the
+thumbnail fully into view. Manual strip scrolling leaves the main image unchanged.
+
+Completed preview metadata and verified sizes each keep at most 256 recently used entries beyond
+their immediate request lifetime. They reuse compatible results when returning to an image; source
+generation changes and root/cache invalidation retire incompatible evidence. Decoded pixels remain
+in Flutter's existing bounded image cache, with only the current lazy strip window retained while
+collapsed. Closing the viewer releases the strip elements and requests; disk previews retain their
+normal storage-budget lifetime. A missing or damaged displayed preview admits one automatic repair
+for that source while visible, without loading the rest of the library. Failure leaves the image
+selectable, and a late result cannot revive a hidden or replaced thumbnail's repair.
+
+This retention composes the installed Flutter `Visibility.maintainState` and `TickerMode` behavior;
+it does not introduce another pixel cache or persist strip scroll offsets across application restarts.
+
 The bottom more-actions menu opens above its button with a small gap, keeping the toolbar visible.
 
 F11 or the rightmost button toggles native full screen. Escape exits full screen first, otherwise

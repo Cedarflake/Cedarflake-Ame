@@ -93,12 +93,18 @@ bool libraryPreviewSourcesAreCompatible(
 }
 
 class LibraryPreviewStore {
-  LibraryPreviewStore({int maxRetainedFailures = 512})
-    : assert(maxRetainedFailures > 0),
-      _maxRetainedFailures = maxRetainedFailures;
+  LibraryPreviewStore({
+    int maxRetainedFailures = 512,
+    int maxRetainedReady = 256,
+  }) : assert(maxRetainedFailures > 0),
+       assert(maxRetainedReady > 0),
+       _maxRetainedFailures = maxRetainedFailures,
+       _maxRetainedReady = maxRetainedReady;
 
   final int _maxRetainedFailures;
+  final int _maxRetainedReady;
   final Map<String, _StoredLibraryPreview> _entries = {};
+  final LinkedHashMap<String, _StoredLibraryPreview> _ready = LinkedHashMap();
   final LinkedHashMap<String, _StoredLibraryPreview> _failures =
       LinkedHashMap();
   final Map<String, StreamController<void>> _channels = {};
@@ -106,10 +112,14 @@ class LibraryPreviewStore {
 
   LibraryAsset resolve(LibraryAsset fallback) {
     final stored =
-        _entries[fallback.locationId] ?? _failures[fallback.locationId];
+        _entries[fallback.locationId] ??
+        _ready[fallback.locationId] ??
+        _failures[fallback.locationId];
     if (stored == null || !stored.source.isCompatibleWith(fallback)) {
       return fallback;
     }
+    final recent = _ready.remove(fallback.locationId);
+    if (recent != null) _ready[fallback.locationId] = recent;
     final preview = stored.asset;
     return fallback.withPreview(
       previewPath: preview.previewPath,
@@ -155,6 +165,17 @@ class LibraryPreviewStore {
       source: LibraryPreviewSourceIdentity.fromAsset(asset),
     );
     _entries[asset.locationId] = stored;
+    _ready.remove(asset.locationId);
+    if (asset.previewStatus == LibraryPreviewStatus.ready) {
+      _ready[asset.locationId] = stored;
+      while (_ready.length > _maxRetainedReady) {
+        final evictedId = _ready.keys.first;
+        _ready.remove(evictedId);
+        if (!_entries.containsKey(evictedId)) {
+          _channels[evictedId]?.add(null);
+        }
+      }
+    }
     if (asset.previewStatus == LibraryPreviewStatus.failed) {
       _failures.remove(asset.locationId);
       _failures[asset.locationId] = stored;
@@ -179,7 +200,9 @@ class LibraryPreviewStore {
     final removedIds = <String>[];
     _entries.removeWhere((locationId, entry) {
       final shouldRemove = !retainedIds.contains(locationId);
-      if (shouldRemove && !_failures.containsKey(locationId)) {
+      if (shouldRemove &&
+          !_ready.containsKey(locationId) &&
+          !_failures.containsKey(locationId)) {
         removedIds.add(locationId);
       }
       return shouldRemove;
@@ -190,11 +213,13 @@ class LibraryPreviewStore {
   }
 
   void clear() {
-    if (_isDisposed || (_entries.isEmpty && _failures.isEmpty)) {
+    if (_isDisposed ||
+        (_entries.isEmpty && _ready.isEmpty && _failures.isEmpty)) {
       return;
     }
-    final removedIds = {..._entries.keys, ..._failures.keys};
+    final removedIds = {..._entries.keys, ..._ready.keys, ..._failures.keys};
     _entries.clear();
+    _ready.clear();
     _failures.clear();
     for (final locationId in removedIds) {
       _channels[locationId]?.add(null);
@@ -211,6 +236,11 @@ class LibraryPreviewStore {
       if (shouldRemove) {
         removedIds.add(locationId);
       }
+      return shouldRemove;
+    });
+    _ready.removeWhere((locationId, entry) {
+      final shouldRemove = entry.source.rootId == rootId;
+      if (shouldRemove) removedIds.add(locationId);
       return shouldRemove;
     });
     _failures.removeWhere((locationId, entry) {
@@ -231,6 +261,7 @@ class LibraryPreviewStore {
     }
     _isDisposed = true;
     _entries.clear();
+    _ready.clear();
     _failures.clear();
     final channels = _channels.values.toList(growable: false);
     _channels.clear();

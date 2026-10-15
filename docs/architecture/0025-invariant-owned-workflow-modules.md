@@ -517,8 +517,11 @@ page failure remain one boundary, with no second decoded page or per-record clon
   artifacts. A command exception cannot revoke an existing ready artifact; a source-authorized
   failed asset can. Queue completion still reports the command outcome and validates publication
   authority. A missing active catalog location retires the old request without publishing failure.
-  `library_preview_sizing.dart` separately owns verified sizes and failed exact-source/size attempts
-  retained only for current demand. Request completion carries the actual attempted size; failure
+  `library_preview_sizing.dart` separately owns verified sizes and failed exact-source/size attempts.
+  Verified sizes retain at most 256 recently used exact-source observations across demand changes;
+  `library_preview_store.dart` independently retains at most 256 recent ready overlays in addition
+  to demanded entries. These caches grant no request or publication authority. Failed size attempts
+  remain scoped to current demand. Request completion carries the actual attempted size; failure
   is never successful size verification. Changed demand/source, explicit retry or authority reset
   releases failed attempts. Root availability retains its separate root-failure owner's cooldown.
 - `LibraryQueryActivity` is a sealed idle/loading/failed projection owned by the viewport. Failure

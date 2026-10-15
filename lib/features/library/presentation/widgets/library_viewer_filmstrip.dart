@@ -1,22 +1,18 @@
 import "dart:async";
-import "dart:io";
 import "dart:math" as math;
 
 import "package:flutter/material.dart";
 import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_browse_admission.dart";
 import "../../application/library_controller.dart";
-import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
-import "library_image_reveal.dart";
-import "library_path_text.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 import "library_viewer_filmstrip_scrollbar.dart";
+import "library_viewer_filmstrip_thumbnail.dart";
 import "library_viewer_transition.dart";
 
 /// Browses the retained catalog window without instantiating offscreen thumbnails.
@@ -46,11 +42,13 @@ class _LibraryViewerFilmstripState
   int? _windowStart;
   String? _queryId;
   bool _centerSelection = true;
+  bool _revealSelection = false;
   bool _frameScheduled = false;
   bool _isPaging = false;
   bool _pagingFailed = false;
   double _width = 0;
   bool _isActive = true;
+  LibraryState? _displayState;
 
   @override
   void initState() {
@@ -62,7 +60,7 @@ class _LibraryViewerFilmstripState
   void didUpdateWidget(covariant LibraryViewerFilmstrip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.selection.locationId != widget.selection.locationId) {
-      _centerSelection = true;
+      _revealSelection = true;
       _pagingFailed = false;
     }
   }
@@ -70,8 +68,12 @@ class _LibraryViewerFilmstripState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _isActive = LibraryViewerActivity.isActiveOf(context);
-    if (!_isActive) _controller.releaseFilmstripPreviewDemand(_previewOwner);
+    _isActive =
+        LibraryViewerActivity.isActiveOf(context) && Visibility.of(context);
+    if (!_isActive) {
+      _controller.releaseFilmstripPreviewDemand(_previewOwner);
+      if (_scroll.hasClients) _scroll.jumpTo(_scroll.offset);
+    }
   }
 
   @override
@@ -83,7 +85,9 @@ class _LibraryViewerFilmstripState
 
   @override
   Widget build(BuildContext context) {
-    final state = ref.watch(libraryControllerProvider);
+    final current = ref.watch(libraryControllerProvider);
+    if (_isActive) _displayState = current;
+    final state = _displayState ?? current;
     return Material(
       color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: LayoutBuilder(
@@ -118,7 +122,7 @@ class _LibraryViewerFilmstripState
                     },
                     itemBuilder: (context, index) {
                       final asset = state.assets[index];
-                      return _FilmstripThumbnail(
+                      return LibraryViewerFilmstripThumbnail(
                         key: ValueKey(asset.locationId),
                         asset: asset,
                         isSelected:
@@ -174,6 +178,21 @@ class _LibraryViewerFilmstripState
         // Prepending or retiring a page preserves the same global strip position.
         _jump(_scroll.offset + (previousStart - _windowStart!) * _extent);
       }
+      if (_revealSelection) {
+        final index = state.assets.indexWhere(
+          (asset) => asset.locationId == widget.selection.locationId,
+        );
+        if (index >= 0) {
+          _revealSelection = false;
+          final leading = index * _extent;
+          final trailing = leading + _extent;
+          if (leading < _scroll.offset) {
+            _jump(leading);
+          } else if (trailing > _scroll.offset + _width) {
+            _jump(trailing - _width);
+          }
+        }
+      }
       final start = math.max(0, (_scroll.offset / _extent).floor() - 1);
       final end = math.min(
         state.assets.length,
@@ -222,79 +241,5 @@ class _LibraryViewerFilmstripState
         _scheduleDemand();
       }
     }
-  }
-}
-
-class _FilmstripThumbnail extends ConsumerWidget {
-  const _FilmstripThumbnail({
-    required this.asset,
-    required this.isSelected,
-    required this.onPressed,
-    super.key,
-  });
-
-  final LibraryAsset asset;
-  final bool isSelected;
-  final VoidCallback onPressed;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final controller = ref.read(libraryControllerProvider.notifier);
-    final colors = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 3),
-      child: Semantics(
-        button: true,
-        selected: isSelected,
-        label: displayLibraryFileName(asset.displayPath),
-        child: Material(
-          clipBehavior: Clip.antiAlias,
-          color: colors.surfaceContainerHigh,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(6),
-            side: BorderSide(
-              color: isSelected ? colors.primary : Colors.transparent,
-              width: 2,
-            ),
-          ),
-          child: InkWell(
-            onTap: onPressed,
-            child: Padding(
-              padding: const EdgeInsets.all(3),
-              child: ExcludeSemantics(
-                child: StreamBuilder<void>(
-                  stream: controller.watchPreview(asset.locationId),
-                  builder: (context, _) {
-                    final resolved = controller.resolvePreview(asset);
-                    if (resolved.previewStatus != LibraryPreviewStatus.ready) {
-                      return const Icon(Symbols.image_rounded, size: 22);
-                    }
-                    final source = LibraryPreviewSourceIdentity.fromAsset(
-                      resolved,
-                    );
-                    return LibraryImageReveal(
-                      key: ValueKey(source),
-                      image: ResizeImage.resizeIfNeeded(
-                        libraryPreviewDecodeWidth(
-                          94,
-                          MediaQuery.devicePixelRatioOf(context),
-                        ),
-                        null,
-                        FileImage(File(resolved.previewPath)),
-                      ),
-                      revealIdentity: source,
-                      fit: BoxFit.contain,
-                      placeholder: const Icon(Symbols.image_rounded, size: 22),
-                      errorBuilder: (context, error, stack) =>
-                          const Icon(Symbols.broken_image_rounded, size: 22),
-                    );
-                  },
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
