@@ -124,6 +124,12 @@ and unsigned Release. The preceding diagnostic sessions exited
 normally, restored original profile/catalog hashes and removed 22 disposable files (1.44 MiB),
 leaving the reusable corpus and the `build/test/derived` fixture marker.
 
+The [retained cold-preview observation](../acceptance/r2c-update-checkpoint.md#retained-cold-preview-and-publication-observation-on-2026-10-15)
+now covers middle navigation with an empty cache and idle position through automatic publication.
+The retained inventory reaches synchronized state, current October membership matches, and the
+client closes normally with original profile/catalog integrity and disposable-output cleanup.
+Preserve this result while the hosted checks and historical handle-close attribution continue.
+
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
 states, and a display-only retry is labeled Reload. `LibraryUpdateFeedback` owns the related task

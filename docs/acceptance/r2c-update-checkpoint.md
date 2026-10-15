@@ -810,3 +810,29 @@ Affected sizes: the installation owner has 311 non-inline-test lines including t
 test lines and 127 dedicated sharing-conflict test lines. The photo tile has 452 production lines,
 no inline tests and a 921-line existing dedicated test file. Owned formatting, diff inspection and
 the Debug build pass; new Rust and widget regressions run in Actions.
+
+## Retained cold-preview and publication observation on 2026-10-15
+
+The ordinary Debug build containing `a9e995b` and `029462e` opens a byte-verified copy of the
+retained catalog in `build/test/derived`, with preview references reset only in that copy and an
+empty 256-MiB cache. The original catalog and media remain untouched. This targets cold middle
+navigation and idle position during publication; it does not repeat the completed fresh import.
+The run is bounded to 15 minutes and a 2-GiB client working set.
+
+Two middle destinations, downward scrolling and reversal display preview pixels without a Retry
+control. The 48 logged slow native preview completions all return ready. Two logged visible comic
+previews take 834 and 841 ms including 577 and 578 ms of queue wait. Later off-screen prefetch work
+takes up to 10,063 ms; these logs do not time every visible image's first decoded frame.
+
+The retained baseline-required inventory also completes during the same lifetime: 70,078 entries
+and 2,446 candidates, with published membership increasing from 64,489 to 65,130. The existing scan
+count stays at one. Eighty-eight status polls have a 7-ms median and 55-ms maximum. The final client
+and persisted state report synchronized, with no pending work, retries or gaps. Both October
+subtrees exactly match their current source sets, 9 and 42 entries. The selected idle image group
+and visible position remain unchanged across publication; no Retry control appears in the sampled
+states. The historical complete transient Retry/jump remains unattributed.
+
+The client exits normally after 452,724 ms. All 128 sampled source sizes, modification times and
+file attributes match, and original settings, preferences and catalog hashes are restored and
+verified. Cleanup removes 232 disposable derived files totaling 460,870,655 bytes plus the temporary
+preparation helper. Reusable sources, templates and the derived fixture marker remain.
