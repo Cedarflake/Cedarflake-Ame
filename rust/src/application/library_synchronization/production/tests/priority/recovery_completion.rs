@@ -204,30 +204,19 @@ pub(super) fn verify_reopened(
         let terminal = catalog
             .load_terminal_media_evidence_by_relative_paths(target.root_id, &paths)
             .expect("bounded persisted negative-media evidence");
-        assert_eq!(locations.len(), paths.len());
+        assert!(
+            locations.is_empty(),
+            "non-image bytes must not become gallery items"
+        );
         assert_eq!(terminal.len(), paths.len());
         for path in paths {
-            let location = locations
-                .iter()
-                .find(|location| location.relative_path == path)
-                .expect("every candidate has a published result");
-            assert!(matches!(
-                location.preview_status,
-                crate::domain::PreviewStatus::Failed
-            ));
-            assert!(location.preview_issue_code.is_some());
-            assert!(location.source_revision.is_some());
-            assert!(location.source_generation > 0);
             let observation = terminal
                 .iter()
                 .find(|observation| observation.relative_path == path)
                 .expect("each terminal result retains its matching source evidence");
-            assert_eq!(observation.source_revision, location.source_revision);
-            assert_eq!(observation.source_generation, location.source_generation);
-            assert_eq!(
-                Some(&observation.issue.code),
-                location.preview_issue_code.as_ref()
-            );
+            assert!(observation.source_revision.is_some());
+            assert!(observation.source_generation > 0);
+            assert_eq!(observation.issue.code, "image_format_unsupported");
             assert_eq!(
                 std::fs::read(target.source_path.join(path)).expect("controlled source bytes"),
                 b"metadata-only recovery fixture",

@@ -83,6 +83,7 @@ fn remove_v27_spool_contract_for_test(connection: &Connection) {
 }
 
 fn add_catalog_state_to_legacy_fixture(connection: &Connection) {
+    ensure_legacy_asset_location_contract(connection);
     connection
         .execute_batch(
             "CREATE TABLE catalog_state (
@@ -2872,6 +2873,7 @@ fn migrates_v2_catalog_revision_from_completed_scans() {
                    ('scan-2', 'root-2', 'cancelled', 3, 4, 0, 0);",
         )
         .expect("v2 schema");
+    ensure_legacy_asset_location_contract(&connection);
     drop(connection);
 
     let catalog = SqliteCatalog::open(path).expect("migrated catalog");
@@ -5867,6 +5869,15 @@ fn ensure_legacy_asset_location_contract(connection: &Connection) {
                 .expect("complete legacy asset location fixture");
         }
     }
+    connection
+        .execute_batch(
+            "CREATE TABLE IF NOT EXISTS assets (
+               id TEXT PRIMARY KEY, created_unix_ms INTEGER NOT NULL
+             );
+             INSERT OR IGNORE INTO assets(id, created_unix_ms)
+               SELECT DISTINCT asset_id, 0 FROM asset_locations;",
+        )
+        .expect("retain the legacy asset identity table");
 }
 
 fn preview_reference_count(catalog: &SqliteCatalog, artifact_key: &str) -> i64 {

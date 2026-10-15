@@ -107,6 +107,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 38 {
         super::media_admission_rechecks::validate(connection)?;
     }
+    if schema_version >= 39 {
+        super::queue_retirement_indexes::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

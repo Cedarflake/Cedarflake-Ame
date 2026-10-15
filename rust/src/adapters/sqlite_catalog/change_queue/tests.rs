@@ -64,6 +64,9 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                last_visited_relative_path TEXT
              );
              CREATE TABLE asset_locations (
+               asset_id TEXT NOT NULL DEFAULT '',
+               width INTEGER NOT NULL DEFAULT 0,
+               height INTEGER NOT NULL DEFAULT 0,
                root_id TEXT NOT NULL,
                relative_path TEXT NOT NULL,
                scan_id TEXT NOT NULL,
@@ -92,6 +95,7 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                artifact_key TEXT NOT NULL,
                location_id TEXT NOT NULL
              );
+             CREATE TABLE assets(id TEXT PRIMARY KEY, created_unix_ms INTEGER NOT NULL);
              CREATE TABLE preserved_fixture(value TEXT NOT NULL);
              INSERT INTO preserved_fixture(value) VALUES ('kept');",
         )

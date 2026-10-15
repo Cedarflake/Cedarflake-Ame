@@ -34,6 +34,7 @@ mod journal_directory_namespace;
 mod journal_scope_recovery;
 mod media_admission_rechecks;
 mod persistent_journal_baseline;
+mod queue_retirement_indexes;
 mod retained_source_state;
 mod retired_root_authority;
 mod scan_resume_inventory;
@@ -104,6 +105,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         journal_directory_namespace::migrate_transaction(&transaction)?;
         journal_scope_recovery::migrate_transaction(&transaction)?;
         media_admission_rechecks::migrate_transaction(&transaction)?;
+        queue_retirement_indexes::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -181,6 +183,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             35 => journal_directory_namespace::migrate(connection)?,
             36 => journal_scope_recovery::migrate(connection)?,
             37 => media_admission_rechecks::migrate(connection)?,
+            38 => queue_retirement_indexes::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

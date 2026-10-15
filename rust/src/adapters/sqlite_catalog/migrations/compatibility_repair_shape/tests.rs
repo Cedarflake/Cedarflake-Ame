@@ -11,8 +11,12 @@ fn current_schema_admits_existing_terminal_repair_contracts_without_accepting_un
     let connection = current_catalog();
     assert!(inventory_shape_matches(&connection, 37).unwrap());
     assert!(live_gap_shape_matches(&connection, 37).unwrap());
-    assert!(!inventory_shape_matches(&connection, 38).unwrap());
-    assert!(!live_gap_shape_matches(&connection, 38).unwrap());
+    assert!(inventory_shape_matches(&connection, 38).unwrap());
+    assert!(live_gap_shape_matches(&connection, 38).unwrap());
+    assert!(inventory_shape_matches(&connection, 39).unwrap());
+    assert!(live_gap_shape_matches(&connection, 39).unwrap());
+    assert!(!inventory_shape_matches(&connection, 40).unwrap());
+    assert!(!live_gap_shape_matches(&connection, 40).unwrap());
     assert!(!inventory_shape_matches(&connection, 24).unwrap());
     assert!(!live_gap_shape_matches(&connection, 29).unwrap());
 }

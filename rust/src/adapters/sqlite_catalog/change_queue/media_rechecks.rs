@@ -158,7 +158,14 @@ impl SqliteCatalog {
             );
             let change_id = match enqueued {
                 Ok(change_id) => change_id,
-                Err(error) if error.code == "change_queue_backpressure" => break,
+                Err(error)
+                    if matches!(
+                        error.code.as_str(),
+                        "change_queue_backpressure" | "metadata_inventory_backpressure"
+                    ) =>
+                {
+                    break;
+                }
                 Err(error) => return Err(error),
             };
             transaction
