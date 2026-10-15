@@ -3,12 +3,13 @@ import "dart:ui" as ui;
 
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
+import "package:cedarflake_ame/app/window/ame_window_fullscreen.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_asset_information_sheet.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_controls.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_toolbar.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
@@ -17,6 +18,73 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "actual size survives filmstrip and fullscreen while Escape restores the viewer",
+    (tester) async {
+      tester.view.physicalSize = const Size(1000, 700);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final asset = await _assetWithImage(tester, width: 600, height: 1000);
+      var nativeFullscreen = false;
+      var back = 0;
+      final fullscreen = AmeWindowFullscreen(
+        capturePlacement: () async {},
+        setFullscreen: (value) async => nativeFullscreen = value,
+        readFullscreen: () async => nativeFullscreen,
+      );
+      addTearDown(fullscreen.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            ameWindowFullscreenProvider.overrideWithValue(fullscreen),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryImageViewer(
+                asset: asset,
+                filmstrip: const SizedBox.expand(key: Key("test-filmstrip")),
+                onBack: () => back++,
+                onInformation: () {},
+                onCopyPath: () {},
+                onRevealFile: () {},
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key("test-filmstrip")), findsNothing);
+      await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
+      await tester.pumpAndSettle();
+      expect(find.text("100%"), findsOneWidget);
+      await tester.tap(find.byKey(const Key("viewer-filmstrip-toggle")));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key("test-filmstrip")), findsOneWidget);
+      expect(find.text("100%"), findsOneWidget);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(LibraryImageViewer)),
+      );
+      expect(
+        container.read(amePreferencesControllerProvider).viewerOpenBehavior,
+        ImageViewerOpenBehavior.automatic,
+      );
+      await tester.sendKeyEvent(LogicalKeyboardKey.f11);
+      await tester.pumpAndSettle();
+      expect(nativeFullscreen, isTrue);
+      expect(find.byKey(const Key("viewer-window-bar")), findsNothing);
+      expect(find.text("100%"), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(nativeFullscreen, isFalse);
+      expect(back, 0);
+      expect(find.byKey(const Key("viewer-window-bar")), findsOneWidget);
+      expect(find.text("100%"), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      expect(back, 1);
+    },
+  );
+
   testWidgets("viewer actions follow the active asset after navigation", (
     tester,
   ) async {
@@ -105,7 +173,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     _expectViewerPixels(tester, asset);
-    expect(find.text("4 / 12"), findsOneWidget);
+    expect(find.text("4 / 12 张"), findsOneWidget);
     expect(find.text("sample.png"), findsOneWidget);
     expect(find.text("C:\\Pictures\\sample.png"), findsNothing);
     expect(
@@ -142,6 +210,15 @@ void main() {
     expect(find.byType(AmeMenuItemContent), findsNWidgets(2));
     expect(copyPathItemRect.width, lessThan(280));
     expect(copyPathItemRect.right, lessThanOrEqualTo(984));
+    final popupSurface = find
+        .ancestor(of: copyPathItem, matching: find.byType(Material))
+        .first;
+    expect(
+      tester.getRect(popupSurface).bottom,
+      lessThanOrEqualTo(
+        tester.getRect(find.byKey(const Key("viewer-more-menu"))).top - 4,
+      ),
+    );
     final moreButtonCenter = tester.getCenter(
       find.byKey(const Key("viewer-more-menu")),
     );
@@ -152,12 +229,12 @@ void main() {
 
     expect(find.text("25%"), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key("viewer-actual-size")));
+    await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text("100%"), findsOneWidget);
 
-    await tester.tap(find.byKey(const Key("viewer-fit")));
+    await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text("25%"), findsOneWidget);
@@ -415,25 +492,31 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
   });
 
-  testWidgets("viewer zoom controls align action groups to opposite edges", (
+  testWidgets("viewer groups browsing left and zoom with fullscreen right", (
     tester,
   ) async {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
           body: Center(
-            child: LibraryViewerZoomControls(
+            child: LibraryViewerToolbar(
+              asset: _asset(),
+              isFilmstripVisible: false,
+              onToggleFilmstrip: () {},
+              onInformation: () {},
+              onCopyPath: () {},
+              onRevealFile: () {},
+              positionLabel: "4 / 10000 张",
+              isActualSize: true,
+              onToggleZoomMode: () {},
+              isFullscreen: false,
+              onToggleFullscreen: () {},
               sliderValue: 0.5,
               zoomPercent: 100,
-              canZoomOut: true,
-              canZoomIn: true,
-              canShowActualSize: true,
               onSliderChanged: (_) {},
               sliderSemanticFormatter: (_) => "100%",
               onZoomOut: () {},
               onZoomIn: () {},
-              onFitToWindow: () {},
-              onShowActualSize: () {},
             ),
           ),
         ),
@@ -445,16 +528,41 @@ void main() {
     );
     final zoomOut = tester.getRect(find.byKey(const Key("viewer-zoom-out")));
     final zoomIn = tester.getRect(find.byKey(const Key("viewer-zoom-in")));
-    final fit = tester.getRect(find.byKey(const Key("viewer-fit")));
-    final actualSize = tester.getRect(
-      find.byKey(const Key("viewer-actual-size")),
+    final strip = tester.getRect(
+      find.byKey(const Key("viewer-filmstrip-toggle")),
     );
-
-    expect(actualSize.left - fit.right, greaterThanOrEqualTo(4));
-    expect(fit.center.dx, lessThan(controls.center.dx));
-    expect(actualSize.center.dx, lessThan(controls.center.dx));
+    final mode = tester.getRect(find.byKey(const Key("viewer-zoom-mode")));
+    final fullscreen = tester.getRect(
+      find.byKey(const Key("viewer-fullscreen")),
+    );
+    expect(strip.center.dx, lessThan(controls.center.dx));
+    expect(mode.center.dx, greaterThan(controls.center.dx));
     expect(zoomOut.center.dx, greaterThan(controls.center.dx));
     expect(zoomIn.center.dx, greaterThan(controls.center.dx));
+    expect(fullscreen.left, greaterThan(zoomIn.right));
+    final summary = find.byKey(const Key("viewer-image-summary"));
+    final position = find.byKey(const Key("viewer-position"));
+    final information = find.byKey(const Key("viewer-information"));
+    final more = find.byKey(const Key("viewer-more-menu"));
+    expect(
+      tester.getRect(summary).right,
+      lessThan(tester.getRect(position).left),
+    );
+    expect(strip.right, lessThanOrEqualTo(tester.getRect(information).left));
+    expect(
+      tester.getRect(information).right,
+      lessThanOrEqualTo(tester.getRect(more).left),
+    );
+    expect(tester.getRect(more).right, lessThan(tester.getRect(summary).left));
+    expect(tester.getRect(position).right, lessThan(mode.left));
+    expect(tester.getRect(more).center.dy, controls.center.dy);
+    expect(
+      tester.widget<Text>(summary).style,
+      tester
+          .widget<Text>(find.byKey(const Key("viewer-zoom-percentage")))
+          .style,
+    );
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets("viewer animates programmatic zoom and settles at the target", (

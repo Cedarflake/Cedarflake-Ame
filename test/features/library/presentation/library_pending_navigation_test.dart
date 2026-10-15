@@ -184,7 +184,7 @@ Future<void> _wheel(WidgetTester tester, double delta) async {
     ),
   );
   await tester.pump();
-  await tester.pump();
+  await tester.pump(const Duration(milliseconds: 100));
 }
 
 ScrollPosition _position(WidgetTester tester) => tester

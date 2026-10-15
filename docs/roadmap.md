@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-15
+Last planning update: 2026-10-16
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -74,6 +74,36 @@ The accumulated Live worker correction now has complete local Daily evidence in 
 Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
+
+The separately selected `codex/gallery-motion` scope adds restrained gallery/viewer transitions:
+first expose exact-layout unloaded slots and preserve precise rail positioning during detail
+arrival, then add first-frame thumbnail reveal and viewer entry/exit and preview-to-original
+transitions. Add the selected short mouse-wheel deceleration tail on the same native scroll
+position, preserving exact travel distance and immediate takeover by new input. Preserve scrolling,
+reduced-motion preferences, existing copy, layout rules, viewer zoom preferences and source-read
+cancellation. Deliver each correction on the branch with hosted regressions and focused client
+checks; this scope does not reopen the
+completed synchronization repair goal or start R3.
+
+The separately selected `codex/viewer-toolbar` scope builds on that branch: add a collapsible lazy
+thumbnail strip, compact image details, a single fit/actual-size toggle and
+native full screen. Preserve opening preferences, gallery return position, bounded preview/source
+reads and normal window placement. Deliver connected viewer controls and their relevant regressions
+on this branch; the existing animation PR retains its scope.
+
+Extend the existing wheel deceleration into a shared presentation component on the same branch.
+Use it in the gallery, navigation, settings, task lists, information/notification details, horizontal
+toolbars and viewer filmstrip, and carry it into captured Material menu/dialog routes. Keep each
+scroll region's controller independent, preserve native input arbitration and reduced-motion
+behavior, and verify nested edge handoff and route disposal. Complete this increment before the
+selected PR stack review and merge; then address the retained-library reopening failure below.
+
+An isolated retained-library reopening failure remains open: a completed journal baseline followed
+by `identity_journal_hardlinks_not_supported` leaves its checkpoint in `recovery_required`, and the
+next startup rejects that state with `catalog_persistent_journal_baseline_contract_unverifiable`.
+Preserve the retained fixture for a separate synchronization correction covering the failure-to-
+recovery transition and reopening; do not reset the catalog or weaken its validation to continue UI
+checks. This failure interrupted the final native toolbar recheck after its layout adjustment.
 
 The current repair goal is complete. Native synchronization/browsing flows, large-sample paused-import
 changes, scoped closing review and the final hosted gates pass; profile restoration and disposable-output

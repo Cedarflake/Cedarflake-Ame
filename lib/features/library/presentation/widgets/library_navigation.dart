@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_folder_controller.dart";
 import "../../domain/library_folder_models.dart";
@@ -173,137 +174,144 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
         child: Column(
           children: [
             Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-                children: [
-                  if (widget.isCompact) ...[
-                    AmeTooltip(
-                      message: LibraryStrings.library,
-                      child: IconButton(
+              child: AmeScrollMotion(
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+                  children: [
+                    if (widget.isCompact) ...[
+                      AmeTooltip(
+                        message: LibraryStrings.library,
+                        child: IconButton(
+                          key: const Key("library-sidebar-library"),
+                          focusNode: _libraryFocusNode,
+                          isSelected:
+                              !widget.isSettingsSelected &&
+                              widget.selectedRootId == null,
+                          onPressed: widget.isBrowseDisabled
+                              ? null
+                              : widget.onSelectLibrary,
+                          icon: const Icon(Symbols.photo_library_rounded),
+                        ),
+                      ),
+                      AmeTooltip(
+                        message:
+                            widget.addingSourceDisabledReason ??
+                            LibraryStrings.addFolder,
+                        child: IconButton(
+                          key: const Key("library-sidebar-import"),
+                          onPressed:
+                              widget.isBusy || widget.isAddingSourceDisabled
+                              ? null
+                              : widget.onAddSource,
+                          icon: const Icon(Symbols.create_new_folder_rounded),
+                        ),
+                      ),
+                    ] else
+                      ListTile(
                         key: const Key("library-sidebar-library"),
                         focusNode: _libraryFocusNode,
-                        isSelected:
+                        selected:
                             !widget.isSettingsSelected &&
                             widget.selectedRootId == null,
-                        onPressed: widget.isBrowseDisabled
-                            ? null
-                            : widget.onSelectLibrary,
-                        icon: const Icon(Symbols.photo_library_rounded),
-                      ),
-                    ),
-                    AmeTooltip(
-                      message:
-                          widget.addingSourceDisabledReason ??
-                          LibraryStrings.addFolder,
-                      child: IconButton(
-                        key: const Key("library-sidebar-import"),
-                        onPressed:
-                            widget.isBusy || widget.isAddingSourceDisabled
-                            ? null
-                            : widget.onAddSource,
-                        icon: const Icon(Symbols.create_new_folder_rounded),
-                      ),
-                    ),
-                  ] else
-                    ListTile(
-                      key: const Key("library-sidebar-library"),
-                      focusNode: _libraryFocusNode,
-                      selected:
-                          !widget.isSettingsSelected &&
-                          widget.selectedRootId == null,
-                      selectedTileColor: Theme.of(
-                        context,
-                      ).colorScheme.secondaryContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.only(left: 16, right: 4),
-                      minLeadingWidth: 24,
-                      horizontalTitleGap: 12,
-                      leading: const SizedBox(
-                        width: 24,
-                        child: Icon(Symbols.photo_library_rounded),
-                      ),
-                      title: Text(
-                        LibraryStrings.library,
-                        style: _navigationTitleStyle(
+                        selectedTileColor: Theme.of(
                           context,
-                          !widget.isSettingsSelected &&
-                              widget.selectedRootId == null,
+                        ).colorScheme.secondaryContainer,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                      trailing: SizedBox(
-                        width: 48,
-                        child: AmeTooltip(
-                          message:
-                              widget.addingSourceDisabledReason ??
-                              LibraryStrings.addFolder,
-                          child: IconButton(
-                            key: const Key("library-sidebar-import"),
-                            onPressed:
-                                widget.isBusy || widget.isAddingSourceDisabled
-                                ? null
-                                : widget.onAddSource,
-                            icon: const Icon(Symbols.create_new_folder_rounded),
+                        contentPadding: const EdgeInsets.only(
+                          left: 16,
+                          right: 4,
+                        ),
+                        minLeadingWidth: 24,
+                        horizontalTitleGap: 12,
+                        leading: const SizedBox(
+                          width: 24,
+                          child: Icon(Symbols.photo_library_rounded),
+                        ),
+                        title: Text(
+                          LibraryStrings.library,
+                          style: _navigationTitleStyle(
+                            context,
+                            !widget.isSettingsSelected &&
+                                widget.selectedRootId == null,
                           ),
                         ),
-                      ),
-                      onTap: widget.isBrowseDisabled
-                          ? null
-                          : widget.onSelectLibrary,
-                    ),
-                  const SizedBox(height: 12),
-                  if (widget.roots.isEmpty && widget.transientSource == null)
-                    if (widget.isCompact)
-                      const AmeTooltip(
-                        message: LibraryStrings.noFolder,
-                        child: IconButton(
-                          onPressed: null,
-                          icon: Icon(Symbols.folder_off_rounded),
+                        trailing: SizedBox(
+                          width: 48,
+                          child: AmeTooltip(
+                            message:
+                                widget.addingSourceDisabledReason ??
+                                LibraryStrings.addFolder,
+                            child: IconButton(
+                              key: const Key("library-sidebar-import"),
+                              onPressed:
+                                  widget.isBusy || widget.isAddingSourceDisabled
+                                  ? null
+                                  : widget.onAddSource,
+                              icon: const Icon(
+                                Symbols.create_new_folder_rounded,
+                              ),
+                            ),
+                          ),
                         ),
-                      )
-                    else
-                      const ListTile(
-                        leading: Icon(Symbols.folder_off_rounded),
-                        title: Text(LibraryStrings.noFolder),
+                        onTap: widget.isBrowseDisabled
+                            ? null
+                            : widget.onSelectLibrary,
                       ),
-                  for (final root in widget.roots) ...[
-                    LibrarySourceNavigationTile(
-                      root: root,
-                      synchronizationStatus:
-                          widget.rootSynchronizationStatuses[root.id],
-                      hasSynchronizationFailure:
-                          widget.hasSynchronizationFailure,
-                      isCompact: widget.isCompact,
-                      isSelected:
-                          !widget.isSettingsSelected &&
-                          widget.selectedRootId == root.id &&
-                          widget.selectedFolderRelativePath == null,
-                      isExpanded: _isExpanded(root.id, ""),
-                      isBrowseDisabled: widget.isBrowseDisabled,
-                      isUpdating: widget.updatingRootIds.contains(root.id),
-                      isUpdateDisabled: widget.retainedScanRootId == root.id,
-                      focusNode: _focusNodeForRoot(root.id),
-                      onSelect: () => widget.onSelectRoot(root),
-                      onToggleExpansion: () => _toggleBranch(root.id, ""),
-                      onUpdate: () => widget.onUpdateRoot(root),
-                      onRelocate:
-                          widget.isAddingSourceDisabled ||
-                              widget.onRelocateRoot == null
-                          ? null
-                          : () => widget.onRelocateRoot!(root),
-                      onOpen: () => widget.onOpenRoot(root),
-                      onRemove: () => _requestRemoveRoot(root),
-                    ),
-                    if (!widget.isCompact && _isExpanded(root.id, ""))
-                      ..._buildFolderBranch(root, "", 1),
+                    const SizedBox(height: 12),
+                    if (widget.roots.isEmpty && widget.transientSource == null)
+                      if (widget.isCompact)
+                        const AmeTooltip(
+                          message: LibraryStrings.noFolder,
+                          child: IconButton(
+                            onPressed: null,
+                            icon: Icon(Symbols.folder_off_rounded),
+                          ),
+                        )
+                      else
+                        const ListTile(
+                          leading: Icon(Symbols.folder_off_rounded),
+                          title: Text(LibraryStrings.noFolder),
+                        ),
+                    for (final root in widget.roots) ...[
+                      LibrarySourceNavigationTile(
+                        root: root,
+                        synchronizationStatus:
+                            widget.rootSynchronizationStatuses[root.id],
+                        hasSynchronizationFailure:
+                            widget.hasSynchronizationFailure,
+                        isCompact: widget.isCompact,
+                        isSelected:
+                            !widget.isSettingsSelected &&
+                            widget.selectedRootId == root.id &&
+                            widget.selectedFolderRelativePath == null,
+                        isExpanded: _isExpanded(root.id, ""),
+                        isBrowseDisabled: widget.isBrowseDisabled,
+                        isUpdating: widget.updatingRootIds.contains(root.id),
+                        isUpdateDisabled: widget.retainedScanRootId == root.id,
+                        focusNode: _focusNodeForRoot(root.id),
+                        onSelect: () => widget.onSelectRoot(root),
+                        onToggleExpansion: () => _toggleBranch(root.id, ""),
+                        onUpdate: () => widget.onUpdateRoot(root),
+                        onRelocate:
+                            widget.isAddingSourceDisabled ||
+                                widget.onRelocateRoot == null
+                            ? null
+                            : () => widget.onRelocateRoot!(root),
+                        onOpen: () => widget.onOpenRoot(root),
+                        onRemove: () => _requestRemoveRoot(root),
+                      ),
+                      if (!widget.isCompact && _isExpanded(root.id, ""))
+                        ..._buildFolderBranch(root, "", 1),
+                    ],
+                    if (widget.transientSource case final source?)
+                      PendingLibrarySourceTile(
+                        source: source,
+                        isCompact: widget.isCompact,
+                      ),
                   ],
-                  if (widget.transientSource case final source?)
-                    PendingLibrarySourceTile(
-                      source: source,
-                      isCompact: widget.isCompact,
-                    ),
-                ],
+                ),
               ),
             ),
             Padding(

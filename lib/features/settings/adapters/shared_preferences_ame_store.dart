@@ -91,6 +91,7 @@ class SharedPreferencesAmeStore
         value["previewLoadingSpeed"],
         PreviewLoadingSpeed.medium,
       ),
+      viewerFilmstripVisible: value["viewerFilmstripVisible"] == true,
       sidebarWidth:
           (_readDouble(value["sidebarWidth"]) ?? ameDefaultSidebarWidth)
               .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
@@ -154,6 +155,7 @@ class SharedPreferencesAmeStore
         "theme": preferences.theme.name,
         "viewerWheelBehavior": preferences.viewerWheelBehavior.name,
         "viewerOpenBehavior": preferences.viewerOpenBehavior.name,
+        "viewerFilmstripVisible": preferences.viewerFilmstripVisible,
         "previewLoadingSpeed": preferences.previewLoadingSpeed.name,
         "sidebarWidth": preferences.sidebarWidth,
       }),

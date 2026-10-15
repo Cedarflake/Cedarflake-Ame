@@ -3,8 +3,15 @@ import "package:flutter/foundation.dart";
 import "../application/library_catalog.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
+import "library_viewer_navigation_window.dart";
 
 enum LibraryViewerDirection { previous, next }
+
+typedef LibraryViewerNavigation = ({
+  int? position,
+  bool canPrevious,
+  bool canNext,
+});
 
 class LibraryViewerSelection {
   LibraryViewerSelection._(LibraryAsset asset)
@@ -49,12 +56,44 @@ class LibraryViewerSession extends ChangeNotifier {
   _NavigationRequest? _navigation;
   Object? _lookup;
   bool _isDisposed = false;
+  int? _ordinal;
+  late final _navigationWindow = LibraryViewerNavigationWindow(_catalog);
 
   LibraryViewerSelection? get selection => _selection;
   String? get assetId => _selection?.assetId;
   String? get locationId => _selection?.locationId;
   LibraryAsset? get retainedAsset => _retainedAsset;
+  int? get ordinal => _ordinal;
   bool get isNavigating => _navigation != null && _owns(_navigation!);
+
+  LibraryViewerNavigation navigation(int totalItems) {
+    final selection = _selection;
+    if (selection == null) {
+      return (position: null, canPrevious: false, canNext: false);
+    }
+    final state = _readLibrary();
+    final index = _index(state, selection);
+    final ordinal = index < 0 ? _ordinal : state.windowStartItemOffset + index;
+    if (isNavigating) {
+      return (
+        position: ordinal == null ? null : ordinal + 1,
+        canPrevious: false,
+        canNext: false,
+      );
+    }
+    if (index < 0) {
+      return (
+        position: ordinal == null ? null : ordinal + 1,
+        canPrevious: ordinal != null && ordinal > 0,
+        canNext: ordinal != null && ordinal + 1 < totalItems,
+      );
+    }
+    return (
+      position: ordinal! + 1,
+      canPrevious: index > 0 || state.hasPreviousAssets,
+      canNext: index < state.assets.length - 1 || state.hasMoreAssets,
+    );
+  }
 
   _QueryIdentity get _query {
     final state = _readLibrary();
@@ -65,11 +104,16 @@ class LibraryViewerSession extends ChangeNotifier {
     );
   }
 
-  void open(LibraryAsset asset) {
+  void open(LibraryAsset asset, {int? ordinal}) {
     if (_isDisposed) {
       return;
     }
     _selection = LibraryViewerSelection._(asset);
+    final state = _readLibrary();
+    final index = state.assets.indexWhere(
+      (item) => item.locationId == asset.locationId,
+    );
+    _ordinal = index < 0 ? ordinal : state.windowStartItemOffset + index;
     _retainedAsset = asset;
     _navigation = null;
     _lookup = null;
@@ -82,6 +126,7 @@ class LibraryViewerSession extends ChangeNotifier {
       return;
     }
     _selection = null;
+    _ordinal = null;
     _retainedAsset = null;
     _navigation = null;
     _lookup = null;
@@ -106,10 +151,10 @@ class LibraryViewerSession extends ChangeNotifier {
     _onPreviewDemand(asset);
   }
 
-  Future<void> navigate(LibraryViewerDirection direction) async {
+  Future<bool> navigate(LibraryViewerDirection direction) async {
     final selection = _selection;
     if (_isDisposed || selection == null || isNavigating) {
-      return;
+      return false;
     }
     final request = _NavigationRequest(selection, _query);
     _navigation = request;
@@ -119,7 +164,20 @@ class LibraryViewerSession extends ChangeNotifier {
       var state = _readLibrary();
       var index = _index(state, selection);
       if (index < 0) {
-        return;
+        final retained = _retainedAsset;
+        if (retained == null) return false;
+        final neighbor = await _navigationWindow.neighbor(
+          selection: retained,
+          query: request.query.query,
+          minimumRevision: request.query.revision,
+          fallbackOrdinal: _ordinal ?? 0,
+          step: step,
+        );
+        if (_owns(request) && neighbor != null) {
+          open(neighbor.asset, ordinal: neighbor.ordinal);
+          return true;
+        }
+        return false;
       }
       var target = index + step;
       final requestedPage =
@@ -131,7 +189,7 @@ class LibraryViewerSession extends ChangeNotifier {
         await _loadNext();
       }
       if (!_owns(request)) {
-        return;
+        return false;
       }
       state = _readLibrary();
       index = _index(state, selection);
@@ -148,13 +206,15 @@ class LibraryViewerSession extends ChangeNotifier {
             ),
           );
         }
-        return;
+        return false;
       }
       open(state.assets[target]);
+      return true;
     } on Object catch (error) {
       if (_owns(request)) {
         _onNavigationError(error);
       }
+      return false;
     } finally {
       if (!_isDisposed &&
           identical(_selection, selection) &&

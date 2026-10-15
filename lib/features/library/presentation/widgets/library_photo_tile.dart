@@ -13,6 +13,7 @@ import "../../application/library_preview_queue.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_image_reveal.dart";
 import "library_preview_feedback.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
@@ -242,15 +243,16 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
         ),
       );
     }
-    return Image.file(
-      File(asset.previewPath),
+    return LibraryImageReveal(
+      image: ResizeImage.resizeIfNeeded(
+        cacheWidth,
+        null,
+        FileImage(File(asset.previewPath)),
+      ),
+      revealIdentity: LibraryPreviewSourceIdentity.fromAsset(asset),
       // Same-path repair must retire the failed image stream, even when it completes before
       // a frame replaces the Image widget with progress feedback.
       key: ValueKey(_retryGeneration),
-      fit: BoxFit.cover,
-      cacheWidth: cacheWidth,
-      gaplessPlayback: true,
-      filterQuality: FilterQuality.low,
       errorBuilder: (context, error, stackTrace) {
         _schedulePreviewRepair(asset, cacheWidth, previewEdge);
         if (_isRetrying) {

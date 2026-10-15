@@ -5,6 +5,7 @@ import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
 import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
@@ -346,7 +347,8 @@ class LibraryGalleryWall extends StatelessWidget {
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
-              Listener(
+              AmeScrollMotion(
+                controller: scrollController,
                 onPointerSignal: (event) {
                   if (event is! PointerScrollEvent ||
                       !scrollController.hasClients) {
@@ -1262,7 +1264,8 @@ class _ManifestLibraryGalleryWallState
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
-              Listener(
+              AmeScrollMotion(
+                controller: widget.scrollController,
                 onPointerSignal: (event) {
                   if (event is! PointerScrollEvent ||
                       !widget.scrollController.hasClients) {
@@ -1976,6 +1979,17 @@ class _LibraryGalleryUnloadedSlot extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(width: width, height: height);
+    return SizedBox(
+      width: width,
+      height: height,
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(
+            color: Theme.of(context).colorScheme.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      ),
+    );
   }
 }

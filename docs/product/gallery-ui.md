@@ -365,8 +365,28 @@ position when possible.
   query- and revision-bound logical viewport anchor rather than synchronizing several pixel offsets.
 - Wheel and touchpad movement use native relative scrolling. Crossing a detail-page boundary
   prefetches bounded pages before and after the viewport without replacing the canvas. A cold page
-  keeps unpainted, non-interactive slots in its final equal-height rectangles behind the shared
-  loading line, as specified by ADR 0014. It does not replace the gallery with a generic square grid.
+  paints non-interactive card backgrounds in its final equal-height rectangles behind the shared
+  loading line, as specified by ADR 0014. Detail and preview arrival preserve those rectangles and
+  the precise position already reached by the rail in an unchanged layout.
+- Mouse-wheel deceleration is shared across Ame scroll regions through `AmeScrollMotion` and
+  `AmeScrollController`, including navigation, settings, details, tasks and the viewer filmstrip.
+  Each region retains its own native scroll position. Wheel movement is immediate except for a
+  90 ms ease-out tail of at most 24 logical pixels; repeated input preserves its total distance,
+  and reversal, pointer-down, direct positioning or layout correction retires the old tail.
+  Reduced-motion mode and precision touchpad input retain native movement. Vertical mouse-wheel
+  input also scrolls horizontal regions; native horizontal/Shift input has first claim, and an
+  inner region at its boundary leaves the event available to its parent.
+  The pinned SDK's `ScrollController.createScrollPosition` and `PrimaryScrollController` provide
+  the extension points. Material `ScrollBehavior` has no controller factory, and `ScrollPhysics`
+  alone does not animate mouse-wheel jumps. `AmeScrollMotionTheme` carries a separate primary
+  controller into captured Material routes without replacing their menus, focus or semantics.
+  Framework controls that require their own private controllers retain those controllers.
+- A cold thumbnail reveals its first decoded frame with a 120 ms ease-out opacity transition
+  inside the existing rectangle. Synchronous cache hits appear immediately. Active or recent
+  scrolling, disabled animations and initially inactive ticker scopes skip the reveal; further scrolling
+  finishes an active reveal immediately. Muting an already visible surface preserves its current
+  blend through viewer entry or exit. Image opacity owns the effect without a whole-wall layer,
+  staggered delays, shimmer or changes to row geometry.
 - Scroll-triggered detail paging uses one thin linear progress indicator at the top of the gallery.
   It overlays the gallery without resizing its viewport or intercepting gallery input. It does not
   add circular loaders to the photo wall or its boundaries.
@@ -407,14 +427,75 @@ While an original image is loading, its progress indicator stays at the center o
 viewport. Zoom, pan and wheel input transform the image or retained preview, never the indicator.
 Loading completion retires the indicator through the current source image's frame lifecycle.
 
+The viewer enters with a 180 ms opacity transition and exits in 100 ms. Its gallery stays mounted
+at the existing scroll position. Closing immediately retires viewer input, accessibility focus and
+source-read authority; at most one non-interactive closing surface remains for the visual exit.
+Reopening replaces that surface, and further pointer input finishes entry immediately. Disabled
+animations use an immediate transition. Original pixels reveal over the same image's small preview
+in 100 ms without resetting the zoom transform. The existing preview element stays mounted across
+the original's first frame, including after cache eviction, and is released when the reveal finishes.
+These transitions use Flutter's image opacity and fade primitives, without an additional package,
+layout interpolation or a queue of outgoing full-resolution images.
+
 The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
 one quarter is 125%, and reduction by half is 50%. The default opening preference is Automatic:
 images exceeding the available width or height shrink to fit the viewport, while fitting images
 stay at 100% actual size. This mode never enlarges a small image to fill the window. Automatic,
 fit-to-window and actual-size preferences persist across restart; an existing saved choice is
-preserved. The toolbar's fit and `1:1` actions affect only the current image. Explicit fit preserves
+preserved. One toolbar button switches between fit and actual size; its icon and tooltip describe
+the next action. Automatic remains the opening preference in Settings, so manual zoom and the
+toggle affect only the current image. Explicit fit preserves
 the whole image within the available width and height; its percentage follows the resulting pixel
-scale rather than being relabeled as 100%.
+scale rather than being relabeled as 100%. Resizing the image area preserves actual size or a manual
+pixel scale, while automatic and fit continue to follow the available area.
+
+The bottom toolbar groups the thumbnail-strip toggle, information button and more-actions menu
+first on the left, followed by compact file type/dimensions/size and the current image count.
+The count includes the image unit and is separated from file metadata by a thin vertical divider.
+The bottom More menu opens upward from its fixed lower edge above the button and closes toward
+that same edge. Its placement and animation leave the triggering button unobscured.
+The top bar retains the filename, back action and window controls. Both sides of the bottom
+toolbar use the same icon size and text style. Zoom mode, percentage, zoom slider and full-screen
+action are on the right; full screen is the last action. The strip starts hidden and remembers its
+visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
+that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
+scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
+Small triangle buttons at the scrollbar ends move the strip by one thumbnail without changing
+the selected image. Each disables at its corresponding end. They use Material `IconButton`;
+the installed `ScrollbarThemeData.mainAxisMargin` reserves their space outside the native track.
+New thumbnail pixels retain the placeholder until decoding finishes; a larger preview of the same
+source retains the already decoded image, and scrolling skips the first-frame fade.
+
+The strip is first created when expanded. Collapsing retains its lazy visible elements until the
+viewer closes, while removing its preview demand, focus and animation activity. Every expansion
+centers the current image within the natural scroll bounds while reusing compatible previews.
+Near the start or end, the strip aligns to that boundary without adding empty space to force
+centering. Selection changes while the strip remains open only scroll
+when needed to bring the thumbnail fully into view. Manual strip scrolling leaves the main image
+unchanged.
+
+Completed preview metadata and verified sizes each keep at most 256 recently used entries beyond
+their immediate request lifetime. They reuse compatible results when returning to an image; source
+generation changes and root/cache invalidation retire incompatible evidence. Decoded pixels remain
+in Flutter's existing bounded image cache, with only the current lazy strip window retained while
+collapsed. Closing the viewer releases the strip elements and requests; disk previews retain their
+normal storage-budget lifetime. A missing or damaged displayed preview admits one automatic repair
+for that source while visible, without loading the rest of the library. Failure leaves the image
+selectable, and a late result cannot revive a hidden or replaced thumbnail's repair.
+
+This retention composes the installed Flutter `Visibility.maintainState` and `TickerMode` behavior;
+it does not introduce another pixel cache or persist strip scroll offsets across application restarts.
+
+The bottom more-actions menu opens above its button with a small gap, keeping the toolbar visible.
+
+F11 or the rightmost button toggles native full screen. Escape exits full screen first, otherwise
+returns to the gallery. Full screen preserves normal window placement and maximized state and is
+not restored on startup. Images change through manual navigation; there is no automatic playback.
+
+The controls compose Material `IconButton`, `Slider`, `ListView.builder` and `Scrollbar`, whose
+toggle, keyboard, lazy-item and scroll-position APIs are available in the pinned Flutter SDK.
+The product-specific strip adds selection, catalog-page continuity and bounded preview demand;
+scroll physics, focus and input dispatch remain framework-owned.
 
 ## Temporary task and notification feedback
 

@@ -403,6 +403,10 @@ portals for application dropdown or command menus: settings choices, preview-cac
 folder, photo, toolbar, notification, and viewer menus all create the same root-navigator
 `PopupMenuRoute` only when requested. The shared route owns one visible Material transition
 contract: 200 milliseconds, ease-out cubic when opening, and ease-in cubic when closing.
+For bottom-toolbar menus, the captured `AmePopupMenuSurface` theme reserves the bounded final
+height and bottom-aligns the native animated surface. Flutter 3.44.9 `showMenu` exposes animation
+timing but fixes its reveal alignment to the top; `SizedBox` and `Align` supply the upward origin
+without replacing the route, menu items, input or semantics. Other menus retain their origin.
 This prevents motion from changing with the call site while retaining framework-owned pointer,
 keyboard, focus-return, dismissal, and accessibility behavior. Changing menu motion is a single
 application-wide decision and requires the native accessibility, visual placement, pointer hit-test,

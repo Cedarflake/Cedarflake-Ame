@@ -1,3 +1,5 @@
+import "dart:collection";
+
 import "../domain/library_models.dart";
 import "library_preview_store.dart";
 
@@ -8,7 +10,12 @@ typedef _SizeObservation = ({
 });
 
 class LibraryPreviewSizing {
-  final Map<String, _SizeObservation> _verified = {};
+  LibraryPreviewSizing({int maxRetainedVerified = 256})
+    : assert(maxRetainedVerified > 0),
+      _maxRetainedVerified = maxRetainedVerified;
+
+  final int _maxRetainedVerified;
+  final LinkedHashMap<String, _SizeObservation> _verified = LinkedHashMap();
   final Map<String, _SizeObservation> _failed = {};
 
   bool needsVerification(LibraryAsset asset, int previewEdge) {
@@ -16,6 +23,8 @@ class LibraryPreviewSizing {
     if (verified != null &&
         verified.source.isCompatibleWith(asset) &&
         verified.previewEdge >= previewEdge) {
+      _verified.remove(asset.locationId);
+      _verified[asset.locationId] = verified;
       return false;
     }
     final failed = _failed[asset.locationId];
@@ -25,7 +34,7 @@ class LibraryPreviewSizing {
   }
 
   void recordVerified(LibraryAsset asset, int previewEdge) {
-    final previous = _verified[asset.locationId];
+    final previous = _verified.remove(asset.locationId);
     if (previous == null ||
         !previous.source.isCompatibleWith(asset) ||
         previous.previewEdge < previewEdge) {
@@ -33,6 +42,11 @@ class LibraryPreviewSizing {
         source: LibraryPreviewSourceIdentity.fromAsset(asset),
         previewEdge: previewEdge,
       );
+    } else {
+      _verified[asset.locationId] = previous;
+    }
+    while (_verified.length > _maxRetainedVerified) {
+      _verified.remove(_verified.keys.first);
     }
     _failed.remove(asset.locationId);
   }
@@ -47,7 +61,7 @@ class LibraryPreviewSizing {
   void retainDemand(Map<String, LibraryPreviewSizeDemand> demand) {
     _verified.removeWhere((locationId, verified) {
       final current = demand[locationId];
-      return current == null ||
+      return current != null &&
           !verified.source.isCompatibleWith(current.asset);
     });
     _failed.removeWhere((locationId, failed) {

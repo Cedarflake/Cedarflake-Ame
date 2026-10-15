@@ -7,6 +7,124 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "reopening a filmstrip reuses ready previews and verified sizes",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      final asset = _asset("retained-strip", LibraryPreviewStatus.pending);
+      final owner = Object();
+      coordinator.updateFilmstripDemand(owner, [asset], 128);
+      previewer.succeed(asset.locationId, _readyAsset("retained-strip"));
+      await _flushAsyncWork();
+      coordinator.releaseFilmstripDemand(owner);
+      expect(
+        coordinator.resolve(asset).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+
+      for (var reopen = 0; reopen < 5; reopen++) {
+        final nextOwner = Object();
+        coordinator.updateFilmstripDemand(nextOwner, [asset], 128);
+        coordinator.releaseFilmstripDemand(nextOwner);
+      }
+      expect(previewer.requests, [asset.locationId]);
+      coordinator.updateFilmstripDemand(owner, [asset], 256);
+      expect(previewer.previewEdges, [128, 256]);
+      previewer.succeed(
+        asset.locationId,
+        _readyAsset("retained-strip"),
+        attempt: 1,
+      );
+      await _flushAsyncWork();
+      coordinator.releaseFilmstripDemand(owner);
+      final changed = _asset(
+        "retained-strip",
+        LibraryPreviewStatus.pending,
+        sourceGeneration: BigInt.two,
+      );
+      coordinator.updateFilmstripDemand(owner, [changed], 128);
+      expect(
+        coordinator.resolve(changed).previewStatus,
+        LibraryPreviewStatus.pending,
+      );
+      expect(previewer.requests, hasLength(3));
+      previewer.succeed(
+        asset.locationId,
+        _readyAsset("retained-strip", sourceGeneration: BigInt.two),
+        attempt: 2,
+      );
+      await _flushAsyncWork();
+    },
+  );
+
+  test(
+    "hidden filmstrip drops queued work and rejects its late result",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      final owner = Object();
+      final first = _asset("active", LibraryPreviewStatus.pending);
+      final next = _asset("queued", LibraryPreviewStatus.pending);
+      coordinator.updateFilmstripDemand(owner, [first, next], 128);
+      coordinator.releaseFilmstripDemand(owner);
+      previewer.succeed(first.locationId, _readyAsset("active"));
+      await _flushAsyncWork();
+      expect(previewer.requests, [first.locationId]);
+      expect(
+        coordinator.resolve(first).previewStatus,
+        LibraryPreviewStatus.pending,
+      );
+    },
+  );
+
+  test(
+    "closing an old filmstrip preserves demand from a reopened viewer",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 2,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      final oldOwner = Object();
+      final currentOwner = Object();
+      final first = _asset("first", LibraryPreviewStatus.pending);
+      final current = _asset("current", LibraryPreviewStatus.pending);
+      coordinator.updateFilmstripDemand(oldOwner, [first], 128);
+      coordinator.updateFilmstripDemand(currentOwner, [current], 128);
+      coordinator.releaseFilmstripDemand(oldOwner);
+      previewer.succeed(first.locationId, _readyAsset("first"));
+      previewer.succeed(current.locationId, _readyAsset("current"));
+      await _flushAsyncWork();
+      expect(
+        coordinator.resolve(current).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+      expect(
+        coordinator.resolve(first).previewStatus,
+        LibraryPreviewStatus.pending,
+      );
+    },
+  );
+
   test("owns gallery demand and publishes compatible preview state", () async {
     final previewer = _ControlledPreviewer();
     final published = <String>[];

@@ -1,4 +1,5 @@
 import "../../domain/library_models.dart";
+import "library_gallery_layout.dart";
 import "library_timeline_projection.dart";
 
 /// A semantic target survives its admitted date publication, never old pixels.
@@ -7,11 +8,23 @@ class LibraryTimeSeekAlignment {
     required this.generation,
     required this.timeline,
     required this.target,
+    this.positionedLayout,
   });
 
   final int generation;
   final LibraryTimeline timeline;
   final LibraryTimelineTarget target;
+  final LibraryGalleryLayoutMetrics? positionedLayout;
+
+  bool retainsExactPosition(
+    LibraryTimeline current,
+    LibraryGalleryLayoutMetrics? layout,
+  ) {
+    return positionedLayout?.isQueryWide == true &&
+        identical(positionedLayout, layout) &&
+        current.queryId == timeline.queryId &&
+        current.revision == timeline.revision;
+  }
 
   int? currentItemOffset(
     LibraryTimeline current,

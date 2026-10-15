@@ -7,9 +7,11 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../application/library_source_read_scheduler.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_image_reveal.dart";
 import "library_loading_indicator.dart";
 import "library_source_image.dart";
 import "library_viewer_source_scope.dart";
+import "library_viewer_transition.dart";
 
 typedef LibraryViewerImageBuilder =
     Widget Function(BuildContext context, Widget image);
@@ -36,6 +38,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   late LibrarySourceImage _sourceImage;
   LibraryViewerSourceScope? _sourceScope;
   int _retryGeneration = 0;
+  bool _isActive = true;
 
   @override
   void initState() {
@@ -49,13 +52,22 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   void didChangeDependencies() {
     super.didChangeDependencies();
     _sourceScope = LibraryViewerSourceScope.maybeOf(context);
+    final isActive = LibraryViewerActivity.isActiveOf(context);
+    if (!isActive) {
+      _isActive = false;
+      _sourceImage.cancel();
+      unawaited(_sourceImage.evict());
+      return;
+    }
+    if (!_isActive) _retryGeneration += 1;
+    _isActive = true;
     _updateSourceImage();
   }
 
   @override
   void didUpdateWidget(covariant LibraryViewerImage oldWidget) {
     super.didUpdateWidget(oldWidget);
-    _updateSourceImage();
+    if (_isActive) _updateSourceImage();
   }
 
   void _updateSourceImage() {
@@ -76,32 +88,29 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
 
   @override
   Widget build(BuildContext context) {
-    return Image(
+    return LibraryImageReveal(
       key: ValueKey(_sourceImage),
       image: _sourceImage,
+      revealIdentity: _sourceImage,
+      duration: const Duration(milliseconds: 100),
+      placeholder: _hasPreview ? _buildPreview() : null,
       semanticLabel: widget.asset.relativePath,
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
-      gaplessPlayback: true,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (frame != null || wasSynchronouslyLoaded) {
-          return _buildImage(context, child);
-        }
         return Stack(
           fit: StackFit.expand,
           children: [
-            _buildImage(
-              context,
-              _hasPreview ? _buildPreview() : const SizedBox.expand(),
-            ),
-            const IgnorePointer(
-              child: LibraryLoadingIndicator(
-                key: Key("viewer-image-loading"),
-                maximumDimension: 36,
-                minimumInset: 0,
-                strokeWidth: 4,
+            _buildImage(context, child),
+            if (frame == null && !wasSynchronouslyLoaded)
+              const IgnorePointer(
+                child: LibraryLoadingIndicator(
+                  key: Key("viewer-image-loading"),
+                  maximumDimension: 36,
+                  minimumInset: 0,
+                  strokeWidth: 4,
+                ),
               ),
-            ),
           ],
         );
       },

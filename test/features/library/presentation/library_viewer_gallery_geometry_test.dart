@@ -1,6 +1,7 @@
 import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/window/ame_window_fullscreen.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
@@ -18,6 +19,97 @@ import "../support/library_query_snapshot_fixture.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  testWidgets(
+    "fullscreen round trip preserves hidden gallery geometry and return position",
+    (tester) async {
+      const normal = Size(1280, 800);
+      tester.view.physicalSize = normal;
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final scanner = RetainedScanScanner()..checkpoint = null;
+      addTearDown(scanner.dispose);
+      var native = false;
+      final fullscreen = AmeWindowFullscreen(
+        capturePlacement: () async {},
+        setFullscreen: (enabled) async {
+          native = enabled;
+          tester.view.physicalSize = enabled ? const Size(2200, 1400) : normal;
+        },
+        readFullscreen: () async => native,
+      );
+      addTearDown(fullscreen.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(_galleryState()),
+            libraryScannerProvider.overrideWithValue(scanner),
+            libraryPreviewerProvider.overrideWithValue(_PendingPreviewer()),
+            ameWindowFullscreenProvider.overrideWithValue(fullscreen),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump();
+      final wall = find.byKey(
+        const Key("library-photo-wall"),
+        skipOffstage: false,
+      );
+      final scrollable = find.descendant(
+        of: wall,
+        matching: find.byType(Scrollable, skipOffstage: false),
+        skipOffstage: false,
+      );
+      final position = tester.state<ScrollableState>(scrollable).position;
+      position.jumpTo(position.maxScrollExtent * 0.4);
+      await tester.pump();
+      await tester.pump();
+      final wallRect = tester.getRect(wall);
+      final tile = find
+          .byType(LibraryPhotoTile)
+          .evaluate()
+          .firstWhere(
+            (element) => wallRect.contains(
+              tester
+                  .getRect(
+                    find.byKey(
+                      ValueKey(
+                        (element.widget as LibraryPhotoTile).asset.locationId,
+                      ),
+                    ),
+                  )
+                  .center,
+            ),
+          );
+      final tileFinder = find.byKey(
+        ValueKey((tile.widget as LibraryPhotoTile).asset.locationId),
+        skipOffstage: false,
+      );
+      final before = tester.getRect(tileFinder);
+      final pixels = position.pixels;
+      await tester.tapAt(before.center);
+      await tester.pump();
+      await fullscreen.setEnabled(true);
+      for (var frame = 0; frame < 8; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(tester.getRect(wall), wallRect);
+        expect(tester.getRect(tileFinder), before);
+        expect(position.pixels, pixels);
+      }
+      await fullscreen.setEnabled(false);
+      await tester.pump();
+      await tester.tap(find.byKey(const Key("viewer-back-button")));
+      for (var frame = 0; frame < 8; frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+        expect(tester.getRect(wall), wallRect);
+        expect(tester.getRect(tileFinder), before);
+        expect(position.pixels, pixels);
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final width in [1280.0, 1000.0]) {
     testWidgets("viewer preserves every gallery frame at width $width", (
       tester,
@@ -95,9 +187,9 @@ void main() {
           expect(find.byKey(const Key("timeline-slider")), findsNothing);
         }
         await tester.tap(find.byKey(const Key("viewer-back-button")));
-        for (var frame = 0; frame < 6; frame++) {
+        for (var frame = 0; frame < 8; frame++) {
           await tester.pump(const Duration(milliseconds: 16));
-          expect(find.byType(LibraryImageViewer), findsNothing);
+          expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
           expect(
             tester.getRect(wall),
             wallRect,
@@ -107,6 +199,7 @@ void main() {
           expect(position.pixels, pixels);
           expect(find.byKey(const Key("timeline-slider")), findsOneWidget);
         }
+        expect(find.byType(LibraryImageViewer), findsNothing);
       }
       await tester.tapAt(before.center);
       await tester.pump();
@@ -120,12 +213,14 @@ void main() {
       expect(resizedWall.width, wallRect.width - 20);
       expect(resizedWall.overlaps(resizedAnchor), isTrue);
       await tester.tap(find.byKey(const Key("viewer-back-button")));
-      for (var frame = 0; frame < 6; frame++) {
+      for (var frame = 0; frame < 8; frame++) {
         await tester.pump(const Duration(milliseconds: 16));
+        expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
         expect(tester.getRect(wall), resizedWall);
         expect(tester.getRect(anchor), resizedAnchor);
         expect(position.pixels, resizedPixels);
       }
+      expect(find.byType(LibraryImageViewer), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
@@ -231,12 +326,13 @@ void main() {
         if (!closeBeforePublication) {
           await tester.tap(find.byKey(const Key("viewer-back-button")));
         }
-        for (var frame = 0; frame < 6; frame++) {
+        for (var frame = 0; frame < 8; frame++) {
           await tester.pump(const Duration(milliseconds: 16));
-          expect(find.byType(LibraryImageViewer), findsNothing);
+          expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
           expect(tester.getRect(anchor), originalRect);
           expect(position.pixels, originalPixels);
         }
+        expect(find.byType(LibraryImageViewer), findsNothing);
         await tester.pumpWidget(const SizedBox.shrink());
       },
     );

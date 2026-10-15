@@ -47,6 +47,8 @@ class LibraryPreviewCoordinator {
   final LibraryPreviewStore _store = LibraryPreviewStore();
   late final LibraryPreviewQueue _queue;
   Map<String, _LibraryPreviewDemand> _galleryDemand = const {};
+  Map<String, _LibraryPreviewDemand> _filmstripDemand = const {};
+  Object? _filmstripOwner;
   final LibraryPreviewSizing _sizing = LibraryPreviewSizing();
   LibraryAsset? _viewerDemand;
   bool _isDisposed = false;
@@ -138,6 +140,31 @@ class LibraryPreviewCoordinator {
     _applyDemand();
   }
 
+  void updateFilmstripDemand(
+    Object owner,
+    Iterable<LibraryAsset> visible,
+    int previewEdge,
+  ) {
+    if (_isDisposed) return;
+    _filmstripOwner = owner;
+    _filmstripDemand = {
+      for (final asset in visible)
+        asset.locationId: (
+          asset: asset,
+          priority: LibraryPreviewPriority.visible,
+          previewEdge: previewEdge,
+        ),
+    };
+    _applyDemand();
+  }
+
+  void releaseFilmstripDemand(Object owner) {
+    if (_isDisposed || !identical(owner, _filmstripOwner)) return;
+    _filmstripOwner = null;
+    _filmstripDemand = const {};
+    _applyDemand();
+  }
+
   void retainPending(Iterable<String> locationIds) {
     if (!_isDisposed) {
       _queue.retainPending(locationIds);
@@ -157,6 +184,8 @@ class LibraryPreviewCoordinator {
     _queue.invalidateAll();
     _store.clear();
     _galleryDemand = const {};
+    _filmstripDemand = const {};
+    _filmstripOwner = null;
     _sizing.clear();
     _viewerDemand = null;
   }
@@ -178,12 +207,14 @@ class LibraryPreviewCoordinator {
     _queue.dispose();
     _store.dispose();
     _galleryDemand = const {};
+    _filmstripDemand = const {};
+    _filmstripOwner = null;
     _sizing.clear();
     _viewerDemand = null;
   }
 
   void _applyDemand() {
-    final requests = {..._galleryDemand};
+    final requests = {..._galleryDemand, ..._filmstripDemand};
     final viewer = _viewerDemand;
     if (viewer != null) {
       requests[viewer.locationId] = (
@@ -241,7 +272,7 @@ class LibraryPreviewCoordinator {
     }
     final locationId = completion.asset.locationId;
     final viewer = _viewerDemand;
-    final gallery = _galleryDemand[locationId];
+    final gallery = _filmstripDemand[locationId] ?? _galleryDemand[locationId];
     final LibraryPreviewSizeDemand current;
     if (viewer != null && viewer.locationId == locationId) {
       current = (asset: viewer, previewEdge: defaultPreviewEdge);

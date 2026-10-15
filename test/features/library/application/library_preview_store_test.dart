@@ -26,8 +26,8 @@ void main() {
     expect(resolved.previewStatus, LibraryPreviewStatus.ready);
   });
 
-  test("retains demanded identities and notifies only evicted entries", () {
-    final store = LibraryPreviewStore();
+  test("retains demand and recent previews, notifying actual eviction", () {
+    final store = LibraryPreviewStore(maxRetainedReady: 1);
     addTearDown(store.dispose);
     final first = _asset("first");
     final second = _asset("second");
@@ -47,9 +47,43 @@ void main() {
     store.retain([first.locationId]);
 
     expect(firstChanges, 1);
+    expect(secondChanges, 1);
+    expect(store.resolve(second).previewStatus, LibraryPreviewStatus.ready);
+    store.publish(_ready(_asset("third")));
+    store.retain([first.locationId]);
+
     expect(secondChanges, 2);
     expect(store.resolve(first).previewStatus, LibraryPreviewStatus.ready);
     expect(store.resolve(second).previewStatus, LibraryPreviewStatus.pending);
+  });
+
+  test("recent ready previews follow use order and source invalidation", () {
+    final store = LibraryPreviewStore(maxRetainedReady: 2);
+    addTearDown(store.dispose);
+    final first = _asset("first");
+    final second = _asset("second");
+    final third = _asset("third");
+    store.publish(_ready(first));
+    store.publish(_ready(second));
+    store.retain(const []);
+    expect(store.resolve(first).previewStatus, LibraryPreviewStatus.ready);
+    store.publish(_ready(third));
+    store.retain(const []);
+    expect(store.resolve(second).previewStatus, LibraryPreviewStatus.pending);
+    expect(store.resolve(first).previewStatus, LibraryPreviewStatus.ready);
+    expect(
+      store
+          .resolve(_asset("first", sourceGeneration: BigInt.two))
+          .previewStatus,
+      LibraryPreviewStatus.pending,
+    );
+    store.invalidateRoot(first.rootId);
+    expect(store.resolve(first).previewStatus, LibraryPreviewStatus.pending);
+    expect(store.resolve(third).previewStatus, LibraryPreviewStatus.pending);
+    store.publish(_ready(first));
+    store.retain(const []);
+    store.clear();
+    expect(store.resolve(first).previewStatus, LibraryPreviewStatus.pending);
   });
 
   test("retains failure evidence after an identity leaves demand", () {

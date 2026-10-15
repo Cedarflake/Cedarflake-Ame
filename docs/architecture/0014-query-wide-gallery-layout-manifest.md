@@ -37,8 +37,8 @@ plus one replacement asset window is sufficient presentation state.
 - The same logical image position must survive wheel scrolling, time-rail dragging, time-rail
   clicking, preview publication, incremental catalog updates, and window resizing.
 - Geometry must be deterministic before a thumbnail is decoded.
-- A cold cache may leave unloaded final-geometry slots unpainted behind the shared loading signal,
-  but it must not show a different layout or an unresponsive wall of placeholder tiles.
+- A cold cache exposes unloaded final-geometry rectangles with the photo card's neutral background,
+  while the gallery remains scrollable and the shared loading signal reports progress.
 - Full asset records, paths, and decoded media must remain bounded and lazy.
 - Catalog requests and preview work must be cancellable or made harmless through revision and
   generation checks.
@@ -128,11 +128,15 @@ the exact effective viewport width. A cache miss recomputes from the manifest, a
 may never override newer catalog dimensions.
 
 The existing generic square placeholder slivers are removed after this snapshot owns the complete
-visible range. An unloaded item retains an unpainted, non-interactive slot inside its final rectangle
-so the gallery background remains visually continuous instead of becoming a wall of fake tiles.
-The shared two-pixel top loading line is the only loading treatment for a pending visible detail
-range. Indeterminate progress indicators are reserved for explicit foreground work and are not
-repeated across a large scrolling wall.
+visible range. An unloaded item paints the photo card's neutral background and corner radius inside
+its final rectangle, without pointer actions or button semantics. The same key and rectangle remain
+when details and preview pixels arrive. This presentation amendment on 2026-10-15 replaces the
+previous transparent-slot treatment so distant jumps expose their existing geometry immediately.
+It adds no estimated squares, shimmer, size transition, or per-item progress indicators. The shared
+two-pixel top loading line remains the only progress indicator for a pending visible detail range.
+When a time-rail request has already positioned an unchanged query-wide layout, detail completion
+preserves that exact position, including its fraction within a row; a changed layout or revision
+continues to resolve the semantic anchor.
 
 ### Logical viewport anchor
 
@@ -168,6 +172,17 @@ touchpad, keyboard, accessibility actions, and ballistic activity. Those deltas 
 immediately through the framework and must not be converted into an asynchronous application intent
 queue.
 
+Mouse-wheel signals may retain a short decelerating tail on that same `ScrollPosition`: move most
+of each delta immediately, then finish at most 24 logical pixels over 90 ms without increasing the
+input's total distance. The pinned Flutter SDK resolves wheel signals through
+`ScrollPosition.pointerScroll`; its default implementation applies them immediately, while
+`ScrollPhysics` supplies drag/ballistic behavior. The gallery therefore uses a narrow position
+subclass and framework `DrivenScrollActivity`, preserving native signal admission, axis modifiers,
+notifications, semantics and touchpad pan/zoom handling. Repeated same-direction input keeps its
+endpoint only in the current activity; reversal, pointer down, direct navigation, layout correction,
+viewer entry and disposal retire that activity. Reduced-motion preferences and non-mouse signals
+retain immediate native movement. No extra timer, application queue or canonical position is added.
+
 One `GalleryNavigationCoordinator` owns programmatic position changes and their asynchronous
 lifecycle. It accepts three typed intents:
 
@@ -194,7 +209,7 @@ correction, manifest takeover, resize, and dimension recovery do not impersonate
 | Input | Position behavior | Detail loading | Preview behavior |
 | --- | --- | --- | --- |
 | Wheel, touchpad, keyboard | Native relative scrolling on the one `Scrollable`; the coordinator observes but does not enqueue deltas | Prefetch bounded pages before and after the viewport; never replace the complete visible model | Visible work expands from the center card toward both sides; expensive decode and recovered geometry may wait for native scrolling to become idle |
-| Time-rail drag | Update the exact manifest-backed position at most once per frame | Latest-wins target page requests at a measured bounded cadence; release promotes the final target | Reuse cached previews; otherwise retain unpainted final-geometry slots behind the shared loading line |
+| Time-rail drag | Update the exact manifest-backed position at most once per frame | Latest-wins target page requests at a measured bounded cadence; release promotes the final target | Reuse cached previews; otherwise paint the final-geometry card background behind the shared loading line |
 | Time-rail click or other distant jump | Jump directly to the resolved anchor without animating through the library | Request the target page and guard pages with highest priority | Publish cached or newly decoded previews without changing geometry |
 | Window resize | Preserve the logical anchor while one latest layout snapshot replaces the previous snapshot atomically | Reuse already loaded details; discard obsolete width computations | Reuse decode-width buckets and request only missing sizes after layout stabilizes |
 
@@ -282,10 +297,10 @@ the gallery reuses its original two-pixel top `LinearProgressIndicator` while th
 pending, waiting behind another bounded catalog operation, or active. A direct timeline or
 scrollbar jump outside the loaded detail window publishes that state synchronously, before the
 catalog request drains; it cannot depend on a later scroll notification. It must not add a capsule
-over the wall, paint repeated placeholder tiles, create one spinner per unloaded slot, intercept
+over the wall, animate unloaded slots, create one spinner per unloaded slot, intercept
 scrolling, fabricate file actions for unknown details, or replace the wall with a paginated layout.
 The indication clears on compatible detail publication, supersession, cancellation, failure, or
-query/revision replacement. Loaded tiles replace their unpainted slots with the same keys and
+query/revision replacement. Loaded tiles replace their static slots with the same keys and
 rectangles.
 
 Catalog-session preparation belongs outside this interaction loop. Detail-window completion may
@@ -345,9 +360,9 @@ This decision becomes **Accepted** only when all of the following pass:
   viewport back to an earlier target.
 - Time-rail input and its primary line update within one display frame while catalog and preview
   work remains bounded.
-- A distant cold-cache jump immediately shows the shared two-pixel top loading line, retains
-  unpainted final-geometry slots, and remains scrollable; source-backed tiles fill in without
-  another layout transition or an intermediate placeholder wall.
+- A distant cold-cache jump immediately shows the shared two-pixel top loading line and static
+  final-geometry card backgrounds, and remains scrollable; source-backed tiles fill in without
+  another layout transition, row-top correction, or intermediate estimated layout.
 - Live resize preserves the logical item and viewport fraction with no more than two logical pixels
   of post-layout drift after settling.
 - Profile-mode frame evidence on the project workstation records P95 build and raster times within

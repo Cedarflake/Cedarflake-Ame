@@ -469,6 +469,7 @@ void main() {
         ),
       );
       await tester.pump();
+      await tester.pump();
       expect(find.text(LibraryStrings.synchronized), findsOneWidget);
       expect(find.text(LibraryStrings.synchronizing), findsNothing);
       expect(scanner.startedRootPaths, isEmpty);

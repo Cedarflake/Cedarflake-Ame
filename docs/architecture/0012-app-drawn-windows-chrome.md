@@ -44,6 +44,11 @@ native window and changes the non-client presentation through documented window 
 
 ## Accepted decision
 
+Native full-screen changes remain behind `WindowManagerActions`, exposed through the Ame-owned
+`AmeWindowFullscreen` controller. It serializes entry/exit and retires normal-placement read authority
+across a transition. Full-screen move, resize and maximize events must not overwrite saved normal
+bounds or maximized preference. Viewer close restores the window; full screen is transient state.
+
 Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
 
 - The Windows bootstrap selects `TitleBarStyle.hidden` and hides system caption buttons.

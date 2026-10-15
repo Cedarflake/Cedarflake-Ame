@@ -9,6 +9,115 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  for (final relocated in [false, true]) {
+    for (final direction in LibraryViewerDirection.values) {
+      test(
+        "retired-page navigation uses the selected alias; relocated=$relocated, $direction",
+        () async {
+          final fixture = _ViewerFixture();
+          final selected = fixture.assets[1];
+          fixture.assets[0] = _alias(selected, "earlier-alias");
+          fixture.viewer.open(selected);
+          fixture.state = fixture.state.copyWith(
+            assets: [fixture.assets[2]],
+            windowStartItemOffset: 2,
+          );
+          if (relocated) {
+            fixture.assets[1] = _alias(selected, "relocated-alias");
+          }
+          fixture.catalog.neighbor = Completer<LibraryQuerySnapshot>();
+          final pending = fixture.viewer.navigate(direction);
+          fixture.catalog.neighbor!.complete(
+            LibraryQuerySnapshot(
+              snapshot: LibrarySnapshot(
+                catalogPath: "catalog.sqlite3",
+                revision: BigInt.one,
+                queryId: "viewer-test",
+                roots: const [],
+                assets: fixture.assets,
+                queryAnchorResolution: LibraryQueryAnchorResolution(
+                  requestedLocationId: selected.locationId,
+                  windowStartItemOffset: 0,
+                  locationId: fixture.assets[1].locationId,
+                  ordinal: 1,
+                ),
+              ),
+              timeline: LibraryTimeline(
+                revision: BigInt.one,
+                queryId: "viewer-test",
+                totalItems: 3,
+                buckets: const [],
+              ),
+            ),
+          );
+          final target = direction == LibraryViewerDirection.previous ? 0 : 2;
+          expect(await pending, isTrue);
+          expect(fixture.viewer.locationId, fixture.assets[target].locationId);
+          expect(fixture.viewer.ordinal, target);
+          expect(fixture.errors, isEmpty);
+          expect(fixture.pages, isEmpty);
+        },
+      );
+    }
+  }
+
+  for (final closeBeforeResult in [false, true]) {
+    test(
+      "retired gallery page uses a bounded viewer window; closed=$closeBeforeResult",
+      () async {
+        final fixture = _ViewerFixture();
+        final viewer = fixture.viewer;
+        viewer.open(fixture.assets[1]);
+        fixture.state = fixture.state.copyWith(
+          assets: [fixture.assets[2]],
+          windowStartItemOffset: 2,
+        );
+        expect(viewer.navigation(3).canPrevious, isTrue);
+        expect(viewer.navigation(3).position, 2);
+        fixture.catalog.neighbor = Completer<LibraryQuerySnapshot>();
+        final pending = viewer.navigate(LibraryViewerDirection.next);
+        expect(fixture.catalog.neighborLimit, 64);
+        expect(
+          fixture.catalog.neighborAnchor?.assetId,
+          fixture.assets[1].assetId,
+        );
+        if (closeBeforeResult) {
+          viewer.close();
+          viewer.open(fixture.assets[0], ordinal: 0);
+        }
+        fixture.catalog.neighbor!.complete(
+          LibraryQuerySnapshot(
+            snapshot: LibrarySnapshot(
+              catalogPath: "catalog.sqlite3",
+              revision: BigInt.one,
+              queryId: "viewer-test",
+              roots: const [],
+              assets: fixture.assets,
+              queryAnchorResolution: LibraryQueryAnchorResolution(
+                requestedLocationId: fixture.assets[1].locationId,
+                windowStartItemOffset: 0,
+                locationId: fixture.assets[1].locationId,
+                ordinal: 1,
+              ),
+            ),
+            timeline: LibraryTimeline(
+              revision: BigInt.one,
+              queryId: "viewer-test",
+              totalItems: 3,
+              buckets: const [],
+            ),
+          ),
+        );
+        expect(await pending, !closeBeforeResult);
+        expect(
+          viewer.locationId,
+          fixture.assets[closeBeforeResult ? 0 : 2].locationId,
+        );
+        expect(fixture.pages, isEmpty);
+      },
+    );
+  }
+
   test(
     "current boundary request without an admitted page reports a visible failure",
     () async {
@@ -166,6 +275,23 @@ void main() {
   );
 }
 
+LibraryAsset _alias(LibraryAsset asset, String locationId) => LibraryAsset(
+  assetId: asset.assetId,
+  locationId: locationId,
+  rootId: asset.rootId,
+  activeScanId: asset.activeScanId,
+  sourcePath: "unused/$locationId.jpg",
+  displayPath: "$locationId.jpg",
+  relativePath: "$locationId.jpg",
+  previewPath: asset.previewPath,
+  fileSize: asset.fileSize,
+  modifiedUnixMs: asset.modifiedUnixMs,
+  sourceRevision: asset.sourceRevision,
+  sourceGeneration: asset.sourceGeneration,
+  width: asset.width,
+  height: asset.height,
+);
+
 class _ViewerFixture {
   _ViewerFixture() {
     catalog = _LookupCatalog(scanner);
@@ -236,6 +362,28 @@ class _LookupCatalog extends RetainedScanCatalog
     implements LibraryStableAssetCatalog {
   _LookupCatalog(super.scanner);
   final Completer<LibraryAsset?> lookup = Completer();
+  Completer<LibraryQuerySnapshot>? neighbor;
+  int? neighborLimit;
+  LibraryQueryAnchor? neighborAnchor;
+
+  @override
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  }) {
+    final pending = neighbor;
+    if (pending == null) {
+      return super.loadQuerySnapshot(
+        maxItems: maxItems,
+        query: query,
+        anchor: anchor,
+      );
+    }
+    neighborLimit = maxItems;
+    neighborAnchor = anchor;
+    return pending.future;
+  }
 
   @override
   Future<LibraryAsset?> loadAssetById({

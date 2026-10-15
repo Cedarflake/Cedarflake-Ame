@@ -1,16 +1,22 @@
+import "dart:async";
 import "dart:math" as math;
 
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
+import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/window/ame_window_fullscreen.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../domain/library_models.dart";
 import "library_viewer_controls.dart";
+import "library_viewer_filmstrip_slot.dart";
 import "library_viewer_image.dart";
-import "library_viewer_zoom_geometry.dart";
+import "../library_viewer_zoom.dart";
+import "library_viewer_toolbar.dart";
+import "library_viewer_transition.dart";
 
-class LibraryImageViewer extends StatefulWidget {
+class LibraryImageViewer extends ConsumerStatefulWidget {
   const LibraryImageViewer({
     required this.asset,
     required this.onBack,
@@ -23,6 +29,7 @@ class LibraryImageViewer extends StatefulWidget {
     this.onNext,
     this.position,
     this.totalItems,
+    this.filmstrip,
     super.key,
   });
 
@@ -37,74 +44,70 @@ class LibraryImageViewer extends StatefulWidget {
   final VoidCallback? onNext;
   final int? position;
   final int? totalItems;
+  final Widget? filmstrip;
 
   @override
-  State<LibraryImageViewer> createState() => _LibraryImageViewerState();
+  ConsumerState<LibraryImageViewer> createState() => _LibraryImageViewerState();
 }
 
-class _LibraryImageViewerState extends State<LibraryImageViewer>
+class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     with SingleTickerProviderStateMixin {
-  static const _zoomStep = 1.25;
-  static const _zoomAnimationDuration = Duration(milliseconds: 180);
-
-  final FocusNode _viewerFocusNode = FocusNode(
-    debugLabel: "library-image-viewer",
-  );
-  final TransformationController _transformationController =
-      TransformationController();
-  late final AnimationController _zoomAnimationController;
-  Matrix4? _zoomAnimationStart;
-  Matrix4? _zoomAnimationEnd;
-  Matrix4? _interactionStartTransform;
-  Size _viewportSize = Size.zero;
-  double _scale = 1;
-  bool _isConstrainingTransform = false;
-  bool _shouldApplyOpeningBehavior = true;
+  final _viewerFocusNode = FocusNode(debugLabel: "library-image-viewer");
+  late final LibraryViewerZoom _zoom;
   DateTime? _lastWheelNavigationAt;
+  AmeWindowFullscreen? _fullscreen;
 
   @override
   void initState() {
     super.initState();
-    _zoomAnimationController = AnimationController(
-      vsync: this,
-      duration: _zoomAnimationDuration,
-    )..addListener(_handleZoomAnimation);
-    _transformationController.addListener(_handleTransformationChanged);
+    _zoom = LibraryViewerZoom(vsync: this)
+      ..addListener(_handlePresentationChanged);
     _requestViewerFocus();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!LibraryViewerActivity.isActiveOf(context)) {
+      unawaited(_setFullscreen(false));
+    }
+  }
+
+  void _handlePresentationChanged() {
+    if (mounted) setState(() {});
   }
 
   @override
   void didUpdateWidget(covariant LibraryImageViewer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.asset.locationId != widget.asset.locationId) {
-      _fitToWindow(animate: false);
-      _shouldApplyOpeningBehavior = true;
       _requestViewerFocus();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _applyOpeningBehaviorIfNeeded();
-        }
-      });
     }
   }
 
   @override
   void dispose() {
+    _fullscreen?.removeListener(_handlePresentationChanged);
+    unawaited(_setFullscreen(false));
     _viewerFocusNode.dispose();
-    _zoomAnimationController.dispose();
-    _transformationController
-      ..removeListener(_handleTransformationChanged)
-      ..dispose();
+    _zoom.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final fullscreen = ref.watch(ameWindowFullscreenProvider);
+    if (_fullscreen != fullscreen) {
+      _fullscreen?.removeListener(_handlePresentationChanged);
+      _fullscreen = fullscreen;
+      _fullscreen?.addListener(_handlePresentationChanged);
+    }
     return CallbackShortcuts(
       bindings: {
-        const SingleActivator(LogicalKeyboardKey.escape): widget.onBack,
-        const SingleActivator(LogicalKeyboardKey.backspace): widget.onBack,
-        const SingleActivator(LogicalKeyboardKey.browserBack): widget.onBack,
+        const SingleActivator(LogicalKeyboardKey.escape): _escape,
+        const SingleActivator(LogicalKeyboardKey.backspace): _back,
+        const SingleActivator(LogicalKeyboardKey.browserBack): _back,
+        const SingleActivator(LogicalKeyboardKey.f11): _toggleFullscreen,
         const SingleActivator(LogicalKeyboardKey.arrowLeft):
             _showPreviousFromKeyboard,
         const SingleActivator(LogicalKeyboardKey.arrowRight):
@@ -134,15 +137,13 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
         autofocus: true,
         child: Column(
           children: [
-            LibraryViewerTopBar(
-              displayPath: widget.asset.displayPath,
-              positionLabel: _positionLabel,
-              onBack: widget.onBack,
-              onInformation: widget.onInformation,
-              onCopyPath: widget.onCopyPath,
-              onRevealFile: widget.onRevealFile,
-            ),
-            const Divider(height: 1),
+            if (!(_fullscreen?.isFullscreen ?? false)) ...[
+              LibraryViewerTopBar(
+                displayPath: widget.asset.displayPath,
+                onBack: _back,
+              ),
+              const Divider(height: 1),
+            ],
             Expanded(child: _buildCanvas(context)),
           ],
         ),
@@ -151,44 +152,63 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
   }
 
   Widget _buildCanvas(BuildContext context) {
+    final showFilmstrip =
+        ref.watch(amePreferencesControllerProvider).viewerFilmstripVisible &&
+        widget.filmstrip != null;
     return ColoredBox(
       color: Theme.of(context).colorScheme.surfaceContainerLowest,
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final nextViewportSize = Size(
-            constraints.maxWidth,
-            math.max(
-              0,
-              constraints.maxHeight -
-                  LibraryViewerZoomControls.commandBarHeight,
+          _zoom.layout(
+            image: widget.asset.locationId,
+            imageSize: Size(
+              widget.asset.width.toDouble(),
+              widget.asset.height.toDouble(),
             ),
+            viewport: Size(
+              constraints.maxWidth,
+              math.max(
+                0,
+                constraints.maxHeight -
+                    LibraryViewerToolbar.height -
+                    (showFilmstrip ? LibraryViewerFilmstripSlot.height : 0),
+              ),
+            ),
+            opening: widget.openBehavior,
           );
-          if (nextViewportSize != _viewportSize) {
-            _viewportSize = nextViewportSize;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              if (mounted) {
-                _applyOpeningBehaviorIfNeeded();
-                _constrainTransform();
-              }
-            });
-          }
           return Column(
             children: [
               Expanded(child: _buildImageViewport()),
-              LibraryViewerZoomControls(
-                sliderValue: _sliderValueForScale(_scale),
-                zoomPercent: _zoomPercent.round(),
-                canZoomOut: _scale > _minimumScale + 0.001,
-                canZoomIn: _scale < _maximumScale - 0.001,
-                canShowActualSize: _hasImageDimensions,
-                onSliderChanged: (value) =>
-                    _setScale(_scaleForSliderValue(value), animate: false),
-                sliderSemanticFormatter: (value) =>
-                    "${_zoomPercentForScale(_scaleForSliderValue(value)).round()}%",
-                onZoomOut: _zoomOut,
-                onZoomIn: _zoomIn,
-                onFitToWindow: _fitToWindow,
-                onShowActualSize: _showActualSize,
+              if (widget.filmstrip case final filmstrip?)
+                LibraryViewerFilmstripSlot(
+                  visible: showFilmstrip,
+                  child: filmstrip,
+                ),
+              LibraryViewerToolbar(
+                asset: widget.asset,
+                positionLabel: _positionLabel,
+                onCopyPath: widget.onCopyPath,
+                onRevealFile: widget.onRevealFile,
+                isFilmstripVisible: showFilmstrip,
+                onToggleFilmstrip: widget.filmstrip == null
+                    ? null
+                    : _toggleFilmstrip,
+                onInformation: widget.onInformation,
+                isActualSize: _zoom.isActualSize,
+                onToggleZoomMode: _zoom.hasDimensions
+                    ? _toggleActualSize
+                    : null,
+                sliderValue: _zoom.sliderValue,
+                zoomPercent: _zoom.percent,
+                onSliderChanged: _zoom.sliderChanged,
+                sliderSemanticFormatter: _zoom.sliderLabel,
+                onZoomOut: _zoom.canZoomOut ? _zoomOut : null,
+                onZoomIn: _zoom.canZoomIn ? _zoomIn : null,
+                isFullscreen: _fullscreen?.isFullscreen ?? false,
+                onToggleFullscreen:
+                    _fullscreen == null || _fullscreen!.isChanging
+                    ? null
+                    : _toggleFullscreen,
               ),
             ],
           );
@@ -205,8 +225,14 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
           asset: widget.asset,
           imageBuilder: _buildTransformedImage,
         ),
-        LibraryViewerNavigationButton.previous(onPressed: widget.onPrevious),
-        LibraryViewerNavigationButton.next(onPressed: widget.onNext),
+        LibraryViewerNavigationButton.previous(
+          onPressed: widget.onPrevious == null
+              ? null
+              : _showPreviousFromKeyboard,
+        ),
+        LibraryViewerNavigationButton.next(
+          onPressed: widget.onNext == null ? null : _showNextFromKeyboard,
+        ),
       ],
     );
   }
@@ -219,18 +245,18 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
         onDoubleTap: _toggleActualSize,
         child: InteractiveViewer(
           key: const Key("library-image-interactive-viewer"),
-          transformationController: _transformationController,
+          transformationController: _zoom.transform,
           alignment: Alignment.topLeft,
           boundaryMargin: const EdgeInsets.all(double.infinity),
-          minScale: _minimumScale,
-          maxScale: _maximumScale,
+          minScale: _zoom.minimumScale,
+          maxScale: _zoom.maximumScale,
           scaleFactor: 180,
           scaleEnabled: widget.wheelBehavior == ImageViewerWheelBehavior.zoom,
           trackpadScrollCausesScale: true,
-          onInteractionStart: _handleInteractionStart,
+          onInteractionStart: _zoom.interactionStarted,
           child: SizedBox(
-            width: _viewportSize.width,
-            height: _viewportSize.height,
+            width: _zoom.viewport.width,
+            height: _zoom.viewport.height,
             child: image,
           ),
         ),
@@ -238,82 +264,10 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
     );
   }
 
-  void _handleTransformationChanged() {
-    _constrainTransform();
-    final nextScale = _transformationController.value
-        .getMaxScaleOnAxis()
-        .clamp(_minimumScale, _maximumScale)
-        .toDouble();
-    if (mounted && (nextScale - _scale).abs() > 0.001) {
-      setState(() => _scale = nextScale);
-    }
-  }
-
   void _requestViewerFocus() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted) {
-        _viewerFocusNode.requestFocus();
-      }
+      if (mounted) _viewerFocusNode.requestFocus();
     });
-  }
-
-  void _constrainTransform() {
-    if (_isConstrainingTransform ||
-        !_hasImageDimensions ||
-        _viewportSize.isEmpty) {
-      return;
-    }
-    final matrix = _transformationController.value;
-    final scale = matrix.getMaxScaleOnAxis();
-    final translation = matrix.getTranslation();
-    final fittedSize = Size(
-      widget.asset.width * _fitImageScale,
-      widget.asset.height * _fitImageScale,
-    );
-    final fittedLeft = (_viewportSize.width - fittedSize.width) / 2;
-    final fittedTop = (_viewportSize.height - fittedSize.height) / 2;
-    final imageWidth = fittedSize.width * scale;
-    final imageHeight = fittedSize.height * scale;
-    final imageLeft = translation.x + fittedLeft * scale;
-    final imageTop = translation.y + fittedTop * scale;
-    var correctedX = translation.x;
-    var correctedY = translation.y;
-
-    if (imageWidth <= _viewportSize.width) {
-      correctedX += (_viewportSize.width - imageWidth) / 2 - imageLeft;
-    } else if (imageLeft > 0) {
-      correctedX -= imageLeft;
-    } else if (imageLeft + imageWidth < _viewportSize.width) {
-      correctedX += _viewportSize.width - imageLeft - imageWidth;
-    }
-    if (imageHeight <= _viewportSize.height) {
-      correctedY += (_viewportSize.height - imageHeight) / 2 - imageTop;
-    } else if (imageTop > 0) {
-      correctedY -= imageTop;
-    } else if (imageTop + imageHeight < _viewportSize.height) {
-      correctedY += _viewportSize.height - imageTop - imageHeight;
-    }
-
-    if ((correctedX - translation.x).abs() < 0.01 &&
-        (correctedY - translation.y).abs() < 0.01) {
-      return;
-    }
-    _isConstrainingTransform = true;
-    _transformationController.value = matrix.clone()
-      ..setTranslationRaw(correctedX, correctedY, 0);
-    _isConstrainingTransform = false;
-  }
-
-  void _fitToWindow({bool animate = true}) {
-    _setTransform(Matrix4.identity(), animate: animate);
-  }
-
-  void _applyOpeningBehaviorIfNeeded() {
-    if (!_shouldApplyOpeningBehavior || !_hasImageDimensions) {
-      return;
-    }
-    _shouldApplyOpeningBehavior = false;
-    _setScale(_zoomGeometry.openingScale(widget.openBehavior), animate: false);
   }
 
   void _handlePointerSignal(PointerSignalEvent event) {
@@ -321,14 +275,7 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
       return;
     }
     if (widget.wheelBehavior == ImageViewerWheelBehavior.zoom) {
-      final animationStart = _interactionStartTransform;
-      _interactionStartTransform = null;
-      if (animationStart == null) {
-        return;
-      }
-      final animationEnd = _transformationController.value.clone();
-      _transformationController.value = animationStart;
-      _setTransform(animationEnd, animate: true);
+      _zoom.animatePointerZoom();
       return;
     }
     final now = DateTime.now();
@@ -339,124 +286,86 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
     }
     _lastWheelNavigationAt = now;
     if (event.scrollDelta.dy < 0) {
-      widget.onPrevious?.call();
+      _showPreviousFromKeyboard();
     } else {
-      widget.onNext?.call();
+      _showNextFromKeyboard();
     }
   }
 
-  void _handleInteractionStart(ScaleStartDetails _) {
-    _zoomAnimationController.stop();
-    _interactionStartTransform = _transformationController.value.clone();
+  void _fitToWindow() {
+    _zoom.fit();
   }
 
-  void _showActualSize({bool animate = true}) {
-    if (_hasImageDimensions) {
-      _setScale(_actualSizeScale, animate: animate);
-    }
+  void _showActualSize() {
+    _zoom.actualSize();
   }
 
   void _toggleActualSize() {
-    if (!_hasImageDimensions || _zoomGeometry.isActualSize(_scale)) {
-      _fitToWindow();
+    _zoom.toggleMode();
+  }
+
+  void _zoomIn() {
+    _zoom.zoomIn();
+  }
+
+  void _zoomOut() {
+    _zoom.zoomOut();
+  }
+
+  void _showPreviousFromKeyboard() {
+    widget.onPrevious?.call();
+  }
+
+  void _showNextFromKeyboard() {
+    widget.onNext?.call();
+  }
+
+  void _escape() {
+    if (_fullscreen?.isFullscreen ?? false) {
+      unawaited(_setFullscreen(false));
     } else {
-      _showActualSize();
+      _back();
     }
   }
 
-  void _zoomIn() => _setScale(_scale * _zoomStep);
+  Future<void> _back() async {
+    await _setFullscreen(false);
+    if (mounted) widget.onBack();
+  }
 
-  void _zoomOut() => _setScale(_scale / _zoomStep);
+  void _toggleFullscreen() =>
+      unawaited(_setFullscreen(!(_fullscreen?.isFullscreen ?? false)));
 
-  void _setScale(double value, {bool animate = true}) {
-    if (_viewportSize.isEmpty) {
-      return;
+  Future<void> _setFullscreen(bool enabled) async {
+    try {
+      await _fullscreen?.setEnabled(enabled);
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("无法切换全屏，请重试")));
+      }
     }
-    final nextScale = value.clamp(_minimumScale, _maximumScale).toDouble();
-    final viewportCenter = Offset(
-      _viewportSize.width / 2,
-      _viewportSize.height / 2,
-    );
-    final sceneCenter = _transformationController.toScene(viewportCenter);
-    final target = Matrix4.identity()
-      ..translateByDouble(viewportCenter.dx, viewportCenter.dy, 0, 1)
-      ..scaleByDouble(nextScale, nextScale, nextScale, 1)
-      ..translateByDouble(-sceneCenter.dx, -sceneCenter.dy, 0, 1);
-    _setTransform(target, animate: animate);
   }
 
-  void _setTransform(Matrix4 target, {required bool animate}) {
-    _zoomAnimationController.stop();
-    if (!animate) {
-      _transformationController.value = target;
-      return;
+  Future<void> _toggleFilmstrip() async {
+    final preferences = ref.read(amePreferencesControllerProvider);
+    try {
+      await ref
+          .read(amePreferencesControllerProvider.notifier)
+          .update(
+            preferences.copyWith(
+              viewerFilmstripVisible: !preferences.viewerFilmstripVisible,
+            ),
+          );
+    } on Object {
+      if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("无法保存缩略图设置，请重试")));
+      }
     }
-    _zoomAnimationStart = _transformationController.value.clone();
-    _zoomAnimationEnd = target;
-    _zoomAnimationController.forward(from: 0);
   }
-
-  void _handleZoomAnimation() {
-    final start = _zoomAnimationStart;
-    final end = _zoomAnimationEnd;
-    if (start == null || end == null) {
-      return;
-    }
-    final progress = Curves.easeOutCubic.transform(
-      _zoomAnimationController.value,
-    );
-    final startTranslation = start.getTranslation();
-    final endTranslation = end.getTranslation();
-    final startScale = start.getMaxScaleOnAxis();
-    final endScale = end.getMaxScaleOnAxis();
-    final scale = _lerp(startScale, endScale, progress);
-    _transformationController.value = Matrix4.identity()
-      ..translateByDouble(
-        _lerp(startTranslation.x, endTranslation.x, progress),
-        _lerp(startTranslation.y, endTranslation.y, progress),
-        0,
-        1,
-      )
-      ..scaleByDouble(scale, scale, scale, 1);
-  }
-
-  double _lerp(double start, double end, double progress) =>
-      start + (end - start) * progress;
-
-  double _sliderValueForScale(double scale) {
-    return _zoomGeometry.sliderValueForScale(scale);
-  }
-
-  double _scaleForSliderValue(double value) {
-    return _zoomGeometry.scaleForSliderValue(value);
-  }
-
-  double _zoomPercentForScale(double scale) =>
-      _zoomGeometry.percentageForScale(scale);
-
-  void _showPreviousFromKeyboard() => widget.onPrevious?.call();
-
-  void _showNextFromKeyboard() => widget.onNext?.call();
-
-  LibraryViewerZoomGeometry get _zoomGeometry => LibraryViewerZoomGeometry(
-    imageSize: Size(
-      widget.asset.width.toDouble(),
-      widget.asset.height.toDouble(),
-    ),
-    viewportSize: _viewportSize,
-  );
-
-  bool get _hasImageDimensions => _zoomGeometry.hasImageDimensions;
-
-  double get _fitImageScale => _zoomGeometry.fitImageScale;
-
-  double get _actualSizeScale => _zoomGeometry.actualSizeScale;
-
-  double get _minimumScale => _zoomGeometry.minimumScale;
-
-  double get _maximumScale => _zoomGeometry.maximumScale;
-
-  double get _zoomPercent => _zoomPercentForScale(_scale);
 
   String? get _positionLabel {
     final position = widget.position;
@@ -464,6 +373,6 @@ class _LibraryImageViewerState extends State<LibraryImageViewer>
     if (position == null || totalItems == null || totalItems <= 0) {
       return null;
     }
-    return "$position / $totalItems";
+    return "$position / $totalItems 张";
   }
 }

@@ -55,6 +55,10 @@ $removeFromAmeName = (
 )
 $copyPathName = -join [char[]](0x590D, 0x5236, 0x8DEF, 0x5F84)
 $reopenImageName = -join [char[]](0x91CD, 0x65B0, 0x6253, 0x5F00)
+$fitImageName = (-join [char[]](0x9002, 0x5E94, 0x7A97, 0x53E3, 0xFF08)) +
+    "0 / Ctrl+0" + [char]0xFF09
+$actualSizeName = (-join [char[]](0x5B9E, 0x9645, 0x5927, 0x5C0F, 0xFF08)) +
+    "1 / Ctrl+1" + [char]0xFF09
 $openInExplorerName = -join [char[]](
     0x5728,
     0x6587,
@@ -202,11 +206,11 @@ function Get-AmeWindowsUiaSnapshot {
         [int]$TargetProcessId
     )
 
+    Publish-AmeWindowsUiaProbeProgress -Stage "locating-window"
     $processCondition = New-Object System.Windows.Automation.PropertyCondition(
         [System.Windows.Automation.AutomationElement]::ProcessIdProperty,
         $TargetProcessId
     )
-    Publish-AmeWindowsUiaProbeProgress -Stage "locating-window"
     $windows = [System.Windows.Automation.AutomationElement]::RootElement.FindAll(
         [System.Windows.Automation.TreeScope]::Children,
         $processCondition
@@ -375,7 +379,7 @@ function Get-AmeWindowsUiaPhaseFailure {
             @{
                 Expected = @(
                     @{
-                        Name = "1:1"
+                        Name = $fitImageName
                         ControlType = "ControlType.Button"
                     },
                     @{
@@ -407,7 +411,7 @@ function Get-AmeWindowsUiaPhaseFailure {
             @{
                 Expected = @(
                     @{
-                        Name = "1:1"
+                        Name = $actualSizeName
                         ControlType = "ControlType.Button"
                     },
                     @{
