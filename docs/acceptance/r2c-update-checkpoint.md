@@ -1166,3 +1166,17 @@ foreground capture ownership, narrow retained-state repair and completed-task ex
 callers and regressions. No confirmed new defect is reported in that range. It performs no product
 run or source access. Existing unstaged copy/layout edits remain outside its committed range. Its scope is this
 closing repair batch, while earlier acceptance records retain their own coverage boundaries.
+
+### Delivery verification on 2026-10-15
+
+The final recorded candidate `712f8ea` passes all ten applicable jobs and the aggregate in
+[Actions run 38688362613](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38688362613).
+Rust reports 1,915 passes, zero failures, 24 opt-in ignored cases and three passing documentation tests.
+The preceding `6d4a288` and `3109015` runs also pass. Product inputs are unchanged across these three
+revisions; later edits only close this delivery status in documentation. Documentation uses scoped
+encoding, link, whitespace and diff checks without another local product run.
+
+The completed native cases above retain their original measurement boundaries. The reusable source
+corpus and original profile are restored; `build/test/derived` contains only its 16-byte fixture marker.
+The user's 21 pre-existing unstaged files remain unchanged by this closeout. No additional product,
+installer, signing, Sandbox or R3 work is introduced by the status update.

@@ -31,8 +31,8 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R1 | Progressive, resumable, multi-root catalog with source preservation | Accepted foundation |
 | R2a | Accepted unified gallery and connected-control design | Accepted foundation |
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
-| R2c | Change-driven continuity with usable browsing during synchronization | Merged to main on 2026-10-13; listed functional fixes continue independently |
-| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Next after the core synchronization and browsing fixes below |
+| R2c | Change-driven continuity with usable browsing during synchronization | Merged to main on 2026-10-13; current functional repair goal completed on 2026-10-15 |
+| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Next product stage; separate scope selection remains pending |
 | R4 | Favorites, virtual albums, durable decisions, and resumable review sessions | Planned after R3 |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
@@ -48,9 +48,9 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**PR #12 is merged as `a5ace87`. Synchronization, missing catalog entries, reopening latency and
-browsing recovery are the immediate delivery focus on main.** Merge does not close the retained
-functional gaps. The post-merge queue below supersedes historical merge-readiness ordering.
+**PR #12 is merged as `a5ace87`. The current synchronization, reopening latency and browsing repair
+goal is completed on main.** The completed post-merge queue below retains its evidence and supersedes
+historical merge-readiness ordering. Broader R2c qualification retains its separate recorded scope.
 R2c-N admitted the security/protocol foundation. R2c-P and R2c-Q have implementation checkpoints;
 R2c-R has controlled local reliability work. Those facts do not accept the slices or all of R2c.
 Real journal, retained-library, and real Cloud Files evidence remain open. Code signing, publisher
@@ -75,15 +75,14 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-The current priority is delivery and the final hosted-run check. The affected product revision's
-hosted gates, current native synchronization/browsing flows, large-sample paused-import changes
-and scoped closing review pass; the [current checkpoint](plans/r2c-closeout.md#current-execution-checkpoint)
-owns their exact scope. Preserve those completed flows while the final documentation push is checked.
-Follow the synchronization, latency, browsing and final acceptance order below. Preserve the user's
-current copy and layout and the already delivered viewer/time-rail behavior. Apply `microsoft-ui-ux`
-when a correction affects the interface, including its actual states, buttons, focus and feedback.
+The current repair goal is complete. Native synchronization/browsing flows, large-sample paused-import
+changes, scoped closing review and the final hosted gates pass; profile restoration and disposable-output
+cleanup are complete. The [current checkpoint](plans/r2c-closeout.md#current-execution-checkpoint)
+owns their exact scope. Preserve the user's current copy and layout and the delivered viewer/time-rail
+behavior. The historical coverage records below retain their individual scope; further product work
+requires a separately selected scope. Apply `microsoft-ui-ux` to future interface corrections.
 
-The repair goal retains these three outcomes, delivered independently on main:
+The completed repair goal covers these three outcomes, delivered independently on main:
 
 1. **Restore ordinary-client synchronization and October membership without installation.**
    Connect ordinary-token journal reads and file-identity reconstruction to the existing durable

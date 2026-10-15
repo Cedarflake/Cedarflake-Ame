@@ -1,7 +1,7 @@
 # R2c closeout execution
 
-Status: **R2c merged to main on 2026-10-13. Current functional corrections and requested native
-follow-ups are verified; delivery and the final hosted-run check remain. The
+Status: **R2c merged to main on 2026-10-13. The current functional repair goal is complete on
+2026-10-15: native follow-ups, hosted checks, restoration and cleanup are verified. The
 [post-merge queue](../roadmap.md#current-execution-queue) owns scope, with CI executed by GitHub Actions.
 Historical Retry/jump attribution and broader client/platform acceptance records retain their
 original coverage and are not additional replay requests for this repair batch.**
@@ -27,13 +27,15 @@ Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-**Current priority: finish delivery and the final hosted-run check.** Follow the roadmap's
-synchronization, latency, browsing and final acceptance order. Preserve the user's string edits,
+**Current repair goal: complete.** The final
+[delivery verification](../acceptance/r2c-update-checkpoint.md#delivery-verification-on-2026-10-15)
+records the passing hosted candidate and unchanged product inputs. Preserve the user's string edits,
 layout and completed viewer/time-rail changes. The reported Debug timeout concerns an existing
 catalog without directory-identity coverage or a durable journal checkpoint. Its retained inventory
 now completes and ordinary reopening stays current, as verified below. Preserve that result and the
-completed retained-import continuation. Submit each connected correction
-and let Actions run CI. Apply `microsoft-ui-ux` to affected interface flows.
+completed retained-import continuation. No additional repair or replay is scheduled for this goal.
+Future corrections retain independent commits, Actions verification and `microsoft-ui-ux` for affected
+interface flows.
 
 The `6d4a288` hosted run now passes all ten applicable jobs and the aggregate gate, including all
 1,915 Rust tests that ran. The corrected Release also completes the actual-library late-cancel,
