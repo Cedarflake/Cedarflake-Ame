@@ -8,7 +8,51 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_vie
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "../../../support/semantics/retained_semantics_update_harness.dart";
+
 void main() {
+  RetainedSemanticsUpdateBinding();
+  setUp(RetainedSemanticsUpdateValidator.instance.reset);
+
+  testWidgets(
+    "overlay semantics remain reachable through zero opacity and interrupted exit",
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      addTearDown(semantics.dispose);
+      final gallery = Column(
+        children: [
+          const Text("gallery"),
+          Slider(value: 0.5, onChanged: (_) {}),
+        ],
+      );
+      final viewer = Column(
+        children: [
+          const Text("viewer"),
+          Slider(value: 0.5, onChanged: (_) {}),
+        ],
+      );
+      await tester.pumpWidget(_host(gallery, null));
+      await tester.pumpWidget(_host(gallery, viewer));
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "viewer first transparent frame",
+      );
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpWidget(_host(gallery, null));
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "viewer exit input retired",
+      );
+      await tester.pump(const Duration(milliseconds: 30));
+      await tester.pumpWidget(_host(gallery, viewer));
+      await tester.pump(const Duration(milliseconds: 200));
+      await tester.pumpWidget(_host(gallery, null));
+      await tester.pump(const Duration(milliseconds: 120));
+      RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+        trace: "viewer retired",
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
   testWidgets(
     "return restores gallery position and input before the fade finishes",
     (tester) async {

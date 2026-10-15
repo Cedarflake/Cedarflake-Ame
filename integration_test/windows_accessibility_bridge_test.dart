@@ -387,7 +387,7 @@ void main() {
             of: unloadedSlots,
             matching: find.byType(DecoratedBox),
           ),
-          findsNothing,
+          findsNWidgets(unloadedSlots.evaluate().length),
         );
         final wallRect = tester.getRect(
           find.byKey(const Key("library-photo-wall")),
@@ -540,7 +540,8 @@ void main() {
 
           await tester.tap(viewerBack);
           await tester.pump();
-          await tester.pump();
+          expect(viewerBack.hitTestable(), findsNothing);
+          await tester.pump(const Duration(milliseconds: 120));
           expect(viewerBack, findsNothing);
           expect(find.byType(LibraryPhotoTile), findsWidgets);
         }

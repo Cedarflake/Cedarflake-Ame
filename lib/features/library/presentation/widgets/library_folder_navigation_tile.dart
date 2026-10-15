@@ -182,7 +182,7 @@ class LibraryFolderLoadingTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const SizedBox(
-      key: const Key("folder-tree-loading"),
+      key: Key("folder-tree-loading"),
       height: 40,
       child: Center(
         child: SizedBox.square(

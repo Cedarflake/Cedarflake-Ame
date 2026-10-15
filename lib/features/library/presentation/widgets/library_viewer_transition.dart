@@ -40,7 +40,8 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _skipMotion =
-        MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context);
+        MediaQuery.disableAnimationsOf(context) ||
+        !TickerMode.valuesOf(context).enabled;
     if (_skipMotion) _finishTransition();
   }
 
@@ -81,13 +82,15 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
     return Stack(
       fit: StackFit.expand,
       children: [
-        Offstage(
-          offstage: isOpen && _controller.isCompleted,
-          child: TickerMode(
-            enabled: !isOpen,
-            child: ExcludeFocus(
-              excluding: isOpen,
-              child: ExcludeSemantics(
+        Semantics(
+          container: true,
+          explicitChildNodes: true,
+          hidden: isOpen,
+          child: Offstage(
+            offstage: isOpen && _controller.isCompleted,
+            child: TickerMode(
+              enabled: !isOpen,
+              child: ExcludeFocus(
                 excluding: isOpen,
                 child: IgnorePointer(ignoring: isOpen, child: widget.gallery),
               ),
@@ -95,13 +98,17 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
           ),
         ),
         if (_retainedViewer case final viewer?)
-          FadeTransition(
-            opacity: _opacity,
-            child: IgnorePointer(
-              ignoring: !isOpen,
-              child: ExcludeFocus(
-                excluding: !isOpen,
-                child: ExcludeSemantics(
+          Semantics(
+            container: true,
+            explicitChildNodes: true,
+            hidden: !isOpen,
+            child: FadeTransition(
+              opacity: _opacity,
+              // Overlay traversal parents must remain reachable at zero opacity and during exit.
+              alwaysIncludeSemantics: true,
+              child: IgnorePointer(
+                ignoring: !isOpen,
+                child: ExcludeFocus(
                   excluding: !isOpen,
                   child: LibraryViewerActivity(
                     isActive: isOpen,

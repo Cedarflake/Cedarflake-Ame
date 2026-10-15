@@ -53,7 +53,8 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
   void didChangeDependencies() {
     super.didChangeDependencies();
     _skipMotion =
-        MediaQuery.disableAnimationsOf(context) || !TickerMode.of(context);
+        MediaQuery.disableAnimationsOf(context) ||
+        !TickerMode.valuesOf(context).enabled;
     final position = Scrollable.maybeOf(context)?.position;
     if (!identical(position, _position)) {
       _position?.removeListener(_handleScroll);
