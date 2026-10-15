@@ -1017,9 +1017,17 @@ existing publication-lock, external-lock and rollback cases remain. The full mix
 five-second page deadlines, P0 latency assertions and source counts are unchanged.
 
 The same Actions run passes the 100-startup zero-source-enumeration regression and all nine other
-applicable jobs. New admission checks remain assigned to Actions. Affected production / inline /
-dedicated-test sizes: admission 329 / 0 / 354 plus its existing reservation tests; lease owner
-75 / 0 / 198. Scoped formatting and whitespace checks pass.
+applicable jobs. The subsequent `0309ae4` run passes 1,914 Rust tests, including both mixed-load
+checks and the new admission regressions, plus all nine other applicable jobs. Its sole failure
+is the capture fixture's independent path: `ConsistencyAudit` merges it into the pending root
+recovery control, so no separate row exists. The fixture now enqueues a `StartupCatchUp` path and
+asserts its independent insertion and foreground capture before checking completion, preserved
+recovery ownership and reopening. This is a test correction; runtime behavior is unchanged.
+The corrected fixture remains assigned to Actions.
+
+Affected production / inline / dedicated-test sizes: admission 329 / 0 / 354 plus its existing
+reservation tests; lease owner 75 / 0 / 198; capture regressions 0 / 0 / 344. Scoped formatting and
+whitespace checks pass.
 
 ### Completed-task retention with file issues on 2026-10-15
 

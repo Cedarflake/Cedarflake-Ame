@@ -151,12 +151,14 @@ Reopen, continued lease, unrelated completion and rollback regressions remain as
 The [owning record](../acceptance/r2c-update-checkpoint.md#reopening-a-recovery-control-completed-by-an-older-client)
 keeps this persisted-state recovery separate from the completed prevention and browsing runs.
 
-The `5bef30f` hosted Rust run passes 1,904 tests; three failures are corrected immutable-authority
-fixtures, and two expose recovery admission losing every opportunity to a repeating writer.
 The dispatcher now retains FIFO order for at most five milliseconds, preserving prompt status
-return during longer publication. Added boundary regressions retain all mixed-load workload and
-latency assertions. The 100-startup zero-enumeration check and nine other applicable hosted jobs
-pass. Continue the affected new-head Actions checks; the [admission record](../acceptance/r2c-update-checkpoint.md#bounded-recovery-admission-during-repeated-writes)
+return during longer publication. The `0309ae4` hosted run passes 1,914 Rust tests, including both
+previously failing mixed-load checks and the admission regressions, with their workloads and
+latency assertions unchanged. All nine other applicable jobs pass. Its sole remaining failure is
+an incorrectly coalesced capture fixture; that fixture now uses an independent journal path and
+checks insertion and scan ownership before publication. Continue the corrected fixture's Actions
+check and the prepared ordinary Release closed-process workflow when the active user window is
+available. The [admission record](../acceptance/r2c-update-checkpoint.md#bounded-recovery-admission-during-repeated-writes)
 owns the failure and correction.
 
 Completed-task feedback no longer stays over the gallery solely because the scan recorded file

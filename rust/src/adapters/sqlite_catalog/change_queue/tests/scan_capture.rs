@@ -6,16 +6,37 @@ fn foreground_update_preserves_inventory_control_and_candidate_ownership() {
     let path = directory.path().join("catalog.sqlite3");
     let (mut catalog, control_id) = pending_inventory_catalog(path.clone());
     let before = recovery_rows(&catalog.connection);
-    let mut covered = metadata_candidate_intent("covered.jpg", 20);
-    covered.origin = LibraryChangeOrigin::ConsistencyAudit;
-    catalog
+    let mut covered = path_intent(
+        "root-a",
+        LibraryRootGeneration::initial(),
+        20,
+        1_020,
+        "covered.jpg",
+    );
+    covered.origin = LibraryChangeOrigin::StartupCatchUp;
+    let enqueued = catalog
         .enqueue_library_change_intents(&[covered], 1_020, immediate_policy())
-        .expect("ordinary scan-covered change");
+        .expect("independent scan-covered journal change");
+    assert_eq!(enqueued.inserted_count, 1);
+    assert_eq!(enqueued.coalesced_count, 0);
     let request = foreground_request(&catalog);
     catalog
         .begin_scan(&request, "root-a", &request.root_path)
         .expect("begin explicit update");
     assert_eq!(recovery_rows(&catalog.connection), before);
+    let covered_capture: (String, String) = catalog
+        .connection
+        .query_row(
+            "SELECT status, authoritative_scan_id FROM library_change_queue
+             WHERE relative_path = 'covered.jpg'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .expect("foreground scan captures the independent journal change");
+    assert_eq!(
+        covered_capture,
+        ("leased".to_owned(), request.scan_id.clone())
+    );
     catalog
         .publish_scan(&request.scan_id, "root-a", 0, 0)
         .expect("publish explicit update");
