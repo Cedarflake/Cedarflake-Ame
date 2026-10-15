@@ -172,6 +172,17 @@ touchpad, keyboard, accessibility actions, and ballistic activity. Those deltas 
 immediately through the framework and must not be converted into an asynchronous application intent
 queue.
 
+Mouse-wheel signals may retain a short decelerating tail on that same `ScrollPosition`: move most
+of each delta immediately, then finish at most 24 logical pixels over 90 ms without increasing the
+input's total distance. The pinned Flutter SDK resolves wheel signals through
+`ScrollPosition.pointerScroll`; its default implementation applies them immediately, while
+`ScrollPhysics` supplies drag/ballistic behavior. The gallery therefore uses a narrow position
+subclass and framework `DrivenScrollActivity`, preserving native signal admission, axis modifiers,
+notifications, semantics and touchpad pan/zoom handling. Repeated same-direction input keeps its
+endpoint only in the current activity; reversal, pointer down, direct navigation, layout correction,
+viewer entry and disposal retire that activity. Reduced-motion preferences and non-mouse signals
+retain immediate native movement. No extra timer, application queue or canonical position is added.
+
 One `GalleryNavigationCoordinator` owns programmatic position changes and their asynchronous
 lifecycle. It accepts three typed intents:
 

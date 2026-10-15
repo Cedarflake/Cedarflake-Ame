@@ -376,8 +376,8 @@ void main() {
     await tester.sendEventToBinding(
       PointerScrollEvent(position: center, scrollDelta: const Offset(0, 480)),
     );
-    expect(scrollPosition.pixels, 480);
-    final expected = wall.positionResolver!.resolve(
+    expect(scrollPosition.pixels, 456);
+    var expected = wall.positionResolver!.resolve(
       queryId: initialState.queryId,
       revision: initialState.catalogRevision,
       scrollOffset: scrollPosition.pixels,
@@ -400,6 +400,15 @@ void main() {
     expectCurrentAnchor();
     wall = tester.widget<LibraryGalleryWall>(find.byType(LibraryGalleryWall));
     expect(wall.layoutTransition, isNull);
+    await tester.pump(const Duration(milliseconds: 100));
+    expected = wall.positionResolver!.resolve(
+      queryId: initialState.queryId,
+      revision: initialState.catalogRevision,
+      scrollOffset: scrollPosition.pixels,
+      viewportDimension: scrollPosition.viewportDimension,
+    )!;
+    await tester.pump();
+    expectCurrentAnchor();
     final firstGeometry = tester
         .widget<LibraryExactExtentSliver>(find.byType(LibraryExactExtentSliver))
         .itemStartOffsets;

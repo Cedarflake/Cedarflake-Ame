@@ -37,6 +37,7 @@ import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
+import "widgets/library_gallery_scroll_motion.dart";
 import "widgets/library_gallery_viewport.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
@@ -72,7 +73,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   static const _liveOnlyCapabilityNotificationKey =
       "library.liveOnlyCapability";
 
-  late final ScrollController _galleryScrollController;
+  late final LibraryGalleryScrollController _galleryScrollController;
   final Set<ScrollPosition> _galleryScrollPositions = {};
   late final LibraryController _libraryController;
   late final AmeNotificationController _notificationController;
@@ -134,7 +135,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void initState() {
     super.initState();
-    _galleryScrollController = ScrollController(
+    _galleryScrollController = LibraryGalleryScrollController(
       onAttach: _handleGalleryScrollPositionAttached,
       onDetach: _handleGalleryScrollPositionDetached,
     );
@@ -1262,7 +1263,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (mounted && !_isDisposing) setState(() {});
   }
 
-  void _openAsset(LibraryAsset asset) => _viewer.open(asset);
+  void _openAsset(LibraryAsset asset) {
+    _galleryScrollController.stopWheelMotion();
+    _viewer.open(asset);
+  }
 
   void _closeViewer() {
     _timelineSemanticsGeneration += 1;

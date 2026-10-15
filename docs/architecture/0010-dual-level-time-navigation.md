@@ -52,9 +52,11 @@ without introducing a second scroll state.
   Releasing the pointer commits only the final target through one time-anchor request. A completed
   request fills the existing virtual range instead of resetting the scroll position or changing its
   total extent.
-- Normal wheel, touchpad, keyboard, and programmatic scrolling update the same virtual coordinate
-  immediately. Entering an unloaded range records only the latest target while scrolling remains
-  active; one bounded request is submitted after a short idle interval. Intermediate positions do
+- Normal wheel, touchpad, keyboard, and programmatic scrolling update the same virtual coordinate.
+  Mouse-wheel input moves immediately with only a bounded 90 ms tail on the native position, as
+  specified in ADR 0014; direct rail input takes over immediately. Entering an unloaded range
+  records only the latest target while scrolling remains active; one bounded request is submitted
+  after a short idle interval. Intermediate positions do
   not replace the asset window. No second controller or scrub-only scroll state exists; the passive
   current-position line follows that controller.
 - Viewport-size changes recompute the bounded layout without publishing `setState` through the
