@@ -327,7 +327,10 @@ void main() {
           isRemovalCommitted: true,
         ),
       );
-      expect(find.text("已移除“Pictures”，正在加载图片…"), findsOneWidget);
+      expect(
+        find.text(LibraryStrings.refreshingAfterRemoval("Pictures")),
+        findsOneWidget,
+      );
       expect(
         find.text(LibraryStrings.refreshingAfterRemovalDetail),
         findsOneWidget,
@@ -339,7 +342,7 @@ void main() {
       );
       expect(
         tester.getSemantics(liveRegion).label,
-        contains("已移除“Pictures”，正在加载图片"),
+        contains(LibraryStrings.refreshingAfterRemoval("Pictures")),
       );
 
       await pumpTask(
