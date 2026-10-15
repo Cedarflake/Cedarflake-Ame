@@ -18,7 +18,6 @@ void main() {
     "overlay semantics remain reachable through zero opacity and interrupted exit",
     (tester) async {
       final semantics = tester.ensureSemantics();
-      addTearDown(semantics.dispose);
       final gallery = Column(
         children: [
           const Text("gallery"),
@@ -51,6 +50,7 @@ void main() {
       );
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
+      semantics.dispose();
     },
   );
   testWidgets(

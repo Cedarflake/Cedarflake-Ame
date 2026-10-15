@@ -1,5 +1,7 @@
 import "package:flutter/material.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
+
 class VerticalMaterialTimelineSlider extends StatefulWidget {
   const VerticalMaterialTimelineSlider({
     required this.value,
@@ -64,27 +66,29 @@ class _VerticalMaterialTimelineSliderState
             ),
           ),
         ),
-        SliderTheme(
-          data: sliderTheme,
-          child: RotatedBox(
-            quarterTurns: 3,
-            child: Slider(
-              key: const Key("timeline-slider"),
-              value: 1 - widget.value.clamp(0.0, 1.0).toDouble(),
-              onChanged: widget.onChanged == null
-                  ? null
-                  : (value) => widget.onChanged?.call(1 - value),
-              onChangeStart: widget.onChangeStart == null
-                  ? null
-                  : (value) => widget.onChangeStart?.call(1 - value),
-              onChangeEnd: widget.onChangeEnd == null
-                  ? null
-                  : (value) => widget.onChangeEnd?.call(1 - value),
-              allowedInteraction: SliderInteraction.tapAndSlide,
-              focusNode: _focusNode,
-              padding: EdgeInsets.symmetric(horizontal: widget.endpointInset),
-              semanticFormatterCallback: (value) =>
-                  widget.semanticLabelFor(1 - value),
+        AmeOverlayTraversalBoundary(
+          child: SliderTheme(
+            data: sliderTheme,
+            child: RotatedBox(
+              quarterTurns: 3,
+              child: Slider(
+                key: const Key("timeline-slider"),
+                value: 1 - widget.value.clamp(0.0, 1.0).toDouble(),
+                onChanged: widget.onChanged == null
+                    ? null
+                    : (value) => widget.onChanged?.call(1 - value),
+                onChangeStart: widget.onChangeStart == null
+                    ? null
+                    : (value) => widget.onChangeStart?.call(1 - value),
+                onChangeEnd: widget.onChangeEnd == null
+                    ? null
+                    : (value) => widget.onChangeEnd?.call(1 - value),
+                allowedInteraction: SliderInteraction.tapAndSlide,
+                focusNode: _focusNode,
+                padding: EdgeInsets.symmetric(horizontal: widget.endpointInset),
+                semanticFormatterCallback: (value) =>
+                    widget.semanticLabelFor(1 - value),
+              ),
             ),
           ),
         ),

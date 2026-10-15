@@ -86,8 +86,10 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
           container: true,
           explicitChildNodes: true,
           hidden: isOpen,
-          child: Offstage(
-            offstage: isOpen && _controller.isCompleted,
+          child: Opacity(
+            opacity: isOpen && _controller.isCompleted ? 0 : 1,
+            // Hidden gallery portals keep their traversal anchors for the return frame.
+            alwaysIncludeSemantics: true,
             child: TickerMode(
               enabled: !isOpen,
               child: ExcludeFocus(
