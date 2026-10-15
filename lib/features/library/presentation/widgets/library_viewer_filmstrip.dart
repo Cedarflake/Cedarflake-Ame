@@ -8,6 +8,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../application/library_browse_admission.dart";
 import "../../application/library_controller.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 import "../../domain/library_models.dart";
@@ -190,6 +191,7 @@ class _LibraryViewerFilmstripState
       _scroll.jumpTo(offset.clamp(0.0, _scroll.position.maxScrollExtent));
 
   Future<void> _loadAtEdge(LibraryState state, int start, int end) async {
+    if (!LibraryBrowseAdmission(state).canReadPage) return;
     final previous = start <= 1 && state.hasPreviousAssets;
     final next = end >= state.assets.length - 1 && state.hasMoreAssets;
     if (!previous && !next) return;

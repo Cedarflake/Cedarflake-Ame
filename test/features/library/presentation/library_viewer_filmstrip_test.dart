@@ -10,26 +10,7 @@ void main() {
   testWidgets(
     "large filmstrip builds visible thumbnails, centers selection and selects neighbors",
     (tester) async {
-      final assets = List.generate(
-        10000,
-        (index) => LibraryAsset(
-          assetId: "asset-$index",
-          locationId: "location-$index",
-          rootId: "root",
-          activeScanId: "scan",
-          sourcePath: "unused/photo-$index.jpg",
-          displayPath: "photo-$index.jpg",
-          relativePath: "photo-$index.jpg",
-          previewPath: "",
-          fileSize: BigInt.from(2000 + index),
-          modifiedUnixMs: index,
-          sourceRevision: null,
-          sourceGeneration: BigInt.one,
-          width: 640,
-          height: 480,
-          previewStatus: LibraryPreviewStatus.failed,
-        ),
-      );
+      final assets = List.generate(10000, _asset);
       LibraryAsset? selected;
       await tester.pumpWidget(
         ProviderScope(
@@ -70,4 +51,92 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets("filmstrip waits for query refresh before requesting a page", (
+    tester,
+  ) async {
+    final assets = List.generate(20, _asset);
+    final controller = _PagingFilmstripController();
+    var previousRequests = 0;
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          libraryControllerProvider.overrideWith(() => controller),
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState(
+              assets: assets,
+              windowStartItemOffset: 20,
+              queryActivity: const LibraryQueryLoading(LibraryGalleryQuery()),
+              previousCursor: LibraryCatalogCursor(
+                revision: BigInt.one,
+                queryId: "filmstrip",
+                primaryMissing: false,
+                primaryText: "",
+                primaryNumber: 0,
+                rootId: "root",
+                locationId: assets.first.locationId,
+              ),
+            ),
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                height: 104,
+                width: 700,
+                child: LibraryViewerFilmstrip(
+                  selection: assets.first,
+                  onSelected: (_) {},
+                  loadPrevious: () async {
+                    previousRequests += 1;
+                    if (!controller.libraryState.isRefreshingQuery) {
+                      controller.finishPaging();
+                    }
+                  },
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    for (var frame = 0; frame < 5; frame++) {
+      await tester.pump(const Duration(milliseconds: 16));
+    }
+    expect(previousRequests, 0);
+    expect(find.byType(CircularProgressIndicator), findsNothing);
+    await tester.pumpAndSettle();
+    expect(tester.binding.hasScheduledFrame, isFalse);
+
+    controller.finishRefresh();
+    await tester.pumpAndSettle();
+    expect(previousRequests, 1);
+    expect(tester.takeException(), isNull);
+  });
 }
+
+class _PagingFilmstripController extends LibraryController {
+  void finishRefresh() =>
+      state = state.copyWith(queryActivity: const LibraryQueryIdle());
+
+  void finishPaging() => state = state.copyWith(previousCursor: null);
+}
+
+LibraryAsset _asset(int index) => LibraryAsset(
+  assetId: "asset-$index",
+  locationId: "location-$index",
+  rootId: "root",
+  activeScanId: "scan",
+  sourcePath: "unused/photo-$index.jpg",
+  displayPath: "photo-$index.jpg",
+  relativePath: "photo-$index.jpg",
+  previewPath: "",
+  fileSize: BigInt.from(2000 + index),
+  modifiedUnixMs: index,
+  sourceRevision: null,
+  sourceGeneration: BigInt.one,
+  width: 640,
+  height: 480,
+  previewStatus: LibraryPreviewStatus.failed,
+);
