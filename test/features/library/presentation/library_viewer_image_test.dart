@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:io";
 import "dart:typed_data";
 import "dart:ui" as ui;
@@ -61,12 +62,7 @@ void main() {
         tester,
         () => find.byType(RawImage).evaluate().isNotEmpty,
       );
-      expect(await tester.runAsync(() => _visiblePixel(tester)), [
-        244,
-        67,
-        54,
-        255,
-      ]);
+      expect(await _visiblePixel(tester), [244, 67, 54, 255]);
 
       file.writeAsBytesSync(blue!);
       file.setLastModifiedSync(timestamp);
@@ -79,12 +75,7 @@ void main() {
         tester,
         () => find.byType(RawImage).evaluate().isNotEmpty,
       );
-      expect(await tester.runAsync(() => _visiblePixel(tester)), [
-        33,
-        150,
-        243,
-        255,
-      ]);
+      expect(await _visiblePixel(tester), [33, 150, 243, 255]);
       await tester.pumpWidget(const SizedBox.shrink());
       expect(tester.takeException(), isNull);
     },
@@ -115,14 +106,63 @@ void main() {
       tester,
       () => find.byType(RawImage).evaluate().isNotEmpty,
     );
-    expect(await tester.runAsync(() => _visiblePixel(tester)), [
-      33,
-      150,
-      243,
-      255,
-    ]);
+    expect(await _visiblePixel(tester), [33, 150, 243, 255]);
     await tester.pump();
     expect(find.text("无法打开原图"), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("source arrival retains an evicted but visible preview", (
+    tester,
+  ) async {
+    final directory = Directory.systemTemp.createTempSync(
+      "ame-viewer-handoff-",
+    );
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final preview = File(
+      "${directory.path}${Platform.pathSeparator}preview.png",
+    );
+    final red = await tester.runAsync(() => _png(Colors.red));
+    preview.writeAsBytesSync(red!);
+    final source = Completer<ui.ImmutableBuffer>();
+    final asset = _asset("pending-source.png").withPreview(
+      previewPath: preview.path,
+      width: 2,
+      height: 2,
+      previewStatus: LibraryPreviewStatus.ready,
+    );
+    await tester.pumpWidget(_viewer(asset, bufferLoader: (_) => source.future));
+    final previewFinder = find.byWidgetPredicate(
+      (widget) => widget is Image && widget.image == FileImage(preview),
+    );
+    await _waitForFrame(tester, () {
+      final images = tester.widgetList<RawImage>(
+        find.descendant(of: previewFinder, matching: find.byType(RawImage)),
+      );
+      return images.length == 1 && images.single.image != null;
+    });
+    final previewElement = tester.element(previewFinder);
+    await FileImage(preview).evict();
+    final blue = await tester.runAsync(() => _png(Colors.blue));
+    final buffer = await tester.runAsync(
+      () => ui.ImmutableBuffer.fromUint8List(blue!),
+    );
+    source.complete(buffer!);
+    await _waitForFrame(
+      tester,
+      () => find.byKey(const Key("viewer-image-loading")).evaluate().isEmpty,
+    );
+    expect(tester.element(previewFinder), same(previewElement));
+    expect(
+      tester
+          .widget<RawImage>(
+            find.descendant(of: previewFinder, matching: find.byType(RawImage)),
+          )
+          .image,
+      isNotNull,
+    );
+    expect(await _visiblePixel(tester), [33, 150, 243, 255]);
     await tester.pumpWidget(const SizedBox.shrink());
     expect(tester.takeException(), isNull);
   });
@@ -174,12 +214,7 @@ void main() {
                   .isEmpty &&
               find.byType(RawImage).evaluate().isNotEmpty,
         );
-        expect(await tester.runAsync(() => _visiblePixel(tester)), [
-          33,
-          150,
-          243,
-          255,
-        ]);
+        expect(await _visiblePixel(tester), [33, 150, 243, 255]);
         expect(find.text("无法打开原图"), findsNothing);
         expect(find.byKey(const Key("viewer-original-retry")), findsNothing);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -193,14 +228,16 @@ final _sourceScheduler = LibrarySourceReadScheduler(
   reader: const _SourceReader(),
 );
 
-Widget _viewer(LibraryAsset asset) => MaterialApp(
-  home: Scaffold(
-    body: LibraryViewerImage(
-      asset: asset,
-      sourceReadScheduler: _sourceScheduler,
-    ),
-  ),
-);
+Widget _viewer(LibraryAsset asset, {LibrarySourceBufferLoader? bufferLoader}) =>
+    MaterialApp(
+      home: Scaffold(
+        body: LibraryViewerImage(
+          asset: asset,
+          sourceReadScheduler: _sourceScheduler,
+          sourceBufferLoader: bufferLoader,
+        ),
+      ),
+    );
 
 class _SourceReader implements LibrarySourceReader {
   const _SourceReader();
@@ -250,11 +287,17 @@ Future<void> _waitForFrame(WidgetTester tester, bool Function() ready) async {
 }
 
 Future<List<int>> _visiblePixel(WidgetTester tester) async {
+  await _waitForFrame(tester, () {
+    final images = tester.widgetList<RawImage>(find.byType(RawImage)).toList();
+    return images.length == 1 &&
+        images.single.image != null &&
+        (images.single.opacity?.value ?? 1) == 1;
+  });
   final image = tester.widget<RawImage>(find.byType(RawImage)).image;
   if (image == null) {
     throw StateError("The viewer has no decoded source image");
   }
-  final data = await image.toByteData();
+  final data = await tester.runAsync(image.toByteData);
   return data!.buffer.asUint8List().take(4).toList();
 }
 

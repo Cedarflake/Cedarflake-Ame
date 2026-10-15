@@ -370,8 +370,9 @@ position when possible.
   the precise position already reached by the rail in an unchanged layout.
 - A cold thumbnail reveals its first decoded frame with a 120 ms ease-out opacity transition
   inside the existing rectangle. Synchronous cache hits appear immediately. Active or recent
-  scrolling, disabled animations and inactive ticker scopes skip the reveal; further scrolling
-  finishes an active reveal immediately. Image opacity owns the effect without a whole-wall layer,
+  scrolling, disabled animations and initially inactive ticker scopes skip the reveal; further scrolling
+  finishes an active reveal immediately. Muting an already visible surface preserves its current
+  blend through viewer entry or exit. Image opacity owns the effect without a whole-wall layer,
   staggered delays, shimmer or changes to row geometry.
 - Scroll-triggered detail paging uses one thin linear progress indicator at the top of the gallery.
   It overlays the gallery without resizing its viewport or intercepting gallery input. It does not
@@ -418,7 +419,8 @@ at the existing scroll position. Closing immediately retires viewer input, acces
 source-read authority; at most one non-interactive closing surface remains for the visual exit.
 Reopening replaces that surface, and further pointer input finishes entry immediately. Disabled
 animations use an immediate transition. Original pixels reveal over the same image's small preview
-in 100 ms without resetting the zoom transform; the preview is released when the reveal finishes.
+in 100 ms without resetting the zoom transform. The existing preview element stays mounted across
+the original's first frame, including after cache eviction, and is released when the reveal finishes.
 These transitions use Flutter's image opacity and fade primitives, without an additional package,
 layout interpolation or a queue of outgoing full-resolution images.
 

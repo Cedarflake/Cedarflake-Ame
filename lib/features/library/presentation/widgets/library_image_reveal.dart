@@ -52,16 +52,17 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    _skipMotion =
-        MediaQuery.disableAnimationsOf(context) ||
-        !TickerMode.valuesOf(context).enabled;
+    final disableAnimations = MediaQuery.disableAnimationsOf(context);
+    _skipMotion = disableAnimations || !TickerMode.valuesOf(context).enabled;
     final position = Scrollable.maybeOf(context)?.position;
     if (!identical(position, _position)) {
       _position?.removeListener(_handleScroll);
       _position = position;
       _position?.addListener(_handleScroll);
     }
-    if (_skipMotion) {
+    // Muting a retained surface freezes its visible blend during viewer entry/exit.
+    // Only the accessibility preference should finish that blend immediately.
+    if (disableAnimations) {
       _controller.value = 1;
     }
   }
@@ -105,13 +106,16 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
       }
     }
     final placeholder = widget.placeholder;
-    final pixels = placeholder != null && _hasFrame && !synchronous
+    final pixels = placeholder != null
         ? AnimatedBuilder(
             animation: _opacity,
             child: child,
             builder: (context, image) => Stack(
               fit: StackFit.expand,
-              children: [if (_opacity.value < 1) placeholder, image!],
+              children: [
+                if (!_hasFrame || _opacity.value < 1) placeholder,
+                image!,
+              ],
             ),
           )
         : child;

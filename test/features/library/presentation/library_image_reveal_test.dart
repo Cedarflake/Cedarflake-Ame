@@ -70,6 +70,47 @@ void main() {
     },
   );
 
+  testWidgets("preview keeps its element across the first decoded frame", (
+    tester,
+  ) async {
+    final source = _ControlledImage();
+    await tester.pumpWidget(_host(source, placeholder: const Text("preview")));
+    final preview = tester.element(find.text("preview"));
+    source.show(pixels);
+    await tester.pump();
+    expect(tester.element(find.text("preview")), same(preview));
+    expect(_opacity(tester), 0);
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(tester.element(find.text("preview")), same(preview));
+    await tester.pump(const Duration(milliseconds: 60));
+    expect(find.text("preview"), findsNothing);
+  });
+
+  testWidgets("muting a visible reveal retains its current pixels", (
+    tester,
+  ) async {
+    final source = _ControlledImage();
+    await tester.pumpWidget(_host(source, placeholder: const Text("preview")));
+    source.show(pixels);
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 30));
+    final opacity = _opacity(tester);
+    expect(opacity, inExclusiveRange(0, 1));
+
+    await tester.pumpWidget(
+      _host(source, placeholder: const Text("preview"), tickerEnabled: false),
+    );
+    expect(_opacity(tester), opacity);
+    expect(find.text("preview"), findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 100));
+    expect(_opacity(tester), opacity);
+
+    await tester.pumpWidget(_host(source));
+    await tester.pump(const Duration(milliseconds: 120));
+    expect(_opacity(tester), 1);
+    expect(tester.takeException(), isNull);
+  });
+
   for (final mode in ["cached", "reduced motion", "offstage"]) {
     testWidgets("$mode images appear immediately", (tester) async {
       final source = _ControlledImage();

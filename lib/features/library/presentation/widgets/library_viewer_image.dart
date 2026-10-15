@@ -98,24 +98,19 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        if (frame != null || wasSynchronouslyLoaded) {
-          return _buildImage(context, child);
-        }
         return Stack(
           fit: StackFit.expand,
           children: [
-            _buildImage(
-              context,
-              _hasPreview ? _buildPreview() : const SizedBox.expand(),
-            ),
-            const IgnorePointer(
-              child: LibraryLoadingIndicator(
-                key: Key("viewer-image-loading"),
-                maximumDimension: 36,
-                minimumInset: 0,
-                strokeWidth: 4,
+            _buildImage(context, child),
+            if (frame == null && !wasSynchronouslyLoaded)
+              const IgnorePointer(
+                child: LibraryLoadingIndicator(
+                  key: Key("viewer-image-loading"),
+                  maximumDimension: 36,
+                  minimumInset: 0,
+                  strokeWidth: 4,
+                ),
               ),
-            ),
           ],
         );
       },
