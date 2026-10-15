@@ -98,6 +98,18 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   }
 
   @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!TickerMode.of(context)) {
+      // A retained hidden target cannot finish a reverse animation while muted.
+      _isPointerInside = false;
+      _hasFocus = false;
+      _isLongPressActive = false;
+      _removeImmediately();
+    }
+  }
+
+  @override
   void didUpdateWidget(covariant _AmeWindowsTooltip oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.message != widget.message) {
@@ -192,7 +204,7 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
 
   void _show() {
     _showTimer = null;
-    if (!mounted || _entry != null) {
+    if (!mounted || !TickerMode.of(context) || _entry != null) {
       return;
     }
     final overlay = Overlay.maybeOf(context, rootOverlay: true);

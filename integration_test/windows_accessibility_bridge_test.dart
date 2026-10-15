@@ -492,6 +492,23 @@ void main() {
               find.bySemanticsLabel(LibraryStrings.fitImageToWindow),
               findsOneWidget,
             );
+            final filmstripToggle = find.byKey(
+              const Key("viewer-filmstrip-toggle"),
+            );
+            for (var expansion = 0; expansion < 2; expansion += 1) {
+              await tester.tap(filmstripToggle);
+              await tester.pumpAndSettle();
+              for (final direction in ["right", "left"]) {
+                final arrow = find.byKey(
+                  Key("viewer-filmstrip-scroll-$direction"),
+                );
+                await mouse.moveTo(tester.getCenter(arrow));
+                await tester.pump(const Duration(milliseconds: 700));
+                await tester.pumpAndSettle();
+              }
+              await tester.tap(filmstripToggle);
+              await tester.pumpAndSettle();
+            }
             await nativeUiaProbe.checkpoint(tester, "viewer-open");
           }
 

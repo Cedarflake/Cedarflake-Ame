@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../library_strings.dart";
 
 /// Keeps end buttons outside the native thumb and track hit regions.
@@ -92,24 +93,32 @@ class _LibraryViewerFilmstripScrollbarState
                 );
                 return Row(
                   children: [
-                    IconButton(
-                      key: const Key("viewer-filmstrip-scroll-left"),
-                      tooltip: LibraryStrings.scrollFilmstripLeft,
-                      style: style,
-                      icon: const Icon(Symbols.arrow_left, size: 20, fill: 1),
-                      onPressed: ready && position!.extentBefore > 0
-                          ? () => _scroll(-1)
-                          : null,
+                    AmeTooltip(
+                      message: LibraryStrings.scrollFilmstripLeft,
+                      child: IconButton(
+                        key: const Key("viewer-filmstrip-scroll-left"),
+                        style: style,
+                        icon: const Icon(Symbols.arrow_left, size: 20, fill: 1),
+                        onPressed: ready && position!.extentBefore > 0
+                            ? () => _scroll(-1)
+                            : null,
+                      ),
                     ),
                     const Spacer(),
-                    IconButton(
-                      key: const Key("viewer-filmstrip-scroll-right"),
-                      tooltip: LibraryStrings.scrollFilmstripRight,
-                      style: style,
-                      icon: const Icon(Symbols.arrow_right, size: 20, fill: 1),
-                      onPressed: ready && position!.extentAfter > 0
-                          ? () => _scroll(1)
-                          : null,
+                    AmeTooltip(
+                      message: LibraryStrings.scrollFilmstripRight,
+                      child: IconButton(
+                        key: const Key("viewer-filmstrip-scroll-right"),
+                        style: style,
+                        icon: const Icon(
+                          Symbols.arrow_right,
+                          size: 20,
+                          fill: 1,
+                        ),
+                        onPressed: ready && position!.extentAfter > 0
+                            ? () => _scroll(1)
+                            : null,
+                      ),
                     ),
                   ],
                 );
