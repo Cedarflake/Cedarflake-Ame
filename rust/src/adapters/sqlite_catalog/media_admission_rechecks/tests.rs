@@ -63,7 +63,7 @@ fn completing_one_recheck_does_not_walk_the_remaining_roster() {
             .query_row(
                 "SELECT id FROM library_change_queue WHERE relative_path='item-00000.png'",
                 [],
-                |row| row.get::<_, u64>(0),
+                |row| row.get::<_, i64>(0),
             )
             .unwrap();
         let batch = CatalogDeltaBatch {
@@ -73,7 +73,7 @@ fn completing_one_recheck_does_not_walk_the_remaining_roster() {
             mutations: Vec::new(),
             terminal_media_evidence: Vec::new(),
             completions: vec![LibraryChangeCompletion {
-                change_id: LibraryChangeId::new(change_id).unwrap(),
+                change_id: LibraryChangeId::new(u64::try_from(change_id).unwrap()).unwrap(),
                 lease_generation: 1,
                 issue: None,
             }],
