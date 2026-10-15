@@ -94,6 +94,8 @@ pub(super) fn publish_foreground_scan(
                     && context.had_published_root
                     && drain_one_live_batch(catalog, &context)?;
                 if last_progress.elapsed() >= PUBLICATION_PROGRESS_INTERVAL {
+                    #[cfg(debug_assertions)]
+                    eprintln!("[Ame scan publication] retry_code={}", error.code);
                     if !publish(ScanEvent::Finalizing {
                         scan_id: context.request.scan_id.clone(),
                         validated_items: context.validated_items,

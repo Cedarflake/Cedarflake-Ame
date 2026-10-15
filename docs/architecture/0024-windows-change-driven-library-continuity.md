@@ -291,6 +291,12 @@ enumeration, media inspection, or SQLite writer never runs while holding the des
 a long application-global lock, or an open catalog transaction. Work selection rotates fairly
 across roots within a lane, while priority remains P0 before P1 before P2.
 
+A journal page containing only a cursor advance joins ordinary Recovery writer admission, so
+unrelated activity elsewhere on the volume cannot repeatedly interrupt scan publication. Any
+file intent, directory identity change, rename carry, consumed carry or cross-root lineage retains
+Journal priority. This changes writer admission only: range, root, checkpoint and atomicity checks
+still run after admission, and the cursor becomes durable only when its transaction commits.
+
 ### Layer ownership
 
 The domain layer owns platform-independent change origin, lane, root generation, continuity state,

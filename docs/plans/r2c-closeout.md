@@ -97,6 +97,17 @@ aliases retain fresh-open validation. The raw TEMP-path regression checks 32 fre
 without extra temporary opens; existing junction-retarget and parent-rename guards remain required.
 Continue with hosted checks and the ordinary Debug short-path workflow; preserve completed native flows.
 
+The short-path client imports 10,000 reusable images and reopens current in 854 ms without another
+scan or inventory. Its explicit update reaches final validation but repeatedly loses publication to
+cursor-only journal writes; it is cancelled at 260 seconds with the prior 10,000 locations intact.
+Rate-limited publication diagnostics reproduce `catalog_scan_publication_preempted` alongside zero
+observations and advancing checkpoints. Cursor-only batches now join ordinary writer admission;
+source intents, directory changes and rename/lineage work retain Journal priority. Verify completion
+using this same retained test catalog and the new hosted admission regressions before cleanup.
+Affected sizes (production / inline tests / dedicated tests): journal publication admission
+30 / 0 / 105; journal facade 3,441 / 4,741 / existing modules, with only module wiring and one
+admission call changed; foreground publication 178 / 26 / existing control regressions.
+
 The subsequent `32981d2` hosted run passes the mixed-load connection-lifetime workload and reports
 1,892 Rust passes, with four failures: the two availability source-contract checks, resumed-import
 identity, and bounded foreground retirement. The first three have the independently pushed corrections

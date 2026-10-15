@@ -33,6 +33,7 @@ mod capability;
 mod capture_priority;
 mod empty_replay;
 mod first_import_completion;
+mod publication_admission;
 mod recovery_opening;
 mod root_unregister;
 
@@ -1221,7 +1222,7 @@ fn publish_volume_batch(
     }
     validate_atomic_lineage(batch)?;
 
-    let transaction = catalog.begin_write_in_lane(crate::domain::LibraryChangeLane::Journal)?;
+    let transaction = catalog.begin_write_in_lane(publication_admission::write_lane(batch))?;
     baseline_window::validate_publication(&transaction, batch)?;
     let mut existing = Vec::with_capacity(batch.pages.len());
     for page in &batch.pages {
@@ -3441,6 +3442,7 @@ fn invalid_storage(name: &str) -> ScanError {
 #[cfg(test)]
 mod tests {
     mod baseline_window;
+    mod publication_admission;
     mod recovery_opening;
     use rusqlite::{TransactionBehavior, params};
     use tempfile::tempdir;
