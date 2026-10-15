@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:flutter/material.dart";
+import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -58,11 +59,21 @@ void main() {
       final anchor = find.byKey(const Key("anchor"));
       final anchorRect = tester.getRect(anchor);
       await tester.tap(anchor);
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 20));
       final menu = find
           .ancestor(of: find.text("Item 0"), matching: find.byType(Material))
           .first;
+      final earlyRect = tester.getRect(menu);
+      await tester.pump(const Duration(milliseconds: 20));
+      final expandingRect = tester.getRect(menu);
+      expect(expandingRect.height, greaterThan(earlyRect.height));
+      expect(expandingRect.top, lessThan(earlyRect.top));
+      expect(expandingRect.bottom, closeTo(earlyRect.bottom, 0.01));
+      expect(expandingRect.bottom, closeTo(anchorRect.top - 4, 0.01));
+      await tester.pumpAndSettle();
       final menuRect = tester.getRect(menu);
+      expect(menuRect.bottom, closeTo(earlyRect.bottom, 0.01));
       expect(menuRect.bottom, lessThanOrEqualTo(anchorRect.top - 4));
       expect(menuRect.top, greaterThanOrEqualTo(8));
       expect(menuRect.overlaps(anchorRect), isFalse);
@@ -72,6 +83,17 @@ void main() {
       await tester.tap(find.text("Item $last"));
       await tester.pumpAndSettle();
       expect(selected, last);
+
+      await tester.tap(anchor);
+      await tester.pumpAndSettle();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 60));
+      final closingRect = tester.getRect(menu);
+      expect(closingRect.top, greaterThan(menuRect.top));
+      expect(closingRect.bottom, closeTo(menuRect.bottom, 0.01));
+      await tester.pumpAndSettle();
+      expect(find.text("Item 0"), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }

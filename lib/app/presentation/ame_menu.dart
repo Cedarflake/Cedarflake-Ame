@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/material.dart";
 
 import "ame_popup_menu_position.dart";
+import "ame_popup_menu_surface.dart";
 import "ame_typography.dart";
 
 abstract final class AmeMenuMetrics {
@@ -139,35 +140,47 @@ class _AmePopupMenuButtonState<T> extends State<AmePopupMenuButton<T>> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final anchor = SizedBox(
       key: _anchorKey,
-      child: widget.builder(context, _requestOpen),
+      child: Builder(
+        builder: (context) =>
+            widget.builder(context, () => _requestOpen(context)),
+      ),
+    );
+    if (!widget.openAboveAnchor) return anchor;
+    return AmePopupMenuSurface(
+      resolveHeight: () => _aboveAnchorPosition()?.maximumHeight,
+      child: anchor,
     );
   }
 
-  void _requestOpen() {
+  void _requestOpen(BuildContext menuContext) {
     if (!_isRouteOpen) {
-      unawaited(_openMenu());
+      unawaited(_openMenu(menuContext));
     }
   }
 
-  Future<void> _openMenu() async {
+  ({RelativeRect position, double maximumHeight})? _aboveAnchorPosition() {
+    final anchorContext = _anchorKey.currentContext;
+    if (anchorContext == null) return null;
+    return amePopupMenuAboveAnchor(
+      context: context,
+      anchorContext: anchorContext,
+      menuHeight: widget.items.fold<double>(
+        AmeMenuMetrics.menuPadding.vertical,
+        (height, item) => height + item.height,
+      ),
+      verticalGap: widget.verticalGap,
+      viewportRightMargin: widget.viewportRightMargin,
+    );
+  }
+
+  Future<void> _openMenu(BuildContext menuContext) async {
     final anchorContext = _anchorKey.currentContext;
     if (anchorContext == null) {
       return;
     }
-    final above = widget.openAboveAnchor
-        ? amePopupMenuAboveAnchor(
-            context: context,
-            anchorContext: anchorContext,
-            menuHeight: widget.items.fold<double>(
-              AmeMenuMetrics.menuPadding.vertical,
-              (height, item) => height + item.height,
-            ),
-            verticalGap: widget.verticalGap,
-            viewportRightMargin: widget.viewportRightMargin,
-          )
-        : null;
+    final above = widget.openAboveAnchor ? _aboveAnchorPosition() : null;
     if (widget.openAboveAnchor && above == null) return;
     final position =
         above?.position ??
@@ -185,7 +198,7 @@ class _AmePopupMenuButtonState<T> extends State<AmePopupMenuButton<T>> {
       widget.onOpenChanged?.call(true);
       widget.onOpened?.call();
       final selected = await showAmePopupMenu<T>(
-        context: context,
+        context: menuContext,
         position: position,
         labels: widget.labels,
         shortcuts: widget.shortcuts,
