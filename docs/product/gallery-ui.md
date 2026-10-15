@@ -451,6 +451,7 @@ pixel scale, while automatic and fit continue to follow the available area.
 
 The bottom toolbar groups the thumbnail-strip toggle, information button and more-actions menu
 first on the left, followed by compact file type/dimensions/size and the current image count.
+The count includes the image unit and is separated from file metadata by a thin vertical divider.
 The top bar retains the filename, back action and window controls. Both sides of the bottom
 toolbar use the same icon size and text style. Zoom mode, percentage, zoom slider and full-screen
 action are on the right; full screen is the last action. The strip starts hidden and remembers its

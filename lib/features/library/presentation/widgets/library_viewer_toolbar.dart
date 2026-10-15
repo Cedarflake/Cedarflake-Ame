@@ -138,7 +138,12 @@ class LibraryViewerToolbar extends StatelessWidget {
                           ),
                         ),
                         if (positionLabel case final position?) ...[
-                          const SizedBox(width: 12),
+                          const VerticalDivider(
+                            width: 24,
+                            thickness: 1,
+                            indent: 18,
+                            endIndent: 18,
+                          ),
                           Text(
                             position,
                             key: const Key("viewer-position"),

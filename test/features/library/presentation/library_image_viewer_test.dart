@@ -173,7 +173,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 100));
 
     _expectViewerPixels(tester, asset);
-    expect(find.text("4 / 12"), findsOneWidget);
+    expect(find.text("4 / 12 张"), findsOneWidget);
     expect(find.text("sample.png"), findsOneWidget);
     expect(find.text("C:\\Pictures\\sample.png"), findsNothing);
     expect(
@@ -506,7 +506,7 @@ void main() {
               onInformation: () {},
               onCopyPath: () {},
               onRevealFile: () {},
-              positionLabel: "4 / 10000",
+              positionLabel: "4 / 10000 张",
               isActualSize: true,
               onToggleZoomMode: () {},
               isFullscreen: false,

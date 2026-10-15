@@ -368,6 +368,6 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     if (position == null || totalItems == null || totalItems <= 0) {
       return null;
     }
-    return "$position / $totalItems";
+    return "$position / $totalItems 张";
   }
 }

@@ -68,8 +68,8 @@ Closing freezes later placement events and uses the platform close path; prefere
 delay or block window shutdown.
 
 The application restores only stable presentation preferences. It does not restore selection mode,
-selected assets, open menus, hover state, the current viewer transform, slideshow playback, full
-screen, active searches, or a transient scroll position as part of this decision.
+selected assets, open menus, hover state, the current viewer transform, full screen, active searches,
+or a transient scroll position as part of this decision.
 
 ## Validation gates
 
