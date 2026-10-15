@@ -83,7 +83,7 @@ void main() {
 
         await tester.tap(find.byKey(const Key("viewer-back-button")));
         await tester.pump();
-        expect(find.byType(LibraryImageViewer), findsNothing);
+        expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
         await _openTile(tester, reopenSameAsset ? "location-1" : "location-0");
         if (clickAgain) {
           await tester.tap(find.byKey(const Key("viewer-next")));

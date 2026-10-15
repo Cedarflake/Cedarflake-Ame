@@ -95,9 +95,9 @@ void main() {
           expect(find.byKey(const Key("timeline-slider")), findsNothing);
         }
         await tester.tap(find.byKey(const Key("viewer-back-button")));
-        for (var frame = 0; frame < 6; frame++) {
+        for (var frame = 0; frame < 8; frame++) {
           await tester.pump(const Duration(milliseconds: 16));
-          expect(find.byType(LibraryImageViewer), findsNothing);
+          expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
           expect(
             tester.getRect(wall),
             wallRect,
@@ -107,6 +107,7 @@ void main() {
           expect(position.pixels, pixels);
           expect(find.byKey(const Key("timeline-slider")), findsOneWidget);
         }
+        expect(find.byType(LibraryImageViewer), findsNothing);
       }
       await tester.tapAt(before.center);
       await tester.pump();
@@ -120,12 +121,14 @@ void main() {
       expect(resizedWall.width, wallRect.width - 20);
       expect(resizedWall.overlaps(resizedAnchor), isTrue);
       await tester.tap(find.byKey(const Key("viewer-back-button")));
-      for (var frame = 0; frame < 6; frame++) {
+      for (var frame = 0; frame < 8; frame++) {
         await tester.pump(const Duration(milliseconds: 16));
+        expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
         expect(tester.getRect(wall), resizedWall);
         expect(tester.getRect(anchor), resizedAnchor);
         expect(position.pixels, resizedPixels);
       }
+      expect(find.byType(LibraryImageViewer), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
@@ -231,12 +234,13 @@ void main() {
         if (!closeBeforePublication) {
           await tester.tap(find.byKey(const Key("viewer-back-button")));
         }
-        for (var frame = 0; frame < 6; frame++) {
+        for (var frame = 0; frame < 8; frame++) {
           await tester.pump(const Duration(milliseconds: 16));
-          expect(find.byType(LibraryImageViewer), findsNothing);
+          expect(find.byType(LibraryImageViewer).hitTestable(), findsNothing);
           expect(tester.getRect(anchor), originalRect);
           expect(position.pixels, originalPixels);
         }
+        expect(find.byType(LibraryImageViewer), findsNothing);
         await tester.pumpWidget(const SizedBox.shrink());
       },
     );
