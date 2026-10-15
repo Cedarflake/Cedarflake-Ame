@@ -26,6 +26,7 @@ const MAX_DELTA_COMPLETIONS: usize = 128;
 const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 const MAX_INCREMENTAL_PATH_WINDOW: usize = 4_096;
 
+mod location_removal;
 mod terminal_evidence_scope;
 use terminal_evidence_scope::{CompletedLeasePaths, invalidate_changed_paths};
 
@@ -808,26 +809,13 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 removals.insert(&location.location_id);
             }
             for location_id in removals {
-                transaction
-                    .execute(
-                        "DELETE FROM preview_artifact_locations
-                         WHERE location_id = ?3
-                           AND EXISTS (
-                             SELECT 1 FROM asset_locations AS locations
-                             WHERE locations.scan_id = ?1 AND locations.root_id = ?2
-                               AND locations.location_id = preview_artifact_locations.location_id
-                           )",
-                        params![active_scan_id, batch.root_id, location_id],
-                    )
-                    .map_err(database_error)?;
-                transaction
-                    .execute(
-                        "DELETE FROM asset_locations
-                         WHERE (scan_id = ?1 OR scan_id = ?4)
-                           AND root_id = ?2 AND location_id = ?3",
-                        params![active_scan_id, batch.root_id, location_id, running_scan_id,],
-                    )
-                    .map_err(database_error)?;
+                location_removal::remove(
+                    &transaction,
+                    &active_scan_id,
+                    running_scan_id.as_deref(),
+                    &batch.root_id,
+                    location_id,
+                )?;
             }
             if let Some(location) = &mutation.upsert_location {
                 let persisted = persist_location(

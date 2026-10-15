@@ -331,3 +331,31 @@ fn a_rename_arriving_before_cleanup_cannot_retain_an_invalid_card() {
         original.asset_id
     );
 }
+
+#[test]
+fn automatic_cleanup_defers_without_blocking_when_an_external_writer_is_active() {
+    let mut fixture = retained_failures(1);
+    let mut connection = Connection::open(fixture.catalog.catalog_path()).unwrap();
+    let held = connection
+        .transaction_with_behavior(rusqlite::TransactionBehavior::Immediate)
+        .unwrap();
+    let started = std::time::Instant::now();
+    assert_eq!(
+        fixture
+            .catalog
+            .enqueue_media_admission_rechecks(3_000, policy())
+            .unwrap(),
+        0
+    );
+    assert!(started.elapsed() < std::time::Duration::from_secs(2));
+    assert!(fixture.location("old-0.png").is_some());
+    drop(held);
+    assert_eq!(
+        fixture
+            .catalog
+            .enqueue_media_admission_rechecks(4_000, policy())
+            .unwrap(),
+        1
+    );
+    assert_eq!(recover(&mut fixture, 5_000).completed_count, 1);
+}

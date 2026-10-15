@@ -1,4 +1,8 @@
-use rusqlite::params;
+use std::time::Duration;
+#[cfg(debug_assertions)]
+use std::{io::Write, time::Instant};
+
+use rusqlite::{Connection, TransactionBehavior, params};
 
 use crate::domain::{
     LibraryChangeEnqueueReport, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
@@ -7,11 +11,21 @@ use crate::domain::{
 };
 
 use super::super::{
-    SqliteCatalog, database_error, load_catalog_revision, sqlite_integer, sqlite_unsigned,
+    SQLITE_BUSY_TIMEOUT, SqliteCatalog, database_error, load_catalog_revision, sqlite_integer,
+    sqlite_unsigned,
 };
 use super::{EnqueueContext, enqueue_one, validate_policy};
 
 const PAGE_SIZE: usize = 32;
+
+struct RestoreBusyTimeout<'a>(&'a mut Connection);
+
+impl Drop for RestoreBusyTimeout<'_> {
+    fn drop(&mut self) {
+        let _ = self.0.busy_timeout(SQLITE_BUSY_TIMEOUT);
+    }
+}
+
 const CANDIDATES: &str = "SELECT recheck.root_id, recheck.root_generation,
     recheck.relative_path, recheck.asset_id,
     EXISTS (SELECT 1 FROM asset_locations AS location
@@ -38,6 +52,8 @@ impl SqliteCatalog {
         policy: LibraryChangeQueuePolicy,
     ) -> Result<u32, ScanError> {
         validate_policy(policy)?;
+        #[cfg(debug_assertions)]
+        let started = Instant::now();
         if !self
             .connection
             .prepare_cached(CANDIDATES)
@@ -47,7 +63,29 @@ impl SqliteCatalog {
         {
             return Ok(0);
         }
-        let transaction = self.begin_write_in_lane(LibraryChangeLane::Recovery)?;
+        // This admission runs on the polling thread. Yield to active writers so P2 repair
+        // cannot hold up live observation, gallery refresh or completed-worker delivery.
+        let Some(_permit) = self
+            .write_admission
+            .try_acquire(LibraryChangeLane::Recovery)
+        else {
+            return Ok(0);
+        };
+        let restore = RestoreBusyTimeout(&mut self.connection);
+        restore
+            .0
+            .busy_timeout(Duration::ZERO)
+            .map_err(database_error)?;
+        let transaction = match restore
+            .0
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+        {
+            Ok(transaction) => transaction,
+            Err(error) if error.sqlite_error_code() == Some(rusqlite::ErrorCode::DatabaseBusy) => {
+                return Ok(0);
+            }
+            Err(error) => return Err(database_error(error)),
+        };
         let candidates = {
             let mut statement = transaction
                 .prepare_cached(CANDIDATES)
@@ -66,6 +104,8 @@ impl SqliteCatalog {
             rows.collect::<Result<Vec<_>, _>>()
                 .map_err(database_error)?
         };
+        #[cfg(debug_assertions)]
+        let prepare_ms = started.elapsed().as_millis();
         let revision = load_catalog_revision(&transaction)?;
         let mut admitted = 0;
         for (root_id, generation, relative_path, asset_id, still_failed) in
@@ -135,6 +175,14 @@ impl SqliteCatalog {
             admitted += 1;
         }
         transaction.commit().map_err(database_error)?;
+        #[cfg(debug_assertions)]
+        if started.elapsed() >= Duration::from_millis(100) {
+            let _ = writeln!(
+                std::io::stderr().lock(),
+                "[Ame media recheck] admitted={admitted} prepare_ms={prepare_ms} total_ms={}",
+                started.elapsed().as_millis()
+            );
+        }
         Ok(admitted)
     }
 }

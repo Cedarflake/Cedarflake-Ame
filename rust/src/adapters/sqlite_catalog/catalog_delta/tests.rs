@@ -13,6 +13,7 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository, LibraryChang
 
 use super::super::SqliteCatalog;
 
+mod location_removal;
 mod terminal_scope;
 
 #[test]
