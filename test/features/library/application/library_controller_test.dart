@@ -930,7 +930,7 @@ void main() {
       expect(scanner.startedScanId, isNull);
       expect(scanner.scanCallCount, 0);
       expect(scanner.resumeCallCount, 0);
-      expect(find.text("已暂停添加文件夹"), findsOneWidget);
+      expect(find.text("已暂停添加目录"), findsOneWidget);
       expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
 
       await tester.tap(find.byKey(const Key("library-resume-button")));

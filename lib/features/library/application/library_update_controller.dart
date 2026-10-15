@@ -230,7 +230,7 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
           !_tryAcquireRootUpdate(rootId)) {
         state = state.withTask(
           task.copyWith(
-            errorMessage: "library_update_root_changed: 图库文件夹已移除、不可用或发生变化",
+            errorMessage: "library_update_root_changed: 图库目录已移除、不可用或发生变化",
           ),
         );
         return;
@@ -284,7 +284,7 @@ class LibraryUpdateController extends Notifier<LibraryUpdateState> {
       state = state.withTask(
         task.copyWith(
           phase: LibraryRootUpdatePhase.failed,
-          errorMessage: "library_update_root_changed: 图库文件夹已移除、不可用或发生变化",
+          errorMessage: "library_update_root_changed: 图库目录已移除、不可用或发生变化",
         ),
       );
       _releaseRootUpdate(root.id);

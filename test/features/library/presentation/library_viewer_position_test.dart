@@ -1022,7 +1022,7 @@ void main() {
       expect(failedState.status, LibraryStatus.failed);
       expect(failedState.scanId, isNull);
       expect(scanner.scanCount, 0);
-      expect(find.text("添加文件夹失败"), findsOneWidget);
+      expect(find.text("添加目录失败"), findsOneWidget);
       expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
       expect(
         find.byKey(const Key("library-task-dismiss-button")),
@@ -1042,7 +1042,7 @@ void main() {
       expect(acknowledgedState.assets, originalState.assets);
       expect(acknowledgedState.catalogRevision, originalState.catalogRevision);
       expect(acknowledgedState.errorMessage, isNull);
-      expect(find.text("添加文件夹失败"), findsNothing);
+      expect(find.text("添加目录失败"), findsNothing);
       expect(
         find.text(LibraryStrings.synchronizationRefreshFailureTitle),
         findsOneWidget,

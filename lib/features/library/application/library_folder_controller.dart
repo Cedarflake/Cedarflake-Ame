@@ -82,14 +82,14 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
           (current.revision != null && page.revision < current.revision!)) {
         throw const LibraryCatalogFailure(
           code: "catalog_folder_revision_changed",
-          message: "图库已更新，请重新展开文件夹",
+          message: "图库已更新，请重新展开目录",
         );
       }
       if (page.rootId != rootId ||
           page.parentRelativePath != parentRelativePath) {
         throw const LibraryCatalogFailure(
           code: "catalog_folder_scope_changed",
-          message: "目录范围已变化，请重新展开文件夹",
+          message: "目录范围已变化，请重新展开目录",
         );
       }
       final shouldAppend =
@@ -98,7 +98,7 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
           (after == null || page.revision != current.revision)) {
         throw const LibraryCatalogFailure(
           code: "catalog_folder_page_inconsistent",
-          message: "目录分页版本不一致，请重新展开文件夹",
+          message: "目录分页版本不一致，请重新展开目录",
         );
       }
       final cursor = page.nextCursor;
@@ -108,7 +108,7 @@ class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
               cursor.parentRelativePath != parentRelativePath)) {
         throw const LibraryCatalogFailure(
           code: "catalog_folder_cursor_inconsistent",
-          message: "目录分页范围不一致，请重新展开文件夹",
+          message: "目录分页范围不一致，请重新展开目录",
         );
       }
       state = state.publishPage(key, page);

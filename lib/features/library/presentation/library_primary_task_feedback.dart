@@ -22,7 +22,7 @@ class LibraryPrimaryTaskFeedback {
   String get title {
     switch (state.status) {
       case LibraryStatus.choosingDirectory:
-        return "正在选择文件夹…";
+        return "正在选择目录…";
       case LibraryStatus.scanning:
         final name = _rootName(state.displayRootPath);
         if (state.scanPhase == LibraryScanPhase.finalizing) {
@@ -43,9 +43,9 @@ class LibraryPrimaryTaskFeedback {
             ? LibraryStrings.readingScanResult
             : "正在加载图片…";
       case LibraryStatus.cancelled:
-        return isLibraryUpdate ? "已取消更新图库" : "已取消添加文件夹";
+        return isLibraryUpdate ? "已取消更新图库" : "已取消添加目录";
       case LibraryStatus.paused:
-        return isLibraryUpdate ? "已暂停更新图库" : "已暂停添加文件夹";
+        return isLibraryUpdate ? "已暂停更新图库" : "已暂停添加目录";
       case LibraryStatus.stale:
         return "文件已变化，请重试";
       case LibraryStatus.failed:
@@ -60,7 +60,7 @@ class LibraryPrimaryTaskFeedback {
         if (isPublishedReload) {
           return LibraryStrings.galleryDisplayReloadPending;
         }
-        return isLibraryUpdate ? "更新图库失败" : "添加文件夹失败";
+        return isLibraryUpdate ? "更新图库失败" : "添加目录失败";
       case LibraryStatus.completed:
         return isLibraryUpdate ? "更新完成" : "添加完成";
       case LibraryStatus.empty:

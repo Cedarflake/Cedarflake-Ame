@@ -2247,7 +2247,7 @@ void main() {
     await tester.pump();
 
     expect(find.text("DisconnectedPictures"), findsOneWidget);
-    expect(find.text("文件夹不存在"), findsOneWidget);
+    expect(find.text("目录不存在"), findsOneWidget);
     expect(find.byIcon(Symbols.folder_off_rounded), findsOneWidget);
   });
 
@@ -2427,7 +2427,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text(LibraryStrings.removeFromAme));
     await tester.pumpAndSettle();
-    expect(find.text("从 Ame 中移除文件夹？"), findsOneWidget);
+    expect(find.text("从 Ame 中移除目录？"), findsOneWidget);
 
     await tester.tap(find.text(LibraryStrings.removeFromAme));
     expect(catalog.unregisteredRootIds, isEmpty);
@@ -2435,7 +2435,7 @@ void main() {
 
     expect(find.byKey(const Key("library-task-surface")), findsOneWidget);
     expect(find.text("正在从 Ame 中移除“Pictures”…"), findsOneWidget);
-    expect(find.text("原文件夹和图片都会保留。"), findsOneWidget);
+    expect(find.text("原目录和图片都会保留。"), findsOneWidget);
     expect(catalog.unregisteredRootIds, ["root-1"]);
     expect(feedbackWasLaidOutBeforeCatalogEntry, isTrue);
 

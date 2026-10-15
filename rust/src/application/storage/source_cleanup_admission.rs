@@ -69,7 +69,7 @@ fn reserve(root: &Path, access: Access) -> Result<Arc<Reservation>, ScanError> {
             return Err(match access {
                 Access::RegisterSource => ScanError::new(
                     "source_root_cleanup_active",
-                    "所选文件夹正在清理预览缓存，请等待清理结束后再添加。尚未登记来源或开始扫描。",
+                    "所选目录正在清理预览缓存，请等待清理结束后再添加。尚未登记来源或开始扫描。",
                 ),
                 Access::DeletePreviews => ScanError::new(
                     "preview_cleanup_source_registration_active",

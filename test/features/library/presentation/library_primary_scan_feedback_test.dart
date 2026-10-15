@@ -80,8 +80,8 @@ void main() {
             taskState.value.primaryScanSnapshot,
           ),
           publication == LibraryScanPublication.confirmationPending
-              ? LibraryStrings.scanConfirmationDetail
-              : LibraryStrings.galleryDisplayReloadDetail,
+              ? "扫描结果读取失败，暂时无法添加目录。"
+              : "图库加载失败，暂时无法添加目录。",
         );
         expect(
           find.text(
@@ -94,7 +94,7 @@ void main() {
         expect(
           LibraryPendingSource.fromState(taskState.value)?.statusLabel,
           publication == LibraryScanPublication.confirmationPending
-              ? "扫描结果读取失败"
+              ? "读取结果失败"
               : LibraryStrings.sourceDisplayReloadPending,
         );
         await tester.tap(find.byKey(const Key("library-retry-button")));
@@ -123,7 +123,7 @@ void main() {
         expect(
           LibraryPendingSource.fromState(taskState.value)?.statusLabel,
           publication == LibraryScanPublication.confirmationPending
-              ? "正在读取扫描结果…"
+              ? "正在读取结果"
               : LibraryStrings.refreshingSourceDisplay,
         );
         taskState.value = taskState.value.copyWith(
@@ -256,7 +256,7 @@ void main() {
     expect(fixture.state.errorMessage, originalError);
     expect(find.text(originalError), findsNothing);
     expect(find.text("正在停止当前任务。"), findsNothing);
-    expect(find.text("添加文件夹失败"), findsOneWidget);
+    expect(find.text("添加目录失败"), findsOneWidget);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     final retry = find.byKey(const Key("library-retry-button"));
     expect(retry, findsOneWidget);

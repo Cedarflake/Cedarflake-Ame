@@ -24,8 +24,8 @@ class LibraryPendingSource {
           : "正在加载图库…";
     }
     return scan.publication == LibraryScanPublication.confirmationPending
-        ? LibraryStrings.scanConfirmationDetail
-        : LibraryStrings.galleryDisplayReloadDetail;
+        ? LibraryStrings.addFolderAwaitingScanResult
+        : LibraryStrings.addFolderAwaitingGalleryReload;
   }
 
   static LibraryPendingSource? fromState(LibraryState state) {
@@ -50,9 +50,9 @@ class LibraryPendingSource {
   String get statusLabel {
     if (publication == LibraryScanPublication.confirmationPending) {
       if (isProcessing) {
-        return LibraryStrings.readingScanResult;
+        return LibraryStrings.sourceReadingScanResult;
       }
-      return LibraryStrings.scanConfirmationPending;
+      return LibraryStrings.sourceScanResultReadFailed;
     }
     if (publication == LibraryScanPublication.reloadPending && !isProcessing) {
       return LibraryStrings.sourceDisplayReloadPending;

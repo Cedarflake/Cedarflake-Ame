@@ -95,7 +95,7 @@ pub(crate) fn with_scan_start<T>(
         if !resolved_paths_same(Path::new(&configured.catalog_path), &storage.catalog_path)? {
             return Err(ScanError::new(
                 "catalog_location_restart_required",
-                "图库数据位置已更改，请先重启 Ame 再添加或继续导入文件夹。重启前不会向旧数据库写入新的导入任务。",
+                "图库数据位置已更改，请先重启 Ame 再添加或继续导入目录。重启前不会向旧数据库写入新的导入任务。",
             ));
         }
     }

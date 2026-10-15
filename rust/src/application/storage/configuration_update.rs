@@ -43,7 +43,7 @@ pub(super) fn save_configuration(
     {
         return Err(ScanError::new(
             "catalog_relocation_requires_migration",
-            "图库已包含文件夹，当前不能更改数据库位置。需要先完成受支持的数据库迁移。",
+            "图库已包含目录，当前不能更改数据库位置。需要先完成受支持的数据库迁移。",
         ));
     }
     validate_configuration_paths(&active.catalog_path, &configured)?;

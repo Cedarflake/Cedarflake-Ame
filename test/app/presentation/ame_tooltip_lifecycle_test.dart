@@ -19,7 +19,7 @@ void main() {
               child: ValueListenableBuilder<bool>(
                 valueListenable: expanded,
                 builder: (context, value, child) => AmeTooltip(
-                  message: value ? "收起文件夹" : "展开文件夹",
+                  message: value ? "收起目录" : "展开目录",
                   waitDuration: Duration.zero,
                   child: IconButton(
                     key: const Key("folder-toggle"),
@@ -38,14 +38,14 @@ void main() {
       );
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 150));
-      expect(find.text("展开文件夹"), findsOneWidget);
+      expect(find.text("展开目录"), findsOneWidget);
 
       await tester.tap(find.byKey(const Key("folder-toggle")));
       await tester.pump();
       expect(tester.takeException(), isNull);
       await tester.pump();
-      expect(find.text("收起文件夹"), findsOneWidget);
-      expect(find.text("展开文件夹"), findsNothing);
+      expect(find.text("收起目录"), findsOneWidget);
+      expect(find.text("展开目录"), findsNothing);
 
       for (var index = 0; index < 3; index++) {
         await tester.tap(find.byKey(const Key("folder-toggle")));

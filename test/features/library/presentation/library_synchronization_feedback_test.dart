@@ -34,7 +34,7 @@ void main() {
         retryCount: 0,
       ),
     );
-    expect(feedback.message, "正在检查文件夹");
+    expect(feedback.message, "正在检查目录");
     expect(feedback.severity, AmeNotificationSeverity.info);
     expect(feedback.detail, isNull);
     expect(feedback.requiresManualLibraryUpdate, isFalse);

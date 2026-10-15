@@ -99,7 +99,7 @@ OneDrive and `此电脑` groups. Folder icons, labels, optional status text, and
 shared column constraints so every source row aligns.
 
 The folder-plus icon is a separate hit target from the `图库` navigation row. Its tooltip and
-accessible label are `添加文件夹到图库`; activating it opens the same folder picker as the global
+accessible label are `添加目录到图库`; activating it opens the same folder picker as the global
 `导入` action.
 
 Selecting an exact registered source retains its normal update behavior. Selecting an unregistered
@@ -239,8 +239,8 @@ The compact filter action follows the Microsoft Photos grouped-menu structure wh
 capabilities that Ame currently supports:
 
 ```text
-显示子文件夹
-隐藏子文件夹
+显示子目录
+隐藏子目录
 ────────────────
 显示所有文件
 合并完全相同图片
@@ -250,7 +250,7 @@ capabilities that Ame currently supports:
 ```
 
 The menu contains two independent single-choice groups followed by one command. Before R3 the
-available default is `显示子文件夹 + 显示所有文件`. After R3 has trustworthy exact evidence, the
+available default is `显示子目录 + 显示所有文件`. After R3 has trustworthy exact evidence, the
 initial duplicate mode becomes `合并完全相同图片` so repeated physical copies do not multiply the
 user's review workload; the user can still select either other mode. The first group selects whether
 the current source includes descendant folders. The second group selects one exact-duplicate
@@ -421,7 +421,7 @@ scale rather than being relabeled as 100%.
 An active import uses a bottom floating progress surface similar to the reference workflow:
 
 ```text
-正在添加文件夹“Picture”…
+正在添加目录“Picture”…
 已检查 12,340 个文件 · 已找到 10,826 张图片
 进度条                                                       取消
 ```

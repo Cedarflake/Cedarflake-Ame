@@ -117,7 +117,7 @@ Use one unified gallery with these presentation rules.
   because an explicit update cannot make an unavailable source readable. Ame runs at most two root
   updates concurrently and queues any remaining selection;
   the temporary progress surface preserves one status, progress, failure, retry, and cancellation
-  control per root. First import remains `添加文件夹`; an update of an already configured root is
+  control per root. First import remains `添加目录`; an update of an already configured root is
   always `更新图库` / `正在更新图库` and never inherits import wording merely because both operations
   use the same native scan adapter. A native scan completion enters `正在刷新显示`; the row reaches
   `更新完成` only after the current catalog view reloads. Reload failure remains visible on that row,

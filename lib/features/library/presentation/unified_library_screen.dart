@@ -1690,10 +1690,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final shouldRemove = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text("从 Ame 中移除文件夹？"),
+        title: const Text("从 Ame 中移除目录？"),
         content: Text(
           "“${librarySourceName(root.displayPath)}”中的图片将不再显示在 Ame 中。"
-          "原文件夹和图片都会保留。",
+          "原目录和图片都会保留。",
         ),
         actions: [
           TextButton(

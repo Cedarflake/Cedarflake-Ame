@@ -143,7 +143,7 @@ void main() {
       await tester.pump();
       expect(fixture.state.status, LibraryStatus.paused);
       expect(fixture.state.scanId, retainedScanCheckpoint.scanId);
-      expect(find.text("另一个文件夹正在更新，结束后再继续。"), findsOneWidget);
+      expect(find.text("另一个目录正在更新，结束后再继续。"), findsOneWidget);
       expect(
         fixture.state.errorMessage,
         contains("library_update_in_progress"),
@@ -293,12 +293,12 @@ void main() {
         findsOneWidget,
       );
       expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
-      expect(find.text("添加文件夹失败"), findsOneWidget);
+      expect(find.text("添加目录失败"), findsOneWidget);
       expect(find.textContaining("更新夹具失败"), findsNothing);
       expect(fixture.state.errorMessage, contains("更新夹具失败"));
       await tester.tap(find.byKey(const Key("library-retry-button")));
       await tester.pump();
-      expect(find.text("另一个文件夹正在更新，结束后再继续。"), findsOneWidget);
+      expect(find.text("另一个目录正在更新，结束后再继续。"), findsOneWidget);
       expect(
         fixture.state.errorMessage,
         contains("library_update_in_progress"),

@@ -335,7 +335,7 @@ class PlatformStorageDirectoryPicker implements StorageDirectoryPicker {
   Future<String?> pick({required String initialDirectory}) {
     return getDirectoryPath(
       initialDirectory: initialDirectory,
-      confirmButtonText: "选择此文件夹",
+      confirmButtonText: "选择此目录",
     );
   }
 }

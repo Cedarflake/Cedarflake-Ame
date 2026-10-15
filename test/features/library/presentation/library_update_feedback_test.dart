@@ -113,7 +113,7 @@ void main() {
     await tester.pump();
 
     expect(retries, 1);
-    expect(find.text("无法更新这个文件夹，请检查它能否打开。"), findsOneWidget);
+    expect(find.text("无法更新这个目录，请检查它能否打开。"), findsOneWidget);
     expect(find.text("扫描已完成。"), findsNothing);
     expect(find.textContaining("source unavailable"), findsNothing);
     expect(task.value.errorMessage, contains("source unavailable"));
