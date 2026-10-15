@@ -75,7 +75,10 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-The current priority is the remaining affected hosted checks and scoped acceptance closeout.
+The current priority is delivery and the final hosted-run check. The affected product revision's
+hosted gates, current native synchronization/browsing flows, large-sample paused-import changes
+and scoped closing review pass; the [current checkpoint](plans/r2c-closeout.md#current-execution-checkpoint)
+owns their exact scope. Preserve those completed flows while the final documentation push is checked.
 Follow the synchronization, latency, browsing and final acceptance order below. Preserve the user's
 current copy and layout and the already delivered viewer/time-rail behavior. Apply `microsoft-ui-ux`
 when a correction affects the interface, including its actual states, buttons, focus and feedback.

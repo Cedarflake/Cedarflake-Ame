@@ -755,6 +755,31 @@ After verifying process exit and restored hashes, explicit contained-path and re
 removal of 54 disposable files totaling 455,630,955 bytes. The reusable sources, templates, manifest,
 oracle and fixture remain in `build/test`, alongside the current Debug and Release build outputs.
 
+### Ordinary Release late cancellation and reopening on 2026-10-15
+
+The current unsigned Release repeats this boundary against the known combined destination of
+local-primary/cloud-primary, using fresh derived storage in `build/test`. The read-only run is
+bounded to 120,000 entries, fifteen minutes and 2 GiB; only requested previews read media content.
+Its baseline imports 70,078 entries and 64,451 locations in 282,951 ms. The following update reaches
+the same entry/location counts before Cancel. Input to the transaction's cancellation timestamp
+is 233 ms; the 100-ms read-only observer first sees the committed state after 762 ms. The window
+shows Stopping, then Cancelled, with the existing gallery preserved.
+
+The next Update starts 218 ms after confirmation while 39,875 old staged locations remain.
+Cancelling at 19,250 visited entries and 18,668 accepted locations commits in 248 ms; the first
+observer confirmation is at 717 ms. These transaction and observation timings have distinct
+boundaries and do not measure a rendered frame. The first process exits normally, and the second
+opens the same populated catalog with Current coverage and no additional scan or inventory.
+Background staging reaches zero 88,654 ms after the second cancellation, including the closed
+interval. All 1,844 observations during update, cancellation and reopening retain exactly 64,451
+published locations and Current journal coverage. Ordered path, asset, source-revision and file-
+identity tuples match the baseline; all 128 sampled source metadata/identity records are unchanged.
+
+Both processes exit with code zero, at cumulative runner times of 780,117 and 870,418 ms. Original
+preferences, settings and catalog hashes match after restoration. Cleanup removes 44 disposable
+data files (321,283,596 bytes) and eleven diagnostics/helper files (17,855,407 bytes), leaving only
+the derived fixture marker. The ordinary user Debug is restored at 65,130 images and Synchronized.
+
 ## Native picker discovery in hosted verification
 
 Run [38647442080](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38647442080) completes
@@ -1023,7 +1048,13 @@ is the capture fixture's independent path: `ConsistencyAudit` merges it into the
 recovery control, so no separate row exists. The fixture now enqueues a `StartupCatchUp` path and
 asserts its independent insertion and foreground capture before checking completion, preserved
 recovery ownership and reopening. This is a test correction; runtime behavior is unchanged.
-The corrected fixture remains assigned to Actions.
+The corrected `6d4a288` [Actions run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38681407733)
+passes all ten applicable jobs and the aggregate gate. Rust reports 1,915 passed, zero failed and
+24 ignored, plus three passing documentation tests. The complete run includes the corrected capture
+fixture, both mixed-load checks, paused-import restart with changed membership, bounded retirement,
+and the real-journal unchanged restart that asserts zero source enumeration and media opens. No
+workload, deadline or assertion is relaxed. The three signing-path jobs remain outside this run's
+required gates.
 
 Affected production / inline / dedicated-test sizes: admission 329 / 0 / 354 plus its existing
 reservation tests; lease owner 75 / 0 / 198; capture regressions 0 / 0 / 344. Scoped formatting and
@@ -1092,3 +1123,46 @@ copy matches its recorded hash. Original preferences, settings and catalog hashe
 Cleanup removes all 1,000 copies, 116 disposable derived files (39,695,374 bytes), and ten
 diagnostic/helper files (1,009,275 bytes). Only the fixture marker remains in the derived directory;
 the reusable corpus is retained and the user's ordinary Debug client is reopened.
+
+### Paused import with bulk directory changes on 2026-10-15
+
+The existing ordinary-journal regression performs actual fixture deletion and addition between
+paused-process exit and continuation. It checks retained progress, unchanged inspection reuse,
+renamed hardlink identity, exact final membership and a fully validated reopen. The separate
+membership regression deletes an already inspected file, adds files to both an inspected directory
+and a new directory, changes another file, then pauses and reopens again before completion. Both
+pass in the `6d4a288` Actions run; the first also covers removal of an unvisited file.
+
+The requested larger native Debug case reuses the established 10,000-image corpus with fresh
+derived storage. The window pauses after 5,900 accepted images. While it stays paused, 250 inspected
+and 250 unvisited files are moved outside the watched source into a contained restoration directory;
+500 temporary copies are added, half under completely inspected directories and half under
+unvisited directories. The reversible removals exercise disappearance from the selected source;
+literal file deletion remains covered by the production restart and membership regressions above.
+The additions use 440 JPEGs and 60 PNGs, ten dimensions, dates spanning 2010–2026, encoded sizes
+from 31,164 to 7,216,220 bytes and non-uniform content, totaling 543,328,144 bytes.
+
+Continue immediately displays the retained 5,900 count, also observed in the same scan's first
+running database snapshot 222 ms after input. It reaches Current in 48,246 ms from Continue, after
+finishing the remaining import and replaying the paused-period changes. During catch-up the window
+displays Updating; published membership temporarily falls to 9,750 as removals precede additions.
+The final exact set is 10,000: all 500 additions present, all 500 removed paths absent and the 9,500
+retained source paths present. All 5,650 unchanged previously inspected assets keep their IDs.
+There is one scan and zero inventory runs throughout 3,810 read-only observations. Normal reopen
+retains the exact set, identities, Current coverage and scan/inventory counts.
+
+Both client processes exit normally, at cumulative runner times of 363,257 and 414,406 ms. The
+original profile and catalog hashes match after restoration. All 500 original fixtures are moved
+back with matching hashes, and all 10,000 source sizes, modification times, attributes and file
+identities match their baseline. Cleanup removes the 500 temporary additions, 92 derived files
+(36,873,057 bytes) and twelve diagnostics/helper files (2,697,111 bytes). The derived directory again
+contains only its fixture marker; the user's ordinary Debug is reopened with the original profile.
+
+### Scoped closing review
+
+An independent read-only review of `46d41e9..6d4a288` covers the 23 changed source/test files and
+their owning contracts. It follows journal publication admission, bounded recovery lease admission,
+foreground capture ownership, narrow retained-state repair and completed-task expiry through their
+callers and regressions. No confirmed new defect is reported in that range. It performs no product
+run or source access. Existing unstaged copy/layout edits remain outside its committed range. Its scope is this
+closing repair batch, while earlier acceptance records retain their own coverage boundaries.

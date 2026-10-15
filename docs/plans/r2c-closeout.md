@@ -1,10 +1,10 @@
 # R2c closeout execution
 
-Status: **R2c merged to main on 2026-10-13; unresolved functional work follows the
-[post-merge queue](../roadmap.md#current-execution-queue), with CI executed by GitHub Actions.
-Historical acceptance gaps below remain recorded. Selected recovered-profile browsing and pending-result
-cross-window continuation now pass. Historical Retry/jump attribution and
-remaining client/platform variants stay open; the complete repair batch is not client-accepted.**
+Status: **R2c merged to main on 2026-10-13. Current functional corrections and requested native
+follow-ups are verified; delivery and the final hosted-run check remain. The
+[post-merge queue](../roadmap.md#current-execution-queue) owns scope, with CI executed by GitHub Actions.
+Historical Retry/jump attribution and broader client/platform acceptance records retain their
+original coverage and are not additional replay requests for this repair batch.**
 
 ### Acceptance prerequisites
 
@@ -27,13 +27,29 @@ Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, 
 live source and running artifact. Preserve the exact triggering sequence of each open incident;
 a related correction, a focused pass or a different native scenario cannot close it.
 
-**Current priority: remaining affected hosted checks and scoped acceptance closeout.** Follow the roadmap's
+**Current priority: finish delivery and the final hosted-run check.** Follow the roadmap's
 synchronization, latency, browsing and final acceptance order. Preserve the user's string edits,
 layout and completed viewer/time-rail changes. The reported Debug timeout concerns an existing
 catalog without directory-identity coverage or a durable journal checkpoint. Its retained inventory
 now completes and ordinary reopening stays current, as verified below. Preserve that result and the
 completed retained-import continuation. Submit each connected correction
 and let Actions run CI. Apply `microsoft-ui-ux` to affected interface flows.
+
+The `6d4a288` hosted run now passes all ten applicable jobs and the aggregate gate, including all
+1,915 Rust tests that ran. The corrected Release also completes the actual-library late-cancel,
+immediate-update and reopen workflow: cancellation commits in 233/248 ms, the next update starts
+in 218 ms, published membership remains unchanged, and background staging drains across restart.
+Both processes retire normally, original storage is restored and disposable output is removed.
+The owning [cancellation result](../acceptance/r2c-update-checkpoint.md#ordinary-release-late-cancellation-and-reopening-on-2026-10-15)
+records measurement boundaries. The requested large paused-import follow-up also passes: the
+ordinary Debug window retains its 5,900-image checkpoint, incorporates all 500 additions and 500
+temporary source removals, preserves the other inspected asset IDs and reopens with exact membership,
+one scan and no inventory. The original 10,000-image corpus is restored and disposable output is
+removed. Literal paused-period deletion passes in the production restart and membership regressions.
+The [paused-import result](../acceptance/r2c-update-checkpoint.md#paused-import-with-bulk-directory-changes-on-2026-10-15)
+and [scoped independent review](../acceptance/r2c-update-checkpoint.md#scoped-closing-review) complete
+these follow-ups. Preserve all completed native flows; no additional replay is scheduled for them.
+Earlier pending-check statements below describe their original checkpoints, not new run requests.
 
 The repeated catalog-session delay is reproduced: normal preemption of incremental page reclamation
 retired the validated session, so synchronization repeatedly performed full catalog validation.
