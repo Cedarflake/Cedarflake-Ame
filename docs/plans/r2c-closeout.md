@@ -121,8 +121,15 @@ Its slowest status poll takes 25,529 ms: native stage timing places 25,521 ms in
 the synchronous recovery-control lease waits behind publication. Recovery-control lease admission
 now defers on an occupied writer or SQLite write lock; selection, root/authority validation, attempt
 accounting and atomic rollback remain in the existing lease transaction. Other lease kinds preserve
-their queued admission. Continue the same isolated catalog with the focused native comparison and
-hosted contention/rollback regressions. Affected sizes: lease-write owner 70 production / 0 inline /
+their queued admission. The same-input comparison completes in 206,900 ms; 59 successful polls have
+a 10-ms median and 66-ms maximum, with stable browsing and matching October membership. Its log also
+exposes foreground scan capture completing the unfinished inventory control and leaving its recovery
+authority active. `scan_change_capture` now keeps recovery authorities and their candidates with
+their own workflow, and releases older retained scan captures during publication. Continue the
+repaired foreground/recovery handoff and its hosted ownership/rollback regressions. The capture owner
+has 196 production / 0 inline / 203 dedicated-test lines; scan admission shrinks to 235 production
+lines and scan publication to 948. [The owning result](../acceptance/r2c-update-checkpoint.md#foreground-capture-of-unfinished-inventory-work-on-2026-10-15)
+records the failure and bounded native comparison. Lease-write owner sizes remain 70 production / 0 inline /
 170 dedicated-test lines; lease matching 455 production lines; scheduling owner 100 production lines.
 The existing queue facade has 1,802 production lines and its dedicated test facade 6,149 lines;
 both change only module wiring, with no inline tests added.

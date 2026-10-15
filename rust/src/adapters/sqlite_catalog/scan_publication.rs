@@ -15,6 +15,7 @@ use crate::domain::{
 };
 
 use super::change_queue;
+use super::scan_change_capture::ScanChangeCapture;
 mod live_change_admission;
 use live_change_admission::ensure_publishable as ensure_change_queue_is_publishable;
 #[cfg(test)]
@@ -506,42 +507,13 @@ fn settle_change_lineage(
     interruption: &PublicationInterruption,
 ) -> Result<(), ScanError> {
     if let Some(high_watermark) = authority.change_queue_high_watermark {
-        transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET status = 'completed', next_retry_unix_ms = NULL,
-                     lease_expires_unix_ms = NULL,
-                     catalog_revision_at_success = ?1, updated_unix_ms = ?2,
-                     authoritative_scan_id = NULL
-                 WHERE root_id = ?3 AND root_generation = ?4
-                   AND authoritative_scan_id = ?6 AND id <= ?5
-                   AND status IN ('pending', 'leased', 'retry_wait')
-                   AND NOT (
-                     status = 'retry_wait' AND scope = 'path'
-                     AND intent_kind <> 'freshness_unknown'
-                   )
-                   AND NOT EXISTS(
-                     SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                     WHERE claim.gap_change_id = library_change_queue.id
-                   )",
-                params![
-                    sqlite_integer(published_revision, "catalog revision")?,
-                    completed_unix_ms,
-                    root_id,
-                    authority.root_generation,
-                    high_watermark,
-                    scan_id,
-                ],
-            )
-            .map_err(database_error)?;
-        transaction
-            .execute(
-                "UPDATE library_change_queue
-                 SET authoritative_scan_id = NULL
-                 WHERE authoritative_scan_id = ?1",
-                [scan_id],
-            )
-            .map_err(database_error)?;
+        ScanChangeCapture {
+            scan_id,
+            root_id,
+            root_generation: authority.root_generation,
+            high_watermark,
+        }
+        .complete(transaction, published_revision, completed_unix_ms)?;
     }
     enqueue_authoritative_retry_paths(
         transaction,

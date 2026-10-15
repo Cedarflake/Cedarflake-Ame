@@ -31,6 +31,7 @@ mod gap_promotion;
 mod lease_admission;
 mod metrics;
 mod readiness;
+mod scan_capture;
 mod terminal_cleanup;
 
 #[test]

@@ -58,6 +58,7 @@ mod reusable_connection;
 mod root_location_recovery;
 mod root_unregistration;
 mod scan_admission;
+mod scan_change_capture;
 mod scan_checkpoint;
 mod scan_directories;
 pub(crate) use journal_namespace::SqliteJournalNamespaceReader;

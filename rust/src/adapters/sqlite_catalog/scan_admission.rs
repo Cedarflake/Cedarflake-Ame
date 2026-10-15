@@ -1,9 +1,9 @@
+use super::scan_change_capture::ScanChangeCapture;
 use super::{
-    FileIdentityEvidence, MAX_SCAN_CATCH_UP_LINEAGE, OptionalExtension, SCAN_QUEUE_LEASE_MILLIS,
-    ScanCheckpoint, ScanError, ScanOwner, ScanRequest, SqliteCatalog, Transaction,
-    activate_root_change_queue, bind_explicit_recovery_claims_to_foreground_scan, database_error,
-    params, retire_root_change_queue, sqlite_integer, unix_time_ms,
-    validate_root_publication_identity,
+    FileIdentityEvidence, OptionalExtension, ScanCheckpoint, ScanError, ScanOwner, ScanRequest,
+    SqliteCatalog, Transaction, activate_root_change_queue,
+    bind_explicit_recovery_claims_to_foreground_scan, database_error, params,
+    retire_root_change_queue, sqlite_integer, unix_time_ms, validate_root_publication_identity,
 };
 use crate::domain::IncrementalCatalogRoot;
 
@@ -215,77 +215,13 @@ impl SqliteCatalog {
             )?;
         }
         if let Some(high_watermark) = change_queue_high_watermark {
-            transaction
-                .execute(
-                    "UPDATE library_change_queue
-                     SET status = 'leased', next_retry_unix_ms = NULL,
-                         lease_generation = lease_generation + 1,
-                         lease_expires_unix_ms = ?1, updated_unix_ms = ?2,
-                         authoritative_scan_id = ?3
-                      WHERE root_id = ?4 AND root_generation = ?5 AND id <= ?6
-                        AND status IN ('pending', 'retry_wait')
-                        AND EXISTS(
-                          SELECT 1 FROM library_change_queue_lanes AS lanes
-                          WHERE lanes.change_id = library_change_queue.id
-                            AND lanes.lane <> 'p0_live'
-                        )
-                        AND NOT EXISTS(
-                          SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                          WHERE claim.gap_change_id = library_change_queue.id
-                        )",
-                    params![
-                        now.saturating_add(SCAN_QUEUE_LEASE_MILLIS),
-                        now,
-                        request.scan_id,
-                        root_id,
-                        root_generation_at_start,
-                        high_watermark,
-                    ],
-                )
-                .map_err(database_error)?;
-            transaction
-                .execute(
-                    "INSERT INTO scan_run_catch_up_lineage(
-                           scan_id, catch_up_source, catch_up_watermark, enrolled_unix_ms
-                         )
-                         SELECT ?1, lineage.catch_up_source,
-                                lineage.catch_up_watermark,
-                                MAX(lineage.enrolled_unix_ms)
-                         FROM library_change_queue AS changes
-                         JOIN library_change_queue_catch_up_lineage AS lineage
-                           ON lineage.change_id = changes.id
-                         WHERE changes.root_id = ?2
-                           AND changes.root_generation = ?3
-                            AND changes.id <= ?4
-                            AND changes.authoritative_scan_id = ?1
-                            AND changes.status IN ('pending', 'leased', 'retry_wait')
-                            AND NOT EXISTS(
-                              SELECT 1 FROM library_live_gap_recovery_claims AS claim
-                              WHERE claim.gap_change_id = changes.id
-                            )
-                         GROUP BY lineage.catch_up_source, lineage.catch_up_watermark",
-                    params![
-                        request.scan_id,
-                        root_id,
-                        root_generation_at_start,
-                        high_watermark,
-                    ],
-                )
-                .map_err(database_error)?;
-            let lineage_count = transaction
-                .query_row(
-                    "SELECT COUNT(*) FROM scan_run_catch_up_lineage
-                         WHERE scan_id = ?1",
-                    [&request.scan_id],
-                    |row| row.get::<_, i64>(0),
-                )
-                .map_err(database_error)?;
-            if lineage_count > MAX_SCAN_CATCH_UP_LINEAGE {
-                return Err(ScanError::new(
-                    "catalog_scan_catch_up_lineage_limit_exceeded",
-                    "The scan captured too many catch-up watermarks",
-                ));
+            ScanChangeCapture {
+                scan_id: &request.scan_id,
+                root_id,
+                root_generation: root_generation_at_start,
+                high_watermark,
             }
+            .bind(&transaction, now)?;
         }
         transaction
             .execute(

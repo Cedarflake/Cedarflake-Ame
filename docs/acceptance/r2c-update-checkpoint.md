@@ -916,4 +916,29 @@ Its admission now tries once and leaves the durable task unchanged when another 
 catalog. SQLite contention also returns immediately with the connection timeout restored; unrelated
 errors retain rollback and error propagation. Focused hosted regressions cover both writer boundaries,
 unchanged lease/attempt state, later successful admission and rollback after a non-contention error.
-Native comparison and the new hosted regression results remain pending.
+The same-input comparison completes the explicit update in 206,900 ms with zero publication
+preemptions. Its 59 successful status polls have a 10-ms median and 66-ms maximum. The same 29
+visible identities remain stable and both October sets still match. All 128 source samples and
+original profile/catalog hashes remain unchanged; the session exits normally after 311,342 ms.
+The log also exposes the independent recovery-ownership failure described below, so continued
+automatic recovery is not established by those successful polls.
+
+## Foreground capture of unfinished inventory work on 2026-10-15
+
+Starting a foreground update while the retained inventory control is pending assigns that control
+to the scan. Publication then marks it completed, although its authority and inventory remain active.
+The native comparison records 165 `metadata_inventory_recovery_affinity_corrupt` errors afterward;
+the inventory stays at its initial frontier. This explains the retained task's inability to continue.
+
+`scan_change_capture` now owns queue capture and completion within the existing scan transactions.
+Active recovery authorities and inventory-owned candidates retain their own workflow. Publication
+also releases those tasks if a retained scan from an older client has already captured them. Ordinary
+scan-covered queue changes retain their completion and catch-up lineage. The existing authority
+validator is unchanged. Hosted regressions cover a pending control and candidate across publication
+and reopen, an already captured control, ordinary completion, and rollback of a failed publication.
+
+Affected production / inline-test / dedicated-test sizes: capture owner 196 / 0 / 203; scan admission
+235 / 0 / existing tests; scan publication 948 / 0 / existing tests. The 3,619-line catalog facade and
+6,150-line dedicated queue-test facade only add module wiring. Owned formatting and diff checks pass;
+the Debug build succeeds in 43.8 seconds. The same retained input is running through the repaired
+foreground/recovery handoff; Actions owns the new automated checks.
