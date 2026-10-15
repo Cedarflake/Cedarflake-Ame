@@ -1048,3 +1048,47 @@ The process exits normally after 258,901 ms, restoring the original profile and 
 Cleanup removes 61 derived files (65,255,043 bytes) and five diagnostic/fixture files (777,983 bytes),
 retaining only the derived fixture marker, reusable sources/templates and current Debug build.
 The scoped formatter and whitespace checks pass; automated tests remain assigned to Actions.
+
+### Ordinary Release closed-process additions on 2026-10-15
+
+The ordinary unsigned Release containing `3177de1` reuses the 10,000 varied images in `build/test`
+with fresh derived storage. Initial import completes in 35,798 ms with 10,000 active locations,
+Current journal coverage, one scan and no inventory. After normal exit, three temporary copies
+from the existing landscape, portrait and square templates are added while the process is closed.
+Reopening reaches exactly 10,003 locations, Current and zero pending/retry work in 1,404 ms from
+the restart signal, including process launch. The first completed observation is 1,191 ms after
+Windows process creation. Scan and inventory counts remain one and zero. Searching the added
+filenames shows all three images with decoded previews and no retry controls.
+
+Both processes exit normally. The first session retires at 306,200 ms and the second at a
+cumulative 489,008 ms, including the initial window-activation delay and manual foreground recovery.
+All 10,000 reusable source sizes, modification times and attributes match before and after cleanup;
+the three additions match their recorded hashes. Original preferences, storage settings and catalog
+components match their saved hashes after restoration. Cleanup removes the three additions and
+all disposable catalog, cache, diagnostics and helper output, totaling 33.12 MiB. The derived
+directory retains only its fixture marker. The restored user Debug opens the original gallery at
+65,130 images and Synchronized. The subsequent `6d4a288` changes only a test fixture and records;
+the latest hosted Rust job remains in progress while the other nine applicable jobs have passed.
+
+The subsequent requested bulk case reuses the same 10,000-image corpus and adds 1,000 temporary
+copies while Release is closed. The selection contains 900 JPEGs and 100 PNGs, all 12 existing
+dimension groups, modification dates spanning 2010–2026, and encoded sizes from 31,164 to
+13,858,639 bytes. It includes landscape, portrait, square, 12,000×1,500 and 1,500×12,000 panoramas,
+and 8,000×8,000 images, with non-uniform content. The temporary additions total 1,092,114,678 bytes.
+
+The baseline import completes in 30,870 ms. After exit and fixture additions, 117 read-only
+observations track incremental publication to exactly 11,000 locations. The final observation
+has Current coverage, zero pending/leased/retry work, one scan and zero inventory runs at
+15,666 ms from the restart signal, or 15,622 ms from process creation. At 10,557 images the native
+window displays Updating and keeps existing decoded images visible. Subsequent downward/upward
+scrolling shows the added images; 50 added previews have been materialized on demand. Opening an
+added 12,000×1,500 JPEG finishes full-image loading, and Escape returns to the same gallery position.
+Search-text injection did not populate the field after refocus, so this run uses direct scrolling
+for added-image inspection and makes no search-input acceptance claim.
+
+Both processes exit normally, with the first at 161,484 ms and the full two-session run at
+409,224 ms. All original fixture sizes, modification times and attributes match; every temporary
+copy matches its recorded hash. Original preferences, settings and catalog hashes are restored.
+Cleanup removes all 1,000 copies, 116 disposable derived files (39,695,374 bytes), and ten
+diagnostic/helper files (1,009,275 bytes). Only the fixture marker remains in the derived directory;
+the reusable corpus is retained and the user's ordinary Debug client is reopened.

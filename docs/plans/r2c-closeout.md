@@ -156,10 +156,15 @@ return during longer publication. The `0309ae4` hosted run passes 1,914 Rust tes
 previously failing mixed-load checks and the admission regressions, with their workloads and
 latency assertions unchanged. All nine other applicable jobs pass. Its sole remaining failure is
 an incorrectly coalesced capture fixture; that fixture now uses an independent journal path and
-checks insertion and scan ownership before publication. Continue the corrected fixture's Actions
-check and the prepared ordinary Release closed-process workflow when the active user window is
-available. The [admission record](../acceptance/r2c-update-checkpoint.md#bounded-recovery-admission-during-repeated-writes)
-owns the failure and correction.
+checks insertion and scan ownership before publication. The ordinary Release closed-process flow
+passes both the three-addition check and the requested 1,000-addition workload. The larger case
+reuses the 10,000-image corpus, reaches exact membership and Current in 15,666 ms from the restart
+signal, and creates no additional scan or inventory. Visible previews, a newly added panorama,
+viewer return and normal retirement pass. Original storage is restored and disposable output is
+removed. Continue the corrected fixture's affected hosted checks. The
+[admission record](../acceptance/r2c-update-checkpoint.md#bounded-recovery-admission-during-repeated-writes)
+and [Release continuation](../acceptance/r2c-update-checkpoint.md#ordinary-release-closed-process-additions-on-2026-10-15)
+own the measurements and their workload boundaries.
 
 Completed-task feedback no longer stays over the gallery solely because the scan recorded file
 issues. `c62fd7b` retains the existing five-second acknowledgement and recovery/focus guards, with
