@@ -720,11 +720,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                               loadPrevious: () =>
                                   _loadPreviousAssetsForViewer(controller),
                             ),
-                            onSlideshowNext: viewerNavigation.canNext
-                                ? () => _viewer.navigate(
-                                    LibraryViewerDirection.next,
-                                  )
-                                : null,
                             wheelBehavior: amePreferences.viewerWheelBehavior,
                             openBehavior: amePreferences.viewerOpenBehavior,
                             position: viewerNavigation.position,

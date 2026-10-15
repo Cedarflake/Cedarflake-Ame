@@ -503,10 +503,7 @@ void main() {
               asset: _asset(),
               isFilmstripVisible: false,
               onToggleFilmstrip: () {},
-              isPlaying: false,
-              onToggleSlideshow: () {},
               onInformation: () {},
-              onMenuOpened: () {},
               onCopyPath: () {},
               onRevealFile: () {},
               positionLabel: "4 / 10000",
@@ -551,15 +548,13 @@ void main() {
       tester.getRect(summary).right,
       lessThan(tester.getRect(position).left),
     );
-    expect(
-      tester.getRect(position).right,
-      lessThanOrEqualTo(tester.getRect(information).left),
-    );
+    expect(strip.right, lessThanOrEqualTo(tester.getRect(information).left));
     expect(
       tester.getRect(information).right,
       lessThanOrEqualTo(tester.getRect(more).left),
     );
-    expect(tester.getRect(more).right, lessThan(mode.left));
+    expect(tester.getRect(more).right, lessThan(tester.getRect(summary).left));
+    expect(tester.getRect(position).right, lessThan(mode.left));
     expect(tester.getRect(more).center.dy, controls.center.dy);
     expect(
       tester.widget<Text>(summary).style,

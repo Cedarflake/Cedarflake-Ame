@@ -449,9 +449,9 @@ the whole image within the available width and height; its percentage follows th
 scale rather than being relabeled as 100%. Resizing the image area preserves actual size or a manual
 pixel scale, while automatic and fit continue to follow the available area.
 
-The bottom toolbar groups a thumbnail-strip toggle, slideshow control, compact file type/dimensions/
-size, image count, the existing information panel and the more-actions menu on the left, in that
-order. The top bar retains the filename, back action and window controls. Both sides of the bottom
+The bottom toolbar groups the thumbnail-strip toggle, information button and more-actions menu
+first on the left, followed by compact file type/dimensions/size and the current image count.
+The top bar retains the filename, back action and window controls. Both sides of the bottom
 toolbar use the same icon size and text style. Zoom mode, percentage, zoom slider and full-screen
 action are on the right; full screen is the last action. The strip starts hidden and remembers its
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
@@ -460,15 +460,9 @@ scroll position, alongside native horizontal-wheel, touchpad and scrollbar input
 
 The bottom more-actions menu opens above its button with a small gap, keeping the toolbar visible.
 
-Slideshow playback uses the current query order and gives each decoded image three seconds. It waits
-for pending navigation and decoding, pauses on a failed image or navigation, and stops at the last
-image. Manual navigation, thumbnail selection, zoom and opening information or the action menu pause
-playback. Space
-toggles playback. Closing the viewer retires its timer and thumbnail demand immediately.
-
 F11 or the rightmost button toggles native full screen. Escape exits full screen first, otherwise
-pauses a playing slideshow, otherwise returns to the gallery. Full screen preserves normal window
-placement and maximized state; neither full screen nor playback is restored on startup.
+returns to the gallery. Full screen preserves normal window placement and maximized state and is
+not restored on startup. Images change through manual navigation; there is no automatic playback.
 
 The controls compose Material `IconButton`, `Slider`, `ListView.builder` and `Scrollbar`, whose
 toggle, keyboard, lazy-item and scroll-position APIs are available in the pinned Flutter SDK.

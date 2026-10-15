@@ -86,7 +86,7 @@ checks; this scope does not reopen the
 completed synchronization repair goal or start R3.
 
 The separately selected `codex/viewer-toolbar` scope builds on that branch: add a collapsible lazy
-thumbnail strip, slideshow playback, compact image details, a single fit/actual-size toggle and
+thumbnail strip, compact image details, a single fit/actual-size toggle and
 native full screen. Preserve opening preferences, gallery return position, bounded preview/source
 reads and normal window placement. Deliver connected viewer controls and their relevant regressions
 on this branch; the existing animation PR retains its scope.

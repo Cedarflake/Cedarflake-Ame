@@ -12,10 +12,7 @@ class LibraryViewerToolbar extends StatelessWidget {
     required this.asset,
     required this.isFilmstripVisible,
     required this.onToggleFilmstrip,
-    required this.isPlaying,
-    required this.onToggleSlideshow,
     required this.onInformation,
-    required this.onMenuOpened,
     required this.onCopyPath,
     required this.onRevealFile,
     required this.isActualSize,
@@ -36,10 +33,7 @@ class LibraryViewerToolbar extends StatelessWidget {
   final LibraryAsset asset;
   final bool isFilmstripVisible;
   final VoidCallback? onToggleFilmstrip;
-  final bool isPlaying;
-  final VoidCallback? onToggleSlideshow;
   final VoidCallback onInformation;
-  final VoidCallback onMenuOpened;
   final VoidCallback onCopyPath;
   final VoidCallback onRevealFile;
   final String? positionLabel;
@@ -88,37 +82,6 @@ class LibraryViewerToolbar extends StatelessWidget {
                           onPressed: onToggleFilmstrip,
                         ),
                         _button(
-                          key: "viewer-slideshow-toggle",
-                          label: isPlaying
-                              ? LibraryStrings.pauseSlideshow
-                              : LibraryStrings.playSlideshow,
-                          icon: isPlaying
-                              ? Symbols.pause_rounded
-                              : Symbols.slideshow_rounded,
-                          onPressed: onToggleSlideshow,
-                        ),
-                        const SizedBox(width: 8),
-                        Flexible(
-                          child: AmeTooltip(
-                            message: summary,
-                            child: Text(
-                              summary,
-                              key: const Key("viewer-image-summary"),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: textStyle,
-                            ),
-                          ),
-                        ),
-                        if (positionLabel case final position?) ...[
-                          const SizedBox(width: 12),
-                          Text(
-                            position,
-                            key: const Key("viewer-position"),
-                            style: textStyle,
-                          ),
-                        ],
-                        _button(
                           key: "viewer-information",
                           label: LibraryStrings.viewInformation,
                           icon: Symbols.info_rounded,
@@ -158,12 +121,30 @@ class LibraryViewerToolbar extends StatelessWidget {
                             key: "viewer-more-menu",
                             label: LibraryStrings.more,
                             icon: Symbols.more_horiz_rounded,
-                            onPressed: () {
-                              onMenuOpened();
-                              openMenu();
-                            },
+                            onPressed: openMenu,
                           ),
                         ),
+                        const SizedBox(width: 8),
+                        Flexible(
+                          child: AmeTooltip(
+                            message: summary,
+                            child: Text(
+                              summary,
+                              key: const Key("viewer-image-summary"),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: textStyle,
+                            ),
+                          ),
+                        ),
+                        if (positionLabel case final position?) ...[
+                          const SizedBox(width: 12),
+                          Text(
+                            position,
+                            key: const Key("viewer-position"),
+                            style: textStyle,
+                          ),
+                        ],
                       ],
                     ),
                   ),
