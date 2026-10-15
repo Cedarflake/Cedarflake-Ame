@@ -10,10 +10,12 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_browse_admission.dart";
 import "../../application/library_controller.dart";
-import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
+import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
+import "library_image_reveal.dart";
 import "library_path_text.dart";
+import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 import "library_viewer_transition.dart";
 
 /// Browses the retained catalog window without instantiating offscreen thumbnails.
@@ -263,13 +265,22 @@ class _FilmstripThumbnail extends ConsumerWidget {
                     if (resolved.previewStatus != LibraryPreviewStatus.ready) {
                       return const Icon(Symbols.image_rounded, size: 22);
                     }
-                    return Image.file(
-                      File(resolved.previewPath),
-                      fit: BoxFit.contain,
-                      cacheWidth: libraryPreviewDecodeWidth(
-                        94,
-                        MediaQuery.devicePixelRatioOf(context),
+                    final source = LibraryPreviewSourceIdentity.fromAsset(
+                      resolved,
+                    );
+                    return LibraryImageReveal(
+                      key: ValueKey(source),
+                      image: ResizeImage.resizeIfNeeded(
+                        libraryPreviewDecodeWidth(
+                          94,
+                          MediaQuery.devicePixelRatioOf(context),
+                        ),
+                        null,
+                        FileImage(File(resolved.previewPath)),
                       ),
+                      revealIdentity: source,
+                      fit: BoxFit.contain,
+                      placeholder: const Icon(Symbols.image_rounded, size: 22),
                       errorBuilder: (context, error, stack) =>
                           const Icon(Symbols.broken_image_rounded, size: 22),
                     );
