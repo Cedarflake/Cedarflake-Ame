@@ -413,6 +413,15 @@ While an original image is loading, its progress indicator stays at the center o
 viewport. Zoom, pan and wheel input transform the image or retained preview, never the indicator.
 Loading completion retires the indicator through the current source image's frame lifecycle.
 
+The viewer enters with a 180 ms opacity transition and exits in 100 ms. Its gallery stays mounted
+at the existing scroll position. Closing immediately retires viewer input, accessibility focus and
+source-read authority; at most one non-interactive closing surface remains for the visual exit.
+Reopening replaces that surface, and further pointer input finishes entry immediately. Disabled
+animations use an immediate transition. Original pixels reveal over the same image's small preview
+in 100 ms without resetting the zoom transform; the preview is released when the reveal finishes.
+These transitions use Flutter's image opacity and fade primitives, without an additional package,
+layout interpolation or a queue of outgoing full-resolution images.
+
 The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
 one quarter is 125%, and reduction by half is 50%. The default opening preference is Automatic:
 images exceeding the available width or height shrink to fit the viewport, while fitting images

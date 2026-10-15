@@ -9,6 +9,7 @@ class LibraryImageReveal extends StatefulWidget {
     this.filterQuality = FilterQuality.low,
     this.semanticLabel,
     this.frameBuilder,
+    this.placeholder,
     this.errorBuilder,
     this.duration = const Duration(milliseconds: 120),
     super.key,
@@ -20,6 +21,7 @@ class LibraryImageReveal extends StatefulWidget {
   final FilterQuality filterQuality;
   final String? semanticLabel;
   final ImageFrameBuilder? frameBuilder;
+  final Widget? placeholder;
   final ImageErrorWidgetBuilder? errorBuilder;
   final Duration duration;
 
@@ -101,8 +103,19 @@ class _LibraryImageRevealState extends State<LibraryImageReveal>
         _controller.forward(from: 0);
       }
     }
-    return widget.frameBuilder?.call(context, child, frame, synchronous) ??
-        child;
+    final placeholder = widget.placeholder;
+    final pixels = placeholder != null && _hasFrame && !synchronous
+        ? AnimatedBuilder(
+            animation: _opacity,
+            child: child,
+            builder: (context, image) => Stack(
+              fit: StackFit.expand,
+              children: [if (_opacity.value < 1) placeholder, image!],
+            ),
+          )
+        : child;
+    return widget.frameBuilder?.call(context, pixels, frame, synchronous) ??
+        pixels;
   }
 
   @override

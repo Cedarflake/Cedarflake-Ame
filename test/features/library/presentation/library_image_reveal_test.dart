@@ -50,6 +50,26 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    "preview remains beneath new pixels until their reveal completes",
+    (tester) async {
+      final source = _ControlledImage();
+      await tester.pumpWidget(
+        _host(source, placeholder: const Text("preview")),
+      );
+      source.show(pixels);
+      await tester.pump();
+      final bounds = tester.getRect(find.byType(LibraryImageReveal));
+      expect(find.text("preview"), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(find.text("preview"), findsOneWidget);
+      expect(tester.getRect(find.byType(LibraryImageReveal)), bounds);
+      await tester.pump(const Duration(milliseconds: 60));
+      expect(find.text("preview"), findsNothing);
+      expect(_opacity(tester), 1);
+    },
+  );
+
   for (final mode in ["cached", "reduced motion", "offstage"]) {
     testWidgets("$mode images appear immediately", (tester) async {
       final source = _ControlledImage();
@@ -121,11 +141,16 @@ Widget _host(
   bool disableAnimations = false,
   bool tickerEnabled = true,
   ScrollController? controller,
+  Widget? placeholder,
 }) {
   final image = SizedBox(
     width: 240,
     height: 160,
-    child: LibraryImageReveal(image: source, revealIdentity: source),
+    child: LibraryImageReveal(
+      image: source,
+      revealIdentity: source,
+      placeholder: placeholder,
+    ),
   );
   return MaterialApp(
     home: MediaQuery(

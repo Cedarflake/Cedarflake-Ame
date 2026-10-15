@@ -48,6 +48,7 @@ import "widgets/library_navigation_resize_handle.dart";
 import "widgets/library_query_failure_banner.dart";
 import "widgets/library_task_feedback.dart";
 import "widgets/library_time_navigation.dart";
+import "widgets/library_viewer_transition.dart";
 import "widgets/library_update_dialog.dart";
 import "widgets/library_virtual_gallery_geometry.dart";
 
@@ -675,79 +676,77 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
           body: Stack(
             children: [
-              IndexedStack(
-                index: viewerCatalogAsset == null ? 0 : 1,
-                children: [
-                  Column(
-                    children: [
-                      LibraryGlobalBar(
-                        isSearchEnabled: canEditLibrarySearch(state),
-                        searchController: _searchController,
-                        onSearchChanged: _onSearchChanged,
-                        notifications: notifications,
-                        onNotificationsOpened:
-                            _notificationController.markAllRead,
-                        onNotificationSelected: _showNotificationDetails,
-                      ),
-                      Expanded(
-                        child: _buildLibrary(
-                          context,
-                          state,
-                          controller,
-                          updateState,
-                          amePreferences,
-                          layoutManifest,
-                        ),
-                      ),
-                    ],
-                  ),
-                  if (viewerCatalogAsset == null)
-                    const SizedBox.shrink()
-                  else
-                    StreamBuilder<void>(
-                      stream: controller.watchPreview(
-                        viewerCatalogAsset.locationId,
-                      ),
-                      builder: (context, snapshot) {
-                        final viewerAsset = controller.resolvePreview(
-                          viewerCatalogAsset,
-                        );
-                        return LibraryImageViewer(
-                          asset: viewerAsset,
-                          wheelBehavior: amePreferences.viewerWheelBehavior,
-                          openBehavior: amePreferences.viewerOpenBehavior,
-                          position: viewerIndex < 0
-                              ? null
-                              : state.windowStartItemOffset + viewerIndex + 1,
-                          totalItems: _totalItems(state),
-                          onPrevious:
-                              viewerIndex > 0 ||
-                                  (state.hasPreviousAssets &&
-                                      !_viewer.isNavigating)
-                              ? () => unawaited(
-                                  _viewer.navigate(
-                                    LibraryViewerDirection.previous,
-                                  ),
-                                )
-                              : null,
-                          onNext:
-                              viewerIndex >= 0 &&
-                                  (viewerIndex < state.assets.length - 1 ||
-                                      (state.hasMoreAssets &&
-                                          !_viewer.isNavigating))
-                              ? () => unawaited(
-                                  _viewer.navigate(LibraryViewerDirection.next),
-                                )
-                              : null,
-                          onBack: _closeViewer,
-                          onInformation: () =>
-                              _showAssetInformation(viewerAsset),
-                          onCopyPath: () => _copyAssetPath(viewerAsset),
-                          onRevealFile: () => _revealAsset(viewerAsset),
-                        );
-                      },
+              LibraryViewerTransition(
+                gallery: Column(
+                  children: [
+                    LibraryGlobalBar(
+                      isSearchEnabled: canEditLibrarySearch(state),
+                      searchController: _searchController,
+                      onSearchChanged: _onSearchChanged,
+                      notifications: notifications,
+                      onNotificationsOpened:
+                          _notificationController.markAllRead,
+                      onNotificationSelected: _showNotificationDetails,
                     ),
-                ],
+                    Expanded(
+                      child: _buildLibrary(
+                        context,
+                        state,
+                        controller,
+                        updateState,
+                        amePreferences,
+                        layoutManifest,
+                      ),
+                    ),
+                  ],
+                ),
+                viewer: viewerCatalogAsset == null
+                    ? null
+                    : StreamBuilder<void>(
+                        stream: controller.watchPreview(
+                          viewerCatalogAsset.locationId,
+                        ),
+                        builder: (context, snapshot) {
+                          final viewerAsset = controller.resolvePreview(
+                            viewerCatalogAsset,
+                          );
+                          return LibraryImageViewer(
+                            asset: viewerAsset,
+                            wheelBehavior: amePreferences.viewerWheelBehavior,
+                            openBehavior: amePreferences.viewerOpenBehavior,
+                            position: viewerIndex < 0
+                                ? null
+                                : state.windowStartItemOffset + viewerIndex + 1,
+                            totalItems: _totalItems(state),
+                            onPrevious:
+                                viewerIndex > 0 ||
+                                    (state.hasPreviousAssets &&
+                                        !_viewer.isNavigating)
+                                ? () => unawaited(
+                                    _viewer.navigate(
+                                      LibraryViewerDirection.previous,
+                                    ),
+                                  )
+                                : null,
+                            onNext:
+                                viewerIndex >= 0 &&
+                                    (viewerIndex < state.assets.length - 1 ||
+                                        (state.hasMoreAssets &&
+                                            !_viewer.isNavigating))
+                                ? () => unawaited(
+                                    _viewer.navigate(
+                                      LibraryViewerDirection.next,
+                                    ),
+                                  )
+                                : null,
+                            onBack: _closeViewer,
+                            onInformation: () =>
+                                _showAssetInformation(viewerAsset),
+                            onCopyPath: () => _copyAssetPath(viewerAsset),
+                            onRevealFile: () => _revealAsset(viewerAsset),
+                          );
+                        },
+                      ),
               ),
               if (viewerCatalogAsset == null &&
                   (showsLibraryTaskSurface || showsUpdateTaskSurface))
