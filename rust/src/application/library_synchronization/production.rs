@@ -252,6 +252,7 @@ struct ProductionSynchronization {
     _persistent_change_journal: PersistentChangeJournalConnection,
     persistent_change_journal_opened: bool,
     persistent_change_journal_caller: Option<crate::journal_broker::CallerClaim>,
+    journal_status: super::journal_status::JournalStatusOwner,
     journal: Option<JournalTask>,
     journal_volume_cursor: Option<String>,
     journal_root_cursor: Option<String>,
@@ -1888,6 +1889,7 @@ fn new_production_synchronization_with_factory(
         persistent_change_journal_opened: false,
         persistent_change_journal_caller: None,
         journal: None,
+        journal_status: super::journal_status::JournalStatusOwner::default(),
         journal_volume_cursor: None,
         journal_root_cursor: None,
         journal_next_action_is_read: true,
@@ -1925,6 +1927,7 @@ fn new_production_synchronization_with_connection(
         persistent_change_journal_opened: true,
         persistent_change_journal_caller: None,
         journal: None,
+        journal_status: super::journal_status::JournalStatusOwner::default(),
         journal_volume_cursor: None,
         journal_root_cursor: None,
         journal_next_action_is_read: true,
@@ -1969,11 +1972,12 @@ impl ProductionSynchronization {
     }
 
     fn project_persistent_journal_continuity(
-        &self,
+        &mut self,
         catalog: &SqliteCatalog,
         snapshot: &mut LibrarySynchronizationSnapshot,
     ) -> Result<(), ScanError> {
-        super::journal_status::project(&self._persistent_change_journal, catalog, snapshot)
+        self.journal_status
+            .project(&self._persistent_change_journal, catalog, snapshot)
     }
 
     fn open_persistent_change_journal_after_watcher(&mut self) {
@@ -2593,9 +2597,10 @@ impl ProductionSynchronization {
         }
         self.journal = None;
         match result {
-            Ok(JournalTaskOutcome::Page(_window)) => {
+            Ok(JournalTaskOutcome::Page(window)) => {
+                self.journal_status.record_window(&window);
                 #[cfg(debug_assertions)]
-                for _report in _window.reports() {
+                for _report in window.reports() {
                     eprintln!(
                         "[Ame sync] journal page finished roots={} failed={} observations={} checkpoints={} failure_codes={:?}",
                         _report.enrolled_root_count,
@@ -9019,7 +9024,15 @@ mod tests {
                 .expect("root synchronization status");
             assert_eq!(
                 first_status.continuity,
-                PersistentJournalContinuityState::Current
+                PersistentJournalContinuityState::CatchingUp
+            );
+            assert_eq!(
+                first_status.freshness,
+                crate::domain::CatalogFreshnessState::Updating
+            );
+            assert_eq!(
+                first_status.phase,
+                LibrarySynchronizationPhase::Reconciliation
             );
             assert_eq!(
                 first_status.source_health,
@@ -9054,6 +9067,10 @@ mod tests {
             assert_eq!(
                 harvested_status.continuity,
                 PersistentJournalContinuityState::Current
+            );
+            assert_eq!(
+                harvested_status.freshness,
+                crate::domain::CatalogFreshnessState::Synchronized
             );
             assert_eq!(register_count.load(Ordering::Acquire), expected_queries);
             assert_eq!(query_count.load(Ordering::Acquire), expected_queries);
@@ -9813,6 +9830,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,
@@ -10063,6 +10081,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,
@@ -10146,6 +10165,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,
@@ -10197,6 +10217,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,
@@ -10395,6 +10416,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,
@@ -13852,6 +13874,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,
@@ -14244,6 +14267,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,
@@ -14305,6 +14329,7 @@ mod tests {
             persistent_change_journal_opened: true,
             persistent_change_journal_caller: None,
             journal: None,
+            journal_status: super::journal_status::JournalStatusOwner::default(),
             journal_volume_cursor: None,
             journal_root_cursor: None,
             journal_next_action_is_read: true,

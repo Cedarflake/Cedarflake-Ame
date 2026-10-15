@@ -209,9 +209,90 @@ fn failure_and_cancellation_preserve_committed_pages_without_starting_another_re
         assert_eq!(report.reports().len(), 3);
         assert_eq!(repository.enrollment_ids.len(), 2);
         assert_eq!(repository.checkpoints["root-a"].next_unread_usn.value(), 30);
+        assert_eq!(
+            report.checked_roots().collect::<Vec<_>>(),
+            [("root-a", LibraryRootGeneration::initial())]
+        );
         if matches!(terminal, PageEffect::Failure) {
             assert_eq!(repository.root_failures.len(), 1);
         }
+    }
+}
+
+#[test]
+fn failed_or_cancelled_first_reads_do_not_confirm_startup() {
+    for terminal in [PageEffect::Failure, PageEffect::Cancel] {
+        let (mut repository, reader, checkpoint) = fixture(vec![terminal]);
+        let report = capture_with_clock(
+            &mut repository,
+            &reader,
+            &[checkpoint],
+            1_000,
+            policy(),
+            &AtomicBool::new(false),
+            &FixedClock(Duration::ZERO),
+        )
+        .unwrap();
+        assert_eq!(reader.reads.load(Ordering::SeqCst), 1);
+        assert_eq!(report.checked_roots().count(), 0);
+        assert!(repository.enrollment_ids.is_empty());
+    }
+    let counters_only = crate::application::JournalCaptureWindowReport::from(
+        PersistentJournalEnrollmentReport::default(),
+    );
+    assert_eq!(counters_only.checked_roots().count(), 0);
+}
+
+#[test]
+fn no_change_results_confirm_only_complete_checked_sets_without_rewriting_checkpoints() {
+    for omit_second_root in [false, true] {
+        let checkpoints = ["root-a", "root-b"].map(|root_id| {
+            let mut checkpoint = checkpoint(root_id, 20);
+            checkpoint.continuity = PersistentJournalContinuityState::Current;
+            checkpoint
+        });
+        let mut repository = ControlledRepository {
+            capabilities: capabilities(&["root-a", "root-b"]),
+            checkpoints: checkpoints
+                .iter()
+                .map(|checkpoint| (checkpoint.root_id.clone(), checkpoint.clone()))
+                .collect(),
+            ..ControlledRepository::default()
+        };
+        let retained = repository.checkpoints.clone();
+        let reader = ControlledReader::from_outcomes(
+            checkpoints
+                .iter()
+                .filter(|checkpoint| !omit_second_root || checkpoint.root_id != "root-b")
+                .map(|checkpoint| PersistentJournalRootReadOutcome {
+                    root_id: checkpoint.root_id.clone(),
+                    root_generation: checkpoint.root_generation,
+                    opening_boundary: None,
+                    page: Ok(None),
+                })
+                .collect(),
+        );
+        let report = capture_with_clock(
+            &mut repository,
+            &reader,
+            &checkpoints,
+            1_000,
+            policy(),
+            &AtomicBool::new(false),
+            &FixedClock(Duration::ZERO),
+        )
+        .unwrap();
+        let expected = if omit_second_root {
+            Vec::new()
+        } else {
+            vec![
+                ("root-a", LibraryRootGeneration::initial()),
+                ("root-b", LibraryRootGeneration::initial()),
+            ]
+        };
+        assert_eq!(report.checked_roots().collect::<Vec<_>>(), expected);
+        assert_eq!(repository.checkpoints, retained);
+        assert!(repository.enrollment_ids.is_empty());
     }
 }
 

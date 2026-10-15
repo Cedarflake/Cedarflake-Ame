@@ -1,9 +1,10 @@
+use std::collections::BTreeMap;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::{Duration, Instant, SystemTime, UNIX_EPOCH};
 
 use crate::domain::{
-    LibraryChangeQueuePolicy, PersistentJournalCheckpoint, PersistentJournalContinuityState,
-    PersistentJournalEnrollmentReport, ScanError,
+    LibraryChangeQueuePolicy, LibraryRootGeneration, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalEnrollmentReport, ScanError,
 };
 use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
@@ -31,9 +32,16 @@ impl CaptureClock for SystemCaptureClock {
 
 pub(crate) struct JournalCaptureWindowReport {
     pages: Vec<PersistentJournalEnrollmentReport>,
+    checked_roots: BTreeMap<String, LibraryRootGeneration>,
 }
 
 impl JournalCaptureWindowReport {
+    pub(crate) fn checked_roots(&self) -> impl Iterator<Item = (&str, LibraryRootGeneration)> {
+        self.checked_roots
+            .iter()
+            .map(|(root_id, generation)| (root_id.as_str(), *generation))
+    }
+
     #[cfg(any(debug_assertions, test))]
     pub(crate) fn reports(&self) -> &[PersistentJournalEnrollmentReport] {
         &self.pages
@@ -52,7 +60,10 @@ impl JournalCaptureWindowReport {
 
 impl From<PersistentJournalEnrollmentReport> for JournalCaptureWindowReport {
     fn from(page: PersistentJournalEnrollmentReport) -> Self {
-        Self { pages: vec![page] }
+        Self {
+            pages: vec![page],
+            checked_roots: BTreeMap::new(),
+        }
     }
 }
 
@@ -95,6 +106,7 @@ where
     let mut checkpoints = checkpoints.to_vec();
     let mut observed_unix_ms = observed_unix_ms;
     let mut pages = Vec::new();
+    let mut checked_roots = BTreeMap::new();
     for _ in 0..MAX_CAPTURE_PAGES {
         if !pages.is_empty()
             && (cancelled.load(Ordering::Acquire) || clock.elapsed() >= CAPTURE_QUANTUM)
@@ -115,6 +127,14 @@ where
         let may_continue = page.failed_root_count == 0
             && page.observation_count == 0
             && page.advanced_checkpoint_count > 0;
+        // A successful empty read also verifies this runtime's boundary without rewriting progress.
+        if page.failed_root_count == 0 && !cancelled.load(Ordering::Acquire) {
+            checked_roots.extend(
+                checkpoints
+                    .iter()
+                    .map(|checkpoint| (checkpoint.root_id.clone(), checkpoint.root_generation)),
+            );
+        }
         pages.push(page);
         if !may_continue || cancelled.load(Ordering::Acquire) || clock.elapsed() >= CAPTURE_QUANTUM
         {
@@ -135,7 +155,10 @@ where
         checkpoints = next;
         observed_unix_ms = clock.observed_unix_ms()?;
     }
-    Ok(JournalCaptureWindowReport { pages })
+    Ok(JournalCaptureWindowReport {
+        pages,
+        checked_roots,
+    })
 }
 
 pub(super) fn unfinished_checkpoints(

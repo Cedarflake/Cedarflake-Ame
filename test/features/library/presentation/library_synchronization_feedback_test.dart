@@ -405,6 +405,84 @@ void main() {
   );
 
   testWidgets(
+    "sidebar waits for the startup journal check before showing synchronized",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final synchronization = _FeedbackSynchronization(
+        _status(
+          issueCode: null,
+          recoveryBlocked: false,
+          cause: LibraryCatalogFreshnessCause.pendingChanges,
+          freshness: LibraryCatalogFreshness.updating,
+          phase: LibrarySynchronizationPhase.reconciliation,
+          continuity: LibraryContinuityState.catchingUp,
+          retryCount: 0,
+          unknownCount: 0,
+        ),
+      );
+      final scanner = ConcurrentLibraryScanner();
+      addTearDown(synchronization.dispose);
+      addTearDown(scanner.dispose);
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState(
+                status: LibraryStatus.completed,
+                catalogRevision: BigInt.one,
+                roots: const [
+                  LibraryRoot(
+                    id: "root-1",
+                    path: r"C:\Generated",
+                    displayPath: r"C:\Generated",
+                    createdUnixMs: 1,
+                    assetCount: 0,
+                    issueCount: 0,
+                    availability: LibraryRootAvailability.available,
+                  ),
+                ],
+              ),
+            ),
+            libraryScannerProvider.overrideWithValue(scanner),
+            librarySynchronizationProvider.overrideWithValue(synchronization),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
+      expect(find.text(LibraryStrings.synchronizing), findsOneWidget);
+      expect(find.text(LibraryStrings.synchronized), findsNothing);
+
+      synchronization.publish(
+        _status(
+          issueCode: null,
+          recoveryBlocked: false,
+          cause: LibraryCatalogFreshnessCause.noPendingChanges,
+          freshness: LibraryCatalogFreshness.synchronized,
+          phase: LibrarySynchronizationPhase.synchronized,
+          continuity: LibraryContinuityState.current,
+          retryCount: 0,
+          unknownCount: 0,
+        ),
+      );
+      await tester.pump();
+      expect(find.text(LibraryStrings.synchronized), findsOneWidget);
+      expect(find.text(LibraryStrings.synchronizing), findsNothing);
+      expect(scanner.startedRootPaths, isEmpty);
+      final container = ProviderScope.containerOf(
+        tester.element(find.byType(AmeApp)),
+      );
+      expect(
+        container.read(ameNotificationControllerProvider).history,
+        isEmpty,
+      );
+    },
+  );
+
+  testWidgets(
     "retained blocked feedback explains recovery without starting a scan",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
