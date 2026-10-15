@@ -672,8 +672,24 @@ void main() {
         expectedRequests <= 3;
         expectedRequests++
       ) {
-        // A ready catalog row still points at the broken cache after a source failure.
-        // Let its decoder finish again before checking for an unwanted automatic request.
+        // File decoding uses real I/O. Wait for its visible result, while rejecting
+        // extra requests on every frame, then observe the settled failure below.
+        for (var frame = 0; frame < 80 && retry.evaluate().isEmpty; frame++) {
+          await tester.runAsync(() async {
+            await Future<void>.delayed(const Duration(milliseconds: 25));
+          });
+          await tester.pump();
+          expect(
+            previewer.requests,
+            hasLength(expectedRequests),
+            reason: "No automatic repair after request $expectedRequests",
+          );
+        }
+        expect(
+          retry,
+          findsOneWidget,
+          reason: "Retry becomes available after request $expectedRequests",
+        );
         for (var frame = 0; frame < 5; frame++) {
           await tester.runAsync(() async {
             await Future<void>.delayed(const Duration(milliseconds: 25));
