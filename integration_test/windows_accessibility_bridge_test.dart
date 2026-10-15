@@ -488,6 +488,10 @@ void main() {
           await tester.pump();
           expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
           if (cycle == 0) {
+            expect(
+              find.bySemanticsLabel(LibraryStrings.fitImageToWindow),
+              findsOneWidget,
+            );
             await nativeUiaProbe.checkpoint(tester, "viewer-open");
           }
 
@@ -512,6 +516,10 @@ void main() {
           expect(
             tester.widget<Slider>(viewerSliderFinder).value,
             isNot(closeTo(viewerValueBefore, 0.001)),
+          );
+          expect(
+            find.bySemanticsLabel(LibraryStrings.showImageActualSize),
+            findsOneWidget,
           );
 
           final viewerMore = find.byKey(const Key("viewer-more-menu"));
