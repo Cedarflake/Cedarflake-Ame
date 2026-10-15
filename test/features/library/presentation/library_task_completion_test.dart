@@ -47,6 +47,34 @@ void main() {
     expect(find.byType(LibraryTaskSurface), findsNothing);
   });
 
+  testWidgets("file issues do not leave a completed import over the gallery", (
+    tester,
+  ) async {
+    final fixture = await _show(tester);
+    await _completePrimary(tester, fixture, issueCount: 2);
+    final assets = fixture.state.assets;
+    final roots = fixture.state.roots;
+    expect(fixture.state.issueCount, 2);
+    expect(find.text("添加完成"), findsOneWidget);
+    await tester.pump(const Duration(seconds: 4));
+    expect(find.byType(LibraryTaskSurface), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(find.byType(LibraryTaskSurface), findsNothing);
+    expect(fixture.state.assets, assets);
+    expect(fixture.state.roots, roots);
+    expect(fixture.scanner.cancelActiveIds, isEmpty);
+  });
+
+  testWidgets("a limited import remains visible after its scan ends", (
+    tester,
+  ) async {
+    final fixture = await _show(tester);
+    await _completePrimary(tester, fixture, wasLimited: true);
+    await tester.pump(const Duration(seconds: 8));
+    expect(fixture.state.isScanLimited, isTrue);
+    expect(find.byType(LibraryTaskSurface), findsOneWidget);
+  });
+
   testWidgets("paused and failed tasks retain their recovery controls", (
     tester,
   ) async {
@@ -63,29 +91,40 @@ void main() {
     expect(find.byKey(const Key("library-retry-button")), findsOneWidget);
   });
 
-  testWidgets("completed update leaves an independent paused import intact", (
-    tester,
-  ) async {
-    final fixture = await _show(tester);
-    fixture.container
-        .read(libraryUpdateControllerProvider.notifier)
-        .startUpdates([otherPublishedRoot.id]);
-    await tester.pump();
-    final update = fixture.container
-        .read(libraryUpdateControllerProvider)
-        .tasksByRootId[otherPublishedRoot.id]!;
-    fixture.scanner.completeScan(update.scanId);
-    await tester.pump();
-    await tester.pump();
-    expect(find.text("更新完成"), findsOneWidget);
-    await tester.pump(const Duration(seconds: 6));
-    expect(find.byKey(const Key("library-update-task-surface")), findsNothing);
-    expect(fixture.state.status, LibraryStatus.paused);
-    expect(fixture.state.scanId, retainedScanCheckpoint.scanId);
-    expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
-    expect(fixture.scanner.cancelActiveIds, isEmpty);
-    expect(fixture.scanner.cancelRetainedIds, isEmpty);
-  });
+  testWidgets(
+    "completed update with file issues leaves a paused import intact",
+    (tester) async {
+      final fixture = await _show(tester);
+      fixture.container
+          .read(libraryUpdateControllerProvider.notifier)
+          .startUpdates([otherPublishedRoot.id]);
+      await tester.pump();
+      final update = fixture.container
+          .read(libraryUpdateControllerProvider)
+          .tasksByRootId[otherPublishedRoot.id]!;
+      fixture.scanner.completeScan(update.scanId, issueCount: 2);
+      await tester.pump();
+      await tester.pump();
+      expect(
+        fixture.container
+            .read(libraryUpdateControllerProvider)
+            .tasksByRootId[otherPublishedRoot.id]!
+            .issueCount,
+        2,
+      );
+      expect(find.text("更新完成"), findsOneWidget);
+      await tester.pump(const Duration(seconds: 6));
+      expect(
+        find.byKey(const Key("library-update-task-surface")),
+        findsNothing,
+      );
+      expect(fixture.state.status, LibraryStatus.paused);
+      expect(fixture.state.scanId, retainedScanCheckpoint.scanId);
+      expect(find.byKey(const Key("library-resume-button")), findsOneWidget);
+      expect(fixture.scanner.cancelActiveIds, isEmpty);
+      expect(fixture.scanner.cancelRetainedIds, isEmpty);
+    },
+  );
 
   testWidgets("hover keeps completion visible until the pointer leaves", (
     tester,
@@ -155,11 +194,17 @@ Future<RetainedScanFixture> _show(WidgetTester tester) async {
 
 Future<void> _completePrimary(
   WidgetTester tester,
-  RetainedScanFixture fixture,
-) async {
+  RetainedScanFixture fixture, {
+  int issueCount = 0,
+  bool wasLimited = false,
+}) async {
   await fixture.controller.cancelScan();
   await fixture.controller.scanDirectory(retainedScanRoot.path);
-  fixture.scanner.completeScan(fixture.state.scanId!);
+  fixture.scanner.completeScan(
+    fixture.state.scanId!,
+    issueCount: issueCount,
+    wasLimited: wasLimited,
+  );
   await tester.pump();
   await tester.pump();
   expect(fixture.state.status, LibraryStatus.completed);

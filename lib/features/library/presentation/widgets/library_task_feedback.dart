@@ -46,13 +46,11 @@ class _LibraryTaskFeedbackState extends ConsumerState<LibraryTaskFeedback> {
         primary.status == LibraryStatus.completed &&
         primary.scanId != null &&
         !primary.hasUnresolvedPublication &&
-        !primary.isScanLimited &&
-        primary.issueCount == 0) {
+        !primary.isScanLimited) {
       completions.add((rootId: null, scanId: primary.scanId!));
     }
     for (final task in updates.tasks) {
-      if (task.phase == LibraryRootUpdatePhase.completed &&
-          task.issueCount == 0) {
+      if (task.phase == LibraryRootUpdatePhase.completed) {
         completions.add((rootId: task.root.id, scanId: task.scanId));
       }
     }

@@ -180,15 +180,19 @@ class RetainedScanScanner implements LibraryScanner {
     }
   }
 
-  void completeScan(String scanId) {
+  void completeScan(
+    String scanId, {
+    int issueCount = 0,
+    bool wasLimited = false,
+  }) {
     checkpoint = null;
     final stream = _streams[scanId]!;
     stream.add(
-      const LibraryScanCompleted(
+      LibraryScanCompleted(
         assetCount: 6,
-        issueCount: 0,
+        issueCount: issueCount,
         catalogPath: "catalog.sqlite3",
-        wasLimited: false,
+        wasLimited: wasLimited,
       ),
     );
     unawaited(stream.close());
