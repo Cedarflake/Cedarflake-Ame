@@ -857,4 +857,39 @@ regressions cover replacement, shared hardlink identity and in-operation retarge
 Affected sizes: namespace owner 149 production lines and 35 dedicated lexical-test lines; path-identity
 tests 350 lines. The existing local-files adapter changes only the expansion helper's visibility
 (3,695 pre-inline-test lines and 3,493 inline-test lines). Owned formatting and diff checks pass;
-the updated hosted checks and ordinary-client short-path verification are pending.
+the updated hosted checks are pending. The ordinary Debug client opens its catalog through an
+actual DOS short-directory spelling, imports the reusable 10,000-image corpus and reopens current
+in 854 ms without another scan or inventory. The following update correction is verified through
+the same catalog and spelling.
+
+## Cursor-only journal writes during an update on 2026-10-15
+
+The short-path Debug workflow reaches 10,000 of 10,000 validation results but cannot finish its
+explicit update. The first attempt is cancelled after 260,858 ms with the previous 10,000 published
+locations intact. A second diagnostic attempt logs 181 publication preemptions while journal pages
+contain zero source observations and only advance their checkpoint. Cursor bookkeeping repeatedly
+interrupts and rolls back the lower-priority atomic scan publication.
+
+Commit `48dbe7f` admits cursor-only volume batches through the ordinary Recovery writer queue.
+Image intents, directory changes, pending or consumed renames and cross-root lineage retain Journal
+priority. Root, range and checkpoint validation still execute inside the same atomic transaction.
+The new hosted regressions exercise actual SQLite admission, retained cursor state while waiting,
+source-change preemption and directory-only priority.
+
+The rebuilt ordinary Debug client reuses the same isolated catalog and cache in `build/test/derived`.
+Its update completes in 27,083 ms with zero publication-preemption diagnostics. All 10,000 locations
+remain present; the task disappears and the source displays Synchronized. The frozen source corpus
+retains all 10,000 recorded sizes and modification times.
+
+After normal close, three temporary copies of existing textured fixtures are added to the same test
+root: 640 by 480, 800 by 1,200 and 1,024 square, with distinct sizes and modification dates. Reopening
+automatically publishes exactly 10,003 locations and three ready previews. Upward scrolling shows
+all three new pictures while preserving the preceding position until that input. Scan count stays
+at four, including the two earlier cancelled attempts, and inventory count stays at zero. The final
+sync state is current with no pending work, retries or gaps. Original and copied fixture hashes match.
+
+Both sessions exit normally, and original preferences, settings and catalog hashes are restored.
+Cleanup removes 45 derived files totaling 64,863,717 bytes, nine diagnostic/handshake files totaling
+36,979 bytes, three temporary source copies and three preparation helpers. The reusable corpus,
+templates, fixture marker and current Debug build remain. CI runs in GitHub Actions; no local test
+suite is repeated.

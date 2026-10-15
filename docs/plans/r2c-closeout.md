@@ -103,7 +103,13 @@ cursor-only journal writes; it is cancelled at 260 seconds with the prior 10,000
 Rate-limited publication diagnostics reproduce `catalog_scan_publication_preempted` alongside zero
 observations and advancing checkpoints. Cursor-only batches now join ordinary writer admission;
 source intents, directory changes and rename/lineage work retain Journal priority. Verify completion
-using this same retained test catalog and the new hosted admission regressions before cleanup.
+through the hosted admission regressions. The rebuilt ordinary Debug client reuses this catalog
+and completes the update in 27,083 ms with zero publication preemptions. After normal close and three
+temporary additions, reopening publishes exactly 10,003 locations with ready previews and current
+synchronization, without another scan or inventory. Both sessions exit normally and restore original
+profile/catalog hashes. Disposable catalog, cache, logs, copies and helpers are removed; the reusable
+corpus remains. The [native comparison](../acceptance/r2c-update-checkpoint.md#cursor-only-journal-writes-during-an-update-on-2026-10-15)
+owns the complete result; continue with the affected hosted checks rather than repeating this flow.
 Affected sizes (production / inline tests / dedicated tests): journal publication admission
 30 / 0 / 105; journal facade 3,441 / 4,741 / existing modules, with only module wiring and one
 admission call changed; foreground publication 178 / 26 / existing control regressions.
