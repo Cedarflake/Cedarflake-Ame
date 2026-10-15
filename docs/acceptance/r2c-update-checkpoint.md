@@ -981,10 +981,23 @@ Replaying the actual old and new SQL in an in-memory diagnostic restores the cap
 candidate, retains an earlier completed candidate and the running inventory, and leaves no match
 for a second repair. Hosted regressions cover normal reopen and continued leasing, preserved
 progress, idempotent reopening, unrelated completion rejection and transactional rollback.
-Scoped formatting and whitespace checks pass; native verification and Actions remain pending.
+Scoped formatting and whitespace checks pass; Actions remain pending. The actual retained schema
+stores the revision witness in `catalog_state`; `abb4bfd` uses that owner in both repair and fixture.
+
+The ordinary Debug client at `abb4bfd` opens an isolated retained snapshot with the older terminal
+state reconstructed using that publication SQL. The application repairs the control, retains the
+same inventory and finishes 70,078 entries and 2,446 candidates. It publishes 65,130 locations and
+shows Synchronized with no pending work, retries or coverage gaps. Both current October source sets
+match exactly (9 and 42 files), and all 128 source metadata samples remain unchanged. Across 103
+status polls, the median is 6 ms and maximum 63 ms; no affinity or synchronization error is recorded.
+Normal reopening reports Current in 1,380 ms, retains one scan and one completed inventory, starts
+no recovery and has an eight-poll maximum of 13 ms. Both processes exit normally; original profile
+and catalog hashes match after restoration. Cleanup removes 108 disposable data files (342,884,513
+bytes) and 11 diagnostics/helper files (213,190 bytes). The reusable derived directory retains only
+its fixture marker. The later bounded-admission change is covered separately below.
 
 Affected production / inline-test / dedicated-test sizes: current recovery coordinator 79 / 0 / 0,
-capture-state repair 87 / 0 / 0, capture regressions 0 / 0 / 327. The migration facade is
+capture-state repair 87 / 0 / 0, capture regressions 0 / 0 / 323. The migration facade is
 9,845 / 5,267 / existing tests; it only wires the new owners and removes the former coordinator.
 
 ### Bounded recovery admission during repeated writes

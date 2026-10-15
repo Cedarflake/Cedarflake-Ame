@@ -143,10 +143,13 @@ both change only module wiring, with no inline tests added.
 The older publication can also have persisted an already-completed recovery control with a running
 inventory. That exact SQL reproduces a catalog-opening failure. A narrowly matched current-schema
 repair now restores the captured control and candidates within the existing recovery transaction,
-preserving inventory progress and full validation. Reopen, continued lease, unrelated completion
-and rollback regressions are assigned to Actions; native reopening of the isolated retained state
-is the next affected client check. The [owning record](../acceptance/r2c-update-checkpoint.md#reopening-a-recovery-control-completed-by-an-older-client)
-keeps this persisted-state gap separate from the completed prevention and browsing runs.
+preserving inventory progress and full validation. The ordinary Debug client at `abb4bfd` repairs
+the reconstructed retained state and completes its existing inventory, reaching 65,130 locations
+and exact October membership. Normal reopening is Current in 1,380 ms with unchanged scan/inventory
+counts; original profile/catalog hashes are restored and all disposable output is removed.
+Reopen, continued lease, unrelated completion and rollback regressions remain assigned to Actions.
+The [owning record](../acceptance/r2c-update-checkpoint.md#reopening-a-recovery-control-completed-by-an-older-client)
+keeps this persisted-state recovery separate from the completed prevention and browsing runs.
 
 The `5bef30f` hosted Rust run passes 1,904 tests; three failures are corrected immutable-authority
 fixtures, and two expose recovery admission losing every opportunity to a repeating writer.
