@@ -258,14 +258,11 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
         return LibraryPreviewFeedback.failed(
           locationId: asset.locationId,
           updateRequired: _isPreviewUpdateRequired,
-          onRetry: () {
-            _previewRepairSource = null;
-            _startPreviewRetry(
-              asset,
-              cacheWidth: cacheWidth,
-              previewEdge: previewEdge,
-            );
-          },
+          onRetry: () => _startPreviewRetry(
+            asset,
+            cacheWidth: cacheWidth,
+            previewEdge: previewEdge,
+          ),
         );
       },
     );

@@ -106,6 +106,17 @@ unchanged for hosted execution. The retirement owner has 136 production lines an
 its dedicated bounded-retirement tests have 359 lines. The earlier 9.2-second handle-close incident
 still needs its namespace classification; one passing mixed-load run does not explain that delay.
 
+The ordinary Debug negative-preview walkthrough preserves visible cached peers when the disposable
+source directory is missing, but one explicit retry produces two failed native requests (38 and
+33 ms). The tile cleared its automatic-repair source marker before manual retry, so the failed
+decoder rearmed automatic repair. Keeping that marker preserves one automatic attempt per source
+and one additional request per explicit retry. The regression retains the ready catalog row and
+broken cache across repeated unavailable-source failures and checks request counts and recovery
+feedback. No strings or layout change. The tile has 460 production lines; its dedicated test file
+has 1,023 lines. Hosted and updated native verification are pending. The preceding sessions exited
+normally, restored original profile/catalog hashes and removed 22 disposable files (1.44 MiB),
+leaving the reusable corpus and the `build/test/derived` fixture marker.
+
 Synchronization copy now separates automatic retry, incomplete updates and live-only capability;
 redundant phase captions are removed. Update-task headings follow queued/cancelling/refreshing
 states, and a display-only retry is labeled Reload. `LibraryUpdateFeedback` owns the related task

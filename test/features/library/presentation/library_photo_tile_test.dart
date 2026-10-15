@@ -601,6 +601,103 @@ void main() {
   );
 
   testWidgets(
+    "one explicit retry does not rearm automatic repair when the root is unavailable",
+    (tester) async {
+      final directory = Directory.systemTemp.createTempSync(
+        "ame-unavailable-preview-",
+      );
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final previewFile = File(
+        "${directory.path}${Platform.pathSeparator}broken.jpg",
+      );
+      previewFile.writeAsBytesSync(const [0xFF, 0xD8, 0xFF]);
+      final asset = _readyAsset(previewFile.path);
+      final snapshot = LibrarySnapshot(
+        catalogPath: "C:\\AmeData\\ame.sqlite3",
+        revision: BigInt.one,
+        queryId: "query-1",
+        roots: const [],
+        assets: [asset],
+      );
+      final previewer = _ControlledRetryPreviewer();
+      var opens = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState.fromSnapshot(snapshot),
+            ),
+            libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
+            libraryScannerProvider.overrideWithValue(const _FakeScanner()),
+            libraryPreviewerProvider.overrideWithValue(previewer),
+          ],
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryPhotoTile(
+                asset: asset,
+                width: 160,
+                height: 120,
+                isSelecting: false,
+                isSelected: false,
+                onOpen: (_) => opens++,
+                onToggleSelection: (_) {},
+                onViewInformation: (_) {},
+                onCopyPath: (_) {},
+                onRevealFile: (_) {},
+              ),
+            ),
+          ),
+        ),
+      );
+      for (
+        var attempt = 0;
+        attempt < 20 && previewer.requests.isEmpty;
+        attempt++
+      ) {
+        await tester.runAsync(() async {
+          await Future<void>.delayed(const Duration(milliseconds: 25));
+        });
+        await tester.pump();
+      }
+      expect(previewer.requests, [asset.locationId]);
+      previewer.fail(
+        const LibraryPreviewFailure(
+          code: "preview_root_unavailable",
+          message: "The source directory is unavailable",
+        ),
+      );
+      final retry = find.byKey(const Key("preview-retry-location-ready"));
+      for (
+        var expectedRequests = 1;
+        expectedRequests <= 3;
+        expectedRequests++
+      ) {
+        // A ready catalog row still points at the broken cache after a source failure.
+        // Let its decoder finish again before checking for an unwanted automatic request.
+        for (var frame = 0; frame < 5; frame++) {
+          await tester.runAsync(() async {
+            await Future<void>.delayed(const Duration(milliseconds: 25));
+          });
+          await tester.pump();
+        }
+        expect(previewer.requests, hasLength(expectedRequests));
+        expect(previewer.forceRequests, everyElement(isTrue));
+        expect(retry, findsOneWidget);
+        expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+        expect(opens, 0);
+        expect(tester.takeException(), isNull);
+        if (expectedRequests < 3) {
+          await tester.tap(retry);
+          await tester.pump();
+        }
+      }
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump();
+    },
+    timeout: const Timeout(Duration(seconds: 30)),
+  );
+
+  testWidgets(
     "shows automatic repair from the first failed-decode frame",
     (tester) async {
       final directory = Directory.systemTemp.createTempSync(
@@ -812,6 +909,9 @@ class _ControlledRetryPreviewer implements LibraryPreviewer {
   }
 
   void complete(LibraryAsset asset) => _completion.complete(asset);
+
+  void fail(LibraryPreviewFailure failure) =>
+      _completion.completeError(failure);
 }
 
 class _UnprovenRootPreviewer implements LibraryPreviewer {
