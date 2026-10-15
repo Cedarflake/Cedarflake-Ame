@@ -23,7 +23,7 @@ const CAPTURED_CONTROLS: &str = "
       AND state.is_active = 1 AND state.generation = control.root_generation
       AND control.status = 'completed' AND control.authoritative_scan_id IS NULL
       AND control.catalog_revision_at_success IS NOT NULL
-      AND control.catalog_revision_at_success <= state.catalog_revision
+      AND control.catalog_revision_at_success <= (SELECT revision FROM catalog_state)
       AND scan.root_id = root.id AND scan.root_generation_at_start = state.generation
       AND scan.scan_owner = 'foreground' AND scan.status = 'completed'
       AND scan.change_queue_high_watermark >= control.id

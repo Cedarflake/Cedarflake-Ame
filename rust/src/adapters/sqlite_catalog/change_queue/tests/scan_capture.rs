@@ -219,7 +219,7 @@ fn incorrectly_completed_inventory_catalog(path: PathBuf) -> (SqliteCatalog, Lib
              SET status = 'completed', authoritative_scan_id = NULL,
                  next_retry_unix_ms = NULL, lease_expires_unix_ms = NULL,
                  catalog_revision_at_success = (
-                   SELECT catalog_revision FROM library_change_root_state WHERE root_id = 'root-a'
+                   SELECT revision FROM catalog_state
                  ),
                  updated_unix_ms = (SELECT completed_unix_ms FROM scan_runs WHERE id = ?1)",
             [&request.scan_id],
