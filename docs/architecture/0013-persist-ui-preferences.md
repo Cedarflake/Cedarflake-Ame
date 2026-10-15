@@ -50,6 +50,7 @@ not for catalogs, user decisions, or operation history.
 Admit `shared_preferences` 2.5.5 behind three Ame-owned typed contracts:
 
 - `AmePreferenceStore` owns theme, viewer mouse-wheel behavior, the initial viewer scale mode,
+  thumbnail-strip visibility (hidden when missing),
   preview loading speed policy, and expanded sidebar width;
 - `AmeWindowPreferenceStore` owns normal window bounds and maximized state;
 - `LibraryViewPreferenceStore` owns gallery sort key, sort direction, layout shape, and thumbnail
@@ -67,8 +68,8 @@ Closing freezes later placement events and uses the platform close path; prefere
 delay or block window shutdown.
 
 The application restores only stable presentation preferences. It does not restore selection mode,
-selected assets, open menus, hover state, the current viewer transform, active searches, or a
-transient scroll position as part of this decision.
+selected assets, open menus, hover state, the current viewer transform, slideshow playback, full
+screen, active searches, or a transient scroll position as part of this decision.
 
 ## Validation gates
 

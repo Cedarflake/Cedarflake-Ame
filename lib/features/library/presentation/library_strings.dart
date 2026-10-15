@@ -4,6 +4,16 @@
 /// 底部更新任务行的动态文案：library_update_feedback.dart。
 /// 通知列表、详情标题和通用按钮：lib/app/notifications/ame_notification_strings.dart。
 abstract final class LibraryStrings {
+  // 查看器底部｜缩略图条、幻灯片、缩放方式和全屏按钮的悬浮提示。
+  static const showFilmstrip = "显示缩略图";
+  static const hideFilmstrip = "隐藏缩略图";
+  static const playSlideshow = "播放幻灯片（空格）";
+  static const pauseSlideshow = "暂停幻灯片（空格）";
+  static const fitImageToWindow = "适应窗口（0 / Ctrl+0）";
+  static const showImageActualSize = "实际大小（1 / Ctrl+1）";
+  static const enterViewerFullscreen = "全屏（F11）";
+  static const exitViewerFullscreen = "退出全屏（Esc / F11）";
+
   // 顶部栏｜应用名称、搜索框占位文字和清除搜索按钮。
   static const appName = "Ame";
   static const searchHint = "在图库中搜索";

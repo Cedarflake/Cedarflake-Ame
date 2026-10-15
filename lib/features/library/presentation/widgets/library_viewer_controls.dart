@@ -1,7 +1,6 @@
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
@@ -11,19 +10,11 @@ class LibraryViewerTopBar extends StatelessWidget {
   const LibraryViewerTopBar({
     required this.displayPath,
     required this.onBack,
-    required this.onInformation,
-    required this.onCopyPath,
-    required this.onRevealFile,
-    this.positionLabel,
     super.key,
   });
 
   final String displayPath;
-  final String? positionLabel;
   final VoidCallback onBack;
-  final VoidCallback onInformation;
-  final VoidCallback onCopyPath;
-  final VoidCallback onRevealFile;
 
   @override
   Widget build(BuildContext context) {
@@ -60,62 +51,8 @@ class LibraryViewerTopBar extends StatelessWidget {
                         ),
                       ),
                     ),
-                    if (positionLabel case final label?) ...[
-                      const SizedBox(width: 16),
-                      Text(
-                        label,
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
                     const SizedBox(width: 8),
                   ],
-                ),
-              ),
-            ),
-            AmeTooltip(
-              message: LibraryStrings.viewInformation,
-              child: IconButton(
-                onPressed: onInformation,
-                icon: const Icon(Symbols.info_rounded),
-              ),
-            ),
-            AmePopupMenuButton<_ViewerMenuAction>(
-              labels: const [
-                LibraryStrings.copyPath,
-                LibraryStrings.openInExplorer,
-              ],
-              items: const [
-                PopupMenuItem(
-                  value: _ViewerMenuAction.copyPath,
-                  child: AmeMenuItemContent(
-                    icon: Symbols.content_copy_rounded,
-                    label: LibraryStrings.copyPath,
-                  ),
-                ),
-                PopupMenuItem(
-                  value: _ViewerMenuAction.openInExplorer,
-                  child: AmeMenuItemContent(
-                    icon: Symbols.folder_open_rounded,
-                    label: LibraryStrings.openInExplorer,
-                  ),
-                ),
-              ],
-              onSelected: (action) {
-                switch (action) {
-                  case _ViewerMenuAction.copyPath:
-                    onCopyPath();
-                  case _ViewerMenuAction.openInExplorer:
-                    onRevealFile();
-                }
-              },
-              builder: (context, openMenu) => AmeTooltip(
-                message: LibraryStrings.more,
-                child: IconButton(
-                  key: const Key("viewer-more-menu"),
-                  onPressed: openMenu,
-                  icon: const Icon(Symbols.more_horiz_rounded),
                 ),
               ),
             ),
@@ -126,8 +63,6 @@ class LibraryViewerTopBar extends StatelessWidget {
     );
   }
 }
-
-enum _ViewerMenuAction { copyPath, openInExplorer }
 
 class LibraryViewerNavigationButton extends StatelessWidget {
   const LibraryViewerNavigationButton.previous({
@@ -163,107 +98,6 @@ class LibraryViewerNavigationButton extends StatelessWidget {
       top: 0,
       bottom: 0,
       child: button,
-    );
-  }
-}
-
-class LibraryViewerZoomControls extends StatelessWidget {
-  const LibraryViewerZoomControls({
-    required this.sliderValue,
-    required this.zoomPercent,
-    required this.canZoomOut,
-    required this.canZoomIn,
-    required this.canShowActualSize,
-    required this.onSliderChanged,
-    required this.sliderSemanticFormatter,
-    required this.onZoomOut,
-    required this.onZoomIn,
-    required this.onFitToWindow,
-    required this.onShowActualSize,
-    super.key,
-  });
-
-  final double sliderValue;
-  final int zoomPercent;
-  final bool canZoomOut;
-  final bool canZoomIn;
-  final bool canShowActualSize;
-  final ValueChanged<double> onSliderChanged;
-  final SemanticFormatterCallback sliderSemanticFormatter;
-  final VoidCallback onZoomOut;
-  final VoidCallback onZoomIn;
-  final VoidCallback onFitToWindow;
-  final VoidCallback onShowActualSize;
-
-  static const double commandBarHeight = 56;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      key: const Key("viewer-zoom-controls"),
-      color: colorScheme.surfaceContainerLow,
-      child: SizedBox(
-        height: commandBarHeight,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Row(
-            children: [
-              AmeTooltip(
-                message: "适合窗口（0 / Ctrl+0）",
-                child: IconButton(
-                  key: const Key("viewer-fit"),
-                  onPressed: onFitToWindow,
-                  icon: const Icon(Symbols.fit_screen_rounded),
-                ),
-              ),
-              const SizedBox(width: 4),
-              AmeTooltip(
-                message: "实际大小（1 / Ctrl+1）",
-                child: TextButton(
-                  key: const Key("viewer-actual-size"),
-                  onPressed: canShowActualSize ? onShowActualSize : null,
-                  child: const Text("1:1"),
-                ),
-              ),
-              const Spacer(key: Key("viewer-control-group-space")),
-              AmeTooltip(
-                message: "缩小（- / Ctrl+-）",
-                child: IconButton(
-                  key: const Key("viewer-zoom-out"),
-                  onPressed: canZoomOut ? onZoomOut : null,
-                  icon: const Icon(Symbols.remove_rounded),
-                ),
-              ),
-              SizedBox(
-                width: 164,
-                child: Slider(
-                  value: sliderValue,
-                  onChanged: onSliderChanged,
-                  semanticFormatterCallback: sliderSemanticFormatter,
-                ),
-              ),
-              SizedBox(
-                width: 58,
-                child: Text(
-                  "$zoomPercent%",
-                  key: const Key("viewer-zoom-percentage"),
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.labelLarge,
-                ),
-              ),
-              AmeTooltip(
-                message: "放大（+ / Ctrl++）",
-                child: IconButton(
-                  key: const Key("viewer-zoom-in"),
-                  onPressed: canZoomIn ? onZoomIn : null,
-                  icon: const Icon(Symbols.add_rounded),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

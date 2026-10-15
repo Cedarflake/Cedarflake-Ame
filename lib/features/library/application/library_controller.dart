@@ -295,6 +295,17 @@ class LibraryController extends Notifier<LibraryState>
     _previews.updateViewerDemand(viewer);
   }
 
+  void updateFilmstripPreviewDemand(
+    Object owner,
+    Iterable<LibraryAsset> visible,
+    int previewEdge,
+  ) {
+    _previews.updateFilmstripDemand(owner, visible, previewEdge);
+  }
+
+  void releaseFilmstripPreviewDemand(Object owner) =>
+      _previews.releaseFilmstripDemand(owner);
+
   void cancelTimeNavigation() => _viewport.cancelTimeNavigation();
 
   void ensureVisibleRange({

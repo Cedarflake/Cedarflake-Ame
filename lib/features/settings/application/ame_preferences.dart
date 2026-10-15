@@ -17,6 +17,7 @@ class AmePreferences {
     this.theme = AmeThemePreference.system,
     this.viewerWheelBehavior = ImageViewerWheelBehavior.zoom,
     this.viewerOpenBehavior = ImageViewerOpenBehavior.automatic,
+    this.viewerFilmstripVisible = false,
     this.previewLoadingSpeed = PreviewLoadingSpeed.medium,
     this.sidebarWidth = ameDefaultSidebarWidth,
   });
@@ -24,6 +25,7 @@ class AmePreferences {
   final AmeThemePreference theme;
   final ImageViewerWheelBehavior viewerWheelBehavior;
   final ImageViewerOpenBehavior viewerOpenBehavior;
+  final bool viewerFilmstripVisible;
   final PreviewLoadingSpeed previewLoadingSpeed;
   final double sidebarWidth;
 
@@ -31,6 +33,7 @@ class AmePreferences {
     AmeThemePreference? theme,
     ImageViewerWheelBehavior? viewerWheelBehavior,
     ImageViewerOpenBehavior? viewerOpenBehavior,
+    bool? viewerFilmstripVisible,
     PreviewLoadingSpeed? previewLoadingSpeed,
     double? sidebarWidth,
   }) {
@@ -38,6 +41,8 @@ class AmePreferences {
       theme: theme ?? this.theme,
       viewerWheelBehavior: viewerWheelBehavior ?? this.viewerWheelBehavior,
       viewerOpenBehavior: viewerOpenBehavior ?? this.viewerOpenBehavior,
+      viewerFilmstripVisible:
+          viewerFilmstripVisible ?? this.viewerFilmstripVisible,
       previewLoadingSpeed: previewLoadingSpeed ?? this.previewLoadingSpeed,
       sidebarWidth: sidebarWidth ?? this.sidebarWidth,
     );

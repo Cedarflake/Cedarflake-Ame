@@ -429,9 +429,36 @@ one quarter is 125%, and reduction by half is 50%. The default opening preferenc
 images exceeding the available width or height shrink to fit the viewport, while fitting images
 stay at 100% actual size. This mode never enlarges a small image to fill the window. Automatic,
 fit-to-window and actual-size preferences persist across restart; an existing saved choice is
-preserved. The toolbar's fit and `1:1` actions affect only the current image. Explicit fit preserves
+preserved. One toolbar button switches between fit and actual size; its icon and tooltip describe
+the next action. Automatic remains the opening preference in Settings, so manual zoom and the
+toggle affect only the current image. Explicit fit preserves
 the whole image within the available width and height; its percentage follows the resulting pixel
-scale rather than being relabeled as 100%.
+scale rather than being relabeled as 100%. Resizing the image area preserves actual size or a manual
+pixel scale, while automatic and fit continue to follow the available area.
+
+The bottom toolbar groups a thumbnail-strip toggle, slideshow control, compact file type/dimensions/
+size, image count, the existing information panel and the more-actions menu on the left, in that
+order. The top bar retains the filename, back action and window controls. Both sides of the bottom
+toolbar use the same icon size and text style. Zoom mode, percentage, zoom slider and full-screen
+action are on the right; full screen is the last action. The strip starts hidden and remembers its
+visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
+that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
+scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
+
+Slideshow playback uses the current query order and gives each decoded image three seconds. It waits
+for pending navigation and decoding, pauses on a failed image or navigation, and stops at the last
+image. Manual navigation, thumbnail selection, zoom and opening information or the action menu pause
+playback. Space
+toggles playback. Closing the viewer retires its timer and thumbnail demand immediately.
+
+F11 or the rightmost button toggles native full screen. Escape exits full screen first, otherwise
+pauses a playing slideshow, otherwise returns to the gallery. Full screen preserves normal window
+placement and maximized state; neither full screen nor playback is restored on startup.
+
+The controls compose Material `IconButton`, `Slider`, `ListView.builder` and `Scrollbar`, whose
+toggle, keyboard, lazy-item and scroll-position APIs are available in the pinned Flutter SDK.
+The product-specific strip adds selection, catalog-page continuity and bounded preview demand;
+scroll physics, focus and input dispatch remain framework-owned.
 
 ## Temporary task and notification feedback
 

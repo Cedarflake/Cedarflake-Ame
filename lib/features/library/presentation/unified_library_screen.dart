@@ -43,6 +43,8 @@ import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
 import "widgets/library_global_bar.dart";
 import "widgets/library_image_viewer.dart";
+import "widgets/library_viewer_filmstrip.dart";
+import "widgets/library_viewer_gallery_viewport.dart";
 import "widgets/library_main_surface.dart";
 import "widgets/library_navigation.dart";
 import "widgets/library_navigation_resize_handle.dart";
@@ -640,11 +642,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         (_viewer.retainedAsset?.assetId == _viewer.assetId
             ? _viewer.retainedAsset
             : null);
-    final viewerIndex = viewerCatalogAsset == null
-        ? -1
-        : state.assets.indexWhere(
-            (asset) => asset.locationId == viewerCatalogAsset.locationId,
-          );
+    final viewerNavigation = _viewer.navigation(_totalItems(state));
     final viewerSelection = _viewer.selection;
     if (loadedViewerAsset != null && viewerSelection != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -678,28 +676,31 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
           body: Stack(
             children: [
               LibraryViewerTransition(
-                gallery: Column(
-                  children: [
-                    LibraryGlobalBar(
-                      isSearchEnabled: canEditLibrarySearch(state),
-                      searchController: _searchController,
-                      onSearchChanged: _onSearchChanged,
-                      notifications: notifications,
-                      onNotificationsOpened:
-                          _notificationController.markAllRead,
-                      onNotificationSelected: _showNotificationDetails,
-                    ),
-                    Expanded(
-                      child: _buildLibrary(
-                        context,
-                        state,
-                        controller,
-                        updateState,
-                        amePreferences,
-                        layoutManifest,
+                gallery: LibraryViewerGalleryViewport(
+                  isViewerOpen: viewerCatalogAsset != null,
+                  child: Column(
+                    children: [
+                      LibraryGlobalBar(
+                        isSearchEnabled: canEditLibrarySearch(state),
+                        searchController: _searchController,
+                        onSearchChanged: _onSearchChanged,
+                        notifications: notifications,
+                        onNotificationsOpened:
+                            _notificationController.markAllRead,
+                        onNotificationSelected: _showNotificationDetails,
                       ),
-                    ),
-                  ],
+                      Expanded(
+                        child: _buildLibrary(
+                          context,
+                          state,
+                          controller,
+                          updateState,
+                          amePreferences,
+                          layoutManifest,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 viewer: viewerCatalogAsset == null
                     ? null
@@ -713,27 +714,29 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           );
                           return LibraryImageViewer(
                             asset: viewerAsset,
+                            filmstrip: LibraryViewerFilmstrip(
+                              selection: viewerAsset,
+                              onSelected: _viewer.open,
+                              loadPrevious: () =>
+                                  _loadPreviousAssetsForViewer(controller),
+                            ),
+                            onSlideshowNext: viewerNavigation.canNext
+                                ? () => _viewer.navigate(
+                                    LibraryViewerDirection.next,
+                                  )
+                                : null,
                             wheelBehavior: amePreferences.viewerWheelBehavior,
                             openBehavior: amePreferences.viewerOpenBehavior,
-                            position: viewerIndex < 0
-                                ? null
-                                : state.windowStartItemOffset + viewerIndex + 1,
+                            position: viewerNavigation.position,
                             totalItems: _totalItems(state),
-                            onPrevious:
-                                viewerIndex > 0 ||
-                                    (state.hasPreviousAssets &&
-                                        !_viewer.isNavigating)
+                            onPrevious: viewerNavigation.canPrevious
                                 ? () => unawaited(
                                     _viewer.navigate(
                                       LibraryViewerDirection.previous,
                                     ),
                                   )
                                 : null,
-                            onNext:
-                                viewerIndex >= 0 &&
-                                    (viewerIndex < state.assets.length - 1 ||
-                                        (state.hasMoreAssets &&
-                                            !_viewer.isNavigating))
+                            onNext: viewerNavigation.canNext
                                 ? () => unawaited(
                                     _viewer.navigate(
                                       LibraryViewerDirection.next,

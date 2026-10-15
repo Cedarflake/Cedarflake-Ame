@@ -48,6 +48,7 @@ void main() {
       sortDirection: LibraryGallerySortDirection.ascending,
     );
     const presentation = AmePreferences(
+      viewerFilmstripVisible: true,
       theme: AmeThemePreference.dark,
       viewerWheelBehavior: ImageViewerWheelBehavior.previousOrNext,
       viewerOpenBehavior: ImageViewerOpenBehavior.actualSize,
@@ -85,6 +86,7 @@ void main() {
       presentation.previewLoadingSpeed,
     );
     expect(restoredPresentation.sidebarWidth, presentation.sidebarWidth);
+    expect(restoredPresentation.viewerFilmstripVisible, isTrue);
   });
 
   test("falls back safely when stored preferences are malformed", () async {
@@ -126,4 +128,26 @@ void main() {
           ),
     );
   });
+
+  test(
+    "older preferences keep the filmstrip hidden and preserve opening mode",
+    () async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final preferences = SharedPreferencesAsync();
+      await preferences.setString(
+        "ame.presentation.v1",
+        '{"version":1,"viewerOpenBehavior":"actualSize"}',
+      );
+      final store = SharedPreferencesAmeStore(preferences: preferences);
+      final restored = await store.loadAmePreferences();
+      expect(restored.viewerFilmstripVisible, isFalse);
+      await store.saveAmePreferences(
+        restored.copyWith(viewerFilmstripVisible: true),
+      );
+      final updated = await store.loadAmePreferences();
+      expect(updated.viewerFilmstripVisible, isTrue);
+      expect(updated.viewerOpenBehavior, ImageViewerOpenBehavior.actualSize);
+    },
+  );
 }

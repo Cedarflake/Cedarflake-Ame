@@ -7,6 +7,39 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "closing an old filmstrip preserves demand from a reopened viewer",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 2,
+        canPublish: (_) => true,
+        onPublished: (_) {},
+      );
+      addTearDown(coordinator.dispose);
+      final oldOwner = Object();
+      final currentOwner = Object();
+      final first = _asset("first", LibraryPreviewStatus.pending);
+      final current = _asset("current", LibraryPreviewStatus.pending);
+      coordinator.updateFilmstripDemand(oldOwner, [first], 128);
+      coordinator.updateFilmstripDemand(currentOwner, [current], 128);
+      coordinator.releaseFilmstripDemand(oldOwner);
+      previewer.succeed(first.locationId, _readyAsset("first"));
+      previewer.succeed(current.locationId, _readyAsset("current"));
+      await _flushAsyncWork();
+      expect(
+        coordinator.resolve(current).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+      expect(
+        coordinator.resolve(first).previewStatus,
+        LibraryPreviewStatus.pending,
+      );
+    },
+  );
+
   test("owns gallery demand and publishes compatible preview state", () async {
     final previewer = _ControlledPreviewer();
     final published = <String>[];

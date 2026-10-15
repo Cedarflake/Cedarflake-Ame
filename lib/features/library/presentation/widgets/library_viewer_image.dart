@@ -22,6 +22,8 @@ class LibraryViewerImage extends StatefulWidget {
     this.sourceReadScheduler,
     this.sourceBufferLoader,
     this.imageBuilder,
+    this.onReady,
+    this.onFailed,
     super.key,
   });
 
@@ -29,6 +31,8 @@ class LibraryViewerImage extends StatefulWidget {
   final LibrarySourceReadScheduler? sourceReadScheduler;
   final LibrarySourceBufferLoader? sourceBufferLoader;
   final LibraryViewerImageBuilder? imageBuilder;
+  final VoidCallback? onReady;
+  final VoidCallback? onFailed;
 
   @override
   State<LibraryViewerImage> createState() => _LibraryViewerImageState();
@@ -39,6 +43,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   LibraryViewerSourceScope? _sourceScope;
   int _retryGeneration = 0;
   bool _isActive = true;
+  LibrarySourceImage? _reportedSource;
 
   @override
   void initState() {
@@ -98,6 +103,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
       fit: BoxFit.contain,
       filterQuality: FilterQuality.high,
       frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+        if (frame != null || wasSynchronouslyLoaded) _reportResult(true);
         return Stack(
           fit: StackFit.expand,
           children: [
@@ -114,8 +120,25 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
           ],
         );
       },
-      errorBuilder: (context, error, stackTrace) => _buildFailure(context),
+      errorBuilder: (context, error, stackTrace) {
+        _reportResult(false);
+        return _buildFailure(context);
+      },
     );
+  }
+
+  void _reportResult(bool ready) {
+    final source = _sourceImage;
+    if (_reportedSource == source) return;
+    _reportedSource = source;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_isActive || _sourceImage != source) return;
+      if (ready) {
+        widget.onReady?.call();
+      } else {
+        widget.onFailed?.call();
+      }
+    });
   }
 
   Widget _buildImage(BuildContext context, Widget image) =>

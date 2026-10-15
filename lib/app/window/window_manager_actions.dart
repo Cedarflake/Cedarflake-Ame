@@ -7,11 +7,14 @@ import "package:window_manager/window_manager.dart";
 
 import "ame_window_actions.dart";
 import "ame_window_placement.dart";
+import "ame_window_fullscreen.dart";
 import "ame_shutdown_coordinator.dart";
 
 const _minimumWindowSize = Size(800, 560);
 
-class WindowManagerActions with WindowListener implements AmeWindowActions {
+class WindowManagerActions
+    with WindowListener
+    implements AmeWindowActions, AmeFullscreenHost {
   WindowManagerActions(
     this._preferenceStore, {
     required this._shutdownCoordinator,
@@ -36,6 +39,13 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
   Future<void>? _closeOperation;
 
   @override
+  late final fullscreen = AmeWindowFullscreen(
+    setFullscreen: windowManager.setFullScreen,
+    readFullscreen: windowManager.isFullScreen,
+    capturePlacement: _captureNormalPlacement,
+  );
+
+  @override
   ValueListenable<bool> get isMaximized => _isMaximized;
 
   Future<void> initialize() async {
@@ -52,6 +62,7 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
 
   @override
   Future<void> toggleMaximize() async {
+    if (fullscreen.protectsPlacement) return;
     if (await windowManager.isMaximized()) {
       await windowManager.unmaximize();
       _isMaximized.value = false;
@@ -84,7 +95,7 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
 
   @override
   void onWindowMaximize() {
-    if (_isClosing) {
+    if (_isClosing || fullscreen.protectsPlacement) {
       return;
     }
     _placementSaveDebounce?.cancel();
@@ -115,7 +126,7 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
 
   @override
   void onWindowRestore() {
-    if (_isClosing) {
+    if (_isClosing || fullscreen.protectsPlacement) {
       return;
     }
     _runBackground(_synchronizeRestoredState());
@@ -123,7 +134,7 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
 
   @override
   void onWindowUnmaximize() {
-    if (_isClosing) {
+    if (_isClosing || fullscreen.protectsPlacement) {
       return;
     }
     _isMaximized.value = false;
@@ -135,10 +146,20 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
     _placementSaveDebounce?.cancel();
     windowManager.removeListener(this);
     _isMaximized.dispose();
+    fullscreen.dispose();
   }
 
+  @override
+  void onWindowEnterFullScreen() {
+    _placementSaveDebounce?.cancel();
+    fullscreen.synchronize(true);
+  }
+
+  @override
+  void onWindowLeaveFullScreen() => fullscreen.synchronize(false);
+
   void _scheduleNormalPlacementSave() {
-    if (_isClosing) {
+    if (_isClosing || fullscreen.protectsPlacement) {
       return;
     }
     _placementSaveDebounce?.cancel();
@@ -185,12 +206,14 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
   }
 
   Future<void> _captureNormalPlacement() async {
+    final generation = fullscreen.placementGeneration;
     if (await windowManager.isMaximized() ||
         await windowManager.isMinimized()) {
       return;
     }
     final position = await windowManager.getPosition();
     final size = await windowManager.getSize();
+    if (_isClosing || !fullscreen.canSavePlacement(generation)) return;
     final placement = AmeWindowPlacement(
       left: position.dx,
       top: position.dy,
@@ -214,6 +237,7 @@ class WindowManagerActions with WindowListener implements AmeWindowActions {
 
   Future<void> _synchronizeRestoredState() async {
     final isMaximized = await windowManager.isMaximized();
+    if (_isClosing || fullscreen.protectsPlacement) return;
     _isMaximized.value = isMaximized;
     if (isMaximized) {
       await _saveKnownPlacement(isMaximized: true);

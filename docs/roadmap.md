@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-15
+Last planning update: 2026-10-16
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
@@ -84,6 +84,19 @@ reduced-motion preferences, existing copy, layout rules, viewer zoom preferences
 cancellation. Deliver each correction on the branch with hosted regressions and focused client
 checks; this scope does not reopen the
 completed synchronization repair goal or start R3.
+
+The separately selected `codex/viewer-toolbar` scope builds on that branch: add a collapsible lazy
+thumbnail strip, slideshow playback, compact image details, a single fit/actual-size toggle and
+native full screen. Preserve opening preferences, gallery return position, bounded preview/source
+reads and normal window placement. Deliver connected viewer controls and their relevant regressions
+on this branch; the existing animation PR retains its scope.
+
+An isolated retained-library reopening failure remains open: a completed journal baseline followed
+by `identity_journal_hardlinks_not_supported` leaves its checkpoint in `recovery_required`, and the
+next startup rejects that state with `catalog_persistent_journal_baseline_contract_unverifiable`.
+Preserve the retained fixture for a separate synchronization correction covering the failure-to-
+recovery transition and reopening; do not reset the catalog or weaken its validation to continue UI
+checks. This failure interrupted the final native toolbar recheck after its layout adjustment.
 
 The current repair goal is complete. Native synchronization/browsing flows, large-sample paused-import
 changes, scoped closing review and the final hosted gates pass; profile restoration and disposable-output

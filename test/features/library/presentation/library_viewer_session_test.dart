@@ -9,6 +9,63 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  for (final closeBeforeResult in [false, true]) {
+    test(
+      "retired gallery page uses a bounded viewer window; closed=$closeBeforeResult",
+      () async {
+        final fixture = _ViewerFixture();
+        final viewer = fixture.viewer;
+        viewer.open(fixture.assets[1]);
+        fixture.state = fixture.state.copyWith(
+          assets: [fixture.assets[2]],
+          windowStartItemOffset: 2,
+        );
+        expect(viewer.navigation(3).canPrevious, isTrue);
+        expect(viewer.navigation(3).position, 2);
+        fixture.catalog.neighbor = Completer<LibraryQuerySnapshot>();
+        final pending = viewer.navigate(LibraryViewerDirection.next);
+        expect(fixture.catalog.neighborLimit, 64);
+        expect(
+          fixture.catalog.neighborAnchor?.assetId,
+          fixture.assets[1].assetId,
+        );
+        if (closeBeforeResult) {
+          viewer.close();
+          viewer.open(fixture.assets[0], ordinal: 0);
+        }
+        fixture.catalog.neighbor!.complete(
+          LibraryQuerySnapshot(
+            snapshot: LibrarySnapshot(
+              catalogPath: "catalog.sqlite3",
+              revision: BigInt.one,
+              queryId: "viewer-test",
+              roots: const [],
+              assets: fixture.assets,
+              queryAnchorResolution: LibraryQueryAnchorResolution(
+                requestedLocationId: fixture.assets[1].locationId,
+                windowStartItemOffset: 0,
+                locationId: fixture.assets[1].locationId,
+                ordinal: 1,
+              ),
+            ),
+            timeline: LibraryTimeline(
+              revision: BigInt.one,
+              queryId: "viewer-test",
+              totalItems: 3,
+              buckets: const [],
+            ),
+          ),
+        );
+        expect(await pending, !closeBeforeResult);
+        expect(
+          viewer.locationId,
+          fixture.assets[closeBeforeResult ? 0 : 2].locationId,
+        );
+        expect(fixture.pages, isEmpty);
+      },
+    );
+  }
+
   test(
     "current boundary request without an admitted page reports a visible failure",
     () async {
@@ -236,6 +293,28 @@ class _LookupCatalog extends RetainedScanCatalog
     implements LibraryStableAssetCatalog {
   _LookupCatalog(super.scanner);
   final Completer<LibraryAsset?> lookup = Completer();
+  Completer<LibraryQuerySnapshot>? neighbor;
+  int? neighborLimit;
+  LibraryQueryAnchor? neighborAnchor;
+
+  @override
+  Future<LibraryQuerySnapshot> loadQuerySnapshot({
+    required int maxItems,
+    required LibraryGalleryQuery query,
+    LibraryQueryAnchor? anchor,
+  }) {
+    final pending = neighbor;
+    if (pending == null) {
+      return super.loadQuerySnapshot(
+        maxItems: maxItems,
+        query: query,
+        anchor: anchor,
+      );
+    }
+    neighborLimit = maxItems;
+    neighborAnchor = anchor;
+    return pending.future;
+  }
 
   @override
   Future<LibraryAsset?> loadAssetById({
