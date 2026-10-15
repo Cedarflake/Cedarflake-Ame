@@ -963,3 +963,23 @@ failure. Its only Rust failure is the new directory-only publication fixture, wh
 required subtree queue owner. `4c2980d` adds the rename intent without changing validation or the
 Journal-priority assertion. All other applicable jobs in that run pass. The latest ownership,
 contention and corrected-fixture checks remain with Actions.
+
+### Completed-task retention with file issues on 2026-10-15
+
+The retained update exposed a completed task card that stayed over the gallery because its
+nonzero file-issue count disabled automatic dismissal. The card had no pending recovery action.
+`c62fd7b` lets completed import and update feedback use the existing five-second acknowledgement;
+paused, failed, limited and unresolved-publication states retain their existing controls. Hover,
+keyboard focus and accessible-navigation retention remain unchanged. Copy and layout are unchanged.
+The hosted regressions cover completion with file issues, an independent paused import and a
+limited import that must remain visible.
+
+The ordinary Debug walkthrough reuses the 10,000 varied images in `build/test`, with one temporary
+invalid-image fixture. Import completes in 48,451 ms and update in 26,995 ms; each records one
+`image_format_unsupported` issue. Both completion cards disappear without a dismissal click, and
+the gallery remains at 10,000 images and continues scrolling. Both issue records remain in the
+catalog after dismissal. All 10,000 original fixture sizes, modification times and attributes match.
+The process exits normally after 258,901 ms, restoring the original profile and catalog hashes.
+Cleanup removes 61 derived files (65,255,043 bytes) and five diagnostic/fixture files (777,983 bytes),
+retaining only the derived fixture marker, reusable sources/templates and current Debug build.
+The scoped formatter and whitespace checks pass; automated tests remain assigned to Actions.

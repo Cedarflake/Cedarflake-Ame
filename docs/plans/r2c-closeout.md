@@ -3,7 +3,7 @@
 Status: **R2c merged to main on 2026-10-13; unresolved functional work follows the
 [post-merge queue](../roadmap.md#current-execution-queue), with CI executed by GitHub Actions.
 Historical acceptance gaps below remain recorded. Selected recovered-profile browsing and pending-result
-cross-window continuation now pass. Historical Retry/jump attribution, retained update cost and
+cross-window continuation now pass. Historical Retry/jump attribution and
 remaining client/platform variants stay open; the complete repair batch is not client-accepted.**
 
 ### Acceptance prerequisites
@@ -139,6 +139,15 @@ records the failure and bounded native comparison. Lease-write owner sizes remai
 170 dedicated-test lines; lease matching 455 production lines; scheduling owner 100 production lines.
 The existing queue facade has 1,802 production lines and its dedicated test facade 6,149 lines;
 both change only module wiring, with no inline tests added.
+
+Completed-task feedback no longer stays over the gallery solely because the scan recorded file
+issues. `c62fd7b` retains the existing five-second acknowledgement and recovery/focus guards, with
+no copy or layout change. The ordinary Debug import/update of the reusable 10,000-image corpus each
+records one file issue and automatically retires its completed card; both issue records remain in
+the catalog. Normal exit restores the original profile/catalog and cleanup removes the temporary
+fixture and derived data. [The scoped walkthrough](../acceptance/r2c-update-checkpoint.md#completed-task-retention-with-file-issues-on-2026-10-15)
+records the result. The `180917d` Actions run passes all applicable jobs except an unused import;
+`5bef30f` removes that import. The current hosted runs remain in progress or queued.
 
 The subsequent `32981d2` hosted run passes the mixed-load connection-lifetime workload and reports
 1,892 Rust passes, with four failures: the two availability source-contract checks, resumed-import
