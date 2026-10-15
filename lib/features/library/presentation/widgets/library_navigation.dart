@@ -359,7 +359,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
   ) {
     final branch = widget.folderTree.branch(root.id, parentRelativePath);
     if (branch.isLoading && !branch.hasLoaded) {
-      return [LibraryFolderLoadingTile(depth: depth)];
+      return [const LibraryFolderLoadingTile()];
     }
     if (branch.errorMessage != null && !branch.hasLoaded) {
       return [
@@ -417,7 +417,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
         ),
       );
     } else if (branch.isLoading) {
-      children.add(LibraryFolderLoadingTile(depth: depth));
+      children.add(const LibraryFolderLoadingTile());
     }
     return children;
   }

@@ -177,23 +177,17 @@ class _LibraryFolderNavigationTileState
 enum _LibraryFolderMenuAction { open }
 
 class LibraryFolderLoadingTile extends StatelessWidget {
-  const LibraryFolderLoadingTile({required this.depth, super.key});
-
-  final int depth;
+  const LibraryFolderLoadingTile({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
+    return const SizedBox(
       key: const Key("folder-tree-loading"),
-      padding: EdgeInsets.only(left: 28 + (depth * 28), right: 16),
-      child: const SizedBox(
-        height: 40,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: SizedBox.square(
-            dimension: 18,
-            child: CircularProgressIndicator(strokeWidth: 2.5),
-          ),
+      height: 40,
+      child: Center(
+        child: SizedBox.square(
+          dimension: 18,
+          child: CircularProgressIndicator(strokeWidth: 2.5),
         ),
       ),
     );
