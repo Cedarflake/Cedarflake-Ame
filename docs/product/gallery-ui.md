@@ -458,6 +458,11 @@ action are on the right; full screen is the last action. The strip starts hidden
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
 that image in the current query order. Its ordinary mouse wheel moves horizontally through the native
 scroll position, alongside native horizontal-wheel, touchpad and scrollbar input.
+Small triangle buttons at the scrollbar ends move the strip by one thumbnail without changing
+the selected image. Each disables at its corresponding end. They use Material `IconButton`;
+the installed `ScrollbarThemeData.mainAxisMargin` reserves their space outside the native track.
+New thumbnail pixels retain the placeholder until decoding finishes; a larger preview of the same
+source retains the already decoded image, and scrolling skips the first-frame fade.
 
 The bottom more-actions menu opens above its button with a small gap, keeping the toolbar visible.
 

@@ -16,6 +16,7 @@ import "../../domain/library_state.dart";
 import "library_image_reveal.dart";
 import "library_path_text.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
+import "library_viewer_filmstrip_scrollbar.dart";
 import "library_viewer_transition.dart";
 
 /// Browses the retained catalog window without instantiating offscreen thumbnails.
@@ -94,16 +95,19 @@ class _LibraryViewerFilmstripState
               AmeScrollMotion(
                 controller: _scroll,
                 scrollDirection: Axis.horizontal,
-                child: Scrollbar(
+                child: LibraryViewerFilmstripScrollbar(
                   controller: _scroll,
-                  thumbVisibility: true,
+                  step: _extent,
                   child: ListView.builder(
                     key: const Key("viewer-filmstrip"),
                     controller: _scroll,
                     scrollDirection: Axis.horizontal,
                     itemExtent: _extent,
                     scrollCacheExtent: const ScrollCacheExtent.pixels(_extent),
-                    padding: const EdgeInsets.only(top: 4, bottom: 12),
+                    padding: const EdgeInsets.only(
+                      top: 4,
+                      bottom: LibraryViewerFilmstripScrollbar.controlExtent,
+                    ),
                     itemCount: state.assets.length,
                     findChildIndexCallback: (key) {
                       if (key is! ValueKey<String>) return null;

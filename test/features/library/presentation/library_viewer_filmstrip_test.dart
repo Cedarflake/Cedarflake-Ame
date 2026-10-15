@@ -37,7 +37,16 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(InkWell).evaluate().length, lessThanOrEqualTo(11));
+      expect(
+        find
+            .descendant(
+              of: find.byKey(const Key("viewer-filmstrip")),
+              matching: find.byType(InkWell),
+            )
+            .evaluate()
+            .length,
+        lessThanOrEqualTo(11),
+      );
       final current = find.byKey(const ValueKey("location-5000"));
       expect(current.hitTestable(), findsOneWidget);
       final strip = find.byKey(const Key("viewer-filmstrip"));
@@ -51,6 +60,66 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
+
+  for (final reducedMotion in [false, true]) {
+    testWidgets(
+      "end buttons scroll thumbnails without selecting; reducedMotion=$reducedMotion",
+      (tester) async {
+        final assets = List.generate(20, _asset);
+        LibraryAsset? selected;
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              initialLibraryStateProvider.overrideWithValue(
+                LibraryState(assets: assets),
+              ),
+            ],
+            child: MaterialApp(
+              home: MediaQuery(
+                data: MediaQueryData(disableAnimations: reducedMotion),
+                child: Scaffold(
+                  body: Center(
+                    child: SizedBox(
+                      height: 104,
+                      width: 700,
+                      child: LibraryViewerFilmstrip(
+                        selection: assets.first,
+                        onSelected: (asset) => selected = asset,
+                        loadPrevious: () async {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final strip = find.byKey(const Key("viewer-filmstrip"));
+        final scroll = tester.widget<ListView>(strip).controller!;
+        final left = find.byKey(const Key("viewer-filmstrip-scroll-left"));
+        final right = find.byKey(const Key("viewer-filmstrip-scroll-right"));
+        expect(tester.widget<IconButton>(left).onPressed, isNull);
+        expect(tester.widget<IconButton>(right).onPressed, isNotNull);
+        await tester.tap(right);
+        if (reducedMotion) expect(scroll.offset, 100);
+        await tester.pumpAndSettle();
+        expect(scroll.offset, 100);
+        expect(tester.widget<IconButton>(left).onPressed, isNotNull);
+        expect(selected, isNull);
+        await tester.tap(left);
+        await tester.pumpAndSettle();
+        expect(scroll.offset, 0);
+        expect(tester.widget<IconButton>(left).onPressed, isNull);
+        scroll.jumpTo(scroll.position.maxScrollExtent);
+        await tester.pumpAndSettle();
+        expect(tester.widget<IconButton>(right).onPressed, isNull);
+        expect(tester.widget<IconButton>(left).onPressed, isNotNull);
+        expect(selected, isNull);
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
 
   testWidgets("filmstrip waits for query refresh before requesting a page", (
     tester,

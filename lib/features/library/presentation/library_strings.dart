@@ -7,6 +7,8 @@ abstract final class LibraryStrings {
   // 查看器底部｜缩略图条、缩放方式和全屏按钮的悬浮提示。
   static const showFilmstrip = "显示缩略图";
   static const hideFilmstrip = "隐藏缩略图";
+  static const scrollFilmstripLeft = "向左滚动";
+  static const scrollFilmstripRight = "向右滚动";
   static const fitImageToWindow = "适应窗口（0 / Ctrl+0）";
   static const showImageActualSize = "实际大小（1 / Ctrl+1）";
   static const enterViewerFullscreen = "全屏（F11）";
