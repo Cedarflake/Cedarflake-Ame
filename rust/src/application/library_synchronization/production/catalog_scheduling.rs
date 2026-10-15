@@ -59,12 +59,14 @@ impl ProductionSynchronization {
                     )?;
                 }
                 ReadyRecoveryWork::Control { .. } => {
-                    if let Some(leased) = catalog.lease_metadata_inventory_recovery(
-                        &root_id,
-                        root_generation,
-                        poll_unix_ms,
-                        self.runtime.queue_policy(),
-                    )? {
+                    if let Some(leased) = measure_observation("scheduling_recovery_lease", || {
+                        catalog.lease_metadata_inventory_recovery(
+                            &root_id,
+                            root_generation,
+                            poll_unix_ms,
+                            self.runtime.queue_policy(),
+                        )
+                    })? {
                         let leased_for_defer = leased.clone();
                         if let Err(start_error) = self.start_automatic_recovery(
                             root_id,

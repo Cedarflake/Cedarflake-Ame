@@ -28,6 +28,7 @@ use super::*;
 
 mod gap_capacity;
 mod gap_promotion;
+mod lease_admission;
 mod metrics;
 mod readiness;
 mod terminal_cleanup;

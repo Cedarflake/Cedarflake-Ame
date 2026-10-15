@@ -114,6 +114,19 @@ Affected sizes (production / inline tests / dedicated tests): journal publicatio
 30 / 0 / 105; journal facade 3,441 / 4,741 / existing modules, with only module wiring and one
 admission call changed; foreground publication 178 / 26 / existing control regressions.
 
+The subsequent ordinary-token retained-library update completes 70,079 entries and 64,452 accepted
+images in 221,570 ms with zero publication preemptions. Middle navigation, upward input and an
+8,000-pixel reversal retain the same 29 sampled image identities across publication, without Retry.
+Its slowest status poll takes 25,529 ms: native stage timing places 25,521 ms in scheduling while
+the synchronous recovery-control lease waits behind publication. Recovery-control lease admission
+now defers on an occupied writer or SQLite write lock; selection, root/authority validation, attempt
+accounting and atomic rollback remain in the existing lease transaction. Other lease kinds preserve
+their queued admission. Continue the same isolated catalog with the focused native comparison and
+hosted contention/rollback regressions. Affected sizes: lease-write owner 70 production / 0 inline /
+170 dedicated-test lines; lease matching 455 production lines; scheduling owner 100 production lines.
+The existing queue facade has 1,802 production lines and its dedicated test facade 6,149 lines;
+both change only module wiring, with no inline tests added.
+
 The subsequent `32981d2` hosted run passes the mixed-load connection-lifetime workload and reports
 1,892 Rust passes, with four failures: the two availability source-contract checks, resumed-import
 identity, and bounded foreground retirement. The first three have the independently pushed corrections

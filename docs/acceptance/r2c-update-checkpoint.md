@@ -893,3 +893,27 @@ Cleanup removes 45 derived files totaling 64,863,717 bytes, nine diagnostic/hand
 36,979 bytes, three temporary source copies and three preparation helpers. The reusable corpus,
 templates, fixture marker and current Debug build remain. CI runs in GitHub Actions; no local test
 suite is repeated.
+
+## Recovery dispatch waiting behind real publication on 2026-10-15
+
+The ordinary-token Debug run copies the retained catalog into the same `build/test/derived` storage,
+clears preview references only in the copy and uses a fresh 256-MiB cache. The source scope is the
+known combined local-primary directory: metadata and requested previews, at most 120,000 entries,
+300 seconds for the explicit update, 900 seconds for the client and a 2-GiB working-set bound.
+
+The explicit update completes 70,079 entries, 64,452 accepted images and 678 issues in 221,570 ms.
+There are no publication-preemption diagnostics. During the update, middle navigation, upward input
+and an 8,000-pixel reversal display previews; the 29 sampled image identities remain unchanged across
+publication, with no sampled Retry. The existing baseline inventory continues afterward and restores
+65,130 published locations. Both current October sets match exactly, 9 and 42 files. All 128 sampled
+source sizes, modification times and attributes remain unchanged. The client exits normally after
+655,497 ms and restores original profile/catalog hashes; its derived state is retained for the correction.
+
+The run records 121 status polls with an 11-ms median and a 25,529-ms maximum. Native timing places
+25,521 ms in scheduling, outside catalog opening, observation, worker retirement and projection.
+The recovery-control lease synchronously acquires the same writer used by atomic scan publication.
+Its admission now tries once and leaves the durable task unchanged when another writer owns the
+catalog. SQLite contention also returns immediately with the connection timeout restored; unrelated
+errors retain rollback and error propagation. Focused hosted regressions cover both writer boundaries,
+unchanged lease/attempt state, later successful admission and rollback after a non-contention error.
+Native comparison and the new hosted regression results remain pending.

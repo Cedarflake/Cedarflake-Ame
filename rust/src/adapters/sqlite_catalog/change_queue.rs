@@ -27,6 +27,7 @@ mod ingress;
 mod journal_scope_recovery;
 mod lease_deferral;
 mod lease_matching;
+mod lease_write;
 mod metrics;
 mod persistence;
 mod readiness;
