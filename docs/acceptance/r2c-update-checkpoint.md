@@ -987,6 +987,27 @@ Affected production / inline-test / dedicated-test sizes: current recovery coord
 capture-state repair 87 / 0 / 0, capture regressions 0 / 0 / 327. The migration facade is
 9,845 / 5,267 / existing tests; it only wires the new owners and removes the former coordinator.
 
+### Bounded recovery admission during repeated writes
+
+The `5bef30f` Actions run passes 1,904 Rust tests and fails five. Three capture fixtures attempted
+to alter an immutable authority reason; `d44f592` creates the authority with its intended reason.
+Two mixed-load checks stop when the next P2 source page does not start within five seconds. The
+dispatcher's one-shot admission has no queue position, so the continuously repeating cleanup
+writer can reacquire the same-priority lane before each dispatch attempt.
+
+Recovery dispatch now uses the existing FIFO admission with a five-millisecond wait bound. It
+retains its position behind the current writer, preserves higher-priority work and yields promptly
+when a longer publication still owns the lane. SQLite lock acquisition remains non-waiting and the
+original busy timeout is restored afterward. Regressions cover a competing writer at the exact
+registration boundary and timeout retirement without removing another waiter's position; the
+existing publication-lock, external-lock and rollback cases remain. The full mixed-load workloads,
+five-second page deadlines, P0 latency assertions and source counts are unchanged.
+
+The same Actions run passes the 100-startup zero-source-enumeration regression and all nine other
+applicable jobs. New admission checks remain assigned to Actions. Affected production / inline /
+dedicated-test sizes: admission 329 / 0 / 354 plus its existing reservation tests; lease owner
+75 / 0 / 198. Scoped formatting and whitespace checks pass.
+
 ### Completed-task retention with file issues on 2026-10-15
 
 The retained update exposed a completed task card that stayed over the gallery because its

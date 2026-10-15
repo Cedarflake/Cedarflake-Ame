@@ -63,7 +63,22 @@ impl SqliteWriteAdmission {
         self: &Arc<Self>,
         timeout: Duration,
     ) -> Option<SqliteWritePermit> {
-        let priority = SQLITE_USER_INTERACTIVE_PRIORITY;
+        self.acquire_priority_for(SQLITE_USER_INTERACTIVE_PRIORITY, timeout)
+    }
+
+    pub(super) fn acquire_for(
+        self: &Arc<Self>,
+        lane: LibraryChangeLane,
+        timeout: Duration,
+    ) -> Option<SqliteWritePermit> {
+        self.acquire_priority_for(sqlite_write_priority(lane), timeout)
+    }
+
+    fn acquire_priority_for(
+        self: &Arc<Self>,
+        priority: usize,
+        timeout: Duration,
+    ) -> Option<SqliteWritePermit> {
         let deadline = Instant::now() + timeout;
         let (mut pending, preempt) = self.register(priority);
         if let Some(preempt) = preempt {

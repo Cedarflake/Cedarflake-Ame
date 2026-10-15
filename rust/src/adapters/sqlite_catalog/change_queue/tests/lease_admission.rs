@@ -1,4 +1,4 @@
-use std::sync::mpsc;
+use std::sync::{Arc, mpsc};
 
 use super::*;
 
@@ -10,6 +10,34 @@ fn recovery_dispatch_does_not_wait_for_a_catalog_publication() {
 #[test]
 fn recovery_dispatch_does_not_wait_for_an_external_sqlite_writer() {
     assert_recovery_defers_while_writer_is_held(false);
+}
+
+#[test]
+fn recovery_dispatch_keeps_its_turn_ahead_of_a_repeating_writer() {
+    let directory = tempdir().expect("catalog directory");
+    let (mut catalog, change_id) = ready_recovery_catalog(directory.path().join("catalog.sqlite3"));
+    let admission = Arc::clone(&catalog.write_admission);
+    let owner = admission.acquire(LibraryChangeLane::Recovery);
+    let (registered_tx, registered_rx) = mpsc::sync_channel(1);
+    SqliteCatalog::after_next_write_registration_for_test(move || {
+        drop(owner);
+        let barged = admission.try_acquire(LibraryChangeLane::Recovery).is_some();
+        registered_tx.send(barged).expect("report competing writer");
+    });
+    let leased = catalog
+        .lease_metadata_inventory_recovery(
+            "root-a",
+            LibraryRootGeneration::initial(),
+            1_001,
+            immediate_policy(),
+        )
+        .expect("dispatch after the current writer finishes")
+        .expect("recovery retains the next queue position");
+    assert_eq!(leased.change.id, change_id);
+    assert!(
+        !registered_rx.recv_timeout(Duration::from_secs(1)).unwrap(),
+        "a repeating writer overtook the waiting recovery dispatch"
+    );
 }
 
 fn assert_recovery_defers_while_writer_is_held(coordinated: bool) {

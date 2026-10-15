@@ -148,6 +148,14 @@ and rollback regressions are assigned to Actions; native reopening of the isolat
 is the next affected client check. The [owning record](../acceptance/r2c-update-checkpoint.md#reopening-a-recovery-control-completed-by-an-older-client)
 keeps this persisted-state gap separate from the completed prevention and browsing runs.
 
+The `5bef30f` hosted Rust run passes 1,904 tests; three failures are corrected immutable-authority
+fixtures, and two expose recovery admission losing every opportunity to a repeating writer.
+The dispatcher now retains FIFO order for at most five milliseconds, preserving prompt status
+return during longer publication. Added boundary regressions retain all mixed-load workload and
+latency assertions. The 100-startup zero-enumeration check and nine other applicable hosted jobs
+pass. Continue the affected new-head Actions checks; the [admission record](../acceptance/r2c-update-checkpoint.md#bounded-recovery-admission-during-repeated-writes)
+owns the failure and correction.
+
 Completed-task feedback no longer stays over the gallery solely because the scan recorded file
 issues. `c62fd7b` retains the existing five-second acknowledgement and recovery/focus guards, with
 no copy or layout change. The ordinary Debug import/update of the reusable 10,000-image corpus each

@@ -143,6 +143,33 @@ fn interactive_timeout_retires_only_its_own_waiter() {
 }
 
 #[test]
+fn bounded_recovery_timeout_retires_only_its_own_waiter() {
+    let admission = Arc::new(SqliteWriteAdmission::new());
+    let owner = admission.acquire(LibraryChangeLane::Recovery);
+    let (order_tx, order_rx) = mpsc::channel();
+    let waiting = GatedWriter::spawn(&admission, LibraryChangeLane::Recovery, 1, order_tx);
+    assert!(
+        admission
+            .acquire_for(LibraryChangeLane::Recovery, Duration::ZERO)
+            .is_none()
+    );
+    {
+        let state = admission.state.lock().expect("inspect retained waiter");
+        assert_eq!(
+            state.waiting[sqlite_write_priority(LibraryChangeLane::Recovery)].len(),
+            1
+        );
+        assert!(state.is_active);
+    }
+    waiting.release.send(()).expect("release surviving waiter");
+    drop(owner);
+    let recovered = order_rx.recv_timeout(Duration::from_secs(5));
+    assert!(join_writer(waiting.worker));
+    assert_eq!(recovered.expect("older recovery admitted after timeout"), 1);
+    assert_idle(&admission);
+}
+
+#[test]
 fn preemption_callback_unwind_retires_registration_without_revoking_active_writer() {
     for interactive in [false, true] {
         let admission = Arc::new(SqliteWriteAdmission::new());

@@ -5,6 +5,8 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 use super::super::{SQLITE_BUSY_TIMEOUT, SqliteCatalog, database_error};
 use super::{LeasedLibraryChange, LibraryChangeLane, ScanError, lease_matching::LeaseSelection};
 
+const RECOVERY_LEASE_ADMISSION_TIMEOUT: Duration = Duration::from_millis(5);
+
 pub(super) fn lease_in_transaction(
     catalog: &mut SqliteCatalog,
     selection: LeaseSelection,
@@ -25,9 +27,12 @@ fn try_recovery_lease(
     lane: LibraryChangeLane,
     lease: impl FnOnce(&Transaction<'_>) -> Result<Vec<LeasedLibraryChange>, ScanError>,
 ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
-    // The status poll dispatches recovery work. Waiting here would hold up status delivery for
-    // the duration of an unrelated publication. Keep the durable task ready for a later poll.
-    let Some(_permit) = catalog.write_admission.try_acquire(lane) else {
+    // Keep a FIFO position briefly so repeated short writers cannot starve recovery dispatch.
+    // A long publication still yields this status poll with the durable task ready to continue.
+    let Some(_permit) = catalog
+        .write_admission
+        .acquire_for(lane, RECOVERY_LEASE_ADMISSION_TIMEOUT)
+    else {
         return Ok(Vec::new());
     };
     let restore = RestoreBusyTimeout {
