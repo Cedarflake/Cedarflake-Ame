@@ -13,6 +13,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
     required this.locationId,
     required VoidCallback this.onRetry,
     required bool updateRequired,
+    this.issueCode,
     super.key,
   }) : _kind = updateRequired
            ? _PreviewFeedbackKind.updateRequired
@@ -20,6 +21,7 @@ class LibraryPreviewFeedback extends StatelessWidget {
 
   const LibraryPreviewFeedback.retrying({required this.locationId, super.key})
     : onRetry = null,
+      issueCode = null,
       _kind = _PreviewFeedbackKind.retrying;
 
   static const _iconExtent = 24.0;
@@ -31,7 +33,18 @@ class LibraryPreviewFeedback extends StatelessWidget {
 
   final String locationId;
   final VoidCallback? onRetry;
+  final String? issueCode;
   final _PreviewFeedbackKind _kind;
+
+  String? get _failureDetail {
+    if (_kind == _PreviewFeedbackKind.updateRequired) {
+      return LibraryStrings.previewUpdateRequired;
+    }
+    return switch (issueCode) {
+      "image_format_unsupported" => LibraryStrings.previewFormatUnrecognized,
+      _ => null,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,10 +106,11 @@ class LibraryPreviewFeedback extends StatelessWidget {
           labelSize.width + _buttonPadding.horizontal,
         );
         final updateRequired = _kind == _PreviewFeedbackKind.updateRequired;
-        final guidanceHeight = updateRequired
+        final guidance = _failureDetail;
+        final guidanceHeight = guidance != null
             ? _measure(
                     context,
-                    LibraryStrings.previewUpdateRequired,
+                    guidance,
                     bodyStyle,
                     maxWidth: math.max(
                       0,
@@ -110,8 +124,8 @@ class LibraryPreviewFeedback extends StatelessWidget {
             constraints.maxHeight >=
                 _iconExtent + 4 + guidanceHeight + buttonHeight;
         if (!showText) {
-          final message = updateRequired
-              ? "${LibraryStrings.previewUpdateRequired}\n${LibraryStrings.retryPreview}"
+          final message = guidance != null
+              ? "$guidance\n${LibraryStrings.retryPreview}"
               : LibraryStrings.retryPreview;
           return Center(
             child: AmeTooltip(
@@ -138,16 +152,16 @@ class LibraryPreviewFeedback extends StatelessWidget {
             children: [
               const Icon(Symbols.broken_image_rounded, size: _iconExtent),
               const SizedBox(height: 4),
-              if (updateRequired) ...[
+              if (guidance != null) ...[
                 Padding(
                   padding: _guidancePadding,
                   child: Semantics(
                     container: true,
-                    liveRegion: true,
-                    label: LibraryStrings.previewUpdateRequired,
+                    liveRegion: updateRequired,
+                    label: guidance,
                     child: ExcludeSemantics(
                       child: Text(
-                        LibraryStrings.previewUpdateRequired,
+                        guidance,
                         textAlign: TextAlign.center,
                         style: bodyStyle,
                       ),

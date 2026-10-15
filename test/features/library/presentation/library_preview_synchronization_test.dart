@@ -22,6 +22,42 @@ import "../support/library_query_snapshot_fixture.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  testWidgets(
+    "unrecognized gallery media explains failure and clears after repair",
+    (tester) async {
+      final fixture = await _GalleryFixture.mount(tester);
+      final original = fixture.catalog.assets.single;
+      final offset = fixture.scrollPosition(tester).pixels;
+      fixture.previewer.calls.single.completion.complete(
+        original.withPreview(
+          previewPath: "",
+          width: 0,
+          height: 0,
+          previewStatus: LibraryPreviewStatus.failed,
+          previewIssueCode: "image_format_unsupported",
+          previewIssueMessage: "The image format could not be determined",
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text(LibraryStrings.previewFormatUnrecognized),
+        findsOneWidget,
+      );
+      expect(find.text(LibraryStrings.retryPreview), findsOneWidget);
+      expect(fixture.previewer.calls, hasLength(1));
+      await tester.tap(find.text(LibraryStrings.retryPreview));
+      await _pumpUntil(tester, () => fixture.previewer.calls.length == 2);
+      expect(fixture.previewer.calls.last.force, isTrue);
+      fixture.previewer.calls.last.completion.complete(fixture.ready(original));
+      await _pumpUntil(tester, () => _decodedImage(tester) != null);
+      expect(find.text(LibraryStrings.previewFormatUnrecognized), findsNothing);
+      expect(find.text(LibraryStrings.retryPreview), findsNothing);
+      expect(fixture.scrollPosition(tester).pixels, offset);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets("a resized gallery recovers its first unavailable-root preview", (
     tester,
   ) async {

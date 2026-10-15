@@ -147,6 +147,7 @@ abstract final class LibraryStrings {
   // 用于图片上的提示、重试按钮及其悬停和无障碍说明。
   static const retryPreview = "重新加载预览";
   static const retryingPreview = "正在加载预览…";
+  static const previewFormatUnrecognized = "无法识别图片";
   static const previewUpdateRequired = "请先更新图库，再重新加载预览。";
 
   // 原图查看器｜返回按钮的悬停说明，以及原图打开失败时的提示和重试按钮。

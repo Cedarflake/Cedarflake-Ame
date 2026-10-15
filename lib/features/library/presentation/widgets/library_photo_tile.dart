@@ -212,6 +212,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
       ),
       LibraryPreviewStatus.failed => LibraryPreviewFeedback.failed(
         locationId: asset.locationId,
+        issueCode: asset.previewIssueCode,
         updateRequired:
             _isPreviewUpdateRequired ||
             asset.previewIssueCode == "preview_root_identity_unproven",

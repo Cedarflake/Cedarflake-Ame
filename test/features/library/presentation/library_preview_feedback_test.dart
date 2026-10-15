@@ -8,6 +8,70 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   testWidgets(
+    "unrecognized media explains the failure without starting another request",
+    (tester) async {
+      var retries = 0;
+      await tester.pumpWidget(
+        _host(
+          size: const Size(240, 160),
+          child: LibraryPreviewFeedback.failed(
+            locationId: "unrecognized",
+            issueCode: "image_format_unsupported",
+            updateRequired: false,
+            onRetry: () => retries++,
+          ),
+        ),
+      );
+      expect(
+        find.text(LibraryStrings.previewFormatUnrecognized),
+        findsOneWidget,
+      );
+      expect(find.text(LibraryStrings.previewUpdateRequired), findsNothing);
+      expect(find.byType(CircularProgressIndicator), findsNothing);
+      expect(retries, 0);
+      await tester.tap(
+        find.byKey(const ValueKey("preview-retry-unrecognized")),
+      );
+      expect(retries, 1);
+      expect(
+        tester.getSize(find.byType(LibraryPreviewFeedback)),
+        const Size(240, 160),
+      );
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets("narrow unrecognized media exposes its reason on keyboard focus", (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    final semantics = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        _host(
+          size: const Size(48, 240),
+          child: LibraryPreviewFeedback.failed(
+            locationId: "narrow-format",
+            issueCode: "image_format_unsupported",
+            updateRequired: false,
+            onRetry: () {},
+          ),
+        ),
+      );
+      final label =
+          "${LibraryStrings.previewFormatUnrecognized}\n${LibraryStrings.retryPreview}";
+      expect(find.bySemanticsLabel(label), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+      await tester.pumpAndSettle();
+      expect(find.text(label), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
+
+  testWidgets(
     "narrow update guidance remains readable on keyboard focus with one Retry action",
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
