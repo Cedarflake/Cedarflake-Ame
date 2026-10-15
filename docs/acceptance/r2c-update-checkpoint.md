@@ -964,6 +964,29 @@ required subtree queue owner. `4c2980d` adds the rename intent without changing 
 Journal-priority assertion. All other applicable jobs in that run pass. The latest ownership,
 contention and corrected-fixture checks remain with Actions.
 
+### Reopening a recovery control completed by an older client
+
+The old foreground-publication SQL can already have committed a completed control while its
+inventory remains running. Replaying that actual SQL from `0773ef5` reproduces the state rejected
+by `catalog_recovery_execution_contract_unverifiable` during normal opening. Preventing subsequent
+capture does not repair these persisted records.
+
+The current-schema recovery transaction now recognizes the completed foreground publication by
+root generation, active scan, queue high-water mark, publication time and catalog revision. It
+restores that control and candidates completed by the same publication, preserving inventory
+progress, task identity, attempts and independently completed candidates. The unchanged full
+catalog validation runs before commit. Any restoration or validation error rolls back every repair.
+
+Replaying the actual old and new SQL in an in-memory diagnostic restores the captured control and
+candidate, retains an earlier completed candidate and the running inventory, and leaves no match
+for a second repair. Hosted regressions cover normal reopen and continued leasing, preserved
+progress, idempotent reopening, unrelated completion rejection and transactional rollback.
+Scoped formatting and whitespace checks pass; native verification and Actions remain pending.
+
+Affected production / inline-test / dedicated-test sizes: current recovery coordinator 79 / 0 / 0,
+capture-state repair 87 / 0 / 0, capture regressions 0 / 0 / 327. The migration facade is
+9,845 / 5,267 / existing tests; it only wires the new owners and removes the former coordinator.
+
 ### Completed-task retention with file issues on 2026-10-15
 
 The retained update exposed a completed task card that stayed over the gallery because its

@@ -23,9 +23,11 @@ use super::{
 };
 
 mod compatibility_repair_shape;
+mod current_recovery_state;
 mod current_schema;
 mod directory_identities;
 mod foreground_queue_index;
+mod foreground_scan_capture;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 mod journal_directory_namespace;
@@ -113,7 +115,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             SCHEMA_VERSION => {
                 repair_prerelease_v24_source_range_id_triggers(connection)?;
                 repair_prerelease_v26_recovery_window_schema(connection)?;
-                repair_and_validate_current_terminal_recovery_state(connection)?;
+                current_recovery_state::repair_and_validate(connection)?;
                 repair_prerelease_v31_source_revision_metadata(connection)?;
                 recover_interrupted_explicit_foreground_claims(connection)?;
                 return Ok(());
@@ -944,32 +946,6 @@ fn repair_retired_live_gap_claims_transaction(
         }
     }
     Ok(())
-}
-
-fn repair_and_validate_current_terminal_recovery_state(
-    connection: &mut Connection,
-) -> Result<(), ScanError> {
-    let repair_terminal_inventory =
-        legacy_terminal_metadata_inventory_repair_needed(connection, SCHEMA_VERSION)?;
-    let repair_retired_live_gap = retired_live_gap_claim_repair_needed(connection, SCHEMA_VERSION)?;
-    let repair_removed_root_authority = retired_root_authority::repair_needed(connection)?;
-    let repair_retained_source_state = retained_source_state::repair_needed(connection)?;
-    if !repair_terminal_inventory
-        && !repair_retired_live_gap
-        && !repair_removed_root_authority
-        && !repair_retained_source_state
-    {
-        return validate_current_schema_contract(connection);
-    }
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    repair_legacy_terminal_metadata_inventory_state_transaction(&transaction, SCHEMA_VERSION)?;
-    repair_retired_live_gap_claims_transaction(&transaction, SCHEMA_VERSION)?;
-    retired_root_authority::repair_in_transaction(&transaction)?;
-    retained_source_state::repair_in_transaction(&transaction)?;
-    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
-    transaction.commit().map_err(database_error)
 }
 
 fn recover_interrupted_explicit_foreground_claims(

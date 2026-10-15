@@ -140,6 +140,14 @@ records the failure and bounded native comparison. Lease-write owner sizes remai
 The existing queue facade has 1,802 production lines and its dedicated test facade 6,149 lines;
 both change only module wiring, with no inline tests added.
 
+The older publication can also have persisted an already-completed recovery control with a running
+inventory. That exact SQL reproduces a catalog-opening failure. A narrowly matched current-schema
+repair now restores the captured control and candidates within the existing recovery transaction,
+preserving inventory progress and full validation. Reopen, continued lease, unrelated completion
+and rollback regressions are assigned to Actions; native reopening of the isolated retained state
+is the next affected client check. The [owning record](../acceptance/r2c-update-checkpoint.md#reopening-a-recovery-control-completed-by-an-older-client)
+keeps this persisted-state gap separate from the completed prevention and browsing runs.
+
 Completed-task feedback no longer stays over the gallery solely because the scan recorded file
 issues. `c62fd7b` retains the existing five-second acknowledgement and recovery/focus guards, with
 no copy or layout change. The ordinary Debug import/update of the reusable 10,000-image corpus each
