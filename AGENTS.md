@@ -20,6 +20,12 @@ Stable requirements belong in `docs/product`, scoped execution in `docs/plans`, 
 it must not copy their architecture, transcripts, or implementation diaries. Current status requires
 live source and evidence.
 
+Goal text records the intended user outcomes, scope, execution order, and continuing constraints.
+Keep changing completion status, commit IDs, measurements, current failures, and temporary blockers
+in the established execution plan or delivery records. Update progress as work advances; revise the
+goal itself when the user changes an outcome, scope, order, or constraint, preserving explicit
+decisions that affect subsequent work.
+
 Use only `local-primary` and `cloud-primary` for real roots in tracked or user-facing documentation,
 snapshots, publishable logs, and commits. For needed discovery read ignored `.agents/local-context.toml`
 (shape: `.agents/local-context.example.toml`); never copy its paths, account labels, or machine identity.
@@ -51,13 +57,17 @@ licensing, or stable architecture; do not silently choose an old status over liv
 After compaction, resumption, or a new session, query the current task's recent original history
 before material work. Recover explicit decisions, corrections, rejected approaches, and unresolved
 questions; compare them and referenced screenshots with current instructions, live source, owning
-ADRs, and verification. Report conflicts affecting scope, safety, licensing, or architecture.
+ADRs, Git status, CI results, and relevant verification and execution records. Report conflicts
+affecting scope, safety, licensing, or architecture.
 
 Memory, summaries, handoffs, and prior narration are discovery hints, not decision authority or
-completion evidence. Do not edit behavior dependent on earlier decisions until this check is complete
-or recreate completed work. Prefer task-specific originals over general memory. If required history
-is unavailable, state the exact gap and seek direction before an irreversible or materially different
-decision; do not fill it with assumptions.
+completion evidence. Prefer task-specific originals over general memory. Keep recovery focused on
+the current work and preserve delivered results and still-valid verification under section 4;
+resumption alone does not require a project-wide investigation or another complete acceptance run.
+Check historical unfinished items against the live state before returning them to the current queue.
+Do not edit behavior dependent on earlier decisions until the relevant continuity check is complete.
+If required history is unavailable, state the exact gap and seek direction before an irreversible
+or materially different decision; do not fill it with assumptions.
 
 ## 4. Scope and delivery discipline
 
@@ -70,8 +80,25 @@ decision; do not fill it with assumptions.
   idle work, full-history copies without need, or repeat reviews without new evidence. Every
   delegation must prohibit nested agents/tasks/execution chains unless explicitly authorized for
   this task. The parent enforces that limit and stops replaced or duplicate executors.
-- Evaluate ownership before implementing the smallest maintainable end-to-end slice. Shells,
+- Evaluate ownership before implementing one explicit, independently deliverable user outcome.
+  Review its implementation, interface text, test expectations, and necessary documentation
+  together as the smallest maintainable end-to-end change that can be understood and rolled back
+  independently. Commit and push that outcome under section 14 before starting the next independent
+  issue; files and small edits serving the same outcome need not become separate commits. Shells,
   mocked data, screenshots, compilation, and code existence do not complete a user workflow.
+- Diagnosis, tests, logs, and documentation must answer a concrete question about the current outcome.
+  Before starting that work, identify the question and the implementation or delivery decision its
+  answer will affect. The number of records or checks and the length of documentation are not
+  measures of functional progress.
+- Classify new findings by their relationship to the current outcome. Include problems that directly
+  affect its correctness, data safety, or normal operation in the relevant repair. Keep other findings
+  in the appropriate subsequent scope instead of making them new prerequisites for this delivery.
+- Reuse completed implementation and still-valid verification. Recheck affected parts when relevant
+  code changes, a new failure or reproduction condition appears, prior coverage does not cover the
+  current change, or the user requests another check. Once the implementation and applicable
+  verification for the outcome are complete, deliver it and continue in the agreed order; additional
+  improvement opportunities do not indefinitely extend its closeout. Section 12.2 governs useful
+  work while CI is pending.
 - Diagnose the owning cause before architectural replacement or compensating layers. Keep fixes
   narrow; a readability finding does not authorize unrelated cleanup or a repository-wide refactor.
 - Before extending a multi-responsibility controller, orchestrator, adapter, migration validator,
@@ -195,7 +222,10 @@ consequences, and replacement strategy; this contract is not a dependency invent
 
 ## 9. Frontend and presentation engineering
 
-An ADR selects framework/design system, never a prototype or reference screenshot.
+An ADR selects framework/design system, never a prototype or reference screenshot. Interface copy
+and interaction work follows the existing design system and uses `microsoft-ui-ux` and `google-ui-ux`
+where applicable to the task. These skills guide the current correction; they do not expand it into
+a theme replacement, layout redesign, or additional interaction features.
 
 - Prefer installed framework/design-system components, shared repository components, mature
   packages, then minimal custom code, in that order.
@@ -218,6 +248,25 @@ An ADR selects framework/design system, never a prototype or reference screensho
 - avoid sending full-resolution images or unbounded result sets across the desktop bridge;
 - organize components as behavior first, structure second, and presentation last.
 
+For interface copy and interaction changes:
+
+- Before editing, verify where the text appears, what triggers it, its adjacent titles and buttons,
+  and the states before and after the action. When a change affects interpretation or presentation,
+  check it in the actual interface for meaning, wrapping, truncation, and its relationship to the
+  available actions.
+- Titles describe what is happening; body text adds information needed in that situation; buttons
+  name the action they perform. Include instructions in body text when the context needs them.
+  An already clear button does not need a repeated instruction pointing to it, and a description
+  can be omitted when there is no useful information to add.
+- Organize copy by interface location and usage scenario. Document the affected locations of shared
+  text. When the same words serve different purposes in different places, separate definitions may
+  be appropriate to avoid changing another scenario unintentionally. Comments explain purpose and
+  state conditions so maintainers can locate the interface and understand when the text appears.
+- Preserve user-approved terms and wording, and edit existing text within the current authorization.
+  Copy-only work preserves layout, navigation, and behavior. When the user explicitly requests
+  interaction changes, implement the corresponding behavior and verify that the wording matches
+  the actual action and result.
+
 ## 10. Language and toolchain rules
 
 - Read, write, and create text files using UTF-8 consistently; do not rely on the system default encoding.
@@ -238,14 +287,15 @@ Framework-specific defaults apply only when that framework is present:
   executables explicitly instead of searching for, downloading, or installing another SDK:
   - Flutter: `& "$env:USERPROFILE\develop\flutter\bin\flutter.bat"`
   - Dart: `& "$env:USERPROFILE\develop\flutter\bin\cache\dart-sdk\bin\dart.exe"`
-- Run Flutter formatting, analysis, tests, and builds serially on this workstation. If a command
-  hangs or leaves a tester process behind, stop and inspect that process before starting another
-  Flutter command.
-- Use the repository's lock-aware quality entrypoints for Flutter work. Run focused widget tests
-  through `./tool/quality_test_flutter.ps1 -TestPath <path>` instead of launching a parallel
-  `flutter test` process. Never terminate Dart or Flutter processes merely because they appeared
-  after a test began; cleanup must be limited to descendants or executables proven to belong to the
-  current command.
+- Select local Flutter work under section 12; these toolchain rules do not add a local CI stage.
+  Run selected formatting, diagnostic commands, and client-verification builds serially on this
+  workstation. If a command hangs or leaves a tester process behind, stop and inspect that process
+  before starting another Flutter command.
+- Use the repository's lock-aware entrypoints for selected local Flutter work. When a focused widget
+  test is needed for a specific diagnosis or requested local verification, use
+  `./tool/quality_test_flutter.ps1 -TestPath <path>` instead of launching a parallel `flutter test`
+  process. Never terminate Dart or Flutter processes merely because they appeared after a command
+  began; cleanup must be limited to descendants or executables proven to belong to that command.
 - In a workspace-only agent sandbox, `flutter.bat` must still update its SDK-owned
   `bin/cache/flutter.bat.lock`. If the batch process loops before creating a Dart child, rerun the
   same scoped repository command with the required sandbox approval. Do not delete the SDK lock
@@ -310,16 +360,22 @@ scripts. Only reproducible generator output qualifies for generated-code treatme
 
 ## 12. Testing and verification
 
-Every completed change must be supported by evidence proportional to its risk.
+Every completed change must be supported by verification proportional to its risk. Automated tests,
+static checks, and routine builds run through the existing GitHub Actions workflows. Add or update
+the boundary regressions needed for the change and commit them with the implementation. Applicable
+format, lint, type, unit, integration, build, and acceptance requirements remain in force; their
+execution ownership follows this section and the command reference in section 12.1.
 
-Before declaring a slice complete:
+Before pushing, complete necessary local diagnosis, formatting and format checks for owned files,
+final diff inspection, `git diff --check`, and submission-scope review. Verify affected client
+workflows locally when needed to establish the actual user result, building the application for
+that purpose as necessary. Keep any diagnostic local test focused on the specific unresolved
+question. Do not repeat the full checks assigned to CI on the workstation or require a local Daily
+run before committing and pushing.
 
-1. run focused tests for the changed behavior;
-2. run applicable format, lint, type, unit, integration, and build checks defined by the repository;
-3. verify the real user path, not only isolated functions;
-4. confirm source media was not mutated;
-5. run `git diff --check`;
-6. report remaining limitations and any blocked verification honestly.
+After pushing, check the Actions results for that exact commit under section 12.2. A result for an
+earlier commit does not cover uncommitted or changed inputs. Verify the affected real user path and
+source-media safety where applicable, and report outstanding limitations within their actual scope.
 
 Required test categories include, where applicable:
 
@@ -332,8 +388,10 @@ Required test categories include, where applicable:
 - corrupt, locked, unavailable, Chinese-path, long-path, and wrong-extension media fixtures.
 
 Large-library benchmarks are separate acceptance evidence, not substitutes for correctness tests.
-Run heavyweight builds and benchmarks serially on this workstation. If a full check is blocked, run
-the strongest safe alternative and state the exact unverified gap.
+Run necessary local heavyweight builds and benchmarks serially. If an applicable check is blocked,
+identify the specific affected result, use a safe relevant alternative where it can answer the
+question, and continue authorized work that does not depend on that result. Preserve the remaining
+verification gap without repeatedly reopening unaffected work.
 
 ### 12.1 Repository quality commands
 
@@ -343,9 +401,11 @@ owns tool parameters, guardrails, environment requirements, and hosted workflow 
 Use its canonical PowerShell entrypoints and ownership-prefixed script/workflow names; update
 callers and documentation together when an entrypoint changes. Do not create a second canonical alias.
 
-Keep local heavy work serial under the repository lock. Focused tests do not replace applicable
-Daily, native, performance, release, or acceptance gates. Read-only real-library verification of
-known roots is included in project work and does not require separate per-run approval. Define the
+Keep selected local heavy work serial under the repository lock. Hosted CI owns the applicable
+automated Daily, native, performance, and release checks; focused diagnosis does not remove those
+requirements. Client and real-library acceptance that requires the workstation stays local, scoped
+to the affected user workflow rather than replaying hosted CI. Read-only real-library verification
+of known roots is included in project work and does not require separate per-run approval. Define the
 roots, read scope, resource limits, and isolated derived storage before each run; preserve source
 media and original catalogs, and never hydrate placeholders. Real-library runs remain separate
 from unattended Daily verification. Source mutation, service installation, and external publication
@@ -371,10 +431,22 @@ For every material code/configuration change:
    implement the narrow change with its boundary regressions.
 3. Format owned files. Use `quality_format.ps1` only with a clean or wholly owned target tree;
    otherwise format explicit files and run `quality_format.ps1 -Check`.
-4. Run focused tests, `quality_lint.ps1`, then `quality_verify_daily.ps1` before completion, plus
-   applicable Windows release, integration, and acceptance gates from section 12.1.
-5. Inspect the final diff, generated files, `git diff --check`, and status. Report exact checks,
-   ignored tests, unavailable gates, risks, and preserved unrelated changes.
+4. Complete the necessary local diagnosis and affected client verification selected under section 12.
+   Inspect the final diff, generated files, `git diff --check`, and status. Confirm that only owned
+   changes belong in the delivery, then stage, commit, and push under section 14.
+5. Inspect the hosted workflows for the pushed commit, including its applicable focused regressions,
+   lint, Daily, integration, and build gates. Check the run's source commit and actual job results;
+   do not attribute another commit's results to this change.
+6. If CI fails, read the failing logs and determine whether the cause belongs to the implementation,
+   fixtures, test expectations, or execution environment. Correct that cause and push the relevant
+   fix while retaining required workloads and behavioral assertions. Reduced requirements, broader
+   exclusions, or repeated unchanged reruns must not hide an unresolved failure.
+
+While CI is pending, continue authorized remaining work within the same goal that does not depend
+on the pending result, following the independent-delivery boundaries in section 4. Delivery reports
+distinguish what was committed and pushed, the actual client-verification result, and the CI status.
+Report pending CI as still running or queued. Include relevant failed, ignored, or unavailable checks,
+material risks, and preserved unrelated changes without presenting an unfinished check as passed.
 
 Warnings fail. Never weaken rules, add broad exclusions/ignore comments, or hand-edit generated
 output to pass. Fix the cause; a genuinely inapplicable rule permits only a narrow, explained
@@ -417,17 +489,21 @@ replacement/rollback strategy. They explain accepted choices, never stage order 
   cross-layer/subsystem work, schema/migrations, generated bridge/public contracts, broad refactors,
   material release/infrastructure/architecture changes, or another isolated rollback need.
   Never merge into `main` without explicit request.
-- Small changes stay on `main` without a new branch. Proportionate validation, staging owned files,
-  a Conventional Commit, and direct push are authorized unless the user says not to commit/push.
-  Resolve wrong-branch/dirty-checkout conflicts without moving, committing, or discarding unrelated work.
-- For packaging already-validated edits, inspect staged scope and `git diff --check`; run a focused
-  test only for missing evidence. Commit creation alone invalidates no passing evidence and does
-  not justify another heavy Daily/release/performance/acceptance run.
+- Small changes stay on `main` without a new branch. After the applicable local preparation in
+  section 12, staging owned files, a Conventional Commit, and direct push are authorized unless the
+  user says not to commit/push. Check hosted CI after pushing as specified in section 12.2. Resolve
+  wrong-branch/dirty-checkout conflicts without moving, committing, or discarding unrelated work.
+- For packaging already-validated edits, inspect staged scope and `git diff --check`, retain
+  still-valid results under section 4, and address missing coverage through the execution owner in
+  section 12. Commit creation alone does not justify another manually initiated heavy
+  Daily/release/performance/acceptance run; inspect the normal push-triggered CI for the new commit.
 - Destructive reset/checkout, history rewriting, and releases require explicit authorization;
   ordinary branch/commit/push authority grants none of these.
-- Stage explicit files. Use English Conventional Commits, summaries at most 20 words, and separate
-  unrelated themes into coherent rollback commits. Never commit caches, models, local catalogs,
-  source-media samples, build outputs, secrets, or external reference repositories.
+- Stage explicit files. Use English Conventional Commits, summaries at most 20 words, and group
+  related implementation, copy, tests, and necessary documentation by the independent user outcome
+  defined in section 4. Separate unrelated themes into coherent rollback commits. Never commit
+  caches, models, local catalogs, source-media samples, build outputs, secrets, or external reference
+  repositories.
 - PR bodies are neutral descriptions of current-head modifications, not announcements, release
   notes, narratives, repair diaries, or reviewer instructions. Omit fixed-bug descriptions,
   debugging/conversation history, agent actions, review rounds, verification/test/CI/performance
@@ -444,7 +520,7 @@ A change is complete only when:
 - its owning domain and adapter boundaries remain intact;
 - changed handwritten code exposes its decisions and lifecycle ownership, with appropriate
   behavior-preservation or regression evidence;
-- applicable tests and repository quality gates pass;
+- applicable tests and repository quality gates pass through their section 12 execution owners;
 - failure, cancellation, empty, and stale states are handled where relevant;
 - data and source-media safety have been verified;
 - licensing and migration consequences are documented when applicable;
