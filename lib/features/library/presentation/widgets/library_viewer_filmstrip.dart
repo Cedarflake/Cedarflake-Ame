@@ -50,6 +50,8 @@ class _LibraryViewerFilmstripState
   bool _isActive = true;
   LibraryState? _displayState;
 
+  double get _sidePadding => math.max(0, (_width - _extent) / 2);
+
   @override
   void initState() {
     super.initState();
@@ -68,8 +70,10 @@ class _LibraryViewerFilmstripState
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    final wasActive = _isActive;
     _isActive =
         LibraryViewerActivity.isActiveOf(context) && Visibility.of(context);
+    if (_isActive && !wasActive) _centerSelection = true;
     if (!_isActive) {
       _controller.releaseFilmstripPreviewDemand(_previewOwner);
       if (_scroll.hasClients) _scroll.jumpTo(_scroll.offset);
@@ -108,7 +112,10 @@ class _LibraryViewerFilmstripState
                     scrollDirection: Axis.horizontal,
                     itemExtent: _extent,
                     scrollCacheExtent: const ScrollCacheExtent.pixels(_extent),
-                    padding: const EdgeInsets.only(
+                    // End space lets the first and last images center as well.
+                    padding: EdgeInsets.only(
+                      left: _sidePadding,
+                      right: _sidePadding,
                       top: 4,
                       bottom: LibraryViewerFilmstripScrollbar.controlExtent,
                     ),
@@ -177,7 +184,7 @@ class _LibraryViewerFilmstripState
         );
         if (index >= 0) {
           _centerSelection = false;
-          _jump((index + 0.5) * _extent - _width / 2);
+          _jump(_sidePadding + (index + 0.5) * _extent - _width / 2);
         }
       } else if (previousStart != null && previousStart != _windowStart) {
         // Prepending or retiring a page preserves the same global strip position.
@@ -189,7 +196,7 @@ class _LibraryViewerFilmstripState
         );
         if (index >= 0) {
           _revealSelection = false;
-          final leading = index * _extent;
+          final leading = _sidePadding + index * _extent;
           final trailing = leading + _extent;
           if (leading < _scroll.offset) {
             _jump(leading);
@@ -198,10 +205,13 @@ class _LibraryViewerFilmstripState
           }
         }
       }
-      final start = math.max(0, (_scroll.offset / _extent).floor() - 1);
+      final start = math.max(
+        0,
+        ((_scroll.offset - _sidePadding) / _extent).floor() - 1,
+      );
       final end = math.min(
         state.assets.length,
-        ((_scroll.offset + _width) / _extent).ceil() + 1,
+        ((_scroll.offset + _width - _sidePadding) / _extent).ceil() + 1,
       );
       if (_selectionNeedsPage(state)) {
         _controller.releaseFilmstripPreviewDemand(_previewOwner);

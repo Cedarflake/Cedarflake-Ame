@@ -72,7 +72,7 @@ void main() {
     );
   }
 
-  testWidgets("collapse preserves strip position and pauses preview demand", (
+  testWidgets("expansion centers the retained strip and pauses demand", (
     tester,
   ) async {
     final assets = List.generate(60, _asset);
@@ -121,12 +121,12 @@ void main() {
     await tester.pumpAndSettle();
     final strip = find.byKey(const Key("viewer-filmstrip"));
     final scroll = tester.widget<ListView>(strip).controller!;
-    expect(scroll.offset, 1700);
+    expect(scroll.offset, 2000);
     final initialDemands = controller.demands;
     await tester.tap(find.byKey(const ValueKey("location-21")));
     await tester.pumpAndSettle();
     expect(selection.value.locationId, "location-21");
-    expect(scroll.offset, 1700);
+    expect(scroll.offset, 2000);
     scroll.jumpTo(3000);
     await tester.pumpAndSettle();
     visible.value = false;
@@ -160,7 +160,10 @@ void main() {
     visible.value = true;
     await tester.pumpAndSettle();
     expect(tester.widget<ListView>(strip).controller, same(scroll));
-    expect(scroll.offset, 3000);
+    expect(
+      tester.getCenter(find.byKey(const ValueKey("location-21"))).dx,
+      closeTo(tester.getCenter(strip).dx, 0.1),
+    );
 
     visible.value = false;
     await tester.pumpAndSettle();
@@ -172,7 +175,23 @@ void main() {
       find.byKey(const ValueKey("location-45")).hitTestable(),
       findsOneWidget,
     );
-    expect(scroll.offset, 3900);
+    expect(
+      tester.getCenter(find.byKey(const ValueKey("location-45"))).dx,
+      closeTo(tester.getCenter(strip).dx, 0.1),
+    );
+    for (final edge in [assets.first, assets.last]) {
+      visible.value = false;
+      await tester.pumpAndSettle();
+      selection.value = edge;
+      await tester.pumpAndSettle();
+      visible.value = true;
+      await tester.pumpAndSettle();
+      expect(tester.widget<ListView>(strip).controller, same(scroll));
+      expect(
+        tester.getCenter(find.byKey(ValueKey(edge.locationId))).dx,
+        closeTo(tester.getCenter(strip).dx, 0.1),
+      );
+    }
     final beforeDispose = controller.releases;
     await tester.pumpWidget(const SizedBox());
     expect(controller.releases, beforeDispose + 1);

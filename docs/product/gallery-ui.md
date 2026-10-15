@@ -464,11 +464,12 @@ the installed `ScrollbarThemeData.mainAxisMargin` reserves their space outside t
 New thumbnail pixels retain the placeholder until decoding finishes; a larger preview of the same
 source retains the already decoded image, and scrolling skips the first-frame fade.
 
-The strip is first created when expanded. Collapsing keeps its current scroll position and lazy
-visible elements until the viewer closes, while removing its preview demand, focus and animation
-activity. Reopening resumes that position without another reveal of retained pixels. Initial opening
-centers the selected image; subsequent selection changes only scroll when needed to bring the
-thumbnail fully into view. Manual strip scrolling leaves the main image unchanged.
+The strip is first created when expanded. Collapsing retains its lazy visible elements until the
+viewer closes, while removing its preview demand, focus and animation activity. Every expansion
+centers the current image while reusing compatible previews; horizontal end padding also allows
+the first and last images to center. Selection changes while the strip remains open only scroll
+when needed to bring the thumbnail fully into view. Manual strip scrolling leaves the main image
+unchanged.
 
 Completed preview metadata and verified sizes each keep at most 256 recently used entries beyond
 their immediate request lifetime. They reuse compatible results when returning to an image; source
