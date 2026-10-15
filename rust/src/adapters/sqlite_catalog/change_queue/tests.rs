@@ -5782,6 +5782,20 @@ fn recovery_inventory_catalog(
     run_id: &str,
     relative_paths: &[&str],
 ) -> (SqliteCatalog, LeasedLibraryChange) {
+    recovery_inventory_catalog_for_reason(
+        path,
+        run_id,
+        relative_paths,
+        LibraryRecoveryAuthorityReason::ContainmentFailure,
+    )
+}
+
+fn recovery_inventory_catalog_for_reason(
+    path: PathBuf,
+    run_id: &str,
+    relative_paths: &[&str],
+    reason: LibraryRecoveryAuthorityReason,
+) -> (SqliteCatalog, LeasedLibraryChange) {
     let source_root = path
         .parent()
         .expect("catalog parent")
@@ -5837,7 +5851,7 @@ fn recovery_inventory_catalog(
             run_id: run_id.to_owned(),
             root_id: "root-a".to_owned(),
             root_generation: generation,
-            reason: LibraryRecoveryAuthorityReason::ContainmentFailure,
+            reason,
             opening_boundary: None,
             authorized_unix_ms: 1_000,
             retired_unix_ms: None,

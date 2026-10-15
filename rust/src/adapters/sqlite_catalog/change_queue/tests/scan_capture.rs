@@ -229,16 +229,12 @@ fn incorrectly_completed_inventory_catalog(path: PathBuf) -> (SqliteCatalog, Lib
 }
 
 fn pending_inventory_catalog(path: PathBuf) -> (SqliteCatalog, LibraryChangeId) {
-    let (mut catalog, authority) =
-        recovery_inventory_catalog(path, "scan-overlap", &["pending.jpg"]);
-    catalog
-        .connection
-        .execute(
-            "UPDATE library_recovery_authorities SET reason = 'watcher_uncovered_gap'
-             WHERE change_id = ?1",
-            [sqlite_integer(authority.change.id.value(), "control ID").expect("control ID")],
-        )
-        .expect("use a dispatchable watcher recovery fixture");
+    let (mut catalog, authority) = recovery_inventory_catalog_for_reason(
+        path,
+        "scan-overlap",
+        &["pending.jpg"],
+        LibraryRecoveryAuthorityReason::WatcherUncoveredGap,
+    );
     catalog
         .publish_metadata_inventory_comparison_candidates(
             &authority,
