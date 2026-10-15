@@ -300,10 +300,24 @@ void main() {
 
     const catalog = RustLibraryCatalog();
     const query = LibraryGalleryQuery();
-    final restoredQuery = await catalog.loadQuerySnapshot(
-      maxItems: libraryCatalogWindow,
-      query: query,
-    );
+    late LibraryQuerySnapshot restoredQuery;
+    final recoveryDeadline = DateTime.now().add(const Duration(seconds: 10));
+    // Synchronization writes can defer preview repair until the next snapshot.
+    while (true) {
+      restoredQuery = await catalog.loadQuerySnapshot(
+        maxItems: libraryCatalogWindow,
+        query: query,
+      );
+      expect(restoredQuery.snapshot.assets, hasLength(1));
+      if (restoredQuery.snapshot.assets.single.previewStatus ==
+          LibraryPreviewStatus.pending) {
+        break;
+      }
+      if (DateTime.now().isAfter(recoveryDeadline)) {
+        throw TestFailure("Missing preview was not scheduled for regeneration");
+      }
+      await tester.pump(const Duration(milliseconds: 50));
+    }
     final restoredSnapshot = restoredQuery.snapshot;
     expect(restoredQuery.timeline.revision, restoredSnapshot.revision);
     expect(restoredQuery.timeline.queryId, restoredSnapshot.queryId);
@@ -345,6 +359,8 @@ void main() {
     }, timeout: const Duration(seconds: 30));
 
     expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
+    expect(await File(asset.previewPath).exists(), isTrue);
+    expect(await File(asset.previewPath).length(), greaterThan(0));
 
     final secondPickerAutomation = await startNativeDirectoryPickerAutomation(
       NativeDirectoryPickerAction.confirm,
