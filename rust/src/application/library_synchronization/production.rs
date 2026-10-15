@@ -26,15 +26,15 @@ use crate::adapters::{
 use crate::domain::{
     IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeId, LibraryChangeLane,
     LibraryRootGeneration, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
-    PersistentJournalCapabilityState, PersistentJournalCheckpoint,
-    PersistentJournalContinuityState, PersistentJournalEnrollmentReport,
-    PersistentJournalRootFailure, PersistentJournalRootFailureKind, ScanError,
+    PersistentJournalEnrollmentReport, PersistentJournalRootFailure,
+    PersistentJournalRootFailureKind, ScanError,
 };
 #[cfg(all(test, windows))]
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryRecoveryAuthorityReason,
     PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaselineStartRequest,
-    PersistentJournalCapability, PersistentJournalFailure, PersistentJournalVolumeIdentity,
+    PersistentJournalCapability, PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    PersistentJournalContinuityState, PersistentJournalFailure, PersistentJournalVolumeIdentity,
 };
 
 #[cfg(windows)]
@@ -83,6 +83,12 @@ mod ordinary_journal;
 
 #[cfg(windows)]
 mod catalog_scheduling;
+
+#[cfg(windows)]
+mod journal_volume;
+
+#[cfg(windows)]
+use journal_volume::JournalVolumeWork;
 
 #[cfg(windows)]
 mod inventory_cleanup;
@@ -633,20 +639,6 @@ enum JournalTaskOutcome {
     Page(JournalCaptureWindowReport),
     Drain(IncrementalLibraryChangeReport),
     BaselineBoundary,
-}
-
-#[cfg(windows)]
-struct JournalVolumeWork {
-    key: String,
-    checkpoints: Vec<PersistentJournalCheckpoint>,
-    roots: Vec<JournalRootWork>,
-}
-
-#[cfg(windows)]
-struct JournalRootWork {
-    root_id: String,
-    root_generation: LibraryRootGeneration,
-    root_path: std::path::PathBuf,
 }
 
 #[cfg(windows)]
@@ -2506,12 +2498,13 @@ impl ProductionSynchronization {
         };
         let mut roots = Vec::new();
         for root in work.roots {
+            let checkpoint = root.checkpoint;
             if !catalog.journal_admission_has_headroom(
-                &root.root_id,
-                root.root_generation,
+                &checkpoint.root_id,
+                checkpoint.root_generation,
                 self.runtime.queue_policy(),
             )? {
-                roots.push((root.root_id, root.root_generation));
+                roots.push((checkpoint.root_id, checkpoint.root_generation));
             }
         }
         Ok(roots)
@@ -2734,8 +2727,8 @@ impl ProductionSynchronization {
         {
             for root in &work.roots {
                 if !catalog.journal_admission_has_headroom(
-                    &root.root_id,
-                    root.root_generation,
+                    &root.checkpoint.root_id,
+                    root.checkpoint.root_generation,
                     self.runtime.queue_policy(),
                 )? {
                     return Ok(());
@@ -2760,96 +2753,7 @@ impl ProductionSynchronization {
         catalog: &SqliteCatalog,
         snapshot: &LibrarySynchronizationSnapshot,
     ) -> Result<Option<JournalVolumeWork>, ScanError> {
-        let capabilities = catalog.load_persistent_journal_capabilities()?;
-        let roots = catalog.load_incremental_catalog_roots()?;
-        let mut volumes = BTreeMap::<String, JournalVolumeWork>::new();
-        for root in roots {
-            let Some(status) = snapshot.roots.iter().find(|status| {
-                status.root_id == root.root_id
-                    && status.availability == crate::domain::LibraryRootAvailability::Available
-                    && status.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
-            }) else {
-                continue;
-            };
-            let generation =
-                LibraryRootGeneration::new(status.root_generation).ok_or_else(|| {
-                    ScanError::new(
-                        "library_root_generation_invalid",
-                        "The synchronization root generation is invalid",
-                    )
-                })?;
-            if !capabilities.iter().any(|capability| {
-                capability.root_id == root.root_id
-                    && capability.root_generation == generation
-                    && capability.state == PersistentJournalCapabilityState::Supported
-                    && matches!(
-                        capability.continuity,
-                        PersistentJournalContinuityState::Current
-                            | PersistentJournalContinuityState::CatchingUp
-                    )
-            }) {
-                continue;
-            }
-            let Some(checkpoint) =
-                catalog.load_persistent_journal_checkpoint(&root.root_id, generation)?
-            else {
-                continue;
-            };
-            if !matches!(
-                checkpoint.continuity,
-                PersistentJournalContinuityState::Current
-                    | PersistentJournalContinuityState::CatchingUp
-            ) || checkpoint.failure.is_some()
-            {
-                continue;
-            }
-            let base_key = format!(
-                "{}|{}|{}",
-                checkpoint.volume.volume_guid,
-                checkpoint.volume.volume_serial,
-                checkpoint.journal_id.value(),
-            );
-            let prefix = format!("{base_key}|");
-            let last_chunk = volumes
-                .range(format!("{base_key}|")..)
-                .take_while(|(key, _)| key.starts_with(&prefix))
-                .last()
-                .map(|(key, work)| {
-                    (
-                        key.rsplit('|')
-                            .next()
-                            .and_then(|value| value.parse::<usize>().ok())
-                            .unwrap_or(0),
-                        work.roots.len(),
-                    )
-                });
-            let chunk_index = last_chunk.map_or(0, |(index, root_count)| {
-                if root_count >= 8 {
-                    index.saturating_add(1)
-                } else {
-                    index
-                }
-            });
-            let key = format!("{base_key}|{chunk_index}");
-            let volume = volumes
-                .entry(key.clone())
-                .or_insert_with(|| JournalVolumeWork {
-                    key,
-                    checkpoints: Vec::new(),
-                    roots: Vec::new(),
-                });
-            volume.checkpoints.push(checkpoint);
-            volume.roots.push(JournalRootWork {
-                root_id: root.root_id,
-                root_generation: generation,
-                root_path: std::path::PathBuf::from(root.root_path),
-            });
-        }
-        let Some(key) = select_rotated_key(volumes.keys(), self.journal_volume_cursor.as_deref())
-        else {
-            return Ok(None);
-        };
-        Ok(volumes.remove(&key))
+        journal_volume::select(catalog, snapshot, self.journal_volume_cursor.as_deref())
     }
 
     fn next_journal_root(
@@ -3008,18 +2912,19 @@ impl ProductionSynchronization {
                     let mut registrations = Vec::<ProductionPersistentJournalRoot>::new();
                     let mut broker_roots = Vec::new();
                     let mut checkpoints = Vec::new();
-                    for (root, checkpoint) in work.roots.into_iter().zip(work.checkpoints) {
+                    for root in work.roots {
+                        let checkpoint = root.checkpoint;
                         let registration = match describe_production_persistent_journal_root(
-                            &root.root_id,
-                            root.root_generation.value(),
+                            &checkpoint.root_id,
+                            checkpoint.root_generation.value(),
                             &root.root_path,
                         ) {
                             Ok(registration) => registration,
                             Err(error) => {
                                 let failure = persist_journal_registration_failure(
                                     &mut catalog,
-                                    &root.root_id,
-                                    root.root_generation,
+                                    &checkpoint.root_id,
+                                    checkpoint.root_generation,
                                     error,
                                     observed_unix_ms,
                                     policy,
@@ -8943,9 +8848,7 @@ mod tests {
             .expect("current P1 work");
 
         assert_eq!(work.roots.len(), 1);
-        assert_eq!(work.roots[0].root_id, "p1-root");
-        assert_eq!(work.checkpoints.len(), 1);
-        assert_eq!(work.checkpoints[0].root_id, "p1-root");
+        assert_eq!(work.roots[0].checkpoint.root_id, "p1-root");
     }
 
     #[cfg(windows)]
