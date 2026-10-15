@@ -113,7 +113,14 @@ decoder rearmed automatic repair. Keeping that marker preserves one automatic at
 and one additional request per explicit retry. The regression retains the ready catalog row and
 broken cache across repeated unavailable-source failures and checks request counts and recovery
 feedback. No strings or layout change. The tile has 460 production lines; its dedicated test file
-has 1,023 lines. Hosted and updated native verification are pending. The preceding sessions exited
+has 1,023 lines. The updated ordinary Debug run imports three existing textured fixtures with distinct
+dimensions, encoded sizes and dates, then closes before making their disposable root unavailable.
+After reopening, one automatic attempt and two explicit clicks produce exactly three requests for
+the selected image. The explicit attempts take 45 and 32 ms, retain the retry action and produce no
+extra automatic request. Both sessions exit normally; source-copy hashes/timestamps and original
+profile/catalog hashes match. Cleanup removes 24 disposable files (1.37 MiB). Hosted validation of
+this correction is pending; the preceding `2484086` run now passes Flutter, Windows Scan, Accessibility
+and unsigned Release. The preceding diagnostic sessions exited
 normally, restored original profile/catalog hashes and removed 22 disposable files (1.44 MiB),
 leaving the reusable corpus and the `build/test/derived` fixture marker.
 
