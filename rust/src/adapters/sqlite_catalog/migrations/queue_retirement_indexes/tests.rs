@@ -88,9 +88,10 @@ fn retiring_one_change_does_not_traverse_unrelated_queue_or_recheck_rows() {
              INSERT INTO library_change_queue(
                id,root_id,root_generation,intent_kind,scope,relative_path,origin,
                first_observed_unix_ms,most_recent_observed_unix_ms,first_sequence,most_recent_sequence,
-               coalesced_observation_count,status,ready_unix_ms,catalog_revision_at_enqueue,created_unix_ms,updated_unix_ms)
+               coalesced_observation_count,status,ready_unix_ms,catalog_revision_at_enqueue,
+               catalog_revision_at_success,created_unix_ms,updated_unix_ms)
              SELECT id,'root',1,'reconcile','path','item-' || id || '.png','consistency_audit',
-               1,1,'1','1',1,'completed',1,0,1,CASE WHEN id = 1 THEN 1 ELSE 1000000 END FROM sequence",
+               1,1,'1','1',1,'completed',1,0,0,1,CASE WHEN id = 1 THEN 1 ELSE 1000000 END FROM sequence",
             [entries],
         ).unwrap();
         catalog

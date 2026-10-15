@@ -28,7 +28,7 @@ fn upgrade_is_catalog_only_and_does_not_seed_fresh_databases() {
     drop(SqliteCatalog::open(path.clone()).expect("upgrade schema 37"));
     let connection = Connection::open(&path).unwrap();
     validate(&connection).unwrap();
-    current_schema::validate_schema_version(&connection, 38).unwrap();
+    current_schema::validate_schema_version(&connection, super::super::SCHEMA_VERSION).unwrap();
     assert_eq!(
         connection
             .query_row("SELECT count(*) FROM scan_runs", [], |row| row
