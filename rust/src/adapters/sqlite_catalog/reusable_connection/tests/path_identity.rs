@@ -92,7 +92,19 @@ fn direct_catalog_revalidation_reads_current_identity_without_temporary_handle_c
     let path = fs::canonicalize(directory.path())
         .unwrap()
         .join("catalog.sqlite3");
-    let session = seed_catalog(&path, 11);
+    assert_pinned_revalidation(&path);
+}
+
+#[test]
+fn configured_temp_path_reuses_the_guard_without_canonicalizing_away_its_namespace() {
+    let directory = tempfile::tempdir().unwrap();
+    // Windows TEMP may contain an 8.3 ancestor; keep the same spelling used by callers.
+    let path = directory.path().join("catalog.sqlite3");
+    assert_pinned_revalidation(&path);
+}
+
+fn assert_pinned_revalidation(path: &Path) {
+    let session = seed_catalog(path, 11);
     let catalog = session.open_in_lane(LibraryChangeLane::Live).unwrap();
     let reads = crate::adapters::local_files::catalog_identity_read_count();
     let opens = crate::adapters::local_files::catalog_identity_temporary_open_count();
@@ -108,7 +120,7 @@ fn direct_catalog_revalidation_reads_current_identity_without_temporary_handle_c
         opens,
         "each proof queries the pinned object instead of opening and closing another handle",
     );
-    assert_eq!(full_schema_validation_count(&path), 1);
+    assert_eq!(full_schema_validation_count(path), 1);
 }
 
 #[test]

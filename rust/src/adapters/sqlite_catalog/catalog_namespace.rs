@@ -52,7 +52,7 @@ impl SqliteCatalogIdentityGuard {
         path: &Path,
     ) -> Result<SqliteDatabaseIdentity, ScanError> {
         #[cfg(windows)]
-        if direct_disk_namespace(path, &self.identity.canonical_path) {
+        if resolves_to_pinned_disk_namespace(path, &self.identity.canonical_path) {
             // SQLite and this guard both deny deletion. Query the pinned file afresh;
             // its current final path must still match, including after ancestor renames.
             return database_identity(super::super::local_files::read_open_catalog_identity(
@@ -88,6 +88,22 @@ fn unsupported_identity() -> ScanError {
         "catalog_identity_unavailable",
         "The catalog file identity is unavailable",
     )
+}
+
+#[cfg(windows)]
+fn resolves_to_pinned_disk_namespace(path: &Path, canonical: &Path) -> bool {
+    if direct_disk_namespace(path, canonical) {
+        return true;
+    }
+    if !direct_disk_namespace(path, path) {
+        return false;
+    }
+    // Expand DOS names afresh: a cached expansion would miss a changed short-name mapping.
+    // Junction spellings still differ from the pinned file's resolved physical namespace.
+    match super::super::local_files::windows_long_dos_path(path) {
+        Ok(expanded) => direct_disk_namespace(&expanded, canonical),
+        Err(_) => false,
+    }
 }
 
 #[cfg(windows)]

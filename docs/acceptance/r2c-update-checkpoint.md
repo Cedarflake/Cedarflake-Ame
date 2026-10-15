@@ -836,3 +836,25 @@ The client exits normally after 452,724 ms. All 128 sampled source sizes, modifi
 file attributes match, and original settings, preferences and catalog hashes are restored and
 verified. Cleanup removes 232 disposable derived files totaling 460,870,655 bytes plus the temporary
 preparation helper. Reusable sources, templates and the derived fixture marker remain.
+
+## Catalog short-name reuse correction on 2026-10-15
+
+Hosted run `38656143904` at `2484086` reports 1,898 Rust passes, one bounded-retirement failure
+already corrected by `a9e995b`, and 24 ignored tests. Resumed-import identity, availability contracts,
+the mixed-load connection-lifetime workload and the other applicable jobs pass. All 177 slow
+catalog-identity diagnostics report a short-name namespace mismatch. That mismatch forces a
+temporary metadata open and close for each proof; the longest close in this run is 1,273,056 us.
+The earlier 9,209,153-us close remains the triggering failure, without a Windows-internal attribution.
+
+The catalog namespace owner now reuses the existing Windows long-name expansion before comparing
+with the pinned physical namespace. Expansion is fresh on every proof; the held file still supplies
+its current final path and full File ID. Expansion failure and unresolved aliases retain the existing
+fresh-open path. No case-folded identity, cached alias mapping or relaxed deadline is introduced.
+The raw TEMP-path regression retains the caller spelling and requires 32 fresh identity reads,
+zero extra temporary opens and one full schema validation. Existing parent-rename and junction-retarget
+regressions cover replacement, shared hardlink identity and in-operation retargeting in hosted CI.
+
+Affected sizes: namespace owner 149 production lines and 35 dedicated lexical-test lines; path-identity
+tests 350 lines. The existing local-files adapter changes only the expansion helper's visibility
+(3,695 pre-inline-test lines and 3,493 inline-test lines). Owned formatting and diff checks pass;
+the updated hosted checks and ordinary-client short-path verification are pending.

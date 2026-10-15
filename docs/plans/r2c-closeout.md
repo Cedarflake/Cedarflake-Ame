@@ -88,10 +88,14 @@ replay admission 58 / 0 / 262; readiness 451 / 0 / existing dedicated tests; lea
 The normal Debug rebuild removes the temporary diagnostic entrypoint. Cleanup removes 39 disposable
 files (5.09 MiB); `build/test/derived` again contains only its fixture marker. The synthetic 10,000-file
 check now drives the existing bounded maintenance after timing cancellation, preserving its final
-membership and latency assertions. Continue with the pending hosted run and the mixed-load
-`proof_identity_after` failure: the previous run spent 9.2 seconds closing a temporary metadata handle.
-Slow-check diagnostics now classify namespace spelling without logging paths; determine why held-handle
-reuse was bypassed before changing namespace proof. Preserve the completed native flows above.
+membership and latency assertions. The `2484086` hosted run passes the resumed-import and
+availability regressions; its only Rust failure is the bounded retirement predicate corrected below.
+All 177 slow catalog-identity diagnostics use DOS short names, which bypass the held-handle path.
+The namespace owner now freshly expands that spelling before comparing it with the pinned physical
+path, then still reads the held file's current path and full identity. Failed expansion and unresolved
+aliases retain fresh-open validation. The raw TEMP-path regression checks 32 fresh identity reads
+without extra temporary opens; existing junction-retarget and parent-rename guards remain required.
+Continue with hosted checks and the ordinary Debug short-path workflow; preserve completed native flows.
 
 The subsequent `32981d2` hosted run passes the mixed-load connection-lifetime workload and reports
 1,892 Rust passes, with four failures: the two availability source-contract checks, resumed-import
@@ -103,8 +107,9 @@ and in-memory SQL diagnosis show collection/deletion work staying at 3,410/14,81
 512 and 4,096 extra rows; previously it grew from 7,664/18,550 to 39,920/47,222. Both cases delete exactly
 128 rows. The existing bounded-work, rollback, restart and active-scan preservation regressions remain
 unchanged for hosted execution. The retirement owner has 136 production lines and no inline tests;
-its dedicated bounded-retirement tests have 359 lines. The earlier 9.2-second handle-close incident
-still needs its namespace classification; one passing mixed-load run does not explain that delay.
+its dedicated bounded-retirement tests have 359 lines. The short-name mismatch explains repeated
+temporary closes in hosted runs. The earlier 9.2-second close still has no Windows-internal
+attribution; verify that the corrected namespace uses the held handle under load.
 
 The ordinary Debug negative-preview walkthrough preserves visible cached peers when the disposable
 source directory is missing, but one explicit retry produces two failed native requests (38 and

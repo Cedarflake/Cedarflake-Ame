@@ -3031,7 +3031,7 @@ impl WindowsDirectoryRootProof {
 }
 
 #[cfg(windows)]
-fn windows_long_dos_path(path: &Path) -> std::io::Result<PathBuf> {
+pub(crate) fn windows_long_dos_path(path: &Path) -> std::io::Result<PathBuf> {
     let mut source = path
         .as_os_str()
         .encode_wide()
