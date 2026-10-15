@@ -100,7 +100,7 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    if (!TickerMode.of(context)) {
+    if (!TickerMode.valuesOf(context).enabled) {
       // A retained hidden target cannot finish a reverse animation while muted.
       _isPointerInside = false;
       _hasFocus = false;
@@ -204,7 +204,7 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
 
   void _show() {
     _showTimer = null;
-    if (!mounted || !TickerMode.of(context) || _entry != null) {
+    if (!mounted || !TickerMode.valuesOf(context).enabled || _entry != null) {
       return;
     }
     final overlay = Overlay.maybeOf(context, rootOverlay: true);
