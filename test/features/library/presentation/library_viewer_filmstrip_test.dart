@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
@@ -8,6 +10,68 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final findsSelection in [true, false]) {
+    testWidgets(
+      "selection outside the retained page resolves once; found=$findsSelection",
+      (tester) async {
+        final initial = List.generate(20, (index) => _asset(index + 100));
+        final destination = List.generate(20, _asset);
+        final controller = _SelectionPageController();
+        final selection = ValueNotifier(initial.first);
+        addTearDown(selection.dispose);
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              libraryControllerProvider.overrideWith(() => controller),
+              initialLibraryStateProvider.overrideWithValue(
+                LibraryState(assets: initial, windowStartItemOffset: 100),
+              ),
+            ],
+            child: MaterialApp(
+              home: Scaffold(
+                body: Center(
+                  child: SizedBox(
+                    height: 104,
+                    width: 700,
+                    child: ValueListenableBuilder(
+                      valueListenable: selection,
+                      builder: (context, selected, _) => LibraryViewerFilmstrip(
+                        selection: selected,
+                        onSelected: (asset) => selection.value = asset,
+                        loadPrevious: () async {},
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        selection.value = destination[1];
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(controller.anchors, [destination[1].locationId]);
+        expect(find.byType(CircularProgressIndicator), findsOneWidget);
+        controller.complete(findsSelection ? destination : initial);
+        await tester.pumpAndSettle();
+        expect(controller.anchors, hasLength(1));
+        if (findsSelection) {
+          expect(
+            find.byKey(ValueKey(destination[1].locationId)).hitTestable(),
+            findsOneWidget,
+          );
+          expect(find.text("重新加载缩略图"), findsNothing);
+        } else {
+          expect(find.text("重新加载缩略图"), findsOneWidget);
+          await tester.pump(const Duration(seconds: 1));
+          expect(controller.anchors, hasLength(1));
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
   testWidgets("collapse preserves strip position and pauses preview demand", (
     tester,
   ) async {
@@ -321,6 +385,35 @@ class _RetainedFilmstripController extends LibraryController {
   void releaseFilmstripPreviewDemand(Object owner) {
     releases++;
     super.releaseFilmstripPreviewDemand(owner);
+  }
+}
+
+class _SelectionPageController extends LibraryController {
+  final anchors = <String?>[];
+  final _pending = Completer<bool>();
+
+  @override
+  Future<bool> updateQuery(
+    LibraryGalleryQuery query, {
+    String? anchorLocationId,
+    String? anchorAssetId,
+    int? fallbackGlobalItemIndex,
+    bool forceRefresh = false,
+    BigInt? minimumCatalogRevision,
+    bool showRefreshingStatus = true,
+  }) {
+    expect(forceRefresh, isTrue);
+    anchors.add(anchorLocationId);
+    return _pending.future;
+  }
+
+  void complete(List<LibraryAsset> assets) {
+    state = state.copyWith(
+      assets: assets,
+      windowStartItemOffset: 0,
+      queryId: "located-query",
+    );
+    _pending.complete(true);
   }
 }
 

@@ -164,16 +164,21 @@ class _LibraryViewerFilmstripState
       _frameScheduled = false;
       if (!mounted || !_isActive || !_scroll.hasClients) return;
       final state = ref.read(libraryControllerProvider);
-      if (_queryId != state.queryId) _centerSelection = true;
+      if (_queryId != state.queryId) {
+        _centerSelection = true;
+        _pagingFailed = false;
+      }
       _queryId = state.queryId;
       final previousStart = _windowStart;
       _windowStart = state.windowStartItemOffset;
       if (_centerSelection) {
-        _centerSelection = false;
         final index = state.assets.indexWhere(
           (asset) => asset.locationId == widget.selection.locationId,
         );
-        if (index >= 0) _jump((index + 0.5) * _extent - _width / 2);
+        if (index >= 0) {
+          _centerSelection = false;
+          _jump((index + 0.5) * _extent - _width / 2);
+        }
       } else if (previousStart != null && previousStart != _windowStart) {
         // Prepending or retiring a page preserves the same global strip position.
         _jump(_scroll.offset + (previousStart - _windowStart!) * _extent);
@@ -198,14 +203,18 @@ class _LibraryViewerFilmstripState
         state.assets.length,
         ((_scroll.offset + _width) / _extent).ceil() + 1,
       );
-      _controller.updateFilmstripPreviewDemand(
-        _previewOwner,
-        state.assets.skip(start).take(math.max(0, end - start)),
-        libraryPreviewDecodeWidth(
-          _extent,
-          MediaQuery.devicePixelRatioOf(context),
-        ),
-      );
+      if (_selectionNeedsPage(state)) {
+        _controller.releaseFilmstripPreviewDemand(_previewOwner);
+      } else {
+        _controller.updateFilmstripPreviewDemand(
+          _previewOwner,
+          state.assets.skip(start).take(math.max(0, end - start)),
+          libraryPreviewDecodeWidth(
+            _extent,
+            MediaQuery.devicePixelRatioOf(context),
+          ),
+        );
+      }
       if (!_isPaging && !_pagingFailed) {
         unawaited(_loadAtEdge(state, start, end));
       }
@@ -215,26 +224,59 @@ class _LibraryViewerFilmstripState
   void _jump(double offset) =>
       _scroll.jumpTo(offset.clamp(0.0, _scroll.position.maxScrollExtent));
 
+  bool _selectionNeedsPage(LibraryState state) =>
+      (_centerSelection || _revealSelection) &&
+      !state.assets.any(
+        (asset) => asset.locationId == widget.selection.locationId,
+      );
+
   Future<void> _loadAtEdge(LibraryState state, int start, int end) async {
     if (!LibraryBrowseAdmission(state).canReadPage) return;
+    final locateSelection = _selectionNeedsPage(state);
+    final selectedLocation = widget.selection.locationId;
     final previous = start <= 1 && state.hasPreviousAssets;
     final next = end >= state.assets.length - 1 && state.hasMoreAssets;
-    if (!previous && !next) return;
+    if (!locateSelection && !previous && !next) return;
     setState(() => _isPaging = true);
     try {
-      if (previous) {
+      if (locateSelection) {
+        await _controller.updateQuery(
+          state.query,
+          anchorLocationId: selectedLocation,
+          anchorAssetId: widget.selection.assetId,
+          forceRefresh: true,
+          showRefreshingStatus: false,
+        );
+      } else if (previous) {
         await widget.loadPrevious();
       } else {
         await _controller.loadNextPage();
       }
       if (!mounted) return;
       final current = ref.read(libraryControllerProvider);
-      final failed = previous
-          ? current.previousPageErrorMessage != null
-          : current.pageErrorMessage != null;
+      if (current.query != state.query ||
+          widget.selection.locationId != selectedLocation) {
+        return;
+      }
+      final bool failed;
+      if (locateSelection) {
+        _queryId = current.queryId;
+        _centerSelection = true;
+        failed = !current.assets.any(
+          (asset) => asset.locationId == selectedLocation,
+        );
+      } else if (previous) {
+        failed = current.previousPageErrorMessage != null;
+      } else {
+        failed = current.pageErrorMessage != null;
+      }
       setState(() => _pagingFailed = failed);
     } on Object {
-      if (mounted) setState(() => _pagingFailed = true);
+      if (mounted &&
+          ref.read(libraryControllerProvider).query == state.query &&
+          widget.selection.locationId == selectedLocation) {
+        setState(() => _pagingFailed = true);
+      }
     } finally {
       if (mounted) {
         setState(() => _isPaging = false);
