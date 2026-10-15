@@ -75,35 +75,21 @@ Current retained-library client and final candidate acceptance remain open.
 
 ## Current execution queue
 
-The separately selected `codex/gallery-motion` scope adds restrained gallery/viewer transitions:
-first expose exact-layout unloaded slots and preserve precise rail positioning during detail
-arrival, then add first-frame thumbnail reveal and viewer entry/exit and preview-to-original
-transitions. Add the selected short mouse-wheel deceleration tail on the same native scroll
-position, preserving exact travel distance and immediate takeover by new input. Preserve scrolling,
-reduced-motion preferences, existing copy, layout rules, viewer zoom preferences and source-read
-cancellation. Deliver each correction on the branch with hosted regressions and focused client
-checks; this scope does not reopen the
-completed synchronization repair goal or start R3.
+The selected gallery/viewer transitions, shared wheel deceleration and viewer toolbar scopes are
+merged through [PR #18](https://github.com/Cedarflake/Cedarflake-Ame/pull/18) and
+[PR #19](https://github.com/Cedarflake/Cedarflake-Ame/pull/19). Their local and remote branches are
+removed. Preserve the delivered loading geometry, reduced-motion behavior, independent scroll
+controllers, retained filmstrip previews, opening preferences, gallery return position and native
+window placement. This delivery does not reopen the completed synchronization repair goal or start R3.
 
-The separately selected `codex/viewer-toolbar` scope builds on that branch: add a collapsible lazy
-thumbnail strip, compact image details, a single fit/actual-size toggle and
-native full screen. Preserve opening preferences, gallery return position, bounded preview/source
-reads and normal window placement. Deliver connected viewer controls and their relevant regressions
-on this branch; the existing animation PR retains its scope.
-
-Extend the existing wheel deceleration into a shared presentation component on the same branch.
-Use it in the gallery, navigation, settings, task lists, information/notification details, horizontal
-toolbars and viewer filmstrip, and carry it into captured Material menu/dialog routes. Keep each
-scroll region's controller independent, preserve native input arbitration and reduced-motion
-behavior, and verify nested edge handoff and route disposal. Complete this increment before the
-selected PR stack review and merge; then address the retained-library reopening failure below.
-
-An isolated retained-library reopening failure remains open: a completed journal baseline followed
-by `identity_journal_hardlinks_not_supported` leaves its checkpoint in `recovery_required`, and the
-next startup rejects that state with `catalog_persistent_journal_baseline_contract_unverifiable`.
-Preserve the retained fixture for a separate synchronization correction covering the failure-to-
-recovery transition and reopening; do not reset the catalog or weaken its validation to continue UI
-checks. This failure interrupted the final native toolbar recheck after its layout adjustment.
+The separate retained-library startup correction now admits a proven interrupted journal checkpoint
+and its subsequent recovery opening without discarding catalog contents or sync progress. The
+retained 10,000-image catalog opens through the production bridge and native Debug; the six boundary
+regressions accompany the correction for hosted verification. The
+[reopening record](acceptance/r2c-update-checkpoint.md#retained-interrupted-journal-reopening-on-2026-10-16)
+owns the failure, native result and verification scope. The original unsupported-hardlink response
+remains recorded as a source synchronization failure; this correction restores catalog usability
+and preserves recovery admission without claiming that the failed lookup has completed.
 
 The current repair goal is complete. Native synchronization/browsing flows, large-sample paused-import
 changes, scoped closing review and the final hosted gates pass; profile restoration and disposable-output

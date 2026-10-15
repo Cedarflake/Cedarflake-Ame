@@ -1180,3 +1180,37 @@ The completed native cases above retain their original measurement boundaries. T
 corpus and original profile are restored; `build/test/derived` contains only its 16-byte fixture marker.
 The user's 21 pre-existing unstaged files remain unchanged by this closeout. No additional product,
 installer, signing, Sandbox or R3 work is introduced by the status update.
+
+### Retained interrupted-journal reopening on 2026-10-16
+
+The retained 10,000-image catalog in `build/test` contains a completed baseline and later proven
+journal coverage. A subsequent `identity_journal_hardlinks_not_supported` failure leaves its
+checkpoint in `recovery_required`. The production catalog opener rejects this valid interruption
+with `catalog_persistent_journal_baseline_contract_unverifiable` before browsing can begin.
+
+The baseline validator now admits interrupted checkpoints with explicit failure details and the
+same required identity and durable coverage proof. Unadvanced checkpoints must still match both
+baseline boundaries; advanced checkpoints require their retained range and lifecycle records.
+Recovery inventory admission also preserves partially consumed coverage when its captured end is
+within the new opening boundary, matching the existing recovery writer. Journal replacement keeps
+its separate identity rule. This correction changes no schema, checkpoint, source file or scan.
+
+The unchanged retained catalog fails through the production Dart/Rust bridge in 355 ms before the
+correction and returns all 10,000 items in 417 ms afterward. Its SHA-256 and checkpoint values remain
+identical across those reads. Native Debug then opens the populated gallery, shows decoded previews,
+and opens a 3840-by-2160 JPEG. Normal closure preserves the count and interrupted checkpoint. The
+unsupported hardlink lookup remains recorded; these observations cover catalog usability and
+retained progress, without claiming that the failed journal operation completed.
+
+The original storage configuration is restored byte for byte and the normal 64,419-image gallery
+reopens. Disposable probes and 343,378 bytes of test preview cache are removed; the reusable corpus
+and retained catalog remain. A final Debug build including the recovery-opening boundary correction
+passes in 50.6 seconds and opens the original gallery.
+
+Six boundary regressions cover repeated FULL reopen, complete and partial journal coverage, pending
+enrollment, failure persistence, recovery and journal-reset admission, and rejection of missing
+failure details, identity changes, missing coverage and out-of-bound recovery openings. Actions owns
+their execution. A focused local attempt stops during LLVM compilation with an out-of-memory error;
+no tests execute in that attempt, and its disposable failed incremental output is removed. Owned-file
+formatting and whitespace checks pass. The affected validator has 450 production lines and no inline
+tests; its test facade has 431 lines and the new interruption module has 248 lines.

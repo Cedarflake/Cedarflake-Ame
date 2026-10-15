@@ -168,7 +168,18 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                                successor.change_id IS NULL
                                AND checkpoint.root_id IS NOT NULL
                                AND root.continuity_state = checkpoint.continuity_state
-                               AND checkpoint.continuity_state IN ('current', 'catching_up')
+                               AND checkpoint.continuity_state IN (
+                                 'current', 'catching_up', 'recovery_required'
+                               )
+                               AND (
+                                 checkpoint.continuity_state <> 'recovery_required'
+                                 OR (
+                                   checkpoint.last_failure_code IS NOT NULL
+                                   AND checkpoint.last_failure_message IS NOT NULL
+                                   AND length(trim(checkpoint.last_failure_code)) > 0
+                                   AND length(trim(checkpoint.last_failure_message)) > 0
+                                 )
+                               )
                                AND checkpoint.volume_guid = baseline.volume_guid
                                AND checkpoint.volume_serial = baseline.volume_serial
                                AND checkpoint.root_reference_version = baseline.root_reference_version
@@ -185,8 +196,9 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                                  OR checkpoint.next_unread_usn = checkpoint.captured_exclusive_end
                                )
                                AND (
-                                 (checkpoint.continuity_state = 'current'
-                                   AND checkpoint.next_unread_usn = baseline.closing_next_usn)
+                                 (checkpoint.continuity_state IN ('current', 'recovery_required')
+                                   AND checkpoint.next_unread_usn = baseline.closing_next_usn
+                                   AND checkpoint.captured_exclusive_end = baseline.closing_next_usn)
                                  OR EXISTS (
                                    SELECT 1
                                    FROM library_persistent_journal_source_ranges AS ranges
@@ -210,7 +222,9 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                                            OR lifecycle.lifecycle_state = 'completed'))
                                        OR (ranges.status = 'enrolled'
                                          AND lifecycle.lifecycle_state = 'pending'
-                                         AND checkpoint.continuity_state = 'catching_up'
+                                         AND checkpoint.continuity_state IN (
+                                           'catching_up', 'recovery_required'
+                                         )
                                          AND ranges.requested_start_usn = checkpoint.next_unread_usn)
                                      )
                                  )
@@ -296,12 +310,13 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                         OR checkpoint.volume_serial <> baseline.volume_serial
                         OR checkpoint.root_reference_version <> baseline.root_reference_version
                         OR checkpoint.root_file_reference <> baseline.root_file_reference
-                        OR checkpoint.captured_exclusive_end <> checkpoint.next_unread_usn
                         OR (authority.reason = 'journal_reset'
                           AND checkpoint.journal_id = baseline.journal_id)
                         OR (authority.reason <> 'journal_reset' AND (
                           checkpoint.journal_id <> baseline.journal_id
                           OR CAST(checkpoint.next_unread_usn AS INTEGER)
+                            > CAST(baseline.opening_next_usn AS INTEGER)
+                          OR CAST(checkpoint.captured_exclusive_end AS INTEGER)
                             > CAST(baseline.opening_next_usn AS INTEGER)
                         ))
                       ))
