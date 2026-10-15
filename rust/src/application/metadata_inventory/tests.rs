@@ -30,7 +30,7 @@ use crate::domain::{
     MetadataInventoryStartRequest, PersistentJournalBaselineClosingBoundary,
     PersistentJournalBaselineStartRequest, PersistentJournalCapability,
     PersistentJournalCapabilityState, PersistentJournalContinuityState,
-    PersistentJournalVolumeIdentity, PreviewStatus, ScanError, ScanRequest,
+    PersistentJournalVolumeIdentity, ScanError, ScanRequest,
 };
 use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, LibraryChangeQueue,

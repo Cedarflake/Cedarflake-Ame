@@ -620,6 +620,14 @@ pub trait LibraryChangeCatchUpSource: Send + Sync + 'static {
 }
 
 pub trait IncrementalCatalogRepository {
+    fn load_media_admission_recheck(
+        &self,
+        _root_id: &str,
+        _relative_path: &str,
+    ) -> Result<Option<crate::domain::MediaAdmissionRecheck>, ScanError> {
+        Ok(None)
+    }
+
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError>;
     fn load_incremental_catalog_root(
         &self,

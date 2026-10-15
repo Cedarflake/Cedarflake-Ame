@@ -25,6 +25,7 @@ use super::scan_library::{stable_id, stable_location_id};
 const MAX_CATALOG_REVISION_REBASE_ATTEMPTS: usize = 2;
 
 mod authoritative_path_set;
+mod media_admission_recheck;
 mod preparation_catalog;
 mod preparation_rebase;
 mod rename_change;
@@ -608,7 +609,7 @@ where
             "Subtree and root freshness work remains pending for authoritative reconciliation",
         ));
     }
-    match intent.kind {
+    let mut prepared = match intent.kind {
         LibraryChangeIntentKind::Reconcile if intent.previous_relative_path.is_none() => {
             prepare_path_change(
                 repository,
@@ -628,7 +629,9 @@ where
             rename_change::prepare_rename_change(repository, discovery, inspector, leased)
         }
         LibraryChangeIntentKind::FreshnessUnknown => unreachable!("handled above"),
-    }
+    }?;
+    media_admission_recheck::apply(repository, leased, &mut prepared)?;
+    Ok(prepared)
 }
 
 fn prepare_path_change<Repository>(

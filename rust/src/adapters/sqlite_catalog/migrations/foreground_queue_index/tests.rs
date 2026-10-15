@@ -79,6 +79,10 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 after.remove("library_journal_scope_recoveries"),
                 Some(Vec::new()),
             );
+            assert_eq!(
+                after.remove("library_media_admission_rechecks"),
+                Some(Vec::new()),
+            );
             assert_eq!(after, before);
         }
     }

@@ -1765,6 +1765,7 @@ fn poll_runtime_with_storage_inner(
     let mut checkout = runtime.poll_catalog.checkout(&storage.catalog_path)?;
     runtime.catalog_session = Some(checkout.session());
     let catalog = &mut *checkout;
+    catalog.enqueue_media_admission_rechecks(poll_unix_ms, runtime.runtime.queue_policy())?;
     if !runtime.legacy_automatic_scans_retired {
         catalog.retire_legacy_automatic_full_scans(poll_unix_ms)?;
         runtime.legacy_automatic_scans_retired = true;

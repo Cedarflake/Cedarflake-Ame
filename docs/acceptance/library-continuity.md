@@ -190,6 +190,11 @@ For every stable path or subtree intent:
    gallery, including a download error saved with an image suffix. Keep its negative observation so
    unchanged input is not repeatedly inspected; admit it when a later source version is recognized.
    Previously admitted images and their physical aliases retain recoverable failure entries.
+   Schema 38 also schedules one-time path rechecks for retained unsupported-media failure cards.
+   Confirmed non-images leave the gallery automatically; locked or unavailable reads remain
+   retryable. Queue admission is limited to 32 paths per poll and cannot fall back to a root scan.
+   Reopening resumes unfinished work without a manual update, while completed rechecks stay retired.
+   A repaired physical file retains its reserved asset identity; replacement files receive their own.
 
 Required semantics:
 

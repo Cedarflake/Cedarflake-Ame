@@ -55,7 +55,8 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v33_for_test
 ) {
     connection
         .execute_batch(
-            "DROP TABLE IF EXISTS library_journal_scope_recoveries;
+            "DROP TABLE IF EXISTS library_media_admission_rechecks;
+             DROP TABLE IF EXISTS library_journal_scope_recoveries;
              DROP INDEX IF EXISTS library_change_queue_active_origin;
              UPDATE schema_info SET version = 33; PRAGMA user_version = 33;",
         )

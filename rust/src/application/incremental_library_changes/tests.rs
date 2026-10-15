@@ -52,6 +52,8 @@ use crate::domain::{
 #[cfg(windows)]
 mod authoritative_path_rebase;
 #[cfg(windows)]
+mod media_admission_recheck;
+#[cfg(windows)]
 mod preparation_rebase;
 mod revision_races;
 #[cfg(windows)]

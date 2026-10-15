@@ -36,6 +36,22 @@ impl<'a, Repository: IncrementalCatalogRepository> PreparationCatalog<'a, Reposi
         self.reads
     }
 
+    pub(super) fn load_media_admission_recheck(
+        &mut self,
+        root_id: &str,
+        relative_path: &str,
+    ) -> Result<Option<crate::domain::MediaAdmissionRecheck>, ScanError> {
+        let recheck = self
+            .repository
+            .load_media_admission_recheck(root_id, relative_path)?;
+        if recheck.is_some() {
+            // Legacy admission changes have a second persisted witness. Reprepare them after
+            // a catalog conflict instead of reusing the ordinary location-only read proof.
+            self.reads.reads = None;
+        }
+        Ok(recheck)
+    }
+
     pub(super) fn load_incremental_location_by_relative_path(
         &mut self,
         root_id: &str,

@@ -83,6 +83,14 @@ fn run_before_catalog_delta_commit_hook(root_id: &str) -> Result<(), ScanError> 
 }
 
 impl IncrementalCatalogRepository for SqliteCatalog {
+    fn load_media_admission_recheck(
+        &self,
+        root_id: &str,
+        relative_path: &str,
+    ) -> Result<Option<crate::domain::MediaAdmissionRecheck>, ScanError> {
+        super::media_admission_rechecks::load(&self.connection, root_id, relative_path)
+    }
+
     fn load_incremental_catalog_roots(&self) -> Result<Vec<IncrementalCatalogRoot>, ScanError> {
         let mut statement = self
             .connection
@@ -1096,6 +1104,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                 )
                 .map_err(database_error)?;
         }
+        super::media_admission_rechecks::finish_publication(&transaction, batch)?;
         mark_affected_preview_artifacts_stale(&transaction, &affected_artifact_keys)?;
         delete_affected_orphan_assets(&transaction, &affected_asset_ids)?;
         let locations_after = count_affected_locations(
@@ -2069,6 +2078,9 @@ fn delete_affected_orphan_assets(
                   ) AND NOT EXISTS (
                     SELECT 1 FROM library_change_scan_handoff_items AS handoffs
                     WHERE handoffs.asset_id = assets.id
+                  ) AND NOT EXISTS (
+                    SELECT 1 FROM library_media_admission_rechecks AS recheck
+                    WHERE recheck.asset_id = assets.id
                   )",
                 [asset_id],
             )

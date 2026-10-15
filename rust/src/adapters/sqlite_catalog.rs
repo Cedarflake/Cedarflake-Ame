@@ -35,6 +35,7 @@ mod gallery_time_snapshot;
 mod identity_group_state;
 mod journal_namespace;
 mod location_row_write;
+mod media_admission_rechecks;
 mod metadata_inventory;
 mod migrations;
 mod operation_diagnostics;
@@ -114,7 +115,7 @@ pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
 #[cfg(test)]
 pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
-const SCHEMA_VERSION: i64 = 37;
+const SCHEMA_VERSION: i64 = 38;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;

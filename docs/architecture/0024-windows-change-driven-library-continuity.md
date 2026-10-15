@@ -232,6 +232,14 @@ logical location. A continuity gap does not guess from matching path metadata: i
 recovery authority, while normal live and journal-confirmed changes remain independent of a full
 directory scan.
 
+Legacy zero-dimension records with unsupported-media failures receive a one-time catalog-owned
+recheck roster during schema 38 migration. Normal synchronization admits at most 32 existing paths
+per poll into the bounded P2 queue; capacity pressure defers admission without widening it to a
+root or directory scan. Existing inspection, source revalidation and atomic delta publication
+remove confirmed non-images from the gallery. Retryable reads retain their entries. Rejected
+physical identities remain reserved so a later repair can recover the asset identity. Completed
+rechecks are not scheduled again on restart, and source files are never removed by this repair.
+
 ### Preview publication at the change-driven boundary
 
 The current preview namespace is v3. Its cache key binds the requested variant to source revision

@@ -113,10 +113,11 @@ mod tests {
         let directory = tempdir().unwrap();
         let path = directory.path().join("catalog.sqlite3");
         drop(SqliteCatalog::open(path.clone()).unwrap());
-        let connection = Connection::open(&path).unwrap();
+        let mut connection = Connection::open(&path).unwrap();
         connection
             .execute_batch(
-                "DROP TABLE library_journal_scope_recoveries;
+                "DROP TABLE library_media_admission_rechecks;
+                 DROP TABLE library_journal_scope_recoveries;
             UPDATE schema_info SET version = 36; PRAGMA user_version = 36;",
             )
             .unwrap();
@@ -127,9 +128,7 @@ mod tests {
                 |row| row.get(0),
             )
             .unwrap();
-        drop(connection);
-        drop(SqliteCatalog::open(path.clone()).expect("upgrade retained schema 36"));
-        let connection = Connection::open(path).unwrap();
+        migrate(&mut connection).expect("upgrade retained schema 36 to 37");
         validate(&connection).unwrap();
         validate_rows(&connection).unwrap();
         let after: i64 = connection
@@ -151,7 +150,8 @@ mod tests {
         let connection = Connection::open(&path).unwrap();
         connection
             .execute_batch(
-                "DROP TABLE library_journal_scope_recoveries;
+                "DROP TABLE library_media_admission_rechecks;
+                 DROP TABLE library_journal_scope_recoveries;
             CREATE TABLE library_journal_scope_recoveries (parent_change_id TEXT);
             UPDATE schema_info SET version = 36; PRAGMA user_version = 36;",
             )

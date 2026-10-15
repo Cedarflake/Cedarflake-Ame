@@ -13,6 +13,8 @@ pub(crate) mod library_change;
 mod library_change_catch_up;
 pub(crate) mod library_change_queue;
 mod library_metadata_inventory;
+mod media_admission_recheck;
+pub use media_admission_recheck::MediaAdmissionRecheck;
 pub(crate) mod library_synchronization;
 pub(crate) mod persistent_journal;
 mod scan_resume_coverage;
