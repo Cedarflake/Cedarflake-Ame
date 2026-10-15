@@ -125,8 +125,14 @@ their queued admission. The same-input comparison completes in 206,900 ms; 59 su
 a 10-ms median and 66-ms maximum, with stable browsing and matching October membership. Its log also
 exposes foreground scan capture completing the unfinished inventory control and leaving its recovery
 authority active. `scan_change_capture` now keeps recovery authorities and their candidates with
-their own workflow, and releases older retained scan captures during publication. Continue the
-repaired foreground/recovery handoff and its hosted ownership/rollback regressions. The capture owner
+their own workflow, and releases older retained scan captures during publication. The repaired
+same-input native update completes in 205,976 ms; recovery then finishes 70,078 entries and 2,242
+candidates, restores 65,130 locations and Current, and matches both October source sets. Its 430
+polls have a 15-ms median and 80-ms maximum with no affinity/native sync errors or preemptions.
+Reopen is Current at 952 ms without new scans or inventory. Both processes exit normally, original
+profile/catalog hashes are restored and disposable derived output is removed. Reuse this result;
+continue the affected Actions checks. The `ccc18df` run passes 1,902 Rust tests, including the former
+mixed-load failure; its sole failed directory-only fixture is corrected by `4c2980d`. The capture owner
 has 196 production / 0 inline / 203 dedicated-test lines; scan admission shrinks to 235 production
 lines and scan publication to 948. [The owning result](../acceptance/r2c-update-checkpoint.md#foreground-capture-of-unfinished-inventory-work-on-2026-10-15)
 records the failure and bounded native comparison. Lease-write owner sizes remain 70 production / 0 inline /

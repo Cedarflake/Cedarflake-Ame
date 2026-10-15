@@ -940,5 +940,26 @@ and reopen, an already captured control, ordinary completion, and rollback of a 
 Affected production / inline-test / dedicated-test sizes: capture owner 196 / 0 / 203; scan admission
 235 / 0 / existing tests; scan publication 948 / 0 / existing tests. The 3,619-line catalog facade and
 6,150-line dedicated queue-test facade only add module wiring. Owned formatting and diff checks pass;
-the Debug build succeeds in 43.8 seconds. The same retained input is running through the repaired
-foreground/recovery handoff; Actions owns the new automated checks.
+the Debug build succeeds in 43.8 seconds.
+
+The ordinary Debug run at `180917d` uses the same original snapshot and source scope. Its foreground
+update completes 70,079 entries and 64,452 accepted images in 205,976 ms. The pending recovery
+control retains its own authority, continues after publication, and completes 70,078 inventory
+entries and 2,242 candidates. The final catalog contains 65,130 locations with Current continuity;
+the sidebar displays Synchronized. The two October sets match all 9 and 42 current source files.
+All 128 source metadata samples remain unchanged. There are no affinity errors, native sync errors
+or publication preemptions. The 430 status polls have a 15-ms median and 80-ms maximum.
+
+The session exits normally after 677,119 ms. Reopening the same catalog reports Current in 952 ms
+with 65,130 locations, two scans and one completed inventory. Seven subsequent polls take at most
+25 ms, with zero recovery starts or sync errors. This session exits normally after 44,386 ms.
+Both exits restore original preferences, settings and catalog hashes. Final cleanup removes 108
+derived files totaling 378,368,161 bytes and 11 diagnostic/helper files totaling 53,729 bytes;
+`build/test/derived` retains only its fixture marker. Reusable sources, templates and the current
+Debug build remain.
+
+The `ccc18df` Actions run passes 1,902 Rust tests, including the former mixed-load connection-lifetime
+failure. Its only Rust failure is the new directory-only publication fixture, which omitted the
+required subtree queue owner. `4c2980d` adds the rename intent without changing validation or the
+Journal-priority assertion. All other applicable jobs in that run pass. The latest ownership,
+contention and corrected-fixture checks remain with Actions.
