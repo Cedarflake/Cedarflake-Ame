@@ -34,8 +34,12 @@ class LibraryViewerNavigationWindow {
         message: "图库正在更新，请重试切换图片。",
       );
     }
+    final resolvedLocationId =
+        page.queryAnchorResolution?.locationId ?? selection.locationId;
     final index = page.assets.indexWhere(
-      (asset) => asset.assetId == selection.assetId,
+      (asset) =>
+          asset.locationId == resolvedLocationId &&
+          asset.assetId == selection.assetId,
     );
     final target = index + step;
     if (index < 0 || target < 0 || target >= page.assets.length) return null;

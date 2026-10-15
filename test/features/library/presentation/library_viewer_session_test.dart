@@ -9,6 +9,58 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  for (final relocated in [false, true]) {
+    for (final direction in LibraryViewerDirection.values) {
+      test(
+        "retired-page navigation uses the selected alias; relocated=$relocated, $direction",
+        () async {
+          final fixture = _ViewerFixture();
+          final selected = fixture.assets[1];
+          fixture.assets[0] = _alias(selected, "earlier-alias");
+          fixture.viewer.open(selected);
+          fixture.state = fixture.state.copyWith(
+            assets: [fixture.assets[2]],
+            windowStartItemOffset: 2,
+          );
+          if (relocated) {
+            fixture.assets[1] = _alias(selected, "relocated-alias");
+          }
+          fixture.catalog.neighbor = Completer<LibraryQuerySnapshot>();
+          final pending = fixture.viewer.navigate(direction);
+          fixture.catalog.neighbor!.complete(
+            LibraryQuerySnapshot(
+              snapshot: LibrarySnapshot(
+                catalogPath: "catalog.sqlite3",
+                revision: BigInt.one,
+                queryId: "viewer-test",
+                roots: const [],
+                assets: fixture.assets,
+                queryAnchorResolution: LibraryQueryAnchorResolution(
+                  requestedLocationId: selected.locationId,
+                  windowStartItemOffset: 0,
+                  locationId: fixture.assets[1].locationId,
+                  ordinal: 1,
+                ),
+              ),
+              timeline: LibraryTimeline(
+                revision: BigInt.one,
+                queryId: "viewer-test",
+                totalItems: 3,
+                buckets: const [],
+              ),
+            ),
+          );
+          final target = direction == LibraryViewerDirection.previous ? 0 : 2;
+          expect(await pending, isTrue);
+          expect(fixture.viewer.locationId, fixture.assets[target].locationId);
+          expect(fixture.viewer.ordinal, target);
+          expect(fixture.errors, isEmpty);
+          expect(fixture.pages, isEmpty);
+        },
+      );
+    }
+  }
+
   for (final closeBeforeResult in [false, true]) {
     test(
       "retired gallery page uses a bounded viewer window; closed=$closeBeforeResult",
@@ -222,6 +274,23 @@ void main() {
     },
   );
 }
+
+LibraryAsset _alias(LibraryAsset asset, String locationId) => LibraryAsset(
+  assetId: asset.assetId,
+  locationId: locationId,
+  rootId: asset.rootId,
+  activeScanId: asset.activeScanId,
+  sourcePath: "unused/$locationId.jpg",
+  displayPath: "$locationId.jpg",
+  relativePath: "$locationId.jpg",
+  previewPath: asset.previewPath,
+  fileSize: asset.fileSize,
+  modifiedUnixMs: asset.modifiedUnixMs,
+  sourceRevision: asset.sourceRevision,
+  sourceGeneration: asset.sourceGeneration,
+  width: asset.width,
+  height: asset.height,
+);
 
 class _ViewerFixture {
   _ViewerFixture() {
