@@ -180,11 +180,19 @@ class LibraryViewerToolbar extends StatelessWidget {
                     onPressed: onZoomOut,
                   ),
                   SizedBox(
-                    width: compact ? 104 : 164,
-                    child: Slider(
-                      value: sliderValue,
-                      onChanged: onSliderChanged,
-                      semanticFormatterCallback: sliderSemanticFormatter,
+                    width: compact ? 72 : 132,
+                    child: SliderTheme(
+                      data: SliderTheme.of(context).copyWith(
+                        thumbShape: const RoundSliderThumbShape(
+                          enabledThumbRadius: 7,
+                        ),
+                      ),
+                      child: Slider(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        value: sliderValue,
+                        onChanged: onSliderChanged,
+                        semanticFormatterCallback: sliderSemanticFormatter,
+                      ),
                     ),
                   ),
                   _button(
