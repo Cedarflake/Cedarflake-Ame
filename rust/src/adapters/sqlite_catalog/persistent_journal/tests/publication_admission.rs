@@ -17,7 +17,10 @@ fn source_change_publication_still_preempts_an_active_recovery_writer() {
 
 #[test]
 fn directory_only_changes_keep_journal_priority_without_image_intents() {
-    let mut enrollment = batch("range", "root-a", 10, 20, &[]);
+    let mut enrollment = batch("range", "root-a", 10, 20, &["new-folder"]);
+    enrollment.intents[0].scope = LibraryChangeScope::Subtree;
+    enrollment.intents[0].kind = LibraryChangeIntentKind::RenameCandidate;
+    enrollment.intents[0].previous_relative_path = Some("old-folder".to_owned());
     enrollment
         .directory_changes
         .push(crate::domain::PersistentJournalDirectoryChange {
