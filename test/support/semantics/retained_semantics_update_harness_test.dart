@@ -133,6 +133,32 @@ void main() {
     validator.verifyLatestUpdate();
   });
 
+  for (final includesDescendant in [false, true]) {
+    test(
+      "Windows reparent requires descendant updates ($includesDescendant)",
+      () {
+        validator.apply({
+          0: _node([1, 2]),
+          1: _node([3]),
+          2: _node(const []),
+          3: _node([4]),
+          4: _node(const []),
+        });
+        void reparent() => validator.apply({
+          2: _node([3]),
+          3: _node([4]),
+          if (includesDescendant) 4: _node(const []),
+        });
+        if (includesDescendant) {
+          reparent();
+          validator.verifyLatestUpdate();
+        } else {
+          expect(reparent, throwsA(_failureContaining("child 4 is missing")));
+        }
+      },
+    );
+  }
+
   test("treats traversal parent as diagnostics rather than an AXTree edge", () {
     validator.apply({
       0: _node([1, 2]),

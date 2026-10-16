@@ -242,12 +242,21 @@ final class RetainedSemanticsUpdateValidator {
     Map<int, RetainedSemanticsNodeUpdate> updates,
     Map<int, int> previousParents,
   ) {
+    final retired = <int>{};
+    void retireSubtree(int id) {
+      if (!retired.add(id)) return;
+      for (final child in _nodes[id]?.traversalChildren ?? const <int>[]) {
+        retireSubtree(child);
+      }
+    }
+
     for (final parentEntry in updates.entries) {
       for (final childId in parentEntry.value.traversalChildren) {
         final previousParentId = previousParents[childId];
         if (previousParentId == null || previousParentId == parentEntry.key) {
           continue;
         }
+        retireSubtree(childId);
         final previousParent = candidateNodes[previousParentId];
         if (previousParent == null) {
           continue;
@@ -258,6 +267,11 @@ final class RetainedSemanticsUpdateValidator {
               .toList(growable: false),
         );
       }
+    }
+    // Windows removes the old AX subtree before applying new parent updates.
+    // Every retained descendant must therefore be serialized again.
+    for (final id in retired) {
+      if (!updates.containsKey(id)) candidateNodes.remove(id);
     }
   }
 

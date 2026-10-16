@@ -636,3 +636,23 @@ Production owners have 498 gallery-query, 128 timeline, 274 snapshot plus 29 tes
 plus six test-export, 556 catalog-mapping, 516 presentation-model, 2,017 screen and 521 header lines.
 There are no inline test cases. Dedicated query, count-display and sidebar-frame tests have
 366, 57 and 152 lines respectively. Applicable hosted verification belongs to the submitted head.
+
+## Filter-switch investigation and hosted failures
+
+The retained-semantics validator now models the pinned Windows bridge's removal of a moved node's
+entire old subtree. It requires surviving descendants to be serialized again; paired fixtures
+reject a missing descendant and accept the complete update. An application-level filter regression
+covers delayed query publication followed by asynchronous layout-manifest takeover. Thirty-four
+focused cases pass across this boundary, gallery/window transitions and workspace navigation.
+These checks strengthen the test model; they do not establish a repair for the observed native
+pending-node error. A temporary bounded native update recorder did not reproduce that error and
+was removed from the delivered Debug entrypoint.
+The test-only validator has 470 lines; its unit cases and the filter fixture have 189 and 179 lines.
+No production semantics implementation or inline tests were added.
+
+Actions run `38964168799` at `e2e2345` passed native accessibility, native scan, unsigned packaging
+and four synthetic workloads. Static analysis reported three multiline control-flow bodies without
+braces; those are corrected without changing behavior. Two recovered-dimension widget cases exposed
+the layout-time animation interruption corrected above. The ten-thousand-image workload completed
+its scan sequence but measured a 67,203,072-byte catalog, exceeding the unchanged 64 MiB ceiling by
+94,208 bytes. This catalog-size failure remains open; no workload, limit or assertion was relaxed.

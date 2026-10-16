@@ -32,6 +32,10 @@ coverage is recorded in the R3 acceptance owner. The heading follows the same le
 count now retains the source total followed by the merged result. Query/filter counts and native
 display are checked. Native filter switching exposed an AXTree pending-node error; isolate that
 semantics lifetime before closing the affected client verification.
+The Windows subtree validator and delayed filter/manifest regression now cover the missing-node
+boundary, without reproducing the native error. Hosted analysis and recovered-dimension failures
+have scoped corrections; the synthetic 10,000-image catalog-size limit still fails and requires
+separate storage-cost diagnosis. Preserve the existing workload and 64 MiB bound.
 
 Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
 The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,
