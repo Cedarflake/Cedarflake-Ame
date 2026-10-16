@@ -1,4 +1,3 @@
-use std::collections::BTreeSet;
 use std::fs::File;
 use std::io;
 use std::mem::size_of;
@@ -13,9 +12,9 @@ use windows_sys::Win32::Storage::FileSystem::{
     CreateFileW, ExtendedFileIdType, FILE_ATTRIBUTE_DIRECTORY, FILE_FLAG_BACKUP_SEMANTICS,
     FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_128, FILE_ID_DESCRIPTOR,
     FILE_ID_DESCRIPTOR_0, FILE_ID_INFO, FILE_READ_ATTRIBUTES, FILE_SHARE_DELETE, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, FILE_STANDARD_INFO, FileIdInfo, FileStandardInfo, FindClose,
-    FindFirstFileNameW, FindNextFileNameW, GetFileInformationByHandleEx, GetFinalPathNameByHandleW,
-    OPEN_EXISTING, OpenFileById, VOLUME_NAME_GUID,
+    FILE_SHARE_WRITE, FILE_STANDARD_INFO, FileIdInfo, FileStandardInfo,
+    GetFileInformationByHandleEx, GetFinalPathNameByHandleW, OPEN_EXISTING, OpenFileById,
+    VOLUME_NAME_GUID,
 };
 use windows_sys::Win32::System::Ioctl::FSCTL_QUERY_USN_JOURNAL;
 
@@ -27,13 +26,14 @@ use crate::journal_broker::RootAuthorization;
 use crate::ports::IdentityJournalLocation;
 
 use super::io::control;
+mod hardlinks;
 mod lookup_errors;
+use hardlinks::HardlinkLookup;
 use lookup_errors::{identity_open_error, metadata_error};
 
 const METADATA_FLAGS: u32 =
     FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OPEN_NO_RECALL | FILE_FLAG_OPEN_REPARSE_POINT;
 const MAX_PATH_UNITS: usize = 32_768;
-const MAX_LINKS: usize = 64;
 
 #[cfg(test)]
 mod tests;
@@ -172,11 +172,17 @@ impl NativeRoot {
             return Ok(None);
         }
         let path = final_path(&file)?;
-        let is_directory = attributes(&file)? & FILE_ATTRIBUTE_DIRECTORY != 0;
+        let file_attributes = attributes(&file)?;
+        let is_directory = file_attributes & FILE_ATTRIBUTE_DIRECTORY != 0;
         let candidates = if is_directory || standard.NumberOfLinks == 1 {
             vec![path]
         } else {
-            link_paths(&path, &self.volume.volume_guid)?
+            HardlinkLookup {
+                identity: identity(&info),
+                link_count: standard.NumberOfLinks,
+                attributes: file_attributes,
+            }
+            .paths(&path, &self.volume.volume_guid)?
         };
         let mut locations = Vec::new();
         for candidate in candidates {
@@ -324,61 +330,6 @@ fn final_path(file: &File) -> Result<String, ScanError> {
         ));
     }
     String::from_utf16(&path[..count]).map_err(|_| invalid())
-}
-
-struct LinkSearch(HANDLE);
-impl Drop for LinkSearch {
-    fn drop(&mut self) {
-        // SAFETY: this owner retains the successful FindFirstFileNameW search handle.
-        let _ = unsafe { FindClose(self.0) };
-    }
-}
-
-fn link_paths(path: &str, volume: &str) -> Result<Vec<String>, ScanError> {
-    let path = terminated(path)?;
-    let mut name = vec![0_u16; MAX_PATH_UNITS];
-    let mut count = name.len() as u32;
-    // SAFETY: all buffers are bounded and live; this enumerates names only, never file data.
-    let raw = unsafe { FindFirstFileNameW(path.as_ptr(), 0, &mut count, name.as_mut_ptr()) };
-    if raw == INVALID_HANDLE_VALUE {
-        let error = io::Error::last_os_error();
-        let code = if error.raw_os_error()
-            == Some(windows_sys::Win32::Foundation::ERROR_NOT_SUPPORTED as i32)
-        {
-            "identity_journal_hardlinks_not_supported"
-        } else {
-            "identity_journal_hardlinks"
-        };
-        return Err(metadata_error(code, error));
-    }
-    let _search = LinkSearch(raw);
-    let mut paths = BTreeSet::new();
-    loop {
-        let length = name
-            .iter()
-            .position(|unit| *unit == 0)
-            .ok_or_else(invalid)?;
-        let relative = String::from_utf16(&name[..length]).map_err(|_| invalid())?;
-        if !relative.starts_with('\\') || paths.len() >= MAX_LINKS {
-            return Err(invalid());
-        }
-        paths.insert(format!("{}{relative}", volume.trim_end_matches('\\')));
-        name.fill(0);
-        count = name.len() as u32;
-        // SAFETY: the search owner and output buffer remain live at their declared capacities.
-        if unsafe { FindNextFileNameW(raw, &mut count, name.as_mut_ptr()) } == 0 {
-            if io::Error::last_os_error().raw_os_error()
-                == Some(windows_sys::Win32::Foundation::ERROR_HANDLE_EOF as i32)
-            {
-                break;
-            }
-            return Err(metadata_error(
-                "identity_journal_hardlink_next",
-                io::Error::last_os_error(),
-            ));
-        }
-    }
-    Ok(paths.into_iter().collect())
 }
 
 fn terminated(path: &str) -> Result<Vec<u16>, ScanError> {

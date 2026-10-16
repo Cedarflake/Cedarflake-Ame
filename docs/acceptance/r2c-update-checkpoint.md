@@ -1214,3 +1214,55 @@ their execution. A focused local attempt stops during LLVM compilation with an o
 no tests execute in that attempt, and its disposable failed incremental output is removed. Owned-file
 formatting and whitespace checks pass. The affected validator has 450 production lines and no inline
 tests; its test facade has 431 lines and the new interruption module has 248 lines.
+
+### Retained journal recovery continuation on 2026-10-16
+
+The error-50 result had been classified as nonrecoverable, excluding its retained checkpoint from
+normal journal scheduling. A successful manual update left that checkpoint unchanged. Older affected
+roots now enter one existing journal worker probe when available, healthy, idle and without pending
+recovery. The probe captures a current opening before admitting metadata recovery. New first/next
+hardlink enumeration error-50 results use the same reconstruction path; partial results cannot
+publish coverage. Native failures retain the operation, file identity, link count and attributes,
+without source paths. The original failing object's identity was not retained and its journal range
+has expired; its precise Windows trigger remains unknown.
+
+The retained run exposed a second boundary failure: closing recovery rejected a partially consumed
+old checkpoint and would replay from the older failed or trimmed cursor. The closing owner now
+validates identity and that the retained captured end is within the opening. Whole-root recovery
+replays from the inventory opening, while subtree recovery preserves the earlier unread interval.
+Journal replacement still requires a different journal identity and whole-root reconstruction.
+Publication remains transactional and absence waits for replay and candidate completion.
+
+The existing 10,000-image corpus and catalog are reused. Automatic startup enumerates 10,013 entries
+into one inventory. After closing is corrected, the production Dart/Rust bridge resumes that same
+inventory, drains 797 pending work items and reaches Current in 41,474 ms, with zero pending,
+retry or gap counts. Its final report contains 10,000 candidates and zero catalog mutations. A fresh
+bridge session reaches Current in 1,456 ms; the inventory count stays one and both baseline windows
+remain completed. These timings measure the resumed tail and subsequent reopen, not the entire
+first recovery. PowerShell reports native stderr as a command error; the bridge prints completion
+and the persisted checkpoint and queue confirm the result.
+
+Native Debug then opens all 10,000 images, displays Current, decodes previews, opens a 3840-by-2160
+JPEG and closes normally. An earlier native recovery attempt terminated in `ucrtbase.dll` with
+`0xc0000409` while its log also contained Flutter AXTree update errors. That crash's cause remains
+open; core continuation and a successful later idle-gallery run do not attribute it. The original
+profile and catalog components are restored and match their saved hashes. All 10,000 fixture sizes
+and modification times match the existing manifest. No source write or placeholder hydration is
+introduced. Cleanup removes 7,333,733 bytes of disposable previews, logs, profile-lease files and
+the bridge probe. The retained catalog, reusable corpus and 114,550-byte unresolved crash log remain.
+
+Boundary regressions cover first/next enumeration failures, partial-page rejection, fresh opening
+without replaying an old failure, one-root admission, unavailable/stale/busy roots, partial checkpoint
+closing and FULL reopen, subtree coverage and journal replacement. Hosted Actions owns execution;
+local work uses owned-file formatting, whitespace review and the necessary native Debug build.
+
+| Changed owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Native identity reader / extracted hardlink lookup | 349 / 92 | 0 | 83 / 54 |
+| Production synchronization / recovery admission | 3,883 / 67 | 10,508 / 0 | 122 for admission |
+| Identity journal volume reader | 442 | 0 | 680 |
+| Persistent journal facade / recovery closing policy | 3,429 / 45 | 4,742 / 0 | 50 for closing policy |
+| Migration interrupted-checkpoint regression module | 0 | 0 | 294 |
+
+The synchronization and persistence facades retain the roadmap's decomposition debt. This change
+adds narrow scheduling and policy calls; it does not introduce schema or bridge changes.

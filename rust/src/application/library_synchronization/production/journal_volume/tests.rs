@@ -9,6 +9,8 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
+mod recovery_admission;
+
 struct Fixture {
     catalog: SqliteCatalog,
     snapshot: LibrarySynchronizationSnapshot,

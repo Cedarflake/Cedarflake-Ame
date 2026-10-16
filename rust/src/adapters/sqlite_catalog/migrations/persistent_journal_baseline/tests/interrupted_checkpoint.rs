@@ -189,6 +189,52 @@ fn recovery_opening_rejects_checkpoint_coverage_beyond_its_authorized_boundary()
 }
 
 #[test]
+fn interrupted_recovery_closes_from_the_new_opening_and_reopens_for_replay() {
+    for resets_journal in [false, true] {
+        let fixture = recovery_lifecycle_catalog(true);
+        let mut catalog = open(&fixture);
+        publish_followup(&mut catalog, false, false);
+        interrupt(
+            &mut catalog,
+            PersistentJournalRootFailureKind::NonRecoverable,
+        );
+        drop(catalog);
+        let recovery = begin_recovery_after_reopen(&fixture, resets_journal);
+        let mut catalog = open(&fixture);
+        let baseline = catalog
+            .load_persistent_journal_baselines()
+            .unwrap()
+            .into_iter()
+            .find(|baseline| baseline.change_id == recovery)
+            .unwrap();
+        let closing = JournalUsn::new(baseline.opening_next_usn.value() + 2).unwrap();
+        catalog
+            .capture_persistent_journal_baseline_closing_boundary(
+                &crate::domain::PersistentJournalBaselineClosingBoundary {
+                    change_id: recovery,
+                    volume: baseline.volume.clone(),
+                    root_file_reference: baseline.root_file_reference.clone(),
+                    journal_id: baseline.journal_id,
+                    closing_next_usn: closing,
+                    protocol_version: baseline.protocol_version,
+                    captured_unix_ms: 14,
+                },
+            )
+            .expect("close a recovery after an interrupted partial batch");
+        let after = checkpoint(&catalog);
+        assert_eq!(after.next_unread_usn, baseline.opening_next_usn);
+        assert_eq!(after.captured_exclusive_end, closing);
+        assert_eq!(
+            after.continuity,
+            PersistentJournalContinuityState::CatchingUp
+        );
+        assert!(after.failure.is_none());
+        drop(catalog);
+        assert_eq!(checkpoint(&open(&fixture)), after);
+    }
+}
+
+#[test]
 fn interrupted_history_requires_explicit_failure_and_unchanged_proven_identity() {
     for mutation in [
         "last_failure_code = NULL, last_failure_message = NULL",

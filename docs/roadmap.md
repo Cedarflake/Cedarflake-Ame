@@ -82,14 +82,16 @@ removed. Preserve the delivered loading geometry, reduced-motion behavior, indep
 controllers, retained filmstrip previews, opening preferences, gallery return position and native
 window placement. This delivery does not reopen the completed synchronization repair goal or start R3.
 
-The separate retained-library startup correction now admits a proven interrupted journal checkpoint
-and its subsequent recovery opening without discarding catalog contents or sync progress. The
-retained 10,000-image catalog opens through the production bridge and native Debug; the six boundary
-regressions accompany the correction for hosted verification. The
+The retained-library follow-up now admits proven interrupted checkpoints and automatically resumes
+older unsupported-hardlink failures through a fresh recovery opening. Whole-root recovery closes
+from its inventory opening; subtree recovery retains earlier unread coverage. The retained
+10,000-image catalog completes recovery and reopens Current without another inventory. The
 [reopening record](acceptance/r2c-update-checkpoint.md#retained-interrupted-journal-reopening-on-2026-10-16)
-owns the failure, native result and verification scope. The original unsupported-hardlink response
-remains recorded as a source synchronization failure; this correction restores catalog usability
-and preserves recovery admission without claiming that the failed lookup has completed.
+owns the startup correction; its following recovery record owns the new boundary regressions,
+hosted verification and retained-library result. The original Windows error-50 file remains
+unidentified; future failures retain bounded file identity and operation details. One native Debug
+process termination during recovery remains to be attributed; the subsequent recovered-gallery
+startup, preview and normal closure pass. Keep that incident separate from completed catalog recovery.
 
 The current repair goal is complete. Native synchronization/browsing flows, large-sample paused-import
 changes, scoped closing review and the final hosted gates pass; profile restoration and disposable-output

@@ -90,6 +90,9 @@ mod catalog_scheduling;
 mod journal_volume;
 
 #[cfg(windows)]
+mod journal_recovery_admission;
+
+#[cfg(windows)]
 use journal_volume::JournalVolumeWork;
 
 #[cfg(windows)]
@@ -2698,6 +2701,16 @@ impl ProductionSynchronization {
             }
             _ => return Ok(()),
         };
+
+        if let Some(work) = journal_recovery_admission::select(catalog, snapshot)? {
+            return self.start_journal_page(
+                work,
+                session,
+                caller,
+                now_unix_ms,
+                storage.catalog_path.clone(),
+            );
+        }
 
         if let Some(work) = super::journal_baseline::select_closing_work(
             catalog,

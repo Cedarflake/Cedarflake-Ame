@@ -141,19 +141,36 @@ fn failed_identity_open_never_removes_directory_history() {
 }
 
 #[test]
-fn unsupported_alias_enumeration_cannot_retain_current_journal_authority() {
+fn unsupported_alias_enumeration_requires_reconstruction_without_current_authority() {
+    let previous = checkpoint();
+    let opening = LibraryRecoveryOpeningBoundary {
+        volume: previous.volume,
+        root_file_reference: previous.root_file_reference,
+        journal_id: previous.journal_id,
+        next_usn: JournalUsn::new(20).unwrap(),
+        protocol_version: previous.protocol_version,
+        contract_version: previous.contract_version,
+    };
     let failure = from_error(
         ScanError::new(
             "identity_journal_hardlinks_not_supported",
             "Windows metadata operation failed: 50",
         ),
-        None,
+        Some(&opening),
     );
     assert_eq!(
         failure.kind,
-        PersistentJournalRootFailureKind::NonRecoverable
+        PersistentJournalRootFailureKind::JournalReconstructionFailure
     );
-    assert!(failure.kind.recovery_reason().is_none());
+    assert_eq!(
+        failure.kind.recovery_reason(),
+        Some(crate::domain::LibraryRecoveryAuthorityReason::JournalReconstructionFailure)
+    );
+    assert_eq!(failure.opening_boundary.as_deref(), Some(&opening));
+    assert_eq!(
+        failure.failure.code,
+        "identity_journal_hardlinks_not_supported"
+    );
 }
 
 #[test]
@@ -183,6 +200,7 @@ struct Source {
     request: std::sync::Mutex<Option<i64>>,
     records: Vec<IdentityJournalRecord>,
     locations: Vec<IdentityJournalLocation>,
+    resolution_failure: Option<ScanError>,
 }
 impl PersistentIdentityJournalSource for Source {
     fn can_probe_baseline(&self, _root: &IdentityJournalRoot) -> bool {
@@ -214,6 +232,9 @@ impl PersistentIdentityJournalSource for Source {
     ) -> Result<IdentityJournalResolution, ScanError> {
         self.resolutions.fetch_add(1, Ordering::Relaxed);
         assert!(references.len() <= MAX_IDENTITY_JOURNAL_REFERENCES);
+        if let Some(failure) = &self.resolution_failure {
+            return Err(failure.clone());
+        }
         Ok(IdentityJournalResolution {
             locations: self.locations.clone(),
             ..Default::default()
@@ -283,6 +304,7 @@ fn no_change_restart_uses_the_production_reader_without_resolving_or_enumerating
         resolutions: AtomicUsize::new(0),
         observed_end: 10,
         request: std::sync::Mutex::new(None),
+        resolution_failure: None,
         records: Vec::new(),
         locations: Vec::new(),
     });
@@ -348,6 +370,7 @@ fn large_unrelated_volume_page_reaches_the_root_change_without_an_inventory() {
         resolutions: AtomicUsize::new(0),
         observed_end: 600,
         request: std::sync::Mutex::new(None),
+        resolution_failure: None,
         records,
         locations: vec![location(2, "fresh.png", false)],
     });
@@ -388,6 +411,7 @@ fn over_capacity_identity_page_is_rejected_before_source_resolution() {
         resolutions: AtomicUsize::new(0),
         observed_end: 200,
         request: std::sync::Mutex::new(None),
+        resolution_failure: None,
         records,
         locations: Vec::new(),
     });
@@ -406,6 +430,7 @@ fn first_import_replay_keeps_its_closing_boundary_when_the_volume_grows() {
         resolutions: AtomicUsize::new(0),
         observed_end: 30,
         request: std::sync::Mutex::new(None),
+        resolution_failure: None,
         records: Vec::new(),
         locations: Vec::new(),
     });
@@ -464,6 +489,7 @@ fn empty_baseline_replay_reads_its_boundary_without_resolving_source_names() {
         resolutions: AtomicUsize::new(0),
         observed_end: 10,
         request: std::sync::Mutex::new(None),
+        resolution_failure: None,
         records: Vec::new(),
         locations: Vec::new(),
     });
@@ -519,6 +545,7 @@ fn partial_catchup_finishes_its_captured_window_before_admitting_later_writes() 
         resolutions: AtomicUsize::new(0),
         observed_end: 30,
         request: std::sync::Mutex::new(None),
+        resolution_failure: None,
         records: Vec::new(),
         locations: Vec::new(),
     });
@@ -560,4 +587,94 @@ fn partial_catchup_finishes_its_captured_window_before_admitting_later_writes() 
     assert_eq!(checkpoint.next_unread_usn.value(), 30);
     assert_eq!(checkpoint.captured_exclusive_end.value(), 30);
     assert_eq!(source.reads.load(Ordering::Relaxed), 2);
+}
+
+#[test]
+fn failed_alias_page_enters_recovery_without_publishing_partial_locations() {
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+        observed_end: 20,
+        request: std::sync::Mutex::new(None),
+        records: page(false).records,
+        locations: vec![location(2, "first.png", false)],
+        resolution_failure: Some(ScanError::new(
+            "identity_journal_hardlinks_not_supported",
+            "Windows metadata operation failed: 50; operation=FindNextFileNameW; identity=7:2",
+        )),
+    });
+    let reader = production_reader(source.clone(), Vec::new());
+    let previous = checkpoint();
+    let outcomes = reader
+        .read_volume(
+            std::slice::from_ref(&previous),
+            &[],
+            2,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+    assert_eq!(outcomes.len(), 1);
+    assert_eq!(outcomes[0].root_id, previous.root_id);
+    let failure = outcomes[0]
+        .page
+        .as_ref()
+        .expect_err("no partial page may advance the checkpoint");
+    assert_eq!(
+        failure.kind,
+        PersistentJournalRootFailureKind::JournalReconstructionFailure
+    );
+    let opening = failure
+        .opening_boundary
+        .as_deref()
+        .expect("fresh recovery opening");
+    assert_eq!(opening.next_usn.value(), 20);
+    assert_eq!(opening.root_file_reference, previous.root_file_reference);
+    assert_eq!(opening.volume, previous.volume);
+    assert_eq!(opening.journal_id, previous.journal_id);
+    assert!(
+        failure
+            .failure
+            .message
+            .contains("FindNextFileNameW; identity=7:2")
+    );
+    assert_eq!(source.reads.load(Ordering::Relaxed), 1);
+    assert_eq!(source.resolutions.load(Ordering::Relaxed), 1);
+}
+
+#[test]
+fn retained_alias_failure_captures_a_new_opening_without_replaying_the_failed_page() {
+    let source = Arc::new(Source {
+        reads: AtomicUsize::new(0),
+        resolutions: AtomicUsize::new(0),
+        observed_end: 30,
+        request: std::sync::Mutex::new(None),
+        records: page(false).records,
+        locations: Vec::new(),
+        resolution_failure: None,
+    });
+    let reader = production_reader(source.clone(), Vec::new());
+    let mut previous = checkpoint();
+    previous.continuity = PersistentJournalContinuityState::RecoveryRequired;
+    previous.captured_exclusive_end = JournalUsn::new(20).unwrap();
+    previous.failure = Some(PersistentJournalFailure {
+        code: "identity_journal_hardlinks_not_supported".to_owned(),
+        message: "Retained alias lookup failure".to_owned(),
+    });
+    let outcomes = reader
+        .read_volume(&[previous], &[], 2, &AtomicBool::new(false))
+        .unwrap();
+    let failure = outcomes[0]
+        .page
+        .as_ref()
+        .expect_err("retained failure enters recovery");
+    assert_eq!(
+        failure.kind,
+        PersistentJournalRootFailureKind::JournalReconstructionFailure
+    );
+    assert_eq!(
+        failure.opening_boundary.as_ref().unwrap().next_usn.value(),
+        30
+    );
+    assert_eq!(source.reads.load(Ordering::Relaxed), 0);
+    assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
 }

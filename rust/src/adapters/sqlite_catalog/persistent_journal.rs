@@ -34,6 +34,7 @@ mod capture_priority;
 mod empty_replay;
 mod first_import_completion;
 mod publication_admission;
+mod recovery_checkpoint;
 mod recovery_opening;
 mod root_unregister;
 
@@ -362,21 +363,23 @@ impl PersistentJournalRepository for SqliteCatalog {
             transaction.commit().map_err(database_error)?;
             return Ok(baseline);
         }
-        let authority_reason = transaction
+        let (authority_reason, recovery_scope) = transaction
             .query_row(
-                "SELECT reason FROM library_recovery_authorities WHERE change_id = ?1",
+                "SELECT authority.reason, queue.scope
+                 FROM library_recovery_authorities AS authority
+                 JOIN library_change_queue AS queue ON queue.id = authority.change_id
+                 WHERE authority.change_id = ?1",
                 [sqlite_integer(
                     boundary.change_id.value(),
                     "baseline change ID",
                 )?],
-                |row| row.get::<_, String>(0),
+                |row| Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?)),
             )
             .map_err(database_error)?;
         let is_recovery_window = !matches!(
             authority_reason.as_str(),
             "existing_root_baseline" | "first_import_boundary"
         );
-        let replaces_checkpoint_journal = authority_reason == "journal_reset";
         let recovery_checkpoint = if is_recovery_window {
             let checkpoint =
                 load_checkpoint(&transaction, &baseline.root_id, baseline.root_generation)?
@@ -386,22 +389,6 @@ impl PersistentJournalRepository for SqliteCatalog {
                             "The recovery closing boundary has no durable checkpoint",
                         )
                     })?;
-            if checkpoint.continuity != PersistentJournalContinuityState::RecoveryRequired
-                || checkpoint.volume != baseline.volume
-                || checkpoint.root_file_reference != baseline.root_file_reference
-                || checkpoint.protocol_version != baseline.protocol_version
-                || checkpoint.contract_version != baseline.contract_version
-                || checkpoint.captured_exclusive_end != checkpoint.next_unread_usn
-                || (replaces_checkpoint_journal && checkpoint.journal_id == baseline.journal_id)
-                || (!replaces_checkpoint_journal
-                    && (checkpoint.journal_id != baseline.journal_id
-                        || checkpoint.next_unread_usn > baseline.opening_next_usn))
-            {
-                return Err(ScanError::new(
-                    "persistent_journal_baseline_closing_mismatch",
-                    "The recovery closing boundary no longer extends its last trustworthy checkpoint",
-                ));
-            }
             Some(checkpoint)
         } else {
             None
@@ -411,11 +398,12 @@ impl PersistentJournalRepository for SqliteCatalog {
             let checkpoint = recovery_checkpoint
                 .as_ref()
                 .expect("recovery windows retain a validated checkpoint");
-            let replay_start = if replaces_checkpoint_journal {
-                baseline.opening_next_usn
-            } else {
-                checkpoint.next_unread_usn
-            };
+            let replay_start = recovery_checkpoint::replay_start(
+                checkpoint,
+                &baseline,
+                &authority_reason,
+                &recovery_scope,
+            )?;
             transaction
                 .execute(
                     "UPDATE library_persistent_journal_checkpoints
@@ -3443,6 +3431,7 @@ fn invalid_storage(name: &str) -> ScanError {
 mod tests {
     mod baseline_window;
     mod publication_admission;
+    mod recovery_checkpoint;
     mod recovery_opening;
     use rusqlite::{TransactionBehavior, params};
     use tempfile::tempdir;

@@ -162,6 +162,18 @@ impl IdentityPersistentJournalVolumeReader {
                 Some(&opening),
             ));
         }
+        if checkpoint.continuity
+            == crate::domain::PersistentJournalContinuityState::RecoveryRequired
+            && let Some(failure) = checkpoint
+                .failure
+                .as_ref()
+                .filter(|failure| failure.code == "identity_journal_hardlinks_not_supported")
+        {
+            return Err(from_error(
+                ScanError::new(&failure.code, &failure.message),
+                Some(&opening),
+            ));
+        }
         if !self
             .namespace
             .has_snapshot(&root)
@@ -408,10 +420,10 @@ fn from_error(
     let kind = match error.code.as_str() {
         "identity_journal_cancelled" => PersistentJournalRootFailureKind::Cancelled,
         "identity_journal_discontinuous" => PersistentJournalRootFailureKind::JournalTrim,
-        "identity_journal_hardlinks_not_supported" => {
-            PersistentJournalRootFailureKind::NonRecoverable
-        }
-        "identity_journal_identity_invalid"
+        // One failed file-name enumeration requires reconstruction of the affected root;
+        // it does not establish that the volume permanently lacks journal support.
+        "identity_journal_hardlinks_not_supported"
+        | "identity_journal_identity_invalid"
         | "identity_journal_record_invalid"
         | "persistent_journal_baseline_read_window_invalid"
         | "persistent_journal_catchup_window_regressed" => {
