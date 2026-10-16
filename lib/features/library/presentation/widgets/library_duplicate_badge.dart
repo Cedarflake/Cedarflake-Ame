@@ -62,6 +62,7 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
             tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           onPressed: () async {
+            final restoreFocus = _focus.hasFocus;
             await showDialog<void>(
               context: context,
               builder: (_) => LibraryDuplicateLocationsDialog(
@@ -69,7 +70,9 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
                 currentLocationId: widget.locationId,
               ),
             );
-            if (context.mounted && TickerMode.valuesOf(context).enabled) {
+            if (restoreFocus &&
+                context.mounted &&
+                TickerMode.valuesOf(context).enabled) {
               _focus.requestFocus();
             }
           },

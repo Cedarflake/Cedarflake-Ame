@@ -252,7 +252,10 @@ void main() {
         );
         await tester.pumpAndSettle();
         final badge = find.byKey(const ValueKey("duplicate-badge-one"));
-        await tester.tap(badge);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pump();
+        expect(tester.widget<IconButton>(badge).focusNode!.hasFocus, isTrue);
+        await tester.sendKeyEvent(LogicalKeyboardKey.enter);
         await tester.pumpAndSettle();
         final panel = find.byKey(const Key("duplicate-locations-dialog"));
         expect(find.text("2 张重复图片"), findsOneWidget);

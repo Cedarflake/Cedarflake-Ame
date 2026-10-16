@@ -396,6 +396,12 @@ pass after it. Other existing application scroll views retain their shared motio
 The updated Debug reused the retained test catalog; native wheel checks covered downward and
 reverse scrolling in both review layouts. The client remains open for visual inspection.
 
+Duplicate-dialog dismissal restores badge focus only when the badge held focus before opening.
+The real photo-tile regression reproduced an unwanted focus and persistent selection control after
+mouse dismissal. Both mouse and keyboard cases now pass, alongside ten existing dialog/workspace
+checks. Keyboard path-layout checks now open with Tab/Enter and retain Escape focus restoration.
+Native verification of this follow-up belongs to the next updated Debug check.
+
 The reported preference-switch flash was traced to the preference transaction advancing the catalog
 revision, followed by the gallery refresh notifying a review listener that cleared member payloads.
 Catalog and analysis publications now revalidate without removing the rendered range. Explicit
