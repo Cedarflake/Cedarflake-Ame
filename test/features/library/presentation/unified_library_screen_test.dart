@@ -418,9 +418,15 @@ void main() {
     )!;
     await tester.pump();
     expectCurrentAnchor();
-    final firstGeometry = tester
-        .widget<LibraryExactExtentSliver>(find.byType(LibraryExactExtentSliver))
-        .itemStartOffsets;
+    Map<String, double> visibleCardWidths() => {
+      for (final asset in assets)
+        if (find.byKey(ValueKey(asset.locationId)).evaluate().length == 1)
+          asset.locationId: tester
+              .getSize(find.byKey(ValueKey(asset.locationId)))
+              .width,
+    };
+
+    final firstWidths = visibleCardWidths();
     var completedVisible = false;
     for (var attempt = 0; attempt < 10 && !completedVisible; attempt++) {
       for (final locationId in previewer.requests.toList()) {
@@ -441,10 +447,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
     await tester.pump();
     await tester.pump();
-    final secondGeometry = tester
-        .widget<LibraryExactExtentSliver>(find.byType(LibraryExactExtentSliver))
-        .itemStartOffsets;
-    expect(secondGeometry, isNot(firstGeometry));
+    final secondWidths = visibleCardWidths();
+    expect(
+      firstWidths.entries.any(
+        (entry) =>
+            secondWidths.containsKey(entry.key) &&
+            (secondWidths[entry.key]! - entry.value).abs() > 0.01,
+      ),
+      isTrue,
+      reason: "recovered dimensions must change rendered card geometry",
+    );
     expectCurrentAnchor();
     await tester.pumpWidget(const SizedBox());
   });

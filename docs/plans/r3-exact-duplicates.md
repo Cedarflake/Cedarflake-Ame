@@ -45,6 +45,9 @@ the changed client paths have been checked against the reusable corpus, includin
 reopening with zero additional content reads. The Settings-menu accessibility failure was reproduced
 with the retained gallery's timeline slider. Its always-mounted value-indicator portal now retires
 when the gallery is hidden; the focused regression and native menu-close/return-position check pass.
+The hosted native, scan, release and synthetic checks passed on `515f5e6`. Its two analyzer findings
+and three gallery regressions are corrected: rows retain exact item ordinals, and dimension recovery
+checks rendered card widths. The content-sized card controls also passed the isolated client check.
 The current head still requires its applicable Actions results.
 
 | Order | Delivery | Current state |

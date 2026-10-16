@@ -7,7 +7,6 @@ import "package:cedarflake_ame/features/library/presentation/widgets/vertical_ma
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/settings_section.dart";
-import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";

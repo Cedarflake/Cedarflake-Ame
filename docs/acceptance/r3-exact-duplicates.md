@@ -168,8 +168,10 @@ open/close and gallery-return cycles with the same timeline owner and value.
 The rebuilt ordinary Debug entrypoint also restored the full native Settings control tree after
 closing the theme menu. Returning to the gallery retained the 2017 middle position; the client
 remained responsive and exited on request, with no AXTree, FATAL or unhandled-error matches in
-this run's stderr. Hosted validation remains pending. No cause is inferred for the older deferred
-R2c incident.
+this run's stderr. On `515f5e6`, hosted Windows Accessibility, Windows Scan, unsigned Release and all
+five synthetic workloads passed. Static validation stopped at two Dart informational lints before
+Rust tests ran; Flutter reported the three gallery regressions described below. No cause is inferred
+for the older deferred R2c incident.
 
 The latest isolated client exited on request. Original preferences, settings and original catalog
 hashes were restored and verified. An older terminated test descendant remains listed by Windows
@@ -205,15 +207,34 @@ no overflow, AXTree, fatal or unhandled-error matches in stderr. Original prefer
 catalog hashes were restored and verified; the six disposable profile/cache targets were removed.
 The reusable source corpus and catalog were retained.
 
+## Gallery ordinal recovery
+
+The two hosted anchor failures reproduced locally. With fractional square-row extents, converting
+a rendered row offset back to an item index selected the preceding row after floating-point
+rounding. The captured location was item 67 while its ordinal was 62. The identity guard then
+rejected restoration on a second layout change, and cancelling a pending sort fell back to the
+first item. Loaded-window layout entries now retain their integer start ordinal; anchor capture
+and target-row lookup use those ordinals directly. Identity and query-generation guards remain.
+
+The third failing fixture compared row start offsets after dimensions were recovered. Under the
+narrower workbench width, the cards changed widths within the same number of fixed-height rows,
+so those offsets legitimately stayed equal. It now asserts changed rendered card widths and keeps
+the existing wheel-position preservation checks. The 43-case affected screen file and six layout
+cases passed locally, including fractional rows, date boundaries and both layout shapes. The two
+Dart lint findings were corrected at their declarations. Full automated validation of this repair
+belongs to the next Actions run.
+
 Large existing owners were extended only at registration/dispatch boundaries: `sqlite_catalog.rs`
 has 3,621 production lines, no inline tests and 8,009 lines in its existing dedicated test file;
 `migrations.rs` has 9,845 production lines and 5,267 inline-test lines. New analysis, query,
 publication and migration behavior has dedicated owners. The existing gallery shell remains the viewer/query owner; navigation and sidebar preference
 ownership moved into `LibraryWorkbench`, and hidden-gallery preview retirement has its own widget.
-The changed shell has 2,014 production lines and 4,135 dedicated-test lines; the gallery wall has
-2,028 production lines and 1,738 lines in the affected resize/visibility test file. Neither owner
+The changed shell has 2,014 production lines and 4,147 dedicated-test lines; the gallery wall has
+2,014 production lines and 1,738 lines in the affected resize/visibility test file. Neither owner
 has inline tests. The workbench, analysis page and activity widget own their new responsibilities.
 Card measurement and action layout have separate 53-line and 54-line owners, with 142 dedicated
 widget-test lines. The photo tile now has 452 production lines and no inline tests.
+The loaded-window layout owner has 425 production lines and 230 dedicated-test lines, with no
+inline tests; it owns ordinal assignment and target-row lookup.
 The topology-only edit in `local_files.rs` changes its inline test declarations; it retains 3,694
 production lines, 3,512 inline-test lines and 436 dedicated-test lines without new production logic.

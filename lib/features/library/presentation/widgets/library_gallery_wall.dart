@@ -249,7 +249,6 @@ class LibraryGalleryWall extends StatelessWidget {
           transition: layoutTransition,
           state: state,
           entries: entries,
-          entryStartOffsets: entryStartOffsets,
           metrics: layoutMetrics,
           virtualGeometry: virtualGeometry,
           viewportExtent: constraints.maxHeight,
@@ -263,7 +262,6 @@ class LibraryGalleryWall extends StatelessWidget {
           resolve: (scrollOffset, viewportDimension) => _positionAtOffset(
             entries,
             entryStartOffsets,
-            layoutMetrics,
             scrollOffset - virtualGeometry.leadingExtent,
             viewportDimension,
             state.windowStartItemOffset,
@@ -285,7 +283,6 @@ class LibraryGalleryWall extends StatelessWidget {
           final visiblePosition = _positionAtOffset(
             entries,
             entryStartOffsets,
-            layoutMetrics,
             localScrollOffset,
             metrics.viewportDimension,
             state.windowStartItemOffset,
@@ -676,7 +673,6 @@ class LibraryGalleryWall extends StatelessWidget {
   static LibraryGalleryVisiblePosition? _positionAtOffset(
     List<LibraryGalleryLayoutEntry> entries,
     List<double> entryStartOffsets,
-    LibraryGalleryLayoutMetrics metrics,
     double scrollOffset,
     double viewportDimension,
     int windowStartItemOffset,
@@ -699,11 +695,10 @@ class LibraryGalleryWall extends StatelessWidget {
     }
     final activeEntry = entries[activeIndex];
     final rowOffset = entryStartOffsets[activeIndex] + 18;
-    final rowStartItemIndex = metrics.itemIndexForScrollOffset(rowOffset);
     final centerCellIndex = LibraryGalleryViewportAnchor.centerCellIndex([
       for (final cell in activeEntry.cells) cell.width,
     ], availableWidth);
-    final itemIndex = rowStartItemIndex + centerCellIndex;
+    final itemIndex = activeEntry.startItemIndex + centerCellIndex;
     final fractions = LibraryGalleryAnchorFractions.capture(
       rowOffset: rowOffset,
       rowHeight: activeEntry.rowHeight,
@@ -784,7 +779,6 @@ class LibraryGalleryWall extends StatelessWidget {
     required LibraryGalleryLayoutTransition? transition,
     required LibraryState state,
     required List<LibraryGalleryLayoutEntry> entries,
-    required List<double> entryStartOffsets,
     required LibraryGalleryLayoutMetrics metrics,
     required LibraryVirtualGalleryGeometry virtualGeometry,
     required double viewportExtent,
@@ -824,25 +818,17 @@ class LibraryGalleryWall extends StatelessWidget {
     if (rowOffset == null) {
       return null;
     }
-    final entryTarget = rowOffset - 18;
-    var lower = 0;
-    var upper = entryStartOffsets.length;
-    while (lower < upper) {
-      final middle = lower + ((upper - lower) >> 1);
-      if (entryStartOffsets[middle] <= entryTarget) {
-        lower = middle + 1;
-      } else {
-        upper = middle;
-      }
-    }
-    final entryIndex = lower - 1;
-    if (entryIndex < 0 || entries[entryIndex].rowHeight <= 0) {
+    final row = LibraryGalleryLayoutEntry.photoRowForItemIndex(
+      entries,
+      localItemIndex,
+    );
+    if (row == null || row.rowHeight <= 0) {
       return null;
     }
     final target =
         virtualGeometry.leadingExtent +
         rowOffset +
-        entries[entryIndex].rowHeight * position.itemFraction -
+        row.rowHeight * position.itemFraction -
         viewportExtent * position.viewportFraction;
     final maximum = (virtualGeometry.totalContentExtent - viewportExtent)
         .clamp(0, double.infinity)

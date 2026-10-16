@@ -10,6 +10,7 @@ class LibraryGalleryLayoutEntry {
   const LibraryGalleryLayoutEntry({
     required this.extent,
     required this.monthKey,
+    required this.startItemIndex,
     this.dateKey,
     this.headerLabel,
     this.rowHeight = 0,
@@ -28,6 +29,29 @@ class LibraryGalleryLayoutEntry {
   final double rowHeight;
   final List<LibraryGalleryLayoutCell> cells;
   final String? firstLocationId;
+  // Ordinal in the loaded asset window; pixel rounding must not change identity.
+  final int startItemIndex;
+
+  static LibraryGalleryLayoutEntry? photoRowForItemIndex(
+    List<LibraryGalleryLayoutEntry> entries,
+    int itemIndex,
+  ) {
+    var lower = 0;
+    var upper = entries.length;
+    while (lower < upper) {
+      final middle = lower + ((upper - lower) >> 1);
+      if (entries[middle].startItemIndex <= itemIndex) {
+        lower = middle + 1;
+      } else {
+        upper = middle;
+      }
+    }
+    if (lower == 0) {
+      return null;
+    }
+    final entry = entries[lower - 1];
+    return itemIndex < entry.startItemIndex + entry.cells.length ? entry : null;
+  }
 
   static List<LibraryGalleryLayoutEntry> build({
     required List<LibraryAsset> assets,
@@ -71,6 +95,7 @@ class LibraryGalleryLayoutEntry {
         squareColumnCount;
 
     final entries = <LibraryGalleryLayoutEntry>[];
+    var groupStartItemIndex = 0;
     for (final group in groups) {
       final monthKey = group.dateKey?.substring(0, 7);
       if (sortKey != LibraryGallerySortKey.fileName) {
@@ -78,6 +103,7 @@ class LibraryGalleryLayoutEntry {
           LibraryGalleryLayoutEntry(
             extent: headerExtent,
             monthKey: monthKey,
+            startItemIndex: groupStartItemIndex,
             dateKey: group.dateKey,
             headerLabel: _dateLabel(group.dateKey),
             firstLocationId: group.assets.first.locationId,
@@ -101,6 +127,7 @@ class LibraryGalleryLayoutEntry {
             LibraryGalleryLayoutEntry(
               extent: row.height + spacing,
               monthKey: monthKey,
+              startItemIndex: groupStartItemIndex + row.cells.first.itemIndex,
               rowHeight: row.height,
               firstLocationId:
                   group.assets[row.cells.first.itemIndex].locationId,
@@ -125,6 +152,7 @@ class LibraryGalleryLayoutEntry {
             LibraryGalleryLayoutEntry(
               extent: squareTileSize + spacing,
               monthKey: monthKey,
+              startItemIndex: groupStartItemIndex + start,
               rowHeight: squareTileSize,
               firstLocationId: group.assets[start].locationId,
               cells: [
@@ -135,10 +163,12 @@ class LibraryGalleryLayoutEntry {
           );
         }
       }
+      groupStartItemIndex += group.assets.length;
       entries.add(
         LibraryGalleryLayoutEntry(
           extent: groupGap,
           monthKey: monthKey,
+          startItemIndex: groupStartItemIndex,
           firstLocationId: group.assets.last.locationId,
         ),
       );

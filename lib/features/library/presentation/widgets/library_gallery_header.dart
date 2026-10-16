@@ -195,7 +195,7 @@ class _BrowsingToolbar extends StatelessWidget {
           onSortKeyChanged: onSortKeyChanged,
           onDirectionChanged: onSortDirectionChanged,
         ),
-        if (filter != null) filter!,
+        ?filter,
         _LayoutMenu(
           shape: layoutShape,
           size: thumbnailSize,
