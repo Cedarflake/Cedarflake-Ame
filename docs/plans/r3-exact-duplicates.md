@@ -42,13 +42,14 @@ location reveal are connected. Automatic analysis now follows catalog publicatio
 foreground browsing and media reads; pause persists across restart. Both gallery modes now include
 duplicate-location badges, with the selected mode restored after restart. Retain the existing analysis implementation and verification;
 the changed client paths have been checked against the reusable corpus, including unchanged
-reopening with zero additional content reads. Native accessibility updates still fail after closing
-the Settings menu, and another client exit recorded rejected accessibility-tree updates. This remains
-an affected-client gap; automated regressions await Actions.
+reopening with zero additional content reads. The Settings-menu accessibility failure was reproduced
+with the retained gallery's timeline slider. Its always-mounted value-indicator portal now retires
+when the gallery is hidden; the focused regression and native menu-close/return-position check pass.
+The current head still requires its applicable Actions results.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |
-| R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client check recorded; native Settings-menu accessibility restoration remains under diagnosis |
+| R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client and native Settings-menu restoration checks recorded; applicable Actions results pending |
 | R3-02 | Maintain duplicate results through incremental changes | Committed; automatic scheduling, foreground priority, unchanged reuse and closed-process additions/removals checked; native pause/resume and paused restart now checked; remaining automated results belong to Actions |
 | R3-03 | Connect both gallery display modes and duplicate badges | Implemented; 10,000 all-images / 72 merged entries, location reveal, restart preference and automatic 74-to-72 folding checked in the reused client corpus; new regressions await Actions |
 | R3-04 | Review groups and preserve preferred-copy/ignore decisions | Queued after R3-03 |

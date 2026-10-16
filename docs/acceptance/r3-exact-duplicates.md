@@ -115,6 +115,10 @@ analysis schema before restoring older contracts. Incremental-analysis fixtures 
 allocate distinct source generations, and module-topology expectations include the two declared
 R3 modules with their exact visibility and attributes. Existing negative guard/marker checks remain
 and now cover both R3 schema versions. Actions owns execution of these corrected boundaries.
+The next run at `82af2f5` stopped before Rust tests because a fully specified historical
+location-anchor query omitted the new `duplicate_mode` field. The fixture now explicitly retains
+All images. Synthetic jobs also stopped in their Rust build phase; their workload results remain
+pending. Windows scan and unsigned Release passed on that head.
 
 ## Gallery modes and automatic publication
 
@@ -154,11 +158,22 @@ unexpectedly. Its stderr records rejected `ui::AXTree` updates, including an unr
 nodes left pending. A fresh client reproduced the Settings-menu accessibility failure: after Escape,
 the page remained visible, while UIA retained an empty popup subtree and the engine rejected an
 unreachable node. Adding a workspace semantics boundary did not resolve it and was removed.
-The framework-only Windows traversal and serialized-update fixtures passed; the discrepancy with
-the native bridge remains under diagnosis. No cause is inferred for the older deferred R2c incident.
+The earlier fixture did not include the gallery timeline. Framework inspection identified the
+rejected node as the Material Slider's always-mounted value-indicator OverlayPortal. Adding the
+actual timeline slider reproduced the unreachable-node failure in the serialized-update regression.
+The slider now retires when its retained workspace disables TickerMode, preserving its externally
+owned value and the gallery state. Both focused regressions pass, including three Settings-menu
+open/close and gallery-return cycles with the same timeline owner and value.
+
+The rebuilt ordinary Debug entrypoint also restored the full native Settings control tree after
+closing the theme menu. Returning to the gallery retained the 2017 middle position; the client
+remained responsive and exited on request, with no AXTree, FATAL or unhandled-error matches in
+this run's stderr. Hosted validation remains pending. No cause is inferred for the older deferred
+R2c incident.
 
 The latest isolated client exited on request. Original preferences, settings and original catalog
-hashes were restored and verified, then disposable profile copies and preview caches were removed.
+hashes were restored and verified. An older terminated test descendant remains listed by Windows
+with zero threads and zero handles; no additional desktop process was terminated for cleanup.
 The reusable corpus and catalog, plus the logs of the native failure, remain available.
 
 Large existing owners were extended only at registration/dispatch boundaries: `sqlite_catalog.rs`

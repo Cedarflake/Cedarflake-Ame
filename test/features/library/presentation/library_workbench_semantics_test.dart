@@ -3,8 +3,12 @@ import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/vertical_material_timeline_slider.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/presentation/ame_settings_page.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/settings_section.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -20,6 +24,8 @@ void main() {
     "retained Settings restores semantics after closing its menu",
     (tester) async {
       final semantics = tester.ensureSemantics();
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer();
       try {
         await tester.pumpWidget(
           ProviderScope(
@@ -28,23 +34,31 @@ void main() {
                 body: LibraryWorkbench(
                   navigationBuilder: (width) =>
                       SizedBox(width: width, child: const Text("Folders")),
-                  galleryBuilder: (toggle) =>
-                      Column(children: [toggle, const Text("Gallery")]),
-                  duplicatesBuilder: (_) => const Text("Duplicates"),
-                  settingsBuilder: (_) => Column(
+                  galleryBuilder: (toggle) => Column(
                     children: [
-                      const Text("设置"),
-                      SettingsChoice<int>(
-                        value: 0,
-                        entries: const [
-                          SettingsChoiceEntry(value: 0, label: "跟随系统"),
-                          SettingsChoiceEntry(value: 1, label: "浅色"),
-                          SettingsChoiceEntry(value: 2, label: "深色"),
-                        ],
-                        onSelected: (_) {},
+                      toggle,
+                      const Text("Gallery"),
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerRight,
+                          child: SizedBox(
+                            width: 48,
+                            child: VerticalMaterialTimelineSlider(
+                              value: 0.35,
+                              endpointInset: 24,
+                              onChanged: (_) {},
+                              onChangeStart: (_) {},
+                              onChangeEnd: (_) {},
+                              semanticLabelFor: (_) => "2026年3月",
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
+                  duplicatesBuilder: (_) => const Text("Duplicates"),
+                  settingsBuilder: (_) =>
+                      const AmeSettingsPage(hasLibraryRoots: false),
                   onSidebarResizeChanged: (_) {},
                   onPreferenceError: (_, error) => fail("$error"),
                 ),
@@ -52,10 +66,22 @@ void main() {
             ),
           ),
         );
+        final timelineState = tester.state(
+          find.byType(VerticalMaterialTimelineSlider),
+        );
         for (var cycle = 0; cycle < 3; cycle += 1) {
-          await tester.tap(find.byKey(const Key("library-sidebar-settings")));
+          final settings = find.byKey(const Key("library-sidebar-settings"));
+          await mouse.moveTo(tester.getCenter(settings));
+          await tester.pump(const Duration(milliseconds: 600));
+          await tester.tap(settings);
           await tester.pumpAndSettle();
-          await tester.tap(find.byType(OutlinedButton));
+          expect(find.byType(Slider, skipOffstage: false), findsNothing);
+          final themeChoice = find.descendant(
+            of: find.byType(SettingsChoice<AmeThemePreference>),
+            matching: find.byType(OutlinedButton),
+          );
+          await mouse.moveTo(tester.getCenter(themeChoice));
+          await tester.tap(themeChoice);
           await tester.pumpAndSettle();
           RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
             trace: "settings-open-$cycle",
@@ -73,8 +99,14 @@ void main() {
           );
           await tester.tap(find.byKey(const Key("workbench-gallery")));
           await tester.pumpAndSettle();
+          expect(
+            tester.state(find.byType(VerticalMaterialTimelineSlider)),
+            same(timelineState),
+          );
+          expect(tester.widget<Slider>(find.byType(Slider)).value, 0.65);
         }
       } finally {
+        await mouse.removePointer();
         semantics.dispose();
       }
     },
