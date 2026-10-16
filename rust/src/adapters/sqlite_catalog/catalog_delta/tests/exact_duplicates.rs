@@ -199,6 +199,7 @@ fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
                 &format!("{suffix}.jpg"),
             );
             entry.file_identity = Some(identity(index + 1));
+            entry.source_generation = 0;
             entry
         })
         .collect::<Vec<_>>();
@@ -257,7 +258,9 @@ fn publish_fingerprint(catalog: &mut SqliteCatalog, id: &str, digest: char) {
                 &fingerprint(digest),
                 &AtomicBool::new(false),
             )
-            .unwrap()
+            .unwrap(),
+        "admit fingerprint for {id} at generation {}",
+        source.location.source_generation,
     );
 }
 

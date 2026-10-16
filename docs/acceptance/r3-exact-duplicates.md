@@ -109,6 +109,13 @@ tests. The failing logs include closed module-topology declarations, fingerprint
 and historical-schema fixtures; these are being traced to their owning contracts. The new head
 requires its own Actions results.
 
+The follow-up preserves the same inventory/live-gap DDL checks for schema 40 and 41, with unknown
+versions still rejected. Historical fixture downgrades now remove the R3 evidence projection and
+analysis schema before restoring older contracts. Incremental-analysis fixtures ask the catalog to
+allocate distinct source generations, and module-topology expectations include the two declared
+R3 modules with their exact visibility and attributes. Existing negative guard/marker checks remain
+and now cover both R3 schema versions. Actions owns execution of these corrected boundaries.
+
 ## Gallery modes and automatic publication
 
 The retained test catalog upgraded from schema 40 to 41 without reading source content. The
@@ -162,3 +169,5 @@ ownership moved into `LibraryWorkbench`, and hidden-gallery preview retirement h
 The changed shell has 2,014 production lines and 4,135 dedicated-test lines; the gallery wall has
 2,006 production lines and 1,738 lines in the affected resize/visibility test file. Neither owner
 has inline tests. The workbench, analysis page and activity widget own their new responsibilities.
+The topology-only edit in `local_files.rs` changes its inline test declarations; it retains 3,694
+production lines, 3,512 inline-test lines and 436 dedicated-test lines without new production logic.

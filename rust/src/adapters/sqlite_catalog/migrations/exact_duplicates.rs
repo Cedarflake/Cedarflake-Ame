@@ -126,4 +126,33 @@ fn require_object(
 }
 
 #[cfg(test)]
+pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v39_for_test(
+    connection: &Connection,
+) {
+    let version: i64 = connection
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("exact analysis fixture version");
+    if !matches!(version, 40 | 41) {
+        return;
+    }
+    let transaction = connection
+        .unchecked_transaction()
+        .expect("exact analysis fixture downgrade");
+    if version == 41 {
+        transaction
+            .execute_batch("DROP TABLE gallery_content_fingerprints")
+            .expect("remove published gallery evidence");
+    }
+    for (kind, name, _) in OBJECTS.iter().rev() {
+        transaction
+            .execute_batch(&format!("DROP {kind} {name}"))
+            .expect("remove exact analysis fixture schema");
+    }
+    transaction
+        .execute_batch("UPDATE schema_info SET version = 39; PRAGMA user_version = 39;")
+        .expect("restore v39 fixture version");
+    transaction.commit().expect("publish v39 fixture");
+}
+
+#[cfg(test)]
 mod tests;

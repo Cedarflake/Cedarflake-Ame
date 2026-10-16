@@ -1,17 +1,7 @@
 use super::*;
 
 fn restore_v39(connection: &Connection) {
-    connection
-        .execute_batch("DROP TABLE gallery_content_fingerprints")
-        .unwrap();
-    for (kind, name, _) in OBJECTS.iter().rev() {
-        connection
-            .execute_batch(&format!("DROP {kind} {name}"))
-            .unwrap();
-    }
-    connection
-        .execute_batch("UPDATE schema_info SET version = 39; PRAGMA user_version = 39;")
-        .unwrap();
+    downgrade_to_v39_for_test(connection);
 }
 
 #[test]

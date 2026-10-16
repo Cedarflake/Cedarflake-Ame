@@ -5842,6 +5842,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "exact_content_reader",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "windows_identity_journal",
             visibility: "",
             attributes: &["cfg(windows)"],
@@ -5922,6 +5928,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "exact_duplicates",
+            visibility: "pub(crate)",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "media_admission_recheck",
             visibility: "",
