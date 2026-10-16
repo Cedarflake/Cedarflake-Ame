@@ -583,3 +583,22 @@ were emitted during this check. The active client and restoration backup remain 
 source media and the original catalog are unchanged. The sheet has 168 production lines and no
 inline tests; new sheet, motion, exact-interaction and focus test owners have 143/84/489/177 lines.
 Applicable hosted verification belongs to the submitted head.
+
+## Photo-wall geometry motion
+
+Sidebar movement now carries the photo content's left edge while the toolbar and timeline retain
+their right-edge positions. A separate mounted-item motion owner interpolates cell position and
+size across lazy rows for sidebar and window dimension changes. It consumes the geometry owner's
+pending scroll correction before the sliver applies it, keeping the first painted frame aligned.
+Query-wide geometry still rebuilds only for destination widths; motion does not enumerate the catalog.
+
+Thirty-nine focused cases pass: layout motion and rapid retargeting (3), existing geometry/scroll
+ownership (25), sidebar boundaries and reduced motion (3), right-edge/content-edge geometry at
+three widths and two text scales (6), and retained viewer semantics (2). Final-size assertions for
+height changes now wait for the 180-millisecond transition; their original anchor bounds remain.
+The existing continuous sidebar-resize anchor check passes without relaxing its two-pixel bound.
+The local analyzer and format gate pass. Native Debug inspection reused the retained 10,000-file
+catalog and covered sidebar collapse/expand and maximize/restore. No Dart, AXTree or native errors
+were emitted. The current client remains open for inspection; source media and catalog data are
+unchanged. Production owners have 1,971 wall, 226 motion, 94 entry and 66 sidebar-content lines,
+with no inline tests; the new motion regression has 132 lines. Hosted checks belong to the pushed head.

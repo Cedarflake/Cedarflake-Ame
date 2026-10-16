@@ -35,6 +35,16 @@ together; the destination-width gallery remains right-aligned inside that clip. 
 would translate its right-edge controls while the clip and child have different widths. The toolbar
 also remains right-aligned below the title in narrow layouts. The gallery receives only its final
 width for each toggle; its query-wide geometry must not reflow at every animation frame.
+The photo viewport separately follows the moving left boundary through a left-aligned OverflowBox
+inside a right-anchored clip. Its toolbar and time rail remain outside that content motion.
+`LibraryGalleryLayoutMotion` owns a bounded registry of mounted sliver items and interpolates their
+rectangles for sidebar and window-size changes. The installed SDK's AnimatedBuilder, Transform and
+OverflowBox retain the existing scroll, input and semantic primitives; AnimatedSize alone cannot
+carry an item across lazy rows, and a whole-wall scale would distort icons and rounded corners.
+Resize each tile with interpolated constraints rather than scaling its rendered contents. Retarget
+from the displayed rectangle, retire item records on unmount, and clear motion on query changes,
+direct scrolling or reduced motion. The existing geometry owner supplies its pending scroll
+correction so the first animated frame accounts for the sliver's later layout correction.
 A plain `AnimatedSize` around the sidebar would propagate intermediate
 widths into the photo wall. Retain both widget subtrees, disable collapsed-sidebar input, finish
 hidden or reduced-motion transitions immediately, and reverse rapid toggles from the current value.

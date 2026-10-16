@@ -17,6 +17,8 @@ import "library_exact_extent_sliver.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
 import "library_gallery_layout_snapshot.dart";
+import "library_gallery_layout_motion.dart";
+import "library_gallery_motion_entries.dart";
 import "library_gallery_position.dart";
 import "library_gallery_reflow.dart";
 import "library_photo_tile.dart";
@@ -349,7 +351,7 @@ class LibraryGalleryWall extends StatelessWidget {
             );
           }
         });
-        return ScrollConfiguration(
+        final content = ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
@@ -431,6 +433,7 @@ class LibraryGalleryWall extends StatelessWidget {
                     child: KeyedSubtree(
                       key: const Key("library-photo-wall"),
                       child: CustomScrollView(
+                        clipBehavior: Clip.none,
                         key: _LibraryGalleryScrollViewKey(scrollController),
                         controller: scrollController,
                         slivers: [
@@ -471,79 +474,53 @@ class LibraryGalleryWall extends StatelessWidget {
                               addSemanticIndexes: false,
                               itemBuilder: (context, index) {
                                 final entry = entries[index];
+                                final offset =
+                                    virtualGeometry.leadingExtent +
+                                    18 +
+                                    entryStartOffsets[index];
                                 if (entry.headerLabel case final label?) {
-                                  return SizedBox(
-                                    height: entry.extent,
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Semantics(
-                                        header: true,
-                                        child: Text(
-                                          label,
-                                          key: ValueKey(
-                                            "gallery-date-${entry.dateKey ?? 'unknown'}",
-                                          ),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.titleSmall,
-                                        ),
-                                      ),
+                                  return LibraryGalleryMotionHeader(
+                                    label: label,
+                                    dateKey: entry.dateKey,
+                                    rect: Rect.fromLTWH(
+                                      0,
+                                      offset,
+                                      availableWidth,
+                                      entry.extent,
                                     ),
                                   );
                                 }
                                 if (entry.cells.isEmpty) {
                                   return SizedBox(height: entry.extent);
                                 }
-                                return SizedBox(
-                                  height: entry.extent,
-                                  child: Align(
-                                    alignment: Alignment.topLeft,
-                                    child: SizedBox(
-                                      height: entry.rowHeight,
-                                      child: Row(
-                                        children: [
-                                          for (
-                                            var cellIndex = 0;
-                                            cellIndex < entry.cells.length;
-                                            cellIndex++
-                                          ) ...[
-                                            if (cellIndex > 0)
-                                              const SizedBox(
-                                                width: LibraryGalleryLayoutEntry
-                                                    .spacing,
-                                              ),
-                                            LibraryPhotoTile(
-                                              key: ValueKey(
-                                                entry
-                                                    .cells[cellIndex]
-                                                    .asset
-                                                    .locationId,
-                                              ),
-                                              asset:
-                                                  entry.cells[cellIndex].asset,
-                                              width:
-                                                  entry.cells[cellIndex].width,
-                                              height: entry.rowHeight,
-                                              isSelecting: isSelecting,
-                                              isSelected: selection.contains(
-                                                entry
-                                                    .cells[cellIndex]
-                                                    .asset
-                                                    .assetId,
-                                              ),
-                                              onOpen: onOpen,
-                                              onToggleSelection:
-                                                  onToggleSelection,
-                                              onViewInformation:
-                                                  onViewInformation,
-                                              onCopyPath: onCopyPath,
-                                              onRevealFile: onRevealFile,
-                                            ),
-                                          ],
-                                        ],
+                                return LibraryGalleryMotionRow(
+                                  extent: entry.extent,
+                                  width: availableWidth,
+                                  height: entry.rowHeight,
+                                  offset: offset,
+                                  cellWidths: [
+                                    for (final cell in entry.cells) cell.width,
+                                  ],
+                                  identityAt: (index) =>
+                                      entry.cells[index].asset.locationId,
+                                  builder: (index, size) {
+                                    final asset = entry.cells[index].asset;
+                                    return LibraryPhotoTile(
+                                      key: ValueKey(asset.locationId),
+                                      asset: asset,
+                                      width: size.width,
+                                      height: size.height,
+                                      isSelecting: isSelecting,
+                                      isSelected: selection.contains(
+                                        asset.assetId,
                                       ),
-                                    ),
-                                  ),
+                                      onOpen: onOpen,
+                                      onToggleSelection: onToggleSelection,
+                                      onViewInformation: onViewInformation,
+                                      onCopyPath: onCopyPath,
+                                      onRevealFile: onRevealFile,
+                                    );
+                                  },
                                 );
                               },
                             ),
@@ -617,6 +594,23 @@ class LibraryGalleryWall extends StatelessWidget {
                 ),
             ],
           ),
+        );
+        return LibraryGalleryLayoutMotion(
+          queryIdentity: (
+            state.queryId,
+            state.catalogRevision,
+            layoutShape,
+            thumbnailSize,
+          ),
+          geometryIdentity: (
+            availableWidth,
+            constraints.maxHeight,
+            layoutShape,
+            thumbnailSize,
+          ),
+          scrollController: scrollController,
+          scrollOffsetCorrection: layoutCorrection?.delta ?? 0,
+          child: content,
         );
       },
     );
@@ -1159,8 +1153,6 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
 
 class _ManifestLibraryGalleryWallState
     extends State<_ManifestLibraryGalleryWall> {
-  static const _rowRoundingSlack = 0.5;
-
   LibraryGalleryLayoutSnapshot? _snapshot;
   LibraryExactExtentLayoutCorrection? _layoutCorrection;
   var _layoutCorrectionGeneration = 0;
@@ -1258,7 +1250,7 @@ class _ManifestLibraryGalleryWallState
             );
           }
         });
-        return ScrollConfiguration(
+        final content = ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
@@ -1374,6 +1366,7 @@ class _ManifestLibraryGalleryWallState
                     child: KeyedSubtree(
                       key: const Key("library-photo-wall"),
                       child: CustomScrollView(
+                        clipBehavior: Clip.none,
                         key: _LibraryGalleryScrollViewKey(
                           widget.scrollController,
                         ),
@@ -1415,9 +1408,8 @@ class _ManifestLibraryGalleryWallState
                                 return _buildEntry(
                                   context,
                                   snapshot,
-                                  snapshot.entries[index],
+                                  index,
                                   assetsByLocation,
-                                  availableWidth,
                                 );
                               },
                             ),
@@ -1480,6 +1472,18 @@ class _ManifestLibraryGalleryWallState
                 ),
             ],
           ),
+        );
+        return LibraryGalleryLayoutMotion(
+          queryIdentity: (
+            widget.state.queryId,
+            widget.state.catalogRevision,
+            widget.layoutShape,
+            widget.thumbnailSize,
+          ),
+          geometryIdentity: (snapshot.availableWidth, _publishedViewportExtent),
+          scrollController: widget.scrollController,
+          scrollOffsetCorrection: _layoutCorrection?.delta ?? 0,
+          child: content,
         );
       },
     );
@@ -1849,68 +1853,35 @@ class _ManifestLibraryGalleryWallState
   Widget _buildEntry(
     BuildContext context,
     LibraryGalleryLayoutSnapshot snapshot,
-    LibraryGalleryLayoutSnapshotEntry entry,
+    int entryIndex,
     Map<String, LibraryAsset> assetsByLocation,
-    double availableWidth,
   ) {
+    final entry = snapshot.entries[entryIndex];
+    final offset = 18 + snapshot.entryStartOffsets[entryIndex];
     if (entry.headerLabel case final label?) {
-      return SizedBox(
-        height: entry.extent,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Semantics(
-            header: true,
-            child: Text(
-              label,
-              key: ValueKey("gallery-date-${entry.dateKey ?? 'unknown'}"),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-          ),
-        ),
+      return LibraryGalleryMotionHeader(
+        label: label,
+        dateKey: entry.dateKey,
+        rect: Rect.fromLTWH(0, offset, snapshot.availableWidth, entry.extent),
       );
     }
     if (!entry.isPhotoRow) {
       return SizedBox(height: entry.extent);
     }
-    final rowPaintWidth = (snapshot.availableWidth + _rowRoundingSlack)
-        .clamp(0, LibraryGalleryWall._maximumViewportExtent)
-        .toDouble();
-    return SizedBox(
-      height: entry.extent,
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: availableWidth,
-          height: entry.rowHeight,
-          child: ClipRect(
-            child: OverflowBox(
-              alignment: Alignment.topLeft,
-              minWidth: rowPaintWidth,
-              maxWidth: rowPaintWidth,
-              minHeight: entry.rowHeight,
-              maxHeight: entry.rowHeight,
-              child: Row(
-                children: [
-                  for (
-                    var cellIndex = 0;
-                    cellIndex < entry.itemCount;
-                    cellIndex++
-                  ) ...[
-                    if (cellIndex > 0)
-                      const SizedBox(width: LibraryGalleryLayoutEntry.spacing),
-                    _buildCell(
-                      snapshot,
-                      entry.startItemIndex + cellIndex,
-                      entry.cellWidths[cellIndex],
-                      entry.rowHeight,
-                      assetsByLocation,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
+    return LibraryGalleryMotionRow(
+      extent: entry.extent,
+      width: snapshot.availableWidth,
+      height: entry.rowHeight,
+      offset: offset,
+      cellWidths: entry.cellWidths,
+      identityAt: (index) =>
+          snapshot.manifest.locationIdAt(entry.startItemIndex + index),
+      builder: (index, size) => _buildCell(
+        snapshot,
+        entry.startItemIndex + index,
+        size.width,
+        size.height,
+        assetsByLocation,
       ),
     );
   }

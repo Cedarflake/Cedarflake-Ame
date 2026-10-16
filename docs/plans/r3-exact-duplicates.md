@@ -26,6 +26,10 @@ analysis engines or convert reused results into human decisions.
 
 ## Execution checkpoint
 
+Photo-wall geometry transitions now follow sidebar movement and window resizing while preserving
+the existing scroll anchor and stationary right controls. Focused and retained-catalog client
+coverage is recorded in the R3 acceptance owner; original-total/merged-count presentation is next.
+
 Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
 The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,
 versioned fingerprints, schema 40/41, bounded group/location queries and a generated desktop bridge.

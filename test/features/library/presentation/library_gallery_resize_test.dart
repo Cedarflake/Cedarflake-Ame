@@ -366,6 +366,7 @@ void main() {
     wallSize.value = finalSize;
     await tester.pump();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
 
     final finalSnapshot = LibraryGalleryLayoutSnapshot.build(
       minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
@@ -466,6 +467,7 @@ void main() {
     wallSize.value = const Size(760, 540);
     await tester.pump();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
 
     expect(
       tester.getTopLeft(previewTile).dy,

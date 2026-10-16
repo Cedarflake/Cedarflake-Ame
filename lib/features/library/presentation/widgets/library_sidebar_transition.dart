@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
+import "library_sidebar_content.dart";
 
 /// Animates the left boundary of a right-anchored, destination-width gallery.
 class LibrarySidebarTransition extends StatefulWidget {
@@ -80,7 +81,12 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
           constraints.maxWidth - (widget.expanded ? widget.sidebarWidth : 0);
       return AnimatedBuilder(
         animation: _progress,
-        child: RepaintBoundary(child: widget.gallery),
+        child: LibrarySidebarMotion(
+          progress: _progress,
+          sidebarWidth: widget.sidebarWidth,
+          expanded: widget.expanded,
+          child: RepaintBoundary(child: widget.gallery),
+        ),
         builder: (context, gallery) {
           final extent = widget.sidebarWidth * _progress.value;
           return Stack(

@@ -3,6 +3,7 @@ import "package:cedarflake_ame/features/library/presentation/gallery_view_option
 import "package:cedarflake_ame/features/library/presentation/widgets/annotated_time_rail.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_transition.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_content.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -23,6 +24,18 @@ void main() {
           void expectRightEdges() {
             expect(tester.getTopRight(toolbar).dx, closeTo(width - 20, 0.01));
             expect(tester.getTopRight(rail).dx, closeTo(width, 0.01));
+            expect(
+              tester.getTopLeft(find.byKey(const Key("first-photo"))).dx,
+              closeTo(
+                tester
+                        .getTopLeft(
+                          find.byKey(const Key("library-gallery-transition")),
+                        )
+                        .dx +
+                    24,
+                0.01,
+              ),
+            );
             expect(tester.takeException(), isNull);
           }
 
@@ -80,7 +93,21 @@ Widget _fixture(ValueNotifier<bool> expanded, double scale) => MaterialApp(
             Expanded(
               child: Row(
                 children: [
-                  const Expanded(child: SizedBox()),
+                  const Expanded(
+                    child: LibrarySidebarContent(
+                      child: Padding(
+                        padding: EdgeInsets.only(left: 24),
+                        child: Align(
+                          alignment: Alignment.topLeft,
+                          child: SizedBox(
+                            key: Key("first-photo"),
+                            width: 100,
+                            height: 100,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
                   AnnotatedTimeRail(
                     value: 0,
                     onChanged: (_) {},
