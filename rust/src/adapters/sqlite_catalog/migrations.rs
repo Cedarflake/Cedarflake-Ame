@@ -34,6 +34,7 @@ mod journal_directory_namespace;
 mod journal_scope_recovery;
 mod media_admission_rechecks;
 mod persistent_journal_baseline;
+mod persistent_journal_range_history;
 mod queue_retirement_indexes;
 mod retained_source_state;
 mod retired_root_authority;
@@ -3844,20 +3845,6 @@ fn validate_persistent_journal_rows(connection: &Connection) -> Result<(), ScanE
                  WHERE journal.continuity_state = 'current' AND checkpoints.root_id IS NULL
                )
                OR EXISTS(
-                 SELECT 1 FROM library_persistent_journal_source_ranges AS ranges
-                 JOIN library_persistent_journal_checkpoints AS checkpoints
-                   ON checkpoints.root_id = ranges.root_id
-                  AND checkpoints.root_generation = ranges.root_generation
-                 WHERE ranges.status = 'checkpointed'
-                   AND (
-                     checkpoints.volume_guid <> ranges.volume_guid
-                     OR checkpoints.volume_serial <> ranges.volume_serial
-                     OR checkpoints.journal_id <> ranges.journal_id
-                     OR CAST(checkpoints.next_unread_usn AS INTEGER)
-                       < CAST(ranges.covered_until_usn AS INTEGER)
-                   )
-               )
-               OR EXISTS(
                  SELECT 1 FROM library_persistent_journal_queue_lineage AS lineage
                  JOIN library_persistent_journal_source_ranges AS ranges
                    ON ranges.id = lineage.source_range_id
@@ -4019,6 +4006,7 @@ fn validate_persistent_journal_rows(connection: &Connection) -> Result<(), ScanE
     validate_persistent_journal_root_rows(connection)?;
     validate_persistent_journal_checkpoint_rows(connection)?;
     validate_persistent_journal_range_rows(connection)?;
+    persistent_journal_range_history::validate(connection)?;
     validate_persistent_journal_lineage_rows(connection)?;
     validate_persistent_journal_pending_rename_rows(connection)?;
     validate_persistent_journal_payload_children(connection)

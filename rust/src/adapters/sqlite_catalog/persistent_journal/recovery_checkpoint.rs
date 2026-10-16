@@ -31,12 +31,18 @@ pub(super) fn replay_start(
             "The recovery closing boundary no longer extends its last trustworthy checkpoint",
         ));
     }
+    let unread_interval_unavailable = replaces_journal
+        || reason == "journal_trim"
+        || (reason == "journal_reconstruction_failure"
+            && checkpoint
+                .failure
+                .as_ref()
+                .is_some_and(|failure| failure.code == "identity_journal_hardlinks_not_supported"));
     match scope {
-        // A whole-root inventory reconstructs the state lost before its opening. Closing replay
-        // covers changes during inventory without reading the older failed or trimmed page.
-        "root" => Ok(baseline.opening_next_usn),
-        // A subtree inventory cannot cover earlier changes elsewhere in the same root.
-        "subtree" if !replaces_journal => Ok(checkpoint.next_unread_usn),
+        // Reconstruct only an unavailable interval. Otherwise replay preserves pending
+        // cross-root rename ownership that the inventory alone cannot recover.
+        "root" if unread_interval_unavailable => Ok(baseline.opening_next_usn),
+        "root" | "subtree" if !unread_interval_unavailable => Ok(checkpoint.next_unread_usn),
         _ => Err(ScanError::new(
             "persistent_journal_baseline_closing_mismatch",
             "The recovery scope cannot reconstruct its journal interval",

@@ -17,6 +17,7 @@ use super::super::tests::recovery_lifecycle_catalog;
 use super::validate_persistent_journal_baseline_contract;
 
 mod interrupted_checkpoint;
+mod reset_range_history;
 mod terminal_cleanup;
 
 fn open(catalog: &NamedTempFile) -> SqliteCatalog {

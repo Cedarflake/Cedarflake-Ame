@@ -1228,10 +1228,19 @@ has expired; its precise Windows trigger remains unknown.
 
 The retained run exposed a second boundary failure: closing recovery rejected a partially consumed
 old checkpoint and would replay from the older failed or trimmed cursor. The closing owner now
-validates identity and that the retained captured end is within the opening. Whole-root recovery
-replays from the inventory opening, while subtree recovery preserves the earlier unread interval.
+validates identity and that the retained captured end is within the opening. A reset, trimmed
+journal or specifically unsupported hardlink page requires whole-root reconstruction and replay
+from the inventory opening. Readable intervals retain their earlier cursor, including whole-root
+translation recovery, so pending cross-root moves can finish with their original identities.
 Journal replacement still requires a different journal identity and whole-root reconstruction.
 Publication remains transactional and absence waits for replay and candidate completion.
+
+The first hosted run exposed three failures: reset closing rejected retained old-journal ranges on
+FULL reopen, and the two cross-root translation orders lost pre-inventory replay. The cursor policy
+above corrects the latter. An extracted range-history validator admits old-journal coverage only
+with a matching, closed whole-root reset authority and chronological ownership. Same-journal
+coverage and volume checks remain strict. Terminal cleanup retains that reset proof until the old
+ranges retire; repeated journal resets and cleanup/reopen boundaries have dedicated regressions.
 
 The existing 10,000-image corpus and catalog are reused. Automatic startup enumerates 10,013 entries
 into one inventory. After closing is corrected, the production Dart/Rust bridge resumes that same
@@ -1253,16 +1262,22 @@ the bridge probe. The retained catalog, reusable corpus and 114,550-byte unresol
 
 Boundary regressions cover first/next enumeration failures, partial-page rejection, fresh opening
 without replaying an old failure, one-root admission, unavailable/stale/busy roots, partial checkpoint
-closing and FULL reopen, subtree coverage and journal replacement. Hosted Actions owns execution;
-local work uses owned-file formatting, whitespace review and the necessary native Debug build.
+closing and FULL reopen, subtree coverage and journal replacement. Hosted Actions owns full execution.
+A local attempt to diagnose the three failed Rust cases stopped during test-binary compilation with
+LLVM out of memory; no Rust test ran in that attempt. Direct execution of the extracted production
+SQL passed four current/reset/legacy checks and ten rejecting mutations. Owned-file formatting and
+whitespace checks also pass. Hosted verification of these follow-up corrections remains pending.
 
 | Changed owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
 | Native identity reader / extracted hardlink lookup | 349 / 92 | 0 | 83 / 54 |
 | Production synchronization / recovery admission | 3,883 / 67 | 10,508 / 0 | 122 for admission |
 | Identity journal volume reader | 442 | 0 | 680 |
-| Persistent journal facade / recovery closing policy | 3,429 / 45 | 4,742 / 0 | 50 for closing policy |
-| Migration interrupted-checkpoint regression module | 0 | 0 | 294 |
+| Persistent journal facade / recovery closing policy | 3,429 / 51 | 4,742 / 0 | 87 for closing policy |
+| Migration facade / extracted range-history validator | 9,839 / 81 | 5,267 / 0 | 185 for reset history |
+| Terminal queue cleanup | 150 | 0 | Included in reset-history regressions |
+| Migration interrupted-checkpoint regression module | 0 | 0 | 301 |
 
 The synchronization and persistence facades retain the roadmap's decomposition debt. This change
-adds narrow scheduling and policy calls; it does not introduce schema or bridge changes.
+adds narrow scheduling and policy calls; it does not introduce schema or bridge changes. The
+migration facade's pre-test line count includes its existing test-counter and downgrade helpers.

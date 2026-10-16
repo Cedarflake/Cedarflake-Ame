@@ -22,6 +22,43 @@ fn subtree_recovery_preserves_unread_changes_outside_the_inventory() {
         replay_start(&checkpoint, &baseline, "journal_trim", "root").unwrap(),
         JournalUsn::new(20).unwrap()
     );
+    for reason in [
+        "watcher_uncovered_gap",
+        "journal_gap",
+        "containment_failure",
+        "broker_after_current_failure",
+        "journal_reconstruction_failure",
+    ] {
+        assert_eq!(
+            replay_start(&checkpoint, &baseline, reason, "root").unwrap(),
+            JournalUsn::new(10).unwrap(),
+            "retain readable pre-inventory changes for {reason}"
+        );
+    }
+    assert!(replay_start(&checkpoint, &baseline, "journal_trim", "subtree").is_err());
+    checkpoint.failure = Some(PersistentJournalFailure {
+        code: "identity_journal_hardlinks_not_supported".to_owned(),
+        message: "Windows metadata operation failed: 50".to_owned(),
+    });
+    assert_eq!(
+        replay_start(
+            &checkpoint,
+            &baseline,
+            "journal_reconstruction_failure",
+            "root"
+        )
+        .unwrap(),
+        JournalUsn::new(20).unwrap()
+    );
+    assert!(
+        replay_start(
+            &checkpoint,
+            &baseline,
+            "journal_reconstruction_failure",
+            "subtree"
+        )
+        .is_err()
+    );
     checkpoint.captured_exclusive_end = JournalUsn::new(21).unwrap();
     assert!(replay_start(&checkpoint, &baseline, "journal_trim", "root").is_err());
 }

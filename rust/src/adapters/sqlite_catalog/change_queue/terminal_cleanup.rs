@@ -63,6 +63,20 @@ pub(super) fn cleanup_terminal_records(
                    )
                    AND NOT EXISTS (
                      SELECT 1
+                     FROM library_persistent_journal_baselines AS reset
+                     JOIN library_recovery_authorities AS authority
+                       ON authority.change_id = reset.change_id
+                     JOIN library_persistent_journal_source_ranges AS ranges
+                       ON ranges.root_id = reset.root_id
+                      AND ranges.root_generation = reset.root_generation
+                     WHERE reset.change_id = changes.id
+                       AND authority.reason = 'journal_reset'
+                       AND ranges.status = 'checkpointed'
+                       AND ranges.journal_id <> reset.journal_id
+                       AND ranges.checkpointed_unix_ms <= authority.authorized_unix_ms
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1
                      FROM library_change_queue AS survivor
                      WHERE survivor.id = changes.superseded_by_change_id
                        AND survivor.status IN ('pending', 'leased', 'retry_wait')
