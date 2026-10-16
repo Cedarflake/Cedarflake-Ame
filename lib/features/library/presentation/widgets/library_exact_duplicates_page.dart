@@ -20,6 +20,7 @@ import "library_exact_analysis_actions.dart";
 import "library_gallery_loading_region.dart";
 import "library_gallery_message.dart";
 import "library_path_text.dart";
+import "library_viewer_fade.dart";
 
 class LibraryExactDuplicatesPage extends ConsumerStatefulWidget {
   const LibraryExactDuplicatesPage({super.key});
@@ -90,7 +91,8 @@ class _LibraryExactDuplicatesPageState
     setState(() => _viewerOpen = true);
     try {
       await Navigator.of(context).push<void>(
-        MaterialPageRoute(
+        LibraryViewerRoute(
+          context: context,
           builder: (context) => Scaffold(
             body: LibraryDuplicateReviewViewer(
               initialAsset: asset,

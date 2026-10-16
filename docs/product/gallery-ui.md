@@ -497,6 +497,8 @@ in 100 ms without resetting the zoom transform. The existing preview element sta
 the original's first frame, including after cache eviction, and is released when the reveal finishes.
 These transitions use Flutter's image opacity and fade primitives, without an additional package,
 layout interpolation or a queue of outgoing full-resolution images.
+Duplicate review opens the same viewer with the shared fade component and timing; its full-window
+route adds no page zoom or slide. Returning retains the underlying review list and its position.
 
 The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
 one quarter is 125%, and reduction by half is 50%. The default opening preference is Automatic:

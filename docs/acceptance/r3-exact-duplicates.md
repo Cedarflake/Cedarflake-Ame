@@ -404,6 +404,13 @@ mouse dismissal. Both mouse and keyboard cases now pass, alongside ten existing 
 checks. Keyboard path-layout checks now open with Tab/Enter and retain Escape focus restoration.
 Native verification of this follow-up belongs to the next updated Debug check.
 
+Review preview previously used the default Material page animation. Its route now shares the
+gallery's fade component, 180-ms entry, 100-ms exit and immediate reduced-motion behavior. Pointer
+input finishes entry immediately. Sixteen focused route, gallery-transition, review and viewer
+checks pass, covering stationary content bounds during the fade, retained review choices, adjacent
+catalog batches, source-read retirement and late completions. The shared motion owner has 57
+production lines and 73 dedicated route-test lines, with no inline tests.
+
 The reported preference-switch flash was traced to the preference transaction advancing the catalog
 revision, followed by the gallery refresh notifying a review listener that cleared member payloads.
 Catalog and analysis publications now revalidate without removing the rendered range. Explicit

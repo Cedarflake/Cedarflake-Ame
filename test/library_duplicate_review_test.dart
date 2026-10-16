@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/domain/library_duplicate_review.
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_fade.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -204,6 +205,13 @@ void main() {
       await tester.tap(find.byKey(const ValueKey("duplicate-card-one")));
       await tester.pumpAndSettle();
       expect(find.byType(LibraryImageViewer), findsOneWidget);
+      expect(
+        find.ancestor(
+          of: find.byType(LibraryImageViewer),
+          matching: find.byType(LibraryViewerFade),
+        ),
+        findsOneWidget,
+      );
       expect(find.byType(LibraryExactDuplicatesPage), findsNothing);
       expect(library.demands, isEmpty);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
