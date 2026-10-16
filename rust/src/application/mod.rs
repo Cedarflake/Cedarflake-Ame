@@ -2,6 +2,7 @@ mod authoritative_library_changes;
 mod catalog_reclamation;
 mod catalog_session;
 mod directory_synchronization;
+pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub(crate) mod gallery_duplicates;
 mod incremental_library_changes;

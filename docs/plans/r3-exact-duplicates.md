@@ -49,16 +49,18 @@ The hosted native, scan, release and synthetic checks passed on `515f5e6`. Its t
 and three gallery regressions are corrected: rows retain exact item ordinals, and dimension recovery
 checks rendered card widths. The content-sized card controls also passed the isolated client check.
 The card badge now opens an anchored location panel with separate file/folder lines and a current
-image marker. Focused placement and dismissal checks pass; its native click awaits the foreground
-handoff recorded in acceptance. The current head still requires its applicable Actions results.
+image marker. Focused placement, dismissal and native upward-edge opening checks pass. Group review
+now connects visible image previews, the existing viewer and durable preferred-copy/ignore choices.
+Native checks reused the 10,000-file corpus, including preference/ignore retention after restart.
+The current head still requires its applicable Actions results.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |
 | R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client and native Settings-menu restoration checks recorded; applicable Actions results pending |
 | R3-02 | Maintain duplicate results through incremental changes | Committed; automatic scheduling, foreground priority, unchanged reuse and closed-process additions/removals checked; native pause/resume and paused restart now checked; remaining automated results belong to Actions |
 | R3-03 | Connect both gallery display modes and duplicate badges | Implemented; 10,000 all-images / 72 merged entries, location reveal, restart preference and automatic 74-to-72 folding checked in the reused client corpus; new regressions await Actions |
-| R3-04 | Review groups and preserve preferred-copy/ignore decisions | Queued after R3-03 |
-| R3-05 | Complete affected client/performance verification and close R3 | Queued after R3-04 |
+| R3-04 | Review groups and preserve preferred-copy/ignore decisions | Implemented with schema 42, bounded review pages, source-checked preference writes and reversible ignore; affected client checks recorded; automated checks belong to Actions |
+| R3-05 | Complete affected client/performance verification and close R3 | Inspect current-head Actions and finish only the affected remaining checks; retain prior analysis and source-preservation results |
 
 Each delivery includes its implementation, connected interface, relevant regressions and necessary
 documentation. Commit and push it before beginning the next independent delivery. Update this

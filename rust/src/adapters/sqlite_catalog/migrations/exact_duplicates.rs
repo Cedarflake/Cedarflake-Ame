@@ -132,13 +132,18 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v39_for_test
     let version: i64 = connection
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("exact analysis fixture version");
-    if !matches!(version, 40 | 41) {
+    if !matches!(version, 40..=42) {
         return;
     }
     let transaction = connection
         .unchecked_transaction()
         .expect("exact analysis fixture downgrade");
-    if version == 41 {
+    if version >= 42 {
+        transaction
+            .execute_batch("DROP TABLE exact_duplicate_decisions")
+            .expect("remove test-only duplicate choices");
+    }
+    if version >= 41 {
         transaction
             .execute_batch("DROP TABLE gallery_content_fingerprints")
             .expect("remove published gallery evidence");

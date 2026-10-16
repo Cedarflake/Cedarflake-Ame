@@ -32,6 +32,21 @@ abstract final class LibraryDuplicateStrings {
   static const next = "下一页";
   static const refresh = "刷新结果";
 
+  // Duplicates workspace: group review, reversible choices and the ignored list.
+  static const review = "查看这组图片";
+  static const pendingGroups = "重复组";
+  static const ignoredGroups = "已忽略";
+  static const noIgnoredGroups = "没有已忽略的重复组";
+  static const prefer = "设为首选";
+  static const preferred = "首选副本";
+  static const clearPreferred = "取消首选";
+  static const preferDescription = "合并重复图片时，优先显示你选择的这一份。";
+  static const ignore = "忽略此组";
+  static const restoreGroup = "恢复此组";
+  static const openImage = "查看图片";
+  static const saveFailed = "未能保存选择，请重试";
+  static String scope(int count) => "范围：全部 $count 个已添加的文件夹";
+
   // Gallery header filter and the local location list opened from a photo badge.
   static const filter = "筛选";
   static const showDescendants = "显示子目录";

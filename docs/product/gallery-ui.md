@@ -85,6 +85,14 @@ preferred-copy/ignore decisions. It reuses gallery preview and viewing capabilit
 are byte-identical; perceptual similarity is a separate later capability and is absent until connected.
 No analysis or display choice authorizes source mutation.
 
+Show the analysis scope alongside its status. Result groups and their member pages include bounded
+image previews and inspectable file locations. Opening a member uses the existing full-window image
+viewer; returning preserves the reviewed group and page. `设为首选` selects the representative used
+by merged gallery queries, with a deterministic in-scope fallback when that location no longer
+matches. `忽略此组` moves it to `已忽略`, where `恢复此组` restores it to the regular review list.
+These choices survive reopening and compatible reanalysis. Ignoring a group leaves its gallery
+images and badges visible, and neither action changes a source file.
+
 Analysis is automatic while Ame is running, after startup browsing and synchronization have priority.
 New or changed catalog content queues bounded analysis; compatible completed fingerprints survive
 restart and cancellation. Visible-preview and original-image reads take priority; busy browsing

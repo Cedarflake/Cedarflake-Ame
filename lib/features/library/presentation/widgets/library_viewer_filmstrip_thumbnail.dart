@@ -18,12 +18,14 @@ class LibraryViewerFilmstripThumbnail extends ConsumerStatefulWidget {
     required this.asset,
     required this.isSelected,
     required this.onPressed,
+    this.previewWidth = 94,
     super.key,
   });
 
   final LibraryAsset asset;
   final bool isSelected;
   final VoidCallback onPressed;
+  final double previewWidth;
 
   @override
   ConsumerState<LibraryViewerFilmstripThumbnail> createState() =>
@@ -221,7 +223,7 @@ class _LibraryViewerFilmstripThumbnailState
                       resolved,
                     );
                     final edge = libraryPreviewDecodeWidth(
-                      94,
+                      widget.previewWidth,
                       MediaQuery.devicePixelRatioOf(context),
                     );
                     final image = ResizeImage.resizeIfNeeded(

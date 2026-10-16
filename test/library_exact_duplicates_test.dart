@@ -1,4 +1,6 @@
 import "dart:async";
+import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
+import "support/duplicate_review_fixtures.dart";
 
 import "package:cedarflake_ame/features/library/application/library_duplicate_results_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
@@ -8,7 +10,6 @@ import "package:cedarflake_ame/features/library/application/library_exact_analys
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
-import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
@@ -116,13 +117,14 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              libraryControllerProvider.overrideWith(
-                _EmptyLibraryController.new,
-              ),
+              libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
               libraryGalleryDuplicateAnnotationsProvider.overrideWith(
                 (ref) async => {"one": _group},
               ),
               libraryExactDuplicatesProvider.overrideWithValue(service),
+              libraryDuplicateReviewProvider.overrideWithValue(
+                ReviewFixtureService(showResults: () => service.hasResults),
+              ),
               libraryPlatformActionsProvider.overrideWithValue(
                 WindowsLibraryPlatformActions.withLauncher(
                   (arguments) async => revealed.add(arguments),
@@ -189,11 +191,14 @@ void main() {
       await tester.pumpWidget(
         ProviderScope(
           overrides: [
-            libraryControllerProvider.overrideWith(_EmptyLibraryController.new),
+            libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryGalleryDuplicateAnnotationsProvider.overrideWith(
               (_) async => {"one": _group},
             ),
             libraryExactDuplicatesProvider.overrideWithValue(service),
+            libraryDuplicateReviewProvider.overrideWithValue(
+              ReviewFixtureService(showResults: () => service.hasResults),
+            ),
           ],
           child: MaterialApp(
             builder: (context, child) => MediaQuery(
@@ -252,8 +257,11 @@ void main() {
         final store = _PauseStore(saveFails: saveFails);
         final container = ProviderContainer(
           overrides: [
-            libraryControllerProvider.overrideWith(_EmptyLibraryController.new),
+            libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
             libraryExactDuplicatesProvider.overrideWithValue(service),
+            libraryDuplicateReviewProvider.overrideWithValue(
+              ReviewFixtureService(showResults: () => service.hasResults),
+            ),
             libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
             libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
             initialAmePreferencesProvider.overrideWithValue(store.saved),
@@ -396,8 +404,11 @@ void main() {
       final revealed = <List<String>>[];
       final container = ProviderContainer(
         overrides: [
-          libraryControllerProvider.overrideWith(_EmptyLibraryController.new),
+          libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
           libraryExactDuplicatesProvider.overrideWithValue(service),
+          libraryDuplicateReviewProvider.overrideWithValue(
+            ReviewFixtureService(showResults: () => service.hasResults),
+          ),
           libraryPlatformActionsProvider.overrideWithValue(
             WindowsLibraryPlatformActions.withLauncher((arguments) async {
               revealed.add(arguments);
@@ -463,11 +474,6 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
-}
-
-class _EmptyLibraryController extends LibraryController {
-  @override
-  LibraryState build() => const LibraryState();
 }
 
 class _PauseStore implements AmePreferenceStore {

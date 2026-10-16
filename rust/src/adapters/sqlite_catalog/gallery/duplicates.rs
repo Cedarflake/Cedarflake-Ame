@@ -5,6 +5,7 @@ use rusqlite::types::Value;
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::{GalleryDuplicateMode, GalleryQuery, ScanError};
 
+use super::super::exact_duplicate_review::{DECISION_JOIN, representative_expression};
 use super::{database_error, push_source_filters};
 
 pub(in super::super) fn publish_completed_evidence(
@@ -63,14 +64,16 @@ pub(super) fn push_duplicate_filter(
         scope.join(" AND ")
     };
     let compatible = compatible_fingerprint("locations");
+    let representative = representative_expression("locations");
     clauses.push(format!(
         "(NOT EXISTS (
            SELECT 1 FROM {PUBLISHED_FINGERPRINTS} WHERE {compatible})
          OR locations.location_id IN (
-           SELECT MIN(locations.location_id)
+           SELECT {representative}
            FROM library_roots AS roots
            JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
            JOIN {PUBLISHED_FINGERPRINTS} ON {compatible}
+           {DECISION_JOIN}
            WHERE {scope}
            GROUP BY f.scheme, f.digest, f.byte_length))"
     ));
@@ -96,6 +99,7 @@ pub(super) fn representative_for_anchor(
         ""
     };
     let current = compatible_fingerprint("locations");
+    let representative = representative_expression("locations");
     let requested = compatible_fingerprint("requested");
     scope.push(format!(
         "(f.digest, f.byte_length) = (
@@ -108,10 +112,11 @@ pub(super) fn representative_for_anchor(
     transaction
         .query_row(
             &format!(
-                "SELECT MIN(locations.location_id)
+                "SELECT {representative}
              FROM library_roots AS roots
              JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
              JOIN {PUBLISHED_FINGERPRINTS} ON {current}
+             {DECISION_JOIN}
              WHERE {}",
                 scope.join(" AND ")
             ),

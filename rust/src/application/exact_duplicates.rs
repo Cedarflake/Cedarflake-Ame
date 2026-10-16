@@ -121,24 +121,8 @@ pub(crate) fn load_exact_locations(
     let locations = candidates
         .into_iter()
         .map(|candidate| {
+            let availability = inspect_candidate_availability(&candidate);
             let location = candidate.location;
-            let root = crate::adapters::inspect_root_availability(&candidate.root.root_path);
-            let availability = match root.availability {
-                LibraryRootAvailability::Offline => DuplicateLocationAvailability::Offline,
-                LibraryRootAvailability::Missing | LibraryRootAvailability::Inaccessible => {
-                    DuplicateLocationAvailability::Unavailable
-                }
-                _ => {
-                    let expected = crate::domain::ExpectedFileState {
-                        absolute_path: location.absolute_path.clone(),
-                        file_size: location.file_size,
-                        modified_unix_ms: location.modified_unix_ms,
-                        file_identity: location.file_identity.clone(),
-                        source_revision: location.source_revision.clone(),
-                    };
-                    file_availability(crate::adapters::revalidate_file_state(&expected))
-                }
-            };
             ExactDuplicateLocation {
                 asset_id: location.asset_id,
                 location_id: location.location_id,
@@ -153,6 +137,29 @@ pub(crate) fn load_exact_locations(
         locations,
         next_location_id,
     })
+}
+
+pub(super) fn inspect_candidate_availability(
+    candidate: &crate::domain::exact_duplicates::FingerprintCandidate,
+) -> DuplicateLocationAvailability {
+    let root = crate::adapters::inspect_root_availability(&candidate.root.root_path);
+    match root.availability {
+        LibraryRootAvailability::Offline => DuplicateLocationAvailability::Offline,
+        LibraryRootAvailability::Missing | LibraryRootAvailability::Inaccessible => {
+            DuplicateLocationAvailability::Unavailable
+        }
+        _ => {
+            let location = &candidate.location;
+            let expected = crate::domain::ExpectedFileState {
+                absolute_path: location.absolute_path.clone(),
+                file_size: location.file_size,
+                modified_unix_ms: location.modified_unix_ms,
+                file_identity: location.file_identity.clone(),
+                source_revision: location.source_revision.clone(),
+            };
+            file_availability(crate::adapters::revalidate_file_state(&expected))
+        }
+    }
 }
 
 fn file_availability(
@@ -173,7 +180,7 @@ fn file_availability(
     }
 }
 
-fn validate_identifier(value: &str) -> Result<(), ScanError> {
+pub(super) fn validate_identifier(value: &str) -> Result<(), ScanError> {
     if value.is_empty() || value.len() > 512 || value.contains('\0') {
         return Err(ScanError::new(
             "exact_analysis_identifier_invalid",
@@ -183,7 +190,7 @@ fn validate_identifier(value: &str) -> Result<(), ScanError> {
     Ok(())
 }
 
-fn validate_digest(value: &str) -> Result<(), ScanError> {
+pub(super) fn validate_digest(value: &str) -> Result<(), ScanError> {
     if value.len() != 64
         || !value
             .bytes()

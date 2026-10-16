@@ -2,7 +2,8 @@ use rusqlite::{Connection, params};
 
 use super::*;
 
-const CANDIDATE_COLUMNS: &str = "l.asset_id, l.location_id, l.root_id, l.scan_id,
+pub(in crate::adapters::sqlite_catalog) const CANDIDATE_COLUMNS: &str =
+    "l.asset_id, l.location_id, l.root_id, l.scan_id,
     l.absolute_path, l.relative_path, l.preview_path, l.file_size, l.created_unix_ms,
     l.modified_unix_ms, l.width, l.height, l.preview_status, l.preview_issue_code,
     l.preview_issue_message, l.metadata_engine_id, l.metadata_engine_version,
@@ -10,13 +11,14 @@ const CANDIDATE_COLUMNS: &str = "l.asset_id, l.location_id, l.root_id, l.scan_id
     l.file_identity_scheme, l.file_identity_value, l.source_revision_token, l.source_generation,
     r.path, state.generation, namespace.identity_scheme, namespace.identity_value";
 
-const CURRENT_LOCATIONS: &str = "asset_locations AS l
+pub(in crate::adapters::sqlite_catalog) const CURRENT_LOCATIONS: &str = "asset_locations AS l
     JOIN library_roots AS r ON r.id = l.root_id AND r.active_scan_id = l.scan_id
     JOIN library_change_root_state AS state ON state.root_id = r.id AND state.is_active = 1
     LEFT JOIN library_root_publication_namespaces AS namespace
       ON namespace.root_id = r.id AND namespace.root_generation = state.generation";
 
-const COMPATIBLE_FINGERPRINT: &str = "f.source_generation = l.source_generation
+pub(in crate::adapters::sqlite_catalog) const COMPATIBLE_FINGERPRINT: &str =
+    "f.source_generation = l.source_generation
     AND f.scheme = ?1 AND f.byte_length = l.file_size
     AND f.file_identity_scheme IS l.file_identity_scheme
     AND f.file_identity_value IS l.file_identity_value
@@ -47,7 +49,7 @@ pub(super) fn load_candidates(
     )
 }
 
-pub(super) fn load_locations(
+pub(in crate::adapters::sqlite_catalog) fn load_locations(
     connection: &Connection,
     digest: &str,
     byte_length: u64,

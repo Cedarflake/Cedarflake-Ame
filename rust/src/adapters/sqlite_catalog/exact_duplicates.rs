@@ -19,7 +19,7 @@ use super::{
 };
 
 mod publication;
-mod queries;
+pub(super) mod queries;
 
 impl ExactDuplicateRepository for SqliteCatalog {
     fn begin_exact_analysis(&mut self, run: &ExactAnalysisRun) -> Result<(), ScanError> {
@@ -123,7 +123,9 @@ impl ExactDuplicateRepository for SqliteCatalog {
     }
 }
 
-fn read_candidate(row: &Row<'_>) -> rusqlite::Result<Result<FingerprintCandidate, ScanError>> {
+pub(super) fn read_candidate(
+    row: &Row<'_>,
+) -> rusqlite::Result<Result<FingerprintCandidate, ScanError>> {
     let stored = read_stored_asset(row)?;
     let root_path = row.get(25)?;
     let generation = read_unsigned(row, 26)?;

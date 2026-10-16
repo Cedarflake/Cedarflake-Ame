@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -872547670;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 347412659;
 
 // Section: executor
 
@@ -603,6 +603,87 @@ fn wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(
                         api_byte_length,
                         api_after_location_id,
                     )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_exact_duplicate_review_groups",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_after =
+                <Option<crate::domain::exact_duplicates::ExactDuplicateGroupCursor>>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_ignored = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::exact_duplicate_review::load_exact_duplicate_review_groups(
+                            api_after,
+                            api_ignored,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_exact_duplicate_review_locations",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_key =
+                <crate::domain::exact_duplicate_review::ExactDuplicateReviewKey>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_after = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::exact_duplicate_review::load_exact_duplicate_review_locations(
+                            api_key, api_after,
+                        )?;
                     Ok(output_ok)
                 })())
             }
@@ -1451,6 +1532,90 @@ fn wire__crate__api__catalog__scan_library_impl(
         },
     )
 }
+fn wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_exact_duplicate_ignored",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_key =
+                <crate::domain::exact_duplicate_review::ExactDuplicateReviewKey>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_ignored = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::exact_duplicate_review::set_exact_duplicate_ignored(
+                            api_key,
+                            api_ignored,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_exact_duplicate_preference",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_key =
+                <crate::domain::exact_duplicate_review::ExactDuplicateReviewKey>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_preferred = <Option<
+                crate::domain::exact_duplicate_review::ExactDuplicatePreference,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::exact_duplicate_review::set_exact_duplicate_preference(
+                            api_key,
+                            api_preferred,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__storage__start_catalog_database_reclamation_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -2042,6 +2207,20 @@ impl SseDecode for crate::domain::exact_duplicates::ExactAnalysisProgress {
     }
 }
 
+impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateDecision {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_preferredLocationId = <Option<String>>::sse_decode(deserializer);
+        let mut var_preferredAssetId = <Option<String>>::sse_decode(deserializer);
+        let mut var_ignored = <bool>::sse_decode(deserializer);
+        return crate::domain::exact_duplicate_review::ExactDuplicateDecision {
+            preferred_location_id: var_preferredLocationId,
+            preferred_asset_id: var_preferredAssetId,
+            ignored: var_ignored,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::exact_duplicates::ExactDuplicateGroup {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2124,6 +2303,102 @@ impl SseDecode for crate::domain::exact_duplicates::ExactDuplicateLocationPage {
         return crate::domain::exact_duplicates::ExactDuplicateLocationPage {
             locations: var_locations,
             next_location_id: var_nextLocationId,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicatePreference {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_locationId = <String>::sse_decode(deserializer);
+        let mut var_assetId = <String>::sse_decode(deserializer);
+        let mut var_sourceGeneration = <u64>::sse_decode(deserializer);
+        return crate::domain::exact_duplicate_review::ExactDuplicatePreference {
+            location_id: var_locationId,
+            asset_id: var_assetId,
+            source_generation: var_sourceGeneration,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_group =
+            <crate::domain::exact_duplicates::ExactDuplicateGroup>::sse_decode(deserializer);
+        let mut var_representative = <crate::domain::AssetLocationView>::sse_decode(deserializer);
+        let mut var_decision =
+            <crate::domain::exact_duplicate_review::ExactDuplicateDecision>::sse_decode(
+                deserializer,
+            );
+        return crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup {
+            group: var_group,
+            representative: var_representative,
+            decision: var_decision,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateReviewKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_digest = <String>::sse_decode(deserializer);
+        let mut var_byteLength = <u64>::sse_decode(deserializer);
+        return crate::domain::exact_duplicate_review::ExactDuplicateReviewKey {
+            digest: var_digest,
+            byte_length: var_byteLength,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_asset = <crate::domain::AssetLocationView>::sse_decode(deserializer);
+        let mut var_availability =
+            <crate::domain::exact_duplicates::DuplicateLocationAvailability>::sse_decode(
+                deserializer,
+            );
+        return crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation {
+            asset: var_asset,
+            availability: var_availability,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_locations = <Vec<
+            crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation,
+        >>::sse_decode(deserializer);
+        let mut var_nextLocationId = <Option<String>>::sse_decode(deserializer);
+        let mut var_decision =
+            <crate::domain::exact_duplicate_review::ExactDuplicateDecision>::sse_decode(
+                deserializer,
+            );
+        return crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations {
+            locations: var_locations,
+            next_location_id: var_nextLocationId,
+            decision: var_decision,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateReviewPage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_groups =
+            <Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup>>::sse_decode(
+                deserializer,
+            );
+        let mut var_next =
+            <Option<crate::domain::exact_duplicates::ExactDuplicateGroupCursor>>::sse_decode(
+                deserializer,
+            );
+        return crate::domain::exact_duplicate_review::ExactDuplicateReviewPage {
+            groups: var_groups,
+            next: var_next,
         };
     }
 }
@@ -2719,6 +2994,38 @@ impl SseDecode for Vec<crate::domain::exact_duplicates::ExactDuplicateLocation> 
     }
 }
 
+impl SseDecode for Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::domain::exact_duplicates::GalleryDuplicateAnnotation> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2900,6 +3207,21 @@ impl SseDecode for Option<crate::domain::exact_duplicates::ExactDuplicateGroupCu
         if (<bool>::sse_decode(deserializer)) {
             return Some(
                 <crate::domain::exact_duplicates::ExactDuplicateGroupCursor>::sse_decode(
+                    deserializer,
+                ),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::exact_duplicate_review::ExactDuplicatePreference> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::exact_duplicate_review::ExactDuplicatePreference>::sse_decode(
                     deserializer,
                 ),
             );
@@ -3620,125 +3942,149 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
+        16 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        17 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+        17 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => {
+        18 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        19 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        20 => {
             wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len)
         }
-        19 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
+        21 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        20 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
+        22 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
+        23 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__catalog__load_library_folder_page_impl(
+        24 => wire__crate__api__catalog__load_library_folder_page_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
+        25 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
+        26 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        25 => wire__crate__api__catalog__load_library_query_snapshot_impl(
+        27 => wire__crate__api__catalog__load_library_query_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__catalog__load_library_time_snapshot_impl(
+        28 => wire__crate__api__catalog__load_library_time_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => wire__crate__api__catalog__load_paused_library_scan_impl(
+        29 => wire__crate__api__catalog__load_paused_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        30 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => {
+        31 => {
             wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len)
         }
-        30 => wire__crate__api__preview__materialize_library_preview_impl(
+        32 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        34 => wire__crate__api__synchronization__poll_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => {
+        35 => {
             wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        34 => {
+        36 => {
             wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        37 => {
+        39 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        38 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        39 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        40 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        41 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        42 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        43 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__storage__update_storage_settings_impl(
+        44 => wire__crate__api__synchronization__start_library_synchronization_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        45 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        47 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -3762,18 +4108,18 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        31 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        33 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        37 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        38 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        46 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -4216,6 +4562,31 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::exact_duplicates::ExactAna
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicate_review::ExactDuplicateDecision
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.preferred_location_id.into_into_dart().into_dart(),
+            self.preferred_asset_id.into_into_dart().into_dart(),
+            self.ignored.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicate_review::ExactDuplicateDecision
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::domain::exact_duplicate_review::ExactDuplicateDecision>
+    for crate::domain::exact_duplicate_review::ExactDuplicateDecision
+{
+    fn into_into_dart(self) -> crate::domain::exact_duplicate_review::ExactDuplicateDecision {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::exact_duplicates::ExactDuplicateGroup {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -4325,6 +4696,161 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::exact_duplicates::ExactDup
     for crate::domain::exact_duplicates::ExactDuplicateLocationPage
 {
     fn into_into_dart(self) -> crate::domain::exact_duplicates::ExactDuplicateLocationPage {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicate_review::ExactDuplicatePreference
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.location_id.into_into_dart().into_dart(),
+            self.asset_id.into_into_dart().into_dart(),
+            self.source_generation.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicate_review::ExactDuplicatePreference
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::exact_duplicate_review::ExactDuplicatePreference,
+    > for crate::domain::exact_duplicate_review::ExactDuplicatePreference
+{
+    fn into_into_dart(self) -> crate::domain::exact_duplicate_review::ExactDuplicatePreference {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.group.into_into_dart().into_dart(),
+            self.representative.into_into_dart().into_dart(),
+            self.decision.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup,
+    > for crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup
+{
+    fn into_into_dart(self) -> crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewKey
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.digest.into_into_dart().into_dart(),
+            self.byte_length.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewKey
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::exact_duplicate_review::ExactDuplicateReviewKey,
+    > for crate::domain::exact_duplicate_review::ExactDuplicateReviewKey
+{
+    fn into_into_dart(self) -> crate::domain::exact_duplicate_review::ExactDuplicateReviewKey {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.asset.into_into_dart().into_dart(),
+            self.availability.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation,
+    > for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation
+{
+    fn into_into_dart(self) -> crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.locations.into_into_dart().into_dart(),
+            self.next_location_id.into_into_dart().into_dart(),
+            self.decision.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations,
+    > for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewPage
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.groups.into_into_dart().into_dart(),
+            self.next.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicate_review::ExactDuplicateReviewPage
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::exact_duplicate_review::ExactDuplicateReviewPage,
+    > for crate::domain::exact_duplicate_review::ExactDuplicateReviewPage
+{
+    fn into_into_dart(self) -> crate::domain::exact_duplicate_review::ExactDuplicateReviewPage {
         self
     }
 }
@@ -5901,6 +6427,15 @@ impl SseEncode for crate::domain::exact_duplicates::ExactAnalysisProgress {
     }
 }
 
+impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateDecision {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.preferred_location_id, serializer);
+        <Option<String>>::sse_encode(self.preferred_asset_id, serializer);
+        <bool>::sse_encode(self.ignored, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::exact_duplicates::ExactDuplicateGroup {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -5957,6 +6492,74 @@ impl SseEncode for crate::domain::exact_duplicates::ExactDuplicateLocationPage {
             serializer,
         );
         <Option<String>>::sse_encode(self.next_location_id, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicatePreference {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.location_id, serializer);
+        <String>::sse_encode(self.asset_id, serializer);
+        <u64>::sse_encode(self.source_generation, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::exact_duplicates::ExactDuplicateGroup>::sse_encode(self.group, serializer);
+        <crate::domain::AssetLocationView>::sse_encode(self.representative, serializer);
+        <crate::domain::exact_duplicate_review::ExactDuplicateDecision>::sse_encode(
+            self.decision,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateReviewKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.digest, serializer);
+        <u64>::sse_encode(self.byte_length, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::AssetLocationView>::sse_encode(self.asset, serializer);
+        <crate::domain::exact_duplicates::DuplicateLocationAvailability>::sse_encode(
+            self.availability,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateReviewLocations {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation>>::sse_encode(
+            self.locations,
+            serializer,
+        );
+        <Option<String>>::sse_encode(self.next_location_id, serializer);
+        <crate::domain::exact_duplicate_review::ExactDuplicateDecision>::sse_encode(
+            self.decision,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateReviewPage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup>>::sse_encode(
+            self.groups,
+            serializer,
+        );
+        <Option<crate::domain::exact_duplicates::ExactDuplicateGroupCursor>>::sse_encode(
+            self.next, serializer,
+        );
     }
 }
 
@@ -6419,6 +7022,30 @@ impl SseEncode for Vec<crate::domain::exact_duplicates::ExactDuplicateLocation> 
     }
 }
 
+impl SseEncode for Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::exact_duplicate_review::ExactDuplicateReviewLocation>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::domain::exact_duplicates::GalleryDuplicateAnnotation> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -6569,6 +7196,18 @@ impl SseEncode for Option<crate::domain::exact_duplicates::ExactDuplicateGroupCu
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::domain::exact_duplicates::ExactDuplicateGroupCursor>::sse_encode(
+                value, serializer,
+            );
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::exact_duplicate_review::ExactDuplicatePreference> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::exact_duplicate_review::ExactDuplicatePreference>::sse_encode(
                 value, serializer,
             );
         }

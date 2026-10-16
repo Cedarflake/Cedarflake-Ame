@@ -76,17 +76,30 @@ source generations: two hardlink paths count as two locations of one physical fi
 different volumes remain separate physical files even if their platform file IDs happen to match.
 
 Global evidence determines whether an item belongs to a duplicate group. Gallery scope still
-limits which locations may be represented or selected. Folding chooses the user's available
-preferred location within that scope, then the lexicographically smallest location ID within it;
+limits which locations may be represented or selected. Folding chooses the user's preferred
+location when its current identity and content evidence still match within that scope, then the
+lexicographically smallest location ID within it;
 sort/date keys come from that representative. A group spanning folders does not silently expand
 selection outside the active folder. `查看重复位置` deliberately lists all known current locations,
 including those outside the gallery scope. Pending and unreadable items remain ordinary items.
 
-Preferred-copy and ignore decisions will use the versioned content key and explicit location/asset
-targets. Compatible reanalysis and added copies retain the decision. Removed preferred locations
-fall back deterministically without erasing the choice; changed content forms a different group.
-R3-04 supplies that workflow, separately from these rebuildable fingerprints. General review
-sessions and albums remain R4.
+Schema 42 stores preferred-copy and ignore decisions under the versioned content key, with an
+explicit location/asset pair for the preferred copy. These rows have no cascading relationship to
+rebuildable fingerprints or locations. Compatible reanalysis and added copies retain the decision.
+Removed or replaced preferred locations fall back deterministically without erasing the choice;
+changed content forms a different group. Setting a preference checks the current generation,
+location/asset pair and matching fingerprint in one write transaction. Only an actual preference
+change advances the gallery revision. Ignoring moves a group to a reversible review list and leaves
+gallery folding, duplicate badges and physical files unchanged. General review sessions and albums
+remain R4.
+
+Review pages filter ignored state before keyset pagination and return at most 64 groups or members.
+Member evidence and the saved decision share one read snapshot; metadata-only availability checks
+run after releasing the database transaction. The review controller owns independent read and write
+generations. A late read cannot erase a newly committed choice or clear a newer request. Visible
+review rows own bounded preview demand through the shared preview coordinator; leaving the page or
+opening its viewer retires those requests. Viewer navigation retains its admitted member-page
+snapshot while catalog changes continue in the background.
 
 ## Ownership and validation
 
