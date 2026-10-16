@@ -99,12 +99,12 @@ void main() {
     expect(find.byKey(const Key("library-global-bar")), findsOneWidget);
     expect(
       tester
-          .widget<ListTile>(find.byKey(const Key("library-sidebar-settings")))
-          .selected,
+          .widget<IconButton>(find.byKey(const Key("library-sidebar-settings")))
+          .isSelected,
       isTrue,
     );
 
-    await tester.tap(find.byKey(const Key("library-sidebar-library")));
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
     await tester.pump();
     expect(find.byKey(const Key("ame-settings-page")), findsNothing);
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
@@ -746,6 +746,9 @@ void main() {
     expect(find.text("Ame"), findsNothing);
     expect(find.byKey(const Key("library-search")), findsOneWidget);
     expect(find.byKey(const Key("library-import-button")), findsNothing);
+    expect(find.byKey(const Key("library-sidebar-import")), findsNothing);
+    await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
     expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
     expect(find.byKey(const Key("window-minimize")), findsOneWidget);

@@ -11,6 +11,7 @@ import "../library_strings.dart";
 class LibraryGalleryHeader extends StatelessWidget {
   const LibraryGalleryHeader({
     required this.galleryTitle,
+    this.leading,
     required this.totalItems,
     required this.selectedCount,
     required this.isSelecting,
@@ -29,6 +30,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   });
 
   final String galleryTitle;
+  final Widget? leading;
   final int totalItems;
   final int selectedCount;
   final bool isSelecting;
@@ -57,7 +59,7 @@ class LibraryGalleryHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final titleBlock = Column(
+              final titleText = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -74,6 +76,13 @@ class LibraryGalleryHeader extends StatelessWidget {
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
                   ),
+                ],
+              );
+              final titleBlock = Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (leading != null) ...[leading!, const SizedBox(width: 8)],
+                  Flexible(child: titleText),
                 ],
               );
               final toolbar = isSelecting

@@ -50,7 +50,14 @@ fn v38_upgrade_preserves_rows_and_conflicting_index_rolls_back() {
                 |row| Ok((row.get(0)?, row.get(1)?)),
             )
             .unwrap();
-        assert_eq!(version, if conflict { 38 } else { 39 });
+        assert_eq!(
+            version,
+            if conflict {
+                38
+            } else {
+                super::super::SCHEMA_VERSION
+            }
+        );
         assert_eq!(created, 123);
         if conflict {
             let added: i64 = connection

@@ -1,4 +1,5 @@
 mod durable_local_metadata_inventory;
+mod exact_content_reader;
 mod exif_metadata;
 mod image_orientation;
 mod jpeg_preview;
@@ -6,6 +7,7 @@ mod local_files;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;
+pub(crate) use exact_content_reader::GuardedExactContentReader;
 mod preview_cache;
 mod sqlite_catalog;
 mod storage_settings;

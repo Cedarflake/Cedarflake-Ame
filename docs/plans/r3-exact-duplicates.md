@@ -1,6 +1,7 @@
 # R3 exact duplicate implementation
 
-Status: active implementation preparation, selected by the [roadmap](../roadmap.md#current-execution-queue).
+Status: R3-01 implementation in progress; accepted workbench blueprint selected by the
+[roadmap](../roadmap.md#current-execution-queue).
 
 Updated: 2026-10-16.
 
@@ -10,7 +11,8 @@ Deliver the [R3 product contract](../product/organization-workflows.md#r3---exac
 identify byte-identical images, inspect every physical location, fold confirmed groups in the
 existing gallery, and preserve preferred-copy and ignore decisions across restarts and reanalysis.
 The [gallery contract](../product/gallery-ui.md#filter-and-exact-duplicate-behavior) owns the filter
-choices and contextual review entry. The roadmap alone owns stage order and closure.
+choices and the Duplicates workspace. [ADR 0029](../architecture/0029-functional-workbench-navigation.md)
+owns the function rail and collapsible Library sidebar. The roadmap alone owns stage order and closure.
 
 Reuse the frozen R2c catalog, source identities and generations, guarded source access, incremental
 publication, bounded gallery queries and preview/viewer lifecycle. Source files and cloud-only
@@ -25,19 +27,26 @@ analysis engines or convert reused results into human decisions.
 ## Execution checkpoint
 
 Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
-The current source has file-identity/source-generation evidence and bounded gallery query owners.
-Versioned content fingerprints, exact-duplicate groups and production duplicate filters are not yet
-implemented. No R3 engine choice, schema migration or product implementation is accepted by this plan.
+The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,
+versioned fingerprints, schema 40, bounded group/location queries and a generated desktop bridge.
+[ADR 0028](../architecture/0028-versioned-exact-content-analysis.md) records the BLAKE3 adapter
+choice and identity rules. Default folding and automatic incremental analysis remain unimplemented.
 
-The immediate work is R3-01: compare the two engine integration candidates below, settle the small
-set of group/identity rules, and deliver real duplicate-location inspection. Do not create an
-independent documentation or test-infrastructure stage before that user workflow.
+The retained 10,000-file corpus produced 72 groups matching its existing digest oracle, with
+cancellation and continuation exercised in the client. The
+[R3 verification record](../acceptance/r3-exact-duplicates.md) retains the exact coverage and limits.
+The accepted three-region workbench replaces the More-menu/bottom-sheet prototype under ADR 0029.
+First connect the function rail, persistent collapsible folder sidebar and a real duplicate-results
+workspace with location reveal. Then connect incremental automatic analysis and the two gallery
+display modes with duplicate badges. Retain the existing analysis implementation and verification;
+the changed client paths have been checked against the reusable corpus, including unchanged
+reopening with zero additional content reads. Automated regressions await Actions.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |
-| R3-01 | Identify exact duplicates and inspect their physical locations | Preparation |
+| R3-01 | Identify exact duplicates and inspect their physical locations | Core and accepted workbench connected; client verification recorded, Actions pending |
 | R3-02 | Maintain duplicate results through incremental changes | Queued after R3-01 |
-| R3-03 | Fold duplicates and connect all three gallery display modes | Queued after R3-02 |
+| R3-03 | Connect both gallery display modes and duplicate badges | Queued after R3-02 |
 | R3-04 | Review groups and preserve preferred-copy/ignore decisions | Queued after R3-03 |
 | R3-05 | Complete affected client/performance verification and close R3 | Queued after R3-04 |
 
@@ -91,7 +100,7 @@ group evidence only when the source state still matches. Use forward migrations 
 existing catalogs and user data. Analysis work has its own progress, cancellation, retry and
 restart-safe result reuse, without blocking gallery startup or browsing.
 
-Expose `查看重复位置` for a confirmed group through the existing gallery workflow, with each path
+Expose `查看重复位置` for a confirmed group in the dedicated Duplicates workspace, with each path
 and its local, offline, unavailable or cloud-backed state. Result validity participates in existing
 source-generation invalidation from the first publication: a changed member cannot keep presenting
 an obsolete exact match while automatic recomputation is still pending. R3-02 completes that
@@ -116,7 +125,8 @@ scheduled analysis separate from the unchanged R2c synchronization startup count
 
 ## R3-03: Gallery folding
 
-Connect `显示所有文件`, `合并完全相同图片` and `仅显示重复图片` in the existing filter menu. The
+Connect `全部图片` and `合并重复图片` in the existing gallery filter menu. Duplicate-only results
+remain in the Duplicates workspace. The
 initial default becomes folding once reliable exact evidence and incremental maintenance are
 connected. Preserve the user's selected mode. Pending or unreadable items remain visible without
 an invented duplicate classification.
@@ -127,13 +137,14 @@ anchors consistent with the selected mode and scope. Logical group selection and
 location selection have distinct typed meanings. Preserve the delivered gallery/viewer layout and
 interaction outside the added R3 controls.
 
-Exit through all three modes in the actual client, including groups spanning page boundaries,
+Exit through both gallery modes and duplicate-only results in the actual client, including groups spanning page boundaries,
 source/date scopes and incremental changes, with no missing item, duplicate page, jump or unbounded
 bridge payload. Apply the Microsoft and Google UI/UX skills to the affected controls and copy.
 
-## R3-04: Contextual review and durable choices
+## R3-04: Group review and durable choices
 
-Connect `审查重复组` at the bottom of the same filter menu and keep review in the existing canvas.
+Connect group review in the Duplicates workspace, retaining its selected group and progress while
+the user visits Library or Settings.
 Allow the user to inspect members, select a preferred copy and ignore a group. Implement the
 decision identity and regrouping rules settled in R3-01; persist human choices separately from
 rebuildable analysis and honor them after restart, compatible reanalysis and catalog maintenance.

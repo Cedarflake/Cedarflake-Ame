@@ -171,7 +171,6 @@ class _Navigation extends ConsumerWidget {
       child: LibraryNavigation(
         isCompact: false,
         width: 260,
-        isSettingsSelected: false,
         roots: const [_root],
         selectedRootId: "root-1",
         selectedFolderRelativePath: null,
@@ -194,7 +193,6 @@ class _Navigation extends ConsumerWidget {
           loadMore: true,
         ),
         onAddSource: () {},
-        onOpenSettings: () {},
         onUpdateRoot: (_) {},
         onOpenRoot: (_) {},
         onOpenFolder: (_, _) {},

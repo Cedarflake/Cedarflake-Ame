@@ -20,6 +20,7 @@ import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
 import "../application/library_update_controller.dart";
 import "../application/library_view_preferences.dart";
+import "../application/library_workbench_controller.dart";
 import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
@@ -35,6 +36,7 @@ import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
 import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
+import "widgets/library_gallery_activity.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
@@ -45,9 +47,9 @@ import "widgets/library_global_bar.dart";
 import "widgets/library_image_viewer.dart";
 import "widgets/library_viewer_filmstrip.dart";
 import "widgets/library_viewer_gallery_viewport.dart";
-import "widgets/library_main_surface.dart";
 import "widgets/library_navigation.dart";
-import "widgets/library_navigation_resize_handle.dart";
+import "widgets/library_workbench.dart";
+import "widgets/library_exact_duplicates_page.dart";
 import "widgets/library_query_failure_banner.dart";
 import "widgets/library_task_feedback.dart";
 import "widgets/library_time_navigation.dart";
@@ -84,7 +86,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   late String _selectionStableQueryId;
   late GalleryLayoutShape _layoutShape;
   late GalleryThumbnailSize _thumbnailSize;
-  late double _sidebarWidth;
   bool _isSidebarResizing = false;
   late final LibraryViewerSession _viewer;
   int _timelineSemanticsGeneration = 0;
@@ -92,7 +93,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   LibraryGalleryPrependCompensation? _previousWindowCompensation;
   bool get _isRestoringPreviousWindow =>
       _previousWindowCompensation?.isActive ?? false;
-  _LibraryDestination _destination = _LibraryDestination.gallery;
+  LibraryWorkspace get _destination =>
+      ref.read(libraryWorkbenchControllerProvider);
   late final ValueNotifier<_LibraryGalleryLayoutSnapshot?>
   _galleryLayoutSnapshot;
   LibraryGalleryVisiblePosition? _visibleGalleryPosition;
@@ -156,16 +158,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     );
     final state = ref.read(libraryControllerProvider);
     final viewPreferences = ref.read(initialLibraryViewPreferencesProvider);
-    final amePreferences = ref.read(initialAmePreferencesProvider);
     _searchController = TextEditingController(text: state.query.searchText);
     _galleryLayoutSnapshot = ValueNotifier(null);
     _selection = GallerySelection.empty(_queryId(state));
     _selectionStableQueryId = _stableQueryId(state);
     _layoutShape = viewPreferences.layoutShape;
     _thumbnailSize = viewPreferences.thumbnailSize;
-    _sidebarWidth = amePreferences.sidebarWidth
-        .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
-        .toDouble();
     _layoutDimensionSubscription = _libraryController
         .watchLayoutDimensionUpdates()
         .listen(_handleLayoutDimensionUpdate);
@@ -604,6 +602,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       _handleSelectionQueryChanged,
     );
     final state = ref.watch(libraryControllerProvider);
+    final workspace = ref.watch(libraryWorkbenchControllerProvider);
     final updateState = ref.watch(libraryUpdateControllerProvider);
     final notifications = ref.watch(ameNotificationControllerProvider);
     _synchronizeLayoutDimensionContext(state.catalogRevision, state.queryId);
@@ -653,7 +652,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
 
     return CallbackShortcuts(
-      bindings: viewerCatalogAsset == null
+      bindings:
+          viewerCatalogAsset == null && workspace == LibraryWorkspace.gallery
           ? {
               const SingleActivator(
                 LogicalKeyboardKey.keyA,
@@ -681,7 +681,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                   child: Column(
                     children: [
                       LibraryGlobalBar(
-                        isSearchEnabled: canEditLibrarySearch(state),
+                        isSearchEnabled:
+                            workspace == LibraryWorkspace.gallery &&
+                            canEditLibrarySearch(state),
                         searchController: _searchController,
                         onSearchChanged: _onSearchChanged,
                         notifications: notifications,
@@ -695,7 +697,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           state,
                           controller,
                           updateState,
-                          amePreferences,
                           layoutManifest,
                         ),
                       ),
@@ -1017,163 +1018,115 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryState state,
     LibraryController controller,
     LibraryUpdateState updateState,
-    AmePreferences amePreferences,
     LibraryGalleryLayoutManifest? layoutManifest,
   ) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
     final folderController = ref.read(libraryFolderControllerProvider.notifier);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isCompactNavigation = constraints.maxWidth < 940;
-        final navigationWidth = isCompactNavigation ? 76.0 : _sidebarWidth;
-        final content = Row(
-          children: [
-            LibraryNavigation(
-              isCompact: isCompactNavigation,
-              width: navigationWidth,
-              isSettingsSelected: _destination == _LibraryDestination.settings,
-              roots: state.roots,
-              rootSynchronizationStatuses: _synchronizationSnapshot.roots,
-              hasSynchronizationFailure:
-                  _synchronizationSnapshot.lastErrorCode != null,
-              selectedRootId: state.query.rootId,
-              selectedFolderRelativePath: state.query.folderRelativePath,
-              transientSource: LibraryPendingSource.fromState(state),
-              folderTree: folderTree,
-              isBusy: state.isBusy,
-              isBrowseDisabled: !LibraryBrowseAdmission(state).canBrowse,
-              updatingRootIds: updateState.activeRootIds,
-              isAddingSourceDisabled:
-                  updateState.hasActive ||
-                  state.hasRetainedScan ||
-                  state.primaryScanSnapshot.hasUnresolvedPublication,
-              addingSourceDisabledReason:
-                  LibraryPendingSource.addFolderDisabledReason(
-                    state.primaryScanSnapshot,
-                  ),
-              retainedScanRootId: state.retainedScanRootId,
-              onSelectLibrary: () => _selectLibrary(state),
-              onSelectRoot: (root) => _selectRoot(state, root),
-              onSelectFolder: (root, folder) =>
-                  _selectFolder(state, root, folder),
-              onExpandFolder: (rootId, parentRelativePath) => _loadFolderBranch(
-                folderController,
-                state,
-                rootId,
-                parentRelativePath,
-              ),
-              onLoadMoreFolders: (rootId, parentRelativePath) =>
-                  _loadFolderBranch(
-                    folderController,
-                    state,
-                    rootId,
-                    parentRelativePath,
-                    loadMore: true,
-                  ),
-              onAddSource: _addSource,
-              onOpenSettings: _openSettings,
-              onUpdateRoot: (root) =>
-                  unawaited(_chooseLibraryRootsToUpdate(root)),
-              onRelocateRoot: (root) =>
-                  unawaited(controller.chooseDirectoryAndRelocate(root)),
-              onOpenRoot: _openRoot,
-              onOpenFolder: _openFolder,
-              onRemoveRoot: _confirmRemoveRoot,
+    return LibraryWorkbench(
+      navigationBuilder: (width) => LibraryNavigation(
+        isCompact: false,
+        width: width,
+        roots: state.roots,
+        rootSynchronizationStatuses: _synchronizationSnapshot.roots,
+        hasSynchronizationFailure:
+            _synchronizationSnapshot.lastErrorCode != null,
+        selectedRootId: state.query.rootId,
+        selectedFolderRelativePath: state.query.folderRelativePath,
+        transientSource: LibraryPendingSource.fromState(state),
+        folderTree: folderTree,
+        isBusy: state.isBusy,
+        isBrowseDisabled: !LibraryBrowseAdmission(state).canBrowse,
+        updatingRootIds: updateState.activeRootIds,
+        isAddingSourceDisabled:
+            updateState.hasActive ||
+            state.hasRetainedScan ||
+            state.primaryScanSnapshot.hasUnresolvedPublication,
+        addingSourceDisabledReason:
+            LibraryPendingSource.addFolderDisabledReason(
+              state.primaryScanSnapshot,
             ),
-            if (isCompactNavigation) const SizedBox(width: 1),
-            Expanded(
-              child: LibraryMainSurface(
-                child: _destination == _LibraryDestination.settings
-                    ? AmeSettingsPage(
-                        hasLibraryRoots: state.roots.isNotEmpty,
-                        libraryRootIds: {
-                          for (final root in state.roots)
-                            if (!state.isRemovalCommitted ||
-                                root.id != state.removingRootId)
-                              root.id,
-                        },
-                      )
-                    : LibraryGalleryViewport(
-                        header: LibraryGalleryHeader(
-                          galleryTitle: _galleryTitle(state),
-                          totalItems: _totalItems(state),
-                          selectedCount: _selection.selectedCount(
-                            _totalItems(state),
-                          ),
-                          isSelecting: _isSelecting,
-                          layoutShape: _layoutShape,
-                          thumbnailSize: _thumbnailSize,
-                          sortKey: state.query.sortKey,
-                          sortDirection: state.query.sortDirection,
-                          onBeginSelection: () =>
-                              setState(() => _isSelecting = true),
-                          onCancelSelection: _clearSelection,
-                          onSelectAll: () => _selectAll(state),
-                          onLayoutShapeChanged: _changeLayoutShape,
-                          onThumbnailSizeChanged: _changeThumbnailSize,
-                          onSortKeyChanged: (value) =>
-                              _changeSortKey(state, value),
-                          onSortDirectionChanged: (value) =>
-                              _changeSortDirection(state, value),
-                        ),
-                        failure: switch (state.queryActivity) {
-                          LibraryQueryFailed failure =>
-                            LibraryQueryFailureBanner(
-                              onRetry: !LibraryBrowseAdmission(state).canBrowse
-                                  ? null
-                                  : () => unawaited(
-                                      _applyQuery(
-                                        failure.requestedQuery,
-                                        forceRefresh: true,
-                                      ),
-                                    ),
-                            ),
-                          _ => null,
-                        },
-                        isEmpty: state.assets.isEmpty,
-                        isLoading:
-                            state.isRefreshingQuery ||
-                            state.isLoadingPage ||
-                            state.isLoadingPreviousPage ||
-                            state.isLoadingTimeAnchor ||
-                            state.isLoadingVisibleRange,
-                        body: _buildGalleryBody(
-                          state,
-                          controller,
-                          layoutManifest,
-                        ),
-                      ),
-              ),
+        retainedScanRootId: state.retainedScanRootId,
+        onSelectLibrary: () => _selectLibrary(state),
+        onSelectRoot: (root) => _selectRoot(state, root),
+        onSelectFolder: (root, folder) => _selectFolder(state, root, folder),
+        onExpandFolder: (rootId, parentRelativePath) => _loadFolderBranch(
+          folderController,
+          state,
+          rootId,
+          parentRelativePath,
+        ),
+        onLoadMoreFolders: (rootId, parentRelativePath) => _loadFolderBranch(
+          folderController,
+          state,
+          rootId,
+          parentRelativePath,
+          loadMore: true,
+        ),
+        onAddSource: _addSource,
+        onUpdateRoot: (root) => unawaited(_chooseLibraryRootsToUpdate(root)),
+        onRelocateRoot: (root) =>
+            unawaited(controller.chooseDirectoryAndRelocate(root)),
+        onOpenRoot: _openRoot,
+        onOpenFolder: _openFolder,
+        onRemoveRoot: _confirmRemoveRoot,
+      ),
+      galleryBuilder: (sidebarToggle) => LibraryGalleryActivity(
+        controller: controller,
+        child: LibraryGalleryViewport(
+          header: LibraryGalleryHeader(
+            leading: sidebarToggle,
+            galleryTitle: _galleryTitle(state),
+            totalItems: _totalItems(state),
+            selectedCount: _selection.selectedCount(_totalItems(state)),
+            isSelecting: _isSelecting,
+            layoutShape: _layoutShape,
+            thumbnailSize: _thumbnailSize,
+            sortKey: state.query.sortKey,
+            sortDirection: state.query.sortDirection,
+            onBeginSelection: () => setState(() => _isSelecting = true),
+            onCancelSelection: _clearSelection,
+            onSelectAll: () => _selectAll(state),
+            onLayoutShapeChanged: _changeLayoutShape,
+            onThumbnailSizeChanged: _changeThumbnailSize,
+            onSortKeyChanged: (value) => _changeSortKey(state, value),
+            onSortDirectionChanged: (value) =>
+                _changeSortDirection(state, value),
+          ),
+          failure: switch (state.queryActivity) {
+            LibraryQueryFailed failure => LibraryQueryFailureBanner(
+              onRetry: !LibraryBrowseAdmission(state).canBrowse
+                  ? null
+                  : () => unawaited(
+                      _applyQuery(failure.requestedQuery, forceRefresh: true),
+                    ),
             ),
-          ],
-        );
-        if (isCompactNavigation) {
-          return content;
+            _ => null,
+          },
+          isEmpty: state.assets.isEmpty,
+          isLoading:
+              state.isRefreshingQuery ||
+              state.isLoadingPage ||
+              state.isLoadingPreviousPage ||
+              state.isLoadingTimeAnchor ||
+              state.isLoadingVisibleRange,
+          body: _buildGalleryBody(state, controller, layoutManifest),
+        ),
+      ),
+      duplicatesBuilder: (_) => const LibraryExactDuplicatesPage(),
+      settingsBuilder: (_) => AmeSettingsPage(
+        hasLibraryRoots: state.roots.isNotEmpty,
+        libraryRootIds: {
+          for (final root in state.roots)
+            if (!state.isRemovalCommitted || root.id != state.removingRootId)
+              root.id,
+        },
+      ),
+      onSidebarResizeChanged: (resizing) {
+        if (mounted && _isSidebarResizing != resizing) {
+          setState(() => _isSidebarResizing = resizing);
         }
-        return Stack(
-          children: [
-            content,
-            Positioned(
-              left:
-                  navigationWidth -
-                  LibraryNavigationResizeHandle.hitTargetWidth / 2,
-              top: 0,
-              bottom: 0,
-              child: LibraryNavigationResizeHandle(
-                width: _sidebarWidth,
-                minimumWidth: ameMinimumSidebarWidth,
-                maximumWidth: ameMaximumSidebarWidth,
-                defaultWidth: ameDefaultSidebarWidth,
-                onWidthChangeStart: _beginSidebarResize,
-                onWidthChanged: _changeSidebarWidth,
-                onWidthChangeEnd: (width) =>
-                    _endSidebarResize(amePreferences, width),
-                onWidthChangeCancel: _cancelSidebarResize,
-              ),
-            ),
-          ],
-        );
       },
+      onPreferenceError: _publishFailureNotification,
     );
   }
 
@@ -1307,8 +1260,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _onSearchChanged(String value) {
-    if (_destination != _LibraryDestination.gallery) {
-      setState(() => _destination = _LibraryDestination.gallery);
+    if (_destination != LibraryWorkspace.gallery) {
+      ref
+          .read(libraryWorkbenchControllerProvider.notifier)
+          .select(LibraryWorkspace.gallery);
     }
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
@@ -1556,55 +1511,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
   }
 
-  void _changeSidebarWidth(double width) {
-    final nextWidth = width
-        .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
-        .toDouble();
-    if ((nextWidth - _sidebarWidth).abs() < 0.1) {
-      return;
-    }
-    setState(() => _sidebarWidth = nextWidth);
-  }
-
-  void _beginSidebarResize() {
-    if (_isSidebarResizing) {
-      return;
-    }
-    setState(() => _isSidebarResizing = true);
-  }
-
-  void _endSidebarResize(AmePreferences preferences, double width) {
-    unawaited(_persistSidebarWidth(preferences, width));
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _isSidebarResizing) {
-        setState(() => _isSidebarResizing = false);
-      }
-    });
-  }
-
-  void _cancelSidebarResize() {
-    if (_isSidebarResizing) {
-      setState(() => _isSidebarResizing = false);
-    }
-  }
-
-  Future<void> _persistSidebarWidth(
-    AmePreferences preferences,
-    double width,
-  ) async {
-    final previousWidth = preferences.sidebarWidth;
-    try {
-      await ref
-          .read(amePreferencesControllerProvider.notifier)
-          .update(preferences.copyWith(sidebarWidth: width));
-    } on Object catch (error) {
-      if (mounted) {
-        setState(() => _sidebarWidth = previousWidth);
-        _publishFailureNotification("无法保存侧栏宽度", error);
-      }
-    }
-  }
-
   void _cancelCurrentMode() {
     if (_viewer.assetId != null) {
       _closeViewer();
@@ -1614,8 +1520,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       _clearSelection();
       return;
     }
-    if (_destination == _LibraryDestination.settings) {
-      setState(() => _destination = _LibraryDestination.gallery);
+    if (_destination != LibraryWorkspace.gallery) {
+      ref
+          .read(libraryWorkbenchControllerProvider.notifier)
+          .select(LibraryWorkspace.gallery);
     }
   }
 
@@ -1747,21 +1655,17 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     await _libraryController.retry();
   }
 
-  void _openSettings() {
-    setState(() {
-      _destination = _LibraryDestination.settings;
-      _selection = _selection.clear();
-      _isSelecting = false;
-    });
-  }
-
   void _addSource() {
-    setState(() => _destination = _LibraryDestination.gallery);
+    ref
+        .read(libraryWorkbenchControllerProvider.notifier)
+        .select(LibraryWorkspace.gallery);
     unawaited(_libraryController.chooseDirectoryAndScan());
   }
 
   void _selectLibrary(LibraryState state) {
-    setState(() => _destination = _LibraryDestination.gallery);
+    ref
+        .read(libraryWorkbenchControllerProvider.notifier)
+        .select(LibraryWorkspace.gallery);
     unawaited(
       _applyQuery(
         state.query.copyWith(rootId: null, folderRelativePath: null),
@@ -1771,7 +1675,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _selectRoot(LibraryState state, LibraryRoot root) {
-    setState(() => _destination = _LibraryDestination.gallery);
+    ref
+        .read(libraryWorkbenchControllerProvider.notifier)
+        .select(LibraryWorkspace.gallery);
     unawaited(
       _applyQuery(
         state.query.copyWith(rootId: root.id, folderRelativePath: null),
@@ -1785,7 +1691,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryRoot root,
     LibraryFolder folder,
   ) {
-    setState(() => _destination = _LibraryDestination.gallery);
+    ref
+        .read(libraryWorkbenchControllerProvider.notifier)
+        .select(LibraryWorkspace.gallery);
     unawaited(
       _applyQuery(
         state.query.copyWith(
@@ -2069,8 +1977,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     return null;
   }
 }
-
-enum _LibraryDestination { gallery, settings }
 
 class _LibraryGalleryLayoutSnapshot {
   const _LibraryGalleryLayoutSnapshot({

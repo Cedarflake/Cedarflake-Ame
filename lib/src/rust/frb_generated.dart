@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/catalog.dart';
+import 'api/exact_duplicates.dart';
 import 'api/preview.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
@@ -12,6 +13,7 @@ import 'application/viewer_source.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'domain.dart';
+import 'domain/exact_duplicates.dart';
 import 'domain/gallery_query_snapshot.dart';
 import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
@@ -78,7 +80,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 244798701;
+  int get rustContentHash => 1957819567;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -102,8 +104,16 @@ abstract class RustLibApi extends BaseApi {
     required ViewerSourceRequest request,
   });
 
+  Stream<ExactAnalysisProgress> crateApiExactDuplicatesAnalyzeExactDuplicates({
+    required String runId,
+  });
+
   Future<bool> crateApiStorageCancelCatalogDatabaseReclamation({
     required String operationId,
+  });
+
+  Future<void> crateApiExactDuplicatesCancelExactDuplicateAnalysis({
+    required String runId,
   });
 
   bool crateApiCatalogCancelLibraryScan({required String scanId});
@@ -127,6 +137,18 @@ abstract class RustLibApi extends BaseApi {
 
   Future<CatalogReclamationSnapshot>
   crateApiStorageLoadCatalogDatabaseReclamation();
+
+  Future<ExactDuplicateGroupPage>
+  crateApiExactDuplicatesLoadExactDuplicateGroups({
+    ExactDuplicateGroupCursor? after,
+  });
+
+  Future<ExactDuplicateLocationPage>
+  crateApiExactDuplicatesLoadExactDuplicateLocations({
+    required String digest,
+    required BigInt byteLength,
+    String? afterLocationId,
+  });
 
   Future<AssetLocationView?> crateApiCatalogLoadLibraryAssetById({
     required String assetId,
@@ -370,6 +392,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Stream<ExactAnalysisProgress> crateApiExactDuplicatesAnalyzeExactDuplicates({
+    required String runId,
+  }) {
+    final sink = RustStreamSink<ExactAnalysisProgress>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_String(runId, serializer);
+            sse_encode_StreamSink_exact_analysis_progress_Sse(sink, serializer);
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 4,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_scan_error,
+          ),
+          constMeta: kCrateApiExactDuplicatesAnalyzeExactDuplicatesConstMeta,
+          argValues: [runId, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta get kCrateApiExactDuplicatesAnalyzeExactDuplicatesConstMeta =>
+      const TaskConstMeta(
+        debugName: "analyze_exact_duplicates",
+        argNames: ["runId", "sink"],
+      );
+
+  @override
   Future<bool> crateApiStorageCancelCatalogDatabaseReclamation({
     required String operationId,
   }) {
@@ -381,7 +441,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 5,
             port: port_,
           );
         },
@@ -403,13 +463,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<void> crateApiExactDuplicatesCancelExactDuplicateAnalysis({
+    required String runId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(runId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta:
+            kCrateApiExactDuplicatesCancelExactDuplicateAnalysisConstMeta,
+        argValues: [runId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiExactDuplicatesCancelExactDuplicateAnalysisConstMeta =>
+      const TaskConstMeta(
+        debugName: "cancel_exact_duplicate_analysis",
+        argNames: ["runId"],
+      );
+
+  @override
   bool crateApiCatalogCancelLibraryScan({required String scanId}) {
     return handler.executeSync(
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 5)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 7)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -435,7 +530,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(operationId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 6)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 8)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -466,7 +561,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 9,
             port: port_,
           );
         },
@@ -502,7 +597,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 8,
+              funcId: 10,
               port: port_,
             );
           },
@@ -542,7 +637,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 9,
+              funcId: 11,
               port: port_,
             );
           },
@@ -574,7 +669,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 12,
             port: port_,
           );
         },
@@ -602,7 +697,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 13,
             port: port_,
           );
         },
@@ -624,6 +719,82 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<ExactDuplicateGroupPage>
+  crateApiExactDuplicatesLoadExactDuplicateGroups({
+    ExactDuplicateGroupCursor? after,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_box_autoadd_exact_duplicate_group_cursor(
+            after,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_exact_duplicate_group_page,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiExactDuplicatesLoadExactDuplicateGroupsConstMeta,
+        argValues: [after],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiExactDuplicatesLoadExactDuplicateGroupsConstMeta =>
+      const TaskConstMeta(
+        debugName: "load_exact_duplicate_groups",
+        argNames: ["after"],
+      );
+
+  @override
+  Future<ExactDuplicateLocationPage>
+  crateApiExactDuplicatesLoadExactDuplicateLocations({
+    required String digest,
+    required BigInt byteLength,
+    String? afterLocationId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(digest, serializer);
+          sse_encode_u_64(byteLength, serializer);
+          sse_encode_opt_String(afterLocationId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_exact_duplicate_location_page,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiExactDuplicatesLoadExactDuplicateLocationsConstMeta,
+        argValues: [digest, byteLength, afterLocationId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiExactDuplicatesLoadExactDuplicateLocationsConstMeta =>
+      const TaskConstMeta(
+        debugName: "load_exact_duplicate_locations",
+        argNames: ["digest", "byteLength", "afterLocationId"],
+      );
+
+  @override
   Future<AssetLocationView?> crateApiCatalogLoadLibraryAssetById({
     required String assetId,
     String? preferredLocationId,
@@ -637,7 +808,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 16,
             port: port_,
           );
         },
@@ -676,7 +847,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 17,
             port: port_,
           );
         },
@@ -717,7 +888,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 18,
             port: port_,
           );
         },
@@ -766,7 +937,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 19,
             port: port_,
           );
         },
@@ -803,7 +974,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 20,
             port: port_,
           );
         },
@@ -842,7 +1013,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 21,
             port: port_,
           );
         },
@@ -883,7 +1054,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 22,
             port: port_,
           );
         },
@@ -918,7 +1089,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 23,
             port: port_,
           );
         },
@@ -955,7 +1126,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 24,
             port: port_,
           );
         },
@@ -992,7 +1163,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 25,
             port: port_,
           );
         },
@@ -1022,7 +1193,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 26,
             port: port_,
           );
         },
@@ -1049,7 +1220,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1079,7 +1250,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1109,7 +1280,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1137,7 +1308,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1169,7 +1340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1210,7 +1381,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 28,
+              funcId: 32,
               port: port_,
             );
           },
@@ -1243,7 +1414,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1270,7 +1441,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 34)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -1297,7 +1468,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 31)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -1333,7 +1504,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 32,
+              funcId: 36,
               port: port_,
             );
           },
@@ -1369,7 +1540,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 33,
+              funcId: 37,
               port: port_,
             );
           },
@@ -1404,7 +1575,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1438,7 +1609,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1472,7 +1643,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1501,7 +1672,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 37)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 41)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1532,7 +1703,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1592,6 +1763,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return ViewerSourceReadLeaseImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  RustStreamSink<ExactAnalysisProgress>
+  dco_decode_StreamSink_exact_analysis_progress_Sse(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
   }
 
   @protected
@@ -1685,6 +1863,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_catalog_read_retry_details(raw);
+  }
+
+  @protected
+  ExactDuplicateGroupCursor dco_decode_box_autoadd_exact_duplicate_group_cursor(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_exact_duplicate_group_cursor(raw);
   }
 
   @protected
@@ -1946,6 +2132,110 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ConsolidatedLibraryRoot(
       previousRootId: dco_decode_String(arr[0]),
       relativePath: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  DuplicateLocationAvailability dco_decode_duplicate_location_availability(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return DuplicateLocationAvailability.values[raw as int];
+  }
+
+  @protected
+  ExactAnalysisPhase dco_decode_exact_analysis_phase(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ExactAnalysisPhase.values[raw as int];
+  }
+
+  @protected
+  ExactAnalysisProgress dco_decode_exact_analysis_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return ExactAnalysisProgress(
+      runId: dco_decode_String(arr[0]),
+      phase: dco_decode_exact_analysis_phase(arr[1]),
+      checkedFiles: dco_decode_u_64(arr[2]),
+      fingerprintedFiles: dco_decode_u_64(arr[3]),
+      skippedFiles: dco_decode_u_64(arr[4]),
+      bytesRead: dco_decode_u_64(arr[5]),
+      currentPath: dco_decode_opt_String(arr[6]),
+      issueCode: dco_decode_opt_String(arr[7]),
+    );
+  }
+
+  @protected
+  ExactDuplicateGroup dco_decode_exact_duplicate_group(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return ExactDuplicateGroup(
+      digest: dco_decode_String(arr[0]),
+      byteLength: dco_decode_u_64(arr[1]),
+      locationCount: dco_decode_u_64(arr[2]),
+      physicalFileCount: dco_decode_u_64(arr[3]),
+      representativeLocationId: dco_decode_String(arr[4]),
+      representativePath: dco_decode_String(arr[5]),
+    );
+  }
+
+  @protected
+  ExactDuplicateGroupCursor dco_decode_exact_duplicate_group_cursor(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ExactDuplicateGroupCursor(
+      digest: dco_decode_String(arr[0]),
+      byteLength: dco_decode_u_64(arr[1]),
+    );
+  }
+
+  @protected
+  ExactDuplicateGroupPage dco_decode_exact_duplicate_group_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ExactDuplicateGroupPage(
+      groups: dco_decode_list_exact_duplicate_group(arr[0]),
+      next: dco_decode_opt_box_autoadd_exact_duplicate_group_cursor(arr[1]),
+    );
+  }
+
+  @protected
+  ExactDuplicateLocation dco_decode_exact_duplicate_location(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return ExactDuplicateLocation(
+      assetId: dco_decode_String(arr[0]),
+      locationId: dco_decode_String(arr[1]),
+      rootId: dco_decode_String(arr[2]),
+      displayPath: dco_decode_String(arr[3]),
+      sourceGeneration: dco_decode_u_64(arr[4]),
+      availability: dco_decode_duplicate_location_availability(arr[5]),
+    );
+  }
+
+  @protected
+  ExactDuplicateLocationPage dco_decode_exact_duplicate_location_page(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ExactDuplicateLocationPage(
+      locations: dco_decode_list_exact_duplicate_location(arr[0]),
+      nextLocationId: dco_decode_opt_String(arr[1]),
     );
   }
 
@@ -2329,6 +2619,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<ExactDuplicateGroup> dco_decode_list_exact_duplicate_group(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_exact_duplicate_group)
+        .toList();
+  }
+
+  @protected
+  List<ExactDuplicateLocation> dco_decode_list_exact_duplicate_location(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_exact_duplicate_location)
+        .toList();
+  }
+
+  @protected
   List<GalleryLayoutDateGroup> dco_decode_list_gallery_layout_date_group(
     dynamic raw,
   ) {
@@ -2424,6 +2732,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return raw == null
         ? null
         : dco_decode_box_autoadd_catalog_read_retry_details(raw);
+  }
+
+  @protected
+  ExactDuplicateGroupCursor?
+  dco_decode_opt_box_autoadd_exact_duplicate_group_cursor(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_exact_duplicate_group_cursor(raw);
   }
 
   @protected
@@ -2907,6 +3224,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  RustStreamSink<ExactAnalysisProgress>
+  sse_decode_StreamSink_exact_analysis_progress_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
   RustStreamSink<PreviewCleanupEvent>
   sse_decode_StreamSink_preview_cleanup_event_Sse(
     SseDeserializer deserializer,
@@ -3032,6 +3358,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_catalog_read_retry_details(deserializer));
+  }
+
+  @protected
+  ExactDuplicateGroupCursor sse_decode_box_autoadd_exact_duplicate_group_cursor(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_exact_duplicate_group_cursor(deserializer));
   }
 
   @protected
@@ -3360,6 +3694,131 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return ConsolidatedLibraryRoot(
       previousRootId: var_previousRootId,
       relativePath: var_relativePath,
+    );
+  }
+
+  @protected
+  DuplicateLocationAvailability sse_decode_duplicate_location_availability(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return DuplicateLocationAvailability.values[inner];
+  }
+
+  @protected
+  ExactAnalysisPhase sse_decode_exact_analysis_phase(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return ExactAnalysisPhase.values[inner];
+  }
+
+  @protected
+  ExactAnalysisProgress sse_decode_exact_analysis_progress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_runId = sse_decode_String(deserializer);
+    var var_phase = sse_decode_exact_analysis_phase(deserializer);
+    var var_checkedFiles = sse_decode_u_64(deserializer);
+    var var_fingerprintedFiles = sse_decode_u_64(deserializer);
+    var var_skippedFiles = sse_decode_u_64(deserializer);
+    var var_bytesRead = sse_decode_u_64(deserializer);
+    var var_currentPath = sse_decode_opt_String(deserializer);
+    var var_issueCode = sse_decode_opt_String(deserializer);
+    return ExactAnalysisProgress(
+      runId: var_runId,
+      phase: var_phase,
+      checkedFiles: var_checkedFiles,
+      fingerprintedFiles: var_fingerprintedFiles,
+      skippedFiles: var_skippedFiles,
+      bytesRead: var_bytesRead,
+      currentPath: var_currentPath,
+      issueCode: var_issueCode,
+    );
+  }
+
+  @protected
+  ExactDuplicateGroup sse_decode_exact_duplicate_group(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_digest = sse_decode_String(deserializer);
+    var var_byteLength = sse_decode_u_64(deserializer);
+    var var_locationCount = sse_decode_u_64(deserializer);
+    var var_physicalFileCount = sse_decode_u_64(deserializer);
+    var var_representativeLocationId = sse_decode_String(deserializer);
+    var var_representativePath = sse_decode_String(deserializer);
+    return ExactDuplicateGroup(
+      digest: var_digest,
+      byteLength: var_byteLength,
+      locationCount: var_locationCount,
+      physicalFileCount: var_physicalFileCount,
+      representativeLocationId: var_representativeLocationId,
+      representativePath: var_representativePath,
+    );
+  }
+
+  @protected
+  ExactDuplicateGroupCursor sse_decode_exact_duplicate_group_cursor(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_digest = sse_decode_String(deserializer);
+    var var_byteLength = sse_decode_u_64(deserializer);
+    return ExactDuplicateGroupCursor(
+      digest: var_digest,
+      byteLength: var_byteLength,
+    );
+  }
+
+  @protected
+  ExactDuplicateGroupPage sse_decode_exact_duplicate_group_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_groups = sse_decode_list_exact_duplicate_group(deserializer);
+    var var_next = sse_decode_opt_box_autoadd_exact_duplicate_group_cursor(
+      deserializer,
+    );
+    return ExactDuplicateGroupPage(groups: var_groups, next: var_next);
+  }
+
+  @protected
+  ExactDuplicateLocation sse_decode_exact_duplicate_location(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_assetId = sse_decode_String(deserializer);
+    var var_locationId = sse_decode_String(deserializer);
+    var var_rootId = sse_decode_String(deserializer);
+    var var_displayPath = sse_decode_String(deserializer);
+    var var_sourceGeneration = sse_decode_u_64(deserializer);
+    var var_availability = sse_decode_duplicate_location_availability(
+      deserializer,
+    );
+    return ExactDuplicateLocation(
+      assetId: var_assetId,
+      locationId: var_locationId,
+      rootId: var_rootId,
+      displayPath: var_displayPath,
+      sourceGeneration: var_sourceGeneration,
+      availability: var_availability,
+    );
+  }
+
+  @protected
+  ExactDuplicateLocationPage sse_decode_exact_duplicate_location_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_locations = sse_decode_list_exact_duplicate_location(deserializer);
+    var var_nextLocationId = sse_decode_opt_String(deserializer);
+    return ExactDuplicateLocationPage(
+      locations: var_locations,
+      nextLocationId: var_nextLocationId,
     );
   }
 
@@ -3838,6 +4297,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<ExactDuplicateGroup> sse_decode_list_exact_duplicate_group(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ExactDuplicateGroup>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_exact_duplicate_group(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<ExactDuplicateLocation> sse_decode_list_exact_duplicate_location(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <ExactDuplicateLocation>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_exact_duplicate_location(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<GalleryLayoutDateGroup> sse_decode_list_gallery_layout_date_group(
     SseDeserializer deserializer,
   ) {
@@ -3995,6 +4482,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
     if (sse_decode_bool(deserializer)) {
       return (sse_decode_box_autoadd_catalog_read_retry_details(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  ExactDuplicateGroupCursor?
+  sse_decode_opt_box_autoadd_exact_duplicate_group_cursor(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_exact_duplicate_group_cursor(
+        deserializer,
+      ));
     } else {
       return null;
     }
@@ -4640,6 +5143,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_StreamSink_exact_analysis_progress_Sse(
+    RustStreamSink<ExactAnalysisProgress> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_exact_analysis_progress,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
   void sse_encode_StreamSink_preview_cleanup_event_Sse(
     RustStreamSink<PreviewCleanupEvent> self,
     SseSerializer serializer,
@@ -4767,6 +5287,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_catalog_read_retry_details(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_exact_duplicate_group_cursor(
+    ExactDuplicateGroupCursor self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_exact_duplicate_group_cursor(self, serializer);
   }
 
   @protected
@@ -5066,6 +5595,101 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_String(self.previousRootId, serializer);
     sse_encode_String(self.relativePath, serializer);
+  }
+
+  @protected
+  void sse_encode_duplicate_location_availability(
+    DuplicateLocationAvailability self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_exact_analysis_phase(
+    ExactAnalysisPhase self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_exact_analysis_progress(
+    ExactAnalysisProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.runId, serializer);
+    sse_encode_exact_analysis_phase(self.phase, serializer);
+    sse_encode_u_64(self.checkedFiles, serializer);
+    sse_encode_u_64(self.fingerprintedFiles, serializer);
+    sse_encode_u_64(self.skippedFiles, serializer);
+    sse_encode_u_64(self.bytesRead, serializer);
+    sse_encode_opt_String(self.currentPath, serializer);
+    sse_encode_opt_String(self.issueCode, serializer);
+  }
+
+  @protected
+  void sse_encode_exact_duplicate_group(
+    ExactDuplicateGroup self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.digest, serializer);
+    sse_encode_u_64(self.byteLength, serializer);
+    sse_encode_u_64(self.locationCount, serializer);
+    sse_encode_u_64(self.physicalFileCount, serializer);
+    sse_encode_String(self.representativeLocationId, serializer);
+    sse_encode_String(self.representativePath, serializer);
+  }
+
+  @protected
+  void sse_encode_exact_duplicate_group_cursor(
+    ExactDuplicateGroupCursor self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.digest, serializer);
+    sse_encode_u_64(self.byteLength, serializer);
+  }
+
+  @protected
+  void sse_encode_exact_duplicate_group_page(
+    ExactDuplicateGroupPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_exact_duplicate_group(self.groups, serializer);
+    sse_encode_opt_box_autoadd_exact_duplicate_group_cursor(
+      self.next,
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_exact_duplicate_location(
+    ExactDuplicateLocation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.assetId, serializer);
+    sse_encode_String(self.locationId, serializer);
+    sse_encode_String(self.rootId, serializer);
+    sse_encode_String(self.displayPath, serializer);
+    sse_encode_u_64(self.sourceGeneration, serializer);
+    sse_encode_duplicate_location_availability(self.availability, serializer);
+  }
+
+  @protected
+  void sse_encode_exact_duplicate_location_page(
+    ExactDuplicateLocationPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_exact_duplicate_location(self.locations, serializer);
+    sse_encode_opt_String(self.nextLocationId, serializer);
   }
 
   @protected
@@ -5430,6 +6054,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_exact_duplicate_group(
+    List<ExactDuplicateGroup> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_exact_duplicate_group(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_exact_duplicate_location(
+    List<ExactDuplicateLocation> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_exact_duplicate_location(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_gallery_layout_date_group(
     List<GalleryLayoutDateGroup> self,
     SseSerializer serializer,
@@ -5580,6 +6228,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_catalog_read_retry_details(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_exact_duplicate_group_cursor(
+    ExactDuplicateGroupCursor? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_exact_duplicate_group_cursor(self, serializer);
     }
   }
 

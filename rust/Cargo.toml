@@ -15,7 +15,7 @@ path = "src/bin/cedarflake_ame_broker_acceptance_client.rs"
 required-features = ["broker-acceptance-client"]
 
 [dependencies]
-blake3 = "1.8.6"
+blake3 = "=1.8.6"
 directories = "6.0.0"
 flutter_rust_bridge = "=2.12.0"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"] }

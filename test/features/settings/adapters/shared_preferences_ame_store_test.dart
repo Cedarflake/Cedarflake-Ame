@@ -54,6 +54,7 @@ void main() {
       viewerOpenBehavior: ImageViewerOpenBehavior.actualSize,
       previewLoadingSpeed: PreviewLoadingSpeed.large,
       sidebarWidth: 348,
+      sidebarExpanded: false,
     );
 
     await store.saveWindowPlacement(placement);
@@ -86,6 +87,7 @@ void main() {
       presentation.previewLoadingSpeed,
     );
     expect(restoredPresentation.sidebarWidth, presentation.sidebarWidth);
+    expect(restoredPresentation.sidebarExpanded, isFalse);
     expect(restoredPresentation.viewerFilmstripVisible, isTrue);
   });
 

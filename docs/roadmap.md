@@ -76,17 +76,18 @@ regressions and necessary documentation; implementation details and changing sta
 1. **R3-01: Identify exact duplicates and inspect locations.** Compare `czkawka_core` integration
    with the existing BLAKE3 dependency, settle fingerprint compatibility, hardlink/count/scope and
    representative rules, and record the engine decision. Read bounded candidates from the catalog,
-   publish source-versioned analysis evidence and connect `查看重复位置`. Include progress,
+   publish source-versioned analysis evidence and connect the accepted function rail, collapsible
+   Library sidebar and Duplicates workspace with `查看重复位置`. Include progress,
    cancellation, retry, stale-result rejection and restart reuse in this first delivery.
 2. **R3-02: Maintain duplicate groups incrementally.** Connect changes, replacements, moves,
    removals and source availability to the existing synchronization/publication boundary. Reuse
    unchanged evidence and update only affected groups, including changes made while Ame was closed.
    Complete this before enabling default gallery folding.
-3. **R3-03: Connect gallery display modes.** Add `显示所有文件`, `合并完全相同图片` and
-   `仅显示重复图片` to the existing filter menu, with default folding, representative/copy-count
+3. **R3-03: Connect gallery display modes.** Add `全部图片` and `合并重复图片` to the existing
+   filter menu; duplicate-only results belong to the Duplicates workspace. Include default folding, representative/copy-count
    display and consistent sorting, dates, bounded pagination, selection and viewer navigation.
    Unanalysed items remain visible; analysis does not block browsing or startup.
-4. **R3-04: Review groups and retain choices.** Connect contextual `审查重复组` in the same canvas,
+4. **R3-04: Review groups and retain choices.** Connect group review in the Duplicates workspace,
    inspect physical locations and persist preferred-copy and ignore decisions. Keep logical-group
    and physical-location selection distinct, and preserve choices across restart and reanalysis.
 5. **R3-05: Verify the affected client workflow and close R3.** Reuse `build/test`, complete relevant
@@ -102,11 +103,11 @@ fingerprints rather than enumerating source trees or rehashing the entire catalo
 
 Preserve the completed gallery/viewer transitions, shared wheel behavior, filmstrip retention,
 opening preferences, loading geometry, scroll/return anchors, native window placement and approved
-copy. Apply the Microsoft and Google UI/UX skills to the new R3 controls without redesigning unrelated
-surfaces. Favorites/albums/general review sessions remain R4, perceptual similarity remains R6, and
+copy. Apply the Microsoft and Google UI/UX skills to the new R3 controls and the
+[accepted workbench blueprint](product/gallery-ui.md#workbench-blueprint) under ADR 0029. Favorites/albums/general review sessions remain R4, perceptual similarity remains R6, and
 physical file operations retain their later stage and explicit authorization.
 
-The stage exits when exact identification, location inspection, all three gallery modes and
+The stage exits when exact identification, location inspection, both gallery modes, duplicate-only results and
 contextual review work together; incremental changes and restart preserve correct membership and
 human choices; and affected CI, client, source-preservation and resource checks pass. Update this
 roadmap at that exit rather than extending R3 with unrelated feature or maintenance work.

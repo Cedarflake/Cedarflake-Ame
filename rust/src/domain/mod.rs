@@ -1,5 +1,12 @@
 use std::fmt::{Display, Formatter};
 
+pub(crate) mod exact_duplicates;
+pub use exact_duplicates::{
+    DuplicateLocationAvailability, ExactAnalysisPhase, ExactAnalysisProgress, ExactDuplicateGroup,
+    ExactDuplicateGroupCursor, ExactDuplicateGroupPage, ExactDuplicateLocation,
+    ExactDuplicateLocationPage,
+};
+
 mod journal_scope_recovery;
 pub use journal_scope_recovery::JournalScopeRecoveryOutcome;
 

@@ -15,7 +15,7 @@ User outcome:
 The gallery folds byte-identical content by default so the user does not repeatedly review the same
 image. A folded representative shows its physical-copy count, and `查看重复位置` expands every real
 `AssetLocation`, availability state, and path without modifying a file. The user can still switch to
-show every physical instance or only exact duplicate groups.
+show every physical instance in Library or inspect exact duplicate groups in the Duplicates workspace.
 
 Scope:
 
@@ -26,12 +26,15 @@ Scope:
   group or permanently merging stable identities;
 - deterministic representative selection, copy-count badges, and `AssetLocation` expansion with
   local, offline, unavailable, and cloud-backed state;
-- exact duplicate display modes and review command within the gallery filter menu;
-- contextual duplicate-group review in the existing canvas, including preferred-copy and ignore
+- `全部图片` and `合并重复图片` in the gallery filter menu, with a duplicate-location badge in both modes;
+- a function rail, collapsible Library source sidebar and separate Duplicates workspace under ADR 0029;
+- duplicate-group review in that workspace, including preferred-copy and ignore
   decisions that remain durable but do not authorize deletion;
 - explicit distinction between logical group selection and physical-location selection;
 - compatible reuse of expensive later analysis across exact byte identity without presenting reused
   model evidence as a human decision;
+- automatic bounded analysis after catalog publication and while browsing is idle, with pause and
+  continuation controls, compatible fingerprint reuse and priority for visible previews;
 - invalidation and regrouping through R2c when content changes, a same-path replacement occurs, a
   location is removed, or compatible identity evidence changes.
 

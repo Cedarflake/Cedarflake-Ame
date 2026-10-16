@@ -92,6 +92,9 @@ class SharedPreferencesAmeStore
         PreviewLoadingSpeed.medium,
       ),
       viewerFilmstripVisible: value["viewerFilmstripVisible"] == true,
+      sidebarExpanded: value["sidebarExpanded"] is bool
+          ? value["sidebarExpanded"] as bool
+          : null,
       sidebarWidth:
           (_readDouble(value["sidebarWidth"]) ?? ameDefaultSidebarWidth)
               .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
@@ -158,6 +161,7 @@ class SharedPreferencesAmeStore
         "viewerFilmstripVisible": preferences.viewerFilmstripVisible,
         "previewLoadingSpeed": preferences.previewLoadingSpeed.name,
         "sidebarWidth": preferences.sidebarWidth,
+        "sidebarExpanded": preferences.sidebarExpanded,
       }),
     );
   }

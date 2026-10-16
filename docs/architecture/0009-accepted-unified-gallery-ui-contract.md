@@ -1,6 +1,7 @@
 # ADR 0009: Accepted unified gallery UI contract
 
-- Status: Accepted
+- Status: Accepted; shell navigation and duplicate entry/review placement are superseded by
+  [ADR 0029](0029-functional-workbench-navigation.md).
 - Date: 2026-08-07
 - Last amended: 2026-09-06
 - Supersedes: ADR 0003

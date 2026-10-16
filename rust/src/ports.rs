@@ -2,6 +2,7 @@ use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
+pub(crate) mod exact_duplicates;
 mod gallery_query;
 pub use gallery_query::GalleryQueryRepository;
 mod source_reconciliation;

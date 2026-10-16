@@ -143,6 +143,7 @@ class LibraryGalleryWall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isActive = TickerMode.of(context);
     final manifest = layoutManifest;
     if (manifest != null &&
         manifest.queryId == state.queryId &&
@@ -267,6 +268,9 @@ class LibraryGalleryWall extends StatelessWidget {
           ScrollMetrics metrics,
           _LibraryPreviewMovementDirection direction,
         ) {
+          if (!context.mounted || !TickerMode.getNotifier(context).value) {
+            return;
+          }
           final localScrollOffset =
               metrics.pixels - virtualGeometry.leadingExtent;
           final visiblePosition = _positionAtOffset(
@@ -332,7 +336,9 @@ class LibraryGalleryWall extends StatelessWidget {
         }
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) {
+          if (!context.mounted ||
+              !isActive ||
+              !TickerMode.getNotifier(context).value) {
             return;
           }
           onLayoutChanged(layoutMetrics, virtualGeometry);
@@ -1200,6 +1206,7 @@ class _ManifestLibraryGalleryWallState
 
   @override
   Widget build(BuildContext context) {
+    final isActive = TickerMode.of(context);
     return LayoutBuilder(
       builder: (context, constraints) {
         if (!LibraryGalleryWall._hasUsableViewport(constraints)) {
@@ -1249,7 +1256,7 @@ class _ManifestLibraryGalleryWallState
         final isPublishedLayout =
             (snapshot.availableWidth - availableWidth).abs() < 0.01;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) {
+          if (!mounted || !isActive || !TickerMode.getNotifier(context).value) {
             return;
           }
           if (isPublishedLayout) {
@@ -1611,7 +1618,7 @@ class _ManifestLibraryGalleryWallState
     ScrollMetrics? scrollMetrics,
     required _LibraryPreviewMovementDirection direction,
   }) {
-    if (widget.state.assets.isEmpty) {
+    if (widget.state.assets.isEmpty || !TickerMode.getNotifier(context).value) {
       return;
     }
     final metrics =
