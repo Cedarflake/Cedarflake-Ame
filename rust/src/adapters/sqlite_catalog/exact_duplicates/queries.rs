@@ -28,7 +28,19 @@ pub(super) fn load_candidates(
     connection: &Connection,
     after: &str,
 ) -> Result<Vec<FingerprintCandidate>, ScanError> {
-    let sql = format!(
+    read_candidates(
+        connection,
+        &candidate_query(),
+        params![
+            EXACT_FINGERPRINT_SCHEME,
+            after,
+            EXACT_DUPLICATE_PAGE_SIZE as i64
+        ],
+    )
+}
+
+pub(super) fn candidate_query() -> String {
+    format!(
         "SELECT {CANDIDATE_COLUMNS} FROM {CURRENT_LOCATIONS}
          WHERE l.location_id > ?2 AND l.file_size > 0
            AND NOT EXISTS (SELECT 1 FROM content_fingerprints AS f WHERE {COMPATIBLE_FINGERPRINT})
@@ -37,15 +49,6 @@ pub(super) fn load_candidates(
              JOIN library_roots AS peer_root ON peer_root.id = peer.root_id AND peer_root.active_scan_id = peer.scan_id
              WHERE peer.file_size = l.file_size AND peer.location_id <> l.location_id)
          ORDER BY l.location_id LIMIT ?3"
-    );
-    read_candidates(
-        connection,
-        &sql,
-        params![
-            EXACT_FINGERPRINT_SCHEME,
-            after,
-            EXACT_DUPLICATE_PAGE_SIZE as i64
-        ],
     )
 }
 

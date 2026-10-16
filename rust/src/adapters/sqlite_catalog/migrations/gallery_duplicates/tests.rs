@@ -4,6 +4,7 @@ use super::*;
 fn upgrade_preserves_complete_evidence_and_admits_it_once() {
     let mut connection = Connection::open_in_memory().unwrap();
     super::super::migrate_schema(&mut connection).unwrap();
+    super::super::exact_candidate_index_retirement::downgrade_to_v42_for_test(&connection);
     connection.execute_batch(
         "DROP TABLE gallery_content_fingerprints;
          UPDATE schema_info SET version = 40; PRAGMA user_version = 40;
@@ -42,6 +43,7 @@ fn upgrade_preserves_complete_evidence_and_admits_it_once() {
 fn malformed_projection_cannot_open_or_advance_schema() {
     let mut connection = Connection::open_in_memory().unwrap();
     super::super::migrate_schema(&mut connection).unwrap();
+    super::super::exact_candidate_index_retirement::downgrade_to_v42_for_test(&connection);
     connection.execute_batch("DROP TABLE gallery_content_fingerprints; CREATE TABLE gallery_content_fingerprints(unrelated TEXT)").unwrap();
     assert_eq!(
         validate(&connection).unwrap_err().code,

@@ -656,3 +656,30 @@ braces; those are corrected without changing behavior. Two recovered-dimension w
 the layout-time animation interruption corrected above. The ten-thousand-image workload completed
 its scan sequence but measured a 67,203,072-byte catalog, exceeding the unchanged 64 MiB ceiling by
 94,208 bytes. This catalog-size failure remains open; no workload, limit or assertion was relaxed.
+
+## Catalog storage bound
+
+The unchanged scan workload reproduced locally at 67,145,728 bytes. Its exact-candidate cursor
+index occupied 3,444,736 bytes, while the production candidate query already used
+`asset_locations_location_id`. A read-only in-memory catalog comparison retained that cursor seek,
+the covering same-size peer lookup and candidate results after removing the redundant index.
+Schema 43 retires only that index, with the preservation contract in ADR 0028.
+
+Fourteen focused query, migration and compatibility cases pass. They cover keyset ordering,
+preferred/ignored decisions, fingerprints, unchanged catalog revision, malformed legacy rejection,
+historical versions 40–42 and unknown-version rejection. The original scan workload then passes:
+10,000 files, cold 30,157 ms, warm 19,249 ms, pause 12 ms, resume 26,831 ms, cancel 86 ms,
+catalog 63,455,232 bytes and resumed catalog 35,975,168 bytes. All original source-preservation and
+resource assertions remain enabled; the catalog ceiling remains 64 MiB.
+
+The migration owner has 47 production lines and 17 test-fixture lines, with 112 dedicated test
+lines; the production query owner has 147 lines and its index regression 50 lines. The existing
+3,622-line catalog facade changes only its schema constant. The existing migration facade has
+9,851 production/fixture lines and 5,267 inline-test lines; its changes only register the new owner
+and route version 42 to it. Its retained decomposition obligation is unchanged.
+
+The broader focused selection also reproduced two incremental-fingerprint failures and one module
+declaration rejection in the pre-migration schema 42 test binary, whose SHA-256 matches the earlier
+performance receipt. These are separate PR repair work, not a storage-bound pass. Actions run
+`38967752272` on `c8ba056` subsequently reported sixteen Rust failures; final CI and native
+filter-switch acceptance remain open.

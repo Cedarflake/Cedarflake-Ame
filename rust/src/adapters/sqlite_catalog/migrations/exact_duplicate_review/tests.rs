@@ -4,6 +4,7 @@ use super::*;
 fn migration_preserves_catalog_and_choices_when_reentered() {
     let mut connection = Connection::open_in_memory().unwrap();
     super::super::migrate_schema(&mut connection).unwrap();
+    super::super::exact_candidate_index_retirement::downgrade_to_v42_for_test(&connection);
     connection
         .execute_batch(
             "INSERT INTO assets VALUES ('retained', 123);
@@ -30,6 +31,7 @@ fn migration_preserves_catalog_and_choices_when_reentered() {
 fn version_41_without_choices_upgrades_without_advancing_gallery_revision() {
     let mut connection = Connection::open_in_memory().unwrap();
     super::super::migrate_schema(&mut connection).unwrap();
+    super::super::exact_candidate_index_retirement::downgrade_to_v42_for_test(&connection);
     let before: i64 = connection
         .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
         .unwrap();
@@ -54,6 +56,7 @@ fn version_41_without_choices_upgrades_without_advancing_gallery_revision() {
 fn malformed_choice_table_cannot_replace_user_data_or_advance_schema() {
     let mut connection = Connection::open_in_memory().unwrap();
     super::super::migrate_schema(&mut connection).unwrap();
+    super::super::exact_candidate_index_retirement::downgrade_to_v42_for_test(&connection);
     connection
         .execute_batch(
             "DROP TABLE exact_duplicate_decisions;

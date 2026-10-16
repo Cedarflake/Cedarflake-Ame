@@ -3,6 +3,7 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
 
+mod candidate_index;
 mod gallery_queries;
 mod review;
 

@@ -34,8 +34,11 @@ display are checked. Native filter switching exposed an AXTree pending-node erro
 semantics lifetime before closing the affected client verification.
 The Windows subtree validator and delayed filter/manifest regression now cover the missing-node
 boundary, without reproducing the native error. Hosted analysis and recovered-dimension failures
-have scoped corrections; the synthetic 10,000-image catalog-size limit still fails and requires
-separate storage-cost diagnosis. Preserve the existing workload and 64 MiB bound.
+have scoped corrections. Schema 43 retires the redundant exact-candidate cursor index without
+changing catalog content or query policy. The unchanged local 10,000-image workload now passes
+at 63,455,232 bytes below the 64 MiB bound. The latest hosted Rust run exposes additional retained
+fixture and incremental-analysis failures; resolve those after the native semantics repair, then
+complete the final audit and authorized PR merge.
 
 Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
 The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,

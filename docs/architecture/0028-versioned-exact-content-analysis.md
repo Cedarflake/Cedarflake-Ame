@@ -93,6 +93,16 @@ change advances the gallery revision. Ignoring moves a group to a reversible rev
 gallery folding, duplicate badges and physical files unchanged. General review sessions and albums
 remain R4.
 
+Schema 43 retires `asset_locations_exact_cursor`. Candidate keyset reads use the existing
+`asset_locations_location_id` index, while same-size peer lookup retains
+`asset_locations_exact_size`. The wider cursor did not cover the source identity and revision
+columns needed for validation and duplicated storage for every location and staged scan.
+The forward migration validates the complete schema 42 contract before dropping only this index
+in one transaction. It preserves locations, fingerprints, user decisions and catalog revision;
+it does not rescan sources or force a database rewrite. Freed pages remain available to SQLite
+and the existing bounded reclamation policy. Earlier migrations retain their original index
+contract so malformed legacy catalogs cannot silently acquire the new version.
+
 Review pages filter ignored state before keyset pagination and return at most 64 groups or members.
 Each group page includes the total group count for its ignored-state filter, independent of the
 page cursor. The count and bounded page share one SQLite read snapshot; only the count scalar

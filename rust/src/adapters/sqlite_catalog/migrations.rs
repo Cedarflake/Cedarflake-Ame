@@ -26,6 +26,7 @@ mod compatibility_repair_shape;
 mod current_recovery_state;
 mod current_schema;
 mod directory_identities;
+mod exact_candidate_index_retirement;
 mod exact_duplicate_review;
 mod exact_duplicates;
 mod foreground_queue_index;
@@ -113,6 +114,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         exact_duplicates::migrate_transaction(&transaction)?;
         gallery_duplicates::migrate_transaction(&transaction)?;
         exact_duplicate_review::migrate_transaction(&transaction)?;
+        exact_candidate_index_retirement::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -194,6 +196,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             39 => exact_duplicates::migrate(connection)?,
             40 => gallery_duplicates::migrate(connection)?,
             41 => exact_duplicate_review::migrate(connection)?,
+            42 => exact_candidate_index_retirement::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

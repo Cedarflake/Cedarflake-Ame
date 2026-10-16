@@ -65,13 +65,14 @@ const OBJECTS: &[(&str, &str, &str)] = &[
         "CREATE INDEX asset_locations_exact_source
         ON asset_locations(source_generation, location_id, root_id, scan_id)",
     ),
-    (
-        "index",
-        "asset_locations_exact_cursor",
-        "CREATE INDEX asset_locations_exact_cursor
-        ON asset_locations(location_id, root_id, scan_id, file_size, source_generation)",
-    ),
 ];
+
+pub(super) const LEGACY_CURSOR_INDEX: (&str, &str, &str) = (
+    "index",
+    "asset_locations_exact_cursor",
+    "CREATE INDEX asset_locations_exact_cursor
+        ON asset_locations(location_id, root_id, scan_id, file_size, source_generation)",
+);
 
 pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
     let transaction = connection
@@ -83,7 +84,7 @@ pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
 
 pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     current_schema::validate_schema_version(transaction, 39)?;
-    for (kind, name, ddl) in OBJECTS {
+    for (kind, name, ddl) in OBJECTS.iter().chain(std::iter::once(&LEGACY_CURSOR_INDEX)) {
         let exists: bool = transaction
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = ?1)",
@@ -110,6 +111,11 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     Ok(())
 }
 
+pub(super) fn validate_legacy_cursor(connection: &Connection) -> Result<(), ScanError> {
+    let (kind, name, ddl) = LEGACY_CURSOR_INDEX;
+    require_object(connection, kind, name, ddl)
+}
+
 fn require_object(
     connection: &Connection,
     kind: &str,
@@ -132,7 +138,7 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v39_for_test
     let version: i64 = connection
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("exact analysis fixture version");
-    if !matches!(version, 40..=42) {
+    if !matches!(version, 40..=super::SCHEMA_VERSION) {
         return;
     }
     let transaction = connection
@@ -147,6 +153,11 @@ pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v39_for_test
         transaction
             .execute_batch("DROP TABLE gallery_content_fingerprints")
             .expect("remove published gallery evidence");
+    }
+    if version <= 42 {
+        transaction
+            .execute_batch("DROP INDEX asset_locations_exact_cursor")
+            .expect("remove legacy exact candidate cursor");
     }
     for (kind, name, _) in OBJECTS.iter().rev() {
         transaction

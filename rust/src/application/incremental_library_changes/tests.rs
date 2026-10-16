@@ -1753,7 +1753,7 @@ fn migrated_v17_location_is_preserved_while_unproven_namespace_blocks_backfill()
             },
         )
         .expect("load post-backfill counts");
-    assert_eq!(schema_version, 42);
+    assert_eq!(schema_version, 43);
     assert_eq!(location_count, 1);
     assert_eq!(asset_count, 1);
     assert_eq!(proof_count, 0);
