@@ -377,6 +377,16 @@ six 64-record payload batches and 64 cursor checkpoints. A background replacemen
 independent bounds and publishes its visible range atomically. Viewer navigation reads adjacent
 members across batch boundaries. Visible preview demand remains bounded and retires when hidden.
 
+Review scrolling uses the shared AmeScrollController for both the wheel wrapper and its GridView.
+The prior ordinary explicit controller bypassed the wrapper's inherited controller, so both group
+and member views moved the complete wheel delta immediately. Four focused widget cases cover both
+layouts with normal and reduced motion: normal input moves immediately and finishes through the
+shared deceleration tail, while reduced motion stays immediate; both settle at the original distance.
+The two normal-motion cases reproduced the missing tail before the wiring correction, and all four
+pass after it. Other existing application scroll views retain their shared motion wiring.
+The updated Debug reused the retained test catalog; native wheel checks covered downward and
+reverse scrolling in both review layouts. The client remains open for visual inspection.
+
 The reported preference-switch flash was traced to the preference transaction advancing the catalog
 revision, followed by the gallery refresh notifying a review listener that cleared member payloads.
 Catalog and analysis publications now revalidate without removing the rendered range. Explicit

@@ -33,7 +33,7 @@ class LibraryDuplicateReviewGrid extends ConsumerStatefulWidget {
 
 class _LibraryDuplicateReviewGridState
     extends ConsumerState<LibraryDuplicateReviewGrid> {
-  final _scroll = ScrollController();
+  final _scroll = AmeScrollController();
   final _previewOwner = Object();
   late final _library = ref.read(libraryControllerProvider.notifier);
   double _height = 0;
@@ -117,6 +117,7 @@ class _LibraryDuplicateReviewGridState
       _rowStride = cardHeight + spacing;
       _scheduleDemand();
       return AmeScrollMotion(
+        controller: _scroll,
         child: GridView.builder(
           key: PageStorageKey(widget.key),
           controller: _scroll,
