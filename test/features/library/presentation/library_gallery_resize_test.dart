@@ -10,6 +10,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_exa
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_card_metrics.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_reflow.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
@@ -310,6 +311,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: _minimumCardWidth(tester),
       manifest: manifest,
       availableWidth: initialSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -366,6 +368,7 @@ void main() {
     await tester.pump();
 
     final finalSnapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: _minimumCardWidth(tester),
       manifest: manifest,
       availableWidth: finalSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -676,6 +679,7 @@ void main() {
           ),
         );
         final targetSnapshot = LibraryGalleryLayoutSnapshot.build(
+          minimumCellWidth: _minimumCardWidth(tester),
           manifest: manifest,
           availableWidth: 860,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -859,6 +863,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: _minimumCardWidth(tester),
       manifest: manifest,
       availableWidth: initialSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -993,6 +998,7 @@ void main() {
         );
 
         final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+          minimumCellWidth: _minimumCardWidth(tester),
           manifest: initialManifest,
           availableWidth: wallSize.width - 40,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -1047,6 +1053,7 @@ void main() {
             ),
         ]);
         final recoveredSnapshot = LibraryGalleryLayoutSnapshot.build(
+          minimumCellWidth: _minimumCardWidth(tester),
           manifest: recovered,
           availableWidth: wallSize.width - 40,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -1335,6 +1342,7 @@ void main() {
       );
 
       final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+        minimumCellWidth: _minimumCardWidth(tester),
         manifest: manifest,
         availableWidth: wallSize.width - 40,
         thumbnailSize: GalleryThumbnailSize.medium,
@@ -1507,6 +1515,18 @@ void main() {
       isNot(scrollController.position.maxScrollExtent),
     );
   });
+}
+
+double _minimumCardWidth(WidgetTester tester) {
+  final wall = find.byType(LibraryGalleryWall);
+  final state = tester.widget<LibraryGalleryWall>(wall).state;
+  return LibraryGalleryCardMetrics.minimumWidthOf(
+    tester.element(wall),
+    maximumLocationCount: state.roots.fold(
+      0,
+      (total, root) => total + root.assetCount,
+    ),
+  );
 }
 
 LibraryState _state(int itemCount) {

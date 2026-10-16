@@ -209,6 +209,12 @@ The reusable source corpus and catalog were retained.
 
 ## Gallery ordinal recovery
 
+The subsequent hosted resize suite exposed an outdated fixture input: its independently built
+snapshots still used the default cell width while the mounted wall measured the count label with
+the active test font. The affected widget fixtures now supply that same measured width, retaining
+all pixel, identity, extent, wheel-order and stale-transition assertions. The focused resize file
+passes all 25 cases. Product layout behavior is unchanged by this fixture correction.
+
 The two hosted anchor failures reproduced locally. With fractional square-row extents, converting
 a rendered row offset back to an item index selected the preceding row after floating-point
 rounding. The captured location was item 67 while its ordinal was 62. The identity guard then
