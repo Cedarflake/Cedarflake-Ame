@@ -152,7 +152,6 @@ class _LibraryDuplicateLocationsDialogState
     }
     return AmeScrollMotion(
       child: ListView.builder(
-        primary: false,
         itemCount: _results.locations.locations.length,
         itemBuilder: (_, index) {
           final location = _results.locations.locations[index];

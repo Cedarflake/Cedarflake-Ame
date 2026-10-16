@@ -392,7 +392,9 @@ and member views moved the complete wheel delta immediately. Four focused widget
 layouts with normal and reduced motion: normal input moves immediately and finishes through the
 shared deceleration tail, while reduced motion stays immediate; both settle at the original distance.
 The two normal-motion cases reproduced the missing tail before the wiring correction, and all four
-pass after it. Other existing application scroll views retain their shared motion wiring.
+pass after it. A subsequent dialog inspection found its explicit `primary: false` also bypassed the
+inherited controller. Removing that opt-out connects the location list to the same motion owner;
+two dedicated dialog cases pass for normal/reduced motion and preserve the total wheel distance.
 The updated Debug reused the retained test catalog; native wheel checks covered downward and
 reverse scrolling in both review layouts. The client remains open for visual inspection.
 
