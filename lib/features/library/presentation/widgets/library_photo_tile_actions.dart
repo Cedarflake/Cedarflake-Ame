@@ -26,8 +26,14 @@ class LibraryPhotoTileActions extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Flexible(child: LibraryDuplicateBadge(locationId: locationId)),
-          const SizedBox(width: LibraryGalleryCardMetrics.actionGap),
+          Flexible(
+            child: Padding(
+              padding: const EdgeInsets.only(
+                right: LibraryGalleryCardMetrics.actionGap,
+              ),
+              child: LibraryDuplicateBadge(locationId: locationId),
+            ),
+          ),
           // Reserve the selection target before hover so the badge does not reflow.
           SizedBox.square(
             dimension: LibraryGalleryCardMetrics.selectionExtent,
