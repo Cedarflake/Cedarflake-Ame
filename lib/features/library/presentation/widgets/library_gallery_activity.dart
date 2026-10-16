@@ -19,12 +19,12 @@ class LibraryGalleryActivity extends StatefulWidget {
 }
 
 class _LibraryGalleryActivityState extends State<LibraryGalleryActivity> {
-  ValueListenable<bool>? _activity;
+  ValueListenable<TickerModeData>? _activity;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    final activity = TickerMode.getNotifier(context);
+    final activity = TickerMode.getValuesNotifier(context);
     if (identical(activity, _activity)) {
       return;
     }
@@ -34,11 +34,11 @@ class _LibraryGalleryActivityState extends State<LibraryGalleryActivity> {
   }
 
   void _onActivityChanged() {
-    if (_activity?.value != false) {
+    if (_activity?.value.enabled != false) {
       return;
     }
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _activity?.value == false) {
+      if (mounted && _activity?.value.enabled == false) {
         widget.controller.updateGalleryPreviewDemand();
       }
     });

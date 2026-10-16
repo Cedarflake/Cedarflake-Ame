@@ -143,7 +143,7 @@ class LibraryGalleryWall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isActive = TickerMode.of(context);
+    final isActive = TickerMode.valuesOf(context).enabled;
     final manifest = layoutManifest;
     if (manifest != null &&
         manifest.queryId == state.queryId &&
@@ -268,7 +268,8 @@ class LibraryGalleryWall extends StatelessWidget {
           ScrollMetrics metrics,
           _LibraryPreviewMovementDirection direction,
         ) {
-          if (!context.mounted || !TickerMode.getNotifier(context).value) {
+          if (!context.mounted ||
+              !TickerMode.getValuesNotifier(context).value.enabled) {
             return;
           }
           final localScrollOffset =
@@ -338,7 +339,7 @@ class LibraryGalleryWall extends StatelessWidget {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!context.mounted ||
               !isActive ||
-              !TickerMode.getNotifier(context).value) {
+              !TickerMode.getValuesNotifier(context).value.enabled) {
             return;
           }
           onLayoutChanged(layoutMetrics, virtualGeometry);
@@ -1206,7 +1207,7 @@ class _ManifestLibraryGalleryWallState
 
   @override
   Widget build(BuildContext context) {
-    final isActive = TickerMode.of(context);
+    final isActive = TickerMode.valuesOf(context).enabled;
     return LayoutBuilder(
       builder: (context, constraints) {
         if (!LibraryGalleryWall._hasUsableViewport(constraints)) {
@@ -1256,7 +1257,9 @@ class _ManifestLibraryGalleryWallState
         final isPublishedLayout =
             (snapshot.availableWidth - availableWidth).abs() < 0.01;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted || !isActive || !TickerMode.getNotifier(context).value) {
+          if (!mounted ||
+              !isActive ||
+              !TickerMode.getValuesNotifier(context).value.enabled) {
             return;
           }
           if (isPublishedLayout) {
@@ -1618,7 +1621,8 @@ class _ManifestLibraryGalleryWallState
     ScrollMetrics? scrollMetrics,
     required _LibraryPreviewMovementDirection direction,
   }) {
-    if (widget.state.assets.isEmpty || !TickerMode.getNotifier(context).value) {
+    if (widget.state.assets.isEmpty ||
+        !TickerMode.getValuesNotifier(context).value.enabled) {
       return;
     }
     final metrics =

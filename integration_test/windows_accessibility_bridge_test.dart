@@ -482,8 +482,7 @@ void main() {
 
         for (var cycle = 0; cycle < 2; cycle += 1) {
           final tile = find.byType(LibraryPhotoTile).hitTestable().first;
-          final tileRect = tester.getRect(tile);
-          await tester.tapAt(tileRect.topLeft + const Offset(16, 16));
+          await tester.tap(tile);
           await tester.pump();
           await tester.pump();
           expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
