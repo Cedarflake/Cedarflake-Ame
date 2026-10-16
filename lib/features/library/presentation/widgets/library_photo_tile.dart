@@ -127,7 +127,6 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
             child: GestureDetector(
               behavior: HitTestBehavior.opaque,
               onSecondaryTapDown: (details) {
-                _focusNode.requestFocus();
                 final position = amePopupMenuAtGlobalPosition(
                   context: context,
                   globalPosition: details.globalPosition,

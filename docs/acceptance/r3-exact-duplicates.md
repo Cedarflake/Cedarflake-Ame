@@ -545,3 +545,15 @@ responsive with zero AXTree/native error lines and zero Dart exceptions. Windows
 exposes the zoom slider and its 100% value. The active client and profile-restoration backup remain
 for inspection. The route/fade owner has 58 production lines and no inline tests; the new dedicated
 regression has 213 lines. Applicable hosted checks belong to the submitted commit.
+
+## Photo context-menu focus restoration
+
+Mouse secondary activation no longer requests keyboard focus on the photo card. The menu therefore
+restores only an existing focus target; dismissing it or its information sheet with the pointer
+outside the card hides the selection control. Keyboard activation still retains card focus and its
+visible selection control. This changes input focus ownership without changing selection state.
+
+Twenty focused cases pass across photo-tile interactions and overlay focus restoration, including
+mouse/keyboard dismissal of both the menu and information sheet. The rebuilt Debug client reused
+the retained catalog; both mouse flows were verified with the pointer outside the card and neither
+left a selection circle visible. No source or persistence operation is added.
