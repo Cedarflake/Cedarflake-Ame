@@ -375,18 +375,20 @@ the active isolated client and its restoration backup remain intact.
 The workspace retains responsive group cards and single-column member rows. Header actions align
 right, category/count geometry stays stable, and loading appears at the toolbar/results boundary
 using the gallery's two-pixel overlay. Shared empty/error content replaces the plain centered text.
-The group-list header places its category switch above the right-aligned action row, beside the
-heading/count block. Compact widths and enlarged text stack the controls below the heading.
+The group-list header places its heading/count block on the left, category switch at the content
+center, and analysis actions on the right in one row. Equal flexible regions keep the switch
+centered despite different title and action widths. Compact widths and enlarged text stack the
+controls below the heading while retaining the switch's centered alignment.
 The existing Material SegmentedButton remains unchanged; the official
 [segmented-button page](https://m3.material.io/components/segmented-buttons/overview) requires
 JavaScript, and the pinned SDK confirms its shrink-wrapped sizing when expandedInsets is absent.
 LayoutBuilder, Row and Column provide the requested composition without a custom control.
 Seven layout cases pass across 400/1200/1280-pixel surfaces and normal/double text scaling,
-including right alignment, controls below the switch, stable category geometry and unchanged
+including independent horizontal centering, action alignment, stable category geometry and unchanged
 member-row behavior. The initial narrow fixture used a multi-card finder for a single coordinate;
-it now selects the first card while retaining the alignment assertion. The updated Debug displays
-the two-tier controls beside the heading in the retained 72-group catalog. The header has 147
-production lines, no inline tests and 308 dedicated layout-test lines.
+it now selects the first card while retaining the alignment assertion. The updated Debug verifies
+the title/count, centered switch and right-side actions in one row with the retained 72-group
+catalog. The header has 144 production lines, no inline tests and 308 dedicated layout-test lines.
 Members use vertically centered star and folder IconButtons on the right, without a footer; normal
 row height is 112 logical pixels in the retained Windows client. Icon semantic labels and hover
 tooltips name preference/reveal actions. Group cards retain their lower-right `查看重复图片` action.
@@ -422,8 +424,9 @@ Location rows now use one ListTile action instead of repeating reveal in a trail
 the subtitle. Twelve focused dialog/workspace/scroll cases pass, covering single-action geometry,
 unmarked other rows, long-path wrapping at normal/double text size, actual reveal dispatch,
 keyboard focus return and shared wheel behavior. The row has 68 production lines, no inline tests;
-the existing dialog/workspace test file has 562 lines. Native presentation is checked in the next
-updated Debug together with the pending header adjustment.
+the existing dialog/workspace test file has 562 lines. The updated Debug displays the right-side
+current marker without duplicate buttons. Clicking the first row opens a new Explorer window,
+selects `06705-3840x2160-0741.jpg` and reports one selected item; that owned window is then closed.
 
 The first Explorer reveal was reproduced with a newly opened test-corpus folder: the folder was
 correct, but the target file was not selected. The Windows adapter now resolves a Unicode shell
@@ -442,6 +445,8 @@ input finishes entry immediately. Sixteen focused route, gallery-transition, rev
 checks pass, covering stationary content bounds during the fade, retained review choices, adjacent
 catalog batches, source-read retirement and late completions. The shared motion owner has 55
 production lines and 72 dedicated route-test lines, with no inline tests.
+The updated Debug also opens a member image in the viewer and returns to the same member-list
+position on Escape. Exact interpolation timing remains covered by the focused route checks.
 
 Timeline decorations retain their keyed elements across layout changes and use Flutter's
 AnimatedPositioned for 180-ms geometry transitions. The installed SDK's implicit-animation owner

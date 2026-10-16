@@ -84,18 +84,18 @@ void main() {
         final actions = find.byKey(const Key("duplicate-review-actions"));
         final heading = find.byKey(const Key("duplicate-review-title"));
         final groupCount = find.byKey(const Key("duplicate-review-count"));
-        final resultsRight = tester.getTopRight(find.byType(GridView)).dx;
-        expect(tester.getTopRight(category).dx, resultsRight);
-        expect(tester.getTopRight(actions).dx, resultsRight);
-        expect(
-          tester.getTopLeft(actions).dy,
-          greaterThan(tester.getBottomLeft(category).dy),
-        );
+        final results = tester.getRect(find.byType(GridView));
+        expect(tester.getCenter(category).dx, results.center.dx);
+        expect(tester.getTopRight(actions).dx, results.right);
         if (width > 1000 && scale == 1) {
-          expect(tester.getTopLeft(category).dy, tester.getTopLeft(heading).dy);
+          expect(tester.getCenter(category).dy, tester.getCenter(actions).dy);
           expect(
             tester.getTopLeft(category).dx,
             greaterThan(tester.getTopRight(heading).dx),
+          );
+          expect(
+            tester.getTopLeft(actions).dx,
+            greaterThan(tester.getTopRight(category).dx),
           );
         }
         if (width == 400) {

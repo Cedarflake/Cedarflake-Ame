@@ -53,28 +53,20 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
         ),
       ],
     );
-    final controls = Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        SegmentedButton<bool>(
-          key: const Key("duplicate-review-category"),
-          segments: const [
-            ButtonSegment(
-              value: false,
-              label: Text(LibraryDuplicateStrings.pendingGroups),
-            ),
-            ButtonSegment(
-              value: true,
-              label: Text(LibraryDuplicateStrings.ignoredGroups),
-            ),
-          ],
-          selected: {ignored},
-          onSelectionChanged: (value) => onCategoryChanged(value.single),
+    final category = SegmentedButton<bool>(
+      key: const Key("duplicate-review-category"),
+      segments: const [
+        ButtonSegment(
+          value: false,
+          label: Text(LibraryDuplicateStrings.pendingGroups),
         ),
-        const SizedBox(height: 4),
-        actions,
+        ButtonSegment(
+          value: true,
+          label: Text(LibraryDuplicateStrings.ignoredGroups),
+        ),
       ],
+      selected: {ignored},
+      onSelectionChanged: (value) => onCategoryChanged(value.single),
     );
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -86,16 +78,21 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
             children: [
               summary,
               const SizedBox(height: 12),
-              Align(alignment: Alignment.centerRight, child: controls),
+              Align(child: category),
+              const SizedBox(height: 4),
+              Align(alignment: Alignment.centerRight, child: actions),
             ],
           );
         }
         return Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: summary),
             const SizedBox(width: 24),
-            controls,
+            category,
+            const SizedBox(width: 24),
+            Expanded(
+              child: Align(alignment: Alignment.centerRight, child: actions),
+            ),
           ],
         );
       },
