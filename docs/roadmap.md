@@ -84,8 +84,9 @@ regressions and necessary documentation; implementation details and changing sta
    unchanged evidence and update only affected groups, including changes made while Ame was closed.
    Complete this before enabling default gallery folding.
 3. **R3-03: Connect gallery display modes.** Add `全部图片` and `合并重复图片` to the existing
-   filter menu; duplicate-only results belong to the Duplicates workspace. Include default folding, representative/copy-count
-   display and consistent sorting, dates, bounded pagination, selection and viewer navigation.
+   filter menu; duplicate-only results belong to the Duplicates workspace. Include default folding,
+   representative images with a duplicate-location action and consistent sorting, dates, bounded
+   pagination, selection and viewer navigation.
    Unanalysed items remain visible; analysis does not block browsing or startup.
 4. **R3-04: Review groups and retain choices.** Connect group review in the Duplicates workspace,
    inspect physical locations and persist preferred-copy and ignore decisions. Keep logical-group

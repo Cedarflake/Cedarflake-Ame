@@ -28,9 +28,8 @@ void main() {
                 width: width,
                 child: const TextField(),
               ),
-              galleryBuilder: (toggle) => Column(
+              galleryBuilder: (_) => Column(
                 children: [
-                  toggle,
                   Expanded(
                     child: ListView.builder(
                       key: const Key("gallery"),
@@ -53,6 +52,14 @@ void main() {
       ),
     );
     await tester.enterText(find.byType(TextField), "Expanded folder state");
+    final toggleBounds = tester.getRect(
+      find.byKey(const Key("library-sidebar-toggle")),
+    );
+    final settingsBounds = tester.getRect(
+      find.byKey(const Key("library-sidebar-settings")),
+    );
+    expect(toggleBounds.center.dx, settingsBounds.center.dx);
+    expect(toggleBounds.bottom, lessThanOrEqualTo(settingsBounds.top));
     scroll.jumpTo(1200);
     await tester.pump();
     final originalPosition = scroll.position;
@@ -118,8 +125,7 @@ void main() {
             body: LibraryWorkbench(
               navigationBuilder: (width) =>
                   SizedBox(width: width, child: const Text("Folder tree")),
-              galleryBuilder: (toggle) =>
-                  Align(alignment: Alignment.topLeft, child: toggle),
+              galleryBuilder: (_) => const Text("Gallery"),
               duplicatesBuilder: (_) => const Text("Duplicates"),
               settingsBuilder: (_) => const Text("Settings"),
               onSidebarResizeChanged: (_) {},

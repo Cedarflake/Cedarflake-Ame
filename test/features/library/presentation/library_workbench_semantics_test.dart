@@ -33,9 +33,8 @@ void main() {
                 body: LibraryWorkbench(
                   navigationBuilder: (width) =>
                       SizedBox(width: width, child: const Text("Folders")),
-                  galleryBuilder: (toggle) => Column(
+                  galleryBuilder: (_) => Column(
                     children: [
-                      toggle,
                       const Text("Gallery"),
                       Expanded(
                         child: Align(

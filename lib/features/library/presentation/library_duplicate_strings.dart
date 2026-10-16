@@ -61,9 +61,9 @@ abstract final class LibraryDuplicateStrings {
   static String physicalFiles(int count) => "$count 份文件";
 
   // Each location row is refreshed using metadata only; opening the location list never downloads files.
-  static String availability(LibraryDuplicateAvailability value) =>
+  static String? availability(LibraryDuplicateAvailability value) =>
       switch (value) {
-        LibraryDuplicateAvailability.local => "本地可用",
+        LibraryDuplicateAvailability.local => null,
         LibraryDuplicateAvailability.cloudOnly => "仅在云端",
         LibraryDuplicateAvailability.offline => "文件夹离线",
         LibraryDuplicateAvailability.unavailable => "暂时无法访问",

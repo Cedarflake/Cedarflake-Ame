@@ -1,31 +1,38 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_card_metrics.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:flutter/material.dart";
-import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "../../../support/duplicate_review_fixtures.dart";
 
 void main() {
-  for (final count in [2, 12, 123, 12345, 1000000, 9223372036854775807]) {
+  const count = 9223372036854775807;
+  for (final mode in LibraryGalleryDuplicateMode.values) {
     for (final scale in [1.0, 2.0]) {
       testWidgets(
-        "card keeps $count copies and selection visible at ${scale}x text",
+        "card controls in $mode stay contained at ${scale}x text without a count",
         (tester) async {
           final selecting = ValueNotifier(false);
           addTearDown(selecting.dispose);
           final groups = Completer<Map<String, LibraryDuplicateGroup>>();
           var selections = 0;
+          var annotationRequests = 0;
           await tester.pumpWidget(
             ProviderScope(
               overrides: [
-                libraryGalleryDuplicateAnnotationsProvider.overrideWith(
-                  (_) => groups.future,
+                libraryControllerProvider.overrideWith(
+                  () => ReviewFixtureLibrary(duplicateMode: mode),
                 ),
+                libraryGalleryDuplicateAnnotationsProvider.overrideWith((_) {
+                  annotationRequests++;
+                  return groups.future;
+                }),
               ],
               child: MaterialApp(
                 theme: ThemeData(useMaterial3: true),
@@ -43,10 +50,7 @@ void main() {
                         valueListenable: selecting,
                         builder: (_, isSelecting, _) => LibraryPhotoTile(
                           asset: _portrait(),
-                          width: LibraryGalleryCardMetrics.minimumWidthOf(
-                            context,
-                            maximumLocationCount: count,
-                          ),
+                          width: LibraryGalleryCardMetrics.minimumWidth,
                           height: 96,
                           isSelecting: isSelecting,
                           isSelected: false,
@@ -78,34 +82,29 @@ void main() {
           final tile = tester.getRect(find.byType(LibraryPhotoTile));
           expect(tile, initialTile);
           final badge = find.byKey(const ValueKey("duplicate-badge-location"));
-          final badgeBeforeSelection = tester.getRect(badge);
+          final isMerged = mode == LibraryGalleryDuplicateMode.merged;
+          final badgeBeforeSelection = isMerged ? tester.getRect(badge) : null;
           selecting.value = true;
           await tester.pump();
-          final badgeRect = tester.getRect(badge);
           final checkbox = find.byKey(const ValueKey("select-location"));
           final checkboxRect = tester.getRect(checkbox);
-          expect(badgeRect, badgeBeforeSelection);
-          _expectContained(tile, badgeRect);
           _expectContained(tile, checkboxRect);
-          expect(badgeRect.right, lessThanOrEqualTo(checkboxRect.left - 4));
-          _expectContained(
-            tile,
-            tester.getRect(
-              find.descendant(of: badge, matching: find.byType(Icon)),
-            ),
-          );
-          final paragraph = tester.renderObject<RenderParagraph>(
-            find.text("$count"),
-          );
-          final origin = paragraph.localToGlobal(Offset.zero);
-          final boxes = paragraph.getBoxesForSelection(
-            TextSelection(baseOffset: 0, extentOffset: "$count".length),
-          );
-          expect(boxes, hasLength(1));
-          for (final box in boxes) {
-            _expectContained(tile, box.toRect().shift(origin));
+          if (isMerged) {
+            final badgeRect = tester.getRect(badge);
+            expect(badgeRect, badgeBeforeSelection);
+            _expectContained(tile, badgeRect);
+            expect(badgeRect.right, lessThanOrEqualTo(checkboxRect.left - 4));
+            _expectContained(
+              tile,
+              tester.getRect(
+                find.descendant(of: badge, matching: find.byType(Icon)),
+              ),
+            );
+          } else {
+            expect(badge, findsNothing);
           }
-          expect(paragraph.didExceedMaxLines, isFalse);
+          expect(annotationRequests, isMerged ? 1 : 0);
+          expect(find.text("$count"), findsNothing);
           await tester.tap(checkbox);
           await tester.pump();
           expect(selections, 1);

@@ -787,7 +787,12 @@ void main() {
     );
     expect(galleryHeader.left, closeTo(sidebar.right, 0.1));
     expect(galleryHeader.right, 800);
-    expect(galleryTitle.left, closeTo(toggle.right + 8, 0.1));
+    expect(galleryTitle.left, closeTo(galleryHeader.left + 28, 0.1));
+    final settings = tester.getRect(
+      find.byKey(const Key("library-sidebar-settings")),
+    );
+    expect(toggle.center.dx, settings.center.dx);
+    expect(toggle.bottom, lessThanOrEqualTo(settings.top));
   });
 
   testWidgets("shows scan controls in temporary import feedback", (

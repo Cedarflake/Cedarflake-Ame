@@ -311,7 +311,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
-      minimumCellWidth: _minimumCardWidth(tester),
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: initialSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -368,7 +368,7 @@ void main() {
     await tester.pump();
 
     final finalSnapshot = LibraryGalleryLayoutSnapshot.build(
-      minimumCellWidth: _minimumCardWidth(tester),
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: finalSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -679,7 +679,7 @@ void main() {
           ),
         );
         final targetSnapshot = LibraryGalleryLayoutSnapshot.build(
-          minimumCellWidth: _minimumCardWidth(tester),
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: manifest,
           availableWidth: 860,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -863,7 +863,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
-      minimumCellWidth: _minimumCardWidth(tester),
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: initialSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -998,7 +998,7 @@ void main() {
         );
 
         final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
-          minimumCellWidth: _minimumCardWidth(tester),
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: initialManifest,
           availableWidth: wallSize.width - 40,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -1053,7 +1053,7 @@ void main() {
             ),
         ]);
         final recoveredSnapshot = LibraryGalleryLayoutSnapshot.build(
-          minimumCellWidth: _minimumCardWidth(tester),
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: recovered,
           availableWidth: wallSize.width - 40,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -1342,7 +1342,7 @@ void main() {
       );
 
       final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
-        minimumCellWidth: _minimumCardWidth(tester),
+        minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
         manifest: manifest,
         availableWidth: wallSize.width - 40,
         thumbnailSize: GalleryThumbnailSize.medium,
@@ -1515,18 +1515,6 @@ void main() {
       isNot(scrollController.position.maxScrollExtent),
     );
   });
-}
-
-double _minimumCardWidth(WidgetTester tester) {
-  final wall = find.byType(LibraryGalleryWall);
-  final state = tester.widget<LibraryGalleryWall>(wall).state;
-  return LibraryGalleryCardMetrics.minimumWidthOf(
-    tester.element(wall),
-    maximumLocationCount: state.roots.fold(
-      0,
-      (total, root) => total + root.assetCount,
-    ),
-  );
 }
 
 LibraryState _state(int itemCount) {

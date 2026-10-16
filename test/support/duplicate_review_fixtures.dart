@@ -122,10 +122,13 @@ class ReviewFixtureService implements LibraryDuplicateReview {
 }
 
 class ReviewFixtureLibrary extends LibraryController {
+  ReviewFixtureLibrary({this.duplicateMode = LibraryGalleryDuplicateMode.all});
+  final LibraryGalleryDuplicateMode duplicateMode;
   int refreshes = 0;
   final demands = <Object, List<String>>{};
   @override
-  LibraryState build() => const LibraryState();
+  LibraryState build() =>
+      LibraryState(query: LibraryGalleryQuery(duplicateMode: duplicateMode));
   @override
   Stream<void> watchPreview(String locationId) => const Stream.empty();
   @override

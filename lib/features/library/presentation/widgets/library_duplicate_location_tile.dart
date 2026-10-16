@@ -56,6 +56,13 @@ class _LibraryDuplicateLocationTileState
     final path = location.displayPath.replaceAll("/", "\\");
     final separator = path.lastIndexOf("\\");
     final folder = separator < 0 ? "" : path.substring(0, separator);
+    final availability = LibraryDuplicateStrings.availability(
+      location.availability,
+    );
+    final details = [
+      if (widget.isCurrent) LibraryDuplicateStrings.currentImage,
+      if (availability != null) availability,
+    ];
     final available = switch (location.availability) {
       LibraryDuplicateAvailability.local ||
       LibraryDuplicateAvailability.cloudOnly => true,
@@ -81,12 +88,7 @@ class _LibraryDuplicateLocationTileState
                   ? TextOverflow.clip
                   : TextOverflow.ellipsis,
             ),
-          Text(
-            [
-              if (widget.isCurrent) LibraryDuplicateStrings.currentImage,
-              LibraryDuplicateStrings.availability(location.availability),
-            ].join(" · "),
-          ),
+          if (details.isNotEmpty) Text(details.join(" · ")),
         ],
       ),
       onTap: available && !_opening ? _reveal : null,

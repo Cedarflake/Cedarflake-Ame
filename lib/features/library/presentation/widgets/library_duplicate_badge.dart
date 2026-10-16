@@ -4,6 +4,8 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_gallery_duplicates.dart";
+import "../../application/library_controller.dart";
+import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_locations_dialog.dart";
 import "library_gallery_card_metrics.dart";
@@ -28,6 +30,12 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
 
   @override
   Widget build(BuildContext context) {
+    final mode = ref.watch(
+      libraryControllerProvider.select((state) => state.query.duplicateMode),
+    );
+    if (mode != LibraryGalleryDuplicateMode.merged) {
+      return const SizedBox.shrink();
+    }
     final groups = ref.watch(libraryGalleryDuplicateAnnotationsProvider);
     final group = groups.asData?.value[widget.locationId];
     if (group == null || !TickerMode.valuesOf(context).enabled) {
@@ -37,10 +45,10 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
       child: AmeTooltip(
         message:
             "${LibraryDuplicateStrings.viewLocations} · ${LibraryDuplicateStrings.locations(group.locationCount)}",
-        child: TextButton.icon(
+        child: IconButton(
           key: ValueKey("duplicate-badge-${widget.locationId}"),
           focusNode: _focus,
-          style: TextButton.styleFrom(
+          style: IconButton.styleFrom(
             backgroundColor: Theme.of(
               context,
             ).colorScheme.surface.withValues(alpha: 0.92),
@@ -49,7 +57,6 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
             padding: const EdgeInsets.symmetric(
               horizontal: LibraryGalleryCardMetrics.duplicateHorizontalPadding,
             ),
-            textStyle: LibraryGalleryCardMetrics.badgeTextStyleOf(context),
           ),
           onPressed: () async {
             await showDialog<void>(
@@ -67,7 +74,6 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
             Symbols.photo_library_rounded,
             size: LibraryGalleryCardMetrics.duplicateIconExtent,
           ),
-          label: Text("${group.locationCount}"),
         ),
       ),
     );

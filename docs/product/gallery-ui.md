@@ -59,26 +59,30 @@ feature-completion evidence.
 
 The workbench has three regions in Library: a narrow function rail, a source/folder sidebar,
 and the photo wall. The rail remains visible while the secondary sidebar can collapse. Its toggle
-stays immediately before the main-area title, with `收起侧栏` and `展开侧栏` tooltips. Remember the
+stays in the function rail immediately above Settings while Library is active, with `收起侧栏` and
+`展开侧栏` tooltips. Animate the sidebar boundary and gallery origin together over a short transition;
+the gallery lays out once at its destination width, keeping its state and preview ownership. Respect
+reduced motion and reverse an interrupted toggle from the current boundary. Remember the
 preference and retain selected source, folder expansion, selection and gallery scroll position when
 switching workspaces. Reuse the accepted theme, global chrome, photo wall and viewer.
 
 Library supports `全部图片` and `合并重复图片` in the existing upper-right filter area. The first
 shows every location; the second shows one scoped representative of each confirmed exact group.
 Ordinary and not-yet-analysed images remain visible. Remember the user's display choice. Each
-confirmed duplicate card has a top-left stacked-image badge with its location count in either
-mode. The top-right selection checkbox keeps its existing independent action. Clicking the badge
+confirmed duplicate card has a top-left stacked-image action only in `合并重复图片`; `全部图片`
+has no duplicate card action. The card action shows no count, and the top-right selection checkbox
+keeps its existing independent action. Clicking the duplicate action
 opens a centered dialog with separate filename and folder lines and a current-image marker;
 clicking a location reveals that file in File Explorer. Long filenames and paths wrap completely
 inside the dialog's scrolling list; closing it retains the gallery position and returns focus to
-the badge when available. Locations outside the current folder are explicitly inspectable without
+the badge when available. Normal local availability is omitted; retain the current-image marker
+and cloud-only, offline or unavailable states. Locations outside the current folder are explicitly inspectable without
 widening the gallery selection scope.
 
-Cards reserve at least 128 logical pixels of width and enough measured space for the duplicate
-icon, complete count, selection target and their padding. Use the current catalog's total location
-bound and actual label font/text scaling before row layout, so asynchronous badge arrival and hover
-do not resize cards. Both loaded-window and query-wide geometry use the same floor; square mode
-also respects it. The count and selection target have separate bounded space without clipping or
+Cards reserve at least 128 logical pixels of width for the duplicate icon, selection target and
+their padding. Counts no longer affect card width. Asynchronous badge arrival and hover do not
+resize cards. Both loaded-window and query-wide geometry use the same floor; square mode
+also respects it. The duplicate and selection targets have separate bounded space without clipping or
 overlap.
 
 The Duplicates workspace owns duplicate-only results, analysis status/control, group inspection and
@@ -302,9 +306,9 @@ all physical instances or one representative per confirmed exact group appears. 
 exact analysis and incremental maintenance are connected, every image remains visible. Once folding
 is connected, it becomes the initial default while preserving an explicit saved choice.
 
-The Duplicates workspace owns duplicate-only results and group review. A top-left location-count
-badge in either gallery mode opens every known current location of that group, including availability
-and full paths. Location activation uses the existing File Explorer reveal action. A representative
+The Duplicates workspace owns duplicate-only results and group review. A top-left icon in merged
+gallery mode opens every known current location of that group, including relevant availability
+states and full paths. All-images mode has no duplicate card marker. Location activation uses the existing File Explorer reveal action. A representative
 selects a logical group; physical operations require explicit location selection in their later workflow.
 
 Source/folder/date/search scope still limits gallery membership. A group spanning folders cannot

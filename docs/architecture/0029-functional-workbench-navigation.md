@@ -22,14 +22,23 @@ retiring input and animation. Existing source navigation and resize controls rem
 The product-specific responsibility is destination lifetime, folder-panel preference and composing
 the existing gallery with a dedicated duplicate workspace. No new UI package is needed.
 
-The secondary-sidebar toggle lives before the gallery title, outside the collapsible sidebar.
+The secondary-sidebar toggle lives in the function rail above Settings while Library is active,
+outside the collapsible sidebar.
 Store its visibility with existing presentation preferences. Preserve source scope, expanded
 folders, scroll anchor and selection on workspace switches. Narrow windows may initially hide the
 secondary sidebar; explicitly opening it restores the same panel and its retained state.
 
+Compose its 180-millisecond transition from the pinned SDK's `AnimationController`, `AnimatedBuilder`,
+`ClipRect` and `OverflowBox`. The sidebar boundary and gallery origin move together while the
+gallery receives only its final width for each toggle; its query-wide geometry must not reflow at
+every animation frame. A plain `AnimatedSize` around the sidebar would propagate intermediate
+widths into the photo wall. Retain both widget subtrees, disable collapsed-sidebar input, finish
+hidden or reduced-motion transitions immediately, and reverse rapid toggles from the current value.
+
 The gallery filter owns All images and Merge duplicates. Duplicate-only browsing, analysis control,
 group inspection and durable decisions belong to the Duplicates workspace. Both consume one typed
-analysis service. Exact evidence and later perceptual candidates remain distinct.
+analysis service. Only merged gallery mode displays the duplicate icon, without a count; all-images
+mode leaves the cards unmarked. Exact evidence and later perceptual candidates remain distinct.
 
 The gallery uses the existing `AmePopupMenuButton` around Flutter's `showMenu` and
 `CheckedPopupMenuItem` for its two display choices. The duplicate badge opens a centered `Dialog`

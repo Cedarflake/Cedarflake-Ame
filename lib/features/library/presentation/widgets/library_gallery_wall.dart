@@ -190,13 +190,7 @@ class LibraryGalleryWall extends StatelessWidget {
           return const SizedBox.shrink();
         }
         final entries = LibraryGalleryLayoutEntry.build(
-          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidthOf(
-            context,
-            maximumLocationCount: state.roots.fold(
-              0,
-              (total, root) => total + root.assetCount,
-            ),
-          ),
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           assets: state.assets,
           availableWidth: availableWidth,
           layoutShape: layoutShape,
@@ -1501,7 +1495,7 @@ class _ManifestLibraryGalleryWallState
         current.matches(
           otherManifest: widget.manifest,
           otherAvailableWidth: availableWidth,
-          otherMinimumCellWidth: _minimumCellWidth,
+          otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
@@ -1525,7 +1519,7 @@ class _ManifestLibraryGalleryWallState
     _layoutCorrection = null;
     _publishedViewportExtent = viewportExtent;
     return _snapshot = LibraryGalleryLayoutSnapshot.build(
-      minimumCellWidth: _minimumCellWidth,
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: widget.manifest,
       availableWidth: availableWidth,
       thumbnailSize: widget.thumbnailSize,
@@ -1533,14 +1527,6 @@ class _ManifestLibraryGalleryWallState
       sortKey: widget.state.query.sortKey,
     );
   }
-
-  double get _minimumCellWidth => LibraryGalleryCardMetrics.minimumWidthOf(
-    context,
-    maximumLocationCount: widget.state.roots.fold(
-      0,
-      (total, root) => total + root.assetCount,
-    ),
-  );
 
   bool _prepareInitialPositionCorrection(
     LibraryGalleryLayoutSnapshot snapshot,
@@ -1704,7 +1690,7 @@ class _ManifestLibraryGalleryWallState
         current != null &&
         current.matchesInputs(
           otherManifest: widget.manifest,
-          otherMinimumCellWidth: _minimumCellWidth,
+          otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
@@ -1765,7 +1751,7 @@ class _ManifestLibraryGalleryWallState
           (current.matches(
                 otherManifest: widget.manifest,
                 otherAvailableWidth: pendingWidth,
-                otherMinimumCellWidth: _minimumCellWidth,
+                otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
                 otherThumbnailSize: widget.thumbnailSize,
                 otherLayoutShape: widget.layoutShape,
                 otherSortKey: widget.state.query.sortKey,
@@ -1778,14 +1764,14 @@ class _ManifestLibraryGalleryWallState
           current.matches(
             otherManifest: widget.manifest,
             otherAvailableWidth: pendingWidth,
-            otherMinimumCellWidth: _minimumCellWidth,
+            otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
             otherThumbnailSize: widget.thumbnailSize,
             otherLayoutShape: widget.layoutShape,
             otherSortKey: widget.state.query.sortKey,
           )
           ? current
           : LibraryGalleryLayoutSnapshot.build(
-              minimumCellWidth: _minimumCellWidth,
+              minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
               manifest: widget.manifest,
               availableWidth: pendingWidth,
               thumbnailSize: widget.thumbnailSize,

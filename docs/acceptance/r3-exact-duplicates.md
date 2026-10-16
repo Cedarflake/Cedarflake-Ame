@@ -337,10 +337,25 @@ The shared Windows tooltip also no longer treats button focus as a visual trigge
 keep the overlay visible. Two tooltip lifecycle cases pass, including autofocus without a popup,
 hover display, exit while the button remains focused, and the retained semantic tooltip. The
 duplicate-dialog cases assert no automatic close tooltip and no lingering badge tooltip on return.
-This owner now has 386 production lines, no inline tests and 134 dedicated lifecycle-test lines.
+This owner now has 386 production lines, no inline tests and 140 dedicated lifecycle-test lines.
 
 The rebuilt Debug client reused `build/test` and the existing catalog. Its 150-location group was
 checked for complete path wrapping, fixed header/footer, next-page loading, list scrolling and
 Escape dismissal without moving the gallery. The updated test window remains available for visual
 review, so its active profile-restoration backup is retained until the session is closed. The
 change introduces no catalog migration, source read workflow or source mutation.
+
+## Sidebar and gallery presentation
+
+The Library sidebar toggle now sits above Settings in the function rail. Its 180-millisecond
+transition moves the sidebar boundary and photo-wall origin together; the gallery receives the
+destination width once per toggle. Three focused transition cases pass: final-width layout counts,
+rapid reversal and immediate reduced-motion placement. The reduced-motion fixture flushes the
+SDK's focus-change layout callback without advancing time before checking that no ticker remains.
+
+All-images mode omits duplicate badges and annotation requests. Merged mode retains an icon-only
+location action; normal local availability adds no status line. Four card-boundary cases pass at
+normal and double text scaling, including delayed annotation arrival and selection bounds. The
+128-pixel minimum card width remains. Updated shell, resize and duplicate-dialog regressions run
+in Actions. Native inspection of these latest changes was interrupted by physical Escape; the
+already-open isolated client and its restoration backup remain intact.

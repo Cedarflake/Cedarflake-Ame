@@ -10,6 +10,7 @@ import "package:cedarflake_ame/features/library/application/library_exact_analys
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
@@ -120,7 +121,11 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
+              libraryControllerProvider.overrideWith(
+                () => ReviewFixtureLibrary(
+                  duplicateMode: LibraryGalleryDuplicateMode.merged,
+                ),
+              ),
               libraryGalleryDuplicateAnnotationsProvider.overrideWith(
                 (ref) async => {"one": _group},
               ),
@@ -144,7 +149,8 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text("two.png"), findsOneWidget);
         expect(find.text(r"D:\fixture"), findsOneWidget);
-        expect(find.text("当前图片 · 本地可用"), findsOneWidget);
+        expect(find.text("当前图片"), findsOneWidget);
+        expect(find.textContaining("本地可用"), findsNothing);
         expect(find.byType(Dialog), findsOneWidget);
         expect(find.text("关闭"), findsNothing);
         final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -208,7 +214,11 @@ void main() {
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
-              libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
+              libraryControllerProvider.overrideWith(
+                () => ReviewFixtureLibrary(
+                  duplicateMode: LibraryGalleryDuplicateMode.merged,
+                ),
+              ),
               libraryGalleryDuplicateAnnotationsProvider.overrideWith(
                 (_) async => {"one": _group},
               ),
@@ -264,17 +274,17 @@ void main() {
           expect(textBounds.left, greaterThanOrEqualTo(bounds.left));
           expect(textBounds.right, lessThanOrEqualTo(bounds.right));
         }
-        expect(find.text("当前图片 · 本地可用"), findsOneWidget);
-        await tester.ensureVisible(find.text("当前图片 · 本地可用"));
+        expect(find.text("当前图片"), findsOneWidget);
+        await tester.ensureVisible(find.text("当前图片"));
         await tester.pumpAndSettle();
         expect(
-          tester.getBottomRight(find.text("当前图片 · 本地可用")).dy,
+          tester.getBottomRight(find.text("当前图片")).dy,
           lessThanOrEqualTo(bounds.bottom),
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
         expect(panel, findsNothing);
-        expect(tester.widget<TextButton>(badge).focusNode!.hasFocus, isTrue);
+        expect(tester.widget<IconButton>(badge).focusNode!.hasFocus, isTrue);
         await tester.tap(badge);
         await tester.pumpAndSettle();
         await tester.tapAt(const Offset(5, 5));
@@ -465,8 +475,7 @@ void main() {
             home: Scaffold(
               body: LibraryWorkbench(
                 navigationBuilder: (width) => SizedBox(width: width),
-                galleryBuilder: (toggle) =>
-                    Column(children: [toggle, const Text("Gallery")]),
+                galleryBuilder: (_) => const Text("Gallery"),
                 duplicatesBuilder: (_) => const LibraryExactDuplicatesPage(),
                 settingsBuilder: (_) => const Text("Settings"),
                 onSidebarResizeChanged: (_) {},

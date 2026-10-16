@@ -39,8 +39,9 @@ cancellation and continuation exercised in the client. The
 The accepted three-region workbench replaces the More-menu/bottom-sheet prototype under ADR 0029.
 The function rail, persistent collapsible folder sidebar and duplicate-results workspace with
 location reveal are connected. Automatic analysis now follows catalog publication and yields to
-foreground browsing and media reads; pause persists across restart. Both gallery modes now include
-duplicate-location badges, with the selected mode restored after restart. Retain the existing analysis implementation and verification;
+foreground browsing and media reads; pause persists across restart. Merged gallery mode includes
+duplicate-location icons without counts; all-images mode leaves cards unmarked. The selected mode
+is restored after restart. Retain the existing analysis implementation and verification;
 the changed client paths have been checked against the reusable corpus, including unchanged
 reopening with zero additional content reads. The Settings-menu accessibility failure was reproduced
 with the retained gallery's timeline slider. Its always-mounted value-indicator portal now retires
@@ -144,7 +145,7 @@ initial default becomes folding once reliable exact evidence and incremental mai
 connected. Preserve the user's selected mode. Pending or unreadable items remain visible without
 an invented duplicate classification.
 
-Publish representative items and copy-count badges through bounded queries. Keep sorting, result
+Publish representative items and duplicate-location actions through bounded queries. Keep sorting, result
 counts, date distribution, pagination, complete-query selection, viewer navigation and return
 anchors consistent with the selected mode and scope. Logical group selection and explicit physical
 location selection have distinct typed meanings. Preserve the delivered gallery/viewer layout and

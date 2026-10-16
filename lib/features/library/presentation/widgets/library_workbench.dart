@@ -12,6 +12,7 @@ import "../library_strings.dart";
 import "../library_workbench_strings.dart";
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
+import "library_sidebar_transition.dart";
 
 class LibraryWorkbench extends ConsumerStatefulWidget {
   const LibraryWorkbench({
@@ -25,7 +26,7 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
   });
 
   final Widget Function(double width) navigationBuilder;
-  final Widget Function(Widget sidebarToggle) galleryBuilder;
+  final WidgetBuilder galleryBuilder;
   final WidgetBuilder duplicatesBuilder;
   final WidgetBuilder settingsBuilder;
   final ValueChanged<bool> onSidebarResizeChanged;
@@ -103,47 +104,25 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             ),
           ),
         );
-        final gallery = Stack(
-          children: [
-            Row(
-              children: [
-                Visibility(
-                  visible: expanded,
-                  maintainState: true,
-                  child: widget.navigationBuilder(sidebarWidth),
-                ),
-                Expanded(
-                  child: LibraryMainSurface(
-                    child: widget.galleryBuilder(toggle),
-                  ),
-                ),
-              ],
-            ),
-            if (expanded)
-              Positioned(
-                left:
-                    sidebarWidth -
-                    LibraryNavigationResizeHandle.hitTargetWidth / 2,
-                top: 0,
-                bottom: 0,
-                child: LibraryNavigationResizeHandle(
-                  width: sidebarWidth,
-                  minimumWidth: ameMinimumSidebarWidth,
-                  maximumWidth: ameMaximumSidebarWidth,
-                  defaultWidth: ameDefaultSidebarWidth,
-                  onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
-                  onWidthChanged: (width) =>
-                      setState(() => _sidebarWidth = width),
-                  onWidthChangeEnd: _finishResize,
-                  onWidthChangeCancel: () =>
-                      widget.onSidebarResizeChanged(false),
-                ),
-              ),
-          ],
+        final gallery = LibrarySidebarTransition(
+          expanded: expanded,
+          sidebarWidth: sidebarWidth,
+          sidebar: widget.navigationBuilder(sidebarWidth),
+          gallery: LibraryMainSurface(child: widget.galleryBuilder(context)),
+          resizeHandle: LibraryNavigationResizeHandle(
+            width: sidebarWidth,
+            minimumWidth: ameMinimumSidebarWidth,
+            maximumWidth: ameMaximumSidebarWidth,
+            defaultWidth: ameDefaultSidebarWidth,
+            onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
+            onWidthChanged: (width) => setState(() => _sidebarWidth = width),
+            onWidthChangeEnd: _finishResize,
+            onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
+          ),
         );
         return Row(
           children: [
-            _FunctionRail(workspace: workspace),
+            _FunctionRail(workspace: workspace, sidebarToggle: toggle),
             Expanded(
               child: Stack(
                 fit: StackFit.expand,
@@ -193,8 +172,9 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
 }
 
 class _FunctionRail extends ConsumerWidget {
-  const _FunctionRail({required this.workspace});
+  const _FunctionRail({required this.workspace, required this.sidebarToggle});
   final LibraryWorkspace workspace;
+  final Widget sidebarToggle;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -228,14 +208,20 @@ class _FunctionRail extends ConsumerWidget {
       trailingAtBottom: true,
       trailing: Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: AmeTooltip(
-          message: LibraryStrings.settings,
-          child: IconButton(
-            key: const Key("library-sidebar-settings"),
-            isSelected: workspace == LibraryWorkspace.settings,
-            onPressed: () => controller.select(LibraryWorkspace.settings),
-            icon: const Icon(Symbols.settings_rounded),
-          ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (workspace == LibraryWorkspace.gallery) sidebarToggle,
+            AmeTooltip(
+              message: LibraryStrings.settings,
+              child: IconButton(
+                key: const Key("library-sidebar-settings"),
+                isSelected: workspace == LibraryWorkspace.settings,
+                onPressed: () => controller.select(LibraryWorkspace.settings),
+                icon: const Icon(Symbols.settings_rounded),
+              ),
+            ),
+          ],
         ),
       ),
     );

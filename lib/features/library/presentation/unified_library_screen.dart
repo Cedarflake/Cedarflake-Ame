@@ -1071,7 +1071,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         onOpenFolder: _openFolder,
         onRemoveRoot: _confirmRemoveRoot,
       ),
-      galleryBuilder: (sidebarToggle) => LibraryGalleryActivity(
+      galleryBuilder: (_) => LibraryGalleryActivity(
         controller: controller,
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
@@ -1082,7 +1082,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                 unawaited(_persistViewPreferences(query: query));
               },
             ),
-            leading: sidebarToggle,
             galleryTitle: _galleryTitle(state),
             totalItems: _totalItems(state),
             selectedCount: _selection.selectedCount(_totalItems(state)),
