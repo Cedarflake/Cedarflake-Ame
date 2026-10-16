@@ -4,6 +4,7 @@ import "../../../src/rust/api/preview.dart" as rust_api;
 import "../../../src/rust/domain.dart" as rust_domain;
 import "../domain/library_models.dart";
 import "library_catalog.dart";
+import "library_foreground_reads.dart";
 
 abstract interface class LibraryPreviewer {
   Future<LibraryAsset> materialize({
@@ -32,6 +33,7 @@ class RustLibraryPreviewer implements LibraryPreviewer {
     bool force = false,
     Iterable<String> protectedLocationIds = const [],
   }) async {
+    final foreground = libraryForegroundReads.acquire();
     try {
       final asset = await rust_api.materializeLibraryPreview(
         request: rust_domain.PreviewRequest(
@@ -59,6 +61,8 @@ class RustLibraryPreviewer implements LibraryPreviewer {
         code: "bridge_preview_failed",
         message: error.toString(),
       );
+    } finally {
+      foreground.close();
     }
   }
 }

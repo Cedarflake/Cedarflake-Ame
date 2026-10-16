@@ -2,6 +2,7 @@ import "../../../src/rust/api/viewer_source.dart" as rust_api;
 import "../../../src/rust/application/viewer_source.dart" as rust_source;
 import "../../../src/rust/domain.dart" as rust_domain;
 import "../domain/library_models.dart";
+import "library_foreground_reads.dart";
 import "library_source_read_scheduler.dart";
 import "library_source_reader.dart";
 
@@ -14,6 +15,7 @@ class RustLibrarySourceReader implements LibrarySourceReader {
 
   @override
   Future<LibrarySourceReadLease> acquire(LibraryAsset asset) async {
+    final foreground = libraryForegroundReads.acquire();
     try {
       final revision = asset.sourceRevision;
       final lease = await rust_api.acquireViewerSource(
@@ -31,12 +33,17 @@ class RustLibrarySourceReader implements LibrarySourceReader {
         ),
       );
       try {
-        return _RustSourceReadLease(await lease.sourcePath(), lease);
+        return _RustSourceReadLease(
+          await lease.sourcePath(),
+          lease,
+          foreground,
+        );
       } on Object {
         await lease.close();
         rethrow;
       }
     } on Object catch (error) {
+      foreground.close();
       if (error case rust_domain.ScanError(:final code, :final message)) {
         throw LibrarySourceReadFailure(code, message);
       }
@@ -49,13 +56,22 @@ class RustLibrarySourceReader implements LibrarySourceReader {
 }
 
 class _RustSourceReadLease implements LibrarySourceReadLease {
-  _RustSourceReadLease(this.sourcePath, this._lease);
+  _RustSourceReadLease(this.sourcePath, this._lease, this._foreground);
 
   @override
   final String sourcePath;
   final rust_api.ViewerSourceReadLease _lease;
+  final LibraryForegroundReadLease _foreground;
   Future<void>? _closing;
 
   @override
-  Future<void> close() => _closing ??= _lease.close();
+  Future<void> close() => _closing ??= _close();
+
+  Future<void> _close() async {
+    try {
+      await _lease.close();
+    } finally {
+      _foreground.close();
+    }
+  }
 }

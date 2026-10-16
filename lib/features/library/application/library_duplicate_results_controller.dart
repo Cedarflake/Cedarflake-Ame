@@ -86,6 +86,16 @@ class LibraryDuplicateResultsController extends ChangeNotifier {
     return refresh();
   }
 
+  Future<void> catalogChanged() {
+    _groupCursor = null;
+    _locationCursor = null;
+    _groupHistory.clear();
+    _locationHistory.clear();
+    _groups = const LibraryDuplicateGroupPage(groups: []);
+    _locations = const LibraryDuplicateLocationPage(locations: []);
+    return refresh();
+  }
+
   Future<void> next() {
     if (loading || !canNext) {
       return Future.value();

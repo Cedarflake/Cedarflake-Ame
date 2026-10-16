@@ -95,6 +95,7 @@ class SharedPreferencesAmeStore
       sidebarExpanded: value["sidebarExpanded"] is bool
           ? value["sidebarExpanded"] as bool
           : null,
+      exactAnalysisPaused: value["exactAnalysisPaused"] == true,
       sidebarWidth:
           (_readDouble(value["sidebarWidth"]) ?? ameDefaultSidebarWidth)
               .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
@@ -162,6 +163,7 @@ class SharedPreferencesAmeStore
         "previewLoadingSpeed": preferences.previewLoadingSpeed.name,
         "sidebarWidth": preferences.sidebarWidth,
         "sidebarExpanded": preferences.sidebarExpanded,
+        "exactAnalysisPaused": preferences.exactAnalysisPaused,
       }),
     );
   }

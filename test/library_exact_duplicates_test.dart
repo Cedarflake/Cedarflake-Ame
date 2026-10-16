@@ -1,9 +1,11 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_duplicate_results_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
+import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
 import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
@@ -26,6 +28,7 @@ class _Service implements LibraryExactDuplicates {
   String? runId;
   int cancellations = 0;
   bool hasResults = false;
+  bool hasLocations = true;
   Completer<LibraryDuplicateGroupPage>? delayedGroups;
   Completer<LibraryDuplicateLocationPage>? delayedLocations;
 
@@ -69,6 +72,9 @@ class _Service implements LibraryExactDuplicates {
   ) async {
     if (delayedLocations case final pending?) {
       return pending.future;
+    }
+    if (!hasLocations) {
+      return const LibraryDuplicateLocationPage(locations: []);
     }
     return const LibraryDuplicateLocationPage(
       locations: [
@@ -130,6 +136,50 @@ void main() {
     await service.events.close();
   });
 
+  for (final showLocations in [false, true]) {
+    test(
+      "catalog changes discard old responses and members: $showLocations",
+      () async {
+        final service = _Service()..hasResults = true;
+        final controller = LibraryDuplicateResultsController(service);
+        await controller.refresh();
+        if (showLocations) {
+          await controller.showLocations(_group);
+        }
+        final oldGroups = Completer<LibraryDuplicateGroupPage>();
+        final oldLocations = Completer<LibraryDuplicateLocationPage>();
+        service.delayedGroups = oldGroups;
+        service.delayedLocations = oldLocations;
+        final obsolete = controller.refresh();
+        service
+          ..delayedGroups = null
+          ..delayedLocations = null
+          ..hasResults = false
+          ..hasLocations = false;
+        await controller.catalogChanged();
+        oldGroups.complete(const LibraryDuplicateGroupPage(groups: [_group]));
+        oldLocations.complete(
+          const LibraryDuplicateLocationPage(
+            locations: [
+              LibraryDuplicateLocation(
+                locationId: "removed",
+                displayPath: r"C:\fixture\removed.png",
+                availability: LibraryDuplicateAvailability.local,
+              ),
+            ],
+          ),
+        );
+        await obsolete;
+        expect(controller.groups.groups, isEmpty);
+        expect(controller.locations.locations, isEmpty);
+        expect(controller.loading, isFalse);
+        expect(controller.canPrevious, isFalse);
+        controller.dispose();
+        await service.events.close();
+      },
+    );
+  }
+
   testWidgets(
     "workspace switches retain analysis and locations reveal the selected file",
     (tester) async {
@@ -137,6 +187,7 @@ void main() {
       final revealed = <List<String>>[];
       final container = ProviderContainer(
         overrides: [
+          libraryControllerProvider.overrideWith(_EmptyLibraryController.new),
           libraryExactDuplicatesProvider.overrideWithValue(service),
           libraryPlatformActionsProvider.overrideWithValue(
             WindowsLibraryPlatformActions.withLauncher((arguments) async {
@@ -203,4 +254,9 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     },
   );
+}
+
+class _EmptyLibraryController extends LibraryController {
+  @override
+  LibraryState build() => const LibraryState();
 }

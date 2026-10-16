@@ -55,6 +55,7 @@ void main() {
       previewLoadingSpeed: PreviewLoadingSpeed.large,
       sidebarWidth: 348,
       sidebarExpanded: false,
+      exactAnalysisPaused: true,
     );
 
     await store.saveWindowPlacement(placement);
@@ -89,6 +90,7 @@ void main() {
     expect(restoredPresentation.sidebarWidth, presentation.sidebarWidth);
     expect(restoredPresentation.sidebarExpanded, isFalse);
     expect(restoredPresentation.viewerFilmstripVisible, isTrue);
+    expect(restoredPresentation.exactAnalysisPaused, isTrue);
   });
 
   test("falls back safely when stored preferences are malformed", () async {
@@ -144,6 +146,7 @@ void main() {
       final store = SharedPreferencesAmeStore(preferences: preferences);
       final restored = await store.loadAmePreferences();
       expect(restored.viewerFilmstripVisible, isFalse);
+      expect(restored.exactAnalysisPaused, isFalse);
       await store.saveAmePreferences(
         restored.copyWith(viewerFilmstripVisible: true),
       );

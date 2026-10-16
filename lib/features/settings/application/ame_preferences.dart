@@ -21,6 +21,7 @@ class AmePreferences {
     this.previewLoadingSpeed = PreviewLoadingSpeed.medium,
     this.sidebarWidth = ameDefaultSidebarWidth,
     this.sidebarExpanded,
+    this.exactAnalysisPaused = false,
   });
 
   final AmeThemePreference theme;
@@ -30,6 +31,7 @@ class AmePreferences {
   final PreviewLoadingSpeed previewLoadingSpeed;
   final double sidebarWidth;
   final bool? sidebarExpanded;
+  final bool exactAnalysisPaused;
 
   AmePreferences copyWith({
     AmeThemePreference? theme,
@@ -39,6 +41,7 @@ class AmePreferences {
     PreviewLoadingSpeed? previewLoadingSpeed,
     double? sidebarWidth,
     bool? sidebarExpanded,
+    bool? exactAnalysisPaused,
   }) {
     return AmePreferences(
       theme: theme ?? this.theme,
@@ -49,6 +52,7 @@ class AmePreferences {
       previewLoadingSpeed: previewLoadingSpeed ?? this.previewLoadingSpeed,
       sidebarWidth: sidebarWidth ?? this.sidebarWidth,
       sidebarExpanded: sidebarExpanded ?? this.sidebarExpanded,
+      exactAnalysisPaused: exactAnalysisPaused ?? this.exactAnalysisPaused,
     );
   }
 }

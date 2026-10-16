@@ -1,6 +1,6 @@
 # R3 exact-content verification
 
-Status: R3-01 client verification recorded; automated checks pending.
+Status: R3-01 client verification and R3-02 automatic-start check recorded; Actions pending.
 
 Date: 2026-10-16.
 
@@ -63,8 +63,34 @@ checks used controlled files; no real source roots or cloud placeholders were in
 
 Workspace retention, hidden preview-demand retirement, focus, narrow-window controls, persisted
 sidebar preference and Explorer invocation regressions are included for Actions. Native narrow-window
-resizing was not established by this check. Automatic analysis, gallery folding/badges and durable
-preferred-copy/ignore decisions remain the next scoped deliveries in the execution plan.
+resizing was not established by this check. Gallery folding/badges and durable preferred-copy/ignore
+decisions remain subsequent deliveries in the execution plan.
+
+## Automatic scheduling check
+
+The Debug build with automatic scheduling reopened the same 10,000-file catalog. Without opening
+the Duplicates workspace or requesting analysis, the persisted run completed in 146 ms, with
+zero checked files, zero newly fingerprinted files, zero skipped files and zero content bytes read.
+The existing 72 groups were retained. This measures the analysis run, not full application startup.
+
+The scheduler has focused regressions for idle admission, browsing/synchronization cancellation,
+foreground read leases, waiting for native retirement, late admission during shutdown, new
+publications during older runs, paused restart and failure/retry policy. Catalog-delta regressions
+exercise additions, in-place changes, replacements, moves and removals through normal publication,
+including stale evidence rejection and unchanged-fingerprint reuse after reopening. Actions owns
+their execution; they have not been run as a local CI suite.
+
+The Windows interaction tool repeatedly failed with `foreground window did not report a process id`,
+including after the window was manually brought forward. Pause/resume button interaction remains
+unverified in this run. The owned idle test process was terminated for cleanup, so this run does
+not verify graceful analysis shutdown. Original configuration and catalog hashes were restored and
+verified; temporary profile backups and preview cache were removed, retaining the shared corpus
+and test catalog.
+
+For commit `517b5ea`, hosted Windows Scan passed. Flutter's narrow import-navigation fixture still
+addressed the removed compact sidebar; the native accessibility fixture hit the failed-preview
+Retry button instead of the image. Commit `7429a0b` updates these interactions while retaining their
+workflow assertions. Its hosted results remain pending.
 
 Large existing owners were extended only at registration/dispatch boundaries: `sqlite_catalog.rs`
 has 3,621 production lines, no inline tests and 8,009 lines in its existing dedicated test file;

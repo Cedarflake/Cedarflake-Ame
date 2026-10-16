@@ -1,6 +1,6 @@
 # R3 exact duplicate implementation
 
-Status: R3-01 implementation in progress; accepted workbench blueprint selected by the
+Status: R3-02 implementation and affected verification in progress; workbench blueprint selected by the
 [roadmap](../roadmap.md#current-execution-queue).
 
 Updated: 2026-10-16.
@@ -30,22 +30,24 @@ Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371
 The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,
 versioned fingerprints, schema 40, bounded group/location queries and a generated desktop bridge.
 [ADR 0028](../architecture/0028-versioned-exact-content-analysis.md) records the BLAKE3 adapter
-choice and identity rules. Default folding and automatic incremental analysis remain unimplemented.
+choice and identity rules. Automatic incremental analysis is connected; default folding remains
+the next independent delivery.
 
 The retained 10,000-file corpus produced 72 groups matching its existing digest oracle, with
 cancellation and continuation exercised in the client. The
 [R3 verification record](../acceptance/r3-exact-duplicates.md) retains the exact coverage and limits.
 The accepted three-region workbench replaces the More-menu/bottom-sheet prototype under ADR 0029.
-First connect the function rail, persistent collapsible folder sidebar and a real duplicate-results
-workspace with location reveal. Then connect incremental automatic analysis and the two gallery
+The function rail, persistent collapsible folder sidebar and duplicate-results workspace with
+location reveal are connected. Automatic analysis now follows catalog publication and yields to
+foreground browsing and media reads; pause persists across restart. Next connect the two gallery
 display modes with duplicate badges. Retain the existing analysis implementation and verification;
 the changed client paths have been checked against the reusable corpus, including unchanged
 reopening with zero additional content reads. Automated regressions await Actions.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |
-| R3-01 | Identify exact duplicates and inspect their physical locations | Core and accepted workbench connected; client verification recorded, Actions pending |
-| R3-02 | Maintain duplicate results through incremental changes | Queued after R3-01 |
+| R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client check recorded, retained UI test interactions corrected, Actions running |
+| R3-02 | Maintain duplicate results through incremental changes | Automatic idle scheduling, foreground read priority and persisted pause implemented; incremental boundary regressions added; client startup reuse verified |
 | R3-03 | Connect both gallery display modes and duplicate badges | Queued after R3-02 |
 | R3-04 | Review groups and preserve preferred-copy/ignore decisions | Queued after R3-03 |
 | R3-05 | Complete affected client/performance verification and close R3 | Queued after R3-04 |

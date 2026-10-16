@@ -13,6 +13,7 @@ class LibraryExactAnalysisController extends ChangeNotifier {
 
   final LibraryExactDuplicates _service;
   StreamSubscription<LibraryExactAnalysisProgress>? _subscription;
+  Completer<void>? _stopped;
   LibraryExactAnalysisProgress? _progress;
   String? _activeRun;
   bool _isStopping = false;
@@ -24,6 +25,7 @@ class LibraryExactAnalysisController extends ChangeNotifier {
   bool get isRunning => _activeRun != null;
   bool get isStopping => _isStopping;
   bool get hasFailure => _hasFailure;
+  Future<void> get whenStopped => _stopped?.future ?? Future.value();
 
   void start() {
     if (isRunning || _isDisposed) {
@@ -32,6 +34,7 @@ class LibraryExactAnalysisController extends ChangeNotifier {
     final runId =
         "exact-${DateTime.now().microsecondsSinceEpoch}-${_nextRun++}";
     _activeRun = runId;
+    _stopped = Completer<void>();
     _isStopping = false;
     _hasFailure = false;
     _hasStarted = false;
@@ -117,6 +120,7 @@ class LibraryExactAnalysisController extends ChangeNotifier {
       return;
     }
     _activeRun = null;
+    _stopped?.complete();
     _isStopping = false;
     final subscription = _subscription;
     _subscription = null;

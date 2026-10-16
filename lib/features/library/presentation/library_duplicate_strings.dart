@@ -15,6 +15,11 @@ abstract final class LibraryDuplicateStrings {
   static const completed = "查找完成";
   static const cancelled = "已停止查找";
   static const failed = "查找未完成";
+  static const automaticWaiting = "稍后继续查找";
+  static const paused = "已暂停查重";
+  static const pause = "暂停查重";
+  static const resume = "继续查重";
+  static const pauseSaveFailed = "无法保存查重设置";
   static const close = "关闭";
   static const emptyBeforeAnalysis = "查找后，可以查看相同图片保存在哪些文件夹。";
   static const emptyAfterAnalysis = "已检查的图片中没有发现重复项";

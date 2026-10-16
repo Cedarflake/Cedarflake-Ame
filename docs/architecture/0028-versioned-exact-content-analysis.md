@@ -88,6 +88,15 @@ R3-01 exposes analysis progress/cancellation/retry and duplicate-location inspec
 workspace governed by ADR 0029. Changing workspace does not cancel a running task. Gallery
 folding remains disabled until incremental maintenance and query consistency are connected.
 
+An application-owned scheduler observes published catalog revisions and source availability.
+It starts pending analysis after three seconds without browsing input, synchronization, preview
+reads or original-image reads. New foreground work requests cancellation; continuation waits for
+the native stream to retire and reuses completed fingerprints. A newer publication retains its
+own pending generation even when an older run completes. Failed analysis waits for a new publication
+or an explicit retry. A persisted pause preference disables automatic admission across restarts.
+Application shutdown fences admission and drains analysis before retiring synchronization/storage.
+These signals schedule bounded catalog candidates; they never trigger another source-tree scan.
+
 Accept after fixed-fixture full-content correctness, cancellation and read-race rejection,
 transactional stale-publication rejection, migration preservation, hardlink/multi-volume counting,
 bounded paging and actual client inspection/restart reuse pass. GitHub Actions owns automated
