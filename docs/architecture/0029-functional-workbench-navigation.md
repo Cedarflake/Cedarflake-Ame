@@ -30,9 +30,12 @@ secondary sidebar; explicitly opening it restores the same panel and its retaine
 
 Compose its 180-millisecond transition from the pinned SDK's `AnimationController`, `AnimatedBuilder`,
 `ClipRect`/`ClipRRect` and `OverflowBox`. The gallery transition clips its backing surface to the
-same rounded boundary as `LibraryMainSurface`. The sidebar boundary and gallery origin move together while the
-gallery receives only its final width for each toggle; its query-wide geometry must not reflow at
-every animation frame. A plain `AnimatedSize` around the sidebar would propagate intermediate
+same rounded boundary as `LibraryMainSurface`. The sidebar boundary and gallery's left clip move
+together; the destination-width gallery remains right-aligned inside that clip. Left alignment
+would translate its right-edge controls while the clip and child have different widths. The toolbar
+also remains right-aligned below the title in narrow layouts. The gallery receives only its final
+width for each toggle; its query-wide geometry must not reflow at every animation frame.
+A plain `AnimatedSize` around the sidebar would propagate intermediate
 widths into the photo wall. Retain both widget subtrees, disable collapsed-sidebar input, finish
 hidden or reduced-motion transitions immediately, and reverse rapid toggles from the current value.
 

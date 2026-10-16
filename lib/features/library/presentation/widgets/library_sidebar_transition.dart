@@ -3,7 +3,7 @@ import "package:flutter/material.dart";
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
 
-/// Animates the pane boundary while the gallery lays out at its destination width.
+/// Animates the left boundary of a right-anchored, destination-width gallery.
 class LibrarySidebarTransition extends StatefulWidget {
   const LibrarySidebarTransition({
     required this.expanded,
@@ -120,10 +120,10 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
                   borderRadius: LibraryMainSurface.borderRadius,
                   child: ColoredBox(
                     color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                    // Only the clip and origin change per frame. Reflowing a
-                    // query-wide gallery for every intermediate width is costly.
+                    // Keep right-edge controls stationary as the left clip moves.
+                    // Reflowing the gallery at every intermediate width is costly.
                     child: OverflowBox(
-                      alignment: Alignment.topLeft,
+                      alignment: Alignment.topRight,
                       minWidth: galleryWidth,
                       maxWidth: galleryWidth,
                       child: gallery,

@@ -348,10 +348,19 @@ change introduces no catalog migration, source read workflow or source mutation.
 ## Sidebar and gallery presentation
 
 The Library sidebar toggle now sits above Settings in the function rail. Its 180-millisecond
-transition moves the sidebar boundary and photo-wall origin together; the gallery receives the
-destination width once per toggle. Three focused transition cases pass: final-width layout counts,
-rapid reversal and immediate reduced-motion placement. The reduced-motion fixture flushes the
-SDK's focus-change layout callback without advancing time before checking that no ticker remains.
+transition moves the sidebar boundary and the gallery's left clip while keeping the right gallery
+edge stationary. The gallery receives the destination width once per toggle. The original left
+alignment translated right-side controls by the sidebar width during the transition; narrow headers
+also placed their wrapped toolbar on the left. Right alignment corrects both boundaries.
+Nine focused cases pass: six actual header/time-rail fixtures at 800/1000/1280 pixels and normal/double
+text scaling check their right edges before, throughout and after both transitions; three transition
+cases retain final-width layout counts, rapid reversal and immediate reduced-motion placement.
+The six coordinate cases failed before the correction. The reduced-motion fixture flushes the SDK's
+focus-change layout callback without advancing time before checking that no ticker remains.
+The changed header/transition owners have 509/148 production lines and no inline tests; the two
+dedicated transition/coordinate test files have 116/110 lines.
+The rebuilt Debug was checked with the retained test catalog: collapse and expansion keep the
+toolbar and time rail in the same right-side positions, with the original expanded state restored.
 
 All-images mode omits duplicate badges and annotation requests. Merged mode retains an icon-only
 location action; normal local availability adds no status line. Four card-boundary cases pass at

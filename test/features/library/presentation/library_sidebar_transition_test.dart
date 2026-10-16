@@ -4,7 +4,7 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   testWidgets(
-    "sidebar and gallery move together without intermediate gallery reflows",
+    "sidebar boundary animates around a stationary right gallery edge",
     (tester) async {
       final expanded = ValueNotifier(true);
       addTearDown(expanded.dispose);
@@ -19,8 +19,8 @@ void main() {
       expect(middle, greaterThan(0));
       expect(middle, lessThan(260));
       expect(
-        tester.getTopLeft(find.byKey(const Key("gallery-content"))).dx,
-        middle,
+        tester.getTopRight(find.byKey(const Key("gallery-content"))).dx,
+        800,
       );
       await tester.pumpAndSettle();
       expect(tester.getTopLeft(boundary).dx, 0);
@@ -54,6 +54,10 @@ void main() {
     expanded.value = true;
     await tester.pump();
     expect(tester.getTopLeft(boundary).dx, before);
+    expect(
+      tester.getTopRight(find.byKey(const Key("gallery-content"))).dx,
+      800,
+    );
     await tester.pumpAndSettle();
     expect(tester.getTopLeft(boundary).dx, 260);
     expect(widths, [540, 800, 540]);

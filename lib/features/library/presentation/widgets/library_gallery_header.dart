@@ -108,11 +108,15 @@ class LibraryGalleryHeader extends StatelessWidget {
                   children: [
                     titleBlock,
                     const SizedBox(height: 12),
-                    AmeScrollMotion(
-                      scrollDirection: Axis.horizontal,
-                      child: SingleChildScrollView(
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: AmeScrollMotion(
                         scrollDirection: Axis.horizontal,
-                        child: toolbar,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          reverse: true,
+                          child: toolbar,
+                        ),
                       ),
                     ),
                   ],
