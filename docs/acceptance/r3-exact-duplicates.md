@@ -515,3 +515,33 @@ asset and cancelled-location counts passed before the size assertion. The failur
 the size ceiling is unchanged. Native scan, accessibility, unsigned Release and the other four
 synthetic workloads passed on that head. `213f10c` carries the review UI/continuity changes and has
 its own queued Actions run; those older results do not validate its changed inputs.
+
+## Duplicate viewer route accessibility lifetime
+
+The 2026-10-17 crash investigation reproduced an invalid native accessibility update on the first
+frame of opening a duplicate member in the viewer. Later maximize/restore and sidebar changes could
+terminate the process. The retained Windows dump resolves the access violation to
+`flutter::FlutterPlatformNodeDelegate::ChildAtIndex`; later failures include the bridge's reparent
+assertion. Bounded recording of the actual Flutter semantics updates identifies the first orphan
+before those later actions: the parent lists it for hit testing but omits it from traversal.
+
+The installed SDK's HeroController makes the incoming page offstage for its initial measurement,
+while Slider creates its value-indicator OverlayPortal immediately. A traversal container around
+the slider does not fix this lifecycle mismatch. The viewer route now owns `Overlay.wrap` so the
+portal and its traversal parent become visible and retire together. No SDK modification, new
+dependency, accessibility suppression, source-media operation or persistence change is involved.
+
+The new retained-update regression fails with the same orphan shape before the repair and passes
+after it. Normal and reduced-motion cases cover three viewer open/return cycles, reachable zoom
+values, viewer information sheets, window-size changes, gallery location dialogs, context-menu
+information sheets and 36 rapid sidebar reversals. Thirteen focused cases pass across this boundary,
+the existing route fade timings, retained workspace semantics and duplicate review interactions.
+
+The rebuilt normal Debug entrypoint reused the retained 10,000-file / 72-group test catalog.
+Native interaction opened a member preview and its information sheet, returned to the gallery,
+maximized/restored the window, rapidly clicked the sidebar toggle and verified both settled panel
+states, then opened and dismissed gallery information through its context menu. The process remained
+responsive with zero AXTree/native error lines and zero Dart exceptions. Windows accessibility still
+exposes the zoom slider and its 100% value. The active client and profile-restoration backup remain
+for inspection. The route/fade owner has 58 production lines and no inline tests; the new dedicated
+regression has 213 lines. Applicable hosted checks belong to the submitted commit.

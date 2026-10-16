@@ -119,6 +119,13 @@ performed. The existing application port keeps this Windows implementation repla
 Empty/error feedback reuses LibraryGalleryMessage with the gallery's centered icon, title typography,
 spacing and optional detail/action rather than a separate plain-text presentation.
 
+The member viewer's page route owns a framework `Overlay.wrap`, available in the pinned Flutter
+3.44.9 SDK. The zoom slider's always-mounted value-indicator portal must share the route's offstage,
+transition and disposal lifetime. The Navigator briefly lays out an incoming page offstage for Hero
+measurement; targeting its outer overlay would expose the portal while its traversal parent is
+absent. Keeping both inside the route preserves accessibility without replacing Slider, suppressing
+semantics or changing the shared viewer fade, focus and dismissal behavior.
+
 ## Alternatives and consequences
 
 Keeping all analysis inside the filter makes a growing workflow difficult to discover. A separate

@@ -68,6 +68,13 @@ The rebuilt Debug reuses the retained 10,000-file catalog; native inspection con
 for the submitted head remain owned by Actions. Preserve the active client/profile backup until
 the visual-review session is closed.
 
+The new crash during window restore/sidebar changes was traced to the duplicate member viewer's
+initial offstage frame. Its route now owns the slider overlay lifetime; the previously failing
+retained-tree regression and 13 affected cases pass. The normal Debug client completes member
+preview/information, gallery return, maximize/restore and repeated sidebar interaction with no
+native accessibility errors. This is a scoped crash repair; current-head hosted verification and
+the remaining requested UI corrections retain their separate status.
+
 | Order | Delivery | Current state |
 | --- | --- | --- |
 | R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client and native Settings-menu restoration checks recorded; applicable Actions results pending |

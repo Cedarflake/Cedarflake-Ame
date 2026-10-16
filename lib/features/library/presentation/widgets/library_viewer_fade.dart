@@ -33,8 +33,11 @@ class LibraryViewerRoute extends PageRouteBuilder<void> {
          reverseTransitionDuration: MediaQuery.disableAnimationsOf(context)
              ? Duration.zero
              : LibraryViewerFade.exitDuration,
+         // Page routes are briefly offstage for Hero measurement. Keep the
+         // slider's portal inside that lifecycle so its traversal parent and
+         // overlay child enter and retire together.
          pageBuilder: (context, animation, secondaryAnimation) =>
-             builder(context),
+             Overlay.wrap(child: Builder(builder: builder)),
        );
 
   void _finishEntry(PointerEvent event) {
