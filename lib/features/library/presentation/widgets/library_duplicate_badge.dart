@@ -53,10 +53,13 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
               context,
             ).colorScheme.surface.withValues(alpha: 0.92),
             foregroundColor: Theme.of(context).colorScheme.onSurface,
-            minimumSize: const Size(40, 36),
-            padding: const EdgeInsets.symmetric(
-              horizontal: LibraryGalleryCardMetrics.duplicateHorizontalPadding,
+            fixedSize: const Size.square(
+              LibraryGalleryCardMetrics.selectionExtent,
             ),
+            shape: const CircleBorder(),
+            padding: EdgeInsets.zero,
+            visualDensity: VisualDensity.standard,
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
           onPressed: () async {
             await showDialog<void>(

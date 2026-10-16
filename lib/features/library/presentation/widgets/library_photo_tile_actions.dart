@@ -29,17 +29,17 @@ class LibraryPhotoTileActions extends StatelessWidget {
           Flexible(child: LibraryDuplicateBadge(locationId: locationId)),
           const SizedBox(width: LibraryGalleryCardMetrics.actionGap),
           // Reserve the selection target before hover so the badge does not reflow.
-          SizedBox(
-            width: LibraryGalleryCardMetrics.selectionExtent,
+          SizedBox.square(
+            dimension: LibraryGalleryCardMetrics.selectionExtent,
             child: isSelectionVisible
                 ? Material(
                     color: colorScheme.surface.withValues(alpha: 0.92),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
+                    shape: const CircleBorder(),
+                    clipBehavior: Clip.antiAlias,
                     child: Checkbox(
                       key: ValueKey("select-$locationId"),
                       value: isSelected,
+                      shape: const CircleBorder(),
                       onChanged: (_) => onToggleSelection(),
                       materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       visualDensity: VisualDensity.compact,

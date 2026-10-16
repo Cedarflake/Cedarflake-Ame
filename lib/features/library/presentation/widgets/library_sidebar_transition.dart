@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
 
 /// Animates the pane boundary while the gallery lays out at its destination width.
@@ -114,8 +115,9 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
                 right: 0,
                 top: 0,
                 bottom: 0,
-                child: ClipRect(
+                child: ClipRRect(
                   key: const Key("library-gallery-transition"),
+                  borderRadius: LibraryMainSurface.borderRadius,
                   child: ColoredBox(
                     color: Theme.of(context).colorScheme.surfaceContainerLowest,
                     // Only the clip and origin change per frame. Reflowing a
