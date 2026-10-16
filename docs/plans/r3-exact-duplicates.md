@@ -31,11 +31,14 @@ the existing scroll anchor and stationary right controls. Focused and retained-c
 coverage is recorded in the R3 acceptance owner. The heading follows the same left edge, and its
 count now retains the source total followed by the merged result. Query/filter counts and native
 display are checked. Photo cards now exclude their secondary-click recognizer from semantics,
-leaving one named primary action whose node survives preview replacement. The retained native
-client completes filter round trips, context-menu dismissal and uncached time-window loading
-without AXTree errors after this change. The Windows subtree validator and delayed filter/manifest
-regression cover the affected lifecycle. Hosted analysis and recovered-dimension failures
-have scoped corrections. Schema 43 retires the redundant exact-candidate cursor index without
+leaving one named primary action whose node survives preview replacement. A later cold-cache
+native check captured the remaining AXTree failure in the timeline Slider's portal: changing its
+enabled state replaced an anonymous traversal parent without resubmitting the portal child. The
+timeline now merges that identity into a stable semantic container. The focused boundary test
+reproduces the prior failure and passes with the correction; all 15 affected cases pass, including
+accessible adjustment, filtering, workspace return and resizing. The ordinary Debug cold-cache
+replay completed without AXTree errors and exited normally. Hosted analysis and recovered-dimension
+failures have scoped corrections. Schema 43 retires the redundant exact-candidate cursor index without
 changing catalog content or query policy. The unchanged local 10,000-image workload now passes
 at 63,455,232 bytes below the 64 MiB bound. The sixteen failures from the retained hosted Rust run
 have corrected fixtures and contract expectations; all 33 affected local regressions pass. Inspect

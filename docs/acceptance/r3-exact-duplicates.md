@@ -733,3 +733,35 @@ The local-files owner has 3,694 production/test-support lines and 3,518 inline-t
 inline contract list changes. The catalog facade has 3,625 lines with no inline tests, and the
 migration facade has 9,853 production/test-support lines plus 5,267 inline-test lines; each gains
 only a test-only export. Dedicated module-topology and incremental-exact tests have 372 and 391 lines.
+
+## Timeline portal parent continuity
+
+A later cold-cache check on the ordinary Debug client reproduced native AXTree missing-node errors
+and process termination after time-window replacement and sidebar movement. The earlier photo-action
+correction remains a separate validated boundary; it did not remove this remaining failure.
+A temporary diagnostic entrypoint captured the failing native update: the Slider portal child 154
+moved from parent 152 to 155 without a corresponding child update. Windows had removed the prior
+subtree and could not reconstruct that child. The pinned Slider always mounts its value-indicator
+OverlayPortal, including when the indicator has no visible content.
+
+The timeline's explicit-child boundary forced the portal traversal identifier into an anonymous
+child node. That node was replaced when a newly created, disabled slider became enabled. The
+timeline now uses a stable semantic container into which the traversal identifier can merge.
+The Material Slider still owns input, focus and accessible adjustment; no semantics resets, custom
+input implementation, engine modification or excluded slider semantics are introduced.
+
+The dedicated regression reproduces the old Windows reparent failure, then passes with the fix.
+It replaces an interaction owner during an active pointer, disables and enables replacement
+geometry, resizes the surface and invokes the accessible increase action. Fifteen affected cases
+pass across the timeline, annotations, delayed filter publication, retained workbench and duplicate
+viewer suites. The timeline owner has 105 production lines and no inline tests; its dedicated
+regression has 103 lines.
+
+The rebuilt ordinary Debug entrypoint reuses the retained 10,000-file corpus. Forty recently used
+derived thumbnails were temporarily preserved to repeat cold-cache publication. Time-axis dragging,
+sidebar folding, all-images/merged round trips, duplicate member preview and information dismissal,
+gallery return, maximize/restore and sidebar expansion completed with zero AXTree/error log entries.
+The run generated 128 thumbnails and exited normally. The original profile and catalog hashes were
+restored and verified; missing test thumbnails were restored from their retained copies. Diagnostic
+recorders and captured updates remain ignored local evidence, absent from the ordinary client.
+Complete Actions results remain required for the commit containing this correction.
