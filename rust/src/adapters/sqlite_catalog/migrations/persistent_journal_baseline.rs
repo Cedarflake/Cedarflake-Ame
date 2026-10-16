@@ -111,6 +111,7 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
     record_current_schema_row_audit();
     // Each historical window proves its immediate successor; only the last window
     // binds the mutable checkpoint. The row audit below also validates every successor.
+    // Nullable legacy failure fields cannot establish a completed window's proof.
     let invalid_rows = connection
         .query_row(
             "WITH ordered_baselines AS (
@@ -158,7 +159,7 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                         authority.opening_journal_id IS NOT NULL
                         OR authority.opening_next_usn IS NOT NULL
                       ))
-                   OR (baseline.phase = 'completed' AND NOT (
+                   OR (baseline.phase = 'completed' AND (
                          (
                            authority.retired_unix_ms IS NOT NULL
                            AND queue.id IS NOT NULL
@@ -284,7 +285,7 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                            AND checkpoint.next_unread_usn = baseline.closing_next_usn
                            AND checkpoint.captured_exclusive_end = baseline.closing_next_usn
                          )
-                       ))
+                       ) IS NOT TRUE)
                   OR (baseline.phase <> 'completed' AND (
                         authority.retired_unix_ms IS NOT NULL
                         OR root.continuity_state = 'current'
