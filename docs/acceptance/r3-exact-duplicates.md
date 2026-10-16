@@ -417,6 +417,14 @@ checks. Keyboard path-layout checks now open with Tab/Enter and retain Escape fo
 The updated Debug verifies mouse dismissal with the pointer outside the card: the unselected
 selection circle disappears. Keyboard restoration is covered by the focused widget cases.
 
+Location rows now use one ListTile action instead of repeating reveal in a trailing button.
+`当前图片` occupies the current row's trailing slot; paths and exceptional availability remain in
+the subtitle. Twelve focused dialog/workspace/scroll cases pass, covering single-action geometry,
+unmarked other rows, long-path wrapping at normal/double text size, actual reveal dispatch,
+keyboard focus return and shared wheel behavior. The row has 68 production lines, no inline tests;
+the existing dialog/workspace test file has 562 lines. Native presentation is checked in the next
+updated Debug together with the pending header adjustment.
+
 The first Explorer reveal was reproduced with a newly opened test-corpus folder: the folder was
 correct, but the target file was not selected. The Windows adapter now resolves a Unicode shell
 item and calls SHOpenFolderAndSelectItems on a worker isolate. Thirteen focused adapter, native

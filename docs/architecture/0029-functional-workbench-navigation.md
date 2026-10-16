@@ -104,6 +104,9 @@ decorative folder icon beside their existing thumbnail. Preference and reveal ac
 The page uses the gallery's existing two-pixel loading overlay around the result region below
 the toolbar. Preference writes retain disabled-action and failure feedback without a page loader.
 Dialog and member rows share one reveal owner for availability, in-flight admission and errors.
+In the location dialog, ListTile.onTap is the single reveal action; no trailing IconButton repeats
+it. The trailing slot displays `当前图片` only for the current location. The subtitle retains wrapped
+paths and exceptional availability, and the tile's enabled state follows reveal admission.
 The Windows platform adapter resolves a Unicode shell item with SHParseDisplayName and uses
 SHOpenFolderAndSelectItems to open its parent and select it. Detached Explorer command startup only
 reports process creation and does not establish selection in a newly opened folder. Dart's FFI

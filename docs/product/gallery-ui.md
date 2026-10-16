@@ -108,7 +108,9 @@ its rows beneath that heading. Member rows use their image preview without an ad
 decorative folder icon or a separate `首选副本` label. The whole card provides hover feedback and
 opens its group or image. Member icons retain hover and accessible action names; omit
 the redundant `查看图片` button. Group actions read `查看重复图片`; the gallery dialog heading states
-the number of duplicate images. Result loading uses the gallery's two-pixel overlay at the boundary
+the number of duplicate images. Each location row is the Explorer reveal action, without a second
+reveal button. Put `当前图片` at the right of its row; keep availability and wrapped paths beneath
+the filename. Result loading uses the gallery's two-pixel overlay at the boundary
 between toolbar and cards. Saving or switching a preference retains the member rows and scroll
 position. Subsequent catalog/analysis publication revalidates the visible range in the background
 and replaces it atomically, without clearing cards or flashing a page loader. Manual refresh and

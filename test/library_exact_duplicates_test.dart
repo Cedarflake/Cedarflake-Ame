@@ -153,19 +153,33 @@ void main() {
         expect(find.textContaining("本地可用"), findsNothing);
         expect(find.byType(Dialog), findsOneWidget);
         expect(find.text("关闭"), findsNothing);
+        final currentRow = find.byKey(const ValueKey("duplicate-location-one"));
+        expect(
+          find.descendant(
+            of: find.byType(ListTile),
+            matching: find.byType(IconButton),
+          ),
+          findsNothing,
+        );
+        expect(
+          tester.getTopLeft(find.text("当前图片")).dx,
+          greaterThan(tester.getTopRight(find.text("one.png")).dx),
+        );
+        expect(
+          tester
+              .widget<ListTile>(
+                find.byKey(const ValueKey("duplicate-location-two")),
+              )
+              .trailing,
+          isNull,
+        );
         final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
         await mouse.addPointer();
-        await mouse.moveTo(
-          tester.getCenter(
-            find.descendant(
-              of: find.byKey(const ValueKey("duplicate-location-one")),
-              matching: find.byType(IconButton),
-            ),
-          ),
-        );
+        await mouse.moveTo(tester.getCenter(currentRow));
         await tester.pump(const Duration(milliseconds: 600));
+        expect(find.text("在文件资源管理器中打开"), findsNothing);
         RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
-          trace: "duplicate-location-reveal-tooltip",
+          trace: "duplicate-location-row-hover",
         );
         await mouse.removePointer();
         await tester.tap(find.text("one.png"));
@@ -277,6 +291,10 @@ void main() {
           expect(textBounds.right, lessThanOrEqualTo(bounds.right));
         }
         expect(find.text("当前图片"), findsOneWidget);
+        expect(
+          tester.getTopLeft(find.text("当前图片")).dx,
+          greaterThan(tester.getTopRight(find.text(folder)).dx),
+        );
         await tester.ensureVisible(find.text("当前图片"));
         await tester.pumpAndSettle();
         expect(

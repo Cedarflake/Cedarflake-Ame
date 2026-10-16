@@ -23,15 +23,15 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
     final path = location.displayPath.replaceAll("/", "\\");
     final separator = path.lastIndexOf("\\");
     final folder = separator < 0 ? "" : path.substring(0, separator);
-    final details = [
-      if (isCurrent) LibraryDuplicateStrings.currentImage,
-      ?LibraryDuplicateStrings.availability(location.availability),
-    ];
+    final availability = LibraryDuplicateStrings.availability(
+      location.availability,
+    );
     return LibraryDuplicateRevealAction(
       location: location,
       builder: (context, reveal) {
         final tile = ListTile(
           key: ValueKey("duplicate-location-${location.locationId}"),
+          enabled: reveal != null,
           leading: const Icon(Symbols.folder_rounded),
           title: Text(
             displayLibraryFileName(path),
@@ -49,17 +49,16 @@ class LibraryDuplicateLocationTile extends StatelessWidget {
                       ? TextOverflow.clip
                       : TextOverflow.ellipsis,
                 ),
-              if (details.isNotEmpty) Text(details.join(" · ")),
+              if (availability != null) Text(availability),
             ],
           ),
           onTap: reveal,
-          trailing: AmeTooltip(
-            message: LibraryDuplicateStrings.revealLocation,
-            child: IconButton(
-              onPressed: reveal,
-              icon: const Icon(Symbols.folder_open_rounded),
-            ),
-          ),
+          trailing: isCurrent
+              ? Text(
+                  LibraryDuplicateStrings.currentImage,
+                  style: Theme.of(context).textTheme.bodySmall,
+                )
+              : null,
         );
         if (wrapPath) return tile;
         return AmeTooltip(message: location.displayPath, child: tile);
