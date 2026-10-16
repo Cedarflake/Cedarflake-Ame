@@ -132,9 +132,7 @@ fn require_object(
 }
 
 #[cfg(test)]
-pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v39_for_test(
-    connection: &Connection,
-) {
+pub(crate) fn downgrade_to_v39_for_test(connection: &Connection) {
     let version: i64 = connection
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("exact analysis fixture version");

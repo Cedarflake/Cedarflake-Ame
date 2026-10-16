@@ -213,6 +213,9 @@ pub(crate) fn full_schema_validation_count(path: &Path) -> usize {
 }
 
 #[cfg(test)]
+pub(crate) use migrations::downgrade_to_v39_for_test;
+
+#[cfg(test)]
 pub(crate) fn remove_persistent_journal_v22_contract_for_test(connection: &Connection) {
     migrations::downgrade_source_revision_contract_to_v30_for_test(connection);
     connection

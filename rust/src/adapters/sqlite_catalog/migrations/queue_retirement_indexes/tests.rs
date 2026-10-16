@@ -9,6 +9,7 @@ use crate::ports::LibraryChangeQueue;
 use super::*;
 
 fn restore_v38(connection: &Connection) {
+    super::super::exact_duplicates::downgrade_to_v39_for_test(connection);
     for (name, _) in INDEXES {
         connection
             .execute_batch(&format!("DROP INDEX {name}"))

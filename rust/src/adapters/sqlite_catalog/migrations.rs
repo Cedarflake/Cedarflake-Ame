@@ -29,6 +29,8 @@ mod directory_identities;
 mod exact_candidate_index_retirement;
 mod exact_duplicate_review;
 mod exact_duplicates;
+#[cfg(test)]
+pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
 mod foreground_scan_capture;
 mod gallery_duplicates;

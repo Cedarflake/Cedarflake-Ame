@@ -77,7 +77,7 @@ pub(crate) use sqlite_catalog::{
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{
-    WatcherRecoveryObservation, full_schema_validation_count,
+    WatcherRecoveryObservation, downgrade_to_v39_for_test, full_schema_validation_count,
     remove_persistent_journal_v22_contract_for_test, reset_full_schema_validation_count,
     set_before_catalog_delta_commit_hook, set_before_metadata_inventory_spool_commit_hook,
     set_before_scan_projection_replacement_hook,

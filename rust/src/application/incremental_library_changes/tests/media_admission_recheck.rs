@@ -24,6 +24,7 @@ fn retained_failures(count: usize) -> CatalogFixture {
     let path = fixture.catalog.catalog_path().to_path_buf();
     drop(fixture.catalog);
     let connection = Connection::open(&path).unwrap();
+    crate::adapters::downgrade_to_v39_for_test(&connection);
     connection
         .execute_batch(
             "DELETE FROM library_terminal_media_evidence;

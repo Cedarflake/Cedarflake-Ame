@@ -128,11 +128,12 @@ fn incremental_move_removal_and_addition_preserve_unchanged_evidence_across_reop
 }
 
 #[test]
-fn hardlink_addition_reuses_evidence_and_content_change_invalidates_all_aliases() {
+fn hardlink_changes_invalidate_aliases_and_reuse_one_new_fingerprint() {
     let (_directory, mut catalog) = fixture();
     publish_fingerprint(&mut catalog, "location-a", 'a');
     publish_fingerprint(&mut catalog, "location-b", 'a');
     publish_fingerprint(&mut catalog, "location-c", 'b');
+    let before = candidate(&catalog, "location-a");
     let mut alias = location("asset-alias", "location-alias", "root-a", "alias.jpg");
     alias.file_identity = Some(identity(1));
     alias.source_generation = 0;
@@ -142,6 +143,30 @@ fn hardlink_addition_reuses_evidence_and_content_change_invalidates_all_aliases(
         Some(alias),
         IncrementalReconciliationOutcome::Added,
     );
+    assert_pending(&catalog, &["location-a", "location-alias"]);
+    let primary = candidate(&catalog, "location-a");
+    let alias = candidate(&catalog, "location-alias");
+    assert_ne!(
+        primary.location.source_generation,
+        before.location.source_generation,
+    );
+    assert_eq!(
+        primary.location.source_generation,
+        alias.location.source_generation,
+    );
+    assert!(
+        !catalog
+            .publish_fingerprint("run", &before, &fingerprint('a'), &AtomicBool::new(false))
+            .unwrap()
+    );
+    assert!(
+        catalog
+            .load_duplicate_groups(None)
+            .unwrap()
+            .groups
+            .is_empty()
+    );
+    publish_fingerprint(&mut catalog, "location-alias", 'a');
     assert_pending(&catalog, &[]);
     assert_group_members(
         &catalog,
@@ -313,10 +338,10 @@ fn apply_change(
         .unwrap()
         .unwrap();
     let disposition = match outcome {
-        IncrementalReconciliationOutcome::Added => DerivedEvidenceDisposition::NoReusableEvidence,
-        IncrementalReconciliationOutcome::Modified | IncrementalReconciliationOutcome::Replaced => {
-            DerivedEvidenceDisposition::InvalidateDerived
+        IncrementalReconciliationOutcome::Added | IncrementalReconciliationOutcome::Replaced => {
+            DerivedEvidenceDisposition::NoReusableEvidence
         }
+        IncrementalReconciliationOutcome::Modified => DerivedEvidenceDisposition::InvalidateDerived,
         IncrementalReconciliationOutcome::RenamedOrMoved => {
             DerivedEvidenceDisposition::RetainCompatible
         }

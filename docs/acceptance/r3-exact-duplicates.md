@@ -707,3 +707,29 @@ Current-head hosted checks remain required. The retained catalog also reopened a
 10,000 assets/locations, 10,004 stored/published fingerprints and both exact decisions unchanged;
 the decision-row digest matches the pre-upgrade snapshot. Runtime preview publications advanced
 the catalog revision, separate from the migration's tested revision-preservation contract.
+
+## Retained Rust fixture reconciliation
+
+The sixteen failures in Actions run `38967752272` were traced to test contracts that had not followed
+the R3 schema and domain additions. Historical catalog builders now retire the v40-v43 objects
+through the existing test-only downgrade helper before labeling a fixture v37/v38/v34. The v33
+row-preservation check separately requires every newly introduced exact-analysis table to be empty,
+then compares every retained table with its original snapshot. The terminal-trigger fixture checks
+the actual current schema 43. No production migration or row-preservation assertion is removed.
+
+The source-loading contract includes the exact-review domain module with its existing public
+visibility and rejects missing, duplicate, conditional, redirected, inline and broader declarations.
+The replacement fixture uses `NoReusableEvidence`, matching the existing application contract.
+The hardlink fixture now follows ADR 0024's dirty-event rule: generation zero invalidates every
+physical alias even when observed metadata match. It verifies rejection of the previous fingerprint,
+shared fresh generations, removal of stale group membership, and one new fingerprint satisfying both
+aliases. Its subsequent changed-content and physical-file counting assertions remain intact.
+
+All 33 focused Rust cases pass: root availability and source-loading guards (11), incremental exact
+analysis (3), directory identity migrations (3), foreground index migrations (4), media-admission
+migrations (2), retirement indexes (2), retained media cleanup (7) and terminal spool retirement (1).
+These changes are test-only; complete hosted verification still belongs to the submitted commit.
+The local-files owner has 3,694 production/test-support lines and 3,518 inline-test lines; only its
+inline contract list changes. The catalog facade has 3,625 lines with no inline tests, and the
+migration facade has 9,853 production/test-support lines plus 5,267 inline-test lines; each gains
+only a test-only export. Dedicated module-topology and incremental-exact tests have 372 and 391 lines.

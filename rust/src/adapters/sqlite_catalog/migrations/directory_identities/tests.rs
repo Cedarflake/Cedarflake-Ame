@@ -7,6 +7,7 @@ use crate::ports::CatalogRepository;
 use super::*;
 
 fn downgrade(connection: &Connection) {
+    super::super::exact_duplicates::downgrade_to_v39_for_test(connection);
     connection
         .execute_batch(
             "DROP TABLE library_media_admission_rechecks;

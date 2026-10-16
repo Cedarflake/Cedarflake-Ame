@@ -18,6 +18,7 @@ fn upgrade_is_catalog_only_and_does_not_seed_fresh_databases() {
             .unwrap(),
         0
     );
+    super::super::exact_duplicates::downgrade_to_v39_for_test(&connection);
     connection
         .execute_batch(
             "DROP TABLE library_media_admission_rechecks;
@@ -44,6 +45,7 @@ fn conflicting_recheck_schema_rolls_back_without_promoting_the_catalog() {
     let path = directory.path().join("catalog.sqlite3");
     drop(SqliteCatalog::open(path.clone()).unwrap());
     let connection = Connection::open(&path).unwrap();
+    super::super::exact_duplicates::downgrade_to_v39_for_test(&connection);
     connection
         .execute_batch(
             "DROP TABLE library_media_admission_rechecks;
