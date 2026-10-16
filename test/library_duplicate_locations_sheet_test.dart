@@ -136,8 +136,9 @@ class _Locations extends Fake implements LibraryExactDuplicates {
   ) async {
     cursors.add(after);
     if (pending case final read?) return read.future;
-    if (after != null && failContinuation)
+    if (after != null && failContinuation) {
       throw StateError("controlled read failure");
+    }
     return page(after == null ? 0 : int.parse(after) + 1);
   }
 }

@@ -93,8 +93,9 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
   }
 
   int? _missing(_ReviewWindowData<T, C> data) {
-    if (data.pages.isEmpty)
+    if (data.pages.isEmpty) {
       return math.min(_first, math.max(0, data.total - 1));
+    }
     for (var index = _first; index < math.min(_end, data.total); index++) {
       if (data.itemAt(index) == null) return index;
     }

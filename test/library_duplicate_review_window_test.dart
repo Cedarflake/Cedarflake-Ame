@@ -150,8 +150,9 @@ void main() {
       var calls = 0;
       final window = LibraryDuplicateReviewWindow<int, int>((_) async {
         calls++;
-        if (calls == 1)
+        if (calls == 1) {
           return const LibraryDuplicateReviewSlice(items: [0], total: 1);
+        }
         return calls == 2 ? old.future : fresh.future;
       });
       addTearDown(window.dispose);
