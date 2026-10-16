@@ -1083,7 +1083,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               },
             ),
             galleryTitle: _galleryTitle(state),
-            totalItems: _totalItems(state),
+            totalItems: state.timeline?.totalSourceItems ?? _totalItems(state),
+            mergedItems:
+                state.query.duplicateMode == LibraryGalleryDuplicateMode.merged
+                ? state.timeline?.totalItems
+                : null,
             selectedCount: _selection.selectedCount(_totalItems(state)),
             isSelecting: _isSelecting,
             layoutShape: _layoutShape,

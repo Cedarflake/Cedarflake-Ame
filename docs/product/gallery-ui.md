@@ -73,6 +73,9 @@ switching workspaces. Reuse the accepted theme, global chrome, photo wall and vi
 
 Library supports `全部图片` and `合并重复图片` in the existing upper-right filter area. The first
 shows every location; the second shows one scoped representative of each confirmed exact group.
+The heading always starts with the total image count for the current folder/search scope. Merged
+mode appends its displayed count, for example `10000 张图片 · 去重后 72 张`; All images shows
+`10000 张图片`. Both counts come from the same catalog revision and scope.
 Ordinary and not-yet-analysed images remain visible. Remember the user's display choice. Each
 confirmed duplicate card has a top-left stacked-image action only in `合并重复图片`; `全部图片`
 has no duplicate card action. The card action shows no count, and the top-right selection checkbox

@@ -2669,11 +2669,13 @@ impl SseDecode for crate::domain::GalleryTimeline {
         let mut var_revision = <u64>::sse_decode(deserializer);
         let mut var_queryId = <String>::sse_decode(deserializer);
         let mut var_totalItems = <u64>::sse_decode(deserializer);
+        let mut var_totalSourceItems = <u64>::sse_decode(deserializer);
         let mut var_buckets = <Vec<crate::domain::GalleryTimeBucket>>::sse_decode(deserializer);
         return crate::domain::GalleryTimeline {
             revision: var_revision,
             query_id: var_queryId,
             total_items: var_totalItems,
+            total_source_items: var_totalSourceItems,
             buckets: var_buckets,
         };
     }
@@ -5237,6 +5239,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::GalleryTimeline {
             self.revision.into_into_dart().into_dart(),
             self.query_id.into_into_dart().into_dart(),
             self.total_items.into_into_dart().into_dart(),
+            self.total_source_items.into_into_dart().into_dart(),
             self.buckets.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -6764,6 +6767,7 @@ impl SseEncode for crate::domain::GalleryTimeline {
         <u64>::sse_encode(self.revision, serializer);
         <String>::sse_encode(self.query_id, serializer);
         <u64>::sse_encode(self.total_items, serializer);
+        <u64>::sse_encode(self.total_source_items, serializer);
         <Vec<crate::domain::GalleryTimeBucket>>::sse_encode(self.buckets, serializer);
     }
 }

@@ -15,6 +15,7 @@ class LibraryGalleryHeader extends StatelessWidget {
     this.leading,
     this.filter,
     required this.totalItems,
+    this.mergedItems,
     required this.selectedCount,
     required this.isSelecting,
     required this.layoutShape,
@@ -35,6 +36,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   final Widget? leading;
   final Widget? filter;
   final int totalItems;
+  final int? mergedItems;
   final int selectedCount;
   final bool isSelecting;
   final GalleryLayoutShape layoutShape;
@@ -52,7 +54,11 @@ class LibraryGalleryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = isSelecting ? "已选择 $selectedCount 个项目" : galleryTitle;
-    final subtitle = isSelecting ? galleryTitle : "$totalItems 张图片";
+    var subtitle = "$totalItems 张图片";
+    if (mergedItems case final count?) {
+      subtitle = "$subtitle · 去重后 $count 张";
+    }
+    if (isSelecting) subtitle = galleryTitle;
     return SizedBox(
       key: const Key("library-gallery-header"),
       width: double.infinity,

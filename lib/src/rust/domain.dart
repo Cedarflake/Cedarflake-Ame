@@ -636,12 +636,14 @@ class GalleryTimeline {
   final BigInt revision;
   final String queryId;
   final BigInt totalItems;
+  final BigInt totalSourceItems;
   final List<GalleryTimeBucket> buckets;
 
   const GalleryTimeline({
     required this.revision,
     required this.queryId,
     required this.totalItems,
+    required this.totalSourceItems,
     required this.buckets,
   });
 
@@ -650,6 +652,7 @@ class GalleryTimeline {
       revision.hashCode ^
       queryId.hashCode ^
       totalItems.hashCode ^
+      totalSourceItems.hashCode ^
       buckets.hashCode;
 
   @override
@@ -660,6 +663,7 @@ class GalleryTimeline {
           revision == other.revision &&
           queryId == other.queryId &&
           totalItems == other.totalItems &&
+          totalSourceItems == other.totalSourceItems &&
           buckets == other.buckets;
 }
 

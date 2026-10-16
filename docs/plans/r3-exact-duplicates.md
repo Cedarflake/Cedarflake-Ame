@@ -28,7 +28,10 @@ analysis engines or convert reused results into human decisions.
 
 Photo-wall geometry transitions now follow sidebar movement and window resizing while preserving
 the existing scroll anchor and stationary right controls. Focused and retained-catalog client
-coverage is recorded in the R3 acceptance owner; original-total/merged-count presentation is next.
+coverage is recorded in the R3 acceptance owner. The heading follows the same left edge, and its
+count now retains the source total followed by the merged result. Query/filter counts and native
+display are checked. Native filter switching exposed an AXTree pending-node error; isolate that
+semantics lifetime before closing the affected client verification.
 
 Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
 The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,

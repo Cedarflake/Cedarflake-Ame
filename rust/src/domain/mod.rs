@@ -484,6 +484,7 @@ pub struct GalleryTimeline {
     pub revision: u64,
     pub query_id: String,
     pub total_items: u64,
+    pub total_source_items: u64,
     pub buckets: Vec<GalleryTimeBucket>,
 }
 

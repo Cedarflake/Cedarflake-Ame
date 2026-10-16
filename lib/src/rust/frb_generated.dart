@@ -2795,13 +2795,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryTimeline dco_decode_gallery_timeline(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 4)
-      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
     return GalleryTimeline(
       revision: dco_decode_u_64(arr[0]),
       queryId: dco_decode_String(arr[1]),
       totalItems: dco_decode_u_64(arr[2]),
-      buckets: dco_decode_list_gallery_time_bucket(arr[3]),
+      totalSourceItems: dco_decode_u_64(arr[3]),
+      buckets: dco_decode_list_gallery_time_bucket(arr[4]),
     );
   }
 
@@ -4607,11 +4608,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_revision = sse_decode_u_64(deserializer);
     var var_queryId = sse_decode_String(deserializer);
     var var_totalItems = sse_decode_u_64(deserializer);
+    var var_totalSourceItems = sse_decode_u_64(deserializer);
     var var_buckets = sse_decode_list_gallery_time_bucket(deserializer);
     return GalleryTimeline(
       revision: var_revision,
       queryId: var_queryId,
       totalItems: var_totalItems,
+      totalSourceItems: var_totalSourceItems,
       buckets: var_buckets,
     );
   }
@@ -6612,6 +6615,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.revision, serializer);
     sse_encode_String(self.queryId, serializer);
     sse_encode_u_64(self.totalItems, serializer);
+    sse_encode_u_64(self.totalSourceItems, serializer);
     sse_encode_list_gallery_time_bucket(self.buckets, serializer);
   }
 

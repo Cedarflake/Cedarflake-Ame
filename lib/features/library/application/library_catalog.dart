@@ -383,6 +383,7 @@ class RustLibraryCatalog
       revision: timeline.revision,
       queryId: timeline.queryId,
       totalItems: timeline.totalItems.toInt(),
+      totalSourceItems: timeline.totalSourceItems.toInt(),
       buckets: List.unmodifiable(
         timeline.buckets.map(
           (bucket) => LibraryTimeBucket(

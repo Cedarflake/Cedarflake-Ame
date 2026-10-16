@@ -607,3 +607,25 @@ The title and count also consume the sidebar's leading offset. The six width/tex
 check their positions on every animation frame alongside the photo edge, toolbar and time rail.
 The updated Debug client was checked with the retained gallery; its heading/count and photo wall
 follow the same collapsing boundary. The toolbar remains fixed. No data operation is introduced.
+
+## Source and merged image counts
+
+GalleryTimeline now returns the source count and displayed count from the same SQLite read
+transaction. Root, folder, descendants and search constraints are shared; All images reuses its
+existing total. The timeline query/aggregation responsibility moves into a 128-line owner instead
+of adding counting policy to the snapshot coordinator. The bridge is regenerated without a schema
+change. The header shows `10000 张图片 · 去重后 72 张` in the retained merged gallery and
+`10000 张图片` in All images; both were observed in the rebuilt Debug client.
+
+Eight focused Rust cases pass, including scoped counts and a concurrent catalog publication between
+page and timeline reads. The existing changed-source fixture now uses a valid changed revision
+token, retaining its original folding assertions. Four count-display cases and six sidebar-frame
+cases pass across 800–1280-pixel widths and 1x/2x text. Scoped analysis, formatting and all 16 generated
+asynchronous bridge contracts pass. Native filter switching also exposed an AXTree pending-node
+error, retained as a separate semantics-lifetime investigation; the observed count result does not
+close that client check. Original media and retained catalog are preserved.
+
+Production owners have 498 gallery-query, 128 timeline, 274 snapshot plus 29 test-hook, 784 domain
+plus six test-export, 556 catalog-mapping, 516 presentation-model, 2,017 screen and 521 header lines.
+There are no inline test cases. Dedicated query, count-display and sidebar-frame tests have
+366, 57 and 152 lines respectively. Applicable hosted verification belongs to the submitted head.

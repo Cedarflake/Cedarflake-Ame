@@ -1,4 +1,7 @@
+use crate::adapters::sqlite_catalog::gallery_snapshot::set_after_query_snapshot_read_hook;
+use crate::adapters::sqlite_catalog::tests::publish_gallery_fixture;
 use crate::domain::{GalleryDuplicateMode, GalleryQuery, GallerySortDirection, GallerySortKey};
+use crate::ports::GalleryQueryRepository;
 use crate::ports::exact_duplicates::GalleryDuplicateRepository;
 
 use super::*;
@@ -113,6 +116,7 @@ fn paging_timeline_layout_and_hidden_anchor_share_the_representative() {
         .load_gallery_timeline(&chronological, "dates")
         .unwrap();
     assert_eq!(timeline.total_items, 2);
+    assert_eq!(timeline.total_source_items, 3);
     assert_eq!(
         timeline
             .buckets
@@ -165,6 +169,101 @@ fn scope_keeps_its_own_copy_and_badges_include_other_volumes() {
 }
 
 #[test]
+fn source_and_merged_counts_share_root_folder_and_search_scope() {
+    let (_directory, mut catalog) = fixture();
+    publish(&mut catalog, "a", &"a".repeat(64));
+    publish(&mut catalog, "b", &"a".repeat(64));
+    finish(&mut catalog, "run");
+    catalog
+        .connection
+        .execute_batch(
+            "UPDATE asset_locations
+         SET relative_path = 'Album/a.png', parent_relative_path = 'Album'
+         WHERE location_id = 'a';
+         UPDATE asset_locations
+         SET relative_path = 'Album/Nested/b.png', parent_relative_path = 'Album/Nested'
+         WHERE location_id = 'b';",
+        )
+        .unwrap();
+    let root = GalleryQuery {
+        root_id: Some("root-a".to_owned()),
+        ..merged()
+    };
+    let folder = GalleryQuery {
+        folder_relative_path: Some("Album".to_owned()),
+        ..root.clone()
+    };
+    for (query, source, displayed) in [
+        (GalleryQuery::default(), 3, 3),
+        (merged(), 3, 2),
+        (root, 2, 1),
+        (folder.clone(), 2, 1),
+        (
+            GalleryQuery {
+                include_descendants: false,
+                ..folder.clone()
+            },
+            1,
+            1,
+        ),
+        (
+            GalleryQuery {
+                search_text: "b.png".to_owned(),
+                ..folder.clone()
+            },
+            1,
+            1,
+        ),
+        (
+            GalleryQuery {
+                search_text: "missing.png".to_owned(),
+                ..folder
+            },
+            0,
+            0,
+        ),
+    ] {
+        let result = catalog
+            .load_query_snapshot(10, &query, "counts", None)
+            .unwrap();
+        assert_eq!(result.timeline.total_source_items, source);
+        assert_eq!(result.timeline.total_items, displayed);
+        assert_eq!(result.snapshot.revision, result.timeline.revision);
+        assert_eq!(result.snapshot.query_id, result.timeline.query_id);
+    }
+}
+
+#[test]
+fn source_and_merged_counts_remain_atomic_during_publication() {
+    let (directory, mut catalog) = fixture();
+    publish(&mut catalog, "a", &"a".repeat(64));
+    publish(&mut catalog, "b", &"a".repeat(64));
+    finish(&mut catalog, "run");
+    let mut writer = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    set_after_query_snapshot_read_hook(move || {
+        publish_gallery_fixture(
+            &mut writer,
+            "later",
+            "root-d",
+            "E:\\Fixture",
+            &[("d", None, 4)],
+        );
+    });
+    let before = catalog
+        .load_query_snapshot(1, &merged(), "counts", None)
+        .unwrap();
+    assert_eq!(before.timeline.total_source_items, 3);
+    assert_eq!(before.timeline.total_items, 2);
+    assert_eq!(before.snapshot.revision, before.timeline.revision);
+    let after = catalog
+        .load_query_snapshot(1, &merged(), "counts", None)
+        .unwrap();
+    assert_eq!(after.timeline.total_source_items, 4);
+    assert_eq!(after.timeline.total_items, 3);
+    assert!(after.timeline.revision > before.timeline.revision);
+}
+
+#[test]
 fn changed_and_removed_locations_stop_folding_without_reading_sources() {
     let (_directory, mut catalog) = fixture();
     for id in ["a", "b", "c"] {
@@ -175,7 +274,9 @@ fn changed_and_removed_locations_stop_folding_without_reading_sources() {
     catalog
         .connection
         .execute_batch(
-            "UPDATE asset_locations SET source_revision_token = 'changed' WHERE location_id = 'b'",
+            "UPDATE asset_locations
+             SET source_revision_token = 'windows-file-change-time-100ns-v1:0000000000000002'
+             WHERE location_id = 'b'",
         )
         .unwrap();
     assert_eq!(ids(&mut catalog, &merged()), ["a", "b"]);

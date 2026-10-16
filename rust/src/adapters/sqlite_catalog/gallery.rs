@@ -2,6 +2,9 @@ mod annotations;
 pub(super) mod duplicates;
 mod location_anchor;
 mod time_anchor;
+mod timeline;
+
+pub(super) use timeline::load_gallery_timeline;
 
 pub(super) use location_anchor::{
     GalleryAssetAnchor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
@@ -139,41 +142,6 @@ pub(super) fn build_gallery_asset_query(
         ),
         parameters,
     })
-}
-
-pub(super) fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
-    let order = gallery_order_expressions(&query.sort_key);
-    let mut clauses = Vec::new();
-    let mut parameters = Vec::new();
-    push_gallery_filters(query, &mut clauses, &mut parameters);
-    let where_clause = if clauses.is_empty() {
-        String::new()
-    } else {
-        format!("WHERE {}", clauses.join(" AND "))
-    };
-    let month = order.month.unwrap_or("NULL");
-    let direction = gallery_direction_sql(&query.sort_direction);
-    BuiltGalleryQuery {
-        sql: format!(
-            "SELECT {month} AS month_key,
-                    COUNT(*),
-                    SUM(
-                      CASE
-                        WHEN locations.width <= 0 OR locations.height <= 0 THEN 1000
-                        WHEN locations.width * 5 < locations.height THEN 200
-                        WHEN locations.width > locations.height * 5 THEN 5000
-                        ELSE (locations.width * 1000) / locations.height
-                      END
-                    ) AS aspect_ratio_milli_sum
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations
-               ON locations.scan_id = roots.active_scan_id
-             {where_clause}
-             GROUP BY {month}
-             ORDER BY (month_key IS NULL), month_key {direction}",
-        ),
-        parameters,
-    }
 }
 
 pub(super) fn build_gallery_layout_manifest_query(

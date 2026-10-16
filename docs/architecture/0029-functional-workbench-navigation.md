@@ -55,6 +55,11 @@ The gallery filter owns All images and Merge duplicates. Duplicate-only browsing
 group inspection and durable decisions belong to the Duplicates workspace. Both consume one typed
 analysis service. Only merged gallery mode displays the duplicate icon, without a count; all-images
 mode leaves the cards unmarked. Exact evidence and later perceptual candidates remain distinct.
+GalleryTimeline carries the source-location count separately from the displayed count. The SQLite
+timeline owner reads both in the existing query snapshot transaction, sharing root, folder and
+search filters. All-images mode reuses its displayed count; merged mode counts source locations
+without the representative filter. Presentation labels these as total images followed by the
+merged count, without loading all items or summing unfiltered root totals.
 
 The gallery uses the existing `AmePopupMenuButton` around Flutter's `showMenu` and
 `CheckedPopupMenuItem` for its two display choices. The duplicate badge opens a modal bottom sheet

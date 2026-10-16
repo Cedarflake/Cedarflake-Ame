@@ -323,12 +323,14 @@ class LibraryTimeline {
     required this.revision,
     required this.queryId,
     required this.totalItems,
+    int? totalSourceItems,
     required this.buckets,
-  });
+  }) : totalSourceItems = totalSourceItems ?? totalItems;
 
   final BigInt revision;
   final String queryId;
   final int totalItems;
+  final int totalSourceItems;
   final List<LibraryTimeBucket> buckets;
 }
 

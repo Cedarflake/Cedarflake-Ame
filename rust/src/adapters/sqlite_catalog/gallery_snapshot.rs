@@ -4,18 +4,18 @@ use rusqlite::{Connection, Transaction, params_from_iter};
 
 use crate::domain::{
     CatalogCursor, CatalogSnapshot, GalleryQuery, GalleryQueryAnchor, GalleryQuerySnapshot,
-    GallerySortKey, GalleryTimeAnchor, GalleryTimeBucket, GalleryTimeline, ScanError,
+    GalleryTimeAnchor, GalleryTimeline, ScanError,
 };
 use crate::ports::GalleryQueryRepository;
 
 use super::gallery::{
-    GalleryAssetAnchor, build_gallery_asset_query, build_gallery_timeline_query,
-    gallery_cursor_for_asset, resolve_gallery_anchor_cursor, resolve_gallery_asset_anchor,
-    resolve_gallery_location_anchor, validate_gallery_query,
+    GalleryAssetAnchor, build_gallery_asset_query, gallery_cursor_for_asset, load_gallery_timeline,
+    resolve_gallery_anchor_cursor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
+    validate_gallery_query,
 };
 use super::{
     MAX_CATALOG_PAGE_ITEMS, SqliteCatalog, database_error, load_catalog_revision, load_root_views,
-    read_stored_asset, sqlite_unsigned, stored_asset_view,
+    read_stored_asset, stored_asset_view,
 };
 
 pub(super) struct GalleryReadTransaction<'connection, 'query> {
@@ -244,49 +244,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
     }
 
     pub(super) fn load_timeline(&self) -> Result<GalleryTimeline, ScanError> {
-        let transaction = &self.transaction;
-        let query = self.query;
-        let query_id = self.query_id;
-        let revision = self.revision;
-        let built = build_gallery_timeline_query(query);
-        let mut statement = transaction.prepare(&built.sql).map_err(database_error)?;
-        let rows = statement
-            .query_map(params_from_iter(built.parameters.iter()), |row| {
-                Ok((
-                    row.get::<_, Option<String>>(0)?,
-                    row.get::<_, i64>(1)?,
-                    row.get::<_, i64>(2)?,
-                ))
-            })
-            .map_err(database_error)?;
-        let mut total_items = 0_u64;
-        let mut buckets = Vec::new();
-        for row in rows {
-            let (month_key, item_count, aspect_ratio_milli_sum) = row.map_err(database_error)?;
-            let item_count = sqlite_unsigned(item_count, "timeline bucket item count")?;
-            let aspect_ratio_milli_sum =
-                sqlite_unsigned(aspect_ratio_milli_sum, "timeline bucket aspect ratio sum")?;
-            total_items = total_items.checked_add(item_count).ok_or_else(|| {
-                ScanError::new(
-                    "catalog_timeline_count_invalid",
-                    "The gallery timeline item count exceeds the supported range",
-                )
-            })?;
-            if !matches!(query.sort_key, GallerySortKey::FileName) {
-                buckets.push(GalleryTimeBucket {
-                    month_key,
-                    item_count,
-                    aspect_ratio_milli_sum,
-                });
-            }
-        }
-        drop(statement);
-        Ok(GalleryTimeline {
-            revision,
-            query_id: query_id.to_owned(),
-            total_items,
-            buckets,
-        })
+        load_gallery_timeline(&self.transaction, self.query, self.query_id, self.revision)
     }
 }
 

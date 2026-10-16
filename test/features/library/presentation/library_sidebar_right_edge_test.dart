@@ -89,7 +89,8 @@ Widget _fixture(ValueNotifier<bool> expanded, double scale) => MaterialApp(
           children: [
             LibraryGalleryHeader(
               galleryTitle: "图库",
-              totalItems: 72,
+              totalItems: 10000,
+              mergedItems: 72,
               selectedCount: 0,
               isSelecting: false,
               layoutShape: GalleryLayoutShape.square,
