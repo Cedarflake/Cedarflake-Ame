@@ -6,10 +6,16 @@ import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../adapters/windows_library_platform_actions.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
+import "library_path_text.dart";
 
 class LibraryDuplicateLocationTile extends ConsumerStatefulWidget {
-  const LibraryDuplicateLocationTile({required this.location, super.key});
+  const LibraryDuplicateLocationTile({
+    required this.location,
+    this.isCurrent = false,
+    super.key,
+  });
   final LibraryDuplicateLocation location;
+  final bool isCurrent;
 
   @override
   ConsumerState<LibraryDuplicateLocationTile> createState() =>
@@ -45,6 +51,9 @@ class _LibraryDuplicateLocationTileState
   @override
   Widget build(BuildContext context) {
     final location = widget.location;
+    final path = location.displayPath.replaceAll("/", "\\");
+    final separator = path.lastIndexOf("\\");
+    final folder = separator < 0 ? "" : path.substring(0, separator);
     final available = switch (location.availability) {
       LibraryDuplicateAvailability.local ||
       LibraryDuplicateAvailability.cloudOnly => true,
@@ -56,9 +65,23 @@ class _LibraryDuplicateLocationTileState
       child: ListTile(
         key: ValueKey("duplicate-location-${location.locationId}"),
         leading: const Icon(Symbols.folder_rounded),
-        title: Text(location.displayPath, maxLines: 2),
-        subtitle: Text(
-          LibraryDuplicateStrings.availability(location.availability),
+        title: Text(
+          displayLibraryFileName(path),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (folder.isNotEmpty)
+              Text(folder, maxLines: 2, overflow: TextOverflow.ellipsis),
+            Text(
+              [
+                if (widget.isCurrent) LibraryDuplicateStrings.currentImage,
+                LibraryDuplicateStrings.availability(location.availability),
+              ].join(" · "),
+            ),
+          ],
         ),
         onTap: available && !_opening ? _reveal : null,
         trailing: AmeTooltip(

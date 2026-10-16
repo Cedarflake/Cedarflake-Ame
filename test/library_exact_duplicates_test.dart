@@ -17,6 +17,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_wor
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter/gestures.dart";
+import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -136,7 +137,10 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey("duplicate-badge-one")));
         await tester.pumpAndSettle();
-        expect(find.text(r"D:\fixture\two.png"), findsOneWidget);
+        expect(find.text("two.png"), findsOneWidget);
+        expect(find.text(r"D:\fixture"), findsOneWidget);
+        expect(find.text("当前图片 · 本地可用"), findsOneWidget);
+        expect(find.byType(AlertDialog), findsNothing);
         final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
         await mouse.addPointer();
         await mouse.moveTo(
@@ -152,12 +156,12 @@ void main() {
           trace: "duplicate-location-reveal-tooltip",
         );
         await mouse.removePointer();
-        await tester.tap(find.text(r"C:\fixture\one.png"));
+        await tester.tap(find.text("one.png"));
         await tester.pumpAndSettle();
         expect(revealed, [
           ["/select,", r"C:\fixture\one.png"],
         ]);
-        await tester.tap(find.text("关闭"));
+        await tester.tap(find.byKey(const Key("duplicate-locations-close")));
         await tester.pumpAndSettle();
         expect(find.byType(AlertDialog), findsNothing);
         expect(
@@ -165,13 +169,79 @@ void main() {
           findsOneWidget,
         );
         RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
-          trace: "duplicate-location-dialog-closed",
+          trace: "duplicate-location-flyout-closed",
         );
       } finally {
         semantics.dispose();
       }
     },
   );
+  for (final size in [const Size(1000, 760), const Size(400, 600)]) {
+    testWidgets("location flyout fits $size and returns keyboard focus", (
+      tester,
+    ) async {
+      final service = _Service();
+      addTearDown(service.events.close);
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = size;
+      addTearDown(tester.view.reset);
+      var outsideTaps = 0;
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            libraryControllerProvider.overrideWith(_EmptyLibraryController.new),
+            libraryGalleryDuplicateAnnotationsProvider.overrideWith(
+              (_) async => {"one": _group},
+            ),
+            libraryExactDuplicatesProvider.overrideWithValue(service),
+          ],
+          child: MaterialApp(
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(size.width < 500 ? 2 : 1),
+              ),
+              child: child!,
+            ),
+            home: Scaffold(
+              body: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => outsideTaps++,
+                child: const Align(
+                  alignment: Alignment.bottomRight,
+                  child: Padding(
+                    padding: EdgeInsets.all(20),
+                    child: LibraryDuplicateBadge(locationId: "one"),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final badge = find.byKey(const ValueKey("duplicate-badge-one"));
+      await tester.tap(badge);
+      await tester.pumpAndSettle();
+      final panel = find.byKey(const Key("duplicate-locations-flyout"));
+      final bounds = tester.getRect(panel);
+      expect(bounds.left, greaterThanOrEqualTo(0));
+      expect(bounds.right, lessThanOrEqualTo(size.width));
+      expect(bounds.top, greaterThanOrEqualTo(0));
+      expect(bounds.bottom, lessThanOrEqualTo(tester.getTopLeft(badge).dy));
+      expect(find.text("当前图片 · 本地可用"), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(panel, findsNothing);
+      expect(tester.widget<TextButton>(badge).focusNode!.hasFocus, isTrue);
+      await tester.tap(badge);
+      await tester.pumpAndSettle();
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+      expect(panel, findsNothing);
+      expect(outsideTaps, 0);
+      expect(tester.takeException(), isNull);
+    });
+  }
   for (final saveFails in [false, true]) {
     testWidgets(
       "pause controls persist or restore their state (failure=$saveFails)",
@@ -377,10 +447,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, "查看重复位置"));
       await tester.pumpAndSettle();
-      expect(find.text(r"C:\fixture\one.png"), findsOneWidget);
-      expect(find.text(r"D:\fixture\two.png"), findsOneWidget);
+      expect(find.text("one.png"), findsOneWidget);
+      expect(find.text("two.png"), findsOneWidget);
       expect(find.text("文件夹离线"), findsOneWidget);
-      await tester.tap(find.text(r"C:\fixture\one.png"));
+      await tester.tap(find.text("one.png"));
       await tester.pumpAndSettle();
       expect(revealed, [
         ["/select,", r"C:\fixture\one.png"],

@@ -48,7 +48,9 @@ when the gallery is hidden; the focused regression and native menu-close/return-
 The hosted native, scan, release and synthetic checks passed on `515f5e6`. Its two analyzer findings
 and three gallery regressions are corrected: rows retain exact item ordinals, and dimension recovery
 checks rendered card widths. The content-sized card controls also passed the isolated client check.
-The current head still requires its applicable Actions results.
+The card badge now opens an anchored location panel with separate file/folder lines and a current
+image marker. Focused placement and dismissal checks pass; its native click awaits the foreground
+handoff recorded in acceptance. The current head still requires its applicable Actions results.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |

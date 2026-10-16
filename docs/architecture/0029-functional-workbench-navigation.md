@@ -32,12 +32,17 @@ group inspection and durable decisions belong to the Duplicates workspace. Both 
 analysis service. Exact evidence and later perceptual candidates remain distinct.
 
 The gallery uses the existing `AmePopupMenuButton` around Flutter's `showMenu` and
-`CheckedPopupMenuItem` for its two display choices, and `AlertDialog` with a lazy `ListView` for
-bounded location inspection. These APIs are present in the pinned Flutter 3.44.9 SDK. Material's
+`CheckedPopupMenuItem` for its two display choices. A `MenuAnchor` attached to the duplicate badge
+hosts a bounded location panel with a lazy `ListView`. Its SDK-owned positioning flips the panel
+at window edges; Escape, outside-click dismissal, focus return and ancestor-scroll retirement stay
+with the framework. `RawMenuAnchor` alone was rejected because it does not own menu focus or
+semantics. A centered `AlertDialog` unnecessarily separates these locations from their photo.
+These APIs are present in the pinned Flutter 3.44.9 SDK. Material's
 [menu](https://m3.material.io/components/menus/guidelines) and
 [dialog](https://m3.material.io/components/dialogs/guidelines) contracts supply focus, dismissal and
-choice behavior. Ame supplies query scope, persisted display preference, duplicate badges and
-64-location paging; it does not implement another menu, dialog or scrolling system.
+choice behavior. Ame supplies query scope, persisted display preference, duplicate badges,
+filename/folder presentation, current-location marking and 64-location paging. The content panel
+fits within the viewport; no second positioning, focus or scrolling implementation is added.
 
 ## Alternatives and consequences
 

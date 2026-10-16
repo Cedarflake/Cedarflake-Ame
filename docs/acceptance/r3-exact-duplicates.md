@@ -207,6 +207,20 @@ no overflow, AXTree, fatal or unhandled-error matches in stderr. Original prefer
 catalog hashes were restored and verified; the six disposable profile/cache targets were removed.
 The reusable source corpus and catalog were retained.
 
+## Card-anchored location inspection
+
+Duplicate badges now use the installed Material `MenuAnchor` with a bounded, lazy location panel.
+The panel separates filenames from folders, marks the current location and retains full-path
+tooltips and exact-file Explorer actions. Framework positioning, dismissal and focus return remain
+in charge. The official Material component index, Flutter MenuAnchor/RawMenuAnchor documentation
+and Windows dialogs/flyouts guidance were checked against Flutter 3.44.9; ADR 0029 records the choice.
+
+All ten focused duplicate workflow tests pass, including a 400-by-600 window at double text scale,
+upward edge placement, Escape/focus return, outside-click consumption and retained semantics.
+The ordinary Debug build succeeded and opened the retained 10,000-file test catalog. Its gallery
+rendered normally; native input could not activate the captured window after one fresh binding.
+The actual flyout click remains pending that foreground handoff. No new source corpus was created.
+
 ## Gallery ordinal recovery
 
 The subsequent hosted resize suite exposed an outdated fixture input: its independently built
