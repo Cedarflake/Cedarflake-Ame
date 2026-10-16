@@ -220,15 +220,19 @@ fn no_op_choices_keep_revision_and_stale_choice_cannot_replace_valid_one() {
     catalog
         .set_duplicate_preference(&key(), Some(&preferred))
         .unwrap();
-    let revision = super::super::super::load_catalog_revision(&catalog.connection).unwrap();
+    let revision: i64 = catalog
+        .connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
+        .unwrap();
     catalog
         .set_duplicate_preference(&key(), Some(&preferred))
         .unwrap();
     catalog.set_duplicate_ignored(&key(), true).unwrap();
-    assert_eq!(
-        super::super::super::load_catalog_revision(&catalog.connection).unwrap(),
-        revision
-    );
+    let updated_revision: i64 = catalog
+        .connection
+        .query_row("SELECT revision FROM catalog_state", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(updated_revision, revision);
     let stale = ExactDuplicatePreference {
         source_generation: preferred.source_generation + 100,
         ..preference(&catalog, "a")
