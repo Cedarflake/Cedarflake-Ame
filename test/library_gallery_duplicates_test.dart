@@ -48,7 +48,14 @@ void main() {
     );
     await tester.tap(find.byKey(const Key("library-filter-menu")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text("合并重复图片"));
+    await tester.tap(
+      find.ancestor(
+        of: find.text("合并重复图片"),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<Object?>,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(query.duplicateMode, LibraryGalleryDuplicateMode.merged);
     expect(query.rootId, "root");
@@ -56,16 +63,21 @@ void main() {
     expect(query.sortKey, LibraryGallerySortKey.fileName);
     await tester.tap(find.byKey(const Key("library-filter-menu")));
     await tester.pumpAndSettle();
-    await tester.tap(find.text("隐藏子目录"));
+    await tester.tap(
+      find.ancestor(
+        of: find.text("隐藏子目录"),
+        matching: find.byWidgetPredicate(
+          (widget) => widget is PopupMenuItem<Object?>,
+        ),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(query.includeDescendants, isFalse);
     expect(query.duplicateMode, LibraryGalleryDuplicateMode.merged);
     expect(query.folderRelativePath, "Album");
   });
 
-  testWidgets("annotation batches are shared and bounded to 256 locations", (
-    tester,
-  ) async {
+  test("annotation batches are shared and bounded to 256 locations", () async {
     final service = _Annotations();
     final container = ProviderContainer(
       overrides: [
@@ -82,13 +94,13 @@ void main() {
     await container.read(libraryGalleryDuplicateAnnotationsProvider.future);
     expect(service.sizes, [256, 256, 1]);
     container.read(libraryGalleryDuplicateAnnotationsProvider);
-    await tester.pump();
+    await container.pump();
     expect(service.sizes, [256, 256, 1]);
   });
 
-  testWidgets(
+  test(
     "retired annotation response cannot overwrite a newer catalog window",
-    (tester) async {
+    () async {
       final service = _Annotations()..delayed = Completer();
       final container = ProviderContainer(
         overrides: [
@@ -102,16 +114,16 @@ void main() {
         (_, _) {},
       );
       addTearDown(subscription.close);
-      await tester.pump();
+      await container.pump();
       final old = service.delayed!;
       service.delayed = null;
       (container.read(libraryControllerProvider.notifier) as _Window).replace(
         _state(1, 2),
       );
-      await tester.pump();
+      await container.pump();
       await container.read(libraryGalleryDuplicateAnnotationsProvider.future);
       old.complete({"stale": _group});
-      await tester.pump();
+      await container.pump();
       expect(
         container
             .read(libraryGalleryDuplicateAnnotationsProvider)
