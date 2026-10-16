@@ -20,7 +20,7 @@ organization preserve original media and do not require a second full source cop
 
 The [workbench contract](product/workbench.md) owns product concepts, exclusions, and reference
 policy. The [gallery UI contract](product/gallery-ui.md) retains the accepted presentation rules.
-[Organization workflow requirements](product/organization-workflows.md) preserve the full future
+[Organization workflow requirements](product/organization-workflows.md) preserve the full
 R3–R10 scope; their existence does not make those capabilities available.
 
 ## Delivery sequence
@@ -31,8 +31,8 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R1 | Progressive, resumable, multi-root catalog with source preservation | Accepted foundation |
 | R2a | Accepted unified gallery and connected-control design | Accepted foundation |
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
-| R2c | Change-driven continuity with usable browsing during synchronization | Merged to main on 2026-10-13; current functional repair goal completed on 2026-10-15 |
-| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Next product stage; separate scope selection remains pending |
+| R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
+| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Active implementation preparation; R3-01 first |
 | R4 | Favorites, virtual albums, durable decisions, and resumable review sessions | Planned after R3 |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
@@ -48,304 +48,92 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**PR #12 is merged as `a5ace87`. The current synchronization, reopening latency and browsing repair
-goal is completed on main.** The completed post-merge queue below retains its evidence and supersedes
-historical merge-readiness ordering. Broader R2c qualification retains its separate recorded scope.
-R2c-N admitted the security/protocol foundation. R2c-P and R2c-Q have implementation checkpoints;
-R2c-R has controlled local reliability work. Those facts do not accept the slices or all of R2c.
-Real journal, retained-library, and real Cloud Files evidence remain open. Code signing, publisher
-credentials, signed-release jobs and the signing-dependent installation acceptance path are not
-R2c acceptance or merge prerequisites. The existing signed distribution channel retains its separate
-deployment qualification; unsigned verification cannot claim that installation path passed.
-The unified installation/update workflow uses the versioned MSI boundary in
-[ADR 0027](architecture/0027-windows-installer-lifecycle.md); fresh install, upgrade, repair,
-failed-upgrade rollback and data-preserving uninstall require actual lifecycle verification.
-ADR [0024](architecture/0024-windows-change-driven-library-continuity.md) owns the current design;
-the former ADR 0023 continuity model and its R2c-I–M results remain historical.
+**R2c is completed and frozen by the 2026-10-16 product decision. R3 is the active stage, beginning
+with implementation preparation.** The [R3 execution plan](plans/r3-exact-duplicates.md) owns the
+selected delivery details and live checkpoint. Its scope remains the full
+[R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding).
 
-The current implementation includes schema-v32 bounded raw-spool retirement and the 2026-09-09
-browsing-recovery correction. Their evidence is in the
-[interleaving ledger](acceptance/r2c-interleaving-remediation.md) and
-[browsing-recovery record](acceptance/synchronization-browsing-recovery.md).
-The latter preserves the initial Daily failure, subsequent focused/partition results, and unsigned
-Windows verification. Its isolated mixed-load pass does not establish full-suite stability.
-The accumulated Live worker correction now has complete local Daily evidence in the
-[current Release record](acceptance/r2c-release-native.md#bounded-live-worker-continuation).
-Current retained-library client and final candidate acceptance remain open.
+The R2c product baseline is commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`. The
+[frozen closeout checkpoint](plans/r2c-closeout.md#current-execution-checkpoint) and
+[final recovery verification](acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16)
+retain its delivered behavior, hosted result and deferred incident. Previous R2c queue instructions,
+paused-R3 statements and candidate-readiness requirements are historical. They do not schedule
+another R2c closeout cycle or block the selected R3 work. Historical test records retain their
+actual coverage and failures; stage closure does not rewrite those observations.
+
+The earlier Debug process termination during recovery is deferred until it recurs. Retain its
+existing log and Windows error report, with the cause unresolved. Do not schedule another crash
+investigation or replay from that old incident. A new occurrence can receive a scoped maintenance
+fix without reopening the R2c milestone. New source-safety failures or defects that directly prevent
+R3's selected workflow are handled at their owning layer under the repository contract.
 
 ## Current execution queue
 
-The selected gallery/viewer transitions, shared wheel deceleration and viewer toolbar scopes are
-merged through [PR #18](https://github.com/Cedarflake/Cedarflake-Ame/pull/18) and
-[PR #19](https://github.com/Cedarflake/Cedarflake-Ame/pull/19). Their local and remote branches are
-removed. Preserve the delivered loading geometry, reduced-motion behavior, independent scroll
-controllers, retained filmstrip previews, opening preferences, gallery return position and native
-window placement. This delivery does not reopen the completed synchronization repair goal or start R3.
+Deliver R3 in the following order. Each item includes the connected user workflow, its boundary
+regressions and necessary documentation; implementation details and changing status belong in the
+[R3 execution plan](plans/r3-exact-duplicates.md#execution-checkpoint).
 
-The retained-library follow-up now admits proven interrupted checkpoints and automatically resumes
-older unsupported-hardlink failures through a fresh recovery opening. Whole-root recovery closes
-from its inventory opening; subtree recovery retains earlier unread coverage. The retained
-10,000-image catalog completes recovery and reopens Current without another inventory. The
-[reopening record](acceptance/r2c-update-checkpoint.md#retained-interrupted-journal-reopening-on-2026-10-16)
-owns the startup correction; its following recovery record owns the new boundary regressions,
-hosted verification and retained-library result. The original Windows error-50 file remains
-unidentified; future failures retain bounded file identity and operation details. One native Debug
-process termination during recovery remains to be attributed; the subsequent recovered-gallery
-startup, preview and normal closure pass. Keep that incident separate from completed catalog recovery.
+1. **R3-01: Identify exact duplicates and inspect locations.** Compare `czkawka_core` integration
+   with the existing BLAKE3 dependency, settle fingerprint compatibility, hardlink/count/scope and
+   representative rules, and record the engine decision. Read bounded candidates from the catalog,
+   publish source-versioned analysis evidence and connect `查看重复位置`. Include progress,
+   cancellation, retry, stale-result rejection and restart reuse in this first delivery.
+2. **R3-02: Maintain duplicate groups incrementally.** Connect changes, replacements, moves,
+   removals and source availability to the existing synchronization/publication boundary. Reuse
+   unchanged evidence and update only affected groups, including changes made while Ame was closed.
+   Complete this before enabling default gallery folding.
+3. **R3-03: Connect gallery display modes.** Add `显示所有文件`, `合并完全相同图片` and
+   `仅显示重复图片` to the existing filter menu, with default folding, representative/copy-count
+   display and consistent sorting, dates, bounded pagination, selection and viewer navigation.
+   Unanalysed items remain visible; analysis does not block browsing or startup.
+4. **R3-04: Review groups and retain choices.** Connect contextual `审查重复组` in the same canvas,
+   inspect physical locations and persist preferred-copy and ignore decisions. Keep logical-group
+   and physical-location selection distinct, and preserve choices across restart and reanalysis.
+5. **R3-05: Verify the affected client workflow and close R3.** Reuse `build/test`, complete relevant
+   ordinary client and resource-bound checks, inspect the applicable Actions results and clean
+   disposable outputs. Verification accompanies each delivery; this final item closes remaining
+   R3-specific gaps without restarting completed R2c acceptance.
 
-The current repair goal is complete. Native synchronization/browsing flows, large-sample paused-import
-changes, scoped closing review and the final hosted gates pass; profile restoration and disposable-output
-cleanup are complete. The [current checkpoint](plans/r2c-closeout.md#current-execution-checkpoint)
-owns their exact scope. Preserve the user's current copy and layout and the delivered viewer/time-rail
-behavior. The historical coverage records below retain their individual scope; further product work
-requires a separately selected scope. Apply `microsoft-ui-ux` to future interface corrections.
+Engine comparison is part of R3-01, not another product stage. No `czkawka_core` or alternative
+engine choice is accepted by the roadmap. Ame retains candidate selection, guarded file access,
+source-version admission, persistence, user decisions and presentation through replaceable adapters.
+First analysis may read candidate contents in bounded background work. Later runs reuse compatible
+fingerprints rather than enumerating source trees or rehashing the entire catalog at startup.
 
-The completed repair goal covers these three outcomes, delivered independently on main:
+Preserve the completed gallery/viewer transitions, shared wheel behavior, filmstrip retention,
+opening preferences, loading geometry, scroll/return anchors, native window placement and approved
+copy. Apply the Microsoft and Google UI/UX skills to the new R3 controls without redesigning unrelated
+surfaces. Favorites/albums/general review sessions remain R4, perceptual similarity remains R6, and
+physical file operations retain their later stage and explicit authorization.
 
-1. **Restore ordinary-client synchronization and October membership without installation.**
-   Connect ordinary-token journal reads and file-identity reconstruction to the existing durable
-   queue and catalog publication.
-   Keep unsigned Debug/Release behavior consistent, including closed-process changes and no-change
-   zero-enumeration startup. Preserve the broker correction as a separate supported adapter;
-   installing it is not a prerequisite for developing or verifying the ordinary-token path.
-   Measure this step by a connected application restart and exact catalog result. Native probes,
-   parser changes and isolated gates are supporting work, not additional delivery stages.
-   Re-enumerate the reported October subtrees at
-   verification time instead of fixing the expected set to the original count. Restore any missing
-   membership through incremental continuity, and prove that displayed
-   synchronization status matches actual journal coverage and published membership.
-2. **Correct reopen and update latency.** Verify populated reopening, no-change reopening and
-   catch-up after closed-process changes. Verify the existing reclamation/session correction and
-   fix remaining owning costs; preserve no-change zero-enumeration and existing latency requirements.
-3. **Finish the affected browsing and preview paths.** Reproduce and resolve remaining retained
-   middle-timeline Retry/jump and slow-preview incidents, keeping the gallery usable during updates.
-   Preserve completed regression evidence and verify only the remaining affected variants. The
-   requested fixed viewer loading indicator, automatic opening preference and stable time-rail
-   distribution belong to this outcome; they do not reopen already delivered synchronization work.
+The stage exits when exact identification, location inspection, all three gallery modes and
+contextual review work together; incremental changes and restart preserve correct membership and
+human choices; and affected CI, client, source-preservation and resource checks pass. Update this
+roadmap at that exit rather than extending R3 with unrelated feature or maintenance work.
 
-R3 remains the next product stage in the delivery sequence, outside this three-outcome repair goal.
-After these outcomes, complete applicable final R2c acceptance, preserving still-valid evidence.
-The active plan owns fresh-database real-library cases and reuse/reset boundaries; the goal text
-does not carry changing completion status.
-Installer lifecycle, signing, Sandbox troubleshooting and unrelated historical acceptance variants
-are not additional steps in this goal. A validation failure stays with its owning correction rather
-than creating another stage. New findings interrupt the order only for a reproduced core-workflow
-or source-safety failure; other maintenance retains separate scope.
+## Frozen R2c ownership
 
-Each correction is committed and pushed before moving to the next independent issue. GitHub Actions
-executes CI, including boundary regressions; local work is limited to diagnosis, formatting/diff
-inspection and affected client workflows. Existing three Rust failures belong to the latency work;
-retain their workloads and assertions. The [ordinary-token capability checkpoint](acceptance/r2c-retained-runtime.md#ordinary-token-journal-capability)
-establishes native feasibility and a typed parser boundary, not complete client synchronization.
-Ordinary-token directory/path identity reconstruction and atomic enrollment are implemented.
-Selected ordinary Debug/Release three-process workflows already pass closed-process
-deletion/replacement/rename/move-in/hardlink catch-up and unchanged restart, with exact membership
-and unchanged scan/inventory counts. Retained-library recovery restores current October membership
-and survives ordinary unsigned Release reopening without another inventory. Preserve these results;
-do not reopen the whole synchronization step because latency measurements, instrumented
-zero-source-call proof or a specifically identified platform boundary remain. Those gaps retain
-their named verification under the affected outcome. The workstation installation remains removed;
-any later system installation retains its explicit-authorization requirement. The full installer
-upgrade/repair/rollback matrix must not precede the missing-image and latency work.
-Historical readiness matrices retain their recorded gaps; they do not reopen the completed merge
-or add prerequisites to unrelated fixes. New ordinary findings join the maintenance queue; source
-safety or an unusable core workflow takes priority.
+The [R2c closeout plan](plans/r2c-closeout.md) is historical and has no active execution queue.
+The detailed runtime, native-client and platform observations remain in the
+[acceptance index](acceptance/README.md). The pre-freeze queue is available at the
+[frozen source revision](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md).
+Use the existing records when a relevant boundary changes; do not replay old pending instructions
+merely because a new session reads them.
 
-The current direction prioritizes defects that directly impair functions and user experience.
-The requested rule/document organization is verified. The execution plan's
-[complete scope map](plans/r2c-closeout.md#complete-scope-and-retained-readability-findings) retains
-the four required state/queue/scan/viewport maintenance deliveries and all 24 functional variants.
-That historical roster is retained evidence and maintenance scope, not automatic expansion of the
-current three-outcome goal. Verify affected boundaries without restarting the entire R2c matrix;
-rule organization does not complete a functional correction. C05 continuation
-has owning-layer corrections and selected generated-client evidence, with the remaining exits below.
-Item 3 selects functional synchronization and browsing. **R2C-C04 now has focused and generated-client
-verification** for fresh bulk changes and recovery of retained terminal work. The new
-[retained-library runtime findings](acceptance/r2c-retained-runtime.md) retain completed but slow
-recovery and a reported middle-timeline scroll jump with Retry feedback; that browsing incident
-follows synchronization and missing-image recovery in the functional sequence above. First-import
-resumption now retains completed inspection work while proving current namespace membership. Its selected real-source
-continuation and local candidate gates are recorded in the same runtime evidence. The subsequent
-[update checkpoint](acceptance/r2c-update-checkpoint.md) has a normally closed source-backed update,
-pending-result scrolling and preview observation; warm-update and uncached-preview latency,
-remaining retained incidents and final candidate gates stay open. The supplied destination
-combines two former directories and requires automatic source continuity; a one-root manual
-relocation is only a fallback. The execution plan owns the corrected per-file identity, discovery
-and publication boundary. For the identified consolidation, complete the destination publication
-before removing the two superseded source registrations; unmatched old identities do not require
-keeping obsolete sources in the gallery. Temporary source unavailability remains distinct from
-this selected replacement. The [actual-profile recovery](acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart)
-now retires the two obsolete sources and verifies selected normal Release browsing and populated
-restart without another scan. Automatic assembled-destination discovery, the exact historical
-idle incident and slow-update obligations remain separate. The subsequent
-[pending-result continuation](acceptance/r2c-retained-runtime.md#pending-result-browsing-beyond-the-first-window)
-now delivers upward input during a held real result, reverses beyond its first window and continues
-downward, with stable settled idle observations, unchanged source records and normal close. This
-completes that selected application-result variant; it does not replace the remaining client and
-platform acceptance. The
-subsequent first-import
-Pause/capture correction now passes connected native Pause and complete local Daily, with current
-hosted required gates; its original failure and completed verification are preserved in the
-same runtime record. Continue the remaining functional variants without replaying unchanged gates.
-C04's original failure
-is preserved in the [C04 record](acceptance/r2c-live-gap-recovery.md). **R2C-C05's generated-only complete
-browsing workload and transient Retry feedback checks now pass; remaining client variants and final
-gates stay open.** Preview demand, recovered dates and missing-source request retirement have
-owning-layer corrections. The [C05 record](acceptance/r2c-browsing-diagnosis.md) retains the failed
-lifetimes, observer correction, combined pixel/rail/viewer/feedback evidence and selected native
-replacement/exclusive-source Retry verification. The selected S2 sidebar and narrow-thumbnail feedback
-corrections have focused lifecycle/layout and selected native functional evidence. Their combined
-parent run retains an exit-time evidence failure; complete lifetime and candidate gates remain open. The
-[process-lifecycle record](acceptance/r2c-process-lifecycle.md) verifies selected pending-call close,
-actual paused-checkpoint restoration, explicit continuation and recovery after raw-batch and
-executing-lease process loss, including natural lease expiry, and selected native exhaustion/restart
-with continued peer publication. The combined paused-feedback/portable-notice/Continue path also
-has selected native functional and normal-lifetime evidence, with its aggregate parser failure
-retained separately from offline input verification. Failed attempts remain explicit. C13's exhausted-recovery
-notification has an owning policy correction and focused/selected native evidence; final-source
-and Release feedback acceptance remain open.
-The [input-control record](acceptance/r2c-input-controls.md) retains the focused pending-pause Cancel
-correction, primary committed-refresh admission correction and the selected native picker,
-focused Enter Retry and pre-registration Pause-Cancel pass. Remaining focus-return variants,
-keyboard controls and Release paths retain their separate frozen duties. The
-[nested-source record](acceptance/r2c-input-controls.md#parent-import-after-child-registration)
-now verifies forward covered-folder selection and atomic consolidation after a complete first
-parent import through focused and native Debug paths. Current-source quality retains the separate
-UIA progress-record replacement failure. Unsigned Release and the subsequent required hosted gates
-pass; historical C01/C02 attribution and final candidate duties remain separate.
-The [ordinary Release nested-source observation](acceptance/r2c-release-native.md#ordinary-release-nested-source-import-on-2026-10-13)
-also verifies child-to-parent identity preservation and covered-child navigation without another
-scan. Its close-record failure and the separate passing empty-profile close remain distinct;
-neither changes the outstanding final/client obligations.
-Selected [Release exclusive-source and corrupt-source recovery](acceptance/r2c-release-native.md#release-preview-failure-recovery-on-2026-10-12)
-also passes through normal retirement; preserve those results while completing the remaining variants.
-The
-[multi-root record](acceptance/r2c-closeout-cycle.md#native-queued-cancellation-and-real-updates)
-adds queued-task keyboard Cancel, peer publication during removal, actual reimport and
-directory-loss recovery during a peer update;
-this generated-client result does not establish complete synchronization acceptance. The
-[Release multi-root observation](acceptance/r2c-release-native.md#release-multi-root-observation-on-2026-10-12)
-completes ordinary updates and reimport but misses the active-update removal interval. Its
-unrelated-root removal exposed a reproduced gallery-position jump; the anchored-display correction
-now has focused, local quality, unsigned Release and
-[native position-retention verification](acceptance/r2c-release-native.md#release-retained-position-after-unrelated-removal).
-That selected defect is closed. The subsequent
-[Release publication/removal overlap](acceptance/r2c-release-native.md#release-removal-during-publication-and-reimport-on-2026-10-13)
-also passes actual removal, continuing peer updates and picker reimport with exact membership and
-normal retirement. Physical old-spool reclamation and final candidate duties remain separate. The
-[query interaction record](acceptance/r2c-query-interactions.md) verifies selected native Debug
-search/sort/root/folder/window interaction during publication, folder-window replacement/append,
-the corrected continuous search input, committed-removal display Retry and focused sidebar position
-continuity, including native position retention across replacement and append. Selected
-[Release folder paging](acceptance/r2c-release-native.md#release-folder-paging-on-2026-10-12)
-now passes replacement/append input, position retention, folder pixels and normal retirement;
-preserve the earlier combined lifetime failure and remaining final-source gates. The
-pending time-rail reversal now has exact current-target and stale-result retirement evidence.
-C11's loading-feedback composition preserves the viewport, with focused and selected native Debug
-position-stability evidence and selected current Release gallery observations; preceding failures
-and remaining final-source/client duties remain explicit.
-Native viewer close/reopen during pending paging
-and an admitted source-copy future now preserves the new selection and original pixels through
-old-work retirement and normal exit. The selected
-[Release pending-page continuation](acceptance/r2c-release-native.md#release-pending-page-close-and-reopen-on-2026-10-13)
-also passes native replacement, late-result retirement and normal close; preserve the earlier
-failed optimized methods and the separate source-copy, OS-read and shipped-entrypoint duties. The
-selected source rewrite/rename/removal path now has native Debug identity, current-pixel and natural
-viewer-return evidence after source reads retire, plus
-[current Release input, identity continuity and normal retirement](acceptance/r2c-release-native.md#release-source-rewrite-rename-and-removal-on-2026-10-12).
-C12's diagnostic observer correction now has
-warning-free selected Debug workflow evidence; final-source and Release acceptance remain open. The
-[isolated Release record](acceptance/r2c-release-native.md) adds actual optimized-client decoding,
-rail navigation, viewer return and a complete normal lifetime, while retaining the earlier failed
-host retirement. Native keyboard sort, layout and more-menu return now have current Release
-input and normal-lifetime evidence; remaining Release variants retain their frozen duties.
-The [corrected Release bulk result](acceptance/r2c-release-native.md#release-live-continuation-result)
-now meets the original addition/deletion bounds, exact closed membership and normal-lifetime
-requirements, preserving the preceding failed run. The Live worker correction also passes complete
-local Daily and required hosted gates. The
-[browsing-admission record](acceptance/r2c-browsing-admission.md) owns the root-read correction during
-background import and the distinct date-intent diagnosis during publication. The root correction has
-complete local quality and unsigned Release evidence; native admission expires before application
-launch. The subsequent current Release observes root selection during an active peer import. The
-date-intent correction has focused coherent timeline/page and multi-column alignment evidence,
-complete local Daily and fresh unsigned Release. Native verification retains the failed
-source-preparation and input-admission lifetimes. Dedicated native control now observes completed
-import, date navigation during deletion convergence and exact closed membership, but the complete
-verifier retains a missing per-root preview-demand failure. Its continuation is interrupted by
-automatic approval before deletion; approval of only the disposable generated copies is pending.
-The addition-only workload verifies completed concurrent import, exact membership and per-root
-visible preview demand. Its exposed position movement now has an owning committed-refresh
-correction, later-scroll regressions, complete local quality/unsigned Release and selected native
-anchor-retention evidence. A close-label aggregate failure is retained separately from passing
-offline catalog/lifetime verification. The complete deletion/date verdict remains open. The
-original interrupted finalization report is now an
-[unconfirmed observation](acceptance/r2c-browsing-admission.md#finalization-observation-disposition),
-with no dedicated replay or blocking obligation absent a repeatable functional failure. Its known
-stop came from the source helper before the import deadline; completed validation counters and
-terminal publication retain distinct evidence. The current
-[Debug scan-cost gate](acceptance/r2c-maintainability.md#inactive-source-open-observation-correction)
-now passes; earlier unexplained performance failures retain their separate disposition duties.
-Remaining frozen variants and final candidate duties stay open. C01's mixed-load recovery
-failure and C02's automation/evidence failures are recorded for final verification; their current
-evidence does not establish a highest-priority user incident. Deferral changes execution order,
-not their unresolved acceptance status. Source/durable-data harm or reproduced blocked, misleading
-or unusable core behavior takes immediate priority. Use the complete
-[R2c closeout execution plan](plans/r2c-closeout.md) for scenario selection, investigation budgets,
-repair admission, review, verification, stopping rules, and safety cautions.
-
-1. **Locally verified — raw-inventory retirement and bounded cleanup.** Preserve the schema-v32
-   separation between execution-authority retirement and bounded, restart-safe physical cleanup.
-   The local lifecycle, rollback, stale-execution, complete recovery, reopen, and independent-review
-   checkpoint is recorded in the interleaving ledger. Final-source and client acceptance remain
-   owned by items 3–4; do not reimplement this completed local prerequisite without new evidence.
-2. **Deferred until functional work is complete — mixed-load convergence and latency.** Diagnose the recorded catalog-open,
-   observation, publication, and retirement costs through their owning operations. Preserve the
-   original 25 P0 samples, P95 at most one second, all 2048 P1 candidates, 10000 P2 source entries,
-   4095-entry logical page, and existing deadlines. Exit requires complete P2 results, closing
-   journal coverage, final publication, synchronized state, authority retirement, and FULL reopen,
-   together with causal correction and the required controlled/hosted latency evidence. Neither
-   a first page, diagnostic instrumentation, a later isolated pass, nor a preceding green revision
-   closes a failed gate. Historical unexplained attribution stays explicit in the evidence ledger.
-3. **Active — functional workflows and Windows client verification.** Cover import/publication,
-   interruption/continuation, query/folder consistency, previews/viewer, multi-root update/removal,
-   cleanup/registration overlap, and direct navigation/feedback using the frozen eight-scenario
-   matrix. Add negative cases for uncovered transitions and preserve the original ten-phase local
-   whole-window UIA path and owned-process exit. Real EXE restart and Release decoding/input
-   evidence cannot be inferred from widget remounts, static previews, MSAA, or unsigned bridge smoke.
-   Selected populated Release restart now passes against the
-   [recovered actual profile](acceptance/r2c-retained-runtime.md#actual-profile-recovery-and-release-restart).
-   The independent [host-isolated Debug populated restart](acceptance/r2c-closeout-cycle.md#native-debug-populated-restart)
-   also passes. Continue Ame's remaining browsing, update and preview workflows using isolated host
-   storage. Sandbox troubleshooting is stopped and is not a prerequisite for this work. Preserve
-   the separate instrumented no-source-call proof and remaining native variants.
-   The four named maintenance implementations have focused and current local Daily evidence,
-   including the passing Debug scan-cost gate. Remaining client and final-candidate obligations
-   retain functional-incident priority. Use one independent reviewer; unrelated physical
-   decomposition remains tracked debt.
-4. **Queued — final-source gates and readiness decision.** Freeze the candidate, resolve admitted
-   findings, and complete applicable local Daily/Windows and hosted PR gates. Record implemented,
-   focused-verified, final-source-verified, and client-accepted separately. Later behavior changes
-   invalidate affected evidence and return to their owning queue item. Documentation alone does
-   not require another heavy product gate. No known core-workflow S0/S1 may be waived for readiness.
-
-The execution plan owns the eight-journey/three-variant roster, cumulative accounting, consumed
-repair and review allowances, fixed deadlines and failed-replay limits. It preserves the original
-cycle and every admitted supplement without resetting prior usage. Historical budget figures and
-run records belong there and in acceptance evidence, not in this stage queue. Standing authorization
-allows bounded functional follow-ups after recording their scope, method, limits and verification,
-without repeated per-issue approval. Consumed allowances or changed causes still require an explicit
-checkpoint and revised method; they do not permit unchanged retries or automatic scope growth.
-Any known core-workflow S0/S1 continues to block readiness, including outside the selected roster.
-
-New findings enter the existing ledger with reproduction, severity, owning invariant, and blocked
-exit. Only a source/data-safety incident or a proven active-exit blocker interrupts order, with the
-reason recorded. No symptom patch, repeated unchanged audit, or unrelated optimization becomes a
-new delivery item merely because it was noticed during inspection.
+ADR [0024](architecture/0024-windows-change-driven-library-continuity.md) continues to own the
+synchronization design. The former ADR 0023 model and its older acceptance slices remain historical.
+The signed distribution and installer lifecycle retain their separate qualification under
+[ADR 0027](architecture/0027-windows-installer-lifecycle.md). Signing, service installation and
+Sandbox diagnostics are outside the R3 queue; future changes to those workflows retain their own
+scope, verification and authorization. Historical gaps remain documented without becoming
+additional R3 entry gates.
 
 ## Retained ownership and decomposition obligations
 
 ADR [0025](architecture/0025-invariant-owned-workflow-modules.md) owns module boundaries. Review
 the live owner before extending it; a forwarding wrapper or lower line count is not an extraction.
+The retained debt constrains changes to the affected owners. It does not schedule a broad R2c
+refactor before independent R3 work; extract the boundary needed by the selected delivery.
 
 - Preserve typed ownership of scan execution/publication, mutually exclusive first-import versus
   existing-root journal opening, query/viewport generation, and committed-removal display refresh.
@@ -363,33 +151,30 @@ the live owner before extending it; a forwarding wrapper or lower line count is 
 - A repair establishes the required typed boundary and records production/inline-test/dedicated-test
   size. If a larger split exceeds the active repair, retain it here as debt and add no further
   behavior to that debt owner until the required split is complete. This does not authorize a broad rewrite
-  or waive the bounded cycle's stopping rules.
+  or expand the active R3 delivery.
 
 ## R2c exit and non-negotiable constraints
 
-The [continuity acceptance contract](acceptance/library-continuity.md) retains the complete
-invariant, failure, race, source-safety, and acceptance checklist. The
-[quality gates](acceptance/quality-gates.md) own executable entrypoints and environment boundaries.
+R2c is closed. The following constraints preserve its behavior while later stages evolve. The
+[continuity contract](acceptance/library-continuity.md) retains the invariant and regression cases;
+[quality gates](acceptance/quality-gates.md) owns execution commands and hosted/client boundaries.
 
-- Ordinary supported changes converge through the change-driven production path; no-change startup
-  performs zero source-root enumeration/media opens/inventory creation. P0 retains its one-second
-  P95 under P1/P2 work; continuous closed-process single changes retain the two-second P95 bound.
+- Ordinary supported changes converge through the change-driven production path; unchanged
+  synchronization startup performs zero source-root enumeration/media opens/inventory creation.
+  P0 retains its one-second P95 under P1/P2 work; continuous closed-process single changes retain
+  the two-second P95 bound. R3 analysis reads are separately scheduled and accounted for.
 - Cached content remains usable during continuity work. No stale result, partial scan, failed
-  recovery, unavailable root, or interrupted task can publish false completion, freshness, or absence.
-- Original media and durable user intent remain intact. No routine full scan, cloud hydration,
-  catalog reset, weakened identity/lease guard, or broader broker privilege may hide a failure.
-- All applicable current-source correctness, performance, native interaction, migration, source-
-  safety, and final accumulated independent audit obligations must close. A controlled-cycle pass
-  does not waive unresolved findings required by ADR 0024's final audit.
-- Unsigned current-source application/broker artifacts are sufficient for R2c acceptance and merge.
-  Do not require a signing certificate, expected publisher, pre-signed bundle, protected signing job,
-  or signing-dependent deployment run. Broker lifecycle/security, real FSCTL, retained-root and real
-  Cloud Files assertions still need their applicable evidence; compilation alone cannot establish
-  them. Prepare bounded read-only real-library runs under the standing policy without per-run approval.
-  Service installation and source mutation retain their separate authorization requirements. The
-  signed distribution channel's installation/upgrade qualification is separate from R2c closeout.
-- R3 remains paused. No source-media operation, release publication, or merge into `main` is
-  authorized by this roadmap or a historical acceptance record.
+  recovery, unavailable root or interrupted task can publish false completion, freshness or absence.
+- Original media, original catalogs and durable user intent remain intact. No routine full scan,
+  cloud hydration, catalog reset, weakened identity/lease guard or broader broker privilege may
+  hide a failure. Schema changes retain forward migration and data-preservation requirements.
+- Reuse the frozen R2c verification and run the applicable regression checks when later changes
+  affect its boundaries. The historical final-audit and platform matrices retain their recorded
+  results; they are not an active stage-wide acceptance cycle.
+- Unsigned Debug/Release remain supported. Signing credentials and signing-dependent installation
+  qualification do not become R3 prerequisites. Bounded read-only verification of known roots
+  follows the standing repository policy. Source mutation, service installation, release publication
+  and branch merging retain their applicable authorization requirements.
 
 ## Maintaining this roadmap
 

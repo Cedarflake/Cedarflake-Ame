@@ -1266,7 +1266,8 @@ closing and FULL reopen, subtree coverage and journal replacement. Hosted Action
 A local attempt to diagnose the three failed Rust cases stopped during test-binary compilation with
 LLVM out of memory; no Rust test ran in that attempt. Direct execution of the extracted production
 SQL passed four current/reset/legacy checks and ten rejecting mutations. Owned-file formatting and
-whitespace checks also pass. Hosted verification of these follow-up corrections remains pending.
+whitespace checks also pass. Hosted verification subsequently passes for
+`5ea62d05eb7f84a64a12967fdba20fda9008f371`, as recorded below.
 
 | Changed owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -1281,3 +1282,24 @@ whitespace checks also pass. Hosted verification of these follow-up corrections 
 The synchronization and persistence facades retain the roadmap's decomposition debt. This change
 adds narrow scheduling and policy calls; it does not introduce schema or bridge changes. The
 migration facade's pre-test line count includes its existing test-counter and downgrade helpers.
+
+### R2c freeze on 2026-10-16
+
+Product baseline: `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
+[Actions run 38856645464](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38856645464)
+completes successfully for that exact commit. All ten applicable jobs and the aggregate Windows
+gate pass, covering static/Rust, Flutter, native Windows scan/accessibility, unsigned Release and
+the five synthetic workloads. The three signing-path jobs are skipped under their configured
+conditions. The three failures from the preceding recovery run are corrected and covered by this
+passing run; the earlier local out-of-memory attempts remain recorded above.
+
+The [roadmap stage decision](../roadmap.md#current-stage-and-acceptance-boundary) closes and freezes
+R2c. The retained 10,000-image recovery and subsequent unchanged reopening keep the measurements
+and source-preservation scope above. No additional product run is created for this documentation
+transition.
+
+The native Debug termination during recovery remains an unresolved, deferred incident. Its retained
+stderr contains Flutter AXTree update errors, and the Windows report records `ucrtbase.dll` with
+`0xc0000409`; these observations do not establish the crash's cause. Investigation resumes upon a
+new occurrence. Existing logs and the Windows error report are retained. Earlier incomplete
+platform or installer qualifications keep their recorded scope and are outside the active R3 queue.

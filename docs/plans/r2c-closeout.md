@@ -1,10 +1,29 @@
 # R2c closeout execution
 
-Status: **R2c merged to main on 2026-10-13. The current functional repair goal is complete on
-2026-10-15: native follow-ups, hosted checks, restoration and cleanup are verified. The
-[post-merge queue](../roadmap.md#current-execution-queue) owns scope, with CI executed by GitHub Actions.
-Historical Retry/jump attribution and broader client/platform acceptance records retain their
-original coverage and are not additional replay requests for this repair batch.**
+Status: **R2c completed and frozen on 2026-10-16. Historical execution plan; no active closeout work.**
+
+The [roadmap](../roadmap.md#current-stage-and-acceptance-boundary) owns this stage decision and the
+active R3 queue. Use the [R3 execution plan](r3-exact-duplicates.md) for new product work.
+
+### Current execution checkpoint
+
+Frozen product baseline: `5ea62d05eb7f84a64a12967fdba20fda9008f371`. Its
+[Actions run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38856645464) passes all ten
+applicable jobs and the aggregate gate. The
+[final recovery and freeze record](../acceptance/r2c-update-checkpoint.md#r2c-freeze-on-2026-10-16)
+retains the recovered catalog result and exact verification scope.
+
+The earlier native Debug recovery termination is deferred until it recurs. Its log and Windows
+error report remain available, and the cause remains unresolved. No crash replay or additional R2c
+acceptance cycle is scheduled. Preserve the completed synchronization, browsing and viewer behavior;
+recheck affected boundaries when new work changes them.
+
+## Historical coverage and execution notes
+
+The remainder preserves dated procedures, observations, failures and checkpoint instructions.
+Earlier statements to continue a run, await CI, complete acceptance or keep R3 paused describe the
+recorded stage at that time. They are not current execution requests or R3 prerequisites. Retain
+their actual coverage without rewriting incomplete historical runs as passes.
 
 ### Acceptance prerequisites
 
@@ -21,11 +40,11 @@ retain their own evidence duties through applicable unsigned verification. Earli
 exclusions describe their recorded runs, not the current merge prerequisites. The roadmap owns
 the resulting stage disposition.
 
-### Current execution checkpoint
+### Repair checkpoint on 2026-10-15
 
-Updated 2026-10-15. Resume from this checkpoint and the linked owning evidence, then verify the
-live source and running artifact. Preserve the exact triggering sequence of each open incident;
-a related correction, a focused pass or a different native scenario cannot close it.
+Recorded on 2026-10-15. This completed repair checkpoint and its linked evidence are retained below
+the final freeze checkpoint. Preserve the exact triggering sequence when a historical incident
+recurs; a related correction or a different native scenario does not attribute its cause.
 
 **Current repair goal: complete.** The final
 [delivery verification](../acceptance/r2c-update-checkpoint.md#delivery-verification-on-2026-10-15)
@@ -318,7 +337,7 @@ whitespace checks and the Debug build pass; these tests run in Actions. The earl
 failures are covered by these feedback corrections. The Rust mixed-load connection-lifetime
 test's five-second P0 visibility failure remains in the performance work; its deadline is unchanged.
 
-Retain the [roadmap's three-outcome repair goal](../roadmap.md#current-execution-queue): ordinary
+Retain the [archived three-outcome repair goal](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md#current-execution-queue): ordinary
 client synchronization and current October membership, reopening/update latency, then the named
 browsing/preview incidents and explicitly requested viewer/time-rail corrections. R3 is outside
 this repair goal. Deliver each fix independently on main; a supporting test or verification failure
@@ -6120,7 +6139,7 @@ The [cycle evidence](../acceptance/r2c-closeout-cycle.md) records the frozen sou
 variants, execution budgets, findings, and verification. Its status does not accept R2c.
 
 This document supplies execution details for the
-[canonical roadmap's closeout queue](../roadmap.md#current-execution-queue), not a second product
+[archived closeout queue](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md#current-execution-queue), not a second product
 stage or independent priority list. Its outcome is one reviewed candidate with evidence for the
 fixed workflows below, plus an explicit disposition of every discovered issue. It does not
 promise that all possible defects have been found or that R2c's external acceptance is complete.

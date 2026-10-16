@@ -64,6 +64,7 @@ git show 643f7b8f71971ce33416cc87aa94bb84f41d4e05:docs/roadmap.md
 | R2c.1–10 and R2c.12–13 | [Continuity acceptance contract](library-continuity.md), subordinate to current ADRs |
 | R2c.11 per-slice remediation chronologies | The stage records above; exact earlier wording and measurements remain in the immutable Git source |
 | R3–R10 detailed scope and product value checkpoints | [Organization workflow requirements](../product/organization-workflows.md) |
+| Pre-freeze R2c queue and acceptance wording | [Roadmap at the frozen product commit](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md); the current roadmap records R2c closure and R3 preparation |
 | Section 7: large-library ladder | The evidence ladder below, with unchanged authorization boundaries |
 | Fixed queue, current blockers, required physical splits | [Current roadmap](../roadmap.md#current-execution-queue); detailed historical attribution in the interleaving ledger |
 | Bounded investigation, eight scenarios, budgets, cautions, exit rules | [R2c closeout execution](../plans/r2c-closeout.md), transferred as one complete procedure |
