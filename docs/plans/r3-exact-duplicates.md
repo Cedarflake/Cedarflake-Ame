@@ -47,7 +47,7 @@ reopening with zero additional content reads. Automated regressions await Action
 | Order | Delivery | Current state |
 | --- | --- | --- |
 | R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client check recorded, retained UI test interactions corrected, Actions running |
-| R3-02 | Maintain duplicate results through incremental changes | Automatic idle scheduling, foreground read priority and persisted pause implemented; incremental boundary regressions added; client startup reuse verified |
+| R3-02 | Maintain duplicate results through incremental changes | Committed; automatic idle scheduling, foreground read priority and persisted pause connected; client closed-process addition/removal and unchanged reuse verified; Actions and native pause-button check remain |
 | R3-03 | Connect both gallery display modes and duplicate badges | Queued after R3-02 |
 | R3-04 | Review groups and preserve preferred-copy/ignore decisions | Queued after R3-03 |
 | R3-05 | Complete affected client/performance verification and close R3 | Queued after R3-04 |

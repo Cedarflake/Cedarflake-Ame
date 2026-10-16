@@ -634,6 +634,11 @@ void main() {
         await nativeUiaProbe.checkpoint(tester, "settings-menu-open");
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await _pumpUntil(tester, () => lightThemeLabel.evaluate().isEmpty);
+        await tester.pumpAndSettle(
+          const Duration(milliseconds: 100),
+          EnginePhase.sendSemanticsUpdate,
+          const Duration(seconds: 5),
+        );
         expect(lightThemeLabel, findsNothing);
         await nativeUiaProbe.checkpoint(tester, "settings-menu-closed");
 

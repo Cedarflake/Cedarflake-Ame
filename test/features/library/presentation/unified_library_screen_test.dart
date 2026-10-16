@@ -44,7 +44,16 @@ void main() {
 
     await tester.pumpWidget(const ProviderScope(child: AmeApp()));
 
-    expect(find.text("图库"), findsNWidgets(2));
+    for (final key in const [
+      Key("library-function-rail"),
+      Key("library-sidebar-library"),
+      Key("library-gallery-header"),
+    ]) {
+      expect(
+        find.descendant(of: find.byKey(key), matching: find.text("图库")),
+        findsOneWidget,
+      );
+    }
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
     expect(find.text("Read-only validation"), findsNothing);
     expect(find.byKey(const Key("library-task-activity-button")), findsNothing);
@@ -760,9 +769,13 @@ void main() {
     final galleryTitle = tester.getRect(
       find.byKey(const Key("library-gallery-title")),
     );
-    expect(galleryHeader.left, 77);
+    final sidebar = tester.getRect(find.byKey(const Key("library-navigation")));
+    final toggle = tester.getRect(
+      find.byKey(const Key("library-sidebar-toggle")),
+    );
+    expect(galleryHeader.left, closeTo(sidebar.right, 0.1));
     expect(galleryHeader.right, 800);
-    expect(galleryTitle.left, 105);
+    expect(galleryTitle.left, closeTo(toggle.right + 8, 0.1));
   });
 
   testWidgets("shows scan controls in temporary import feedback", (

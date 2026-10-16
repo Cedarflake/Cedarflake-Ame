@@ -3,13 +3,16 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/library_duplicate_results_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_analysis_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_duplicates_page.dart";
 import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
 import "package:cedarflake_ame/features/library/adapters/windows_library_platform_actions.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
+import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -94,6 +97,67 @@ class _Service implements LibraryExactDuplicates {
 }
 
 void main() {
+  for (final saveFails in [false, true]) {
+    testWidgets(
+      "pause controls persist or restore their state (failure=$saveFails)",
+      (tester) async {
+        final service = _Service();
+        final analysis = LibraryExactAnalysisController(service);
+        final scheduler = LibraryExactAnalysisScheduler(analysis, paused: true);
+        final store = _PauseStore(saveFails: saveFails);
+        final container = ProviderContainer(
+          overrides: [
+            libraryControllerProvider.overrideWith(_EmptyLibraryController.new),
+            libraryExactDuplicatesProvider.overrideWithValue(service),
+            libraryExactAnalysisControllerProvider.overrideWithValue(analysis),
+            libraryExactAnalysisSchedulerProvider.overrideWithValue(scheduler),
+            initialAmePreferencesProvider.overrideWithValue(store.saved),
+            amePreferenceStoreProvider.overrideWithValue(store),
+          ],
+        );
+        addTearDown(() {
+          container.dispose();
+          scheduler.dispose();
+          analysis.dispose();
+          unawaited(service.events.close());
+        });
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: const MaterialApp(
+              home: LibraryAnalysisActivity(
+                child: Scaffold(body: LibraryExactDuplicatesPage()),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(find.text("已暂停查重"), findsOneWidget);
+        await tester.tap(find.widgetWithText(TextButton, "继续查重"));
+        await tester.pumpAndSettle();
+        expect(scheduler.isPaused, saveFails);
+        expect(
+          container.read(amePreferencesControllerProvider).exactAnalysisPaused,
+          saveFails,
+        );
+        if (saveFails) {
+          expect(store.saved.exactAnalysisPaused, isTrue);
+          expect(find.text("无法保存查重设置"), findsOneWidget);
+          expect(find.text("已暂停查重"), findsOneWidget);
+        } else {
+          expect(store.saved.exactAnalysisPaused, isFalse);
+          await tester.tap(find.widgetWithText(TextButton, "暂停查重"));
+          await tester.pumpAndSettle();
+          expect(scheduler.isPaused, isTrue);
+          expect(store.saved.exactAnalysisPaused, isTrue);
+          expect(find.text("已暂停查重"), findsOneWidget);
+        }
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
   test(
     "stopping before native admission is delivered after the first progress event",
     () async {
@@ -259,4 +323,21 @@ void main() {
 class _EmptyLibraryController extends LibraryController {
   @override
   LibraryState build() => const LibraryState();
+}
+
+class _PauseStore implements AmePreferenceStore {
+  _PauseStore({required this.saveFails});
+  final bool saveFails;
+  AmePreferences saved = const AmePreferences(exactAnalysisPaused: true);
+
+  @override
+  Future<AmePreferences> loadAmePreferences() async => saved;
+
+  @override
+  Future<void> saveAmePreferences(AmePreferences preferences) async {
+    if (saveFails) {
+      throw StateError("Controlled preference write failure");
+    }
+    saved = preferences;
+  }
 }
