@@ -1,5 +1,6 @@
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_motion.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -48,6 +49,40 @@ void main() {
       const Offset(0, 180),
     );
     expect(tester.binding.transientCallbackCount, 0);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
+
+  testWidgets("scroll end preserves reflow until a new user scroll", (
+    tester,
+  ) async {
+    final width = ValueNotifier(600.0);
+    final scroll = ScrollController();
+    addTearDown(width.dispose);
+    addTearDown(scroll.dispose);
+    await tester.pumpWidget(_fixture(width, scroll));
+    await tester.pumpAndSettle();
+    width.value = 360;
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 60));
+    final tile = find.byKey(const Key("photo-2"));
+    final middle = tester.getRect(tile);
+    final context = scroll.position.context.notificationContext!;
+    UserScrollNotification(
+      metrics: scroll.position,
+      context: context,
+      direction: ScrollDirection.idle,
+    ).dispatch(context);
+    await tester.pump();
+    expect(tester.getRect(tile), middle);
+    UserScrollNotification(
+      metrics: scroll.position,
+      context: context,
+      direction: ScrollDirection.reverse,
+    ).dispatch(context);
+    await tester.pump();
+    expect(tester.getTopLeft(tile), const Offset(0, 180));
+    expect(tester.binding.transientCallbackCount, 0);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });
 

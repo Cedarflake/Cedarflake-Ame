@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 
 import "library_sidebar_content.dart";
 
@@ -123,8 +124,14 @@ class _LayoutMotionState extends State<LibraryGalleryLayoutMotion>
     state: this,
     geometryIdentity: widget.geometryIdentity,
     child: NotificationListener<UserScrollNotification>(
-      onNotification: (_) {
-        _animation.value = 1;
+      onNotification: (notification) {
+        // Layout corrections can end wheel activity while the viewport lays out.
+        // Only a new user scroll interrupts reflow motion.
+        if (notification.depth == 0 &&
+            notification.direction != ScrollDirection.idle &&
+            _animation.isAnimating) {
+          _animation.value = 1;
+        }
         return false;
       },
       child: LibrarySidebarContent(child: widget.child),

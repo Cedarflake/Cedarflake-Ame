@@ -608,6 +608,13 @@ check their positions on every animation frame alongside the photo edge, toolbar
 The updated Debug client was checked with the retained gallery; its heading/count and photo wall
 follow the same collapsing boundary. The toolbar remains fixed. No data operation is introduced.
 
+Hosted verification exposed a layout-time interruption: recovered preview dimensions terminate
+wheel activity while the viewport lays out, sending an idle user-scroll notification. The motion
+owner now interrupts reflow only for an active user direction on its own scrollable. Idle activity
+does not change animation values or schedule a build during layout. Four motion cases and all 43
+screen cases pass, including both failing recovered-dimension paths and immediate interruption by
+new user scrolling. No anchor assertions, time limits or scrolling behavior were weakened.
+
 ## Source and merged image counts
 
 GalleryTimeline now returns the source count and displayed count from the same SQLite read
