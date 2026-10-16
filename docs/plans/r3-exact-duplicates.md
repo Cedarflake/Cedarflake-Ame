@@ -1,6 +1,6 @@
 # R3 exact duplicate implementation
 
-Status: R3-03 implementation and client check recorded; affected Actions verification in progress under the
+Status: R3-01 through R3-04 implementation and client checks recorded; affected Actions verification in progress under the
 [roadmap](../roadmap.md#current-execution-queue).
 
 Updated: 2026-10-16.

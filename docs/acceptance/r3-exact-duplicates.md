@@ -1,11 +1,12 @@
 # R3 exact-content verification
 
-Status: R3-01/02 client checks and R3-03 gallery-mode checks recorded; affected Actions verification remains open.
+Status: R3-01 through R3-04 client checks recorded; affected Actions verification remains open.
 
 Date: 2026-10-16.
 
 The [execution plan](../plans/r3-exact-duplicates.md) owns the live checkpoint. This record covers
-the implementation on `codex/r3-exact-duplicates`, based on `aeaec3d`. It does not close R3.
+the implementation on `codex/r3-exact-duplicates`. The initial controlled run began at `aeaec3d`;
+later sections cover subsequent deliveries. It does not close R3.
 
 ## Controlled client run
 
@@ -295,8 +296,26 @@ inline tests; it owns ordinal assignment and target-row lookup.
 The topology-only edit in `local_files.rs` changes its inline test declarations; it retains 3,694
 production lines, 3,512 inline-test lines and 436 dedicated-test lines without new production logic.
 
-R3 review persistence has a separate 262-line owner and 325 dedicated regression lines; its migration
+R3 review persistence has a separate 262-line owner and 329 dedicated regression lines; its migration
 has 77 dedicated test lines. The review page has 316 production lines and its controller 169, with
 260 dedicated controller/widget test lines. The shared preview coordinator has 317 production lines
 and 727 dedicated test lines. These owners have no inline tests. Analysis status, review cards,
 visible preview demand and viewer navigation are cohesive separate presentation owners.
+
+## Hosted closeout corrections
+
+The `36b11e8` run passed Windows Scan and Windows Accessibility. The Rust test build stopped at
+two review-test calls that passed a connection to a transaction-only helper. The no-op revision
+regression now reads its before/after values directly from the connection, retaining its assertions.
+Commit `9f4b0e7` carries that correction; its hosted results remain in progress.
+
+The schema-42 follow-up preserves the existing inventory and live-gap repair contracts. Their
+explicit supported-version ranges previously ended at 41, so current-schema recovery skipped
+those repairs before validating retained terminal state. Schema 42 changes neither contract's DDL.
+It now receives the same structure/marker checks, including damaged-trigger and incomplete-marker
+rejection; version 43 remains rejected. Historical downgrade fixtures and two current-version
+expectations also include schema 42. Existing current-schema repair tests exercise this admission
+through catalog reopening. These checks run in Actions without another local library or CI run.
+The repair-shape owner has 108 lines with no inline test cases and 55 dedicated test lines.
+The scan and incremental-change owners remain 749 and 1,504 lines; only schema expectations changed
+in their 5,516-line and 3,802-line dedicated test files, with no new application behavior.

@@ -32,7 +32,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2a | Accepted unified gallery and connected-control design | Accepted foundation |
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
-| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Active implementation preparation; R3-01 first |
+| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | R3-01 through R3-04 connected; affected verification and closure active |
 | R4 | Favorites, virtual albums, durable decisions, and resumable review sessions | Planned after R3 |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
@@ -48,8 +48,8 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**R2c is completed and frozen by the 2026-10-16 product decision. R3 is the active stage, beginning
-with implementation preparation.** The [R3 execution plan](plans/r3-exact-duplicates.md) owns the
+**R2c is completed and frozen by the 2026-10-16 product decision. R3 is the active stage, completing
+affected verification and closure.** The [R3 execution plan](plans/r3-exact-duplicates.md) owns the
 selected delivery details and live checkpoint. Its scope remains the full
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding).
 
