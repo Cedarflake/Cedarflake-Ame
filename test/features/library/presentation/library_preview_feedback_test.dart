@@ -2,6 +2,7 @@ import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_preview_feedback.dart";
 import "package:flutter/foundation.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -41,38 +42,53 @@ void main() {
     },
   );
 
-  testWidgets("narrow unrecognized media exposes its reason on keyboard focus", (
-    tester,
-  ) async {
-    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
-    final semantics = tester.ensureSemantics();
-    try {
-      await tester.pumpWidget(
-        _host(
-          size: const Size(48, 240),
-          child: LibraryPreviewFeedback.failed(
-            locationId: "narrow-format",
-            issueCode: "image_format_unsupported",
-            updateRequired: false,
-            onRetry: () {},
+  testWidgets(
+    "narrow unrecognized media keeps focus semantics and hover feedback",
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      final semantics = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(
+          _host(
+            size: const Size(48, 240),
+            child: LibraryPreviewFeedback.failed(
+              locationId: "narrow-format",
+              issueCode: "image_format_unsupported",
+              updateRequired: false,
+              onRetry: () {},
+            ),
           ),
-        ),
-      );
-      final label =
-          "${LibraryStrings.previewFormatUnrecognized}\n${LibraryStrings.retryPreview}";
-      expect(find.bySemanticsLabel(label), findsOneWidget);
-      await tester.sendKeyEvent(LogicalKeyboardKey.tab);
-      await tester.pumpAndSettle();
-      expect(find.text(label), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    } finally {
-      semantics.dispose();
-      debugDefaultTargetPlatformOverride = null;
-    }
-  });
+        );
+        final label =
+            "${LibraryStrings.previewFormatUnrecognized}\n${LibraryStrings.retryPreview}";
+        expect(find.bySemanticsLabel(label), findsOneWidget);
+        await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+        await tester.pumpAndSettle();
+        expect(find.text(label), findsNothing);
+        expect(find.bySemanticsLabel(label), findsOneWidget);
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        await mouse.addPointer(location: Offset.zero);
+        await mouse.moveTo(
+          tester.getCenter(
+            find.byKey(const ValueKey("preview-retry-narrow-format")),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
+        expect(find.text(label), findsOneWidget);
+        await mouse.removePointer();
+        await tester.pumpAndSettle();
+        expect(find.text(label), findsNothing);
+        expect(tester.takeException(), isNull);
+      } finally {
+        semantics.dispose();
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
 
   testWidgets(
-    "narrow update guidance remains readable on keyboard focus with one Retry action",
+    "narrow update guidance has hover text and one keyboard Retry action",
     (tester) async {
       debugDefaultTargetPlatformOverride = TargetPlatform.windows;
       final semantics = tester.ensureSemantics();
@@ -94,8 +110,20 @@ void main() {
         expect(find.bySemanticsLabel(label), findsOneWidget);
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         await tester.pumpAndSettle();
+        expect(find.text(label), findsNothing);
+        expect(find.bySemanticsLabel(label), findsOneWidget);
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        await mouse.addPointer(location: Offset.zero);
+        await mouse.moveTo(
+          tester.getCenter(find.byKey(const ValueKey("preview-retry-narrow"))),
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.pumpAndSettle();
         expect(find.text(label), findsOneWidget);
         expect(tester.getSize(find.text(label)).width, greaterThan(48));
+        await mouse.removePointer();
+        await tester.pumpAndSettle();
+        expect(find.text(label), findsNothing);
         await tester.sendKeyEvent(LogicalKeyboardKey.enter);
         await tester.pumpAndSettle();
         expect(retries, 1);

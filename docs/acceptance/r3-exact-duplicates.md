@@ -415,3 +415,16 @@ That run also identified one null-aware collection lint and an import-browsing f
 the hidden sidebar before the new opening transition advanced. The collection uses the required
 null-aware element; the fixture advances the transition before selecting the existing root, retaining
 its scan-continuity assertions. The affected sidebar resize cases passed in that hosted run.
+
+The `0ea6d9f` hosted Flutter job passed all 14 photo-tile cases and then exposed two preview-feedback
+tests still expecting focus-triggered tooltip text. They now assert accessible reason text with
+keyboard focus, hover-only visual feedback, removal on pointer exit, and the existing keyboard Retry
+action. All five focused feedback cases pass locally. This changes test expectations to the accepted
+tooltip behavior without reducing the interaction or accessibility checks.
+
+The same head's synthetic 10,000-file case reported a 67,174,400-byte catalog, exceeding its existing
+64-MiB ceiling by 65,536 bytes; the resumed catalog was 37,826,560 bytes. Its active/all-location,
+asset and cancelled-location counts passed before the size assertion. The failure remains open;
+the size ceiling is unchanged. Native scan, accessibility, unsigned Release and the other four
+synthetic workloads passed on that head. `213f10c` carries the review UI/continuity changes and has
+its own queued Actions run; those older results do not validate its changed inputs.
