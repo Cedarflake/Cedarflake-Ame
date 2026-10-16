@@ -68,9 +68,10 @@ shows every location; the second shows one scoped representative of each confirm
 Ordinary and not-yet-analysed images remain visible. Remember the user's display choice. Each
 confirmed duplicate card has a top-left stacked-image badge with its location count in either
 mode. The top-right selection checkbox keeps its existing independent action. Clicking the badge
-opens a card-anchored location list with separate filename and folder lines and a current-image
-marker; clicking a location reveals that file in File Explorer. Long
-paths remain readable, and locations outside the current folder are explicitly inspectable without
+opens a centered dialog with separate filename and folder lines and a current-image marker;
+clicking a location reveals that file in File Explorer. Long filenames and paths wrap completely
+inside the dialog's scrolling list; closing it retains the gallery position and returns focus to
+the badge when available. Locations outside the current folder are explicitly inspectable without
 widening the gallery selection scope.
 
 Cards reserve at least 128 logical pixels of width and enough measured space for the duplicate

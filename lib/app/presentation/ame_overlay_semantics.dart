@@ -77,7 +77,6 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   Timer? _hideTimer;
   OverlayEntry? _entry;
   bool _isPointerInside = false;
-  bool _hasFocus = false;
   bool _isLongPressActive = false;
   late final AnimationController _animationController;
   late final CurvedAnimation _opacityAnimation;
@@ -103,7 +102,6 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
     if (!TickerMode.valuesOf(context).enabled) {
       // A retained hidden target cannot finish a reverse animation while muted.
       _isPointerInside = false;
-      _hasFocus = false;
       _isLongPressActive = false;
       _removeImmediately();
     }
@@ -133,15 +131,6 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   void _handleExit(PointerExitEvent event) {
     _isPointerInside = false;
     _scheduleHide();
-  }
-
-  void _handleFocusChange(bool hasFocus) {
-    _hasFocus = hasFocus;
-    if (hasFocus) {
-      _showImmediately();
-    } else {
-      _scheduleHide();
-    }
   }
 
   void _handleLongPressStart(LongPressStartDetails details) {
@@ -187,7 +176,7 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   }
 
   void _scheduleHide() {
-    if (_isPointerInside || _hasFocus || _isLongPressActive) {
+    if (_isPointerInside || _isLongPressActive) {
       return;
     }
     _showTimer?.cancel();
@@ -315,21 +304,16 @@ class _AmeWindowsTooltipState extends State<_AmeWindowsTooltip>
   Widget build(BuildContext context) {
     return Semantics(
       tooltip: widget.message,
-      child: Focus(
-        canRequestFocus: false,
-        skipTraversal: true,
-        onFocusChange: _handleFocusChange,
-        child: GestureDetector(
-          behavior: HitTestBehavior.translucent,
-          excludeFromSemantics: true,
-          onLongPressStart: _handleLongPressStart,
-          onLongPressEnd: _handleLongPressEnd,
-          onLongPressCancel: _handleLongPressCancel,
-          child: MouseRegion(
-            onEnter: _handleEnter,
-            onExit: _handleExit,
-            child: widget.child,
-          ),
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        excludeFromSemantics: true,
+        onLongPressStart: _handleLongPressStart,
+        onLongPressEnd: _handleLongPressEnd,
+        onLongPressCancel: _handleLongPressCancel,
+        child: MouseRegion(
+          onEnter: _handleEnter,
+          onExit: _handleExit,
+          child: widget.child,
         ),
       ),
     );

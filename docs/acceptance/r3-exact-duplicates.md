@@ -319,3 +319,28 @@ through catalog reopening. These checks run in Actions without another local lib
 The repair-shape owner has 108 lines with no inline test cases and 55 dedicated test lines.
 The scan and incremental-change owners remain 749 and 1,504 lines; only schema expectations changed
 in their 5,516-line and 3,802-line dedicated test files, with no new application behavior.
+
+## Duplicate-location dialog
+
+The retained client exposed clipped paths and a close control outside the anchored menu surface.
+The badge now opens the SDK's centered `Dialog` through `showDialog`; ADR 0029 records the component
+choice and its 560-pixel maximum width. Filename and folder text wrap fully in this dialog, while
+review cards keep their compact presentation. The location query, availability rules, exact-file
+reveal action and bounded paging remain unchanged.
+
+The 10-case focused duplicate suite passes with dialog containment and long-path wrapping checked
+at 1000x760 and 400x600, including double text scaling in the narrow case. The assertions cover the
+rendered text and close-button bounds, scrolling to the row's final status, focus return, Escape,
+outside-click consumption, reveal arguments and retained accessibility updates.
+
+The shared Windows tooltip also no longer treats button focus as a visual trigger or a reason to
+keep the overlay visible. Two tooltip lifecycle cases pass, including autofocus without a popup,
+hover display, exit while the button remains focused, and the retained semantic tooltip. The
+duplicate-dialog cases assert no automatic close tooltip and no lingering badge tooltip on return.
+This owner now has 386 production lines, no inline tests and 134 dedicated lifecycle-test lines.
+
+The rebuilt Debug client reused `build/test` and the existing catalog. Its 150-location group was
+checked for complete path wrapping, fixed header/footer, next-page loading, list scrolling and
+Escape dismissal without moving the gallery. The updated test window remains available for visual
+review, so its active profile-restoration backup is retained until the session is closed. The
+change introduces no catalog migration, source read workflow or source mutation.

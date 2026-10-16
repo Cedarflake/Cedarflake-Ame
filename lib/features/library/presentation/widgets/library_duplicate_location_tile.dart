@@ -12,10 +12,12 @@ class LibraryDuplicateLocationTile extends ConsumerStatefulWidget {
   const LibraryDuplicateLocationTile({
     required this.location,
     this.isCurrent = false,
+    this.wrapPath = false,
     super.key,
   });
   final LibraryDuplicateLocation location;
   final bool isCurrent;
+  final bool wrapPath;
 
   @override
   ConsumerState<LibraryDuplicateLocationTile> createState() =>
@@ -60,38 +62,45 @@ class _LibraryDuplicateLocationTileState
       LibraryDuplicateAvailability.offline ||
       LibraryDuplicateAvailability.unavailable => false,
     };
-    return AmeTooltip(
-      message: location.displayPath,
-      child: ListTile(
-        key: ValueKey("duplicate-location-${location.locationId}"),
-        leading: const Icon(Symbols.folder_rounded),
-        title: Text(
-          displayLibraryFileName(path),
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (folder.isNotEmpty)
-              Text(folder, maxLines: 2, overflow: TextOverflow.ellipsis),
+    final tile = ListTile(
+      key: ValueKey("duplicate-location-${location.locationId}"),
+      leading: const Icon(Symbols.folder_rounded),
+      title: Text(
+        displayLibraryFileName(path),
+        maxLines: widget.wrapPath ? null : 1,
+        overflow: widget.wrapPath ? TextOverflow.clip : TextOverflow.ellipsis,
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (folder.isNotEmpty)
             Text(
-              [
-                if (widget.isCurrent) LibraryDuplicateStrings.currentImage,
-                LibraryDuplicateStrings.availability(location.availability),
-              ].join(" · "),
+              folder,
+              maxLines: widget.wrapPath ? null : 2,
+              overflow: widget.wrapPath
+                  ? TextOverflow.clip
+                  : TextOverflow.ellipsis,
             ),
-          ],
-        ),
-        onTap: available && !_opening ? _reveal : null,
-        trailing: AmeTooltip(
-          message: LibraryDuplicateStrings.revealLocation,
-          child: IconButton(
-            onPressed: available && !_opening ? _reveal : null,
-            icon: const Icon(Symbols.folder_open_rounded),
+          Text(
+            [
+              if (widget.isCurrent) LibraryDuplicateStrings.currentImage,
+              LibraryDuplicateStrings.availability(location.availability),
+            ].join(" · "),
           ),
+        ],
+      ),
+      onTap: available && !_opening ? _reveal : null,
+      trailing: AmeTooltip(
+        message: LibraryDuplicateStrings.revealLocation,
+        child: IconButton(
+          onPressed: available && !_opening ? _reveal : null,
+          icon: const Icon(Symbols.folder_open_rounded),
         ),
       ),
     );
+    if (widget.wrapPath) {
+      return tile;
+    }
+    return AmeTooltip(message: location.displayPath, child: tile);
   }
 }

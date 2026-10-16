@@ -5,7 +5,7 @@ import "package:material_symbols_icons/symbols.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_gallery_duplicates.dart";
 import "../library_duplicate_strings.dart";
-import "library_duplicate_locations_flyout.dart";
+import "library_duplicate_locations_dialog.dart";
 import "library_gallery_card_metrics.dart";
 
 class LibraryDuplicateBadge extends ConsumerStatefulWidget {
@@ -18,7 +18,6 @@ class LibraryDuplicateBadge extends ConsumerStatefulWidget {
 }
 
 class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
-  final _menu = MenuController();
   final _focus = FocusNode();
 
   @override
@@ -35,53 +34,40 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
       return const SizedBox.shrink();
     }
     return AmeOverlayTraversalBoundary(
-      child: MenuAnchor(
-        controller: _menu,
-        childFocusNode: _focus,
-        consumeOutsideTap: true,
-        useRootOverlay: true,
-        style: const MenuStyle(
-          padding: WidgetStatePropertyAll(EdgeInsets.zero),
-          alignment: AlignmentDirectional.bottomStart,
-        ),
-        menuChildren: [
-          LibraryDuplicateLocationsFlyout(
-            group: group,
-            currentLocationId: widget.locationId,
-            onClose: _menu.close,
+      child: AmeTooltip(
+        message:
+            "${LibraryDuplicateStrings.viewLocations} · ${LibraryDuplicateStrings.locations(group.locationCount)}",
+        child: TextButton.icon(
+          key: ValueKey("duplicate-badge-${widget.locationId}"),
+          focusNode: _focus,
+          style: TextButton.styleFrom(
+            backgroundColor: Theme.of(
+              context,
+            ).colorScheme.surface.withValues(alpha: 0.92),
+            foregroundColor: Theme.of(context).colorScheme.onSurface,
+            minimumSize: const Size(40, 36),
+            padding: const EdgeInsets.symmetric(
+              horizontal: LibraryGalleryCardMetrics.duplicateHorizontalPadding,
+            ),
+            textStyle: LibraryGalleryCardMetrics.badgeTextStyleOf(context),
           ),
-        ],
-        child: AmeTooltip(
-          message:
-              "${LibraryDuplicateStrings.viewLocations} · ${LibraryDuplicateStrings.locations(group.locationCount)}",
-          child: TextButton.icon(
-            key: ValueKey("duplicate-badge-${widget.locationId}"),
-            focusNode: _focus,
-            style: TextButton.styleFrom(
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surface.withValues(alpha: 0.92),
-              foregroundColor: Theme.of(context).colorScheme.onSurface,
-              minimumSize: const Size(40, 36),
-              padding: const EdgeInsets.symmetric(
-                horizontal:
-                    LibraryGalleryCardMetrics.duplicateHorizontalPadding,
+          onPressed: () async {
+            await showDialog<void>(
+              context: context,
+              builder: (_) => LibraryDuplicateLocationsDialog(
+                group: group,
+                currentLocationId: widget.locationId,
               ),
-              textStyle: LibraryGalleryCardMetrics.badgeTextStyleOf(context),
-            ),
-            onPressed: () {
-              if (_menu.isOpen) {
-                _menu.close();
-              } else {
-                _menu.open();
-              }
-            },
-            icon: const Icon(
-              Symbols.photo_library_rounded,
-              size: LibraryGalleryCardMetrics.duplicateIconExtent,
-            ),
-            label: Text("${group.locationCount}"),
+            );
+            if (context.mounted && TickerMode.valuesOf(context).enabled) {
+              _focus.requestFocus();
+            }
+          },
+          icon: const Icon(
+            Symbols.photo_library_rounded,
+            size: LibraryGalleryCardMetrics.duplicateIconExtent,
           ),
+          label: Text("${group.locationCount}"),
         ),
       ),
     );

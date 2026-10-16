@@ -1,5 +1,4 @@
 import "dart:async";
-import "dart:math" as math;
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -14,25 +13,23 @@ import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_location_tile.dart";
 
-class LibraryDuplicateLocationsFlyout extends ConsumerStatefulWidget {
-  const LibraryDuplicateLocationsFlyout({
+class LibraryDuplicateLocationsDialog extends ConsumerStatefulWidget {
+  const LibraryDuplicateLocationsDialog({
     required this.group,
     required this.currentLocationId,
-    required this.onClose,
     super.key,
   });
 
   final LibraryDuplicateGroup group;
   final String currentLocationId;
-  final VoidCallback onClose;
 
   @override
-  ConsumerState<LibraryDuplicateLocationsFlyout> createState() =>
-      _LibraryDuplicateLocationsFlyoutState();
+  ConsumerState<LibraryDuplicateLocationsDialog> createState() =>
+      _LibraryDuplicateLocationsDialogState();
 }
 
-class _LibraryDuplicateLocationsFlyoutState
-    extends ConsumerState<LibraryDuplicateLocationsFlyout> {
+class _LibraryDuplicateLocationsDialogState
+    extends ConsumerState<LibraryDuplicateLocationsDialog> {
   late final LibraryDuplicateResultsController _results;
 
   @override
@@ -49,7 +46,7 @@ class _LibraryDuplicateLocationsFlyoutState
   }
 
   @override
-  void didUpdateWidget(covariant LibraryDuplicateLocationsFlyout oldWidget) {
+  void didUpdateWidget(covariant LibraryDuplicateLocationsDialog oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.group.digest != oldWidget.group.digest ||
         widget.group.byteLength != oldWidget.group.byteLength) {
@@ -65,62 +62,66 @@ class _LibraryDuplicateLocationsFlyoutState
 
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.sizeOf(context);
-    return SizedBox(
-      key: const Key("duplicate-locations-flyout"),
-      width: math.min(520, math.max(0, size.width - 32)),
-      height: math.min(400, math.max(0, size.height - 32)),
-      child: ListenableBuilder(
-        listenable: _results,
-        builder: (context, _) => Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      LibraryDuplicateStrings.viewLocations,
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                  ),
-                  AmeTooltip(
-                    message: LibraryDuplicateStrings.close,
-                    child: IconButton(
-                      key: const Key("duplicate-locations-close"),
-                      autofocus: true,
-                      onPressed: widget.onClose,
-                      icon: const Icon(Symbols.close_rounded),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Divider(height: 1),
-            Expanded(child: _buildLocations()),
-            if (_results.canPrevious || _results.canNext)
+    return Dialog(
+      constraints: const BoxConstraints(maxWidth: 560),
+      insetPadding: const EdgeInsets.all(24),
+      clipBehavior: Clip.antiAlias,
+      child: SizedBox(
+        key: const Key("duplicate-locations-dialog"),
+        width: 560,
+        height: 520,
+        child: ListenableBuilder(
+          listenable: _results,
+          builder: (context, _) => Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
               Padding(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    TextButton(
-                      onPressed: !_results.loading && _results.canPrevious
-                          ? _results.previous
-                          : null,
-                      child: const Text(LibraryDuplicateStrings.previous),
+                    Expanded(
+                      child: Text(
+                        LibraryDuplicateStrings.viewLocations,
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
                     ),
-                    TextButton(
-                      onPressed: !_results.loading && _results.canNext
-                          ? _results.next
-                          : null,
-                      child: const Text(LibraryDuplicateStrings.next),
+                    AmeTooltip(
+                      message: LibraryDuplicateStrings.close,
+                      child: IconButton(
+                        key: const Key("duplicate-locations-close"),
+                        autofocus: true,
+                        onPressed: () => Navigator.of(context).pop(),
+                        icon: const Icon(Symbols.close_rounded),
+                      ),
                     ),
                   ],
                 ),
               ),
-          ],
+              const Divider(height: 1),
+              Expanded(child: _buildLocations()),
+              if (_results.canPrevious || _results.canNext)
+                Padding(
+                  padding: const EdgeInsets.all(8),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: !_results.loading && _results.canPrevious
+                            ? _results.previous
+                            : null,
+                        child: const Text(LibraryDuplicateStrings.previous),
+                      ),
+                      TextButton(
+                        onPressed: !_results.loading && _results.canNext
+                            ? _results.next
+                            : null,
+                        child: const Text(LibraryDuplicateStrings.next),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -156,6 +157,7 @@ class _LibraryDuplicateLocationsFlyoutState
           return LibraryDuplicateLocationTile(
             location: location,
             isCurrent: location.locationId == widget.currentLocationId,
+            wrapPath: true,
           );
         },
       ),

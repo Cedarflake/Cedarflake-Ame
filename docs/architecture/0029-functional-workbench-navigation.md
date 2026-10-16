@@ -32,17 +32,21 @@ group inspection and durable decisions belong to the Duplicates workspace. Both 
 analysis service. Exact evidence and later perceptual candidates remain distinct.
 
 The gallery uses the existing `AmePopupMenuButton` around Flutter's `showMenu` and
-`CheckedPopupMenuItem` for its two display choices. A `MenuAnchor` attached to the duplicate badge
-hosts a bounded location panel with a lazy `ListView`. Its SDK-owned positioning flips the panel
-at window edges; Escape, outside-click dismissal, focus return and ancestor-scroll retirement stay
-with the framework. `RawMenuAnchor` alone was rejected because it does not own menu focus or
-semantics. A centered `AlertDialog` unnecessarily separates these locations from their photo.
-These APIs are present in the pinned Flutter 3.44.9 SDK. Material's
+`CheckedPopupMenuItem` for its two display choices. The duplicate badge opens a centered `Dialog`
+through `showDialog`, with a lazy `ListView` and bounded paging. Long filenames and folder paths
+wrap completely within the available width. The previous anchored menu constrained this richer
+content and clipped paths and controls; reading multiple locations needs a stable dialog surface.
+The pinned Flutter 3.44.9 SDK provides dialog constraints, safe-area/inset handling, modal dismissal
+and closed-loop focus traversal. Use a maximum width of 560 logical pixels and fit the height to
+the window; keep the title, close button and paging controls outside the scrolling list. Restore
+focus to the badge when it remains mounted in the visible workspace. `AlertDialog` was considered;
+`Dialog` permits the existing lazy list and paging footer without intrinsic list sizing.
+Material's
 [menu](https://m3.material.io/components/menus/guidelines) and
 [dialog](https://m3.material.io/components/dialogs/guidelines) contracts supply focus, dismissal and
 choice behavior. Ame supplies query scope, persisted display preference, duplicate badges,
-filename/folder presentation, current-location marking and 64-location paging. The content panel
-fits within the viewport; no second positioning, focus or scrolling implementation is added.
+filename/folder presentation, current-location marking and 64-location paging. The dialog retains
+the gallery's browsing position; no second positioning, focus or scrolling implementation is added.
 
 ## Alternatives and consequences
 

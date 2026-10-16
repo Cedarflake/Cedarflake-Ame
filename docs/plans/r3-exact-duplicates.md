@@ -48,9 +48,10 @@ when the gallery is hidden; the focused regression and native menu-close/return-
 The hosted native, scan, release and synthetic checks passed on `515f5e6`. Its two analyzer findings
 and three gallery regressions are corrected: rows retain exact item ordinals, and dimension recovery
 checks rendered card widths. The content-sized card controls also passed the isolated client check.
-The card badge now opens an anchored location panel with separate file/folder lines and a current
-image marker. Focused placement, dismissal and native upward-edge opening checks pass. Group review
-now connects visible image previews, the existing viewer and durable preferred-copy/ignore choices.
+The card badge opens a centered location dialog with fully wrapping file/folder lines and a current
+image marker. This replaces the anchored menu after long paths and controls were clipped in the
+client. Narrow-window/text-scaling checks and native paging, scrolling and dismissal checks pass.
+Group review connects visible image previews, the existing viewer and durable preferred-copy/ignore choices.
 Native checks reused the 10,000-file corpus, including preference/ignore retention after restart.
 The current head still requires its applicable Actions results.
 
