@@ -87,7 +87,39 @@ void main() {
     expect(fixture.controller.offset, isNot(1800));
   });
 
-  for (final change in ["query", "empty", "layout", "controller"]) {
+  testWidgets("layout replacement retains paint and retires old slider input", (
+    tester,
+  ) async {
+    final fixture = _PublicationFixture(tester);
+    await fixture.show();
+    final marker = find.byKey(const Key("timeline-current-line"));
+    final element = tester.element(marker);
+    final oldSlider = tester.widget<Slider>(
+      find.byKey(const Key("timeline-slider")),
+    );
+    await fixture.show(
+      hasGeometry: false,
+      shape: GalleryLayoutShape.equalHeight,
+    );
+    expect(tester.element(marker), same(element));
+    expect(
+      tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).onChanged,
+      isNull,
+    );
+    oldSlider.onChanged?.call(0.1);
+    oldSlider.onChangeEnd?.call(0.1);
+    await tester.pump();
+    expect(fixture.controller.offset, 0);
+    expect(fixture.seeks, 0);
+    await fixture.show(shape: GalleryLayoutShape.equalHeight);
+    expect(tester.element(marker), same(element));
+    expect(
+      tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).onChanged,
+      isNotNull,
+    );
+  });
+
+  for (final change in ["query", "empty", "controller"]) {
     testWidgets("does not retain a rail across a $change change", (
       tester,
     ) async {

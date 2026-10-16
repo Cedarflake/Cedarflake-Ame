@@ -408,8 +408,24 @@ Review preview previously used the default Material page animation. Its route no
 gallery's fade component, 180-ms entry, 100-ms exit and immediate reduced-motion behavior. Pointer
 input finishes entry immediately. Sixteen focused route, gallery-transition, review and viewer
 checks pass, covering stationary content bounds during the fade, retained review choices, adjacent
-catalog batches, source-read retirement and late completions. The shared motion owner has 57
-production lines and 73 dedicated route-test lines, with no inline tests.
+catalog batches, source-read retirement and late completions. The shared motion owner has 55
+production lines and 72 dedicated route-test lines, with no inline tests.
+
+Timeline decorations retain their keyed elements across layout changes and use Flutter's
+AnimatedPositioned for 180-ms geometry transitions. The installed SDK's implicit-animation owner
+retargets from its displayed position; its Material Slider remains the input primitive. The
+[Material slider reference](https://m3.material.io/components/sliders/overview) requires JavaScript;
+the installed Slider implementation and [AnimatedPositioned API](https://api.flutter.dev/flutter/widgets/AnimatedPositioned-class.html)
+were inspected directly. The product-specific gap is motion of the surrounding date annotations,
+not slider input. Geometry identity separates layout movement from immediate scroll-value updates.
+Only slider identity resets on layout/revision changes, retiring old pointers while retaining paint.
+Eight motion cases, nine existing rail cases and six publication cases pass, including reduced
+motion, rapid reversal, scroll interruption, linear final placement and rejection of stale input.
+The rail has 451 production lines, presentation 124 and motion owner 79; the dedicated motion file
+has 138 test lines. None of these production owners has inline tests.
+The updated Debug reused the retained 72-group catalog. Native collapse/expand checks preserved the
+right rail and toolbar edge while the date distribution changed; per-frame interpolation and input
+timing are established by the focused widget cases above.
 
 The reported preference-switch flash was traced to the preference transaction advancing the catalog
 revision, followed by the gallery refresh notifying a review listener that cleared member payloads.

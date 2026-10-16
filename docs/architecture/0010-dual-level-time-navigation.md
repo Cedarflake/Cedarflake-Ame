@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-08
-- Last amended: 2026-10-14
+- Last amended: 2026-10-17
 - Supersedes: the earlier dual-level navigation and annotation-cluster experiments
 
 ## Context
@@ -76,6 +76,11 @@ without introducing a second scroll state.
   visual thumb and track are hidden.
 - A fixed-height primary-color line visualizes the real current position. It is passive and does not
   own a second drag state.
+- Geometry changes interpolate existing annotation and position-line rectangles over 180 ms using
+  Flutter AnimatedPositioned. This visual interpolation has no scroll/query authority; wheel,
+  keyboard and direct slider input update the line immediately. Reduced motion skips interpolation.
+  Layout replacement retains the last painted rail with disabled input until its new frame arrives;
+  only the Slider subtree resets to retire old pointers, preserving annotation animation identity.
 - Pointer hover shows a fixed-height neutral preview line and the detail label for the corresponding
   gallery offset while the rail is idle. Starting direct manipulation removes the neutral preview;
   during the drag, one detail label follows the primary current-position line instead. Ending the

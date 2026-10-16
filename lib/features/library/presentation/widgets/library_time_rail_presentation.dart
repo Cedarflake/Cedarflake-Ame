@@ -56,7 +56,6 @@ class _LibraryTimeRailPresentationState
   void didUpdateWidget(covariant LibraryTimeRailPresentation oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.timeline?.queryId != widget.timeline?.queryId ||
-        oldWidget.layoutShape != widget.layoutShape ||
         oldWidget.scrollController != widget.scrollController ||
         widget.timeline == null ||
         widget.timeline!.buckets.isEmpty) {
@@ -88,40 +87,38 @@ class _LibraryTimeRailPresentationState
     // Material retains an active pointer across disabled/enabled updates. Retire
     // that interaction when its catalog/layout owner changes, even if its last
     // frame remains visible while replacement geometry is pending.
-    return KeyedSubtree(
-      key: ValueKey((
+    return AnnotatedTimeRail(
+      interactionKey: ValueKey((
         widget.timeline?.revision,
         widget.timeline?.queryId,
         widget.layoutShape,
         widget.scrollController,
       )),
-      child: AnnotatedTimeRail(
-        key: const Key("library-time-rail"),
-        value: frame.value,
-        maximumScrollOffset: frame.projection.maximumOffset,
-        buckets: frame.projection.railBuckets,
-        projection: frame.projection.projection,
-        onChangeStart: hasCurrentGeometry
-            ? (value) {
-                if (_ownsInput(frame)) widget.onChangeStart(value);
-              }
-            : null,
-        onChanged: hasCurrentGeometry
-            ? (value) {
-                if (_ownsInput(frame)) widget.onChanged?.call(value);
-              }
-            : null,
-        onChangeEnd: hasCurrentGeometry
-            ? (value) {
-                if (_ownsInput(frame)) widget.onChangeEnd?.call(value);
-              }
-            : null,
-        onStep: hasCurrentGeometry
-            ? (direction) {
-                if (_ownsInput(frame)) widget.onStep?.call(direction);
-              }
-            : null,
-      ),
+      key: const Key("library-time-rail"),
+      value: frame.value,
+      maximumScrollOffset: frame.projection.maximumOffset,
+      buckets: frame.projection.railBuckets,
+      projection: frame.projection.projection,
+      onChangeStart: hasCurrentGeometry
+          ? (value) {
+              if (_ownsInput(frame)) widget.onChangeStart(value);
+            }
+          : null,
+      onChanged: hasCurrentGeometry
+          ? (value) {
+              if (_ownsInput(frame)) widget.onChanged?.call(value);
+            }
+          : null,
+      onChangeEnd: hasCurrentGeometry
+          ? (value) {
+              if (_ownsInput(frame)) widget.onChangeEnd?.call(value);
+            }
+          : null,
+      onStep: hasCurrentGeometry
+          ? (direction) {
+              if (_ownsInput(frame)) widget.onStep?.call(direction);
+            }
+          : null,
     );
   }
 }

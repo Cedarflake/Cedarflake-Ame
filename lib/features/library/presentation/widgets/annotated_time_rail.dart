@@ -5,6 +5,7 @@ import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "timeline_linear_projection.dart";
 import "timeline_rail_layout.dart";
 import "timeline_rail_model.dart";
+import "timeline_rail_motion.dart";
 import "vertical_material_timeline_slider.dart";
 
 export "timeline_rail_model.dart"
@@ -20,6 +21,7 @@ class AnnotatedTimeRail extends StatefulWidget {
     this.onChangeStart,
     this.onChangeEnd,
     this.onStep,
+    this.interactionKey,
     super.key,
   });
 
@@ -31,6 +33,7 @@ class AnnotatedTimeRail extends StatefulWidget {
   final ValueChanged<double>? onChangeStart;
   final ValueChanged<double>? onChangeEnd;
   final ValueChanged<int>? onStep;
+  final Key? interactionKey;
 
   static const double width = 80;
 
@@ -54,7 +57,8 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
   @override
   void didUpdateWidget(covariant AnnotatedTimeRail oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.onChanged == null) {
+    if (widget.onChanged == null ||
+        widget.interactionKey != oldWidget.interactionKey) {
       _hoverValue = null;
       _isDragging = false;
     }
@@ -91,6 +95,11 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             Expanded(
               child: LayoutBuilder(
                 builder: (context, constraints) {
+                  final geometry = TimelineRailGeometry(
+                    extent: constraints.maxHeight,
+                    maximumOffset: projection.maximumOffset,
+                    anchors: anchors,
+                  );
                   final layout = TimelineRailLayout(
                     anchors: anchors,
                     railExtent: constraints.maxHeight,
@@ -126,6 +135,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                             bottom: 0,
                             width: _controlWidth,
                             child: VerticalMaterialTimelineSlider(
+                              key: widget.interactionKey,
                               value: widget.value,
                               endpointInset: _endpointInset,
                               onChangeStart: widget.onChanged == null
@@ -151,11 +161,13 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                             value: widget.value,
                             railHeight: constraints.maxHeight,
                             color: colorScheme.primary,
+                            geometry: geometry,
                           ),
                           for (final anchor in anchors)
                             ..._buildAnnotation(
                               context,
                               anchor: anchor,
+                              geometry: geometry,
                               railHeight: constraints.maxHeight,
                               visualValue: anchor.value,
                               hasLabel: layout.labelIds.contains(
@@ -226,6 +238,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
   List<Widget> _buildAnnotation(
     BuildContext context, {
     required TimelineRailAnchor anchor,
+    required TimelineRailGeometry geometry,
     required double railHeight,
     required double visualValue,
     required bool hasLabel,
@@ -233,12 +246,16 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
     required bool isCurrent,
   }) {
     final markerCenter = _topForValue(visualValue, railHeight);
-    final marker = Positioned(
+    final marker = TimelineRailPosition(
       key: ValueKey("time-marker-${anchor.bucket.id}"),
-      left: _axisX - (_markerExtent / 2),
-      top: markerCenter - (_markerExtent / 2),
-      width: _markerExtent,
-      height: _markerExtent,
+      geometry: geometry,
+      isInteracting: _isDragging,
+      rect: Rect.fromLTWH(
+        _axisX - (_markerExtent / 2),
+        markerCenter - (_markerExtent / 2),
+        _markerExtent,
+        _markerExtent,
+      ),
       child: IgnorePointer(
         child: DecoratedBox(
           decoration: BoxDecoration(
@@ -256,12 +273,16 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
     }
     return [
       if (hasMarker) marker,
-      Positioned(
+      TimelineRailPosition(
         key: ValueKey("time-label-${anchor.bucket.id}"),
-        left: 2,
-        top: markerCenter - (_labelExtent / 2),
-        width: 40,
-        height: _labelExtent,
+        geometry: geometry,
+        isInteracting: _isDragging,
+        rect: Rect.fromLTWH(
+          2,
+          markerCenter - (_labelExtent / 2),
+          40,
+          _labelExtent,
+        ),
         child: AmeTooltip(
           message: anchor.bucket.label,
           child: Align(
@@ -279,26 +300,36 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
     ];
   }
 
-  Positioned _buildPositionLine({
+  Widget _buildPositionLine({
     required Key key,
     required double value,
     required double railHeight,
     required Color color,
+    TimelineRailGeometry? geometry,
   }) {
-    return Positioned(
-      key: key,
-      left: _axisX - (_positionLineWidth / 2),
-      top: _topForValue(value, railHeight) - (_positionLineHeight / 2),
-      width: _positionLineWidth,
-      height: _positionLineHeight,
-      child: IgnorePointer(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(_positionLineHeight / 2),
-          ),
+    final rect = Rect.fromLTWH(
+      _axisX - (_positionLineWidth / 2),
+      _topForValue(value, railHeight) - (_positionLineHeight / 2),
+      _positionLineWidth,
+      _positionLineHeight,
+    );
+    final line = IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(_positionLineHeight / 2),
         ),
       ),
+    );
+    if (geometry == null) {
+      return Positioned.fromRect(key: key, rect: rect, child: line);
+    }
+    return TimelineRailPosition(
+      key: key,
+      rect: rect,
+      geometry: geometry,
+      isInteracting: _isDragging,
+      child: line,
     );
   }
 

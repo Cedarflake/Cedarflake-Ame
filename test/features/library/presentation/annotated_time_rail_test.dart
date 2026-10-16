@@ -236,6 +236,7 @@ void main() {
           ),
         ),
       );
+      await tester.pump(const Duration(milliseconds: 180));
       expect(find.byKey(const ValueKey("time-label-crowded")), findsNothing);
       final region = tester.getRect(
         find.byKey(const Key("timeline-hover-region")),
