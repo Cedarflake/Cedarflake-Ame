@@ -55,6 +55,11 @@ class SharedPreferencesAmeStore
         value["sortDirection"],
         LibraryGallerySortDirection.descending,
       ),
+      duplicateMode: _enumByName(
+        LibraryGalleryDuplicateMode.values,
+        value["duplicateMode"],
+        LibraryGalleryDuplicateMode.merged,
+      ),
     );
   }
 
@@ -146,6 +151,7 @@ class SharedPreferencesAmeStore
         "thumbnailSize": preferences.thumbnailSize.name,
         "sortKey": preferences.sortKey.name,
         "sortDirection": preferences.sortDirection.name,
+        "duplicateMode": preferences.duplicateMode.name,
       }),
     );
   }

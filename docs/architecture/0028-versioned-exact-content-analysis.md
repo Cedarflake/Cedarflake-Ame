@@ -57,6 +57,16 @@ results survive cancellation, failure and restart. Human decisions are stored se
 - Exact groups are query projections over current locations and compatible evidence. They do not
   merge asset IDs. Unavailable roots retain last-known locations; unavailable content is never
   opened or downloaded merely to complete analysis.
+- Gallery membership uses a separately published projection of complete fingerprints. A terminal
+  analysis transaction admits retained complete evidence and advances the catalog revision once
+  when the projection changes. Per-file evidence writes cannot change gallery counts or cursor
+  membership. Schema 41 admits existing complete evidence without rereading sources; source
+  identity/revision checks still invalidate changed or removed locations immediately. A subsequent
+  zero-read analysis may observe that revision; it cannot advance the revision again unchanged.
+  After the native analysis stream retires, the application requests a committed gallery refresh.
+  The existing query-publication coordinator preserves newer user queries and viewport anchors;
+  overlapping analysis completions coalesce behind the active refresh. Zero-read terminal runs
+  also refresh because they can admit evidence retained by an interrupted process.
 
 ## Group and query semantics
 

@@ -31,6 +31,14 @@ The gallery filter owns All images and Merge duplicates. Duplicate-only browsing
 group inspection and durable decisions belong to the Duplicates workspace. Both consume one typed
 analysis service. Exact evidence and later perceptual candidates remain distinct.
 
+The gallery uses the existing `AmePopupMenuButton` around Flutter's `showMenu` and
+`CheckedPopupMenuItem` for its two display choices, and `AlertDialog` with a lazy `ListView` for
+bounded location inspection. These APIs are present in the pinned Flutter 3.44.9 SDK. Material's
+[menu](https://m3.material.io/components/menus/guidelines) and
+[dialog](https://m3.material.io/components/dialogs/guidelines) contracts supply focus, dismissal and
+choice behavior. Ame supplies query scope, persisted display preference, duplicate badges and
+64-location paging; it does not implement another menu, dialog or scrolling system.
+
 ## Alternatives and consequences
 
 Keeping all analysis inside the filter makes a growing workflow difficult to discover. A separate

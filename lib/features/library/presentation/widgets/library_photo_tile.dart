@@ -14,6 +14,7 @@ import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_image_reveal.dart";
+import "library_duplicate_badge.dart";
 import "library_preview_feedback.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
@@ -155,6 +156,13 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                       fit: StackFit.expand,
                       children: [
                         _buildPreview(context),
+                        Positioned(
+                          top: 4,
+                          left: 4,
+                          child: LibraryDuplicateBadge(
+                            locationId: widget.asset.locationId,
+                          ),
+                        ),
                         if (isSelectionVisible)
                           Positioned(
                             right: 4,

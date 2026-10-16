@@ -194,3 +194,45 @@ class ExactDuplicateLocationPage {
           locations == other.locations &&
           nextLocationId == other.nextLocationId;
 }
+
+class GalleryDuplicateAnnotation {
+  final String locationId;
+  final ExactDuplicateGroup group;
+
+  const GalleryDuplicateAnnotation({
+    required this.locationId,
+    required this.group,
+  });
+
+  @override
+  int get hashCode => locationId.hashCode ^ group.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryDuplicateAnnotation &&
+          runtimeType == other.runtimeType &&
+          locationId == other.locationId &&
+          group == other.group;
+}
+
+class GalleryDuplicatePage {
+  final BigInt revision;
+  final List<GalleryDuplicateAnnotation> annotations;
+
+  const GalleryDuplicatePage({
+    required this.revision,
+    required this.annotations,
+  });
+
+  @override
+  int get hashCode => revision.hashCode ^ annotations.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryDuplicatePage &&
+          runtimeType == other.runtimeType &&
+          revision == other.revision &&
+          annotations == other.annotations;
+}

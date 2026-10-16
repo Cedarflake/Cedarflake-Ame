@@ -12,6 +12,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   const LibraryGalleryHeader({
     required this.galleryTitle,
     this.leading,
+    this.filter,
     required this.totalItems,
     required this.selectedCount,
     required this.isSelecting,
@@ -31,6 +32,7 @@ class LibraryGalleryHeader extends StatelessWidget {
 
   final String galleryTitle;
   final Widget? leading;
+  final Widget? filter;
   final int totalItems;
   final int selectedCount;
   final bool isSelecting;
@@ -88,6 +90,7 @@ class LibraryGalleryHeader extends StatelessWidget {
               final toolbar = isSelecting
                   ? _SelectionToolbar(onCancel: onCancelSelection)
                   : _BrowsingToolbar(
+                      filter: filter,
                       layoutShape: layoutShape,
                       thumbnailSize: thumbnailSize,
                       sortKey: sortKey,
@@ -149,6 +152,7 @@ class LibraryGalleryHeader extends StatelessWidget {
 
 class _BrowsingToolbar extends StatelessWidget {
   const _BrowsingToolbar({
+    this.filter,
     required this.layoutShape,
     required this.thumbnailSize,
     required this.sortKey,
@@ -161,6 +165,7 @@ class _BrowsingToolbar extends StatelessWidget {
     required this.onSortDirectionChanged,
   });
 
+  final Widget? filter;
   final GalleryLayoutShape layoutShape;
   final GalleryThumbnailSize thumbnailSize;
   final LibraryGallerySortKey sortKey;
@@ -190,6 +195,7 @@ class _BrowsingToolbar extends StatelessWidget {
           onSortKeyChanged: onSortKeyChanged,
           onDirectionChanged: onSortDirectionChanged,
         ),
+        if (filter != null) filter!,
         _LayoutMenu(
           shape: layoutShape,
           size: thumbnailSize,

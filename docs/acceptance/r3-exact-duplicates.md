@@ -1,6 +1,6 @@
 # R3 exact-content verification
 
-Status: R3-01 client verification and R3-02 automatic-start check recorded; Actions pending.
+Status: R3-01/02 client checks and R3-03 gallery-mode checks recorded; affected Actions verification remains open.
 
 Date: 2026-10-16.
 
@@ -63,8 +63,8 @@ checks used controlled files; no real source roots or cloud placeholders were in
 
 Workspace retention, hidden preview-demand retirement, focus, narrow-window controls, persisted
 sidebar preference and Explorer invocation regressions are included for Actions. Native narrow-window
-resizing was not established by this check. Gallery folding/badges and durable preferred-copy/ignore
-decisions remain subsequent deliveries in the execution plan.
+resizing was not established by this check. The later gallery-mode check below covers folding and
+badges. Durable preferred-copy/ignore decisions remain R3-04 in the execution plan.
 
 ## Automatic scheduling check
 
@@ -91,22 +91,74 @@ including stale evidence rejection and unchanged-fingerprint reuse after reopeni
 their execution; they have not been run as a local CI suite.
 
 The Windows interaction tool repeatedly failed with `foreground window did not report a process id`,
-including after the window was manually brought forward. Pause/resume button interaction remains
-unverified in this run. The owned idle test process was terminated for cleanup, so this run does
+including after the window was manually brought forward. Pause/resume button interaction was
+unverified in that run and was subsequently checked below. The owned idle test process was terminated for cleanup, so that run does
 not verify graceful analysis shutdown. Original configuration and catalog hashes were restored and
 verified; temporary profile backups and preview cache were removed, retaining the shared corpus
 and test catalog.
 
-For commit `517b5ea`, hosted Windows Scan passed. Flutter's narrow import-navigation fixture still
-addressed the removed compact sidebar; the native accessibility fixture hit the failed-preview
-Retry button instead of the image. Commit `7429a0b` updates these interactions while retaining their
-workflow assertions. Its hosted results remain pending.
+For commit `b017ab1`, hosted Windows Scan, Unsigned Release and all five synthetic workloads passed.
+Flutter reported two workbench tests that still searched for Flutter's raw `Tooltip` after the
+control moved to the existing Windows-compatible `AmeTooltip`. Their actions now use the stable
+sidebar-toggle key, and their label assertions inspect the shared tooltip. The native accessibility
+check still fails after closing the Settings theme menu: Flutter's route is closed and the Settings
+page is hit-testable, while native UIA reports an empty popup subtree. A reachable Flutter-semantics
+assertion now distinguishes framework restoration from native export before the unchanged UIA
+contract runs. Static and Rust subsequently finished with 1,911 passed, 64 failed and 24 ignored
+tests. The failing logs include closed module-topology declarations, fingerprint-publication fixtures
+and historical-schema fixtures; these are being traced to their owning contracts. The new head
+requires its own Actions results.
+
+## Gallery modes and automatic publication
+
+The retained test catalog upgraded from schema 40 to 41 without reading source content. The
+independent existing manifest has 10,000 files and 72 unique digest/length pairs. The updated Debug
+client showed 10,000 entries in All images and 72 in Merge duplicates, with duplicate badges in
+both modes. A 600-location badge opened a bounded path dialog; its location action opened Explorer
+in the fixture folder. Closing the dialog retained the gallery position. Sorting and dates follow
+the scoped representative, so switching modes can change the displayed date; hidden-member anchor
+mapping is covered by the query regression, not claimed as an instrumented native anchor check.
+
+Native pause changed the page to the paused state without removing stored results. After graceful
+exit and reopening, pause and the merged display preference remained selected. Continue returned
+to completed analysis. A subsequent check exercised gallery publication after new analysis:
+
+- With analysis paused, two 494,579-byte copies were added within the same reusable source root.
+  Ordinary synchronization admitted them, and the merged gallery showed 74 entries while they
+  remained unanalysed.
+- Continuing analysis read exactly those two files, 989,158 bytes, with no skips in 91 ms according
+  to persisted analysis timestamps. The gallery returned to 72 entries through its committed query
+  refresh without a manual library update. The following unchanged run read zero bytes in 82 ms.
+  These durations measure analysis, not end-to-end synchronization or application startup.
+- Both temporary copies matched the original fixture digest before removal; the original fixture
+  was unchanged. The existing 10,000-file corpus and retained catalog are reused throughout.
+
+Regressions cover atomic evidence admission and revision change, publication rollback, stale
+cursors and annotation requests, scoped representatives, page/timeline/layout consistency, hidden
+anchors, hardlinks, multiple volumes, changed/removed members, persisted display mode, bounded
+annotation batches and retired responses. Analysis-to-gallery publication also covers terminal
+stream retirement, retained zero-read evidence, coalesced completions and disposal. Actions owns
+automated execution; local checks are formatting, diff review and the affected Debug client.
+
+One earlier test process terminated in `flutter_windows.dll` at offset `0x3e755`, with Windows
+Application events `0xc0000005` and `0xc000041d` after a native accessibility capture. A later process
+completed the 74-to-72 publication and removal of both temporary catalog locations, then also exited
+unexpectedly. Its stderr records rejected `ui::AXTree` updates, including an unreachable node and
+nodes left pending. A fresh client reproduced the Settings-menu accessibility failure: after Escape,
+the page remained visible, while UIA retained an empty popup subtree and the engine rejected an
+unreachable node. Adding a workspace semantics boundary did not resolve it and was removed.
+The framework-only Windows traversal and serialized-update fixtures passed; the discrepancy with
+the native bridge remains under diagnosis. No cause is inferred for the older deferred R2c incident.
+
+The latest isolated client exited on request. Original preferences, settings and original catalog
+hashes were restored and verified, then disposable profile copies and preview caches were removed.
+The reusable corpus and catalog, plus the logs of the native failure, remain available.
 
 Large existing owners were extended only at registration/dispatch boundaries: `sqlite_catalog.rs`
 has 3,621 production lines, no inline tests and 8,009 lines in its existing dedicated test file;
-`migrations.rs` has 9,842 production lines and 5,267 inline-test lines. New analysis, query,
+`migrations.rs` has 9,845 production lines and 5,267 inline-test lines. New analysis, query,
 publication and migration behavior has dedicated owners. The existing gallery shell remains the viewer/query owner; navigation and sidebar preference
 ownership moved into `LibraryWorkbench`, and hidden-gallery preview retirement has its own widget.
-The changed shell has 2,005 production lines and 4,122 dedicated-test lines; the gallery wall has
-2,002 production lines and 1,738 lines in the affected resize/visibility test file. Neither owner
+The changed shell has 2,014 production lines and 4,135 dedicated-test lines; the gallery wall has
+2,006 production lines and 1,738 lines in the affected resize/visibility test file. Neither owner
 has inline tests. The workbench, analysis page and activity widget own their new responsibilities.

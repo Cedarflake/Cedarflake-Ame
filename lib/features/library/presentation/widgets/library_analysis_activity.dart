@@ -6,6 +6,8 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
+import "../../application/library_exact_analysis_controller.dart";
+import "../../application/library_exact_analysis_publication.dart";
 import "../../application/library_exact_analysis_scheduler.dart";
 import "../../application/library_synchronization.dart";
 import "../../application/library_update_controller.dart";
@@ -24,12 +26,18 @@ class LibraryAnalysisActivity extends ConsumerStatefulWidget {
 class _LibraryAnalysisActivityState
     extends ConsumerState<LibraryAnalysisActivity> {
   LibraryExactAnalysisScheduler? _scheduler;
+  late final LibraryExactAnalysisPublication _publication;
   StreamSubscription<LibrarySynchronizationSnapshot>? _synchronization;
   late LibrarySynchronizationSnapshot _snapshot;
 
   @override
   void initState() {
     super.initState();
+    _publication = LibraryExactAnalysisPublication(
+      ref.read(libraryExactAnalysisControllerProvider),
+      refresh: () =>
+          ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
+    );
     _scheduler = ref.read(libraryExactAnalysisSchedulerProvider);
     if (_scheduler == null) {
       return;
@@ -88,6 +96,7 @@ class _LibraryAnalysisActivityState
 
   @override
   void dispose() {
+    _publication.dispose();
     if (_scheduler != null) {
       HardwareKeyboard.instance.removeHandler(_onKey);
     }

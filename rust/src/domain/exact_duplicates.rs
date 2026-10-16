@@ -77,6 +77,18 @@ pub struct ExactDuplicateGroupPage {
 }
 
 #[derive(Clone, Debug)]
+pub struct GalleryDuplicateAnnotation {
+    pub location_id: String,
+    pub group: ExactDuplicateGroup,
+}
+
+#[derive(Clone, Debug)]
+pub struct GalleryDuplicatePage {
+    pub revision: u64,
+    pub annotations: Vec<GalleryDuplicateAnnotation>,
+}
+
+#[derive(Clone, Debug)]
 pub struct ExactDuplicateGroupCursor {
     pub digest: String,
     pub byte_length: u64,

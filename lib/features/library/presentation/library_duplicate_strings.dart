@@ -32,6 +32,13 @@ abstract final class LibraryDuplicateStrings {
   static const next = "下一页";
   static const refresh = "刷新结果";
 
+  // Gallery header filter and the local location list opened from a photo badge.
+  static const filter = "筛选";
+  static const showDescendants = "显示子目录";
+  static const hideDescendants = "隐藏子目录";
+  static const allImages = "全部图片";
+  static const mergeDuplicates = "合并重复图片";
+
   static String checked(int count) => "本次已检查 $count 个文件";
   static String skipped(int count) => "$count 个文件未能完成检查，可稍后重试。";
   static String locations(int count) => "$count 个位置";

@@ -73,6 +73,7 @@ impl ExactDuplicateRepository for SqliteCatalog {
                 ],
             )
             .map_err(database_error)?;
+        super::gallery::duplicates::publish_completed_evidence(&transaction)?;
         transaction.commit().map_err(database_error)
     }
 
@@ -149,7 +150,7 @@ fn read_candidate(row: &Row<'_>) -> rusqlite::Result<Result<FingerprintCandidate
     })())
 }
 
-fn read_unsigned(row: &Row<'_>, index: usize) -> rusqlite::Result<u64> {
+pub(super) fn read_unsigned(row: &Row<'_>, index: usize) -> rusqlite::Result<u64> {
     let value = row.get::<_, i64>(index)?;
     u64::try_from(value).map_err(|_| rusqlite::Error::IntegralValueOutOfRange(index, value))
 }

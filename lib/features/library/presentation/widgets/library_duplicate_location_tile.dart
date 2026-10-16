@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../adapters/windows_library_platform_actions.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
@@ -50,7 +51,7 @@ class _LibraryDuplicateLocationTileState
       LibraryDuplicateAvailability.offline ||
       LibraryDuplicateAvailability.unavailable => false,
     };
-    return Tooltip(
+    return AmeTooltip(
       message: location.displayPath,
       child: ListTile(
         key: ValueKey("duplicate-location-${location.locationId}"),
@@ -60,10 +61,12 @@ class _LibraryDuplicateLocationTileState
           LibraryDuplicateStrings.availability(location.availability),
         ),
         onTap: available && !_opening ? _reveal : null,
-        trailing: IconButton(
-          tooltip: LibraryDuplicateStrings.revealLocation,
-          onPressed: available && !_opening ? _reveal : null,
-          icon: const Icon(Symbols.folder_open_rounded),
+        trailing: AmeTooltip(
+          message: LibraryDuplicateStrings.revealLocation,
+          child: IconButton(
+            onPressed: available && !_opening ? _reveal : null,
+            icon: const Icon(Symbols.folder_open_rounded),
+          ),
         ),
       ),
     );

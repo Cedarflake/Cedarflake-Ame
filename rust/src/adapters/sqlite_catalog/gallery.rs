@@ -1,3 +1,5 @@
+mod annotations;
+pub(super) mod duplicates;
 mod location_anchor;
 mod time_anchor;
 
@@ -376,6 +378,15 @@ fn gallery_cursor_comparison(direction: &GallerySortDirection, is_backward: bool
 }
 
 fn push_gallery_filters(
+    query: &GalleryQuery,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
+    push_source_filters(query, clauses, parameters);
+    duplicates::push_duplicate_filter(query, clauses, parameters);
+}
+
+fn push_source_filters(
     query: &GalleryQuery,
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,

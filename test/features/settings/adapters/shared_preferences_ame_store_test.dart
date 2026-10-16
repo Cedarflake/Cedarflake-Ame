@@ -46,6 +46,7 @@ void main() {
       thumbnailSize: GalleryThumbnailSize.large,
       sortKey: LibraryGallerySortKey.fileName,
       sortDirection: LibraryGallerySortDirection.ascending,
+      duplicateMode: LibraryGalleryDuplicateMode.all,
     );
     const presentation = AmePreferences(
       viewerFilmstripVisible: true,
@@ -74,6 +75,7 @@ void main() {
     expect(restoredGallery.thumbnailSize, gallery.thumbnailSize);
     expect(restoredGallery.sortKey, gallery.sortKey);
     expect(restoredGallery.sortDirection, gallery.sortDirection);
+    expect(restoredGallery.duplicateMode, LibraryGalleryDuplicateMode.all);
     expect(restoredPresentation.theme, presentation.theme);
     expect(
       restoredPresentation.viewerWheelBehavior,

@@ -5,6 +5,13 @@ use crate::domain::{
 };
 use crate::frb_generated::StreamSink;
 
+pub fn load_gallery_duplicates(
+    revision: u64,
+    location_ids: Vec<String>,
+) -> Result<crate::domain::GalleryDuplicatePage, ScanError> {
+    crate::application::gallery_duplicates::load_gallery_duplicates(revision, location_ids)
+}
+
 pub fn analyze_exact_duplicates(
     run_id: String,
     sink: StreamSink<ExactAnalysisProgress>,

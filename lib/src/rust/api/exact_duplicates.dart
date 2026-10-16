@@ -8,6 +8,14 @@ import '../domain/exact_duplicates.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+Future<GalleryDuplicatePage> loadGalleryDuplicates({
+  required BigInt revision,
+  required List<String> locationIds,
+}) => RustLib.instance.api.crateApiExactDuplicatesLoadGalleryDuplicates(
+  revision: revision,
+  locationIds: locationIds,
+);
+
 Stream<ExactAnalysisProgress> analyzeExactDuplicates({required String runId}) =>
     RustLib.instance.api.crateApiExactDuplicatesAnalyzeExactDuplicates(
       runId: runId,

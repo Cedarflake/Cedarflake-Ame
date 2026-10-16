@@ -2,6 +2,8 @@ import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_duplicate_results_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_badge.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_analysis_scheduler.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
@@ -14,8 +16,11 @@ import "package:cedarflake_ame/features/library/adapters/windows_library_platfor
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+
+import "support/semantics/retained_semantics_update_harness.dart";
 
 const _group = LibraryDuplicateGroup(
   digest: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
@@ -97,6 +102,76 @@ class _Service implements LibraryExactDuplicates {
 }
 
 void main() {
+  RetainedSemanticsUpdateBinding();
+  setUp(RetainedSemanticsUpdateValidator.instance.reset);
+  testWidgets(
+    "photo badge opens current paths and reveals the selected location",
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        final service = _Service();
+        addTearDown(service.events.close);
+        final revealed = <List<String>>[];
+        await tester.pumpWidget(
+          ProviderScope(
+            overrides: [
+              libraryControllerProvider.overrideWith(
+                _EmptyLibraryController.new,
+              ),
+              libraryGalleryDuplicateAnnotationsProvider.overrideWith(
+                (ref) async => {"one": _group},
+              ),
+              libraryExactDuplicatesProvider.overrideWithValue(service),
+              libraryPlatformActionsProvider.overrideWithValue(
+                WindowsLibraryPlatformActions.withLauncher(
+                  (arguments) async => revealed.add(arguments),
+                ),
+              ),
+            ],
+            child: const MaterialApp(
+              home: Scaffold(body: LibraryDuplicateBadge(locationId: "one")),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(const ValueKey("duplicate-badge-one")));
+        await tester.pumpAndSettle();
+        expect(find.text(r"D:\fixture\two.png"), findsOneWidget);
+        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+        await mouse.addPointer();
+        await mouse.moveTo(
+          tester.getCenter(
+            find.descendant(
+              of: find.byKey(const ValueKey("duplicate-location-one")),
+              matching: find.byType(IconButton),
+            ),
+          ),
+        );
+        await tester.pump(const Duration(milliseconds: 600));
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "duplicate-location-reveal-tooltip",
+        );
+        await mouse.removePointer();
+        await tester.tap(find.text(r"C:\fixture\one.png"));
+        await tester.pumpAndSettle();
+        expect(revealed, [
+          ["/select,", r"C:\fixture\one.png"],
+        ]);
+        await tester.tap(find.text("关闭"));
+        await tester.pumpAndSettle();
+        expect(find.byType(AlertDialog), findsNothing);
+        expect(
+          find.byKey(const ValueKey("duplicate-badge-one")),
+          findsOneWidget,
+        );
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "duplicate-location-dialog-closed",
+        );
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
   for (final saveFails in [false, true]) {
     testWidgets(
       "pause controls persist or restore their state (failure=$saveFails)",

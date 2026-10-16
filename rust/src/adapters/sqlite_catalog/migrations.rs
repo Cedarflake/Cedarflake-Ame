@@ -29,6 +29,7 @@ mod directory_identities;
 mod exact_duplicates;
 mod foreground_queue_index;
 mod foreground_scan_capture;
+mod gallery_duplicates;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 mod journal_directory_namespace;
@@ -109,6 +110,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         media_admission_rechecks::migrate_transaction(&transaction)?;
         queue_retirement_indexes::migrate_transaction(&transaction)?;
         exact_duplicates::migrate_transaction(&transaction)?;
+        gallery_duplicates::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -188,6 +190,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             37 => media_admission_rechecks::migrate(connection)?,
             38 => queue_retirement_indexes::migrate(connection)?,
             39 => exact_duplicates::migrate(connection)?,
+            40 => gallery_duplicates::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

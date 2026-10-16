@@ -38,6 +38,7 @@ import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_gallery_activity.dart";
 import "widgets/library_gallery_header.dart";
+import "widgets/library_gallery_filter.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
 import "widgets/library_gallery_viewport.dart";
@@ -1074,6 +1075,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         controller: controller,
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
+            filter: LibraryGalleryFilter(
+              query: state.query,
+              onChanged: (query) {
+                unawaited(_applyQuery(query));
+                unawaited(_persistViewPreferences(query: query));
+              },
+            ),
             leading: sidebarToggle,
             galleryTitle: _galleryTitle(state),
             totalItems: _totalItems(state),
@@ -1502,6 +1510,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
               thumbnailSize: _thumbnailSize,
               sortKey: currentQuery.sortKey,
               sortDirection: currentQuery.sortDirection,
+              duplicateMode: currentQuery.duplicateMode,
             ),
           );
     } on Object catch (error) {

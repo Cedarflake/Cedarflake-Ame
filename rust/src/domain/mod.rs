@@ -4,7 +4,7 @@ pub(crate) mod exact_duplicates;
 pub use exact_duplicates::{
     DuplicateLocationAvailability, ExactAnalysisPhase, ExactAnalysisProgress, ExactDuplicateGroup,
     ExactDuplicateGroupCursor, ExactDuplicateGroupPage, ExactDuplicateLocation,
-    ExactDuplicateLocationPage,
+    ExactDuplicateLocationPage, GalleryDuplicateAnnotation, GalleryDuplicatePage,
 };
 
 mod journal_scope_recovery;
@@ -441,6 +441,12 @@ pub enum GallerySortDirection {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GalleryDuplicateMode {
+    All,
+    Merged,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GalleryQuery {
     pub root_id: Option<String>,
     pub folder_relative_path: Option<String>,
@@ -448,6 +454,7 @@ pub struct GalleryQuery {
     pub search_text: String,
     pub sort_key: GallerySortKey,
     pub sort_direction: GallerySortDirection,
+    pub duplicate_mode: GalleryDuplicateMode,
 }
 
 impl Default for GalleryQuery {
@@ -459,6 +466,7 @@ impl Default for GalleryQuery {
             search_text: String::new(),
             sort_key: GallerySortKey::CaptureTime,
             sort_direction: GallerySortDirection::Descending,
+            duplicate_mode: GalleryDuplicateMode::All,
         }
     }
 }

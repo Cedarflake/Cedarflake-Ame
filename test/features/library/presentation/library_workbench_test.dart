@@ -1,3 +1,4 @@
+import "package:cedarflake_ame/app/presentation/ame_overlay_semantics.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_workbench.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
 import "package:flutter/material.dart";
@@ -82,12 +83,17 @@ void main() {
     await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key("folders")), findsNothing);
-    expect(find.byTooltip("展开侧栏"), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is AmeTooltip && widget.message == "展开侧栏",
+      ),
+      findsOneWidget,
+    );
     expect(
       container.read(amePreferencesControllerProvider).sidebarExpanded,
       isFalse,
     );
-    await tester.tap(find.byTooltip("展开侧栏"));
+    await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
     await tester.pumpAndSettle();
     expect(find.text("Expanded folder state"), findsOneWidget);
     expect(scroll.offset, 1200);
@@ -124,10 +130,15 @@ void main() {
       ),
     );
     expect(find.text("Folder tree"), findsNothing);
-    await tester.tap(find.byTooltip("展开侧栏"));
+    await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
     await tester.pumpAndSettle();
     expect(find.text("Folder tree"), findsOneWidget);
-    expect(find.byTooltip("收起侧栏"), findsOneWidget);
+    expect(
+      find.byWidgetPredicate(
+        (widget) => widget is AmeTooltip && widget.message == "收起侧栏",
+      ),
+      findsOneWidget,
+    );
     expect(tester.takeException(), isNull);
   });
 }

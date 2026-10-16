@@ -470,6 +470,11 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
       LibraryGallerySortDirection.descending =>
         rust_domain.GallerySortDirection.descending,
     },
+    duplicateMode: switch (query.duplicateMode) {
+      LibraryGalleryDuplicateMode.all => rust_domain.GalleryDuplicateMode.all,
+      LibraryGalleryDuplicateMode.merged =>
+        rust_domain.GalleryDuplicateMode.merged,
+    },
   );
 }
 

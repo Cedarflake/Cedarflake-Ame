@@ -1,6 +1,9 @@
 use super::*;
 
 fn restore_v39(connection: &Connection) {
+    connection
+        .execute_batch("DROP TABLE gallery_content_fingerprints")
+        .unwrap();
     for (kind, name, _) in OBJECTS.iter().rev() {
         connection
             .execute_batch(&format!("DROP {kind} {name}"))
@@ -29,7 +32,7 @@ fn upgrade_preserves_existing_catalog_and_reopen_reuses_the_schema() {
             |row| Ok((row.get::<_, i64>(0)?, row.get::<_, i64>(1)?)),
         )
         .unwrap();
-    assert_eq!(row, (40, 123));
+    assert_eq!(row, (super::super::super::SCHEMA_VERSION, 123));
 }
 
 #[test]

@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_duplicate_results_controller.dart";
@@ -76,10 +77,12 @@ class _LibraryExactDuplicatesPageState
             Row(
               children: [
                 if (_results.selected != null)
-                  IconButton(
-                    tooltip: LibraryDuplicateStrings.back,
-                    onPressed: () => unawaited(_results.showGroups()),
-                    icon: const Icon(Symbols.arrow_back_rounded),
+                  AmeTooltip(
+                    message: LibraryDuplicateStrings.back,
+                    child: IconButton(
+                      onPressed: () => unawaited(_results.showGroups()),
+                      icon: const Icon(Symbols.arrow_back_rounded),
+                    ),
                   ),
                 Expanded(
                   child: Text(

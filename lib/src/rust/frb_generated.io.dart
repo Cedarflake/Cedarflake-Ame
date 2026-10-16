@@ -238,6 +238,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
 
   @protected
+  GalleryDuplicateAnnotation dco_decode_gallery_duplicate_annotation(
+    dynamic raw,
+  );
+
+  @protected
+  GalleryDuplicateMode dco_decode_gallery_duplicate_mode(dynamic raw);
+
+  @protected
+  GalleryDuplicatePage dco_decode_gallery_duplicate_page(dynamic raw);
+
+  @protected
   GalleryLayoutDateGroup dco_decode_gallery_layout_date_group(dynamic raw);
 
   @protected
@@ -352,6 +363,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ExactDuplicateLocation> dco_decode_list_exact_duplicate_location(
+    dynamic raw,
+  );
+
+  @protected
+  List<GalleryDuplicateAnnotation> dco_decode_list_gallery_duplicate_annotation(
     dynamic raw,
   );
 
@@ -781,6 +797,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryDuplicateAnnotation sse_decode_gallery_duplicate_annotation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryDuplicateMode sse_decode_gallery_duplicate_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryDuplicatePage sse_decode_gallery_duplicate_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GalleryLayoutDateGroup sse_decode_gallery_layout_date_group(
     SseDeserializer deserializer,
   );
@@ -925,6 +956,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<ExactDuplicateLocation> sse_decode_list_exact_duplicate_location(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<GalleryDuplicateAnnotation> sse_decode_list_gallery_duplicate_annotation(
     SseDeserializer deserializer,
   );
 
@@ -1442,6 +1478,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_gallery_duplicate_annotation(
+    GalleryDuplicateAnnotation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_duplicate_mode(
+    GalleryDuplicateMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_duplicate_page(
+    GalleryDuplicatePage self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_gallery_layout_date_group(
     GalleryLayoutDateGroup self,
     SseSerializer serializer,
@@ -1621,6 +1675,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_exact_duplicate_location(
     List<ExactDuplicateLocation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_gallery_duplicate_annotation(
+    List<GalleryDuplicateAnnotation> self,
     SseSerializer serializer,
   );
 

@@ -390,6 +390,8 @@ class FileIdentityEvidence {
           value == other.value;
 }
 
+enum GalleryDuplicateMode { all, merged }
+
 class GalleryLayoutDateGroup {
   final String? dateKey;
 
@@ -534,6 +536,7 @@ class GalleryQuery {
   final String searchText;
   final GallerySortKey sortKey;
   final GallerySortDirection sortDirection;
+  final GalleryDuplicateMode duplicateMode;
 
   const GalleryQuery({
     this.rootId,
@@ -542,6 +545,7 @@ class GalleryQuery {
     required this.searchText,
     required this.sortKey,
     required this.sortDirection,
+    required this.duplicateMode,
   });
 
   @override
@@ -551,7 +555,8 @@ class GalleryQuery {
       includeDescendants.hashCode ^
       searchText.hashCode ^
       sortKey.hashCode ^
-      sortDirection.hashCode;
+      sortDirection.hashCode ^
+      duplicateMode.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -563,7 +568,8 @@ class GalleryQuery {
           includeDescendants == other.includeDescendants &&
           searchText == other.searchText &&
           sortKey == other.sortKey &&
-          sortDirection == other.sortDirection;
+          sortDirection == other.sortDirection &&
+          duplicateMode == other.duplicateMode;
 }
 
 enum GallerySortDirection { ascending, descending }

@@ -1,6 +1,6 @@
 # R3 exact duplicate implementation
 
-Status: R3-02 implementation and affected verification in progress; workbench blueprint selected by the
+Status: R3-03 implementation and client check recorded; affected Actions verification in progress under the
 [roadmap](../roadmap.md#current-execution-queue).
 
 Updated: 2026-10-16.
@@ -28,10 +28,10 @@ analysis engines or convert reused results into human decisions.
 
 Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
 The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,
-versioned fingerprints, schema 40, bounded group/location queries and a generated desktop bridge.
+versioned fingerprints, schema 40/41, bounded group/location queries and a generated desktop bridge.
 [ADR 0028](../architecture/0028-versioned-exact-content-analysis.md) records the BLAKE3 adapter
-choice and identity rules. Automatic incremental analysis is connected; default folding remains
-the next independent delivery.
+choice and identity rules. Automatic incremental analysis and both gallery display modes are
+connected, including atomic gallery membership publication.
 
 The retained 10,000-file corpus produced 72 groups matching its existing digest oracle, with
 cancellation and continuation exercised in the client. The
@@ -39,16 +39,18 @@ cancellation and continuation exercised in the client. The
 The accepted three-region workbench replaces the More-menu/bottom-sheet prototype under ADR 0029.
 The function rail, persistent collapsible folder sidebar and duplicate-results workspace with
 location reveal are connected. Automatic analysis now follows catalog publication and yields to
-foreground browsing and media reads; pause persists across restart. Next connect the two gallery
-display modes with duplicate badges. Retain the existing analysis implementation and verification;
+foreground browsing and media reads; pause persists across restart. Both gallery modes now include
+duplicate-location badges, with the selected mode restored after restart. Retain the existing analysis implementation and verification;
 the changed client paths have been checked against the reusable corpus, including unchanged
-reopening with zero additional content reads. Automated regressions await Actions.
+reopening with zero additional content reads. Native accessibility updates still fail after closing
+the Settings menu, and another client exit recorded rejected accessibility-tree updates. This remains
+an affected-client gap; automated regressions await Actions.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |
-| R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client check recorded, retained UI test interactions corrected, Actions running |
-| R3-02 | Maintain duplicate results through incremental changes | Committed; automatic idle scheduling, foreground read priority and persisted pause connected; client closed-process addition/removal and unchanged reuse verified; Actions and native pause-button check remain |
-| R3-03 | Connect both gallery display modes and duplicate badges | Queued after R3-02 |
+| R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client check recorded; native Settings-menu accessibility restoration remains under diagnosis |
+| R3-02 | Maintain duplicate results through incremental changes | Committed; automatic scheduling, foreground priority, unchanged reuse and closed-process additions/removals checked; native pause/resume and paused restart now checked; remaining automated results belong to Actions |
+| R3-03 | Connect both gallery display modes and duplicate badges | Implemented; 10,000 all-images / 72 merged entries, location reveal, restart preference and automatic 74-to-72 folding checked in the reused client corpus; new regressions await Actions |
 | R3-04 | Review groups and preserve preferred-copy/ignore decisions | Queued after R3-03 |
 | R3-05 | Complete affected client/performance verification and close R3 | Queued after R3-04 |
 

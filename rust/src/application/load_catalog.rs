@@ -250,7 +250,7 @@ fn normalize_relative_folder(folder: &str) -> String {
 
 fn gallery_query_identity(query: &GalleryQuery) -> String {
     let mut hasher = blake3::Hasher::new();
-    hasher.update(b"ame-gallery-query-v1\0");
+    hasher.update(b"ame-gallery-query-v2\0");
     update_query_identity(&mut hasher, query.root_id.as_deref().unwrap_or_default());
     update_query_identity(
         &mut hasher,
@@ -267,6 +267,10 @@ fn gallery_query_identity(query: &GalleryQuery) -> String {
     hasher.update(&[match query.sort_direction {
         GallerySortDirection::Ascending => 0,
         GallerySortDirection::Descending => 1,
+    }]);
+    hasher.update(&[match query.duplicate_mode {
+        crate::domain::GalleryDuplicateMode::All => 0,
+        crate::domain::GalleryDuplicateMode::Merged => 1,
     }]);
     hasher.finalize().to_hex().to_string()
 }
@@ -333,6 +337,14 @@ mod tests {
             include_descendants: false,
             ..base.clone()
         };
+        let merged = GalleryQuery {
+            duplicate_mode: crate::domain::GalleryDuplicateMode::Merged,
+            ..base.clone()
+        };
+        assert_ne!(
+            gallery_query_identity(&base),
+            gallery_query_identity(&merged)
+        );
 
         assert_ne!(
             gallery_query_identity(&base),

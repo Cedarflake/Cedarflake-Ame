@@ -2,6 +2,8 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
 
+mod gallery_queries;
+
 fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();

@@ -113,6 +113,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 40 {
         super::exact_duplicates::validate(connection)?;
     }
+    if schema_version >= 41 {
+        super::gallery_duplicates::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

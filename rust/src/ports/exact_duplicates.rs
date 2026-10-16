@@ -5,6 +5,14 @@ use crate::domain::{
     ExactAnalysisProgress, ExactDuplicateGroupCursor, ExactDuplicateGroupPage, ScanError,
 };
 
+pub(crate) trait GalleryDuplicateRepository {
+    fn load_gallery_duplicates(
+        &mut self,
+        revision: u64,
+        location_ids: &[String],
+    ) -> Result<crate::domain::GalleryDuplicatePage, ScanError>;
+}
+
 pub(crate) trait FingerprintReadLease {
     fn fingerprint(&self) -> &ContentFingerprint;
     fn revalidate(&self) -> Result<(), ScanError>;
