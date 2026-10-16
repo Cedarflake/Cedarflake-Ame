@@ -176,13 +176,44 @@ hashes were restored and verified. An older terminated test descendant remains l
 with zero threads and zero handles; no additional desktop process was terminated for cleanup.
 The reusable corpus and catalog, plus the logs of the native failure, remain available.
 
+## Card content width
+
+The gallery now measures the complete duplicate count using the active label font and text scale,
+reserving its icon, button padding, selection target and a gap before row layout. The catalog's
+total location count bounds the number of digits before annotations arrive. Both layout paths and
+square mode use this floor, with a 128-logical-pixel base minimum. Annotation arrival and selection
+visibility therefore do not change card geometry.
+
+The existing Material `TextButton.icon` and `Checkbox` remain the action owners. The pinned Flutter
+3.44.9 implementation provides a flexible label and an icon-label gap up to 8 pixels; the compact
+checkbox fits inside the reserved 40-pixel target. Ame supplies the pre-layout measurement and
+separate action slots. No replacement control or dependency was introduced. The official
+[Material component index](https://m3.material.io/components) and
+[TextButton.icon API](https://api.flutter.dev/flutter/material/TextButton/TextButton.icon.html)
+were checked against the installed implementations.
+
+Twelve focused widget cases cover one- through nineteen-digit counts at normal and double text
+size, complete single-line glyphs, containment, separate selection targets and unchanged geometry
+when annotations arrive or selection appears. Layout regressions cover both shapes, narrow
+viewports, width-sensitive snapshot reuse and retained date anchors. These focused checks passed;
+the complete automated suite remains assigned to Actions.
+
+The ordinary Debug client reused the 10,000-file corpus. A narrow portrait card displayed its
+23-location badge and checkbox fully. Selecting it changed the count to one; opening and closing
+its location list preserved that selection and scroll position. The client exited on request with
+no overflow, AXTree, fatal or unhandled-error matches in stderr. Original preferences, settings and
+catalog hashes were restored and verified; the six disposable profile/cache targets were removed.
+The reusable source corpus and catalog were retained.
+
 Large existing owners were extended only at registration/dispatch boundaries: `sqlite_catalog.rs`
 has 3,621 production lines, no inline tests and 8,009 lines in its existing dedicated test file;
 `migrations.rs` has 9,845 production lines and 5,267 inline-test lines. New analysis, query,
 publication and migration behavior has dedicated owners. The existing gallery shell remains the viewer/query owner; navigation and sidebar preference
 ownership moved into `LibraryWorkbench`, and hidden-gallery preview retirement has its own widget.
 The changed shell has 2,014 production lines and 4,135 dedicated-test lines; the gallery wall has
-2,006 production lines and 1,738 lines in the affected resize/visibility test file. Neither owner
+2,028 production lines and 1,738 lines in the affected resize/visibility test file. Neither owner
 has inline tests. The workbench, analysis page and activity widget own their new responsibilities.
+Card measurement and action layout have separate 53-line and 54-line owners, with 142 dedicated
+widget-test lines. The photo tile now has 452 production lines and no inline tests.
 The topology-only edit in `local_files.rs` changes its inline test declarations; it retains 3,694
 production lines, 3,512 inline-test lines and 436 dedicated-test lines without new production logic.

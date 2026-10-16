@@ -1,10 +1,12 @@
 import "dart:math" as math;
 
+import "library_gallery_card_metrics.dart";
+
 class JustifiedGalleryLayout {
   const JustifiedGalleryLayout({
     required this.targetRowHeight,
     required this.spacing,
-    this.minimumCellWidth = 48,
+    this.minimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
   });
 
   final double targetRowHeight;

@@ -1,7 +1,10 @@
+import "dart:math" as math;
+
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "justified_gallery_layout.dart";
+import "library_gallery_card_metrics.dart";
 
 class LibraryGalleryLayoutEntry {
   const LibraryGalleryLayoutEntry({
@@ -32,6 +35,7 @@ class LibraryGalleryLayoutEntry {
     required GalleryLayoutShape layoutShape,
     required GalleryThumbnailSize thumbnailSize,
     required LibraryGallerySortKey sortKey,
+    double minimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
   }) {
     if (assets.isEmpty || availableWidth <= 0) {
       return const [];
@@ -55,7 +59,9 @@ class LibraryGalleryLayoutEntry {
     }
 
     final calculatedSquareColumnCount =
-        ((availableWidth + spacing) / (thumbnailSize.targetExtent + spacing))
+        ((availableWidth + spacing) /
+                (math.max(thumbnailSize.targetExtent, minimumCellWidth) +
+                    spacing))
             .floor();
     final squareColumnCount = calculatedSquareColumnCount < 1
         ? 1
@@ -83,6 +89,7 @@ class LibraryGalleryLayoutEntry {
             JustifiedGalleryLayout(
               targetRowHeight: thumbnailSize.targetExtent,
               spacing: spacing,
+              minimumCellWidth: minimumCellWidth,
             ).compute(
               aspectRatios: [
                 for (final asset in group.assets) _aspectRatio(asset),

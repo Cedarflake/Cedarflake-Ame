@@ -13,6 +13,7 @@ import "../../application/library_gallery_duplicates.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_location_tile.dart";
+import "library_gallery_card_metrics.dart";
 
 class LibraryDuplicateBadge extends ConsumerWidget {
   const LibraryDuplicateBadge({required this.locationId, super.key});
@@ -36,7 +37,10 @@ class LibraryDuplicateBadge extends ConsumerWidget {
           ).colorScheme.surface.withValues(alpha: 0.92),
           foregroundColor: Theme.of(context).colorScheme.onSurface,
           minimumSize: const Size(40, 36),
-          padding: const EdgeInsets.symmetric(horizontal: 8),
+          padding: const EdgeInsets.symmetric(
+            horizontal: LibraryGalleryCardMetrics.duplicateHorizontalPadding,
+          ),
+          textStyle: LibraryGalleryCardMetrics.badgeTextStyleOf(context),
         ),
         onPressed: () => unawaited(
           showDialog<void>(
@@ -44,7 +48,10 @@ class LibraryDuplicateBadge extends ConsumerWidget {
             builder: (_) => _DuplicateLocationsDialog(group: group),
           ),
         ),
-        icon: const Icon(Symbols.photo_library_rounded, size: 18),
+        icon: const Icon(
+          Symbols.photo_library_rounded,
+          size: LibraryGalleryCardMetrics.duplicateIconExtent,
+        ),
         label: Text("${group.locationCount}"),
       ),
     );

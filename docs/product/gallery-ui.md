@@ -72,6 +72,13 @@ opens a contextual location list; clicking a location reveals that file in File 
 paths remain readable, and locations outside the current folder are explicitly inspectable without
 widening the gallery selection scope.
 
+Cards reserve at least 128 logical pixels of width and enough measured space for the duplicate
+icon, complete count, selection target and their padding. Use the current catalog's total location
+bound and actual label font/text scaling before row layout, so asynchronous badge arrival and hover
+do not resize cards. Both loaded-window and query-wide geometry use the same floor; square mode
+also respects it. The count and selection target have separate bounded space without clipping or
+overlap.
+
 The Duplicates workspace owns duplicate-only results, analysis status/control, group inspection and
 preferred-copy/ignore decisions. It reuses gallery preview and viewing capabilities. Exact duplicates
 are byte-identical; perceptual similarity is a separate later capability and is absent until connected.

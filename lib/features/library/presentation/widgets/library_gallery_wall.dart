@@ -15,6 +15,7 @@ import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_exact_extent_sliver.dart";
 import "library_gallery_layout.dart";
+import "library_gallery_card_metrics.dart";
 import "library_gallery_layout_snapshot.dart";
 import "library_gallery_position.dart";
 import "library_gallery_reflow.dart";
@@ -189,6 +190,13 @@ class LibraryGalleryWall extends StatelessWidget {
           return const SizedBox.shrink();
         }
         final entries = LibraryGalleryLayoutEntry.build(
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidthOf(
+            context,
+            maximumLocationCount: state.roots.fold(
+              0,
+              (total, root) => total + root.assetCount,
+            ),
+          ),
           assets: state.assets,
           availableWidth: availableWidth,
           layoutShape: layoutShape,
@@ -1507,6 +1515,7 @@ class _ManifestLibraryGalleryWallState
         current.matches(
           otherManifest: widget.manifest,
           otherAvailableWidth: availableWidth,
+          otherMinimumCellWidth: _minimumCellWidth,
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
@@ -1530,6 +1539,7 @@ class _ManifestLibraryGalleryWallState
     _layoutCorrection = null;
     _publishedViewportExtent = viewportExtent;
     return _snapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: _minimumCellWidth,
       manifest: widget.manifest,
       availableWidth: availableWidth,
       thumbnailSize: widget.thumbnailSize,
@@ -1537,6 +1547,14 @@ class _ManifestLibraryGalleryWallState
       sortKey: widget.state.query.sortKey,
     );
   }
+
+  double get _minimumCellWidth => LibraryGalleryCardMetrics.minimumWidthOf(
+    context,
+    maximumLocationCount: widget.state.roots.fold(
+      0,
+      (total, root) => total + root.assetCount,
+    ),
+  );
 
   bool _prepareInitialPositionCorrection(
     LibraryGalleryLayoutSnapshot snapshot,
@@ -1700,6 +1718,7 @@ class _ManifestLibraryGalleryWallState
         current != null &&
         current.matchesInputs(
           otherManifest: widget.manifest,
+          otherMinimumCellWidth: _minimumCellWidth,
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
@@ -1760,6 +1779,7 @@ class _ManifestLibraryGalleryWallState
           (current.matches(
                 otherManifest: widget.manifest,
                 otherAvailableWidth: pendingWidth,
+                otherMinimumCellWidth: _minimumCellWidth,
                 otherThumbnailSize: widget.thumbnailSize,
                 otherLayoutShape: widget.layoutShape,
                 otherSortKey: widget.state.query.sortKey,
@@ -1772,12 +1792,14 @@ class _ManifestLibraryGalleryWallState
           current.matches(
             otherManifest: widget.manifest,
             otherAvailableWidth: pendingWidth,
+            otherMinimumCellWidth: _minimumCellWidth,
             otherThumbnailSize: widget.thumbnailSize,
             otherLayoutShape: widget.layoutShape,
             otherSortKey: widget.state.query.sortKey,
           )
           ? current
           : LibraryGalleryLayoutSnapshot.build(
+              minimumCellWidth: _minimumCellWidth,
               manifest: widget.manifest,
               availableWidth: pendingWidth,
               thumbnailSize: widget.thumbnailSize,
