@@ -402,7 +402,19 @@ Duplicate-dialog dismissal restores badge focus only when the badge held focus b
 The real photo-tile regression reproduced an unwanted focus and persistent selection control after
 mouse dismissal. Both mouse and keyboard cases now pass, alongside ten existing dialog/workspace
 checks. Keyboard path-layout checks now open with Tab/Enter and retain Escape focus restoration.
-Native verification of this follow-up belongs to the next updated Debug check.
+The updated Debug verifies mouse dismissal with the pointer outside the card: the unselected
+selection circle disappears. Keyboard restoration is covered by the focused widget cases.
+
+The first Explorer reveal was reproduced with a newly opened test-corpus folder: the folder was
+correct, but the target file was not selected. The Windows adapter now resolves a Unicode shell
+item and calls SHOpenFolderAndSelectItems on a worker isolate. Thirteen focused adapter, native
+failure and dialog/workspace cases pass; invalid inputs fail before entering the Shell, and three
+successive missing-item calls return the native HRESULT through the reveal error boundary.
+Scoped Dart analysis, formatting and the Debug build pass. Native inspection of the rebuilt client
+confirms the first reveal opens a new folder window, scrolls to `03325-6000x4000-0313.jpg`, highlights
+that exact file and reports one selected item. The owned Explorer window was closed afterward;
+the existing test catalog, client profile and source files remain in place. The adapter and Shell
+owner have 63/101 production lines, with 29/47 dedicated test lines and no inline tests.
 
 Review preview previously used the default Material page animation. Its route now shares the
 gallery's fade component, 180-ms entry, 100-ms exit and immediate reduced-motion behavior. Pointer

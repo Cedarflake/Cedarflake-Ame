@@ -117,7 +117,7 @@ void main() {
       try {
         final service = _Service();
         addTearDown(service.events.close);
-        final revealed = <List<String>>[];
+        final revealed = <String>[];
         await tester.pumpWidget(
           ProviderScope(
             overrides: [
@@ -134,8 +134,8 @@ void main() {
                 ReviewFixtureService(showResults: () => service.hasResults),
               ),
               libraryPlatformActionsProvider.overrideWithValue(
-                WindowsLibraryPlatformActions.withLauncher(
-                  (arguments) async => revealed.add(arguments),
+                WindowsLibraryPlatformActions.withRevealer(
+                  (path) async => revealed.add(path),
                 ),
               ),
             ],
@@ -170,9 +170,7 @@ void main() {
         await mouse.removePointer();
         await tester.tap(find.text("one.png"));
         await tester.pumpAndSettle();
-        expect(revealed, [
-          ["/select,", r"C:\fixture\one.png"],
-        ]);
+        expect(revealed, [r"C:\fixture\one.png"]);
         await tester.tap(find.byKey(const Key("duplicate-locations-close")));
         await tester.pumpAndSettle();
         expect(find.byType(Dialog), findsNothing);
@@ -456,7 +454,7 @@ void main() {
     "workspace switches retain analysis and locations reveal the selected file",
     (tester) async {
       final service = _Service();
-      final revealed = <List<String>>[];
+      final revealed = <String>[];
       final container = ProviderContainer(
         overrides: [
           libraryControllerProvider.overrideWith(ReviewFixtureLibrary.new),
@@ -465,8 +463,8 @@ void main() {
             ReviewFixtureService(showResults: () => service.hasResults),
           ),
           libraryPlatformActionsProvider.overrideWithValue(
-            WindowsLibraryPlatformActions.withLauncher((arguments) async {
-              revealed.add(arguments);
+            WindowsLibraryPlatformActions.withRevealer((path) async {
+              revealed.add(path);
             }),
           ),
         ],
@@ -517,9 +515,7 @@ void main() {
       expect(find.text("文件夹离线"), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey("reveal-one")));
       await tester.pumpAndSettle();
-      expect(revealed, [
-        ["/select,", r"C:\fixture\one.png"],
-      ]);
+      expect(revealed, [r"C:\fixture\one.png"]);
       final offline = tester.widget<IconButton>(
         find.byKey(const ValueKey("reveal-two")),
       );

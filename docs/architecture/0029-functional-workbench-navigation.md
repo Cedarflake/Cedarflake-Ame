@@ -52,7 +52,8 @@ content and clipped paths and controls; reading multiple locations needs a stabl
 The pinned Flutter 3.44.9 SDK provides dialog constraints, safe-area/inset handling, modal dismissal
 and closed-loop focus traversal. Use a maximum width of 560 logical pixels and fit the height to
 the window; keep the title, close button and paging controls outside the scrolling list. Restore
-focus to the badge when it remains mounted in the visible workspace. `AlertDialog` was considered;
+the badge's existing keyboard focus when it remains mounted in the visible workspace; mouse
+dismissal does not create new focus. `AlertDialog` was considered;
 `Dialog` permits the existing lazy list and paging footer without intrinsic list sizing.
 Material's
 [menu](https://m3.material.io/components/menus/guidelines) and
@@ -100,6 +101,14 @@ decorative folder icon beside their existing thumbnail. Preference and reveal ac
 The page uses the gallery's existing two-pixel loading overlay around the result region below
 the toolbar. Preference writes retain disabled-action and failure feedback without a page loader.
 Dialog and member rows share one reveal owner for availability, in-flight admission and errors.
+The Windows platform adapter resolves a Unicode shell item with SHParseDisplayName and uses
+SHOpenFolderAndSelectItems to open its parent and select it. Detached Explorer command startup only
+reports process creation and does not establish selection in a newly opened folder. Dart's FFI
+binds these OS APIs without an additional package; a worker isolate performs the synchronous COM
+sequence off the Flutter thread. Every successful COM initialization is paired with uninitialization,
+and every allocated path, output pointer and PIDL is freed on success and failure. Native HRESULT
+failures return through the existing reveal error boundary. No source-content read or mutation is
+performed. The existing application port keeps this Windows implementation replaceable.
 Empty/error feedback reuses LibraryGalleryMessage with the gallery's centered icon, title typography,
 spacing and optional detail/action rather than a separate plain-text presentation.
 
