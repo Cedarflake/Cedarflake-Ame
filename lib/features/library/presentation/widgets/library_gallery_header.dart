@@ -7,6 +7,7 @@ import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
+import "library_sidebar_content.dart";
 
 class LibraryGalleryHeader extends StatelessWidget {
   const LibraryGalleryHeader({
@@ -80,12 +81,17 @@ class LibraryGalleryHeader extends StatelessWidget {
                   ),
                 ],
               );
-              final titleBlock = Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (leading != null) ...[leading!, const SizedBox(width: 8)],
-                  Flexible(child: titleText),
-                ],
+              final titleBlock = LibrarySidebarLeading(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (leading != null) ...[
+                      leading!,
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(child: titleText),
+                  ],
+                ),
               );
               final toolbar = isSelecting
                   ? _SelectionToolbar(onCancel: onCancelSelection)

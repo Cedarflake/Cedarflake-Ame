@@ -24,6 +24,20 @@ void main() {
           void expectRightEdges() {
             expect(tester.getTopRight(toolbar).dx, closeTo(width - 20, 0.01));
             expect(tester.getTopRight(rail).dx, closeTo(width, 0.01));
+            for (final key in ["library-gallery-title", "library-summary"]) {
+              expect(
+                tester.getTopLeft(find.byKey(Key(key))).dx,
+                closeTo(
+                  tester
+                          .getTopLeft(
+                            find.byKey(const Key("library-gallery-transition")),
+                          )
+                          .dx +
+                      28,
+                  0.01,
+                ),
+              );
+            }
             expect(
               tester.getTopLeft(find.byKey(const Key("first-photo"))).dx,
               closeTo(

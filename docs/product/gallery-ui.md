@@ -61,7 +61,8 @@ The workbench has three regions in Library: a narrow function rail, a source/fol
 and the photo wall. The rail remains visible while the secondary sidebar can collapse. Its toggle
 stays in the function rail immediately above Settings while Library is active, with `收起侧栏` and
 `展开侧栏` tooltips. Animate the sidebar boundary and photo content's left edge together over a short
-transition. Smoothly move and resize visible photos when sidebar or window dimensions change,
+transition. The gallery title and count follow that same left edge independently of the toolbar.
+Smoothly move and resize visible photos when sidebar or window dimensions change,
 including maximize/restore, while retaining the current browsing anchor.
 Keep the gallery's right edge, toolbar and time rail anchored to the window; the toolbar
 also stays right-aligned when it wraps below the title. The gallery lays out once at its destination

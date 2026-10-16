@@ -37,6 +37,8 @@ also remains right-aligned below the title in narrow layouts. The gallery receiv
 width for each toggle; its query-wide geometry must not reflow at every animation frame.
 The photo viewport separately follows the moving left boundary through a left-aligned OverflowBox
 inside a right-anchored clip. Its toolbar and time rail remain outside that content motion.
+The title/count block consumes the same leading offset through Transform.translate, without
+changing the toolbar's layout or right alignment.
 `LibraryGalleryLayoutMotion` owns a bounded registry of mounted sliver items and interpolates their
 rectangles for sidebar and window-size changes. The installed SDK's AnimatedBuilder, Transform and
 OverflowBox retain the existing scroll, input and semantic primitives; AnimatedSize alone cannot

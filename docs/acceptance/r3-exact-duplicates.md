@@ -602,3 +602,8 @@ catalog and covered sidebar collapse/expand and maximize/restore. No Dart, AXTre
 were emitted. The current client remains open for inspection; source media and catalog data are
 unchanged. Production owners have 1,971 wall, 226 motion, 94 entry and 66 sidebar-content lines,
 with no inline tests; the new motion regression has 132 lines. Hosted checks belong to the pushed head.
+
+The title and count also consume the sidebar's leading offset. The six width/text-scale cases now
+check their positions on every animation frame alongside the photo edge, toolbar and time rail.
+The updated Debug client was checked with the retained gallery; its heading/count and photo wall
+follow the same collapsing boundary. The toolbar remains fixed. No data operation is introduced.
