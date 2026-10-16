@@ -91,17 +91,32 @@ are byte-identical; perceptual similarity is a separate later capability and is 
 No analysis or display choice authorizes source mutation.
 
 Use `重复图片查找` as the workspace heading and show the current category's total number of
-duplicate image groups beneath it. Omit the scope, description and separate analysis-status text.
-Refresh and pause/resume share one action row; group review adds ignore/restore to that row. Use
-responsive multi-column cards for groups and members, with a single column when space or text scale
-requires it. The selected group's initial representative filename is the subpage heading; align
-its actions and cards with that heading. Member cards use their image preview without an additional
-decorative folder icon or a separate `首选副本` label. The preference/reveal controls remain usable.
-Loading or saving uses the same two-pixel overlay as the gallery.
+duplicate image groups beneath it, reserving that line while changing categories. Omit the scope,
+description and separate analysis-status text. Place the category switch on the left and refresh
+and pause/resume on its right in one toolbar; wrap only when the available width requires it.
+Group review adds ignore/restore to the right-aligned action row. Groups use responsive multi-column
+cards; group members use full-width single-column rows so paths have enough space. Both reuse the
+thumbnail/text skeleton. Group cards retain their lower-right text action; member rows place
+preference and Explorer icon buttons on the right, vertically centered, without a footer. Measure
+text and controls to reserve only their needed height, including enlarged availability text.
+The selected group's initial representative filename is the subpage heading; align
+its rows beneath that heading. Member rows use their image preview without an additional
+decorative folder icon or a separate `首选副本` label. The whole card provides hover feedback and
+opens its group or image. Member icons retain hover and accessible action names; omit
+the redundant `查看图片` button. Group actions read `查看重复图片`; the gallery dialog heading states
+the number of duplicate images. Result loading uses the gallery's two-pixel overlay at the boundary
+between toolbar and cards. Saving or switching a preference retains the member rows and scroll
+position. Subsequent catalog/analysis publication revalidates the visible range in the background
+and replaces it atomically, without clearing cards or flashing a page loader. Manual refresh and
+initial/continuation reads retain their loading feedback; read failures retain a retry action.
 
-Result groups and their member pages include bounded image previews and inspectable file locations.
+Both levels scroll continuously without Previous/Next page buttons. Load catalog batches for the
+visible range and retain bounded payload and cursor caches; preview demand remains viewport-bound.
+Empty and failed results reuse the gallery's centered icon/title/detail component.
+Result groups and their members include bounded image previews and inspectable file locations.
 Opening a member uses the existing full-window image
-viewer; returning preserves the reviewed group and page. `设为首选` selects the representative used
+viewer, including navigation across catalog batches; returning preserves the reviewed group and scroll
+position. `设为首选` selects the representative used
 by merged gallery queries, with a deterministic in-scope fallback when that location no longer
 matches. `忽略此组` moves it to `已忽略`, where `恢复此组` restores it to the regular review list.
 These choices survive reopening and compatible reanalysis. Ignoring a group leaves its gallery

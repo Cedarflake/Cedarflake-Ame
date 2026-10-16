@@ -15,13 +15,17 @@ import "library_viewer_transition.dart";
 
 class LibraryDuplicateReviewViewer extends ConsumerStatefulWidget {
   const LibraryDuplicateReviewViewer({
-    required this.assets,
+    required this.initialAsset,
     required this.initialIndex,
+    required this.totalCount,
+    required this.loadAsset,
     required this.onBack,
     super.key,
   });
-  final List<LibraryAsset> assets;
+  final LibraryAsset initialAsset;
   final int initialIndex;
+  final int totalCount;
+  final Future<LibraryAsset?> Function(int index) loadAsset;
   final VoidCallback onBack;
 
   @override
@@ -33,8 +37,9 @@ class _LibraryDuplicateReviewViewerState
     extends ConsumerState<LibraryDuplicateReviewViewer> {
   late final _library = ref.read(libraryControllerProvider.notifier);
   late int _index = widget.initialIndex;
+  late LibraryAsset _asset = widget.initialAsset;
   bool _closing = false;
-  LibraryAsset get _asset => widget.assets[_index];
+  bool _navigating = false;
 
   void _back() {
     setState(() => _closing = true);
@@ -42,8 +47,23 @@ class _LibraryDuplicateReviewViewerState
     widget.onBack();
   }
 
-  void _navigate(int index) {
-    setState(() => _index = index);
+  Future<void> _navigate(int index) async {
+    if (_navigating || _closing) return;
+    setState(() => _navigating = true);
+    final asset = await widget.loadAsset(index);
+    if (!mounted || _closing) return;
+    setState(() {
+      _navigating = false;
+      if (asset != null) {
+        _asset = asset;
+        _index = index;
+      }
+    });
+    if (asset == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text(LibraryDuplicateStrings.loadFailed)),
+      );
+    }
     _library.updateViewerPreviewDemand(_asset);
   }
 
@@ -93,9 +113,11 @@ class _LibraryDuplicateReviewViewerState
           child: LibraryImageViewer(
             asset: asset,
             onBack: _back,
-            onPrevious: _index > 0 ? () => _navigate(_index - 1) : null,
-            onNext: _index + 1 < widget.assets.length
-                ? () => _navigate(_index + 1)
+            onPrevious: !_navigating && _index > 0
+                ? () => unawaited(_navigate(_index - 1))
+                : null,
+            onNext: !_navigating && _index + 1 < widget.totalCount
+                ? () => unawaited(_navigate(_index + 1))
                 : null,
             openBehavior: preferences.viewerOpenBehavior,
             wheelBehavior: preferences.viewerWheelBehavior,

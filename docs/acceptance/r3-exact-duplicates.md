@@ -357,33 +357,56 @@ All-images mode omits duplicate badges and annotation requests. Merged mode reta
 location action; normal local availability adds no status line. Four card-boundary cases pass at
 normal and double text scaling, including delayed annotation arrival and selection bounds. The
 128-pixel minimum card width remains. Updated shell, resize and duplicate-dialog regressions run
-in Actions. Native inspection of these latest changes was interrupted by physical Escape; the
-already-open isolated client and its restoration backup remain intact.
+in Actions. The earlier native inspection stopped at physical Escape. The subsequent authorized
+2026-10-17 Debug session verifies the restored rounded gallery boundary and circular card controls;
+the active isolated client and its restoration backup remain intact.
 
 ## Duplicate workspace layout
 
-The workspace heading, summary, action placement and responsive cards now follow the revised UI
-contract. The selected group's filename remains the heading across member paging; its content is
-aligned underneath. Redundant scope/status/description text, the preferred-copy label and the folder
-icon beside a member thumbnail are removed. The existing preference, ignore/restore and reveal
-operations remain. Material `Card`/`Wrap` and the installed Flutter 3.44.9 `GridView.builder` with a
-fixed-column sliver delegate provide the controls; ADR 0029 records the composition and alternatives.
+The workspace retains responsive group cards and single-column member rows. Header actions align
+right, category/count geometry stays stable, and loading appears at the toolbar/results boundary
+using the gallery's two-pixel overlay. Shared empty/error content replaces the plain centered text.
+Members use vertically centered star and folder IconButtons on the right, without a footer; normal
+row height is 112 logical pixels in the retained Windows client. Icon semantic labels and hover
+tooltips name preference/reveal actions. Group cards retain their lower-right `查看重复图片` action.
+Material `Card`/`InkWell`, `IconButton` and `GridView.builder` supply their interaction primitives.
+The pinned SDK supports selected icons; ADR 0029 records the composition and alternatives.
 
-Five focused widget checks pass: 400- and 1280-pixel layouts at normal and double text scaling,
-same-row actions where space permits, title/grid alignment, total count across pagination, removal
-of redundant labels/icons, the shared two-pixel progress overlay, and visible-column preview demand
-with hidden-workspace retirement. Existing choice/pause/reveal regressions are updated for the new
-labels and heading. Their automated execution and the Rust count cases belong to Actions. Native
-client inspection remains pending after physical Escape stopped desktop control; the open client
-still uses the earlier build.
+Continuous virtual scrolling replaces review Previous/Next controls. Each window retains at most
+six 64-record payload batches and 64 cursor checkpoints. A background replacement has the same
+independent bounds and publishes its visible range atomically. Viewer navigation reads adjacent
+members across batch boundaries. Visible preview demand remains bounded and retires when hidden.
+
+The reported preference-switch flash was traced to the preference transaction advancing the catalog
+revision, followed by the gallery refresh notifying a review listener that cleared member payloads.
+Catalog and analysis publications now revalidate without removing the rendered range. Explicit
+refresh, initial loading and continuation retain loading feedback; errors remain retryable.
+
+Twenty-two focused checks pass: seven layouts at 400/1200/1280 pixels and normal/double text scaling,
+seven controller/widget cases, seven bounded-window/lifecycle cases and the preference publication
+case. That last case switches A to B to A, holds each follow-up catalog read pending, checks no
+loading bar, preserves card elements and scroll offsets, and verifies icon semantic names.
+The two viewer cases previously passed for navigation across member 63/64 and late completion after
+disposal; their current-head execution belongs to Actions. The initial semantic-label check exposed
+a test handle released after Flutter's end-of-test verification; a finally block now releases it
+before the test returns, and the check passes with its assertions retained.
+
+The 2026-10-17 Debug build reused the original 10,000-file catalog and displayed 72 groups. Native
+inspection confirms three-column group cards, compact full-width member rows, centered action icons,
+whole-row hover, stable heading/scroll placement while switching two preferred copies, and direct
+card activation of the viewer. The existing preferred copy was preserved; a separate group supplied
+the temporary preference-switch check. The active test client and profile-restoration backup remain
+available for user inspection. No migration, source mutation or new source-read workflow is added.
 
 Group totals and keyset results are read in one SQLite snapshot, including empty later pages.
 Regressions cover 70 groups across the 64-group page boundary, ignored categories and stale evidence.
 This adds a scalar to the generated bridge contract without a database migration, source enumeration
 or media read. The query has a 121-line owner; the review persistence facade has 191 lines, with 366
 review-test and 251 analysis-test lines. The page has 354 production lines, the grid 127, cards 153
-and analysis actions 91; the layout tests have 211 lines and retained review tests 261. These owners
-have no inline tests.
+and analysis actions 91 at that earlier count revision. The current review page has 273 production
+lines, controller 163, bounded window 197, cards 213, grid 136, header 105, metrics 79, viewer 135,
+reveal owner 56 and shared empty message 46. Dedicated review/layout/window/viewer/preference tests
+have 268/288/192/113/90 lines respectively. These owners have no inline tests.
 
 The earlier `3325f54` Actions run exposed one old menu test expecting focus to open a tooltip. Commit
 `e7d2bef` updates that expectation to the new hover-only contract while retaining focus assertions;

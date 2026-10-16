@@ -29,7 +29,8 @@ folders, scroll anchor and selection on workspace switches. Narrow windows may i
 secondary sidebar; explicitly opening it restores the same panel and its retained state.
 
 Compose its 180-millisecond transition from the pinned SDK's `AnimationController`, `AnimatedBuilder`,
-`ClipRect` and `OverflowBox`. The sidebar boundary and gallery origin move together while the
+`ClipRect`/`ClipRRect` and `OverflowBox`. The gallery transition clips its backing surface to the
+same rounded boundary as `LibraryMainSurface`. The sidebar boundary and gallery origin move together while the
 gallery receives only its final width for each toggle; its query-wide geometry must not reflow at
 every animation frame. A plain `AnimatedSize` around the sidebar would propagate intermediate
 widths into the photo wall. Retain both widget subtrees, disable collapsed-sidebar input, finish
@@ -61,17 +62,43 @@ The duplicate workspace composes Material `Card`, `Wrap` and the pinned SDK's la
 `GridView.builder` with `SliverGridDelegateWithFixedCrossAxisCount.mainAxisExtent`. These provide
 card surfaces, wrapping actions, bounded widget creation and framework scrolling. Ame chooses
 column count from the available width and text scale and owns visible preview demand for those
-columns. Narrow cards place the preview above the text. A one-column `ListView` leaves unused
-desktop space; a `Wrap` of every card would eagerly build the entire page and lose viewport-based
-preview admission. No custom scrolling or additional package is introduced.
+columns. Groups retain responsive columns; members use one column to expose long paths. Both levels
+share a thumbnail/text area. Group cards retain a lower-right text action; members place two
+48-pixel IconButton targets at the right, vertically centered, without a footer. The pinned SDK
+provides IconButton.isSelected/selectedIcon and focus; each icon supplies its semantic action label
+and AmeTooltip supplies the existing Windows-safe hover text. TextPainter measures installed typography, availability wrapping
+and TextButton padding/target dimensions, so height follows actual content and controls.
+A Wrap of every result would eagerly build the entire list and lose viewport-based preview admission.
+No custom scrolling or additional package is introduced.
+
+LibraryDuplicateReviewWindow owns continuous keyset-backed reads, six retained payload batches,
+64 cursor checkpoints and generation-based response admission. The framework viewport reports the
+visible ordinal range; unloaded items retain their final row geometry. Returning to an evicted range
+reads from its nearest retained checkpoint, replaying bounded catalog batches when needed. Source
+publication invalidates checkpoints. A background replacement owns a separate bounded window and
+publishes only after the visible range is complete, retaining the prior rendered payload in the meantime.
+This temporarily retains at most two six-batch payload windows; a newer publication or disposal revokes
+the older response authority. Explicit refresh clears the window and exposes loading; failed reads
+remain reported with retry. Late reads cannot clear a newer request or overwrite a saved decision.
+Group and member windows are separate; neither retains every asset or thumbnail. The
+viewer requests adjacent members through the same bounded window rather than stopping at a batch edge.
 
 The page heading is `重复图片查找`, followed by the current review category's total group count.
 Normal analysis status, scope and explanatory paragraphs are omitted from this surface. Refresh,
 pause/resume and the selected group's ignore/restore operation share one wrapping action row.
-The selected group retains its initial representative filename as the heading across member pages;
+The category switch precedes these actions in the same `OverflowBar`; its count line reserves
+space during loading. The selected group's action row is also right-aligned. A card-wide `InkWell`
+supplies pointer, keyboard and hover behavior, while
+the text/icon buttons keep their separate actions. The pinned SDK's `Card.clipBehavior` clips the ink to
+the shared card shape; an embedded clickable `ListTile` would restrict feedback to the path region.
+The selected group retains its initial representative filename as the heading while scrolling;
 content aligns beneath that heading. Member cards omit a separate preferred-copy label and the
 decorative folder icon beside their existing thumbnail. Preference and reveal actions remain.
-The page uses the gallery's existing two-pixel loading overlay while fetching or saving results.
+The page uses the gallery's existing two-pixel loading overlay around the result region below
+the toolbar. Preference writes retain disabled-action and failure feedback without a page loader.
+Dialog and member rows share one reveal owner for availability, in-flight admission and errors.
+Empty/error feedback reuses LibraryGalleryMessage with the gallery's centered icon, title typography,
+spacing and optional detail/action rather than a separate plain-text presentation.
 
 ## Alternatives and consequences
 
@@ -92,5 +119,6 @@ Automated boundary checks run in Actions. Rollback can restore the prior shell w
 versioned fingerprints, source identities, catalogs or user data.
 
 References: [Material components](https://m3.material.io/components),
+[Flutter IconButton](https://api.flutter.dev/flutter/material/IconButton-class.html),
 [Flutter NavigationRail](https://api.flutter.dev/flutter/material/NavigationRail-class.html),
 [Windows navigation](https://learn.microsoft.com/en-us/windows/apps/design/basics/navigation-basics).

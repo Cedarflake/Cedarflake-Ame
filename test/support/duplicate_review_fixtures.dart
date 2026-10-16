@@ -93,7 +93,11 @@ class ReviewFixtureService implements LibraryDuplicateReview {
   ) async {
     memberCursors.add(after);
     if (pendingMembers case final pending?) return pending.future;
-    return members;
+    return LibraryDuplicateReviewLocations(
+      locations: members.locations,
+      decision: decision,
+      nextLocationId: after == null ? nextLocationId : null,
+    );
   }
 
   @override

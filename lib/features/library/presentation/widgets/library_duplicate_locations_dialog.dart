@@ -81,7 +81,9 @@ class _LibraryDuplicateLocationsDialogState
                   children: [
                     Expanded(
                       child: Text(
-                        LibraryDuplicateStrings.viewLocations,
+                        LibraryDuplicateStrings.duplicateImages(
+                          widget.group.locationCount,
+                        ),
                         style: Theme.of(context).textTheme.titleMedium,
                       ),
                     ),

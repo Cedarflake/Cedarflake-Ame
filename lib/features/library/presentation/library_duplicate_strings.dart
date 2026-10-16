@@ -26,7 +26,7 @@ abstract final class LibraryDuplicateStrings {
   static const waitingForResults = "找到的重复图片会显示在这里。";
   static const emptyLocations = "这组图片的位置已发生变化";
   static const loadFailed = "暂时无法读取结果";
-  static const viewLocations = "查看重复位置";
+  static const viewLocations = "查看重复图片";
   static const back = "返回重复图片";
   static const previous = "上一页";
   static const next = "下一页";
@@ -40,7 +40,6 @@ abstract final class LibraryDuplicateStrings {
   static const clearPreferred = "取消首选";
   static const ignore = "忽略此组";
   static const restoreGroup = "恢复此组";
-  static const openImage = "查看图片";
   static const saveFailed = "未能保存选择，请重试";
   static String groups(int count) => "$count 个重复图像组";
 
@@ -55,6 +54,7 @@ abstract final class LibraryDuplicateStrings {
   static String checked(int count) => "本次已检查 $count 个文件";
   static String skipped(int count) => "$count 个文件未能完成检查，可稍后重试。";
   static String locations(int count) => "$count 个位置";
+  static String duplicateImages(int count) => "$count 张重复图片";
   static String physicalFiles(int count) => "$count 份文件";
 
   // Each location row is refreshed using metadata only; opening the location list never downloads files.

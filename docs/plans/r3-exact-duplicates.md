@@ -3,7 +3,7 @@
 Status: R3-01 through R3-04 implementation and client checks recorded; affected Actions verification in progress under the
 [roadmap](../roadmap.md#current-execution-queue).
 
-Updated: 2026-10-16.
+Updated: 2026-10-17.
 
 ## Outcome and scope
 
@@ -56,18 +56,24 @@ Group review connects visible image previews, the existing viewer and durable pr
 Native checks reused the 10,000-file corpus, including preference/ignore retention after restart.
 The current head still requires its applicable Actions results.
 
-The current UI revision moves the sidebar toggle above Settings, animates the sidebar/photo-wall
-boundary, simplifies merged-card markers and reorganizes the duplicate workspace as responsive
-cards with a total group count and one action row. Focused layout checks pass; native inspection of
-this revision remains pending after desktop control was stopped. Preserve the retained isolated
-client/profile backup until that session is closed. The current UI and count regressions run in Actions.
+The current UI revision retains responsive group cards and compact single-column member rows,
+with vertically centered preference/reveal icons on the right. Header actions align right, count
+space remains stable, and empty feedback reuses the gallery component. Continuous virtual scrolling
+replaces review pagination while bounded catalog windows and preview demand remain separate.
+Preference writes and their subsequent catalog publication preserve rendered members until a
+complete replacement range is ready. The 22 focused controller/window/layout/preference cases pass;
+the two viewer boundary cases also passed before the background-revalidation addition.
+The rebuilt Debug reuses the retained 10,000-file catalog; native inspection confirms group cards,
+112-pixel member rows and preference switching without clearing the visible list. Applicable checks
+for the submitted head remain owned by Actions. Preserve the active client/profile backup until
+the visual-review session is closed.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |
 | R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client and native Settings-menu restoration checks recorded; applicable Actions results pending |
 | R3-02 | Maintain duplicate results through incremental changes | Committed; automatic scheduling, foreground priority, unchanged reuse and closed-process additions/removals checked; native pause/resume and paused restart now checked; remaining automated results belong to Actions |
 | R3-03 | Connect both gallery display modes and duplicate badges | Implemented; 10,000 all-images / 72 merged entries, location reveal, restart preference and automatic 74-to-72 folding checked in the reused client corpus; new regressions await Actions |
-| R3-04 | Review groups and preserve preferred-copy/ignore decisions | Implemented with schema 42, bounded review pages, source-checked preference writes and reversible ignore; affected client checks recorded; automated checks belong to Actions |
+| R3-04 | Review groups and preserve preferred-copy/ignore decisions | Implemented with schema 42, continuous bounded review windows, source-checked preference writes and reversible ignore; affected client checks recorded; automated checks belong to Actions |
 | R3-05 | Complete affected client/performance verification and close R3 | Inspect current-head Actions and finish only the affected remaining checks; retain prior analysis and source-preservation results |
 
 Each delivery includes its implementation, connected interface, relevant regressions and necessary

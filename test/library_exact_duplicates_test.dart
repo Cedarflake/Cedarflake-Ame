@@ -180,7 +180,7 @@ void main() {
           find.byKey(const ValueKey("duplicate-badge-one")),
           findsOneWidget,
         );
-        expect(find.text("查看重复位置 · 2 个位置"), findsNothing);
+        expect(find.text("查看重复图片 · 2 个位置"), findsNothing);
         RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
           trace: "duplicate-location-dialog-closed",
         );
@@ -255,6 +255,7 @@ void main() {
         await tester.tap(badge);
         await tester.pumpAndSettle();
         final panel = find.byKey(const Key("duplicate-locations-dialog"));
+        expect(find.text("2 张重复图片"), findsOneWidget);
         final bounds = tester.getRect(panel);
         expect(bounds.left, greaterThanOrEqualTo(0));
         expect(bounds.right, lessThanOrEqualTo(size.width));
@@ -506,25 +507,20 @@ void main() {
           .read(libraryWorkbenchControllerProvider.notifier)
           .select(LibraryWorkspace.duplicates);
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(TextButton, "查看重复位置"));
+      await tester.tap(find.widgetWithText(TextButton, "查看重复图片"));
       await tester.pumpAndSettle();
       expect(find.text("one.png"), findsNWidgets(2));
       expect(find.text("two.png"), findsOneWidget);
       expect(find.text("文件夹离线"), findsOneWidget);
-      await tester.tap(
-        find.descendant(
-          of: find.byKey(const ValueKey("duplicate-location-one")),
-          matching: find.text("one.png"),
-        ),
-      );
+      await tester.tap(find.byKey(const ValueKey("reveal-one")));
       await tester.pumpAndSettle();
       expect(revealed, [
         ["/select,", r"C:\fixture\one.png"],
       ]);
-      final offline = tester.widget<ListTile>(
-        find.byKey(const ValueKey("duplicate-location-two")),
+      final offline = tester.widget<IconButton>(
+        find.byKey(const ValueKey("reveal-two")),
       );
-      expect(offline.onTap, isNull);
+      expect(offline.onPressed, isNull);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox.shrink());
     },

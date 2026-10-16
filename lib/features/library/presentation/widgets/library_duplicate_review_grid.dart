@@ -1,3 +1,4 @@
+import "dart:async";
 import "dart:math" as math;
 
 import "package:flutter/material.dart";
@@ -6,19 +7,24 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
+import "library_duplicate_review_metrics.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 
 /// Owns the visible grid's bounded preview demand and hidden workspace retirement.
 class LibraryDuplicateReviewGrid extends ConsumerStatefulWidget {
   const LibraryDuplicateReviewGrid({
-    required this.assets,
+    required this.itemCount,
+    required this.assetAt,
     required this.itemBuilder,
-    this.showLocations = false,
+    this.onVisibleRange,
+    this.singleColumn = false,
     super.key,
   });
-  final List<LibraryAsset> assets;
+  final int itemCount;
+  final LibraryAsset? Function(int index) assetAt;
   final IndexedWidgetBuilder itemBuilder;
-  final bool showLocations;
+  final Future<void> Function(int first, int end)? onVisibleRange;
+  final bool singleColumn;
 
   @override
   ConsumerState<LibraryDuplicateReviewGrid> createState() =>
@@ -68,14 +74,15 @@ class _LibraryDuplicateReviewGridState
       final first =
           math.max(0, (_scroll.offset / _rowStride).floor()) * _columns;
       final last = math.min(
-        widget.assets.length,
+        widget.itemCount,
         (((_scroll.offset + _height) / _rowStride).ceil() + 1) * _columns,
       );
       _library.updateFilmstripPreviewDemand(
         _previewOwner,
-        widget.assets.skip(first).take(math.max(0, last - first)),
+        [for (var index = first; index < last; index++) ?widget.assetAt(index)],
         libraryPreviewDecodeWidth(144, MediaQuery.devicePixelRatioOf(context)),
       );
+      unawaited(widget.onVisibleRange?.call(first, last));
     });
   }
 
@@ -91,25 +98,27 @@ class _LibraryDuplicateReviewGridState
     builder: (context, constraints) {
       _height = constraints.maxHeight;
       final textSize = MediaQuery.textScalerOf(context).scale(16);
-      final minimumWidth =
-          (widget.showLocations ? 420 : 360) * (textSize / 16).clamp(1.0, 1.5);
+      final minimumWidth = 340 * (textSize / 16).clamp(1.0, 1.5);
       const spacing = 12.0;
-      _columns = math.max(
-        1,
-        ((constraints.maxWidth + spacing) / (minimumWidth + spacing)).floor(),
-      );
+      _columns = widget.singleColumn
+          ? 1
+          : math.max(
+              1,
+              ((constraints.maxWidth + spacing) / (minimumWidth + spacing))
+                  .floor(),
+            );
       final cardWidth =
           (constraints.maxWidth - (_columns - 1) * spacing) / _columns;
-      final cardHeight =
-          math.max(
-            widget.showLocations ? 200.0 : 156.0,
-            textSize * (widget.showLocations ? 9 : 6) + 40,
-          ) +
-          (cardWidth < 360 ? 84 : 0);
+      final cardHeight = LibraryDuplicateReviewMetrics.height(
+        context,
+        cardWidth,
+        member: widget.singleColumn,
+      );
       _rowStride = cardHeight + spacing;
       _scheduleDemand();
       return AmeScrollMotion(
         child: GridView.builder(
+          key: PageStorageKey(widget.key),
           controller: _scroll,
           padding: EdgeInsets.zero,
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -118,7 +127,7 @@ class _LibraryDuplicateReviewGridState
             crossAxisSpacing: spacing,
             mainAxisSpacing: spacing,
           ),
-          itemCount: widget.assets.length,
+          itemCount: widget.itemCount,
           itemBuilder: widget.itemBuilder,
         ),
       );

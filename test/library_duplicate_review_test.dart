@@ -112,23 +112,23 @@ void main() {
   });
 
   test(
-    "catalog publication keeps the reviewed member page and its return cursor",
+    "catalog publication reloads the visible range with fresh cursors",
     () async {
       final service = ReviewFixtureService()..nextLocationId = "boundary";
       final controller = LibraryDuplicateReviewController(service);
       addTearDown(controller.dispose);
       await controller.showGroup(service.entry);
-      await controller.next();
+      await controller.ensureRange(2, 4);
       await controller.catalogChanged();
-      expect(service.memberCursors, [null, "boundary", "boundary"]);
-      expect(controller.canPrevious, isTrue);
-      await controller.previous();
-      expect(service.memberCursors.last, isNull);
+      expect(service.memberCursors, [null, "boundary", null, "boundary"]);
+      expect(controller.memberWindow.itemAt(2), isNotNull);
+      await controller.ensureRange(0, 2);
+      expect(service.memberCursors, [null, "boundary", null, "boundary"]);
     },
   );
 
   test(
-    "saving keeps page navigation from retiring its pending member request",
+    "saving keeps viewport loading from replacing its pending decision",
     () async {
       final service = ReviewFixtureService()..nextLocationId = "boundary";
       final controller = LibraryDuplicateReviewController(service);
@@ -136,7 +136,7 @@ void main() {
       await controller.showGroup(service.entry);
       service.pendingSave = Completer();
       final save = controller.prefer(reviewAsset("one"));
-      await controller.next();
+      await controller.ensureRange(2, 4);
       expect(service.memberCursors, [null]);
       service.pendingSave!.complete(
         const LibraryDuplicateDecision(
@@ -145,21 +145,13 @@ void main() {
         ),
       );
       expect(await save, isTrue);
-      await controller.next();
-      expect(service.memberCursors, [null, "boundary"]);
-      service.pendingSave = Completer();
-      final secondSave = controller.prefer(reviewAsset("two"));
-      await controller.previous();
-      expect(service.memberCursors, [null, "boundary"]);
-      service.pendingSave!.complete(
-        const LibraryDuplicateDecision(
-          preferredLocationId: "two",
-          preferredAssetId: "asset-two",
-        ),
+      service.decision = const LibraryDuplicateDecision(
+        preferredLocationId: "one",
+        preferredAssetId: "asset-one",
       );
-      await secondSave;
-      await controller.previous();
-      expect(service.memberCursors, [null, "boundary", null]);
+      await controller.ensureRange(2, 4);
+      expect(service.memberCursors, [null, "boundary"]);
+      expect(controller.members.decision.preferredLocationId, "one");
     },
   );
 
@@ -189,13 +181,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text("查看重复位置"));
+      await tester.tap(find.text("查看重复图片"));
       await tester.pumpAndSettle();
       expect(find.text("one.png"), findsNWidgets(2));
       expect(find.text("two.png"), findsOneWidget);
       expect(
         tester
-            .widget<TextButton>(find.byKey(const ValueKey("prefer-two")))
+            .widget<IconButton>(find.byKey(const ValueKey("prefer-two")))
             .onPressed,
         isNull,
       );
@@ -203,8 +195,13 @@ void main() {
       await tester.pumpAndSettle();
       expect(service.decision.preferredLocationId, "one");
       expect(library.refreshes, 1);
-      expect(find.text("取消首选"), findsOneWidget);
-      await tester.tap(find.text("查看图片").first);
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey("prefer-one")))
+            .isSelected,
+        isTrue,
+      );
+      await tester.tap(find.byKey(const ValueKey("duplicate-card-one")));
       await tester.pumpAndSettle();
       expect(find.byType(LibraryImageViewer), findsOneWidget);
       expect(find.byType(LibraryExactDuplicatesPage), findsNothing);
@@ -221,17 +218,27 @@ void main() {
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(find.byType(LibraryExactDuplicatesPage), findsOneWidget);
-      expect(find.text("取消首选"), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey("prefer-one")))
+            .isSelected,
+        isTrue,
+      );
       await tester.tap(find.text("忽略此组"));
       await tester.pumpAndSettle();
       expect(service.decision.ignored, isTrue);
-      expect(find.text("查看重复位置"), findsNothing);
+      expect(find.text("查看重复图片"), findsNothing);
       await tester.tap(find.text("已忽略"));
       await tester.pumpAndSettle();
-      await tester.tap(find.text("查看重复位置"));
+      await tester.tap(find.text("查看重复图片"));
       await tester.pumpAndSettle();
       expect(find.text("首选副本"), findsNothing);
-      expect(find.text("取消首选"), findsOneWidget);
+      expect(
+        tester
+            .widget<IconButton>(find.byKey(const ValueKey("prefer-one")))
+            .isSelected,
+        isTrue,
+      );
       await tester.tap(find.text("恢复此组"));
       await tester.pumpAndSettle();
       expect(service.decision.ignored, isFalse);
