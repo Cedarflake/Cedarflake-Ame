@@ -25,25 +25,100 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
   final Widget actions;
 
   @override
-  Widget build(BuildContext context) => Column(
+  Widget build(BuildContext context) {
+    if (onBack == null) return _groupHeader(context);
+    return _memberHeader(context);
+  }
+
+  Widget _groupHeader(BuildContext context) {
+    final summary = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          key: const Key("duplicate-review-title"),
+          style: Theme.of(context).textTheme.headlineSmall,
+        ),
+        const SizedBox(height: 8),
+        Visibility(
+          visible: totalGroups != null,
+          maintainSize: true,
+          maintainAnimation: true,
+          maintainState: true,
+          child: Text(
+            LibraryDuplicateStrings.groups(totalGroups ?? 0),
+            key: const Key("duplicate-review-count"),
+          ),
+        ),
+      ],
+    );
+    final controls = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
+      children: [
+        SegmentedButton<bool>(
+          key: const Key("duplicate-review-category"),
+          segments: const [
+            ButtonSegment(
+              value: false,
+              label: Text(LibraryDuplicateStrings.pendingGroups),
+            ),
+            ButtonSegment(
+              value: true,
+              label: Text(LibraryDuplicateStrings.ignoredGroups),
+            ),
+          ],
+          selected: {ignored},
+          onSelectionChanged: (value) => onCategoryChanged(value.single),
+        ),
+        const SizedBox(height: 4),
+        actions,
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(24) / 24;
+        final compactWidth = 600 * textScale;
+        if (constraints.maxWidth < compactWidth) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              summary,
+              const SizedBox(height: 12),
+              Align(alignment: Alignment.centerRight, child: controls),
+            ],
+          );
+        }
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: summary),
+            const SizedBox(width: 24),
+            controls,
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _memberHeader(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
       Row(
         children: [
-          if (onBack != null) ...[
-            SizedBox(
-              width: 40,
-              child: AmeTooltip(
-                message: LibraryDuplicateStrings.back,
-                child: IconButton(
-                  key: const Key("duplicate-review-back"),
-                  onPressed: onBack,
-                  icon: const Icon(Symbols.arrow_back_rounded),
-                ),
+          SizedBox(
+            width: 40,
+            child: AmeTooltip(
+              message: LibraryDuplicateStrings.back,
+              child: IconButton(
+                key: const Key("duplicate-review-back"),
+                onPressed: onBack,
+                icon: const Icon(Symbols.arrow_back_rounded),
               ),
             ),
-            const SizedBox(width: 8),
-          ],
+          ),
+          const SizedBox(width: 8),
           Expanded(
             child: DefaultTextStyle(
               style: Theme.of(context).textTheme.headlineSmall!,
@@ -57,47 +132,14 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
         ],
       ),
       const SizedBox(height: 8),
-      if (onBack == null) ...[
-        Visibility(
-          visible: totalGroups != null,
-          maintainSize: true,
-          maintainAnimation: true,
-          maintainState: true,
-          child: Text(
-            LibraryDuplicateStrings.groups(totalGroups ?? 0),
-            key: const Key("duplicate-review-count"),
-          ),
-        ),
-        const SizedBox(height: 12),
-      ],
       Padding(
-        padding: EdgeInsets.only(left: onBack == null ? 0 : backInset),
+        padding: const EdgeInsets.only(left: backInset),
         child: OverflowBar(
-          alignment: onBack == null
-              ? MainAxisAlignment.spaceBetween
-              : MainAxisAlignment.end,
+          alignment: MainAxisAlignment.end,
           overflowAlignment: OverflowBarAlignment.end,
           spacing: 16,
           overflowSpacing: 8,
-          children: [
-            if (onBack == null)
-              SegmentedButton<bool>(
-                key: const Key("duplicate-review-category"),
-                segments: const [
-                  ButtonSegment(
-                    value: false,
-                    label: Text(LibraryDuplicateStrings.pendingGroups),
-                  ),
-                  ButtonSegment(
-                    value: true,
-                    label: Text(LibraryDuplicateStrings.ignoredGroups),
-                  ),
-                ],
-                selected: {ignored},
-                onSelectionChanged: (value) => onCategoryChanged(value.single),
-              ),
-            actions,
-          ],
+          children: [actions],
         ),
       ),
     ],

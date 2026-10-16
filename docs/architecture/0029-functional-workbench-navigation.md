@@ -90,8 +90,11 @@ viewer requests adjacent members through the same bounded window rather than sto
 The page heading is `重复图片查找`, followed by the current review category's total group count.
 Normal analysis status, scope and explanatory paragraphs are omitted from this surface. Refresh,
 pause/resume and the selected group's ignore/restore operation share one wrapping action row.
-The category switch precedes these actions in the same `OverflowBar`; its count line reserves
-space during loading. The selected group's action row is also right-aligned. A card-wide `InkWell`
+The group-list heading/count block shares a top-aligned row with a right-aligned control column:
+the category switch is above the analysis actions. LayoutBuilder uses a text-scaled compact-width
+boundary to stack these blocks when necessary; the count line reserves space during loading.
+The existing Material SegmentedButton retains selection, focus and semantics. The selected group's
+action row is also right-aligned. A card-wide `InkWell`
 supplies pointer, keyboard and hover behavior, while
 the text/icon buttons keep their separate actions. The pinned SDK's `Card.clipBehavior` clips the ink to
 the shared card shape; an embedded clickable `ListTile` would restrict feedback to the path region.

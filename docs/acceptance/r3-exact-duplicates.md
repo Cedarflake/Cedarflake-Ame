@@ -375,6 +375,18 @@ the active isolated client and its restoration backup remain intact.
 The workspace retains responsive group cards and single-column member rows. Header actions align
 right, category/count geometry stays stable, and loading appears at the toolbar/results boundary
 using the gallery's two-pixel overlay. Shared empty/error content replaces the plain centered text.
+The group-list header places its category switch above the right-aligned action row, beside the
+heading/count block. Compact widths and enlarged text stack the controls below the heading.
+The existing Material SegmentedButton remains unchanged; the official
+[segmented-button page](https://m3.material.io/components/segmented-buttons/overview) requires
+JavaScript, and the pinned SDK confirms its shrink-wrapped sizing when expandedInsets is absent.
+LayoutBuilder, Row and Column provide the requested composition without a custom control.
+Seven layout cases pass across 400/1200/1280-pixel surfaces and normal/double text scaling,
+including right alignment, controls below the switch, stable category geometry and unchanged
+member-row behavior. The initial narrow fixture used a multi-card finder for a single coordinate;
+it now selects the first card while retaining the alignment assertion. The updated Debug displays
+the two-tier controls beside the heading in the retained 72-group catalog. The header has 147
+production lines, no inline tests and 308 dedicated layout-test lines.
 Members use vertically centered star and folder IconButtons on the right, without a footer; normal
 row height is 112 logical pixels in the retained Windows client. Icon semantic labels and hover
 tooltips name preference/reveal actions. Group cards retain their lower-right `查看重复图片` action.

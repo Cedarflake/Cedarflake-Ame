@@ -94,8 +94,10 @@ No analysis or display choice authorizes source mutation.
 
 Use `重复图片查找` as the workspace heading and show the current category's total number of
 duplicate image groups beneath it, reserving that line while changing categories. Omit the scope,
-description and separate analysis-status text. Place the category switch on the left and refresh
-and pause/resume on its right in one toolbar; wrap only when the available width requires it.
+description and separate analysis-status text. Keep the heading/count block on the left and a
+two-tier control block on the right, aligned at the top. The category switch sits above the
+right-aligned refresh and pause/resume actions. At compact widths or enlarged text sizes, place
+the control block below the heading while retaining its right alignment.
 Group review adds ignore/restore to the right-aligned action row. Groups use responsive multi-column
 cards; group members use full-width single-column rows so paths have enough space. Both reuse the
 thumbnail/text skeleton. Group cards retain their lower-right text action; member rows place

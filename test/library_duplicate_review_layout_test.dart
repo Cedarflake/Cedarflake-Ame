@@ -79,15 +79,35 @@ void main() {
             tester.getTopLeft(find.text("暂停查重")).dy,
             tester.getTopLeft(find.text("刷新结果")).dy,
           );
-          final category = find.byKey(const Key("duplicate-review-category"));
-          final actions = find.byKey(const Key("duplicate-review-actions"));
-          expect(tester.getCenter(category).dy, tester.getCenter(actions).dy);
-          expect(
-            tester.getTopLeft(actions).dx,
-            greaterThan(tester.getTopRight(category).dx),
-          );
         }
         final category = find.byKey(const Key("duplicate-review-category"));
+        final actions = find.byKey(const Key("duplicate-review-actions"));
+        final heading = find.byKey(const Key("duplicate-review-title"));
+        final groupCount = find.byKey(const Key("duplicate-review-count"));
+        final resultsRight = tester.getTopRight(find.byType(GridView)).dx;
+        expect(tester.getTopRight(category).dx, resultsRight);
+        expect(tester.getTopRight(actions).dx, resultsRight);
+        expect(
+          tester.getTopLeft(actions).dy,
+          greaterThan(tester.getBottomLeft(category).dy),
+        );
+        if (width > 1000 && scale == 1) {
+          expect(tester.getTopLeft(category).dy, tester.getTopLeft(heading).dy);
+          expect(
+            tester.getTopLeft(category).dx,
+            greaterThan(tester.getTopRight(heading).dx),
+          );
+        }
+        if (width == 400) {
+          expect(
+            tester.getTopLeft(category).dy,
+            greaterThan(tester.getBottomLeft(groupCount).dy),
+          );
+          expect(
+            tester.getTopLeft(heading).dx,
+            tester.getTopLeft(cards.first).dx,
+          );
+        }
         final categoryTop = tester.getTopLeft(category).dy;
         service.pendingGroups = Completer();
         await tester.tap(find.text("已忽略"));
