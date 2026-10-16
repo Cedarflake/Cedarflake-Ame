@@ -230,13 +230,17 @@ class _LibraryExactDuplicatesPageState
                     ),
                     const Spacer(),
                     TextButton(
-                      onPressed: _review.loading || !_review.canPrevious
+                      onPressed:
+                          _review.loading ||
+                              _review.saving ||
+                              !_review.canPrevious
                           ? null
                           : () => unawaited(_review.previous()),
                       child: const Text(LibraryDuplicateStrings.previous),
                     ),
                     TextButton(
-                      onPressed: _review.loading || !_review.canNext
+                      onPressed:
+                          _review.loading || _review.saving || !_review.canNext
                           ? null
                           : () => unawaited(_review.next()),
                       child: const Text(LibraryDuplicateStrings.next),

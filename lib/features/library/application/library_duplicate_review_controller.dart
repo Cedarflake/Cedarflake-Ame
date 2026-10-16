@@ -95,7 +95,7 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
   }
 
   Future<void> next() {
-    if (loading || !canNext) return Future.value();
+    if (loading || saving || !canNext) return Future.value();
     if (selected == null) {
       _groupHistory.add(_groupCursor);
       if (_groupHistory.length > 64) _groupHistory.removeAt(0);
@@ -109,7 +109,7 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
   }
 
   Future<void> previous() {
-    if (loading || !canPrevious) return Future.value();
+    if (loading || saving || !canPrevious) return Future.value();
     if (selected == null) {
       _groupCursor = _groupHistory.removeLast();
     } else {

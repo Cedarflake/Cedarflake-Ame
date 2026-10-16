@@ -127,6 +127,42 @@ void main() {
     },
   );
 
+  test(
+    "saving keeps page navigation from retiring its pending member request",
+    () async {
+      final service = ReviewFixtureService()..nextLocationId = "boundary";
+      final controller = LibraryDuplicateReviewController(service);
+      addTearDown(controller.dispose);
+      await controller.showGroup(service.entry);
+      service.pendingSave = Completer();
+      final save = controller.prefer(reviewAsset("one"));
+      await controller.next();
+      expect(service.memberCursors, [null]);
+      service.pendingSave!.complete(
+        const LibraryDuplicateDecision(
+          preferredLocationId: "one",
+          preferredAssetId: "asset-one",
+        ),
+      );
+      expect(await save, isTrue);
+      await controller.next();
+      expect(service.memberCursors, [null, "boundary"]);
+      service.pendingSave = Completer();
+      final secondSave = controller.prefer(reviewAsset("two"));
+      await controller.previous();
+      expect(service.memberCursors, [null, "boundary"]);
+      service.pendingSave!.complete(
+        const LibraryDuplicateDecision(
+          preferredLocationId: "two",
+          preferredAssetId: "asset-two",
+        ),
+      );
+      await secondSave;
+      await controller.previous();
+      expect(service.memberCursors, [null, "boundary", null]);
+    },
+  );
+
   testWidgets(
     "review saves a preferred copy and moves ignored groups between the two lists",
     (tester) async {
