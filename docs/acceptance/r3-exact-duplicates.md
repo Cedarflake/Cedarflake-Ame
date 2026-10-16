@@ -765,3 +765,20 @@ The run generated 128 thumbnails and exited normally. The original profile and c
 restored and verified; missing test thumbnails were restored from their retained copies. Diagnostic
 recorders and captured updates remain ignored local evidence, absent from the ordinary client.
 Complete Actions results remain required for the commit containing this correction.
+
+## Duplicate viewer member publication
+
+Final review reproduced a catalog publication replacing retained member ordinals while the member
+viewer was open. Inserting a member before the current image made the next action show that same
+image again. The route now retires pre-existing member reads before opening, defers catalog and
+analysis revalidation while it owns the member window, and revalidates after it closes. The existing
+bounded continuation remains available; the correction does not load the whole group or add a
+catalog snapshot transaction.
+
+The regression fails on the previous implementation with `one` where the next image should be
+`two`. With the correction it rejects an older pending replacement and a subsequent publication,
+retains forward/backward navigation, and displays the newly inserted member after returning.
+All 13 affected cases pass, including cross-batch navigation, late disposal, preference publication,
+bounded windows, stale reads, retry, and Windows viewer semantics. The page owns 284 production
+lines and no inline tests; the dedicated viewer test has 201 lines. Current-head Actions remain
+the owner of complete automated verification.

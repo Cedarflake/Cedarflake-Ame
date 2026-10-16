@@ -50,7 +50,7 @@ class _LibraryExactDuplicatesPageState
     ref.listenManual(
       libraryControllerProvider.select((value) => value.catalogRevision),
       (_, _) {
-        unawaited(_review.catalogChanged());
+        _catalogChanged();
       },
     );
     unawaited(_review.refresh());
@@ -58,9 +58,13 @@ class _LibraryExactDuplicatesPageState
 
   void _analysisChanged() {
     if (_wasRunning && !_analysis.isRunning) {
-      unawaited(_review.catalogChanged());
+      _catalogChanged();
     }
     _wasRunning = _analysis.isRunning;
+  }
+
+  void _catalogChanged() {
+    if (!_viewerOpen) unawaited(_review.catalogChanged());
   }
 
   @override
@@ -88,6 +92,8 @@ class _LibraryExactDuplicatesPageState
   Future<void> _open(LibraryAsset asset, int index) async {
     if (_viewerOpen) return;
     final group = _review.selected;
+    // The viewer owns the retained member ordinals until its route closes.
+    _review.memberWindow.cancelRead();
     setState(() => _viewerOpen = true);
     try {
       await Navigator.of(context).push<void>(
@@ -109,7 +115,10 @@ class _LibraryExactDuplicatesPageState
         ),
       );
     } finally {
-      if (mounted) setState(() => _viewerOpen = false);
+      if (mounted) {
+        setState(() => _viewerOpen = false);
+        await _review.catalogChanged();
+      }
     }
   }
 

@@ -41,8 +41,11 @@ replay completed without AXTree errors and exited normally. Hosted analysis and 
 failures have scoped corrections. Schema 43 retires the redundant exact-candidate cursor index without
 changing catalog content or query policy. The unchanged local 10,000-image workload now passes
 at 63,455,232 bytes below the 64 MiB bound. The sixteen failures from the retained hosted Rust run
-have corrected fixtures and contract expectations; all 33 affected local regressions pass. Inspect
-the submitted head's complete Actions results, then complete the final audit and authorized PR merge.
+have corrected fixtures and contract expectations; all 33 affected local regressions pass. Final
+review reproduced a member-window replacement changing the open viewer's ordinals. The route now
+retires prior member reads, defers catalog replacement while open and revalidates on return; all
+13 affected viewer, window, preference and semantics cases pass. Inspect the submitted head's
+complete Actions results, then complete the final audit and authorized PR merge.
 
 Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
 The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,
