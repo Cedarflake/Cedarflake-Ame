@@ -77,6 +77,9 @@ class ReviewFixtureService implements LibraryDuplicateReview {
     loads++;
     if (pendingGroups case final pending?) return pending.future;
     return LibraryDuplicateReviewPage(
+      totalGroups: (showResults?.call() ?? true) && ignored == decision.ignored
+          ? 1
+          : 0,
       groups: (showResults?.call() ?? true) && ignored == decision.ignored
           ? [entry]
           : [],

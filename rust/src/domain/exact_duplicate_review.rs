@@ -26,6 +26,7 @@ pub struct ExactDuplicateReviewGroup {
 #[derive(Clone, Debug)]
 pub struct ExactDuplicateReviewPage {
     pub groups: Vec<ExactDuplicateReviewGroup>,
+    pub total_groups: u64,
     pub next: Option<ExactDuplicateGroupCursor>,
 }
 

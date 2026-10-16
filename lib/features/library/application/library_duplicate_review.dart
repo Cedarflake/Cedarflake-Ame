@@ -58,6 +58,7 @@ class RustLibraryDuplicateReview implements LibraryDuplicateReview {
       ignored: ignored,
     );
     return LibraryDuplicateReviewPage(
+      totalGroups: page.totalGroups.toInt(),
       groups: page.groups
           .map(
             (value) => LibraryDuplicateReviewGroup(

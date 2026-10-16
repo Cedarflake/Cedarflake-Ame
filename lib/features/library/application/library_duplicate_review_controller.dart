@@ -10,6 +10,7 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
   final LibraryDuplicateReview _service;
   LibraryDuplicateReviewPage groups = const LibraryDuplicateReviewPage(
     groups: [],
+    totalGroups: 0,
   );
   LibraryDuplicateReviewLocations members =
       const LibraryDuplicateReviewLocations(
@@ -82,7 +83,7 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
       ignored = ignoredGroups;
       _groupCursor = null;
       _groupHistory.clear();
-      groups = const LibraryDuplicateReviewPage(groups: []);
+      groups = const LibraryDuplicateReviewPage(groups: [], totalGroups: 0);
     }
     return refresh();
   }

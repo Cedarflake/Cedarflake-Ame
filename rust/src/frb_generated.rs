@@ -2392,12 +2392,14 @@ impl SseDecode for crate::domain::exact_duplicate_review::ExactDuplicateReviewPa
             <Vec<crate::domain::exact_duplicate_review::ExactDuplicateReviewGroup>>::sse_decode(
                 deserializer,
             );
+        let mut var_totalGroups = <u64>::sse_decode(deserializer);
         let mut var_next =
             <Option<crate::domain::exact_duplicates::ExactDuplicateGroupCursor>>::sse_decode(
                 deserializer,
             );
         return crate::domain::exact_duplicate_review::ExactDuplicateReviewPage {
             groups: var_groups,
+            total_groups: var_totalGroups,
             next: var_next,
         };
     }
@@ -4836,6 +4838,7 @@ impl flutter_rust_bridge::IntoDart
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.groups.into_into_dart().into_dart(),
+            self.total_groups.into_into_dart().into_dart(),
             self.next.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -6557,6 +6560,7 @@ impl SseEncode for crate::domain::exact_duplicate_review::ExactDuplicateReviewPa
             self.groups,
             serializer,
         );
+        <u64>::sse_encode(self.total_groups, serializer);
         <Option<crate::domain::exact_duplicates::ExactDuplicateGroupCursor>>::sse_encode(
             self.next, serializer,
         );

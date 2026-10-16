@@ -56,6 +56,12 @@ Group review connects visible image previews, the existing viewer and durable pr
 Native checks reused the 10,000-file corpus, including preference/ignore retention after restart.
 The current head still requires its applicable Actions results.
 
+The current UI revision moves the sidebar toggle above Settings, animates the sidebar/photo-wall
+boundary, simplifies merged-card markers and reorganizes the duplicate workspace as responsive
+cards with a total group count and one action row. Focused layout checks pass; native inspection of
+this revision remains pending after desktop control was stopped. Preserve the retained isolated
+client/profile backup until that session is closed. The current UI and count regressions run in Actions.
+
 | Order | Delivery | Current state |
 | --- | --- | --- |
 | R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client and native Settings-menu restoration checks recorded; applicable Actions results pending |

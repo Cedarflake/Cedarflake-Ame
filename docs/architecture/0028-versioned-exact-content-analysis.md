@@ -94,6 +94,10 @@ gallery folding, duplicate badges and physical files unchanged. General review s
 remain R4.
 
 Review pages filter ignored state before keyset pagination and return at most 64 groups or members.
+Each group page includes the total group count for its ignored-state filter, independent of the
+page cursor. The count and bounded page share one SQLite read snapshot; only the count scalar
+crosses the bridge alongside the page. Counting reads current catalog evidence and never opens
+source media or enumerates folders.
 Member evidence and the saved decision share one read snapshot; metadata-only availability checks
 run after releasing the database transaction. The review controller owns independent read and write
 generations. A late read cannot erase a newly committed choice or clear a newer request. Visible

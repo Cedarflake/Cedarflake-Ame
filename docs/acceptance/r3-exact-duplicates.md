@@ -359,3 +359,36 @@ normal and double text scaling, including delayed annotation arrival and selecti
 128-pixel minimum card width remains. Updated shell, resize and duplicate-dialog regressions run
 in Actions. Native inspection of these latest changes was interrupted by physical Escape; the
 already-open isolated client and its restoration backup remain intact.
+
+## Duplicate workspace layout
+
+The workspace heading, summary, action placement and responsive cards now follow the revised UI
+contract. The selected group's filename remains the heading across member paging; its content is
+aligned underneath. Redundant scope/status/description text, the preferred-copy label and the folder
+icon beside a member thumbnail are removed. The existing preference, ignore/restore and reveal
+operations remain. Material `Card`/`Wrap` and the installed Flutter 3.44.9 `GridView.builder` with a
+fixed-column sliver delegate provide the controls; ADR 0029 records the composition and alternatives.
+
+Five focused widget checks pass: 400- and 1280-pixel layouts at normal and double text scaling,
+same-row actions where space permits, title/grid alignment, total count across pagination, removal
+of redundant labels/icons, the shared two-pixel progress overlay, and visible-column preview demand
+with hidden-workspace retirement. Existing choice/pause/reveal regressions are updated for the new
+labels and heading. Their automated execution and the Rust count cases belong to Actions. Native
+client inspection remains pending after physical Escape stopped desktop control; the open client
+still uses the earlier build.
+
+Group totals and keyset results are read in one SQLite snapshot, including empty later pages.
+Regressions cover 70 groups across the 64-group page boundary, ignored categories and stale evidence.
+This adds a scalar to the generated bridge contract without a database migration, source enumeration
+or media read. The query has a 121-line owner; the review persistence facade has 191 lines, with 366
+review-test and 251 analysis-test lines. The page has 354 production lines, the grid 127, cards 153
+and analysis actions 91; the layout tests have 211 lines and retained review tests 261. These owners
+have no inline tests.
+
+The earlier `3325f54` Actions run exposed one old menu test expecting focus to open a tooltip. Commit
+`e7d2bef` updates that expectation to the new hover-only contract while retaining focus assertions;
+the dedicated semantic/hover lifecycle checks remain. Its successor Actions run owns verification.
+That run also identified one null-aware collection lint and an import-browsing fixture that clicked
+the hidden sidebar before the new opening transition advanced. The collection uses the required
+null-aware element; the fixture advances the transition before selecting the existing root, retaining
+its scan-continuity assertions. The affected sidebar resize cases passed in that hosted run.

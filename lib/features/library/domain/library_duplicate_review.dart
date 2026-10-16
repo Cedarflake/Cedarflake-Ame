@@ -28,8 +28,13 @@ class LibraryDuplicateReviewGroup {
 }
 
 class LibraryDuplicateReviewPage {
-  const LibraryDuplicateReviewPage({required this.groups, this.next});
+  const LibraryDuplicateReviewPage({
+    required this.groups,
+    required this.totalGroups,
+    this.next,
+  });
   final List<LibraryDuplicateReviewGroup> groups;
+  final int totalGroups;
   final LibraryDuplicateGroupCursor? next;
 }
 

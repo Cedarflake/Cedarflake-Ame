@@ -154,12 +154,17 @@ class ExactDuplicateReviewLocations {
 
 class ExactDuplicateReviewPage {
   final List<ExactDuplicateReviewGroup> groups;
+  final BigInt totalGroups;
   final ExactDuplicateGroupCursor? next;
 
-  const ExactDuplicateReviewPage({required this.groups, this.next});
+  const ExactDuplicateReviewPage({
+    required this.groups,
+    required this.totalGroups,
+    this.next,
+  });
 
   @override
-  int get hashCode => groups.hashCode ^ next.hashCode;
+  int get hashCode => groups.hashCode ^ totalGroups.hashCode ^ next.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -167,5 +172,6 @@ class ExactDuplicateReviewPage {
       other is ExactDuplicateReviewPage &&
           runtimeType == other.runtimeType &&
           groups == other.groups &&
+          totalGroups == other.totalGroups &&
           next == other.next;
 }

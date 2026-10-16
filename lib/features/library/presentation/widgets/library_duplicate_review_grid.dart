@@ -8,28 +8,31 @@ import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
 import "library_photo_tile.dart" show libraryPreviewDecodeWidth;
 
-/// Owns the bounded preview demand for the visible review rows, including hidden workspace retirement.
-class LibraryDuplicateReviewList extends ConsumerStatefulWidget {
-  const LibraryDuplicateReviewList({
+/// Owns the visible grid's bounded preview demand and hidden workspace retirement.
+class LibraryDuplicateReviewGrid extends ConsumerStatefulWidget {
+  const LibraryDuplicateReviewGrid({
     required this.assets,
     required this.itemBuilder,
+    this.showLocations = false,
     super.key,
   });
   final List<LibraryAsset> assets;
   final IndexedWidgetBuilder itemBuilder;
+  final bool showLocations;
 
   @override
-  ConsumerState<LibraryDuplicateReviewList> createState() =>
-      _LibraryDuplicateReviewListState();
+  ConsumerState<LibraryDuplicateReviewGrid> createState() =>
+      _LibraryDuplicateReviewGridState();
 }
 
-class _LibraryDuplicateReviewListState
-    extends ConsumerState<LibraryDuplicateReviewList> {
+class _LibraryDuplicateReviewGridState
+    extends ConsumerState<LibraryDuplicateReviewGrid> {
   final _scroll = ScrollController();
   final _previewOwner = Object();
   late final _library = ref.read(libraryControllerProvider.notifier);
   double _height = 0;
-  double _extent = 176;
+  double _rowStride = 176;
+  int _columns = 1;
   bool _active = true;
   bool _scheduled = false;
 
@@ -51,7 +54,7 @@ class _LibraryDuplicateReviewListState
   }
 
   @override
-  void didUpdateWidget(covariant LibraryDuplicateReviewList oldWidget) {
+  void didUpdateWidget(covariant LibraryDuplicateReviewGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
     _scheduleDemand();
   }
@@ -62,10 +65,11 @@ class _LibraryDuplicateReviewListState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduled = false;
       if (!mounted || !_active || !_scroll.hasClients) return;
-      final first = math.max(0, (_scroll.offset / _extent).floor());
+      final first =
+          math.max(0, (_scroll.offset / _rowStride).floor()) * _columns;
       final last = math.min(
         widget.assets.length,
-        ((_scroll.offset + _height) / _extent).ceil() + 1,
+        (((_scroll.offset + _height) / _rowStride).ceil() + 1) * _columns,
       );
       _library.updateFilmstripPreviewDemand(
         _previewOwner,
@@ -86,15 +90,34 @@ class _LibraryDuplicateReviewListState
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       _height = constraints.maxHeight;
-      _extent = math.max(
-        176,
-        MediaQuery.textScalerOf(context).scale(16) * 8 + 40,
+      final textSize = MediaQuery.textScalerOf(context).scale(16);
+      final minimumWidth =
+          (widget.showLocations ? 420 : 360) * (textSize / 16).clamp(1.0, 1.5);
+      const spacing = 12.0;
+      _columns = math.max(
+        1,
+        ((constraints.maxWidth + spacing) / (minimumWidth + spacing)).floor(),
       );
+      final cardWidth =
+          (constraints.maxWidth - (_columns - 1) * spacing) / _columns;
+      final cardHeight =
+          math.max(
+            widget.showLocations ? 200.0 : 156.0,
+            textSize * (widget.showLocations ? 9 : 6) + 40,
+          ) +
+          (cardWidth < 360 ? 84 : 0);
+      _rowStride = cardHeight + spacing;
       _scheduleDemand();
       return AmeScrollMotion(
-        child: ListView.builder(
+        child: GridView.builder(
           controller: _scroll,
-          itemExtent: _extent,
+          padding: EdgeInsets.zero,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: _columns,
+            mainAxisExtent: cardHeight,
+            crossAxisSpacing: spacing,
+            mainAxisSpacing: spacing,
+          ),
           itemCount: widget.assets.length,
           itemBuilder: widget.itemBuilder,
         ),

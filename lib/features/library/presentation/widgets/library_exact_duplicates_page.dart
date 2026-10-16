@@ -13,11 +13,12 @@ import "../../application/library_exact_analysis_scheduler.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
-import "../library_workbench_strings.dart";
-import "library_duplicate_review_list.dart";
 import "library_duplicate_review_cards.dart";
+import "library_duplicate_review_grid.dart";
 import "library_duplicate_review_viewer.dart";
-import "library_exact_analysis_status.dart";
+import "library_exact_analysis_actions.dart";
+import "library_gallery_loading_region.dart";
+import "library_path_text.dart";
 
 class LibraryExactDuplicatesPage extends ConsumerStatefulWidget {
   const LibraryExactDuplicatesPage({super.key});
@@ -108,15 +109,19 @@ class _LibraryExactDuplicatesPageState
   }
 
   @override
-  Widget build(BuildContext context) {
-    final roots = ref.watch(
-      libraryControllerProvider.select((value) => value.roots.length),
-    );
-    return ListenableBuilder(
-      listenable: Listenable.merge([_analysis, _review, _scheduler]),
-      builder: (context, child) {
-        return TickerMode(
-          enabled: !_viewerOpen,
+  Widget build(BuildContext context) => ListenableBuilder(
+    listenable: Listenable.merge([_analysis, _review, _scheduler]),
+    builder: (context, child) {
+      final selected = _review.selected;
+      final title = selected == null
+          ? LibraryDuplicateStrings.workspaceTitle
+          : displayLibraryFileName(
+              selected.representative.displayPath.replaceAll("/", "\\"),
+            );
+      return TickerMode(
+        enabled: !_viewerOpen,
+        child: LibraryGalleryLoadingRegion(
+          isLoading: _review.loading || _review.saving,
           child: Padding(
             padding: const EdgeInsets.fromLTRB(28, 24, 28, 16),
             child: Column(
@@ -124,136 +129,168 @@ class _LibraryExactDuplicatesPageState
               children: [
                 Row(
                   children: [
-                    if (_review.selected != null)
-                      AmeTooltip(
-                        message: LibraryDuplicateStrings.back,
-                        child: IconButton(
-                          onPressed: () => unawaited(_review.showGroups()),
-                          icon: const Icon(Symbols.arrow_back_rounded),
+                    if (selected != null) ...[
+                      SizedBox(
+                        width: 40,
+                        child: AmeTooltip(
+                          message: LibraryDuplicateStrings.back,
+                          child: IconButton(
+                            key: const Key("duplicate-review-back"),
+                            onPressed: () => unawaited(_review.showGroups()),
+                            icon: const Icon(Symbols.arrow_back_rounded),
+                          ),
                         ),
                       ),
+                      const SizedBox(width: 8),
+                    ],
                     Expanded(
-                      child: Text(
-                        _review.selected == null
-                            ? LibraryWorkbenchStrings.duplicates
-                            : LibraryDuplicateStrings.review,
-                        style: Theme.of(context).textTheme.headlineSmall,
+                      child: DefaultTextStyle(
+                        style: Theme.of(context).textTheme.headlineSmall!,
+                        child: LibraryPathText(
+                          text: title,
+                          path: title,
+                          textKey: const Key("duplicate-review-title"),
+                        ),
                       ),
                     ),
-                    if (_review.selected != null)
-                      TextButton(
-                        onPressed:
-                            _review.saving ||
-                                _review.loading ||
-                                _review.loadFailed
-                            ? null
-                            : () => unawaited(_ignore()),
-                        child: Text(
-                          _review.members.decision.ignored
-                              ? LibraryDuplicateStrings.restoreGroup
-                              : LibraryDuplicateStrings.ignore,
-                        ),
-                      ),
                   ],
                 ),
                 const SizedBox(height: 8),
-                Text(
-                  _review.selected == null
-                      ? LibraryDuplicateStrings.exactDescription
-                      : LibraryDuplicateStrings.preferDescription,
-                ),
-                Text(
-                  LibraryDuplicateStrings.scope(roots),
-                  style: Theme.of(context).textTheme.bodySmall,
-                ),
-                const SizedBox(height: 12),
-                LibraryExactAnalysisStatus(controller: _analysis),
-                const SizedBox(height: 8),
-                if (_review.selected == null)
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: SegmentedButton<bool>(
-                      segments: const [
-                        ButtonSegment(
-                          value: false,
-                          label: Text(LibraryDuplicateStrings.pendingGroups),
-                        ),
-                        ButtonSegment(
-                          value: true,
-                          label: Text(LibraryDuplicateStrings.ignoredGroups),
-                        ),
-                      ],
-                      selected: {_review.ignored},
-                      onSelectionChanged: (value) => unawaited(
-                        _review.showGroups(ignoredGroups: value.single),
-                      ),
-                    ),
-                  ),
-                if (_review.saveFailed)
-                  Text(
-                    LibraryDuplicateStrings.saveFailed,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                SizedBox(
-                  height: 6,
-                  child: _review.loading || _review.saving
-                      ? const LinearProgressIndicator()
-                      : null,
-                ),
                 Expanded(
-                  child: _review.loadFailed
-                      ? Center(
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Text(LibraryDuplicateStrings.loadFailed),
+                  child: Padding(
+                    padding: EdgeInsets.only(left: selected == null ? 0 : 48),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        if (selected == null &&
+                            !_review.loadFailed &&
+                            (!_review.loading ||
+                                _review.groups.totalGroups > 0)) ...[
+                          Text(
+                            LibraryDuplicateStrings.groups(
+                              _review.groups.totalGroups,
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                        ],
+                        LibraryExactAnalysisActions(
+                          controller: _analysis,
+                          actions: [
+                            TextButton(
+                              onPressed: _review.loading || _review.saving
+                                  ? null
+                                  : () => unawaited(_review.refresh()),
+                              child: const Text(
+                                LibraryDuplicateStrings.refresh,
+                              ),
+                            ),
+                            if (selected != null)
                               TextButton(
-                                onPressed: () => unawaited(_review.refresh()),
-                                child: const Text(
-                                  LibraryDuplicateStrings.retry,
+                                onPressed:
+                                    _review.saving ||
+                                        _review.loading ||
+                                        _review.loadFailed
+                                    ? null
+                                    : () => unawaited(_ignore()),
+                                child: Text(
+                                  _review.members.decision.ignored
+                                      ? LibraryDuplicateStrings.restoreGroup
+                                      : LibraryDuplicateStrings.ignore,
                                 ),
                               ),
-                            ],
+                          ],
+                        ),
+                        if (selected == null) ...[
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: SegmentedButton<bool>(
+                              segments: const [
+                                ButtonSegment(
+                                  value: false,
+                                  label: Text(
+                                    LibraryDuplicateStrings.pendingGroups,
+                                  ),
+                                ),
+                                ButtonSegment(
+                                  value: true,
+                                  label: Text(
+                                    LibraryDuplicateStrings.ignoredGroups,
+                                  ),
+                                ),
+                              ],
+                              selected: {_review.ignored},
+                              onSelectionChanged: (value) => unawaited(
+                                _review.showGroups(ignoredGroups: value.single),
+                              ),
+                            ),
                           ),
-                        )
-                      : _results(),
-                ),
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: _review.loading
-                          ? null
-                          : () => unawaited(_review.refresh()),
-                      child: const Text(LibraryDuplicateStrings.refresh),
+                        ],
+                        if (_review.saveFailed)
+                          Text(
+                            LibraryDuplicateStrings.saveFailed,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        const SizedBox(height: 12),
+                        Expanded(
+                          child: _review.loadFailed
+                              ? Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Text(
+                                        LibraryDuplicateStrings.loadFailed,
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            unawaited(_review.refresh()),
+                                        child: const Text(
+                                          LibraryDuplicateStrings.retry,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : _results(),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.end,
+                          children: [
+                            TextButton(
+                              onPressed:
+                                  _review.loading ||
+                                      _review.saving ||
+                                      !_review.canPrevious
+                                  ? null
+                                  : () => unawaited(_review.previous()),
+                              child: const Text(
+                                LibraryDuplicateStrings.previous,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed:
+                                  _review.loading ||
+                                      _review.saving ||
+                                      !_review.canNext
+                                  ? null
+                                  : () => unawaited(_review.next()),
+                              child: const Text(LibraryDuplicateStrings.next),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed:
-                          _review.loading ||
-                              _review.saving ||
-                              !_review.canPrevious
-                          ? null
-                          : () => unawaited(_review.previous()),
-                      child: const Text(LibraryDuplicateStrings.previous),
-                    ),
-                    TextButton(
-                      onPressed:
-                          _review.loading || _review.saving || !_review.canNext
-                          ? null
-                          : () => unawaited(_review.next()),
-                      child: const Text(LibraryDuplicateStrings.next),
-                    ),
-                  ],
+                  ),
                 ),
               ],
             ),
           ),
-        );
-      },
-    );
-  }
+        ),
+      );
+    },
+  );
 
   Widget _results() {
     if (_review.selected != null) {
@@ -265,8 +302,9 @@ class _LibraryExactDuplicatesPageState
           ),
         );
       }
-      return LibraryDuplicateReviewList(
+      return LibraryDuplicateReviewGrid(
         key: ValueKey(_review.pageKey),
+        showLocations: true,
         assets: members.map((member) => member.asset).toList(growable: false),
         itemBuilder: (context, index) {
           final member = members[index];
@@ -299,7 +337,7 @@ class _LibraryExactDuplicatesPageState
       }
       return Center(child: Text(_review.loading ? "" : message));
     }
-    return LibraryDuplicateReviewList(
+    return LibraryDuplicateReviewGrid(
       key: ValueKey(_review.pageKey),
       assets: groups
           .map((group) => group.representative)

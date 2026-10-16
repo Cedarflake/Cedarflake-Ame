@@ -28,7 +28,7 @@ void main() {
       final old = controller.refresh();
       final current = controller.showGroup(service.entry);
       service.pendingGroups!.complete(
-        const LibraryDuplicateReviewPage(groups: []),
+        const LibraryDuplicateReviewPage(groups: [], totalGroups: 0),
       );
       await old;
       expect(controller.loading, isTrue);
@@ -191,7 +191,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text("查看重复位置"));
       await tester.pumpAndSettle();
-      expect(find.text("one.png"), findsOneWidget);
+      expect(find.text("one.png"), findsNWidgets(2));
       expect(find.text("two.png"), findsOneWidget);
       expect(
         tester
@@ -230,7 +230,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text("查看重复位置"));
       await tester.pumpAndSettle();
-      expect(find.text("首选副本"), findsOneWidget);
+      expect(find.text("首选副本"), findsNothing);
+      expect(find.text("取消首选"), findsOneWidget);
       await tester.tap(find.text("恢复此组"));
       await tester.pumpAndSettle();
       expect(service.decision.ignored, isFalse);

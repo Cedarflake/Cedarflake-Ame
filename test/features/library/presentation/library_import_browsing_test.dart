@@ -33,6 +33,7 @@ void main() {
         if (width < 940) {
           await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
           await tester.pump();
+          await tester.pump(const Duration(milliseconds: 200));
         }
         await tester.tap(find.byKey(const ValueKey("source-title-other")));
         await tester.pump();

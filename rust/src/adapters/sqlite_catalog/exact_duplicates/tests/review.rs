@@ -47,6 +47,43 @@ fn gallery_ids(catalog: &mut SqliteCatalog, root: Option<&str>) -> Vec<String> {
 }
 
 #[test]
+fn review_count_includes_prior_pages_and_tracks_ignore_and_current_evidence() {
+    let (_directory, mut catalog) = grouped_fixture();
+    let after = ExactDuplicateGroupCursor {
+        digest: key().digest,
+        byte_length: 20,
+    };
+    let empty_page = catalog.load_review_groups(Some(&after), false).unwrap();
+    assert!(empty_page.groups.is_empty());
+    assert_eq!(empty_page.total_groups, 1);
+    catalog.set_duplicate_ignored(&key(), true).unwrap();
+    assert_eq!(
+        catalog
+            .load_review_groups(None, false)
+            .unwrap()
+            .total_groups,
+        0
+    );
+    assert_eq!(
+        catalog.load_review_groups(None, true).unwrap().total_groups,
+        1
+    );
+    catalog.connection.execute(
+        "UPDATE asset_locations SET source_generation = source_generation + 100 WHERE location_id IN ('a', 'b')", []
+    ).unwrap();
+    let ignored = catalog.load_review_groups(None, true).unwrap();
+    assert!(ignored.groups.is_empty());
+    assert_eq!(ignored.total_groups, 0);
+    assert!(
+        catalog
+            .load_review_members(&key(), "")
+            .unwrap()
+            .decision
+            .ignored
+    );
+}
+
+#[test]
 fn preferred_copy_survives_restart_and_respects_gallery_scope() {
     let (directory, mut catalog) = grouped_fixture();
     let preferred = preference(&catalog, "c");

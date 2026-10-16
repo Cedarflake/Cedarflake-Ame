@@ -28,7 +28,7 @@ class LibraryDuplicateGroupCard extends StatelessWidget {
       children: [
         Text(
           displayLibraryFileName(entry.representative.displayPath),
-          maxLines: 1,
+          maxLines: 2,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.titleMedium,
         ),
@@ -73,12 +73,11 @@ class LibraryDuplicateMemberCard extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        LibraryDuplicateLocationTile(location: member.location),
+        LibraryDuplicateLocationTile(location: member.location, embedded: true),
         Wrap(
           spacing: 8,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            if (preferred) const Text(LibraryDuplicateStrings.preferred),
             TextButton.icon(
               key: ValueKey("prefer-${member.asset.locationId}"),
               onPressed: onPrefer,
@@ -114,23 +113,35 @@ class _ReviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Card(
+    margin: EdgeInsets.zero,
     child: Padding(
       padding: const EdgeInsets.all(12),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final edge = (constraints.maxWidth / 4).clamp(64.0, 128.0);
+          final edge = (constraints.maxWidth / 4).clamp(64.0, 112.0);
+          final preview = SizedBox(
+            width: edge,
+            height: edge,
+            child: LibraryViewerFilmstripThumbnail(
+              asset: asset,
+              isSelected: false,
+              onPressed: onOpen,
+              previewWidth: 144,
+            ),
+          );
+          if (constraints.maxWidth + 24 < 360) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: 72, child: preview),
+                const SizedBox(height: 8),
+                Expanded(child: child),
+              ],
+            );
+          }
           return Row(
             children: [
-              SizedBox(
-                width: edge,
-                height: edge,
-                child: LibraryViewerFilmstripThumbnail(
-                  asset: asset,
-                  isSelected: false,
-                  onPressed: onOpen,
-                  previewWidth: 144,
-                ),
-              ),
+              preview,
               const SizedBox(width: 12),
               Expanded(child: child),
             ],

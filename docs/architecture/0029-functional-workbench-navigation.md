@@ -57,6 +57,22 @@ choice behavior. Ame supplies query scope, persisted display preference, duplica
 filename/folder presentation, current-location marking and 64-location paging. The dialog retains
 the gallery's browsing position; no second positioning, focus or scrolling implementation is added.
 
+The duplicate workspace composes Material `Card`, `Wrap` and the pinned SDK's lazy
+`GridView.builder` with `SliverGridDelegateWithFixedCrossAxisCount.mainAxisExtent`. These provide
+card surfaces, wrapping actions, bounded widget creation and framework scrolling. Ame chooses
+column count from the available width and text scale and owns visible preview demand for those
+columns. Narrow cards place the preview above the text. A one-column `ListView` leaves unused
+desktop space; a `Wrap` of every card would eagerly build the entire page and lose viewport-based
+preview admission. No custom scrolling or additional package is introduced.
+
+The page heading is `重复图片查找`, followed by the current review category's total group count.
+Normal analysis status, scope and explanatory paragraphs are omitted from this surface. Refresh,
+pause/resume and the selected group's ignore/restore operation share one wrapping action row.
+The selected group retains its initial representative filename as the heading across member pages;
+content aligns beneath that heading. Member cards omit a separate preferred-copy label and the
+decorative folder icon beside their existing thumbnail. Preference and reveal actions remain.
+The page uses the gallery's existing two-pixel loading overlay while fetching or saving results.
+
 ## Alternatives and consequences
 
 Keeping all analysis inside the filter makes a growing workflow difficult to discover. A separate

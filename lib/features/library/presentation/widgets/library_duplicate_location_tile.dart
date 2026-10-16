@@ -13,11 +13,13 @@ class LibraryDuplicateLocationTile extends ConsumerStatefulWidget {
     required this.location,
     this.isCurrent = false,
     this.wrapPath = false,
+    this.embedded = false,
     super.key,
   });
   final LibraryDuplicateLocation location;
   final bool isCurrent;
   final bool wrapPath;
+  final bool embedded;
 
   @override
   ConsumerState<LibraryDuplicateLocationTile> createState() =>
@@ -61,7 +63,7 @@ class _LibraryDuplicateLocationTileState
     );
     final details = [
       if (widget.isCurrent) LibraryDuplicateStrings.currentImage,
-      if (availability != null) availability,
+      ?availability,
     ];
     final available = switch (location.availability) {
       LibraryDuplicateAvailability.local ||
@@ -71,7 +73,8 @@ class _LibraryDuplicateLocationTileState
     };
     final tile = ListTile(
       key: ValueKey("duplicate-location-${location.locationId}"),
-      leading: const Icon(Symbols.folder_rounded),
+      contentPadding: widget.embedded ? EdgeInsets.zero : null,
+      leading: widget.embedded ? null : const Icon(Symbols.folder_rounded),
       title: Text(
         displayLibraryFileName(path),
         maxLines: widget.wrapPath ? null : 1,

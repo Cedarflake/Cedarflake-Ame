@@ -85,13 +85,22 @@ resize cards. Both loaded-window and query-wide geometry use the same floor; squ
 also respects it. The duplicate and selection targets have separate bounded space without clipping or
 overlap.
 
-The Duplicates workspace owns duplicate-only results, analysis status/control, group inspection and
+The Duplicates workspace owns duplicate-only results, analysis controls, group inspection and
 preferred-copy/ignore decisions. It reuses gallery preview and viewing capabilities. Exact duplicates
 are byte-identical; perceptual similarity is a separate later capability and is absent until connected.
 No analysis or display choice authorizes source mutation.
 
-Show the analysis scope alongside its status. Result groups and their member pages include bounded
-image previews and inspectable file locations. Opening a member uses the existing full-window image
+Use `重复图片查找` as the workspace heading and show the current category's total number of
+duplicate image groups beneath it. Omit the scope, description and separate analysis-status text.
+Refresh and pause/resume share one action row; group review adds ignore/restore to that row. Use
+responsive multi-column cards for groups and members, with a single column when space or text scale
+requires it. The selected group's initial representative filename is the subpage heading; align
+its actions and cards with that heading. Member cards use their image preview without an additional
+decorative folder icon or a separate `首选副本` label. The preference/reveal controls remain usable.
+Loading or saving uses the same two-pixel overlay as the gallery.
+
+Result groups and their member pages include bounded image previews and inspectable file locations.
+Opening a member uses the existing full-window image
 viewer; returning preserves the reviewed group and page. `设为首选` selects the representative used
 by merged gallery queries, with a deterministic in-scope fallback when that location no longer
 matches. `忽略此组` moves it to `已忽略`, where `恢复此组` restores it to the regular review list.
@@ -102,8 +111,8 @@ Analysis is automatic while Ame is running, after startup browsing and synchroni
 New or changed catalog content queues bounded analysis; compatible completed fingerprints survive
 restart and cancellation. Visible-preview and original-image reads take priority; busy browsing
 reduces or suspends background reads. Cloud-only files wait for local availability. Analysis never
-adds startup source enumeration or a second complete source copy. Expose real progress and manual
-pause/resume in Duplicates without requiring a trip there for automatic analysis to begin.
+adds startup source enumeration or a second complete source copy. Retain structured analysis progress
+and expose manual pause/resume in Duplicates; automatic analysis begins without a visit to that page.
 
 Badge updates may appear in place. Changes that fold/reorder photo cards are coalesced until
 interaction is idle and preserve the current logical image anchor. An open viewer retains its current

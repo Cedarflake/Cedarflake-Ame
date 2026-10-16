@@ -333,7 +333,8 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.text("已暂停查重"), findsOneWidget);
+        expect(find.text("已暂停查重"), findsNothing);
+        expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
         await tester.tap(find.widgetWithText(TextButton, "继续查重"));
         await tester.pumpAndSettle();
         expect(scheduler.isPaused, saveFails);
@@ -344,14 +345,16 @@ void main() {
         if (saveFails) {
           expect(store.saved.exactAnalysisPaused, isTrue);
           expect(find.text("无法保存查重设置"), findsOneWidget);
-          expect(find.text("已暂停查重"), findsOneWidget);
+          expect(find.text("已暂停查重"), findsNothing);
+          expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
         } else {
           expect(store.saved.exactAnalysisPaused, isFalse);
           await tester.tap(find.widgetWithText(TextButton, "暂停查重"));
           await tester.pumpAndSettle();
           expect(scheduler.isPaused, isTrue);
           expect(store.saved.exactAnalysisPaused, isTrue);
-          expect(find.text("已暂停查重"), findsOneWidget);
+          expect(find.text("已暂停查重"), findsNothing);
+          expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
         }
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox.shrink());
@@ -505,10 +508,15 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(TextButton, "查看重复位置"));
       await tester.pumpAndSettle();
-      expect(find.text("one.png"), findsOneWidget);
+      expect(find.text("one.png"), findsNWidgets(2));
       expect(find.text("two.png"), findsOneWidget);
       expect(find.text("文件夹离线"), findsOneWidget);
-      await tester.tap(find.text("one.png"));
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(const ValueKey("duplicate-location-one")),
+          matching: find.text("one.png"),
+        ),
+      );
       await tester.pumpAndSettle();
       expect(revealed, [
         ["/select,", r"C:\fixture\one.png"],

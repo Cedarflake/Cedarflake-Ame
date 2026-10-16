@@ -2565,11 +2565,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ExactDuplicateReviewPage dco_decode_exact_duplicate_review_page(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return ExactDuplicateReviewPage(
       groups: dco_decode_list_exact_duplicate_review_group(arr[0]),
-      next: dco_decode_opt_box_autoadd_exact_duplicate_group_cursor(arr[1]),
+      totalGroups: dco_decode_u_64(arr[1]),
+      next: dco_decode_opt_box_autoadd_exact_duplicate_group_cursor(arr[2]),
     );
   }
 
@@ -4339,10 +4340,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_groups = sse_decode_list_exact_duplicate_review_group(deserializer);
+    var var_totalGroups = sse_decode_u_64(deserializer);
     var var_next = sse_decode_opt_box_autoadd_exact_duplicate_group_cursor(
       deserializer,
     );
-    return ExactDuplicateReviewPage(groups: var_groups, next: var_next);
+    return ExactDuplicateReviewPage(
+      groups: var_groups,
+      totalGroups: var_totalGroups,
+      next: var_next,
+    );
   }
 
   @protected
@@ -6400,6 +6406,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_exact_duplicate_review_group(self.groups, serializer);
+    sse_encode_u_64(self.totalGroups, serializer);
     sse_encode_opt_box_autoadd_exact_duplicate_group_cursor(
       self.next,
       serializer,

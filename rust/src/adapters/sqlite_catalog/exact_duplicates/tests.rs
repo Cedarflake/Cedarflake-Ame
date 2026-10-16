@@ -1,3 +1,4 @@
+use crate::ports::exact_duplicate_review::ExactDuplicateReviewRepository;
 use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
@@ -221,6 +222,19 @@ fn group_and_location_pages_do_not_repeat_or_omit_boundary_members() {
         .map(|group| group.digest.clone())
         .collect::<std::collections::HashSet<_>>();
     assert_eq!(all.len(), 70);
+    let review_first = catalog.load_review_groups(None, false).unwrap();
+    assert_eq!(
+        (review_first.total_groups, review_first.groups.len()),
+        (70, 64)
+    );
+    let review_second = catalog
+        .load_review_groups(review_first.next.as_ref(), false)
+        .unwrap();
+    assert_eq!(
+        (review_second.total_groups, review_second.groups.len()),
+        (70, 6)
+    );
+    assert!(review_second.next.is_none());
     let group = &first.groups[0];
     let members = catalog
         .load_duplicate_locations(&group.digest, 20, "")
