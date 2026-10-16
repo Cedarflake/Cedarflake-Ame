@@ -73,6 +73,16 @@ the Duplicates workspace or requesting analysis, the persisted run completed in 
 zero checked files, zero newly fingerprinted files, zero skipped files and zero content bytes read.
 The existing 72 groups were retained. This measures the analysis run, not full application startup.
 
+The closed-process incremental check then added two temporary copies of one existing 494,579-byte
+fixture to the same source root. The ordinary Debug client synchronized both new locations and
+automatically fingerprinted exactly those two files: 989,158 bytes, no skips, 127 ms analysis time.
+Both published the same digest as their source. The remaining 10,000 fingerprints were reused.
+After the two temporary copies were removed with Ame closed, reopening removed both locations and
+finished analysis with zero files and zero content bytes read in 85 ms. The source fixture digest
+was unchanged. These timings cover analysis only; no full startup/synchronization timing was taken.
+The owned processes retired, original configuration/catalog hashes were verified and restored,
+and the temporary copies, profile backups and preview caches were cleaned.
+
 The scheduler has focused regressions for idle admission, browsing/synchronization cancellation,
 foreground read leases, waiting for native retirement, late admission during shutdown, new
 publications during older runs, paused restart and failure/retry policy. Catalog-delta regressions

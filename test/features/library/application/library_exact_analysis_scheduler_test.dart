@@ -93,7 +93,7 @@ void main() {
     await tester.pump(const Duration(minutes: 1));
     expect(fixture.service.runs, hasLength(1));
     fixture.scheduler.requestNow();
-    await tester.pump();
+    await tester.pump(Duration.zero);
     expect(fixture.service.runs, hasLength(2));
     fixture.service.finish(LibraryExactAnalysisPhase.failed);
     await tester.pump();
