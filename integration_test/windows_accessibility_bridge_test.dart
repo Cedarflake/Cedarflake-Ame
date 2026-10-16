@@ -482,7 +482,16 @@ void main() {
 
         for (var cycle = 0; cycle < 2; cycle += 1) {
           final tile = find.byType(LibraryPhotoTile).hitTestable().first;
-          await tester.tap(tile);
+          final visibleTileRect = tester
+              .getRect(tile)
+              .intersect(
+                tester.getRect(find.byKey(const Key("library-photo-wall"))),
+              );
+          // The fixture has failed previews: avoid the central Retry control
+          // and the clipped top edge after a timeline jump.
+          await tester.tapAt(
+            Offset(visibleTileRect.left + 16, visibleTileRect.center.dy),
+          );
           await tester.pump();
           await tester.pump();
           expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
