@@ -45,21 +45,28 @@ analysis service. Only merged gallery mode displays the duplicate icon, without 
 mode leaves the cards unmarked. Exact evidence and later perceptual candidates remain distinct.
 
 The gallery uses the existing `AmePopupMenuButton` around Flutter's `showMenu` and
-`CheckedPopupMenuItem` for its two display choices. The duplicate badge opens a centered `Dialog`
-through `showDialog`, with a lazy `ListView` and bounded paging. Long filenames and folder paths
-wrap completely within the available width. The previous anchored menu constrained this richer
-content and clipped paths and controls; reading multiple locations needs a stable dialog surface.
-The pinned Flutter 3.44.9 SDK provides dialog constraints, safe-area/inset handling, modal dismissal
-and closed-loop focus traversal. Use a maximum width of 560 logical pixels and fit the height to
-the window; keep the title, close button and paging controls outside the scrolling list. Restore
-the badge's existing keyboard focus when it remains mounted in the visible workspace; mouse
-dismissal does not create new focus. `AlertDialog` was considered;
-`Dialog` permits the existing lazy list and paging footer without intrinsic list sizing.
+`CheckedPopupMenuItem` for its two display choices. The duplicate badge opens a modal bottom sheet
+through `showModalBottomSheet`, with a lazy `ListView` and continuous bounded reads. Long filenames
+and folder paths wrap completely within the available width. The pinned Flutter 3.44.9 SDK's
+`material/bottom_sheet.dart` provides the drag handle, safe-area handling, dismissal barrier,
+Escape dismissal, route focus and Material 3 width/shape defaults. Match the existing information
+sheet and size the list to 72 percent of the window height. Keep its heading outside the list;
+there are no close or pagination buttons. Restore the badge's existing keyboard focus when it
+remains mounted in the visible workspace; mouse dismissal does not create new focus. An anchored
+menu lacks space for complete paths; a centered Dialog was the earlier surface but does not meet
+the bottom-sheet interaction. DraggableScrollableSheet is unnecessary for a fixed-height list;
+the framework bottom sheet already supplies handle dismissal and scrolling remains in ListView.
 Material's
 [menu](https://m3.material.io/components/menus/guidelines) and
-[dialog](https://m3.material.io/components/dialogs/guidelines) contracts supply focus, dismissal and
-choice behavior. Ame supplies query scope, persisted display preference, duplicate badges,
-filename/folder presentation, current-location marking and 64-location paging. The dialog retains
+[bottom sheet](https://m3.material.io/components/bottom-sheets/guidelines) contracts supply focus,
+dismissal and choice behavior. The M3 component index and bottom-sheet pages require JavaScript;
+the [Flutter API](https://api.flutter.dev/flutter/material/showModalBottomSheet.html) and installed
+implementation establish the available behavior. Ame supplies query scope, persisted display
+preference, duplicate badges, filename/folder presentation and current-location marking. The lazy
+list reports the built index range to the shared LibraryDuplicateReviewWindow, retaining its
+64-location query batches, six cached pages and 64 keyset checkpoints. This replaces the obsolete
+previous/next controller. Catalog changes revalidate the visible range and stale responses lose
+publication authority. The sheet retains
 the gallery's browsing position; no second positioning, focus or scrolling implementation is added.
 
 The duplicate workspace composes Material `Card`, `Wrap` and the pinned SDK's lazy
@@ -104,8 +111,8 @@ content aligns beneath that heading. Member cards omit a separate preferred-copy
 decorative folder icon beside their existing thumbnail. Preference and reveal actions remain.
 The page uses the gallery's existing two-pixel loading overlay around the result region below
 the toolbar. Preference writes retain disabled-action and failure feedback without a page loader.
-Dialog and member rows share one reveal owner for availability, in-flight admission and errors.
-In the location dialog, ListTile.onTap is the single reveal action; no trailing IconButton repeats
+Sheet and member rows share one reveal owner for availability, in-flight admission and errors.
+In the location sheet, ListTile.onTap is the single reveal action; no trailing IconButton repeats
 it. The trailing slot displays `当前图片` only for the current location. The subtitle retains wrapped
 paths and exceptional availability, and the tile's enabled state follows reveal admission.
 The Windows platform adapter resolves a Unicode shell item with SHParseDisplayName and uses

@@ -49,9 +49,10 @@ when the gallery is hidden; the focused regression and native menu-close/return-
 The hosted native, scan, release and synthetic checks passed on `515f5e6`. Its two analyzer findings
 and three gallery regressions are corrected: rows retain exact item ordinals, and dimension recovery
 checks rendered card widths. The content-sized card controls also passed the isolated client check.
-The card badge opens a centered location dialog with fully wrapping file/folder lines and a current
-image marker. This replaces the anchored menu after long paths and controls were clipped in the
-client. Narrow-window/text-scaling checks and native paging, scrolling and dismissal checks pass.
+The card badge opens a location bottom sheet with fully wrapping file/folder lines and a current
+image marker. It replaces the earlier centered dialog; the initial anchored menu had clipped long
+paths and controls. The sheet uses continuous bounded reads without close or pagination buttons.
+Narrow-window/text-scaling, scrolling, dismissal and focus checks are recorded below.
 Group review connects visible image previews, the existing viewer and durable preferred-copy/ignore choices.
 Native checks reused the 10,000-file corpus, including preference/ignore retention after restart.
 The current head still requires its applicable Actions results.
@@ -72,8 +73,13 @@ The new crash during window restore/sidebar changes was traced to the duplicate 
 initial offstage frame. Its route now owns the slider overlay lifetime; the previously failing
 retained-tree regression and 13 affected cases pass. The normal Debug client completes member
 preview/information, gallery return, maximize/restore and repeated sidebar interaction with no
-native accessibility errors. This is a scoped crash repair; current-head hosted verification and
-the remaining requested UI corrections retain their separate status.
+native accessibility errors. Mouse context menus now preserve the prior focus instead of focusing
+their photo card, so menu/information dismissal no longer leaves its selection control visible.
+The repeated-location surface now uses the existing modal bottom-sheet and wheel-motion components.
+Its 26 focused cases cover continuation/retry, bounded response ownership, long-path layouts,
+focus restoration, motion preferences and the duplicate-preview crash boundary. Native Debug
+inspection uses the original 600-location group and retains gallery position on dismissal.
+These scoped repairs retain their current-head hosted verification requirement.
 
 | Order | Delivery | Current state |
 | --- | --- | --- |

@@ -7,7 +7,7 @@ import "../../application/library_gallery_duplicates.dart";
 import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
-import "library_duplicate_locations_dialog.dart";
+import "library_duplicate_locations_sheet.dart";
 import "library_gallery_card_metrics.dart";
 
 class LibraryDuplicateBadge extends ConsumerStatefulWidget {
@@ -63,9 +63,12 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
           ),
           onPressed: () async {
             final restoreFocus = _focus.hasFocus;
-            await showDialog<void>(
+            await showModalBottomSheet<void>(
               context: context,
-              builder: (_) => LibraryDuplicateLocationsDialog(
+              showDragHandle: true,
+              isScrollControlled: true,
+              useSafeArea: true,
+              builder: (_) => LibraryDuplicateLocationsSheet(
                 group: group,
                 currentLocationId: widget.locationId,
               ),

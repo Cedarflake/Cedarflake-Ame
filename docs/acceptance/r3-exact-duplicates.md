@@ -557,3 +557,29 @@ Twenty focused cases pass across photo-tile interactions and overlay focus resto
 mouse/keyboard dismissal of both the menu and information sheet. The rebuilt Debug client reused
 the retained catalog; both mouse flows were verified with the pointer outside the card and neither
 left a selection circle visible. No source or persistence operation is added.
+
+## Duplicate location bottom sheet
+
+The gallery badge now opens the standard modal bottom sheet with its drag handle. The list has
+no close or pagination buttons; Escape and the dismissal barrier retain the existing focus and
+gallery-position behavior. Filename/folder wrapping, the right-hand current-image marker and
+whole-row Explorer action are preserved. The obsolete group/location pagination controller is
+removed. The sheet binds the existing typed analysis service to LibraryDuplicateReviewWindow;
+framework-built rows report demand without estimating variable path heights from scroll offsets.
+Reads remain 64 locations per batch, with six cached payload pages and 64 cursor checkpoints.
+
+Twenty-six focused cases pass: sheet continuation/retry and stale/disposed reads (2), bounded
+window admission and caching (7), wheel motion with/without reduced motion (2), existing exact
+duplicate interactions and long-path layout (7), mouse/keyboard focus restoration (6), and the
+member-preview retained-semantics regression (2). The 400-pixel layout uses doubled text size;
+filenames and paths remain complete and the current marker remains reachable. Obsolete paging
+controller tests are replaced by the window lifecycle and sheet integration coverage.
+
+The normal Debug build reuses the retained 10,000-file catalog. Native inspection opens the
+600-location sheet, scrolls into subsequent batches, then dismisses it outside the list. The title,
+paths and current marker render correctly, no close/pagination controls remain, and the gallery
+retains its position without a selection-circle residue. No AXTree/native errors or Dart exceptions
+were emitted during this check. The active client and restoration backup remain for inspection;
+source media and the original catalog are unchanged. The sheet has 168 production lines and no
+inline tests; new sheet, motion, exact-interaction and focus test owners have 143/84/489/177 lines.
+Applicable hosted verification belongs to the submitted head.

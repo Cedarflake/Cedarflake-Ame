@@ -96,7 +96,7 @@ void main() {
   }
   for (final keyboard in [false, true]) {
     testWidgets(
-      "dialog restores only existing card focus (keyboard=$keyboard)",
+      "sheet restores only existing card focus (keyboard=$keyboard)",
       (tester) async {
         await tester.pumpWidget(
           ProviderScope(
@@ -151,15 +151,15 @@ void main() {
           await mouse.up();
         }
         await tester.pumpAndSettle();
-        expect(find.byType(Dialog), findsOneWidget);
+        expect(find.byType(BottomSheet), findsOneWidget);
         await mouse.moveTo(const Offset(790, 590));
         if (keyboard) {
           await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         } else {
-          await tester.tap(find.byKey(const Key("duplicate-locations-close")));
+          await tester.tapAt(const Offset(790, 10));
         }
         await tester.pumpAndSettle();
-        expect(find.byType(Dialog), findsNothing);
+        expect(find.byType(BottomSheet), findsNothing);
         expect(tester.widget<IconButton>(badge).focusNode!.hasFocus, keyboard);
         expect(select, keyboard ? findsOneWidget : findsNothing);
         expect(tester.takeException(), isNull);

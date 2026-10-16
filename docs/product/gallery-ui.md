@@ -74,10 +74,12 @@ Ordinary and not-yet-analysed images remain visible. Remember the user's display
 confirmed duplicate card has a top-left stacked-image action only in `合并重复图片`; `全部图片`
 has no duplicate card action. The card action shows no count, and the top-right selection checkbox
 keeps its existing independent action. Clicking the duplicate action
-opens a centered dialog with separate filename and folder lines and a current-image marker;
+opens a bottom sheet with separate filename and folder lines and a current-image marker;
 clicking a location reveals that file in File Explorer. Long filenames and paths wrap completely
-inside the dialog's scrolling list; closing it retains the gallery position and returns focus to
-the badge when available. Normal local availability is omitted; retain the current-image marker
+inside the sheet's continuously scrolling list, with bounded incremental reads and no pagination
+buttons. The sheet has a drag handle and no close button; Escape or a click outside dismisses it.
+Closing it retains the gallery position and restores existing keyboard focus to the badge when
+available, without creating focus after mouse activation. Normal local availability is omitted; retain the current-image marker
 and cloud-only, offline or unavailable states. Locations outside the current folder are explicitly inspectable without
 widening the gallery selection scope.
 
@@ -108,7 +110,7 @@ The selected group's initial representative filename is the subpage heading; ali
 its rows beneath that heading. Member rows use their image preview without an additional
 decorative folder icon or a separate `首选副本` label. The whole card provides hover feedback and
 opens its group or image. Member icons retain hover and accessible action names; omit
-the redundant `查看图片` button. Group actions read `查看重复图片`; the gallery dialog heading states
+the redundant `查看图片` button. Group actions read `查看重复图片`; the gallery sheet heading states
 the number of duplicate images. Each location row is the Explorer reveal action, without a second
 reveal button. Put `当前图片` at the right of its row; keep availability and wrapped paths beneath
 the filename. Result loading uses the gallery's two-pixel overlay at the boundary

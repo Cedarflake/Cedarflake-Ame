@@ -1,7 +1,7 @@
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_exact_duplicates.dart";
 import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_dialog.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_locations_sheet.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -11,7 +11,7 @@ import "support/duplicate_review_fixtures.dart";
 
 void main() {
   for (final reducedMotion in [false, true]) {
-    testWidgets("dialog wheel motion honors reducedMotion=$reducedMotion", (
+    testWidgets("sheet wheel motion honors reducedMotion=$reducedMotion", (
       tester,
     ) async {
       await tester.pumpWidget(
@@ -22,9 +22,12 @@ void main() {
           ],
           child: MaterialApp(
             home: MediaQuery(
-              data: MediaQueryData(disableAnimations: reducedMotion),
+              data: MediaQueryData(
+                size: const Size(800, 600),
+                disableAnimations: reducedMotion,
+              ),
               child: const Scaffold(
-                body: LibraryDuplicateLocationsDialog(
+                body: LibraryDuplicateLocationsSheet(
                   group: reviewGroup,
                   currentLocationId: "one",
                 ),

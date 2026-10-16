@@ -20,7 +20,6 @@ abstract final class LibraryDuplicateStrings {
   static const pause = "暂停查重";
   static const resume = "继续查重";
   static const pauseSaveFailed = "无法保存查重设置";
-  static const close = "关闭";
   static const emptyBeforeAnalysis = "查找后，可以查看相同图片保存在哪些文件夹。";
   static const emptyAfterAnalysis = "已检查的图片中没有发现重复项";
   static const waitingForResults = "找到的重复图片会显示在这里。";
@@ -28,8 +27,6 @@ abstract final class LibraryDuplicateStrings {
   static const loadFailed = "暂时无法读取结果";
   static const viewLocations = "查看重复图片";
   static const back = "返回重复图片";
-  static const previous = "上一页";
-  static const next = "下一页";
   static const refresh = "刷新结果";
 
   // Duplicates workspace: group review, reversible choices and the ignored list.

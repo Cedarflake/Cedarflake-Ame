@@ -2,7 +2,6 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/library_duplicate_review.dart";
 import "support/duplicate_review_fixtures.dart";
 
-import "package:cedarflake_ame/features/library/application/library_duplicate_results_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_gallery_duplicates.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_duplicate_badge.dart";
@@ -41,8 +40,6 @@ class _Service implements LibraryExactDuplicates {
   int cancellations = 0;
   bool hasResults = false;
   bool hasLocations = true;
-  Completer<LibraryDuplicateGroupPage>? delayedGroups;
-  Completer<LibraryDuplicateLocationPage>? delayedLocations;
   LibraryDuplicateLocationPage? locationPage;
 
   @override
@@ -72,9 +69,6 @@ class _Service implements LibraryExactDuplicates {
   Future<LibraryDuplicateGroupPage> loadGroups(
     LibraryDuplicateGroupCursor? after,
   ) async {
-    if (delayedGroups case final pending?) {
-      return pending.future;
-    }
     return LibraryDuplicateGroupPage(groups: hasResults ? [_group] : []);
   }
 
@@ -83,9 +77,6 @@ class _Service implements LibraryExactDuplicates {
     LibraryDuplicateGroup group,
     String? after,
   ) async {
-    if (delayedLocations case final pending?) {
-      return pending.future;
-    }
     if (!hasLocations) {
       return const LibraryDuplicateLocationPage(locations: []);
     }
@@ -151,7 +142,7 @@ void main() {
         expect(find.text(r"D:\fixture"), findsOneWidget);
         expect(find.text("当前图片"), findsOneWidget);
         expect(find.textContaining("本地可用"), findsNothing);
-        expect(find.byType(Dialog), findsOneWidget);
+        expect(find.byType(BottomSheet), findsOneWidget);
         expect(find.text("关闭"), findsNothing);
         final currentRow = find.byKey(const ValueKey("duplicate-location-one"));
         expect(
@@ -185,16 +176,16 @@ void main() {
         await tester.tap(find.text("one.png"));
         await tester.pumpAndSettle();
         expect(revealed, [r"C:\fixture\one.png"]);
-        await tester.tap(find.byKey(const Key("duplicate-locations-close")));
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
-        expect(find.byType(Dialog), findsNothing);
+        expect(find.byType(BottomSheet), findsNothing);
         expect(
           find.byKey(const ValueKey("duplicate-badge-one")),
           findsOneWidget,
         );
         expect(find.text("查看重复图片 · 2 个位置"), findsNothing);
         RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
-          trace: "duplicate-location-dialog-closed",
+          trace: "duplicate-location-sheet-closed",
         );
       } finally {
         semantics.dispose();
@@ -203,7 +194,7 @@ void main() {
   );
   for (final size in [const Size(1000, 760), const Size(400, 600)]) {
     testWidgets(
-      "location dialog wraps paths at $size and returns keyboard focus",
+      "location sheet wraps paths at $size and returns keyboard focus",
       (tester) async {
         const folder =
             r"C:\fixture\图库\2026\十月\整理后的图片\different-image-sizes\6000x4000\an-extra-long-folder-without-spaces";
@@ -269,19 +260,21 @@ void main() {
         expect(tester.widget<IconButton>(badge).focusNode!.hasFocus, isTrue);
         await tester.sendKeyEvent(LogicalKeyboardKey.enter);
         await tester.pumpAndSettle();
-        final panel = find.byKey(const Key("duplicate-locations-dialog"));
-        expect(find.text("2 张重复图片"), findsOneWidget);
+        final panel = find.byKey(const Key("duplicate-locations-sheet"));
+        expect(find.text("1 张重复图片"), findsOneWidget);
         final bounds = tester.getRect(panel);
         expect(bounds.left, greaterThanOrEqualTo(0));
         expect(bounds.right, lessThanOrEqualTo(size.width));
         expect(bounds.top, greaterThanOrEqualTo(0));
         expect(bounds.bottom, lessThanOrEqualTo(size.height));
-        expect(bounds.center, Offset(size.width / 2, size.height / 2));
-        final close = tester.getRect(
+        expect(bounds.center.dx, size.width / 2);
+        expect(bounds.bottom, size.height);
+        expect(
           find.byKey(const Key("duplicate-locations-close")),
+          findsNothing,
         );
-        expect(bounds.contains(close.topLeft), isTrue);
-        expect(bounds.contains(close.bottomRight), isTrue);
+        expect(find.text("上一页"), findsNothing);
+        expect(find.text("下一页"), findsNothing);
         for (final text in [name, folder]) {
           final finder = find.text(text);
           final paragraph = tester.renderObject<RenderParagraph>(finder);
@@ -401,72 +394,6 @@ void main() {
       controller.dispose();
     },
   );
-
-  test("a late group response cannot clear a newer location request", () async {
-    final service = _Service()
-      ..delayedGroups = Completer<LibraryDuplicateGroupPage>()
-      ..delayedLocations = Completer<LibraryDuplicateLocationPage>();
-    final controller = LibraryDuplicateResultsController(service);
-    final groups = controller.refresh();
-    final locations = controller.showLocations(_group);
-    service.delayedGroups!.complete(
-      const LibraryDuplicateGroupPage(groups: [_group]),
-    );
-    await groups;
-    expect(controller.selected, _group);
-    expect(controller.loading, isTrue);
-    service.delayedLocations!.complete(
-      const LibraryDuplicateLocationPage(locations: []),
-    );
-    await locations;
-    expect(controller.loading, isFalse);
-    controller.dispose();
-    await service.events.close();
-  });
-
-  for (final showLocations in [false, true]) {
-    test(
-      "catalog changes discard old responses and members: $showLocations",
-      () async {
-        final service = _Service()..hasResults = true;
-        final controller = LibraryDuplicateResultsController(service);
-        await controller.refresh();
-        if (showLocations) {
-          await controller.showLocations(_group);
-        }
-        final oldGroups = Completer<LibraryDuplicateGroupPage>();
-        final oldLocations = Completer<LibraryDuplicateLocationPage>();
-        service.delayedGroups = oldGroups;
-        service.delayedLocations = oldLocations;
-        final obsolete = controller.refresh();
-        service
-          ..delayedGroups = null
-          ..delayedLocations = null
-          ..hasResults = false
-          ..hasLocations = false;
-        await controller.catalogChanged();
-        oldGroups.complete(const LibraryDuplicateGroupPage(groups: [_group]));
-        oldLocations.complete(
-          const LibraryDuplicateLocationPage(
-            locations: [
-              LibraryDuplicateLocation(
-                locationId: "removed",
-                displayPath: r"C:\fixture\removed.png",
-                availability: LibraryDuplicateAvailability.local,
-              ),
-            ],
-          ),
-        );
-        await obsolete;
-        expect(controller.groups.groups, isEmpty);
-        expect(controller.locations.locations, isEmpty);
-        expect(controller.loading, isFalse);
-        expect(controller.canPrevious, isFalse);
-        controller.dispose();
-        await service.events.close();
-      },
-    );
-  }
 
   testWidgets(
     "workspace switches retain analysis and locations reveal the selected file",
