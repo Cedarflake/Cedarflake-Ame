@@ -683,3 +683,27 @@ declaration rejection in the pre-migration schema 42 test binary, whose SHA-256 
 performance receipt. These are separate PR repair work, not a storage-bound pass. Actions run
 `38967752272` on `c8ba056` subsequently reported sixteen Rust failures; final CI and native
 filter-switch acceptance remain open.
+
+## Photo activation semantics
+
+The photo card's secondary-click GestureDetector contributed an unnamed primary tap action above
+the named InkWell action. The new boundary regression fails on the prior implementation with two
+tap nodes for one photo. Excluding only that secondary recognizer from semantics retains the
+framework's named photo action, keyboard focus and separate checkbox/retry controls; the mouse
+context menu remains connected. The primary node retains its identity through pending, decoded
+image and pending transitions. This change does not reset or suppress the application semantics tree.
+
+Sixteen affected widget cases pass, including the new action/identity regression, delayed gallery
+filter publication and existing context-menu/preview-repair cases. The ordinary Debug entrypoint
+was rebuilt and checked with the retained 10,000-file library. All-images/merged round trips,
+context-menu open/dismissal and a jump to an uncached 2012 window completed without native AXTree
+errors; the latter generated 13 thumbnails and filled the visible cards. Native accessibility still
+exposes named photo buttons. The temporary update recorder is absent from this Debug build. Its
+earlier captures did not reproduce the native failure, so the measured boundary failure is the
+duplicate activation node, rather than a captured invalid native update.
+
+The photo tile has 453 production lines, no inline tests and 128 dedicated semantics-test lines.
+Current-head hosted checks remain required. The retained catalog also reopened at schema 43 with
+10,000 assets/locations, 10,004 stored/published fingerprints and both exact decisions unchanged;
+the decision-row digest matches the pre-upgrade snapshot. Runtime preview publications advanced
+the catalog revision, separate from the migration's tested revision-preservation contract.

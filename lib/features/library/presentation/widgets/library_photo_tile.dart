@@ -125,6 +125,8 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
             onEnter: (_) => setState(() => _isHovered = true),
             onExit: (_) => setState(() => _isHovered = false),
             child: GestureDetector(
+              // Secondary-click handling must not compete with InkWell's primary action.
+              excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,
               onSecondaryTapDown: (details) {
                 final position = amePopupMenuAtGlobalPosition(
