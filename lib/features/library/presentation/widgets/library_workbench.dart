@@ -4,6 +4,8 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_overlay_semantics.dart";
+
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_workbench_controller.dart";
 import "../library_strings.dart";
@@ -87,16 +89,18 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
         final sidebarWidth = _sidebarWidth
             .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
             .toDouble();
-        final toggle = IconButton(
-          key: const Key("library-sidebar-toggle"),
-          tooltip: expanded
+        final toggle = AmeTooltip(
+          message: expanded
               ? LibraryWorkbenchStrings.collapseSidebar
               : LibraryWorkbenchStrings.expandSidebar,
-          onPressed: () => unawaited(_persistSidebar(expanded: !expanded)),
-          icon: Icon(
-            expanded
-                ? Symbols.left_panel_close_rounded
-                : Symbols.left_panel_open_rounded,
+          child: IconButton(
+            key: const Key("library-sidebar-toggle"),
+            onPressed: () => unawaited(_persistSidebar(expanded: !expanded)),
+            icon: Icon(
+              expanded
+                  ? Symbols.left_panel_close_rounded
+                  : Symbols.left_panel_open_rounded,
+            ),
           ),
         );
         final gallery = Stack(
@@ -224,12 +228,14 @@ class _FunctionRail extends ConsumerWidget {
       trailingAtBottom: true,
       trailing: Padding(
         padding: const EdgeInsets.only(bottom: 12),
-        child: IconButton(
-          key: const Key("library-sidebar-settings"),
-          tooltip: LibraryStrings.settings,
-          isSelected: workspace == LibraryWorkspace.settings,
-          onPressed: () => controller.select(LibraryWorkspace.settings),
-          icon: const Icon(Symbols.settings_rounded),
+        child: AmeTooltip(
+          message: LibraryStrings.settings,
+          child: IconButton(
+            key: const Key("library-sidebar-settings"),
+            isSelected: workspace == LibraryWorkspace.settings,
+            onPressed: () => controller.select(LibraryWorkspace.settings),
+            icon: const Icon(Symbols.settings_rounded),
+          ),
         ),
       ),
     );

@@ -640,6 +640,8 @@ void main() {
           const Duration(seconds: 5),
         );
         expect(lightThemeLabel, findsNothing);
+        expect(Navigator.of(tester.element(settingsPage)).canPop(), isFalse);
+        expect(settingsPage.hitTestable(), findsOneWidget);
         await nativeUiaProbe.checkpoint(tester, "settings-menu-closed");
 
         await tester.pumpWidget(const SizedBox.shrink());

@@ -13,9 +13,9 @@ class LibraryExactAnalysisScheduler extends ChangeNotifier {
   LibraryExactAnalysisScheduler(
     this.analysis, {
     this.idleDelay = const Duration(seconds: 3),
-    bool paused = false,
+    this._paused = false,
     this.foregroundReads,
-  }) : _paused = paused {
+  }) {
     analysis.addListener(_analysisChanged);
     foregroundReads?.addListener(_foregroundChanged);
   }

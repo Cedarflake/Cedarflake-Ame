@@ -239,6 +239,7 @@ class _Service implements LibraryExactDuplicates {
   @override
   Stream<LibraryExactAnalysisProgress> analyze(String runId) {
     final stream = StreamController<LibraryExactAnalysisProgress>.broadcast();
+    stream.onCancel = () => unawaited(stream.close());
     runs[runId] = stream;
     if (admitImmediately) {
       scheduleMicrotask(() => emit(LibraryExactAnalysisPhase.running));
