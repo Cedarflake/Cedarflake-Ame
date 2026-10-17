@@ -377,6 +377,11 @@ page failure remain one boundary, with no second decoded page or per-record clon
   `migrations/metadata_inventory_contract.rs` owns inventory shape, scope/generation, staged counts
   and entry relations; `migrations/terminal_media_contract.rs` owns terminal evidence shape and
   root ownership. They retain version-dependent source fields and structure-before-row validation.
+  `migrations/recovery_execution_contract.rs`, `root_namespace_contract.rs`, `live_gap_contract.rs`
+  and `inventory_spool_contract.rs` own the separate execution, namespace, gap-consumer and spool
+  proofs. Current-schema and compatibility repair call them directly; the existing spool-row
+  validator remains shared. Recovery test catalogs have a test-only owner, so proof tests do not
+  depend on fixtures hidden inside the migration coordinator's test module.
   Other historical validators and shrink-only compatibility repair remain the next physical split,
   not a completed extraction. Migration order and one-transaction rollback remain centralized.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.

@@ -31,7 +31,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
-| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Schema-shape, preview-repair and source-revision owners locally verified; remaining contracts/repairs pending |
+| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Shape, source, authority, inventory and recovery proof owners extracted; journal/catch-up contracts and remaining repairs pending |
 | M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Pending M1 |
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Pending M2 |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Pending M3 |
@@ -86,8 +86,9 @@ do not infer completion from moved files or recreate an already extracted owner.
 - Branch created from `83c8c16`; no unrelated working-tree edits were present.
 - M1 shared schema-shape extraction is delivered as `55b4cce`; preview-repair ownership as `607b561`.
   Source-revision metadata proof/repair is delivered as `20c0ed9`. Queue-lane and recovery-authority
-  proofs are delivered as `7f9fae7`. Inventory and terminal evidence proofs have moved with their
-  tests; remaining recovery/spool/journal contracts and repairs follow.
+  proofs are delivered as `7f9fae7`; inventory and terminal evidence as `e2d7c39`. Recovery, namespace,
+  live-gap and spool proofs are extracted, with five frontier regressions passing locally. Remaining
+  journal/catch-up contracts and exact compatibility repairs follow before M1 is complete.
 - Authorized draft [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22) triggers the existing
   hosted checks. Inspect the current pushed head; newer pushes supersede older in-progress runs.
   Feature-branch pushes alone are not CI triggers.

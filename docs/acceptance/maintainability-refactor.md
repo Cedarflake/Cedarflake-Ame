@@ -118,3 +118,28 @@ remains a test-only fixture built through the original schema creator.
 Source comparison and owned-file diff inspection preserve every moved assertion and the original
 migration transaction/admission boundaries. Compilation and the moved tests are assigned to PR CI;
 this record makes no new local runtime claim.
+
+## Recovery, namespace and spool contracts
+
+Recovery execution, configured-root namespace, live-gap consumer ownership and spool shape/version
+now have separate proof owners. Current-schema and compatibility repair import the owning proof
+directly. Eleven function bodies preserve their SQL, validation depth, error codes and decisions
+after symbol relocation and formatting. The existing spool-row validator remains unchanged.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 7,855 | 4,384 | 0 |
+| `migrations/recovery_execution_contract.rs` | 234 | 2 | 99 |
+| `migrations/root_namespace_contract.rs` | 165 | 0 | 0 |
+| `migrations/live_gap_contract.rs` | 244 | 0 | 0 |
+| `migrations/inventory_spool_contract.rs` | 217 | 0 | 0 |
+| `migrations/recovery_test_catalog.rs` | 0 | 0 | 363 |
+
+Five frontier/reopen regressions moved with execution proof. Shared recovery and historical-version
+fixtures moved without changing their SQL or assertions; baseline tests now import the fixture
+owner directly. Cross-version migration and multi-contract recovery regressions remain integration
+tests in the coordinator.
+
+Local Cargo filter `recovery_execution_contract::tests`: 5 passed, 0 failed, 0 ignored, using the
+repository lock and `CARGO_INCREMENTAL=0`. The successful test build includes all moved contracts
+and fixture consumers. Hosted CI retains the complete historical-upgrade and recovery workload.

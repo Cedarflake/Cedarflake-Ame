@@ -13,7 +13,7 @@ use crate::domain::{
 };
 use crate::ports::PersistentJournalRepository;
 
-use super::super::tests::recovery_lifecycle_catalog;
+use super::super::recovery_test_catalog::recovery_lifecycle_catalog;
 use super::validate_persistent_journal_baseline_contract;
 
 mod interrupted_checkpoint;

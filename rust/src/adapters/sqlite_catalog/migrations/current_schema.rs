@@ -2,12 +2,11 @@ use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::source_revision_contract;
 use super::{
-    SCHEMA_VERSION, database_error, validate_live_gap_recovery_contract,
-    validate_live_gap_recovery_contract_with_depth, validate_pre_live_gap_schema_contract,
+    SCHEMA_VERSION, database_error, validate_pre_live_gap_schema_contract,
     validate_pre_live_gap_schema_contract_with_depth,
 };
+use super::{live_gap_contract, source_revision_contract};
 
 #[derive(Clone, Copy)]
 pub(super) enum ContractValidationDepth {
@@ -56,7 +55,7 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     // The process session owns reuse. Only its initial validation (or explicit stale renewal)
     // reaches this full proof; ordinary connections retain bounded identity/schema checks.
     validate_pre_live_gap_schema_contract(connection, schema_version)?;
-    validate_live_gap_recovery_contract(connection)?;
+    live_gap_contract::validate(connection)?;
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_rows(connection)?;
     }
@@ -87,10 +86,7 @@ pub(super) fn validate_schema_structure(
         schema_version,
         ContractValidationDepth::StructureOnly,
     )?;
-    validate_live_gap_recovery_contract_with_depth(
-        connection,
-        ContractValidationDepth::StructureOnly,
-    )?;
+    live_gap_contract::validate_with_depth(connection, ContractValidationDepth::StructureOnly)?;
     source_revision_contract::validate_structure(connection)?;
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_structure(connection)?;

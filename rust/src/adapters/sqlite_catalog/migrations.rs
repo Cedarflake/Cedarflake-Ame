@@ -30,7 +30,13 @@ mod directory_identities;
 mod exact_candidate_index_retirement;
 mod exact_duplicate_review;
 mod exact_duplicates;
+mod inventory_spool_contract;
+mod live_gap_contract;
 mod recovery_authority_contract;
+mod recovery_execution_contract;
+#[cfg(test)]
+mod recovery_test_catalog;
+mod root_namespace_contract;
 #[cfg(test)]
 pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
@@ -1047,8 +1053,8 @@ fn validate_pre_live_gap_schema_contract_with_depth(
     change_lane_contract::validate_with_depth(connection, depth)?;
     recovery_authority_contract::validate_with_depth(connection, depth)?;
     validate_persistent_journal_baseline_contract_with_depth(connection, depth)?;
-    validate_recovery_execution_contract_with_depth(connection, depth)?;
-    validate_metadata_inventory_spool_contract_version_with_depth(
+    recovery_execution_contract::validate_with_depth(connection, depth)?;
+    inventory_spool_contract::validate_version_with_depth(
         connection,
         schema_version,
         if schema_version >= 32 {
@@ -1060,7 +1066,7 @@ fn validate_pre_live_gap_schema_contract_with_depth(
         },
         depth,
     )?;
-    validate_root_publication_namespace_contract_with_depth(connection, depth)
+    root_namespace_contract::validate_with_depth(connection, depth)
 }
 
 const CHANGE_LANE_INDEX_DDL: &str = "CREATE INDEX library_change_queue_lanes_eligible
@@ -1782,816 +1788,6 @@ const METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL: &str =
        BEGIN
          SELECT RAISE(ABORT, 'completed inventory spool directory is immutable');
        END";
-
-fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_recovery_execution_contract_with_depth(connection, ContractValidationDepth::Full)
-}
-
-fn validate_recovery_execution_contract_with_depth(
-    connection: &Connection,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    let columns_match = table_columns_match(
-        connection,
-        "library_recovery_execution_contract",
-        &[
-            ("singleton", "INTEGER", false, 1),
-            ("contract_version", "INTEGER", true, 0),
-            ("complete", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_metadata_inventory_candidate_owners",
-        &[
-            ("run_id", "TEXT", true, 1),
-            ("candidate_key", "TEXT", true, 2),
-            ("change_id", "INTEGER", true, 0),
-            ("candidate_role", "TEXT", true, 0),
-            ("relative_path", "TEXT", true, 0),
-            ("previous_relative_path", "TEXT", false, 0),
-            ("owned_unix_ms", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_metadata_inventory_frontier",
-        &[
-            ("run_id", "TEXT", true, 1),
-            ("ordinal", "INTEGER", true, 2),
-            ("relative_directory", "TEXT", true, 0),
-            ("state", "TEXT", true, 0),
-            ("directory_identity_scheme", "TEXT", false, 0),
-            ("directory_identity_value", "TEXT", false, 0),
-            ("resume_after_relative_path", "TEXT", false, 0),
-            ("enumerated_entry_count", "INTEGER", true, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-        ],
-    )?;
-    let marker_complete = connection
-        .query_row(
-            "SELECT singleton = 1 AND contract_version = 1 AND complete = 1
-             FROM library_recovery_execution_contract",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_recovery_execution_contract",
-        RECOVERY_EXECUTION_CONTRACT_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_candidate_owners",
-        METADATA_INVENTORY_CANDIDATE_OWNER_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_metadata_inventory_candidate_owners_change",
-        METADATA_INVENTORY_CANDIDATE_CHANGE_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_metadata_inventory_candidate_owner_insert_guard",
-        METADATA_INVENTORY_CANDIDATE_INSERT_GUARD_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_metadata_inventory_candidate_owner_update_guard",
-        METADATA_INVENTORY_CANDIDATE_UPDATE_GUARD_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_frontier",
-        METADATA_INVENTORY_FRONTIER_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_metadata_inventory_frontier_state",
-        METADATA_INVENTORY_FRONTIER_STATE_INDEX_DDL,
-    )?;
-    if !columns_match || !marker_complete || !schema_matches {
-        return Err(ScanError::new(
-            "catalog_recovery_execution_contract_unverifiable",
-            "The catalog cannot prove recovery candidate ownership and frontier lifecycle",
-        ));
-    }
-    if !depth.includes_rows() {
-        return Ok(());
-    }
-    record_current_schema_row_audit();
-    let invalid_relations = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1
-               FROM library_metadata_inventory_candidate_owners AS owner
-               LEFT JOIN library_metadata_inventory_runs AS run ON run.id = owner.run_id
-               LEFT JOIN library_change_queue AS queue ON queue.id = owner.change_id
-               WHERE run.id IS NULL OR queue.id IS NULL
-                  OR queue.root_id <> run.root_id
-                  OR queue.root_generation <> run.root_generation
-                  OR queue.scope <> 'path'
-                  OR queue.relative_path <> owner.relative_path
-                  OR queue.previous_relative_path IS NOT owner.previous_relative_path
-             ) OR EXISTS(
-               SELECT 1
-               FROM library_metadata_inventory_frontier AS frontier
-               LEFT JOIN library_metadata_inventory_runs AS run ON run.id = frontier.run_id
-               WHERE run.id IS NULL
-                  OR (run.status IN ('completed', 'failed', 'cancelled', 'superseded')
-                    AND frontier.state <> 'completed')
-                  OR frontier.ordinal <> (
-                    SELECT COUNT(*)
-                    FROM library_metadata_inventory_frontier AS earlier
-                    WHERE earlier.run_id = frontier.run_id
-                      AND earlier.ordinal < frontier.ordinal
-                  )
-                  OR (frontier.state = 'pending' AND (
-                    frontier.ordinal <> (
-                      SELECT MAX(last.ordinal)
-                      FROM library_metadata_inventory_frontier AS last
-                      WHERE last.run_id = frontier.run_id
-                    )
-                    OR frontier.resume_after_relative_path IS NOT NULL
-                    OR frontier.enumerated_entry_count <> 0
-                    OR NOT EXISTS(
-                      SELECT 1
-                      FROM library_metadata_inventory_entries AS entry
-                      WHERE entry.run_id = frontier.run_id
-                        AND entry.relative_path = frontier.relative_directory
-                        AND entry.entry_kind = 'directory'
-                    )
-                  ))
-                  OR (frontier.state = 'enumerating'
-                    AND frontier.resume_after_relative_path IS NOT NULL
-                    AND NOT EXISTS(
-                      SELECT 1
-                      FROM library_metadata_inventory_entries AS entry
-                      WHERE entry.run_id = frontier.run_id
-                        AND entry.relative_path = frontier.resume_after_relative_path
-                    ))
-             ) OR EXISTS(
-               SELECT 1
-               FROM library_metadata_inventory_runs AS run
-               WHERE (run.status = 'running' AND (
-                 run.enumeration_complete <> 0
-                 OR (run.next_page_index = 1 AND (
-                   run.staged_entry_count <> 0
-                   OR EXISTS(
-                     SELECT 1 FROM library_metadata_inventory_frontier AS frontier
-                     WHERE frontier.run_id = run.id
-                   )
-                 ))
-                 OR (run.next_page_index > 1 AND NOT EXISTS(
-                   SELECT 1 FROM library_metadata_inventory_frontier AS frontier
-                   WHERE frontier.run_id = run.id
-                     AND frontier.state IN ('pending', 'enumerating')
-                 ))
-                 OR EXISTS(
-                   SELECT 1 FROM library_metadata_inventory_frontier AS frontier
-                   WHERE frontier.run_id = run.id AND frontier.state = 'completed'
-                 )
-               ))
-               OR (run.status = 'comparing' AND (
-                 run.enumeration_complete <> 1
-                 OR 1 <> (
-                   SELECT COUNT(*) FROM library_metadata_inventory_frontier AS frontier
-                   WHERE frontier.run_id = run.id AND frontier.state = 'completed'
-                 )
-                 OR 1 <> (
-                   SELECT COUNT(*) FROM library_metadata_inventory_frontier AS frontier
-                   WHERE frontier.run_id = run.id
-                 )
-               ))
-             ) OR EXISTS(
-               SELECT 1
-               FROM library_recovery_authorities AS authority
-               LEFT JOIN library_change_queue AS queue ON queue.id = authority.change_id
-               LEFT JOIN library_metadata_inventory_runs AS run ON run.id = authority.run_id
-               WHERE queue.id IS NULL
-                  OR (authority.retired_unix_ms IS NULL
-                    AND queue.status NOT IN ('pending', 'leased', 'retry_wait'))
-                  OR (authority.retired_unix_ms IS NOT NULL
-                    AND queue.status NOT IN ('completed', 'superseded'))
-                  OR (authority.retired_unix_ms IS NOT NULL
-                    AND run.id IS NOT NULL AND run.status <> 'completed')
-                  OR (run.status = 'completed' AND EXISTS(
-                    SELECT 1
-                    FROM library_metadata_inventory_candidate_owners AS owner
-                    JOIN library_change_queue AS candidate ON candidate.id = owner.change_id
-                    WHERE owner.run_id = run.id
-                      AND candidate.status IN ('pending', 'leased', 'retry_wait')
-                  ))
-             ) OR EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check(
-                 'library_metadata_inventory_candidate_owners'
-               )
-             ) OR EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check('library_metadata_inventory_frontier')
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if invalid_relations {
-        return Err(ScanError::new(
-            "catalog_recovery_execution_contract_unverifiable",
-            "The catalog cannot prove recovery candidate ownership and frontier lifecycle",
-        ));
-    }
-    Ok(())
-}
-
-fn validate_root_publication_namespace_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_root_publication_namespace_contract_with_depth(
-        connection,
-        ContractValidationDepth::Full,
-    )
-}
-
-fn validate_root_publication_namespace_contract_with_depth(
-    connection: &Connection,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    let columns_match = table_columns_match(
-        connection,
-        "library_root_publication_namespace_contract",
-        &[
-            ("singleton", "INTEGER", false, 1),
-            ("contract_version", "INTEGER", true, 0),
-            ("complete", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_root_publication_namespaces",
-        &[
-            ("root_id", "TEXT", false, 1),
-            ("root_generation", "INTEGER", true, 0),
-            ("identity_scheme", "TEXT", true, 0),
-            ("identity_value", "TEXT", true, 0),
-            ("authority_kind", "TEXT", true, 0),
-            ("established_catalog_revision", "INTEGER", true, 0),
-            ("established_unix_ms", "INTEGER", true, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_scan_publication_namespace_bindings",
-        &[
-            ("scan_id", "TEXT", false, 1),
-            ("root_id", "TEXT", true, 0),
-            ("root_generation", "INTEGER", true, 0),
-            ("identity_scheme", "TEXT", true, 0),
-            ("identity_value", "TEXT", true, 0),
-            ("bound_unix_ms", "INTEGER", true, 0),
-        ],
-    )?;
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_root_publication_namespace_contract",
-        ROOT_PUBLICATION_NAMESPACE_CONTRACT_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_root_publication_namespaces",
-        ROOT_PUBLICATION_NAMESPACE_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_scan_publication_namespace_bindings",
-        SCAN_PUBLICATION_NAMESPACE_BINDING_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_scan_publication_namespace_root",
-        SCAN_PUBLICATION_NAMESPACE_ROOT_INDEX_DDL,
-    )?;
-    let marker_complete = connection
-        .query_row(
-            "SELECT contract_version = 1 AND complete = 1
-             FROM library_root_publication_namespace_contract WHERE singleton = 1",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    if !columns_match || !schema_matches || !marker_complete {
-        return Err(unverifiable_root_publication_namespace_contract());
-    }
-    if !depth.includes_rows() {
-        return Ok(());
-    }
-    record_current_schema_row_audit();
-    let invalid_relations = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1
-               FROM library_root_publication_namespaces AS proof
-               LEFT JOIN library_change_root_state AS active ON active.root_id = proof.root_id
-               WHERE active.root_id IS NULL OR active.is_active <> 1
-                  OR active.generation <> proof.root_generation
-             ) OR EXISTS(
-               SELECT 1
-               FROM library_scan_publication_namespace_bindings AS binding
-               LEFT JOIN scan_runs AS scan ON scan.id = binding.scan_id
-               LEFT JOIN library_change_root_state AS active
-                 ON active.root_id = binding.root_id
-               WHERE scan.id IS NULL OR scan.root_id <> binding.root_id
-                  OR scan.root_generation_at_start <> binding.root_generation
-                  OR scan.status NOT IN ('running', 'paused')
-                  OR active.is_active <> 1 OR active.generation <> binding.root_generation
-             ) OR EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check(
-                 'library_root_publication_namespaces'
-               )
-             ) OR EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check(
-                 'library_scan_publication_namespace_bindings'
-               )
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    let mut identities = connection
-        .prepare(
-            "SELECT identity_scheme, identity_value
-             FROM library_root_publication_namespaces
-             UNION ALL
-             SELECT identity_scheme, identity_value
-             FROM library_scan_publication_namespace_bindings",
-        )
-        .map_err(database_error)?;
-    let identities_valid = identities
-        .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .map_err(database_error)?
-        .all(|row| {
-            row.is_ok_and(|(scheme, value)| validate_windows_root_identity(&scheme, &value).is_ok())
-        });
-    if invalid_relations || !identities_valid {
-        return Err(unverifiable_root_publication_namespace_contract());
-    }
-    Ok(())
-}
-
-fn validate_live_gap_recovery_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_live_gap_recovery_contract_with_depth(connection, ContractValidationDepth::Full)
-}
-
-fn validate_live_gap_recovery_contract_with_depth(
-    connection: &Connection,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    let columns_match = table_columns_match(
-        connection,
-        "library_live_gap_recovery_contract",
-        &[
-            ("singleton", "INTEGER", false, 1),
-            ("contract_version", "INTEGER", true, 0),
-            ("complete", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_live_gap_recovery_claims",
-        &[
-            ("gap_change_id", "INTEGER", false, 1),
-            ("root_id", "TEXT", true, 0),
-            ("root_generation", "INTEGER", true, 0),
-            ("consumer_kind", "TEXT", true, 0),
-            ("opening_volume_guid", "TEXT", false, 0),
-            ("opening_volume_serial", "TEXT", false, 0),
-            ("opening_root_reference_version", "INTEGER", false, 0),
-            ("opening_root_file_reference", "BLOB", false, 0),
-            ("opening_journal_id", "TEXT", false, 0),
-            ("opening_next_usn", "TEXT", false, 0),
-            ("protocol_version", "INTEGER", false, 0),
-            ("contract_version", "INTEGER", false, 0),
-            ("source_range_id", "TEXT", false, 0),
-            ("recovery_change_id", "INTEGER", false, 0),
-            ("foreground_scan_id", "TEXT", false, 0),
-            ("created_unix_ms", "INTEGER", true, 0),
-            ("consumed_unix_ms", "INTEGER", false, 0),
-        ],
-    )?;
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_live_gap_recovery_contract",
-        LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_live_gap_recovery_claims",
-        LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_live_gap_recovery_claims_root",
-        LIVE_GAP_RECOVERY_ROOT_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_live_gap_recovery_claim_insert_guard",
-        LIVE_GAP_RECOVERY_INSERT_GUARD_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_live_gap_recovery_claim_identity_update_guard",
-        LIVE_GAP_RECOVERY_IDENTITY_UPDATE_GUARD_DDL,
-    )?;
-    let marker_complete = connection
-        .query_row(
-            "SELECT contract_version = 1 AND complete = 1
-             FROM library_live_gap_recovery_contract WHERE singleton = 1",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    if !columns_match || !schema_matches || !marker_complete {
-        return Err(ScanError::new(
-            "catalog_live_gap_recovery_contract_unverifiable",
-            "The catalog cannot prove live-gap lineage and consumer ownership",
-        ));
-    }
-    if !depth.includes_active_rows() {
-        return Ok(());
-    }
-    if depth.includes_rows() {
-        record_current_schema_row_audit();
-    }
-    let include_terminal_claims = depth.includes_rows();
-    let invalid_relations = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1
-               FROM (
-                 SELECT * FROM library_live_gap_recovery_claims
-                 WHERE ?1 OR consumed_unix_ms IS NULL
-               ) AS claim
-               LEFT JOIN library_change_queue AS gap ON gap.id = claim.gap_change_id
-               LEFT JOIN library_change_queue_lanes AS gap_lane
-                 ON gap_lane.change_id = gap.id
-               LEFT JOIN library_persistent_journal_source_ranges AS ranges
-                 ON ranges.id = claim.source_range_id
-               LEFT JOIN library_persistent_journal_range_lifecycle AS lifecycle
-                 ON lifecycle.source_range_id = ranges.id
-               LEFT JOIN library_change_queue AS recovery
-                 ON recovery.id = claim.recovery_change_id
-               LEFT JOIN library_change_queue_lanes AS recovery_lane
-                 ON recovery_lane.change_id = recovery.id
-                LEFT JOIN library_recovery_authorities AS authority
-                  ON authority.change_id = recovery.id
-                LEFT JOIN scan_runs AS foreground_scan
-                  ON foreground_scan.id = claim.foreground_scan_id
-                WHERE gap.id IS NULL
-                  OR gap.root_id <> claim.root_id
-                  OR gap.root_generation <> claim.root_generation
-                  OR gap.intent_kind <> 'freshness_unknown'
-                  OR gap.scope <> 'root' OR gap.relative_path <> ''
-                  OR gap.previous_relative_path IS NOT NULL
-                  OR (claim.consumer_kind = 'pending_journal' AND (
-                    gap.origin <> 'live_notification' OR gap_lane.lane <> 'p0_live'
-                     OR gap.status <> 'retry_wait'
-                     OR gap.last_failure_code <> 'live_gap_waiting_for_journal_range'
-                     OR gap.authoritative_scan_id IS NOT NULL
-                    OR NOT EXISTS(
-                      SELECT 1
-                      FROM library_persistent_journal_checkpoints AS checkpoint
-                      JOIN library_persistent_journal_root_state AS root
-                        ON root.root_id = checkpoint.root_id
-                       AND root.root_generation = checkpoint.root_generation
-                      WHERE checkpoint.root_id = claim.root_id
-                        AND checkpoint.root_generation = claim.root_generation
-                        AND checkpoint.volume_guid = claim.opening_volume_guid
-                        AND checkpoint.volume_serial = claim.opening_volume_serial
-                        AND checkpoint.root_reference_version =
-                              claim.opening_root_reference_version
-                        AND checkpoint.root_file_reference =
-                              claim.opening_root_file_reference
-                        AND checkpoint.journal_id = claim.opening_journal_id
-                        AND checkpoint.next_unread_usn = claim.opening_next_usn
-                        AND checkpoint.captured_exclusive_end = claim.opening_next_usn
-                        AND checkpoint.protocol_version = claim.protocol_version
-                        AND checkpoint.contract_version = claim.contract_version
-                        AND checkpoint.continuity_state = 'current'
-                        AND checkpoint.last_failure_code IS NULL
-                        AND root.capability_state = 'supported'
-                        AND root.continuity_state = 'current'
-                    )
-                  ))
-                  OR (claim.consumer_kind = 'journal_source_range' AND (
-                    gap.origin <> 'live_notification' OR gap_lane.lane <> 'p0_live'
-                    OR gap.status <> 'superseded'
-                     OR ranges.id IS NULL OR ranges.status <> 'checkpointed'
-                     OR gap.authoritative_scan_id IS NOT NULL
-                    OR lifecycle.lifecycle_state NOT IN ('pending', 'completed')
-                    OR ranges.root_id <> claim.root_id
-                    OR ranges.root_generation <> claim.root_generation
-                    OR ranges.volume_guid <> claim.opening_volume_guid
-                    OR ranges.volume_serial <> claim.opening_volume_serial
-                    OR ranges.journal_id <> claim.opening_journal_id
-                    OR ranges.requested_start_usn <> claim.opening_next_usn
-                    OR ranges.protocol_version <> claim.protocol_version
-                    OR ranges.contract_version <> claim.contract_version
-                    OR CAST(ranges.covered_until_usn AS INTEGER)
-                         < CAST(claim.opening_next_usn AS INTEGER)
-                  ))
-                  OR (claim.consumer_kind = 'metadata_inventory_control' AND (
-                    gap.origin <> 'live_notification' OR gap_lane.lane <> 'p0_live'
-                    OR gap.status <> 'superseded'
-                    OR gap.superseded_by_change_id <> recovery.id
-                    OR recovery.root_id <> claim.root_id
-                     OR recovery.root_generation <> claim.root_generation
-                     OR gap.authoritative_scan_id IS NOT NULL
-                    OR recovery.origin <> 'metadata_inventory'
-                    OR recovery.intent_kind <> 'freshness_unknown'
-                    OR recovery.scope <> 'root' OR recovery.relative_path <> ''
-                    OR recovery_lane.lane <> 'p2_recovery'
-                    OR authority.reason NOT IN (
-                      'journal_gap', 'journal_reset', 'journal_trim',
-                      'journal_reconstruction_failure', 'containment_failure',
-                      'broker_after_current_failure', 'watcher_uncovered_gap'
-                    )
-                    OR authority.root_id <> claim.root_id
-                    OR authority.root_generation <> claim.root_generation
-                  ))
-                  OR (claim.consumer_kind = 'explicit_recovery_required' AND (
-                    gap.origin <> 'startup_catch_up' OR gap_lane.lane <> 'p1_journal'
-                     OR gap.status <> 'retry_wait' OR gap.next_retry_unix_ms IS NOT NULL
-                     OR gap.authoritative_scan_id IS NOT NULL
-                     OR gap.last_failure_code <>
-                          'live_gap_v30_explicit_recovery_required'
-                   ))
-                   OR (claim.consumer_kind = 'foreground_scan' AND (
-                     gap.origin <> 'startup_catch_up' OR gap_lane.lane <> 'p1_journal'
-                     OR foreground_scan.id IS NULL
-                     OR foreground_scan.scan_owner <> 'foreground'
-                     OR foreground_scan.root_id <> claim.root_id
-                     OR foreground_scan.root_generation_at_start <> claim.root_generation
-                     OR (claim.consumed_unix_ms IS NULL AND (
-                       foreground_scan.status NOT IN ('running', 'paused')
-                       OR gap.status <> 'leased'
-                       OR gap.next_retry_unix_ms IS NOT NULL
-                       OR gap.authoritative_scan_id IS NOT claim.foreground_scan_id
-                       OR gap.last_failure_code <>
-                            'live_gap_v30_explicit_recovery_in_progress'
-                       OR gap.catalog_revision_at_success IS NOT NULL
-                     ))
-                     OR (claim.consumed_unix_ms IS NOT NULL AND (
-                       foreground_scan.status <> 'completed'
-                       OR foreground_scan.completed_unix_ms IS NOT claim.consumed_unix_ms
-                       OR gap.status <> 'completed'
-                       OR gap.authoritative_scan_id IS NOT NULL
-                       OR gap.last_failure_code IS NOT NULL
-                       OR gap.last_failure_message IS NOT NULL
-                       OR gap.catalog_revision_at_success IS NULL
-                     ))
-                   ))
-             ) OR (?1 AND EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check(
-                 'library_live_gap_recovery_claims'
-               )
-             ))",
-            [include_terminal_claims],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if invalid_relations {
-        return Err(ScanError::new(
-            "catalog_live_gap_recovery_contract_unverifiable",
-            "The catalog cannot prove live-gap lineage and consumer ownership",
-        ));
-    }
-    Ok(())
-}
-
-fn validate_windows_root_identity(scheme: &str, value: &str) -> Result<(), ScanError> {
-    let valid = scheme == "windows-file-id-128-v1"
-        && value.len() == 49
-        && value.as_bytes().get(16) == Some(&b':')
-        && value.bytes().enumerate().all(|(index, byte)| {
-            index == 16 || byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte)
-        });
-    if valid {
-        Ok(())
-    } else {
-        Err(unverifiable_root_publication_namespace_contract())
-    }
-}
-
-fn unverifiable_root_publication_namespace_contract() -> ScanError {
-    ScanError::new(
-        "catalog_root_publication_namespace_unverifiable",
-        "The catalog cannot prove the configured-root publication namespace contract",
-    )
-}
-
-fn metadata_inventory_spool_schema_matches(
-    connection: &Connection,
-    expected_contract_version: i64,
-) -> Result<bool, ScanError> {
-    if expected_contract_version == 4 {
-        return inventory_spool_retirement::schema_matches(connection);
-    }
-    let contract_ddl = match expected_contract_version {
-        1 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
-        2 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_DDL,
-        3 => METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V31_DDL,
-        _ => return Ok(false),
-    };
-    let spool_ddl = if expected_contract_version == 1 {
-        METADATA_INVENTORY_SPOOL_TABLE_V27_DDL
-    } else {
-        METADATA_INVENTORY_SPOOL_TABLE_DDL
-    };
-    let binding_guard_ddl = if expected_contract_version == 1 {
-        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL
-    } else {
-        METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL
-    };
-    Ok(schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spool_contract",
-        contract_ddl,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spools",
-        spool_ddl,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spool_directories",
-        METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_metadata_inventory_spool_directories_state",
-        METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_metadata_inventory_spool_entries",
-        if expected_contract_version == 3 {
-            METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL
-        } else {
-            METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL
-        },
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_metadata_inventory_spool_entries_order",
-        METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_metadata_inventory_spool_binding_update_guard",
-        binding_guard_ddl,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_metadata_inventory_spool_directory_complete_guard",
-        METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
-    )?)
-}
-
-fn validate_metadata_inventory_spool_contract_version(
-    connection: &Connection,
-    expected_schema_version: i64,
-    expected_contract_version: i64,
-) -> Result<(), ScanError> {
-    validate_metadata_inventory_spool_contract_version_with_depth(
-        connection,
-        expected_schema_version,
-        expected_contract_version,
-        ContractValidationDepth::Full,
-    )
-}
-
-fn validate_metadata_inventory_spool_contract_version_with_depth(
-    connection: &Connection,
-    expected_schema_version: i64,
-    expected_contract_version: i64,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    let application_id: i64 = connection
-        .query_row("PRAGMA application_id", [], |row| row.get(0))
-        .map_err(database_error)?;
-    let user_version: i64 = connection
-        .query_row("PRAGMA user_version", [], |row| row.get(0))
-        .map_err(database_error)?;
-    let spool_columns = if expected_contract_version == 1 {
-        vec![
-            ("run_id", "TEXT", false, 1),
-            ("authority_change_id", "INTEGER", true, 0),
-            ("root_id", "TEXT", true, 0),
-            ("root_generation", "INTEGER", true, 0),
-            ("scope_kind", "TEXT", true, 0),
-            ("scope_relative_path", "TEXT", true, 0),
-            ("state", "TEXT", true, 0),
-            ("created_unix_ms", "INTEGER", true, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-        ]
-    } else {
-        vec![
-            ("run_id", "TEXT", expected_contract_version >= 4, 1),
-            ("authority_change_id", "INTEGER", true, 0),
-            ("root_id", "TEXT", true, 0),
-            ("root_generation", "INTEGER", true, 0),
-            ("root_identity_scheme", "TEXT", true, 0),
-            ("root_identity_value", "TEXT", true, 0),
-            ("scope_kind", "TEXT", true, 0),
-            ("scope_relative_path", "TEXT", true, 0),
-            ("state", "TEXT", true, 0),
-            ("created_unix_ms", "INTEGER", true, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-        ]
-    };
-    let mut spool_entry_columns = vec![
-        ("run_id", "TEXT", true, 1),
-        ("directory_relative_path", "TEXT", false, 0),
-        ("relative_path", "TEXT", true, 2),
-        ("entry_kind", "TEXT", true, 0),
-        ("file_size", "INTEGER", false, 0),
-        ("modified_unix_ms", "INTEGER", true, 0),
-        ("file_identity_scheme", "TEXT", false, 0),
-        ("file_identity_value", "TEXT", false, 0),
-        ("placeholder_state", "TEXT", true, 0),
-        ("is_reparse_point", "INTEGER", true, 0),
-        ("staged_unix_ms", "INTEGER", true, 0),
-    ];
-    if expected_contract_version >= 3 {
-        spool_entry_columns.push(("source_revision_token", "TEXT", false, 0));
-    }
-    let columns_match = table_columns_match(
-        connection,
-        "library_metadata_inventory_spool_contract",
-        &[
-            ("singleton", "INTEGER", false, 1),
-            ("contract_version", "INTEGER", true, 0),
-            ("complete", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_metadata_inventory_spools",
-        &spool_columns,
-    )? && table_columns_match(
-        connection,
-        "library_metadata_inventory_spool_directories",
-        &[
-            ("run_id", "TEXT", true, 1),
-            ("ordinal", "INTEGER", true, 0),
-            ("relative_directory", "TEXT", true, 2),
-            ("state", "TEXT", true, 0),
-            ("directory_identity_scheme", "TEXT", false, 0),
-            ("directory_identity_value", "TEXT", false, 0),
-            ("source_entry_count", "INTEGER", true, 0),
-            ("created_unix_ms", "INTEGER", true, 0),
-            ("updated_unix_ms", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_metadata_inventory_spool_entries",
-        &spool_entry_columns,
-    )?;
-    let marker_complete = connection
-        .query_row(
-            "SELECT singleton = 1 AND contract_version = ?1 AND complete = 1
-             FROM library_metadata_inventory_spool_contract",
-            [expected_contract_version],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    let schema_matches =
-        metadata_inventory_spool_schema_matches(connection, expected_contract_version)?;
-    if application_id != SQLITE_APPLICATION_ID
-        || user_version != expected_schema_version
-        || !columns_match
-        || !marker_complete
-        || !schema_matches
-    {
-        return Err(ScanError::new(
-            "catalog_metadata_inventory_spool_contract_unverifiable",
-            "The catalog cannot prove its bounded metadata inventory source spool",
-        ));
-    }
-    if !depth.includes_rows() {
-        return Ok(());
-    }
-    record_current_schema_row_audit();
-    inventory_spool_rows::validate(connection, expected_contract_version)
-}
 
 fn validate_persistent_journal_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_persistent_journal_contract_with_depth(connection, ContractValidationDepth::Full)
@@ -7233,7 +6429,7 @@ fn migrate_v25_to_v26_transaction(transaction: &Transaction<'_>) -> Result<(), S
     transaction
         .execute("UPDATE schema_info SET version = 26", [])
         .map_err(database_error)?;
-    validate_recovery_execution_contract(transaction)
+    recovery_execution_contract::validate(transaction)
 }
 
 fn migrate_v26_to_v27(connection: &mut Connection) -> Result<(), ScanError> {
@@ -7246,7 +6442,7 @@ fn migrate_v26_to_v27(connection: &mut Connection) -> Result<(), ScanError> {
 
 fn migrate_v26_to_v27_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 26)?;
-    validate_recovery_execution_contract(transaction)?;
+    recovery_execution_contract::validate(transaction)?;
     for sql in [
         METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
         METADATA_INVENTORY_SPOOL_TABLE_V27_DDL,
@@ -7275,7 +6471,7 @@ fn migrate_v26_to_v27_transaction(transaction: &Transaction<'_>) -> Result<(), S
         )
         .map_err(database_error)?;
     debug_assert_eq!(SQLITE_APPLICATION_ID, 1_095_583_025);
-    validate_metadata_inventory_spool_contract_version(transaction, 27, 1)
+    inventory_spool_contract::validate_version(transaction, 27, 1)
 }
 
 fn migrate_v27_to_v28(connection: &mut Connection) -> Result<(), ScanError> {
@@ -7288,7 +6484,7 @@ fn migrate_v27_to_v28(connection: &mut Connection) -> Result<(), ScanError> {
 
 fn migrate_v27_to_v28_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 27)?;
-    validate_metadata_inventory_spool_contract_version(transaction, 27, 1)?;
+    inventory_spool_contract::validate_version(transaction, 27, 1)?;
     transaction
         .execute_batch(
             "UPDATE library_change_queue
@@ -7452,7 +6648,7 @@ fn migrate_v27_to_v28_transaction(transaction: &Transaction<'_>) -> Result<(), S
              UPDATE schema_info SET version = 28;",
         )
         .map_err(database_error)?;
-    validate_metadata_inventory_spool_contract_version(transaction, 28, 2)
+    inventory_spool_contract::validate_version(transaction, 28, 2)
 }
 
 fn migrate_v28_to_v29(connection: &mut Connection) -> Result<(), ScanError> {
@@ -7465,7 +6661,7 @@ fn migrate_v28_to_v29(connection: &mut Connection) -> Result<(), ScanError> {
 
 fn migrate_v28_to_v29_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 28)?;
-    validate_metadata_inventory_spool_contract_version(transaction, 28, 2)?;
+    inventory_spool_contract::validate_version(transaction, 28, 2)?;
     for sql in [
         ROOT_PUBLICATION_NAMESPACE_CONTRACT_TABLE_DDL,
         ROOT_PUBLICATION_NAMESPACE_TABLE_DDL,
@@ -7513,7 +6709,7 @@ fn migrate_v28_to_v29_transaction(transaction: &Transaction<'_>) -> Result<(), S
         for row in rows {
             let (root_id, generation, scheme, value, updated_unix_ms) =
                 row.map_err(database_error)?;
-            validate_windows_root_identity(&scheme, &value)?;
+            root_namespace_contract::validate_windows_root_identity(&scheme, &value)?;
             insert_migrated_publication_proof(
                 &mut proofs,
                 root_id,
@@ -7554,13 +6750,13 @@ fn migrate_v28_to_v29_transaction(transaction: &Transaction<'_>) -> Result<(), S
             let (root_id, generation, volume_serial, reference, updated_unix_ms) =
                 row.map_err(database_error)?;
             if reference.len() != 16 {
-                return Err(unverifiable_root_publication_namespace_contract());
+                return Err(root_namespace_contract::unverifiable_contract());
             }
             let serial = volume_serial
                 .parse::<u64>()
-                .map_err(|_| unverifiable_root_publication_namespace_contract())?;
+                .map_err(|_| root_namespace_contract::unverifiable_contract())?;
             if serial.to_string() != volume_serial {
-                return Err(unverifiable_root_publication_namespace_contract());
+                return Err(root_namespace_contract::unverifiable_contract());
             }
             let mut identifier = [0_u8; 16];
             identifier.copy_from_slice(&reference);
@@ -7627,7 +6823,7 @@ fn migrate_v28_to_v29_transaction(transaction: &Transaction<'_>) -> Result<(), S
              UPDATE schema_info SET version = 29;",
         )
         .map_err(database_error)?;
-    validate_root_publication_namespace_contract(transaction)
+    root_namespace_contract::validate(transaction)
 }
 
 fn migrate_v29_to_v30(connection: &mut Connection) -> Result<(), ScanError> {
@@ -7742,7 +6938,7 @@ fn migrate_v29_to_v30_transaction(transaction: &Transaction<'_>) -> Result<(), S
              UPDATE schema_info SET version = 30;",
         )
         .map_err(database_error)?;
-    validate_live_gap_recovery_contract(transaction)
+    live_gap_contract::validate(transaction)
 }
 
 fn migrate_v30_to_v31(connection: &mut Connection) -> Result<(), ScanError> {
@@ -7757,7 +6953,7 @@ fn migrate_v30_to_v31_transaction(transaction: &Transaction<'_>) -> Result<(), S
     repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 30)?;
     validate_pre_live_gap_schema_contract(transaction, 30)?;
     repair_retired_live_gap_claims_transaction(transaction, 30)?;
-    validate_live_gap_recovery_contract(transaction)?;
+    live_gap_contract::validate(transaction)?;
     transaction
         .execute_batch(
             "ALTER TABLE catalog_state ADD COLUMN next_source_generation INTEGER NOT NULL DEFAULT 1
@@ -7929,16 +7125,16 @@ fn insert_migrated_publication_proof(
     updated_unix_ms: i64,
 ) -> Result<(), ScanError> {
     if generation <= 0 || updated_unix_ms < 0 {
-        return Err(unverifiable_root_publication_namespace_contract());
+        return Err(root_namespace_contract::unverifiable_contract());
     }
-    validate_windows_root_identity(&scheme, &value)?;
+    root_namespace_contract::validate_windows_root_identity(&scheme, &value)?;
     match proofs.entry((root_id, generation)) {
         std::collections::btree_map::Entry::Vacant(entry) => {
             entry.insert((scheme, value, authority_kind.to_owned(), updated_unix_ms));
         }
         std::collections::btree_map::Entry::Occupied(mut entry) => {
             if entry.get().0 != scheme || entry.get().1 != value {
-                return Err(unverifiable_root_publication_namespace_contract());
+                return Err(root_namespace_contract::unverifiable_contract());
             }
             let proof = entry.get_mut();
             if authority_kind == "metadata_inventory" {
@@ -8746,6 +7942,12 @@ mod tests {
     use tempfile::{NamedTempFile, tempdir};
 
     use super::legacy_test_catalog::fresh_v19_catalog;
+    use super::recovery_test_catalog::{
+        active_frontier_catalog, recovery_lifecycle_catalog,
+        remove_metadata_inventory_spool_v27_contract_for_test,
+        remove_root_publication_namespace_v29_contract_for_test, reopen_recovery_lifecycle_catalog,
+        v27_root_proof_phase_catalog,
+    };
     use super::{
         PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL, PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL,
         SCHEMA_VERSION, migrate_schema, migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19,
@@ -8820,23 +8022,6 @@ mod tests {
         assert_eq!(after_freelist, before_freelist);
     }
 
-    fn remove_root_publication_namespace_v29_contract_for_test(connection: &Connection) {
-        super::downgrade_source_revision_contract_to_v30_for_test(connection);
-        connection
-            .execute_batch(
-                "DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_identity_update_guard;
-                 DROP TRIGGER IF EXISTS library_live_gap_recovery_claim_insert_guard;
-                 DROP INDEX IF EXISTS library_live_gap_recovery_claims_root;
-                 DROP TABLE IF EXISTS library_live_gap_recovery_claims;
-                 DROP TABLE IF EXISTS library_live_gap_recovery_contract;
-                 DROP INDEX IF EXISTS library_scan_publication_namespace_root;
-                 DROP TABLE IF EXISTS library_scan_publication_namespace_bindings;
-                 DROP TABLE IF EXISTS library_root_publication_namespaces;
-                 DROP TABLE IF EXISTS library_root_publication_namespace_contract;",
-            )
-            .expect("remove v29 configured-root publication fixture");
-    }
-
     fn downgrade_current_catalog_to_v29(connection: &Connection) {
         super::downgrade_source_revision_contract_to_v30_for_test(connection);
         connection
@@ -8862,7 +8047,7 @@ mod tests {
                  UPDATE schema_info SET version = 28;",
             )
             .expect("publish exact v28 fixture version");
-        super::validate_metadata_inventory_spool_contract_version(connection, 28, 2)
+        super::inventory_spool_contract::validate_version(connection, 28, 2)
             .expect("validate exact v28 fixture");
     }
 
@@ -9599,51 +8784,6 @@ mod tests {
         );
     }
 
-    fn remove_metadata_inventory_spool_v27_contract_for_test(connection: &Connection) {
-        remove_root_publication_namespace_v29_contract_for_test(connection);
-        connection
-            .execute_batch(
-                "DROP TRIGGER IF EXISTS library_metadata_inventory_spool_directory_complete_guard;
-                 DROP TRIGGER IF EXISTS library_metadata_inventory_spool_binding_update_guard;
-                 DROP INDEX IF EXISTS library_metadata_inventory_spool_entries_order;
-                 DROP TABLE IF EXISTS library_metadata_inventory_spool_entries;
-                 DROP INDEX IF EXISTS library_metadata_inventory_spool_directories_state;
-                 DROP TABLE IF EXISTS library_metadata_inventory_spool_directories;
-                 DROP TABLE IF EXISTS library_metadata_inventory_spools;
-                 DROP TABLE IF EXISTS library_metadata_inventory_spool_contract;",
-            )
-            .expect("remove v27 inventory spool fixture");
-    }
-
-    fn replace_current_spool_contract_with_v27_for_test(connection: &Connection) {
-        remove_metadata_inventory_spool_v27_contract_for_test(connection);
-        for sql in [
-            super::METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V27_DDL,
-            super::METADATA_INVENTORY_SPOOL_TABLE_V27_DDL,
-            super::METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL,
-            super::METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
-            super::METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL,
-            super::METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
-            super::METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_V27_DDL,
-            super::METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
-        ] {
-            connection
-                .execute_batch(sql)
-                .expect("create exact v27 spool shape");
-        }
-        connection
-            .execute_batch(
-                "INSERT INTO library_metadata_inventory_spool_contract(
-                   singleton, contract_version, complete
-                 ) VALUES (1, 1, 1);
-                 PRAGMA user_version = 27;
-                 UPDATE schema_info SET version = 27;",
-            )
-            .expect("publish v27 spool fixture");
-        super::validate_metadata_inventory_spool_contract_version(connection, 27, 1)
-            .expect("validate exact v27 spool fixture");
-    }
-
     fn remove_recovery_execution_v26_contract_for_test(connection: &Connection) {
         connection
             .execute_batch(
@@ -9878,251 +9018,6 @@ mod tests {
         assert_eq!(quarantined, (4, 4));
         super::current_schema::validate_schema_version(&connection, 31)
             .expect("conflicting legacy identities no longer block startup");
-    }
-
-    pub(super) fn recovery_lifecycle_catalog(is_completed: bool) -> NamedTempFile {
-        let catalog = NamedTempFile::new().expect("temporary recovery lifecycle catalog");
-        let mut connection = Connection::open(catalog.path()).expect("recovery lifecycle catalog");
-        migrate_schema(&mut connection).expect("fresh current catalog");
-        connection
-            .execute_batch(
-                "INSERT INTO library_roots(id, path, created_unix_ms)
-                   VALUES ('lifecycle-root', 'C:/lifecycle-source', 1);
-                 INSERT INTO library_change_root_state(
-                   root_id, generation, is_active, updated_unix_ms
-                 ) VALUES ('lifecycle-root', 1, 1, 1);
-                 INSERT INTO library_persistent_journal_root_state(
-                   root_id, root_generation, protocol_version, contract_version,
-                   capability_state, continuity_state, updated_unix_ms
-                 ) VALUES (
-                   'lifecycle-root', 1, 5, 1, 'supported', 'baseline_required', 1
-                 );
-                 INSERT INTO library_change_queue(
-                   id, root_id, root_generation, intent_kind, scope, relative_path,
-                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
-                   first_sequence, most_recent_sequence, coalesced_observation_count,
-                   status, ready_unix_ms, catalog_revision_at_enqueue,
-                   created_unix_ms, updated_unix_ms
-                 ) VALUES (
-                   901, 'lifecycle-root', 1, 'freshness_unknown', 'root', '',
-                   'consistency_audit', 1, 1, '1', '1', 1,
-                   'pending', 1, 0, 1, 1
-                 );
-                 INSERT INTO library_recovery_authorities(
-                   change_id, run_id, root_id, root_generation, reason,
-                   opening_journal_id, opening_next_usn, authorized_unix_ms
-                 ) VALUES (
-                   901, 'lifecycle-run', 'lifecycle-root', 1,
-                   'existing_root_baseline', '44', '10', 1
-                 );
-                 INSERT INTO library_persistent_journal_baselines(
-                   change_id, root_id, root_generation, volume_guid, volume_serial,
-                   root_reference_version, root_file_reference, journal_id,
-                   opening_next_usn, protocol_version, contract_version,
-                   phase, authorized_unix_ms, updated_unix_ms
-                 ) VALUES (
-                   901, 'lifecycle-root', 1, 'lifecycle-volume', '77',
-                   3, X'01010101010101010101010101010101', '44',
-                   '10', 5, 1, 'inventory', 1, 1
-                 );",
-            )
-            .expect("valid active recovery lifecycle");
-        migrate_schema(&mut connection).expect("validate active recovery lifecycle");
-        if is_completed {
-            connection
-                .execute_batch(
-                    "INSERT INTO library_persistent_journal_checkpoints(
-                       root_id, root_generation, volume_guid, volume_serial,
-                       root_reference_version, root_file_reference, journal_id,
-                       next_unread_usn, captured_exclusive_end, covered_catalog_revision,
-                       protocol_version, contract_version, continuity_state,
-                       updated_unix_ms
-                     ) VALUES (
-                       'lifecycle-root', 1, 'lifecycle-volume', '77',
-                       3, X'01010101010101010101010101010101', '44',
-                       '20', '20', 0, 5, 1, 'current', 3
-                     );
-                     UPDATE library_persistent_journal_root_state
-                     SET continuity_state = 'current', updated_unix_ms = 3
-                     WHERE root_id = 'lifecycle-root';
-                     UPDATE library_persistent_journal_baselines
-                     SET closing_next_usn = '20', phase = 'completed',
-                         updated_unix_ms = 3, completed_unix_ms = 3
-                     WHERE change_id = 901;
-                     UPDATE library_change_queue
-                     SET status = 'completed', catalog_revision_at_success = 0,
-                         updated_unix_ms = 3
-                     WHERE id = 901;
-                     UPDATE library_recovery_authorities
-                     SET retired_unix_ms = 3 WHERE change_id = 901;",
-                )
-                .expect("valid completed recovery lifecycle");
-            migrate_schema(&mut connection).expect("validate completed recovery lifecycle");
-        }
-        drop(connection);
-        catalog
-    }
-
-    fn v27_root_proof_phase_catalog(phase: &str) -> NamedTempFile {
-        let catalog = recovery_lifecycle_catalog(phase == "completed");
-        let connection = Connection::open(catalog.path()).expect("v27 root-proof phase catalog");
-        connection
-            .execute_batch("PRAGMA foreign_keys = ON")
-            .expect("enable v27 fixture foreign keys");
-        connection
-            .execute_batch(
-                "INSERT INTO scan_runs(
-                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
-                 ) VALUES ('lifecycle-scan', 'lifecycle-root', 'completed', 1, 1, 128);
-                 UPDATE library_roots
-                 SET active_scan_id = 'lifecycle-scan' WHERE id = 'lifecycle-root';",
-            )
-            .expect("last trustworthy catalog fixture");
-        match phase {
-            "opening" => {
-                connection
-                    .execute(
-                        "DELETE FROM library_persistent_journal_baselines
-                         WHERE change_id = 901",
-                        [],
-                    )
-                    .expect("opening phase has not captured a baseline");
-            }
-            "inventory" => {
-                connection
-                    .execute_batch(
-                        "INSERT INTO library_metadata_inventory_runs(
-                           id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
-                           status, next_page_index, started_unix_ms, updated_unix_ms
-                         ) VALUES (
-                           'lifecycle-run', 'lifecycle-root', 1, 1, 'root', '',
-                           'running', 1, 1, 1
-                         );",
-                    )
-                    .expect("v27 inventory run");
-            }
-            "replay" | "absence" => {
-                let (next_unread, absence_authority) = if phase == "absence" {
-                    ("20", 1)
-                } else {
-                    ("15", 0)
-                };
-                connection
-                    .execute(
-                        "UPDATE library_persistent_journal_root_state
-                         SET continuity_state = 'catching_up'
-                         WHERE root_id = 'lifecycle-root'",
-                        [],
-                    )
-                    .expect("v27 catch-up root state");
-                connection
-                    .execute(
-                        "UPDATE library_persistent_journal_baselines
-                         SET phase = ?1, closing_next_usn = '20', updated_unix_ms = 2
-                         WHERE change_id = 901",
-                        [phase],
-                    )
-                    .expect("v27 replay or absence baseline");
-                connection
-                    .execute(
-                        "INSERT INTO library_persistent_journal_checkpoints(
-                           root_id, root_generation, volume_guid, volume_serial,
-                           root_reference_version, root_file_reference, journal_id,
-                           next_unread_usn, captured_exclusive_end, covered_catalog_revision,
-                           protocol_version, contract_version, continuity_state,
-                           updated_unix_ms
-                         ) VALUES (
-                           'lifecycle-root', 1, 'lifecycle-volume', '77',
-                           3, X'01010101010101010101010101010101', '44',
-                           ?1, '20', 0, 5, 1, 'catching_up', 2
-                         )",
-                        [next_unread],
-                    )
-                    .expect("v27 catch-up checkpoint");
-                connection
-                    .execute(
-                        "INSERT INTO library_metadata_inventory_runs(
-                           id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
-                           status, next_page_index, comparison_cursor, staged_entry_count,
-                           candidate_count, enumeration_complete, absence_authority,
-                           started_unix_ms, updated_unix_ms
-                         ) VALUES (
-                           'lifecycle-run', 'lifecycle-root', 1, 1, 'root', '',
-                           'comparing', 2, 'photo.jpg', 1, 1, 1, ?1, 1, 2
-                         )",
-                        [absence_authority],
-                    )
-                    .expect("v27 comparing run");
-                connection
-                    .execute_batch(
-                        "INSERT INTO library_metadata_inventory_entries(
-                           run_id, relative_path, entry_kind, file_size, modified_unix_ms,
-                           placeholder_state, is_reparse_point, staged_page_index,
-                           comparison_status, staged_unix_ms
-                         ) VALUES (
-                           'lifecycle-run', 'photo.jpg', 'file', 1, 1,
-                           'available', 0, 1, 'enqueued', 1
-                         );
-                         INSERT INTO library_metadata_inventory_frontier(
-                           run_id, ordinal, relative_directory, state,
-                           directory_identity_scheme, directory_identity_value,
-                           enumerated_entry_count, updated_unix_ms
-                         ) VALUES (
-                           'lifecycle-run', 0, '', 'completed',
-                           'windows-file-id-128-v1', '77:root', 1, 2
-                         );
-                         INSERT INTO library_change_queue(
-                           id, root_id, root_generation, intent_kind, scope, relative_path,
-                           origin, first_observed_unix_ms, most_recent_observed_unix_ms,
-                           first_sequence, most_recent_sequence, coalesced_observation_count,
-                           status, ready_unix_ms, catalog_revision_at_enqueue,
-                           created_unix_ms, updated_unix_ms
-                         ) VALUES (
-                           902, 'lifecycle-root', 1, 'reconcile', 'path', 'photo.jpg',
-                           'consistency_audit', 2, 2, '2', '2', 1,
-                           'pending', 2, 0, 2, 2
-                         );
-                         INSERT INTO library_metadata_inventory_candidate_owners(
-                           run_id, candidate_key, change_id, candidate_role,
-                           relative_path, owned_unix_ms
-                         ) VALUES (
-                           'lifecycle-run', 'photo.jpg', 902, 'present', 'photo.jpg', 2
-                         );",
-                    )
-                    .expect("v27 derived candidate work");
-            }
-            "completed" => {}
-            other => panic!("unsupported v27 phase fixture: {other}"),
-        }
-        replace_current_spool_contract_with_v27_for_test(&connection);
-        if phase == "inventory" {
-            connection
-                .execute_batch(
-                    "INSERT INTO library_metadata_inventory_spools(
-                       run_id, authority_change_id, root_id, root_generation,
-                       scope_kind, scope_relative_path, state,
-                       created_unix_ms, updated_unix_ms
-                     ) VALUES (
-                       'lifecycle-run', 901, 'lifecycle-root', 1,
-                       'root', '', 'enumerating', 1, 1
-                     );
-                     INSERT INTO library_metadata_inventory_spool_directories(
-                       run_id, ordinal, relative_directory, state,
-                       created_unix_ms, updated_unix_ms
-                     ) VALUES ('lifecycle-run', 0, '', 'pending', 1, 1);",
-                )
-                .expect("v27 active source spool");
-        }
-        super::recovery_authority_contract::validate(&connection)
-            .expect("valid v27 recovery authority");
-        super::validate_persistent_journal_baseline_contract(&connection)
-            .expect("valid v27 baseline phase");
-        super::validate_recovery_execution_contract(&connection)
-            .expect("valid v27 recovery execution");
-        super::validate_metadata_inventory_spool_contract_version(&connection, 27, 1)
-            .expect("valid v27 source spool");
-        drop(connection);
-        catalog
     }
 
     #[test]
@@ -10596,58 +9491,6 @@ mod tests {
             )
             .expect("partial v30 rollback evidence");
         assert_eq!(rollback, (29, 29, 1, 0));
-    }
-
-    fn reopen_recovery_lifecycle_catalog(
-        catalog: &NamedTempFile,
-    ) -> Result<(), crate::domain::ScanError> {
-        let mut connection = Connection::open(catalog.path()).expect("reopen lifecycle catalog");
-        connection
-            .execute_batch("PRAGMA foreign_keys = ON")
-            .expect("enable lifecycle foreign keys");
-        migrate_schema(&mut connection)
-    }
-
-    fn active_frontier_catalog() -> NamedTempFile {
-        let catalog = recovery_lifecycle_catalog(false);
-        let mut connection = Connection::open(catalog.path()).expect("active frontier catalog");
-        connection
-            .execute_batch(
-                "PRAGMA foreign_keys = ON;
-                 INSERT INTO scan_runs(
-                   id, root_id, status, started_unix_ms, completed_unix_ms, preview_edge
-                 ) VALUES ('lifecycle-scan', 'lifecycle-root', 'completed', 1, 1, 128);
-                 UPDATE library_roots
-                 SET active_scan_id = 'lifecycle-scan' WHERE id = 'lifecycle-root';
-                 INSERT INTO library_metadata_inventory_runs(
-                   id, root_id, root_generation, epoch, scope_kind, scope_relative_path,
-                   status, next_page_index, enumeration_cursor, staged_entry_count,
-                   started_unix_ms, updated_unix_ms
-                 ) VALUES (
-                   'lifecycle-run', 'lifecycle-root', 1, 1, 'root', '',
-                   'running', 2, 'album', 1, 1, 2
-                 );
-                 INSERT INTO library_metadata_inventory_entries(
-                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
-                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
-                 ) VALUES (
-                   'lifecycle-run', 'album', 'directory', NULL, 1,
-                   'available', 0, 1, 2
-                 );
-                 INSERT INTO library_metadata_inventory_frontier(
-                   run_id, ordinal, relative_directory, state,
-                   directory_identity_scheme, directory_identity_value,
-                   resume_after_relative_path, enumerated_entry_count, updated_unix_ms
-                 ) VALUES
-                   ('lifecycle-run', 0, '', 'enumerating',
-                    'windows-file-id-128-v1', 'volume:root', 'album', 1, 2),
-                   ('lifecycle-run', 1, 'album', 'pending',
-                    'windows-file-id-128-v1', 'volume:album', NULL, 0, 2);",
-            )
-            .expect("valid active frontier lifecycle");
-        migrate_schema(&mut connection).expect("validate active frontier lifecycle");
-        drop(connection);
-        catalog
     }
 
     #[test]
@@ -12284,100 +11127,6 @@ mod tests {
         reopen_recovery_lifecycle_catalog(&active).expect("reopen legal active lifecycle");
         let completed = recovery_lifecycle_catalog(true);
         reopen_recovery_lifecycle_catalog(&completed).expect("reopen legal completed lifecycle");
-    }
-
-    #[test]
-    fn current_v27_reopens_a_legal_restart_safe_inventory_frontier() {
-        let catalog = active_frontier_catalog();
-
-        reopen_recovery_lifecycle_catalog(&catalog).expect("reopen legal active frontier");
-    }
-
-    #[test]
-    fn current_v27_rejects_an_active_run_that_lost_its_frontier_on_reopen() {
-        let catalog = active_frontier_catalog();
-        let connection = Connection::open(catalog.path()).expect("mutate active frontier");
-        connection
-            .execute("DELETE FROM library_metadata_inventory_frontier", [])
-            .expect("remove durable frontier");
-        drop(connection);
-
-        let error = reopen_recovery_lifecycle_catalog(&catalog)
-            .expect_err("advanced active run requires a frontier");
-        assert_eq!(
-            error.code,
-            "catalog_recovery_execution_contract_unverifiable"
-        );
-    }
-
-    #[test]
-    fn current_v27_rejects_a_frontier_ordinal_gap_on_reopen() {
-        let catalog = active_frontier_catalog();
-        let connection = Connection::open(catalog.path()).expect("mutate frontier ordinal");
-        connection
-            .execute(
-                "UPDATE library_metadata_inventory_frontier
-                 SET ordinal = 3 WHERE relative_directory = 'album'",
-                [],
-            )
-            .expect("create frontier ordinal gap");
-        drop(connection);
-
-        let error = reopen_recovery_lifecycle_catalog(&catalog)
-            .expect_err("frontier ordinals must remain contiguous");
-        assert_eq!(
-            error.code,
-            "catalog_recovery_execution_contract_unverifiable"
-        );
-    }
-
-    #[test]
-    fn current_v27_rejects_a_pending_frontier_without_its_staged_directory() {
-        let catalog = active_frontier_catalog();
-        let connection = Connection::open(catalog.path()).expect("mutate pending frontier");
-        connection
-            .execute_batch(
-                "DELETE FROM library_metadata_inventory_entries
-                 WHERE relative_path = 'album';
-                 INSERT INTO library_metadata_inventory_entries(
-                   run_id, relative_path, entry_kind, file_size, modified_unix_ms,
-                   placeholder_state, is_reparse_point, staged_page_index, staged_unix_ms
-                 ) VALUES (
-                   'lifecycle-run', 'replacement.txt', 'file', 1, 1,
-                   'available', 0, 1, 2
-                 );",
-            )
-            .expect("remove pending directory evidence");
-        drop(connection);
-
-        let error = reopen_recovery_lifecycle_catalog(&catalog)
-            .expect_err("pending frontier requires staged directory evidence");
-        assert_eq!(
-            error.code,
-            "catalog_recovery_execution_contract_unverifiable"
-        );
-    }
-
-    #[test]
-    fn current_v27_rejects_a_running_frontier_marked_completed_on_reopen() {
-        let catalog = active_frontier_catalog();
-        let connection = Connection::open(catalog.path()).expect("mutate frontier state");
-        connection
-            .execute(
-                "UPDATE library_metadata_inventory_frontier
-                 SET state = 'completed', resume_after_relative_path = NULL,
-                     enumerated_entry_count = 0",
-                [],
-            )
-            .expect("prematurely complete frontier");
-        drop(connection);
-
-        let error = reopen_recovery_lifecycle_catalog(&catalog)
-            .expect_err("running inventory cannot own completed frontier");
-        assert_eq!(
-            error.code,
-            "catalog_recovery_execution_contract_unverifiable"
-        );
     }
 
     #[test]
