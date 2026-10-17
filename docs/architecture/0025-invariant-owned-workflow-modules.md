@@ -135,6 +135,9 @@ page failure remain one boundary, with no second decoded page or per-record clon
   scheduling. Automatic work takes the retained source before opening its lane, revalidates the
   root before processing, and restores the transfer if thread creation fails. Timeout retains the
   same task and shutdown uses the existing absolute deadline.
+  Session replacement follows the admitted runtime lifecycle. A successful retirement allows a
+  new factory connection; a cached close failure retains the old owner and prevents construction.
+  There is no separate, unused runtime reconnect path with weaker close-failure semantics.
   Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.

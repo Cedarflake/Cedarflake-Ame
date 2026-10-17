@@ -9,6 +9,7 @@ use super::retirement::*;
 use super::state::*;
 
 mod admission;
+mod journal_sessions;
 mod late_completion;
 mod panics;
 mod poll_catalog;

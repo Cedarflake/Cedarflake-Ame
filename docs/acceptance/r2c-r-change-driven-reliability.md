@@ -94,8 +94,8 @@ The fresh public gate passed all 19 cases, each as one exact test:
 | 7 | Reserved P0 while target-scale P1 and P2 are active | `application::library_synchronization::production::tests::priority::p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active` |
 | 8 | Typed journal reset and trim classification | `application::persistent_journal_continuity::session_reader::tests::session_reader_classifies_reset_and_trim_from_structured_query_fields` |
 | 9 | Reset/trim race fails closed in the broker service contract | `journal_broker::service::tests::reset_and_trimming_during_read_fail_closed` |
-| 10 | Broker session reconnect | `application::library_synchronization::production::tests::production_journal_factory_reconnects_after_closing_the_previous_session` |
-| 11 | Reconnect after isolated close failure | `application::library_synchronization::production::tests::reconnect_isolates_a_close_failure_and_installs_a_fresh_session` |
+| 10 | Broker session after runtime retirement | `application::library_synchronization::production::runtime_lifecycle::tests::journal_sessions::journal_factory_reopens_only_after_the_previous_runtime_retires` |
+| 11 | Failed close blocks session replacement | `application::library_synchronization::production::runtime_lifecycle::tests::journal_sessions::failed_journal_close_prevents_a_replacement_session` |
 | 12 | Bounded P0/P1/P2 stop and immediate restart | `application::library_synchronization::production::runtime_lifecycle::tests::shutdown::one_stop_joins_delayed_p0_p1_p2_then_allows_immediate_restart` |
 | 13 | Cancellation and restart during blocked filesystem/writer work | `application::library_synchronization::production::runtime_lifecycle::tests::shutdown::stop_and_restart_remain_responsive_during_blocked_filesystem_and_writer_work` |
 | 14 | Configured-root replacement opens no enumeration path | `application::incremental_library_changes::tests::replacement_root_uses_only_the_proof_guard_and_enumerates_nothing` |

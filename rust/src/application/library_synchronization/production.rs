@@ -55,15 +55,15 @@ use crate::application::AuthoritativeLibraryChangeReport;
 use crate::application::{MetadataInventoryRecoveryPage, storage_paths};
 #[cfg(all(test, windows))]
 use crate::journal_broker::{
-    BrokerResponse, JournalCapability, PersistentChangeJournalRead, PersistentChangeJournalSession,
-    QueryJournalRequest, ReadJournalRangeRequest, ReadJournalVolumeRequest, RegisterRootRequest,
-    RootCapability, describe_production_persistent_journal_root,
+    BrokerResponse, JournalCapability, PersistentChangeJournalOperationError,
+    PersistentChangeJournalRead, PersistentChangeJournalSession, QueryJournalRequest,
+    ReadJournalRangeRequest, ReadJournalVolumeRequest, RegisterRootRequest, RootCapability,
+    describe_production_persistent_journal_root,
 };
 #[cfg(windows)]
 use crate::journal_broker::{
     PersistentChangeJournal, PersistentChangeJournalConnection,
-    PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalOperationError,
-    production_persistent_journal_caller_claim,
+    PersistentChangeJournalLiveOnlyReason, production_persistent_journal_caller_claim,
 };
 #[cfg(all(test, windows))]
 use crate::ports::MetadataInventoryRepository;
@@ -708,37 +708,6 @@ impl ProductionSynchronization {
             }
         }
         self.persistent_change_journal_opened = true;
-    }
-
-    #[allow(
-        dead_code,
-        reason = "R2c-O owns the reconnect seam before R2c-P checkpoint policy invokes it"
-    )]
-    fn reconnect_persistent_change_journal(
-        &mut self,
-    ) -> Result<(), PersistentChangeJournalOperationError> {
-        let factory = self
-            .persistent_change_journal_factory
-            .as_ref()
-            .ok_or(PersistentChangeJournalOperationError::TransportUnavailable)?;
-        let previous = std::mem::replace(
-            &mut self._persistent_change_journal,
-            PersistentChangeJournalConnection::LiveOnly(
-                PersistentChangeJournalLiveOnlyReason::TransportUnavailable,
-            ),
-        );
-        let close_result = previous.close();
-        self._persistent_change_journal = factory.connect();
-        if matches!(
-            self._persistent_change_journal,
-            PersistentChangeJournalConnection::Connected(_)
-        ) && self.persistent_change_journal_caller.is_none()
-        {
-            self.persistent_change_journal_caller =
-                production_persistent_journal_caller_claim().ok();
-        }
-        self.persistent_change_journal_opened = true;
-        close_result
     }
 }
 
@@ -1753,13 +1722,6 @@ mod tests {
     }
 
     #[cfg(windows)]
-    struct CountingJournalFactory {
-        connect_count: Arc<std::sync::atomic::AtomicUsize>,
-        close_count: Arc<std::sync::atomic::AtomicUsize>,
-        close_failures: Arc<std::sync::atomic::AtomicUsize>,
-    }
-
-    #[cfg(windows)]
     #[derive(Clone)]
     struct OrderingProbeFactory {
         events: Arc<Mutex<Vec<&'static str>>>,
@@ -1767,17 +1729,6 @@ mod tests {
 
     #[cfg(windows)]
     struct OrderingProbeSource;
-
-    #[cfg(windows)]
-    impl PersistentChangeJournal for CountingJournalFactory {
-        fn connect(&self) -> PersistentChangeJournalConnection {
-            self.connect_count.fetch_add(1, Ordering::AcqRel);
-            PersistentChangeJournalConnection::Connected(Arc::new(CloseProbeSession {
-                close_count: Arc::clone(&self.close_count),
-                close_failures: Arc::clone(&self.close_failures),
-            }))
-        }
-    }
 
     #[cfg(windows)]
     impl PersistentChangeJournal for OrderingProbeFactory {
@@ -3379,61 +3330,6 @@ mod tests {
             .stop()
             .expect("stop journal-gap production runtime");
         assert_eq!(close_count.load(Ordering::Acquire), 1);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn production_journal_factory_reconnects_after_closing_the_previous_session() {
-        let connect_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let factory = Arc::new(CountingJournalFactory {
-            connect_count: Arc::clone(&connect_count),
-            close_count: Arc::clone(&close_count),
-            close_failures: Arc::new(std::sync::atomic::AtomicUsize::new(0)),
-        });
-        let mut production = new_production_synchronization_with_factory(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            factory,
-        );
-        production.open_persistent_change_journal_after_watcher();
-
-        production
-            .reconnect_persistent_change_journal()
-            .expect("reconnect journal session");
-
-        assert_eq!(connect_count.load(Ordering::Acquire), 2);
-        assert_eq!(close_count.load(Ordering::Acquire), 1);
-        production.stop().expect("stop reconnected runtime");
-        assert_eq!(close_count.load(Ordering::Acquire), 2);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn reconnect_isolates_a_close_failure_and_installs_a_fresh_session() {
-        let connect_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let close_count = Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let factory = Arc::new(CountingJournalFactory {
-            connect_count: Arc::clone(&connect_count),
-            close_count: Arc::clone(&close_count),
-            close_failures: Arc::new(std::sync::atomic::AtomicUsize::new(1)),
-        });
-        let mut production = new_production_synchronization_with_factory(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            factory,
-        );
-        production.open_persistent_change_journal_after_watcher();
-
-        assert_eq!(
-            production.reconnect_persistent_change_journal(),
-            Err(PersistentChangeJournalOperationError::TransportUnavailable)
-        );
-        assert_eq!(connect_count.load(Ordering::Acquire), 2);
-        assert_eq!(close_count.load(Ordering::Acquire), 1);
-
-        production
-            .stop()
-            .expect("stop fresh session after close failure");
-        assert_eq!(close_count.load(Ordering::Acquire), 2);
     }
 
     #[cfg(windows)]
