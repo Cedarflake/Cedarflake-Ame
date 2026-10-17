@@ -33,6 +33,25 @@ Local verification:
   with normal tool permissions.
 - Final source/diff review and `git diff --check`: passed. Historical migrations, repair admission
   and the source catalog remain unchanged by this extraction.
-- Hosted checks: pending first branch delivery. No hosted or client pass is claimed by this record.
+- Delivery: `55b4cce`. Feature-branch pushes are not configured CI triggers; hosted verification
+  awaits pull-request admission. No hosted or client pass is claimed by this record.
 
 Remaining M1 work is historical contract/row validation and exact compatibility-repair ownership.
+
+## Preview expectation compatibility repair
+
+The marker proof, immediate transaction, post-lock marker recheck and scoped derived-data reset now
+belong to `migrations/preview_expectation_repair.rs`. The migration coordinator retains the same
+admission points. Two existing malformed-marker/concurrent-preflight regressions moved with the
+owner. Two additional regressions prove current-publication selection and atomic rollback after
+handoff/link changes but before location publication. A failed attempt can subsequently complete.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 9,451 | 5,285 | 0 |
+| `migrations/preview_expectation_repair.rs` | 138 | 2 | 203 |
+
+Local Cargo filter `preview_expectation_repair::tests`: 4 passed, 0 failed, 0 ignored, with the
+repository lock and `CARGO_INCREMENTAL=0`. SQL changes in the test queries after that run only wrap
+whitespace; implementation and assertions are unchanged. Hosted verification remains unstarted
+pending PR admission. The next M1 boundary is source-revision metadata proof and compatibility repair.

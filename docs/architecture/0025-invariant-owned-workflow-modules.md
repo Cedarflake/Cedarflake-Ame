@@ -361,6 +361,10 @@ page failure remain one boundary, with no second decoded page or per-record clon
   `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
   once-grouped per-directory entry counts replace correlated recounting, without omitting parent,
   lifecycle, or foreign-key evidence. Structural proof and snapshot ownership remain upstream.
+  `migrations/preview_expectation_repair.rs` owns the preview-repair marker and the exact legacy
+  reset of unbacked ready expectations. It rechecks the marker after acquiring its immediate
+  transaction and publishes the marker atomically with derived expectation/link changes; retained
+  scans, backed previews and other states remain intact.
   Other historical validators and shrink-only compatibility repair remain the next physical split,
   not a completed extraction. Migration order and one-transaction rollback remain centralized.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.

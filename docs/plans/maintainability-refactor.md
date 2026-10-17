@@ -30,7 +30,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
-| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Shared schema-shape owner locally verified; remaining contracts/repairs pending |
+| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Shared schema-shape and preview-repair owners locally verified; remaining contracts/repairs pending |
 | M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Pending M1 |
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Pending M2 |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Pending M3 |
@@ -71,7 +71,8 @@ Preserve completed boundaries and still-valid evidence. Update this checkpoint a
 do not infer completion from moved files or recreate an already extracted owner.
 
 - Branch created from `83c8c16`; no unrelated working-tree edits were present.
-- M1 shared schema-shape extraction is locally verified; hosted verification follows the branch
-  delivery. Historical contract/row validation and exact compatibility repair are the next boundary.
+- M1 shared schema-shape extraction is delivered as `55b4cce`. Preview-repair ownership is locally
+  verified. Source-revision metadata proof/repair is next; other historical contract families remain.
+- Hosted checks require PR admission because feature-branch pushes are not configured CI triggers.
 - [Verification evidence](../acceptance/maintainability-refactor.md) records checks and physical
   ownership counts. M1 and the overall refactor remain incomplete.

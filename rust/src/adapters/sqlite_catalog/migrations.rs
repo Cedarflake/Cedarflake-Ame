@@ -41,6 +41,7 @@ mod journal_scope_recovery;
 mod media_admission_rechecks;
 mod persistent_journal_baseline;
 mod persistent_journal_range_history;
+mod preview_expectation_repair;
 mod queue_retirement_indexes;
 mod retained_source_state;
 mod retired_root_authority;
@@ -170,7 +171,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 repair_prerelease_v19_derived_indexes(connection)?;
                 repair_prerelease_v19_scan_lineage(connection)?;
                 repair_prerelease_v19_scan_handoff_batches(connection)?;
-                repair_v19_preview_expectations(connection)?;
+                preview_expectation_repair::repair(connection)?;
                 validate_v19_schema_contract(connection)?;
                 migrate_v19_to_v20(connection)?;
             }
@@ -426,7 +427,7 @@ fn create_schema_v19(transaction: &Transaction<'_>) -> Result<(), ScanError> {
         .map_err(database_error)?;
     add_authoritative_recovery_contract_marker(transaction)?;
     add_change_catch_up_contract(transaction)?;
-    add_preview_expectation_repair_marker(transaction)?;
+    preview_expectation_repair::add_marker(transaction)?;
     Ok(())
 }
 
@@ -577,7 +578,7 @@ fn validate_v19_schema_contract_with_depth(
     if has_scan_runs && (!has_single_scan_owner_index || !has_scan_owner) {
         return Err(unverifiable_authoritative_recovery_contract());
     }
-    if !preview_repair_marker_is_complete(connection)? {
+    if !preview_expectation_repair::marker_is_complete(connection)? {
         return Err(ScanError::new(
             "catalog_change_catch_up_contract_unverifiable",
             "The catalog preview repair authority is missing",
@@ -5272,137 +5273,6 @@ fn unverifiable_metadata_inventory_contract() -> ScanError {
     )
 }
 
-fn repair_v19_preview_expectations(connection: &mut Connection) -> Result<(), ScanError> {
-    if preview_repair_marker_is_complete(connection)? {
-        return Ok(());
-    }
-    repair_missing_v19_preview_expectation_marker(connection)
-}
-
-fn preview_repair_marker_is_complete(connection: &Connection) -> Result<bool, ScanError> {
-    let marker_type = connection
-        .query_row(
-            "SELECT type FROM sqlite_master
-             WHERE name = 'library_change_preview_repair_contract'",
-            [],
-            |row| row.get::<_, String>(0),
-        )
-        .optional()
-        .map_err(database_error)?;
-    if let Some(marker_type) = marker_type {
-        let marker_valid = marker_type == "table"
-            && table_columns_match(
-                connection,
-                "library_change_preview_repair_contract",
-                &[
-                    ("singleton", "INTEGER", false, 1),
-                    ("complete", "INTEGER", true, 0),
-                ],
-            )?
-            && connection
-                .query_row(
-                    "SELECT singleton = 1 AND complete = 1
-                     FROM library_change_preview_repair_contract",
-                    [],
-                    |row| row.get::<_, bool>(0),
-                )
-                .optional()
-                .map_err(database_error)?
-                .unwrap_or(false);
-        if !marker_valid {
-            return Err(ScanError::new(
-                "catalog_change_catch_up_contract_unverifiable",
-                "The catalog preview repair marker is malformed",
-            ));
-        }
-        return Ok(true);
-    }
-    Ok(false)
-}
-
-fn repair_missing_v19_preview_expectation_marker(
-    connection: &mut Connection,
-) -> Result<(), ScanError> {
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    if preview_repair_marker_is_complete(&transaction)? {
-        return transaction.commit().map_err(database_error);
-    }
-    transaction
-        .execute_batch(
-            "UPDATE library_change_catch_up_handoffs
-             SET preview_path = '', preview_status = 'pending',
-                 preview_issue_code = NULL, preview_issue_message = NULL
-             WHERE preview_status = 'ready'
-               AND NOT EXISTS (
-                 SELECT 1 FROM preview_artifacts AS artifacts
-                 WHERE artifacts.lifecycle_state = 'ready'
-                   AND artifacts.artifact_path =
-                     library_change_catch_up_handoffs.preview_path
-               );
-             UPDATE library_change_scan_handoff_items
-             SET preview_path = '', preview_status = 'pending',
-                 preview_issue_code = NULL, preview_issue_message = NULL
-             WHERE preview_status = 'ready'
-               AND NOT EXISTS (
-                 SELECT 1 FROM preview_artifacts AS artifacts
-                 WHERE artifacts.lifecycle_state = 'ready'
-                   AND artifacts.artifact_path =
-                     library_change_scan_handoff_items.preview_path
-               );
-             DELETE FROM preview_artifact_locations
-             WHERE location_id IN (
-               SELECT locations.location_id
-               FROM library_roots AS roots
-               JOIN asset_locations AS locations
-                 ON locations.root_id = roots.id
-                AND locations.scan_id = roots.active_scan_id
-               WHERE locations.preview_status = 'ready'
-                 AND NOT EXISTS (
-                   SELECT 1 FROM preview_artifacts AS artifacts
-                   WHERE artifacts.lifecycle_state = 'ready'
-                     AND artifacts.artifact_path = locations.preview_path
-                 )
-             );
-             UPDATE asset_locations
-             SET preview_path = '', preview_status = 'pending',
-                 preview_issue_code = NULL, preview_issue_message = NULL
-             WHERE preview_status = 'ready'
-               AND scan_id = (
-                 SELECT roots.active_scan_id
-                 FROM library_roots AS roots
-                 WHERE roots.id = asset_locations.root_id
-               )
-               AND NOT EXISTS (
-                 SELECT 1 FROM preview_artifacts AS artifacts
-                 WHERE artifacts.lifecycle_state = 'ready'
-                   AND artifacts.artifact_path = asset_locations.preview_path
-               );
-             CREATE TABLE library_change_preview_repair_contract (
-               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-               complete INTEGER NOT NULL CHECK(complete = 1)
-             );
-             INSERT INTO library_change_preview_repair_contract(singleton, complete)
-             VALUES (1, 1);",
-        )
-        .map_err(database_error)?;
-    transaction.commit().map_err(database_error)
-}
-
-fn add_preview_expectation_repair_marker(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    transaction
-        .execute_batch(
-            "CREATE TABLE library_change_preview_repair_contract (
-               singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-               complete INTEGER NOT NULL CHECK(complete = 1)
-             );
-             INSERT INTO library_change_preview_repair_contract(singleton, complete)
-             VALUES (1, 1);",
-        )
-        .map_err(database_error)
-}
-
 fn validate_change_catch_up_contract_with_depth(
     connection: &Connection,
     depth: ContractValidationDepth,
@@ -7282,7 +7152,7 @@ fn migrate_v17_to_v18(connection: &mut Connection) -> Result<(), ScanError> {
 fn migrate_v18_to_v19(connection: &mut Connection) -> Result<(), ScanError> {
     let transaction = connection.transaction().map_err(database_error)?;
     add_change_catch_up_contract(&transaction)?;
-    add_preview_expectation_repair_marker(&transaction)?;
+    preview_expectation_repair::add_marker(&transaction)?;
     transaction
         .execute("UPDATE schema_info SET version = 19", [])
         .map_err(database_error)?;
@@ -9679,7 +9549,6 @@ mod tests {
         PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL, PERSISTENT_JOURNAL_LEGACY_V24_TRIGGER_DDL,
         SCHEMA_VERSION, create_metadata_inventory_contract, create_schema_v19, migrate_schema,
         migrate_v16_to_v17, migrate_v17_to_v18, migrate_v18_to_v19, normalize_schema_sql,
-        preview_repair_marker_is_complete, repair_missing_v19_preview_expectation_marker,
         repair_prerelease_v18_scan_owner_index,
     };
     use crate::adapters::SqliteCatalog;
@@ -14489,47 +14358,6 @@ mod tests {
         let error = migrate_schema(&mut connection).expect_err("unbacked active scan lineage");
 
         assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
-    }
-
-    #[test]
-    fn current_v19_malformed_preview_repair_marker_fails_closed() {
-        let mut connection = Connection::open_in_memory().expect("catalog");
-        migrate_schema(&mut connection).expect("fresh v19 catalog");
-        connection
-            .execute_batch(
-                "DROP TABLE library_change_preview_repair_contract;
-                 CREATE TABLE library_change_preview_repair_contract(
-                   singleton INTEGER PRIMARY KEY
-                 );
-                 INSERT INTO library_change_preview_repair_contract(singleton) VALUES (1);",
-            )
-            .expect("malformed preview repair marker fixture");
-
-        let error = migrate_schema(&mut connection).expect_err("malformed preview repair marker");
-
-        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
-    }
-
-    #[test]
-    fn concurrent_prerelease_v19_preview_repair_accepts_completed_marker() {
-        let catalog = NamedTempFile::new().expect("temporary catalog");
-        let mut first = Connection::open(catalog.path()).expect("first catalog connection");
-        migrate_schema(&mut first).expect("fresh v19 catalog");
-        first
-            .execute_batch("DROP TABLE library_change_preview_repair_contract")
-            .expect("restore prerelease preview repair marker");
-        let mut second = Connection::open(catalog.path()).expect("second catalog connection");
-
-        assert!(!preview_repair_marker_is_complete(&first).expect("first marker preflight"));
-        assert!(!preview_repair_marker_is_complete(&second).expect("second marker preflight"));
-
-        repair_missing_v19_preview_expectation_marker(&mut first)
-            .expect("first connection preview repair");
-        repair_missing_v19_preview_expectation_marker(&mut second)
-            .expect("second connection accepts completed repair");
-
-        assert!(preview_repair_marker_is_complete(&first).expect("first repaired marker"));
-        assert!(preview_repair_marker_is_complete(&second).expect("second repaired marker"));
     }
 
     #[test]
