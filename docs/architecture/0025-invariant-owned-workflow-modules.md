@@ -112,6 +112,13 @@ page failure remain one boundary, with no second decoded page or per-record clon
   outside the registry mutex. Timeout, panic and late completion retain the original resource and
   epoch authority until retirement is proven. Lifecycle tests sit beside this boundary, while
   controlled source/journal resource fixtures have a shared test-only owner.
+  `journal_lane` owns the root/volume rotation cursors and read/drain alternation. It selects a
+  typed `JournalWork` after the coordinator's unchanged Live/stopping gate: ready Journal drain,
+  recovery admission, closing boundary, opening boundary, then a capacity-admitted volume page.
+  Cursor updates retain their original admission point even when worker startup fails. `journal_work`
+  owns worker creation, cancellation, result retirement and the shared shutdown deadline; its page
+  owner retains registration guards through the existing bounded capture operation. Status projection
+  and cross-lane priority remain in their existing owners.
   Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.

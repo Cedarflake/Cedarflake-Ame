@@ -32,7 +32,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
 | M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Implementation and scoped review complete; final exact-head hosted checks pending |
-| M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Lifecycle owner and 39 regressions extracted; Journal/Recovery and reconnect cleanup pending |
+| M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Lifecycle and Journal selection/worker owners extracted; Recovery and reconnect cleanup pending |
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Pending M2 |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Pending M3 |
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Pending M4 |
@@ -97,8 +97,9 @@ do not infer completion from moved files or recreate an already extracted owner.
 - M2 starts from `ef294ad` on `codex/synchronization-runtime`. Registry state and admission,
   operation ownership and deadline-bound retirement are internal to `runtime_lifecycle`; the
   production facade retains platform dispatch. Dedicated lifecycle regressions and shared
-  controlled-resource fixtures retain the original assertions. Continue Journal/Recovery ownership
-  and remove the unused reconnect path before completing M2.
+  controlled-resource fixtures retain the original assertions. Journal selection and worker ownership
+  now preserve typed work, rotation, capacity admission and retained resource retirement independently.
+  Continue Recovery ownership and remove the unused reconnect path before completing M2.
 - Authorized draft [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22) triggers the existing
   hosted checks. Inspect the current pushed head; newer pushes supersede older in-progress runs.
   Feature-branch pushes alone are not CI triggers.

@@ -40,11 +40,11 @@ fn runtime_with_drain_panic(
                     PersistentJournalEnrollmentReport::default().into(),
                 )));
             });
-            runtime.journal = Some(JournalTask {
-                cancelled: Arc::new(AtomicBool::new(false)),
+            runtime.journal = Some(JournalTask::from_test_parts(
+                Arc::new(AtomicBool::new(false)),
                 receiver,
-                worker: Some(worker),
-            });
+                worker,
+            ));
         }
         DrainPanicPoint::P2Result => {
             let (sender, receiver) = mpsc::sync_channel(1);
