@@ -382,6 +382,10 @@ page failure remain one boundary, with no second decoded page or per-record clon
   proofs. Current-schema and compatibility repair call them directly; the existing spool-row
   validator remains shared. Recovery test catalogs have a test-only owner, so proof tests do not
   depend on fixtures hidden inside the migration coordinator's test module.
+  `migrations/catch_up_contract.rs` and `scan_handoff_contract.rs` own checkpoint/lineage and
+  batch-handoff proof. `catch_up_repair.rs` owns the exact v19 compatibility repair;
+  `scan_owner_contract.rs` owns the v17/v18 authority markers and scan-owner repair. Their
+  existing preflight, lock recheck and transaction boundaries remain separate from version dispatch.
   Other historical validators and shrink-only compatibility repair remain the next physical split,
   not a completed extraction. Migration order and one-transaction rollback remain centralized.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.

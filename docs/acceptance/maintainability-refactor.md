@@ -143,3 +143,22 @@ tests in the coordinator.
 Local Cargo filter `recovery_execution_contract::tests`: 5 passed, 0 failed, 0 ignored, using the
 repository lock and `CARGO_INCREMENTAL=0`. The successful test build includes all moved contracts
 and fixture consumers. Hosted CI retains the complete historical-upgrade and recovery workload.
+
+## Catch-up, handoff and historical scan ownership
+
+Checkpoint/lineage proof, batch handoff proof, v19 compatibility repair and v17/v18 scan authority
+now have four owners. The twelve moved function bodies preserve all query decisions, bounds,
+transaction acquisition/rechecks and migration admission points. Twenty existing boundary tests
+moved without changing their assertions; the v19 factory remains shared and test-only.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 6,632 | 3,722 | 0 |
+| `migrations/catch_up_contract.rs` | 396 | 2 | 236 |
+| `migrations/scan_handoff_contract.rs` | 199 | 2 | 65 |
+| `migrations/catch_up_repair.rs` | 448 | 2 | 166 |
+| `migrations/scan_owner_contract.rs` | 216 | 2 | 207 |
+
+Local Cargo filter `catch_up_repair::tests`: 4 passed, 0 failed, 0 ignored, under the repository lock
+with `CARGO_INCREMENTAL=0`. The clean run followed removal of two unused coordinator imports. All
+test targets compiled; the remaining moved regressions and integration paths retain hosted ownership.
