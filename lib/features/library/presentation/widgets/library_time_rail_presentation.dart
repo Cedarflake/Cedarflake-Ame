@@ -24,6 +24,7 @@ class LibraryTimeRailPresentation extends StatefulWidget {
     required this.onChanged,
     required this.onChangeEnd,
     required this.onStep,
+    required this.onInteractionCancelled,
     super.key,
   });
 
@@ -36,6 +37,7 @@ class LibraryTimeRailPresentation extends StatefulWidget {
   final ValueChanged<double>? onChanged;
   final ValueChanged<double>? onChangeEnd;
   final ValueChanged<int>? onStep;
+  final VoidCallback onInteractionCancelled;
 
   @override
   State<LibraryTimeRailPresentation> createState() =>
@@ -55,13 +57,30 @@ class _LibraryTimeRailPresentationState
   @override
   void didUpdateWidget(covariant LibraryTimeRailPresentation oldWidget) {
     super.didUpdateWidget(oldWidget);
+    final previousFrame = _retainedFrame;
     if (oldWidget.timeline?.queryId != widget.timeline?.queryId ||
         oldWidget.scrollController != widget.scrollController ||
         widget.timeline == null ||
         widget.timeline!.buckets.isEmpty) {
       _retainedFrame = null;
     }
-    _retainedFrame = widget.frame ?? _retainedFrame;
+    final incoming = widget.frame;
+    // A refresh may expose window estimates before its full layout is ready.
+    // Keep the complete frame until its replacement has the same precision.
+    final awaitsCompleteLayout =
+        _retainedFrame?.projection.layoutMetrics != null &&
+        incoming?.projection.layoutMetrics == null;
+    if (incoming != null && !awaitsCompleteLayout) {
+      _retainedFrame = incoming;
+    }
+    if (previousFrame != null &&
+        identical(oldWidget.frame, previousFrame) &&
+        !identical(widget.frame, _retainedFrame)) {
+      final cancelInteraction = oldWidget.onInteractionCancelled;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) cancelInteraction();
+      });
+    }
   }
 
   bool _ownsInput(LibraryTimeRailFrame frame) =>
@@ -69,7 +88,7 @@ class _LibraryTimeRailPresentationState
 
   @override
   Widget build(BuildContext context) {
-    final frame = widget.frame ?? _retainedFrame;
+    final frame = _retainedFrame;
     if (frame == null) {
       return SizedBox(
         width: AnnotatedTimeRail.width,
@@ -93,6 +112,7 @@ class _LibraryTimeRailPresentationState
         widget.timeline?.queryId,
         widget.layoutShape,
         widget.scrollController,
+        hasCurrentGeometry,
       )),
       key: const Key("library-time-rail"),
       value: frame.value,

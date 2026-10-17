@@ -781,6 +781,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   lifetime. It retains only projection/value data within compatible presentation context, never
   catalog authority or stale layout metrics. `LibraryTimeNavigation` retains seek scheduling and
   same-revision geometry; the screen retains gallery/viewer composition and the rail's width.
+  A complete frame cannot be replaced by interim estimated geometry in the same query. The
+  presentation owner retires Material input when current geometry becomes unavailable; the existing
+  navigation cancellation path releases the matching gesture value and seek intent. Cancellation
+  carries the old intent generation, so its deferred notification cannot retire a newer interaction.
 
 ### Native verification boundaries
 

@@ -766,3 +766,26 @@ The scoped source review covers filter capture, scope/order reset, passive refre
 generation cleanup. No confirmed new defect was found in those changes. Query transition and screen
 contain 271 and 1,757 production lines with no inline tests; dedicated filter lifecycle/pixel files
 contain 217 and 238 lines. No dependency, schema, bridge, scrolling primitive or source mutation changes.
+
+## Timeline update stability follow-up
+
+The follow-up starts from filter correction `8ebb825`. The projection cache can publish estimated
+month geometry while a replacement manifest or its matching scroll extent is unavailable. The
+existing frame owner previously admitted that estimate over an already complete frame, then
+admitted the complete frame again. Focused widget cases reproduced both estimated-row and unsettled-
+extent replacements. A same-revision pointer case also reproduced an old drag committing after
+replacement geometry; extending its assertion exposed the retained drag value after pointer retirement.
+
+The rail presentation now retains the complete frame through those intermediate states. Its input
+key retires a pointer when current geometry is lost. A generation-checked cancellation notification
+uses the existing navigation cancellation path to release the matching drag value and seek intent.
+First-load estimates, query/controller reset and current complete geometry remain admitted. No
+debounce timer, alternate scroll state, dependency, catalog policy or source-media operation was added.
+
+The local lock-aware runs passed 25 cases: 11 publication/input cases, three exact-layout mapping
+cases and 11 existing navigation cases. Checks include missing geometry, estimated geometry,
+unsettled extent, replacement admission, current-line alignment after cancellation, new input,
+obsolete callbacks, query/controller changes, loaded/unloaded targets and wheel/seek supersession.
+Presentation and navigation contain 144 and 802 production lines with no inline tests; the
+publication regression contains 356 lines. Native observation during an active update remains pending
+while the current Debug window is user-operated; the new implementation is not yet in that process.

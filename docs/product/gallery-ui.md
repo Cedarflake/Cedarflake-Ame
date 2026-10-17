@@ -463,6 +463,11 @@ Other anchors clamp to the available scroll extent.
 - Default layout is a dense, aspect-preserving justified photo wall with date headers.
 - Only the visible region and a bounded overscan area are rendered and decoded.
 - The right-side time rail represents the complete filtered result set, not only loaded widgets.
+- During updates in the same query, a complete rail remains visible until replacement geometry
+  agrees with the gallery extent. Temporary window estimates cannot replace that complete frame;
+  estimates remain available on first load and after a query change. Retained paint grants no
+  stale navigation authority. Geometry replacement retires interrupted gestures and their position
+  override, while ordinary gallery scrolling remains native and immediate.
 - Material 3 defines a vertical standard `Slider` with an optional stops configuration. The Slider
   owns pointer, keyboard, focus, hover, handle, track, and semantic behavior; Ame must not recreate
   those behaviors in a parallel custom control.

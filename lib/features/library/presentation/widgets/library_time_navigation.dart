@@ -187,6 +187,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
                 ),
           );
         }
+        final interactionGeneration = _seekIntentGeneration;
         return LibraryTimeRailPresentation(
           timeline: widget.timeline,
           layoutShape: widget.layoutShape,
@@ -203,6 +204,11 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
           onStep: metrics == null
               ? null
               : (direction) => _moveOneRow(metrics, direction),
+          onInteractionCancelled: () {
+            if (mounted && interactionGeneration == _seekIntentGeneration) {
+              _cancelTimelineIntent();
+            }
+          },
         );
       },
     );
@@ -593,7 +599,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     if (_isUserControlledScroll(position)) {
       if (!_didCancelForCurrentUserScroll) {
         _didCancelForCurrentUserScroll = true;
-        _cancelTimelineIntentForUserScroll();
+        _cancelTimelineIntent();
       }
       _userScrollCancellationResetTimer?.cancel();
       _userScrollCancellationResetTimer = Timer(_galleryScrollSettleDelay, () {
@@ -657,7 +663,8 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
         position.isScrollingNotifier.value;
   }
 
-  void _cancelTimelineIntentForUserScroll() {
+  void _cancelTimelineIntent() {
+    _isDragging = false;
     _navigationAlignment = null;
     widget.onCancelSeek?.call();
     if (!_isSeeking &&
@@ -775,7 +782,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
       return;
     }
     _didCancelForCurrentUserScroll = true;
-    _cancelTimelineIntentForUserScroll();
+    _cancelTimelineIntent();
     final position = widget.scrollController.position;
     if (!position.hasContentDimensions) {
       return;

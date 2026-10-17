@@ -1,11 +1,132 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/annotated_time_rail.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_time_navigation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final replacement in ["missing", "estimated", "unsettled extent"]) {
+    testWidgets("complete rail survives $replacement update geometry", (
+      tester,
+    ) async {
+      final fixture = _PublicationFixture(tester);
+      await fixture.show(isQueryWide: true);
+      await fixture.show(isQueryWide: true);
+      fixture.controller.jumpTo(1800);
+      await tester.pump();
+      final before = tester.widget<AnnotatedTimeRail>(
+        find.byKey(const Key("library-time-rail")),
+      );
+      final oldSlider = tester.widget<Slider>(
+        find.byKey(const Key("timeline-slider")),
+      );
+
+      await fixture.show(
+        revision: 2,
+        hasGeometry: replacement != "missing",
+        isQueryWide: replacement != "estimated",
+        metricsExtent: replacement == "unsettled extent" ? 6000 : 5000,
+      );
+      final during = tester.widget<AnnotatedTimeRail>(
+        find.byKey(const Key("library-time-rail")),
+      );
+      expect(during.buckets, same(before.buckets));
+      expect(during.value, before.value);
+      expect(during.maximumScrollOffset, before.maximumScrollOffset);
+      expect(during.onChanged, isNull);
+      expect(during.onStep, isNull);
+      oldSlider.onChanged?.call(0.1);
+      oldSlider.onChangeEnd?.call(0.1);
+      await tester.pump();
+      expect(fixture.controller.offset, 1800);
+      expect(fixture.seeks, 0);
+
+      await fixture.show(
+        revision: 2,
+        isQueryWide: true,
+        metricsExtent: 6000,
+        contentExtent: 6000,
+      );
+      await fixture.show(
+        revision: 2,
+        isQueryWide: true,
+        metricsExtent: 6000,
+        contentExtent: 6000,
+      );
+      final after = tester.widget<AnnotatedTimeRail>(
+        find.byKey(const Key("library-time-rail")),
+      );
+      expect(
+        after.maximumScrollOffset,
+        fixture.controller.position.maxScrollExtent,
+      );
+      expect(after.maximumScrollOffset, isNot(before.maximumScrollOffset));
+      expect(after.onChanged, isNotNull);
+      fixture.controller.jumpTo(2200);
+      await tester.pump();
+      expect(
+        tester
+            .widget<AnnotatedTimeRail>(
+              find.byKey(const Key("library-time-rail")),
+            )
+            .value,
+        closeTo(2200 / fixture.controller.position.maxScrollExtent, 0.000001),
+      );
+    });
+  }
+
+  testWidgets("initial and changed-query rails can use estimated geometry", (
+    tester,
+  ) async {
+    final fixture = _PublicationFixture(tester);
+    await fixture.show();
+    expect(
+      tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).onChanged,
+      isNotNull,
+    );
+    await fixture.show(isQueryWide: true);
+    await fixture.show(queryId: "other-query");
+    final rail = tester.widget<AnnotatedTimeRail>(
+      find.byKey(const Key("library-time-rail")),
+    );
+    expect(
+      rail.maximumScrollOffset,
+      isNot(fixture.controller.position.maxScrollExtent),
+    );
+    expect(rail.onChanged, isNotNull);
+  });
+
+  testWidgets("same-revision fallback retires an active pointer", (
+    tester,
+  ) async {
+    final fixture = _PublicationFixture(tester);
+    await fixture.show(isQueryWide: true);
+    await fixture.show(isQueryWide: true);
+    final bounds = tester.getRect(find.byKey(const Key("timeline-slider")));
+    final gesture = await tester.startGesture(bounds.center);
+    await tester.pump();
+    await fixture.show();
+    fixture.controller.jumpTo(1000);
+    await fixture.show(isQueryWide: true);
+    await gesture.up();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(fixture.controller.offset, 1000);
+    expect(fixture.seeks, 0);
+    expect(
+      tester
+          .widget<AnnotatedTimeRail>(find.byKey(const Key("library-time-rail")))
+          .value,
+      closeTo(1000 / fixture.controller.position.maxScrollExtent, 0.000001),
+    );
+    await tester.tapAt(
+      Offset(bounds.center.dx, bounds.top + bounds.height * 0.3),
+    );
+    await tester.pump();
+    expect(fixture.controller.offset, isNot(1000));
+  });
+
   testWidgets(
     "a retired pointer cannot commit after replacement geometry arrives",
     (tester) async {
@@ -157,6 +278,9 @@ class _PublicationFixture {
     int revision = 1,
     bool hasGeometry = true,
     bool isEmpty = false,
+    bool isQueryWide = false,
+    double contentExtent = 5000,
+    double metricsExtent = 5000,
     String queryId = "query-1",
     GalleryLayoutShape shape = GalleryLayoutShape.square,
   }) async {
@@ -168,7 +292,8 @@ class _PublicationFixture {
               Expanded(
                 child: ListView(
                   controller: controller,
-                  children: const [SizedBox(height: 5000)],
+                  padding: EdgeInsets.zero,
+                  children: [SizedBox(height: contentExtent)],
                 ),
               ),
               LibraryTimeNavigation(
@@ -176,7 +301,8 @@ class _PublicationFixture {
                 scrollController: controller,
                 layoutMetrics: hasGeometry
                     ? LibraryGalleryLayoutMetrics(
-                        contentExtent: 5000,
+                        contentExtent: metricsExtent,
+                        isQueryWide: isQueryWide,
                         photoRowHeight: 100,
                         dateAnchors: const [
                           LibraryGalleryDateAnchor(

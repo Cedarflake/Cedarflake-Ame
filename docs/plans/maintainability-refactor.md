@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: refactor and card-size correction locally verified; filter client checks, timeline stability and hosted priority failures remain
+Status: refactor and position/timeline corrections implemented; final client checks and hosted priority failures remain
 
 Updated: 2026-10-17
 
@@ -11,6 +11,7 @@ M5 `codex/retire-legacy-usn`, based on M4 `86feb69`;
 M6 `codex/workflow-script-ownership`, based on M5 `e4096a2`.
 Follow-up: `codex/gallery-card-size-anchor`, based on M6 `1e87561`.
 Filter follow-up: `codex/gallery-filter-anchor`, based on card-size correction `b85ad76`.
+Timeline follow-up: `codex/gallery-timeline-stability`, based on filter correction `8ebb825`.
 
 ## Outcome and boundaries
 
@@ -45,7 +46,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Implementation, focused guardrails, combined client comparison and final scoped audit complete; current stack checks are linked below |
 | Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction and scoped review passed; hosted checks remain |
 | Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation and 37 focused lifecycle/widget checks passed; Debug built, native input paused while the user operates that window |
-| Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Identified the complete-to-estimated projection fallback; repair follows publication of the independent filter correction |
+| Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Complete-frame admission and matching gesture retirement implemented; 25 focused publication/navigation cases passed; native update observation remains |
 
 ## Verification and closeout
 
@@ -102,7 +103,7 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
   `39020716332` timed out awaiting sample 11's P2 source page; M6 run `39020913937` measured P0 P95
   at 1.962 seconds against the unchanged one-second bound. Diagnose the owner before correction;
   prior passing runs do not close these new failures.
-- Native GitHub stack #28 contains the six refactor PRs and the card-size follow-up below, with verified ancestry and adjacent
+- Native GitHub stack #28 contains the six refactor PRs and the card-size/filter follow-ups below, with verified ancestry and adjacent
   base/head branches. Each review unit remains independently inspectable. `main` merging remains
   an explicit human decision; R4 has not started.
 
@@ -115,3 +116,4 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 | M5 | [PR #26](https://github.com/Cedarflake/Cedarflake-Ame/pull/26) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/26/checks) | `codex/gallery-retained-window` |
 | M6 | [PR #27](https://github.com/Cedarflake/Cedarflake-Ame/pull/27) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/27/checks) | `codex/retire-legacy-usn` |
 | Follow-up A | [PR #29](https://github.com/Cedarflake/Cedarflake-Ame/pull/29) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/29/checks) | `codex/workflow-script-ownership` |
+| Follow-up B | [PR #30](https://github.com/Cedarflake/Cedarflake-Ame/pull/30) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/30/checks) | `codex/gallery-card-size-anchor` |
