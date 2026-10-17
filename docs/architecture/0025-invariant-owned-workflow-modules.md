@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-09-06
-- Last amended: 2026-10-13
+- Last amended: 2026-10-18
 
 ## Context
 
@@ -669,7 +669,12 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   reads to the existing application admission/publication path. Failure waits for explicit retry
   unless another revision arrived during the attempt; an applied result still has to expose the
   requested catalog revision. Disposal cancels scheduled retry and prevents late completion from
-  reading presentation state or publishing feedback. Notification content remains with the screen.
+  reading presentation state or publishing feedback. It reports failure transitions to the screen's
+  notification owner without owning notification history or actions.
+- `library_synchronization_notifications.dart` owns root-generation notification keys, condition
+  resolution, live-only capability lifetime and typed action selection against current roots.
+  Shared notification history and stale-action admission remain with `AmeNotificationController`;
+  the screen retains mounted subscription guards, refresh execution and the existing update dialog.
 - `library_gallery_dimension_publication.dart` owns query/revision-scoped recovered dimensions,
   visible-range classification, the frozen recovery anchor and quiet/maximum-delay publication.
   Scrolling reclassifies pending versus deferred dimensions; query replacement retires both and
@@ -774,8 +779,8 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
 - `library_synchronization_feedback.dart` owns the immutable message, detail, severity and existing
   manual-action projection of synchronization status. First-import and explicit-manual decisions
   remain distinct; blocked recovery takes precedence over automatic-progress explanations. A
-  retry-wait total includes exhausted work and cannot establish a scheduled retry. The screen owns
-  notification identity/lifetime and composes the existing user-confirmed update flow; the feedback
+  retry-wait total includes exhausted work and cannot establish a scheduled retry. The notification
+  owner consumes this projection; the screen composes the existing user-confirmed update flow. The feedback
   policy neither restarts work nor converts ordinary persistence failures into scan authorization.
 - `library_time_rail_presentation.dart` owns the retained painted rail frame and its Material input
   lifetime. It retains only projection/value data within compatible presentation context, never

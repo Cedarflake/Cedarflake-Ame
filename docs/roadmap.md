@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-17
+Last planning update: 2026-10-18
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -84,11 +84,14 @@ advance physical file operations, perceptual similarity or release signing throu
 The [maintainability refactor](plans/maintainability-refactor.md) is implemented on six sequential
 responsibility branches: historical migration proof and compatibility repair, synchronization runtime
 ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths and
-release/acceptance script ownership. Native GitHub stack #35 contains draft PRs #22–#27 and the
+release/acceptance script ownership. Native GitHub stack #35 contained PRs #22–#27 and the
 consolidated follow-up PR #29. The plan links current hosted checks and the completed client comparison,
 scoped audit and retained observations. The six branch heads and combined source candidate passed
-their applicable hosted checks. Maintenance is delivered for human review; integration into `main`
-remains a human decision. This delivery does not start R4 or reopen R2c/R3 acceptance.
+their applicable hosted checks. All seven PRs merged into `main` after explicit authorization on
+2026-10-18; the stack is closed. The active maintenance slice extracts gallery notification ownership
+and catalog preview-reset transactions on one new branch, with behavior-preservation checks and human
+review before another merge. Further gallery, native-file and journal decomposition remains deferred.
+This delivery does not start R4 or reopen R2c/R3 acceptance.
 The same plan records the completed card-size position correction, continuous-filter anchor retention,
 timeline stability during updates and journal catch-up correction as separate behavior changes after
 the six refactor boundaries. Hosted mixed-load diagnostics and the catalog-proof correction retain

@@ -1,11 +1,65 @@
 # Maintainability refactor evidence
 
-Date: 2026-10-17
+Date: 2026-10-18
 
 Scope and execution order belong to the [active plan](../plans/maintainability-refactor.md).
 This record covers changed boundaries, not another R2c/R3 stage acceptance run.
 The [final comparison and review](#final-comparison-and-review) owns the combined candidate result;
 earlier pending statements below describe their delivery checkpoints.
+
+## First-round merge and branch cleanup
+
+PRs #22–#27 and #29 merged into `main` on 2026-10-18 (local date); native stack #35 closed.
+The final merge is `40cb302d7b4fc8da8a6b32438da60b53a12034ae`. Its complete file tree equals
+audited candidate `a894b034883158dcaca34450c797f0894b173271`, and that original head is an ancestor
+of `main`. Native stack restacking changed commit identities; ordinary history-integration merges
+preserved the original commits and unchanged trees. No source change or forced history rewrite was
+used to reconcile the stack.
+
+After explicit cleanup authorization, 13 remote and 13 local obsolete branches were deleted.
+Every deleted tip had zero commits outside `main`; none was checked out or referenced by an open PR.
+Remote deletions checked the exact observed tips. The temporary history branch was also redundant
+after its complete ancestry became reachable from `main`. Local `main` was fast-forwarded; current
+work continues on `codex/maintenance-surface-ownership`. Unrelated `devtools_options.yaml` remains
+untracked and untouched.
+
+The reviewed source candidate retains its passing run
+[39042574123](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39042574123).
+The final merged head has a separate run
+[39049188229](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39049188229), still pending
+behind the preceding `main` run at this checkpoint.
+
+## Gallery synchronization notification ownership
+
+`LibrarySynchronizationNotifications` now owns root-generation notice keys, removal/recovery
+resolution, healthy live-only capability notice lifetime, refresh-failure publication and typed
+action selection. It uses the existing feedback projection and shared notification controller.
+Current-root lookup still occurs only after shared stale-action admission; raw/display-path matching
+retains its original first-match order. The screen retains mounted guards, stream disposal, refresh
+execution and the existing update-selection dialog. No text, layout, scheduling, dependency or
+catalog policy changed.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `unified_library_screen.dart` before | 1,757 | 0 | Existing screen regressions retained |
+| `unified_library_screen.dart` after | 1,610 | 0 | Existing screen regressions retained |
+| `library_synchronization_notifications.dart` | 191 | 0 | 336 |
+
+The new owner passed 10 boundary regressions. Existing feedback and viewer-position files passed
+21 and 20 cases respectively, including manual-update routing, refresh failure/retry, generation
+replacement and retained preview navigation. The new unrelated-action test initially assumed that
+an unkeyed notice was an active condition; its assertion now checks that unrelated notification
+state remains untouched, matching the shared controller's existing contract. No production guard
+was relaxed. The non-mutating format gate passed with 423 Dart files unchanged; the ordinary Debug
+build completed in 60.8 seconds.
+
+Native verification uses the retained 10,000-image / 72-group corpus and a backed-up test catalog,
+with the existing explicit-recovery fixture applied only to that derived catalog. The actual client
+displayed the blocked-root notice, update action and retained gallery. Input verification is pending:
+the desktop automation helper twice returned `failed to activate captured window`, including after
+fresh window selection. The test profile remains leased until that owned client retires; restoration
+and the action/dialog check must complete before this slice's client verification closes. Hosted
+checks for the extracted owner are also pending its submission.
 
 ## Shared schema-shape validation
 

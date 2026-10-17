@@ -32,7 +32,7 @@ import "library_gallery_layout_continuity.dart";
 import "library_gallery_query_transition.dart";
 import "library_pending_source.dart";
 import "library_strings.dart";
-import "library_synchronization_feedback.dart";
+import "library_synchronization_notifications.dart";
 import "library_synchronization_refresh.dart";
 import "library_search_availability.dart";
 import "library_task_surface_selection.dart";
@@ -70,19 +70,11 @@ class UnifiedLibraryScreen extends ConsumerStatefulWidget {
 }
 
 class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
-  static const _retrySynchronizationNotificationAction =
-      "library.retrySynchronization";
-  static const _refreshBlockedRootNotificationAction =
-      "library.refreshBlockedRoot";
-  static const _synchronizationRefreshNotificationKey =
-      "library.synchronizationRefresh";
-  static const _liveOnlyCapabilityNotificationKey =
-      "library.liveOnlyCapability";
-
   late final AmeScrollController _galleryScrollController;
   final Set<ScrollPosition> _galleryScrollPositions = {};
   late final LibraryController _libraryController;
   late final AmeNotificationController _notificationController;
+  late final LibrarySynchronizationNotifications _synchronizationNotifications;
   late final TextEditingController _searchController;
   late GallerySelection _selection;
   late String _selectionStableQueryId;
@@ -115,8 +107,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   _synchronizationSubscription;
   late LibrarySynchronizationSnapshot _synchronizationSnapshot;
   late final LibrarySynchronizationRefresh _synchronizationRefresh;
-  bool _hasLiveOnlyCapabilityNotification = false;
-  final Map<String, String> _synchronizationNotificationKeys = {};
   bool _isDisposing = false;
 
   @override
@@ -138,6 +128,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     )..addListener(_handleViewerChanged);
     _notificationController = ref.read(
       ameNotificationControllerProvider.notifier,
+    );
+    _synchronizationNotifications = LibrarySynchronizationNotifications(
+      notifications: _notificationController,
+      readRoots: () => ref.read(libraryControllerProvider).roots,
     );
     _synchronizationRefresh = LibrarySynchronizationRefresh(
       readState: () => ref.read(libraryControllerProvider),
@@ -188,7 +182,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
-        _recordSynchronizationNotifications(_synchronizationSnapshot);
+        _synchronizationNotifications.accept(_synchronizationSnapshot);
       }
     });
     _synchronizationRefresh.queueRevision(
@@ -226,7 +220,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted) {
       return;
     }
-    _recordSynchronizationNotifications(snapshot);
+    _synchronizationNotifications.accept(snapshot);
     setState(() => _synchronizationSnapshot = snapshot);
     _synchronizationRefresh.queueRevision(snapshot.catalogRevision);
   }
@@ -235,157 +229,16 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted) {
       return;
     }
-    if (hasFailure) {
-      _notificationController.publish(
-        const AmeNotificationDraft(
-          title: LibraryStrings.synchronizationRefreshFailureTitle,
-          message: LibraryStrings.synchronizationRefreshFailureMessage,
-          severity: AmeNotificationSeverity.error,
-          dedupeKey: _synchronizationRefreshNotificationKey,
-          actionId: _retrySynchronizationNotificationAction,
-          actionLabel: LibraryStrings.reload,
-          isPersistent: true,
-        ),
-      );
-    } else {
-      _notificationController.resolve(_synchronizationRefreshNotificationKey);
-    }
-  }
-
-  void _recordSynchronizationNotifications(
-    LibrarySynchronizationSnapshot snapshot,
-  ) {
-    final roots = {
-      for (final root in ref.read(libraryControllerProvider).roots)
-        root.id: root,
-    };
-    final reportedRootIds = snapshot.roots.keys.toSet();
-    for (final rootId in _synchronizationNotificationKeys.keys.toList()) {
-      if (!reportedRootIds.contains(rootId)) {
-        final key = _synchronizationNotificationKeys.remove(rootId);
-        if (key != null) {
-          _notificationController.resolve(key);
-        }
-      }
-    }
-    for (final entry in snapshot.roots.entries) {
-      final rootId = entry.key;
-      final status = entry.value;
-      final root = roots[rootId];
-      final priorKey = _synchronizationNotificationKeys[rootId];
-      final feedback = LibrarySynchronizationFeedback.fromStatus(status);
-      if (feedback.shouldNotify) {
-        final key = _synchronizationNotificationKey(status);
-        if (priorKey != null && priorKey != key) {
-          _notificationController.resolve(priorKey);
-        }
-        _synchronizationNotificationKeys[rootId] = key;
-        _notificationController.publish(
-          AmeNotificationDraft(
-            title: feedback.titleForRoot(_notificationRootName(root)),
-            message: feedback.message,
-            severity: feedback.severity,
-            dedupeKey: key,
-            detail: feedback.detail,
-            elapsedStartedAt: status.phaseStartedAt,
-            sourcePath: root?.displayPath,
-            technicalCode: status.lastIssueCode,
-            actionId: feedback.requiresManualLibraryUpdate
-                ? _refreshBlockedRootNotificationAction
-                : null,
-            actionLabel: feedback.requiresManualLibraryUpdate
-                ? LibraryStrings.updateLibrary
-                : null,
-            isPersistent: true,
-          ),
-        );
-      } else {
-        if (priorKey != null) {
-          _notificationController.resolve(priorKey);
-        }
-        _synchronizationNotificationKeys.remove(rootId);
-      }
-    }
-    _setLiveOnlyCapabilityNotification(
-      snapshot.roots.values.any(
-        (status) =>
-            status.availability == LibraryRootAvailability.available &&
-            status.continuity == LibraryContinuityState.liveOnly &&
-            status.freshness == LibraryCatalogFreshness.synchronized &&
-            status.freshnessCause ==
-                LibraryCatalogFreshnessCause.noPendingChanges &&
-            status.phase == LibrarySynchronizationPhase.synchronized &&
-            status.sourceStatus == LibraryChangeSourceStatus.healthy &&
-            status.pendingChangeCount == BigInt.zero &&
-            status.retryWaitCount == BigInt.zero &&
-            status.freshnessUnknownCount == BigInt.zero &&
-            !status.recoveryBlocked,
-      ),
-    );
-  }
-
-  void _setLiveOnlyCapabilityNotification(bool hasHealthyLiveOnlyRoot) {
-    if (_hasLiveOnlyCapabilityNotification == hasHealthyLiveOnlyRoot) {
-      return;
-    }
-    _hasLiveOnlyCapabilityNotification = hasHealthyLiveOnlyRoot;
-    if (hasHealthyLiveOnlyRoot) {
-      _notificationController.publish(
-        const AmeNotificationDraft(
-          title: LibraryStrings.continuityLiveOnlyNotice,
-          message: LibraryStrings.continuityLiveOnlyNoticeDetail,
-          severity: AmeNotificationSeverity.info,
-          dedupeKey: _liveOnlyCapabilityNotificationKey,
-        ),
-      );
-      return;
-    }
-    _notificationController.resolve(_liveOnlyCapabilityNotificationKey);
-  }
-
-  String _synchronizationNotificationKey(
-    LibraryRootSynchronizationStatus status,
-  ) {
-    return "library.rootReconciliation:${status.rootId}:${status.rootGeneration}";
-  }
-
-  String? _notificationRootName(LibraryRoot? root) {
-    final displayPath = root?.displayPath.trim();
-    if (displayPath == null || displayPath.isEmpty) {
-      return null;
-    }
-    final normalized = displayPath.replaceAll("\\", "/");
-    final segments = normalized
-        .split("/")
-        .where((segment) => segment.isNotEmpty)
-        .toList();
-    return segments.isEmpty ? displayPath : segments.last;
+    _synchronizationNotifications.setRefreshFailure(hasFailure);
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
-    final action = _notificationController.admitAction(notification);
-    if (action == null) {
-      return;
-    }
-    switch (action.actionId) {
-      case _retrySynchronizationNotificationAction:
+    switch (_synchronizationNotifications.admitAction(notification)) {
+      case LibrarySynchronizationRefreshRetry():
         _synchronizationRefresh.retry();
-        break;
-      case _refreshBlockedRootNotificationAction:
-        final rootPath = action.sourcePath;
-        if (rootPath != null && rootPath.isNotEmpty) {
-          final roots = ref.read(libraryControllerProvider).roots;
-          for (final root in roots) {
-            if (root.path == rootPath || root.displayPath == rootPath) {
-              unawaited(_chooseLibraryRootsToUpdate(root));
-              break;
-            }
-          }
-        }
-        break;
+      case LibrarySynchronizationRootUpdate(:final root):
+        unawaited(_chooseLibraryRootsToUpdate(root));
       case null:
-        break;
-      default:
         break;
     }
   }

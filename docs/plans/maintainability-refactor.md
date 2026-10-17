@@ -1,17 +1,18 @@
 # Maintainability refactor execution plan
 
-Status: implementation, affected client verification, scoped review and source CI complete; seven-PR stack delivered for human review
+Status: first round merged; notification and preview-cleanup ownership extraction active
 
-Updated: 2026-10-17
+Updated: 2026-10-18
 
-Branches: M1 `codex/maintainability-refactor`; M2 `codex/synchronization-runtime`, based on M1 `ef294ad`;
+Historical branches: M1 `codex/maintainability-refactor`; M2 `codex/synchronization-runtime`, based on M1 `ef294ad`;
 M3 `codex/gallery-publication-lifecycles`, based on M2 `6f80d66`;
 M4 `codex/gallery-retained-window`, based on M3 and including its `4335ae7` constructor correction;
 M5 `codex/retire-legacy-usn`, based on M4 `86feb69`;
 M6 `codex/workflow-script-ownership`, based on M5 `e4096a2`.
 Combined follow-up: `codex/gallery-card-size-anchor`, based on M6 `1e87561`, retains all subsequent
 gallery, journal, catalog-proof and accessibility-preparation commits through `ff1d78f`.
-The former follow-up branches remain available as historical references; PR #29 owns their delivery.
+PR #29 owns the consolidated follow-up delivery. Obsolete local and remote branches were deleted
+after their complete histories were verified as reachable from `main`.
 
 ## Outcome and boundaries
 
@@ -31,12 +32,34 @@ owns responsibility boundaries; amend its applicable entries as boundaries are i
 [Quality gates](../acceptance/quality-gates.md#required-engineering-workflow) owns verification execution.
 This plan tracks work and completion conditions without duplicating those rules.
 
-## Ordered delivery queue
+## Current maintenance slice
+
+The first round merged into `main` at `40cb302` with the complete file tree of audited candidate
+`a894b03`. PRs #22–#27 and #29 are merged and native stack #35 is closed. Original commits remain
+reachable from `main`; the temporary history branch was removed with the obsolete delivery branches.
+The acceptance record owns merge-history details and current checks.
+
+Continue on `codex/maintenance-surface-ownership` from that merged baseline. Deliver these two
+behavior-preserving boundaries as separate commits in one review PR; a later merge needs a new
+human decision. Preserve existing notification text, UI layout, action admission and source safety.
+
+| Order | Outcome | Proving boundary | State |
+| --- | --- | --- | --- |
+| M7 | Move gallery synchronization notification state and typed action selection out of the screen | Repeated conditions, root generations/removal, resolved and stale actions, refresh retry, live-only capability and existing widget wiring | Implementation and 51 focused checks passed; native action check and hosted CI pending |
+| M8 | Move complete preview-reset transactions out of the catalog facade | Full/selective reset, handoff owners, dimensions and source-state preservation, invalid scope and rollback | Pending M7 implementation |
+
+Keep shared notification history and synchronization refresh with their existing owners. Keep each
+preview reset atomic, including pending-location flush order and all affected ownership tables.
+Use focused regressions and affected Debug notification/cache workflows, followed by hosted CI and
+scoped review. Record production and test sizes with the evidence. Gallery rendering-path sharing,
+native file access and persistent-journal decomposition remain later candidates, not this queue.
+
+## Completed first-round delivery queue
 
 Each row may contain independently reversible commits. Commit and push a finished boundary before
 starting the next independent one. Pending hosted checks do not prevent unrelated authorized work.
 Further diagnostics and CI corrections use the existing review units rather than adding PRs.
-Native stack #35 contains six refactor PRs and one combined follow-up PR. The behavior changes below
+Native stack #35 contained six refactor PRs and one combined follow-up PR. The behavior changes below
 retain separate outcomes and evidence within that combined review unit.
 
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
@@ -124,8 +147,8 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 - Native GitHub stack #35 contains the six refactor PRs and combined follow-up PR #29 below.
   PRs #30–#34 were closed without merging after their complete history was retained by #29;
   their branches remain. The former stack #28 was unstacked, with no history rewriting or new PR.
-  The seven review units retain adjacent base/head branches. `main` merging remains an explicit
-  human decision; R4 has not started.
+  The seven review units retained adjacent base/head branches before the authorized merge on
+  2026-10-18. The current maintenance slice above owns subsequent work; R4 has not started.
 
 | Boundary | Review and current checks | Base branch |
 | --- | --- | --- |
