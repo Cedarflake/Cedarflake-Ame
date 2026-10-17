@@ -119,6 +119,11 @@ page failure remain one boundary, with no second decoded page or per-record clon
   owns worker creation, cancellation, result retirement and the shared shutdown deadline; its page
   owner retains registration guards through the existing bounded capture operation. Status projection
   and cross-lane priority remain in their existing owners.
+  `recovery_lane` owns per-root retry timing and fair root rotation. Its typed selection preserves
+  candidate-drain, legacy-capacity-debt and recovery-control precedence after the coordinator's
+  higher-lane gate. Journal capacity debt restricts the eligible roots without admitting a new control
+  page. Success clears only the completed root's retry history; source and task lifetimes remain
+  independent of scheduling state.
   Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
