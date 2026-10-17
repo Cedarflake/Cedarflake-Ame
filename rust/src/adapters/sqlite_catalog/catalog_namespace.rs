@@ -4,6 +4,8 @@ use std::path::{Path, PathBuf};
 use super::super::local_files::{
     CatalogFileIdentity, open_catalog_identity_guard, read_catalog_identity,
 };
+#[cfg(windows)]
+use super::operation_diagnostics::measure;
 use super::{FileIdentityEvidence, ScanError};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -52,12 +54,16 @@ impl SqliteCatalogIdentityGuard {
         path: &Path,
     ) -> Result<SqliteDatabaseIdentity, ScanError> {
         #[cfg(windows)]
-        if resolves_to_pinned_disk_namespace(path, &self.identity.canonical_path) {
+        if measure("proof_namespace_resolution", || {
+            resolves_to_pinned_disk_namespace(path, &self.identity.canonical_path)
+        }) {
             // SQLite and this guard both deny deletion. Query the pinned file afresh;
             // its current final path must still match, including after ancestor renames.
-            return database_identity(super::super::local_files::read_open_catalog_identity(
-                &self.file,
-            ));
+            return measure("proof_pinned_identity", || {
+                database_identity(super::super::local_files::read_open_catalog_identity(
+                    &self.file,
+                ))
+            });
         }
         #[cfg(not(windows))]
         let _ = &self.file;

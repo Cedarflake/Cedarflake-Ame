@@ -13,6 +13,7 @@ Follow-up: `codex/gallery-card-size-anchor`, based on M6 `1e87561`.
 Filter follow-up: `codex/gallery-filter-anchor`, based on card-size correction `b85ad76`.
 Timeline follow-up: `codex/gallery-timeline-stability`, based on filter correction `8ebb825`.
 Journal latency follow-up: `codex/journal-catchup-latency`, based on timeline correction `db1842a`.
+Hosted priority diagnosis: `codex/catalog-proof-latency`, based on journal correction `79213fc`.
 
 ## Outcome and boundaries
 
@@ -105,12 +106,14 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
   `39020716332` timed out awaiting sample 11's P2 source page; M6 run `39020913937` measured P0 P95
   at 1.962 seconds and M4 run `39020716478` at 1.188 seconds against the unchanged one-second bound.
   Slow proof reads are being separated into namespace resolution and held-handle identity. The
-  local controlled case passed without reproducing the hosted delay; hosted diagnosis remains.
+  local controlled case passed without reproducing the hosted delay. The existing slow-operation
+  diagnostic now distinguishes fresh namespace resolution from held-handle identity reads for hosted
+  attribution; it changes no production identity proof or scheduling bound.
 - Follow-up B's Accessibility job reached its eight-second deadline while loading UIA components;
   application-ready element checks had not completed. Follow-up C's native Accessibility job passed,
   but its Flutter job exposed a released date-seek cancellation regression. The narrow correction
   preserves the existing assertions; no timeout or workload is relaxed.
-- Native GitHub stack #28 contains the six refactor PRs and the three gallery follow-ups below, with verified ancestry and adjacent
+- Native GitHub stack #28 contains the six refactor PRs, three gallery follow-ups and journal correction below, with verified ancestry and adjacent
   base/head branches. Each review unit remains independently inspectable. `main` merging remains
   an explicit human decision; R4 has not started.
 
@@ -125,3 +128,4 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 | Follow-up A | [PR #29](https://github.com/Cedarflake/Cedarflake-Ame/pull/29) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/29/checks) | `codex/workflow-script-ownership` |
 | Follow-up B | [PR #30](https://github.com/Cedarflake/Cedarflake-Ame/pull/30) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/30/checks) | `codex/gallery-card-size-anchor` |
 | Follow-up C | [PR #31](https://github.com/Cedarflake/Cedarflake-Ame/pull/31) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/31/checks) | `codex/gallery-filter-anchor` |
+| Follow-up D | [PR #32](https://github.com/Cedarflake/Cedarflake-Ame/pull/32) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/32/checks) | `codex/gallery-timeline-stability` |

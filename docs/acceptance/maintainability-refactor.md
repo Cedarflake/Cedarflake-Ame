@@ -888,3 +888,17 @@ Scoped review covered equivalence of the three namespace branches, root/publicat
 transaction/error handling, aliases, deduplication and output capacity. No confirmed new defect
 was found. The namespace owner contains 167 production lines, no inline tests and 216 dedicated
 test lines. The separate poll-connection identity-latency diagnostic is excluded from this change.
+
+### Hosted catalog-proof latency attribution
+
+The remaining mixed-load hosted failures require a separate diagnosis from journal namespace SQL.
+The existing operation timer now separates `proof_namespace_resolution` and `proof_pinned_identity`
+inside the fresh retained-connection proof. Timing/output exist only in test builds; production
+still performs the same namespace and held-handle identity observations on every admission. No
+cached proof, retry, relaxed assertion or altered scheduling deadline is introduced.
+
+The local controlled two-arm lifetime case passed with 25 measured samples per arm. The retained
+connection arm reported 190 ms P0 P95 and 200 ms maximum, with P1/P2 active and progressing in all
+samples; neither added substage exceeded the existing 100 ms reporting threshold. This does not
+reproduce or close the hosted failures. The next hosted run must identify which operation accounts
+for their slow `proof_identity_after` readings before a behavioral correction is selected.
