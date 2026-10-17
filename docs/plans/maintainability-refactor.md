@@ -36,11 +36,11 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
 | M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Implementation, scoped review and final exact-head hosted checks passed |
-| M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Implementation and scoped review complete; final exact-head hosted checks pending |
+| M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Implementation, scoped review and final exact-head hosted checks passed |
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Implementation, scoped review, focused regressions and affected Debug workflow complete; final exact-head hosted checks pending |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Implementation, scoped review and stable-state Debug check complete; exact-head CI and concurrent-return baseline comparison pending |
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Implementation, scoped review and migrated boundary/guardrail checks complete; exact-head hosted checks pending |
-| M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Release ownership extracted and focused guardrails passed; R2c-R extraction in progress |
+| M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Implementation and focused guardrails passed; final hosted/client comparison and audit pending |
 
 ## First boundary: schema-shape validation
 
@@ -108,7 +108,7 @@ do not infer completion from moved files or recreate an already extracted owner.
   cancellation, phase and retirement. The unused reconnect path is retired; its two acceptance
   cases now exercise current runtime retirement/restart and failed-close admission. Cross-lane
   integration suites are grouped by boundary, preserving all 146 current tests. M2 scoped review
-  is complete at `6f80d66`; hosted run `39013287820` remains in progress.
+  is complete at `6f80d66`; exact-head hosted run `39013287820` passed.
 - M3's synchronization refresh owner retains revision coalescing, delayed busy retry and explicit
   failure feedback. Its nine boundary tests and the 20 existing viewer/refresh cases passed.
   Dimension publication now owns its range epoch, deferred/published maps, manifest cache and
@@ -137,3 +137,7 @@ do not infer completion from moved files or recreate an already extracted owner.
 - M5 is committed as `e4096a2` in draft PR #26. M6 preserves release entrypoints while assigning
   native interop, transaction state/moves, uninstall, recovery, service control and application
   deployment to cohesive internal owners. All installer/ACL/identity/uninstall guardrails passed.
+- M6 release extraction is `fcb1547` in draft PR #27. R2c-R now separates compiler bootstrap,
+  native resources, process execution and source audit. Transitive import admission and complete
+  source coverage retain the production budgets; positive/rejecting guardrails and all 19 case
+  mappings passed. Final combined client comparison and exact-head checks remain required.

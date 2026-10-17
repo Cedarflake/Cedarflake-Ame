@@ -138,7 +138,7 @@ try {
         [IO.Path]::GetFileName([string]$_.Path)
     } | Sort-Object)
     if (($ordinarySourceNames -join ",") -cne
-        "acceptance_r2c_cargo_invocation.ps1,acceptance_r2c_change_driven_reliability_common.ps1,acceptance_r2c_fixture_cleanup.ps1" -or
+        "acceptance_r2c_cargo_invocation.ps1,acceptance_r2c_change_driven_reliability_common.ps1,acceptance_r2c_compiler_bootstrap.ps1,acceptance_r2c_fixture_cleanup.ps1,acceptance_r2c_native_resources.ps1,acceptance_r2c_process_execution.ps1,acceptance_r2c_source_audit.ps1" -or
         @($ordinaryAuditState.Sources | Where-Object {
             [string]$_.Identity -notmatch '^[0-9A-F]{8}:[0-9A-F]{8}:[0-9A-F]{8}$'
         }).Count -ne 0) {
@@ -151,9 +151,61 @@ try {
         Close-AmeR2cRDeletionAuditState -State $ordinaryAuditState
     }
 }
-if ($ordinaryAuditSnapshots.Count -ne 3 -or
+if ($ordinaryAuditSnapshots.Count -ne 7 -or
     @($ordinaryAuditSnapshots | Where-Object { -not [bool]$_.AllHandlesClosedForGuardrail }).Count -ne 0) {
     throw "R2c-R ordinary audited-script identity handles did not close"
+}
+
+$moduleBootstrap = $null
+$modulePaths = @()
+try {
+    $moduleBootstrap = New-AmeR2cRCompilerBootstrap -RepositoryRoot $repositoryRoot
+    $modulePaths = @("entry.ps1", "facade.ps1", "leaf.ps1" | ForEach-Object {
+        Join-Path $moduleBootstrap.Path $_
+    })
+    [IO.File]::WriteAllText(
+        $modulePaths[0],
+        '. (Join-Path $PSScriptRoot "facade.ps1"); Invoke-AuditedLeaf',
+        [Text.UTF8Encoding]::new($false)
+    )
+    [IO.File]::WriteAllText(
+        $modulePaths[1],
+        '. (Join-Path $PSScriptRoot "leaf.ps1")',
+        [Text.UTF8Encoding]::new($false)
+    )
+    foreach ($leafBody in @('Write-Output "owned"', '[IO.File]::Delete("owned")')) {
+        [IO.File]::WriteAllText(
+            $modulePaths[2],
+            ('function Invoke-AuditedLeaf { ' + $leafBody + ' }'),
+            [Text.UTF8Encoding]::new($false)
+        )
+        if ($leafBody.StartsWith("Write-Output", [StringComparison]::Ordinal)) {
+            Assert-AmeR2cRDeletionSafetySource -SourceText $null -SourcePath $modulePaths[0] `
+                -Label "transitive module function"
+        } else {
+            try {
+                Assert-AmeR2cRDeletionSafetySource -SourceText $null -SourcePath $modulePaths[0] `
+                    -Label "transitive module unsafe function"
+                throw "R2c-R accepted an unsafe function behind two static imports"
+            } catch {
+                Assert-Contains $_.Exception.Message "path-addressed Delete"
+            }
+        }
+    }
+} finally {
+    foreach ($modulePath in $modulePaths) {
+        if ([IO.File]::Exists($modulePath)) {
+            $moduleCleanup = [IO.FileStream]::new(
+                $modulePath, [IO.FileMode]::Open, [IO.FileAccess]::Read,
+                ([IO.FileShare]::ReadWrite -bor [IO.FileShare]::Delete),
+                4096, [IO.FileOptions]::DeleteOnClose
+            )
+            $moduleCleanup.Dispose()
+        }
+    }
+    if ($null -ne $moduleBootstrap) {
+        Remove-AmeR2cRCompilerBootstrap -Bootstrap $moduleBootstrap
+    }
 }
 
 $scriptIdentityAnchor = $null
@@ -1796,26 +1848,50 @@ try {
         -SourcePath $runner `
         -Label "acceptance runner" `
         -RetainSnapshots
+    $auditedOwnerText = ($runnerClosureState.Sources | ForEach-Object { $_.Text }) -join "`n"
     $runnerDepth = @(
         $runnerClosureState.Sources |
             Select-Object -ExpandProperty Depth |
             Sort-Object -Descending |
             Select-Object -First 1
     )
-    if ($runnerClosureState.Sources.Count -ne 5 -or
+    if ($runnerClosureState.Sources.Count -ne 9 -or
         $runnerDepth.Count -ne 1 -or
         [uint64]$runnerDepth[0] -ne 2) {
-        throw "R2c-R real closure lost its five-source, depth-two budget evidence"
+        throw "R2c-R real closure lost its nine-source, depth-two budget evidence"
     }
 } finally {
     if ($null -ne $runnerClosureState) {
         Close-AmeR2cRDeletionAuditState -State $runnerClosureState
     }
 }
-Assert-AmeR2cRDeletionSafetySource `
-    -SourceText $guardrailText `
-    -SourcePath $PSCommandPath `
-    -Label "guardrail"
+try {
+    Assert-AmeR2cRDeletionSafetySource `
+        -SourceText $guardrailText `
+        -SourcePath $PSCommandPath `
+        -Label "guardrail exceeds production source budget"
+    throw "R2c-R production source budget admitted a tenth source"
+} catch {
+    Assert-Contains $_.Exception.Message "budget=source-count limit=9 actual=10"
+}
+# The test closure includes three test-only owners and a repeated cleanup import.
+$guardrailAuditState = New-AmeR2cRDeletionAuditState `
+    -BudgetOverridesForGuardrail @{ "source-count" = [uint64]13 }
+try {
+    $guardrailAuditRoot = Add-AmeR2cRDeletionAuditSource `
+        -State $guardrailAuditState `
+        -SourceText $guardrailText `
+        -SourcePath $PSCommandPath `
+        -Label "complete guardrail closure" `
+        -IsRoot $true `
+        -Depth 0
+    Invoke-AmeR2cRDeletionAuditClosure -State $guardrailAuditState -Root $guardrailAuditRoot
+    if ($guardrailAuditState.Sources.Count -ne 12) {
+        throw "R2c-R guardrail source closure changed"
+    }
+} finally {
+    Close-AmeR2cRDeletionAuditState -State $guardrailAuditState
+}
 
 $sixthReviewDeletionAuditBadFixtures = @(
     [pscustomobject]@{
@@ -2008,7 +2084,7 @@ try {
     }
 }
 $retiredManagedCleanupName = "Remove-AmeR2cRManaged" + "OwnedTree"
-if ($commonText.IndexOf($retiredManagedCleanupName, [StringComparison]::Ordinal) -ge 0) {
+if ($auditedOwnerText.IndexOf($retiredManagedCleanupName, [StringComparison]::Ordinal) -ge 0) {
     throw "R2c-R common cleanup retained a path-recursive fallback"
 }
 if ($runnerText -notmatch '(?s)try\s*\{.*SetEnvironmentVariable\("CARGO_BUILD_JOBS".*finally\s*\{') {

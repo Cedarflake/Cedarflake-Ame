@@ -782,18 +782,27 @@ single-job library test preparation command. Its command policy retains digest v
 the existing audited process boundary. `acceptance_r2c_worker_report_guardrail.ps1` owns ordered
 build preparation and report-test execution, distinct deadlines, bounded failure output, and
 independent environment, fixture and repository-lock retirement. Preparation failure prevents test
-execution; it cannot consume or extend the report test's execution deadline. The common process
-facade retains source snapshots, Job Object ownership and cancellation.
+execution; it cannot consume or extend the report test's execution deadline. The process execution
+owner retains source snapshots, Job Object ownership and cancellation.
 
 `acceptance_r2c_fixture_cleanup.ps1` owns R2c-R fixture retirement, bounded immediate remaining-entry
 evidence and first-error preservation. Each known child, metadata handle, stream and root retires independently;
 one failure cannot skip a later owned resource. Unknown children are retained without traversal.
 Metadata evidence opens at most 64 immediate entries without following reparses or recalling content,
-records truncation, and grants no new deletion authority. The common facade retains native identity
-primitives and includes the module in its exact audited source closure. Dedicated fixture-lifetime
+records truncation, and grants no new deletion authority. The native resources owner retains identity
+primitives; the common facade includes every owner in the audited source closure. Dedicated fixture-lifetime
 tests exercise real handles and rejection paths independently of the full acceptance runner.
 The first failure retains its original exception, PowerShell error text and script stack even
 when later cleanup also fails; the regressions themselves use that same retirement boundary.
+
+R2c-R compiler bootstrap owns the temporary compiler environment, handle identity and disposal
+before native type initialization. Native resources remain lazily compiled in one verified unit.
+Process execution and source audit are separate owners; the common facade retains case definitions,
+execution-context admission and composition. The audit resolves static imports transitively before
+function calls, keeping snapshots and source/depth/byte/AST/scope budgets bound to the same closure.
+Module discovery never executes imports. Unresolved loaders, unknown commands, unsafe filesystem
+operations and altered native/process digests still fail before process creation. The production
+source budget remains nine; the larger test-only self-audit explicitly accounts for its own modules.
 
 `integration_windows_accessibility_cleanup.ps1` owns independent process/job disposal, bounded exit
 confirmation, exact environment restoration, and evidence-safe scratch disposition. Failure at one

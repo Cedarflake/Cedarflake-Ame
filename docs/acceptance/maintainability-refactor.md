@@ -588,4 +588,24 @@ source contracts, alongside its behavioral assertions.
 The changed release scripts parsed successfully. Installer, ACL, identity and uninstall-policy
 guardrails passed, including rejecting paths and interrupted-transaction recovery. These checks
 use controlled fixtures; no service installation, signing, source-media operation or production
-MSI change was performed. R2c-R extraction and final hosted/client comparison remain outstanding.
+MSI change was performed.
+
+The R2c-R common facade decreased from 3,102 to 253 production lines. Compiler bootstrap (701),
+lazy native resources (1,279), controlled process execution (153) and source audit (752) are separate
+owners without inline tests. The native compilation unit remains intact so its verified types,
+temporary environment and process/handle contracts are admitted together. Process and native
+implementation digests are unchanged. The exact guardrail-script digest was updated after reviewing
+its changed assertions; the path-move exception remains restricted to that one verified script.
+
+Splitting static imports exposed the auditor's direct-module-only function discovery. It now binds
+the transitive static imports before validating calls, using the existing identity snapshots and
+depth/source/byte/function/scope budgets. A two-import fixture admits a safe leaf function and
+rejects a leaf containing path-addressed deletion without executing either. Production retains its
+nine-source budget: the common closure has seven sources and the real runner has nine at depth two;
+a tenth source is rejected. The test-only self-audit uses its explicit 13-admission budget for 12
+unique files, including a repeated cleanup import. No production budget or rejection was widened.
+
+The complete R2c-R guardrail suite passed: all 19 current case mappings, compiler ownership and
+failure injection, namespace retirement, worker-report tamper execution, no-reparse identity,
+bounded audit and owned-process timeout/retirement. Changed scripts passed syntax and whitespace
+checks. Final exact-head hosted results and combined client comparison remain outstanding.
