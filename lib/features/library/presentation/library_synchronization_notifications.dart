@@ -22,10 +22,9 @@ final class LibrarySynchronizationRootUpdate
 
 class LibrarySynchronizationNotifications {
   LibrarySynchronizationNotifications({
-    required AmeNotificationController notifications,
-    required List<LibraryRoot> Function() readRoots,
-  }) : _notifications = notifications,
-       _readRoots = readRoots;
+    required this._notifications,
+    required this._readRoots,
+  });
 
   static const _retrySynchronizationNotificationAction =
       "library.retrySynchronization";
