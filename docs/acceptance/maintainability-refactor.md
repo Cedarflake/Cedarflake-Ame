@@ -378,3 +378,23 @@ The final client comparison and exact-commit hosted gates remain separate.
 | `recovery_work.rs` | 146 | 53 | 126 |
 | `recovery_work/automatic.rs` | 197 | 14 | Existing source-transfer and integration suites |
 | `recovery_work/drain.rs` | 145 | 0 | Existing priority and lifecycle suites |
+
+## M2 unused reconnect retirement
+
+The old same-runtime reconnect method had no production callers and replaced its session even when
+close failed. It and its obsolete dead-code allowance are removed. Production behavior remains the
+existing lifecycle: successful retirement admits a fresh factory session; a failed close stays
+owned, caches its result and prevents another construction epoch. The Windows transport's bounded,
+authenticated service handover remains unchanged.
+
+Two current-path regressions replace the two tests of that dormant method. Both passed: a second
+factory session opens only after the first runtime retires, and repeated stop/start attempts after
+a close failure neither close twice nor connect a replacement. The production subtree still has
+146 tests. The R2c-R matrix retains 19 cases with its two session selectors and descriptions updated;
+the matrix check passes and rejects a stale source path. No live-close policy was relaxed.
+
+Ordinary-library compilation and formatting passed after restricting the retired method's error
+import to its remaining test callers. The parent now has 1,342 production/support and 7,157 inline
+test-only lines. Shared controlled
+resource fixtures contain 224 dedicated test lines; the session lifecycle suite contains 89.
+The remaining inline integration suites still require organization by boundary before M2 closeout.

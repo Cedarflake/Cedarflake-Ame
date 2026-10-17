@@ -206,3 +206,19 @@ pub(super) fn wait_for_test_signal(signal: &AtomicBool) {
         "blocking operation did not start"
     );
 }
+
+pub(super) struct CountingJournalFactory {
+    pub(super) connect_count: Arc<std::sync::atomic::AtomicUsize>,
+    pub(super) close_count: Arc<std::sync::atomic::AtomicUsize>,
+    pub(super) close_failures: Arc<std::sync::atomic::AtomicUsize>,
+}
+
+impl PersistentChangeJournal for CountingJournalFactory {
+    fn connect(&self) -> PersistentChangeJournalConnection {
+        self.connect_count.fetch_add(1, Ordering::AcqRel);
+        PersistentChangeJournalConnection::Connected(Arc::new(CloseProbeSession {
+            close_count: Arc::clone(&self.close_count),
+            close_failures: Arc::clone(&self.close_failures),
+        }))
+    }
+}

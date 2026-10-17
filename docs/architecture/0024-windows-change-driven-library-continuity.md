@@ -325,9 +325,11 @@ root registration, journal query, bounded range read, a session-bound cancellabl
 structured operation failures, and close. Named-pipe handles, Win32 values, transport generics,
 concrete client types, and raw journal buffers remain inside the Windows adapter. The production
 synchronization owner retains either that authenticated session or an exact `LiveOnly` reason and
-closes an admitted session during bounded shutdown. A production-owned factory may replace a failed
-session by closing the old object and authenticating a fresh one outside the synchronization runtime
-mutex; reconnect does not add checkpoint or schema authority.
+closes an admitted session during bounded shutdown. The production factory opens a fresh session
+after watcher startup in an admitted runtime epoch. A failed close remains owned and blocks a new
+epoch; there is no same-runtime reconnect entrypoint. The Windows transport owns the single bounded
+connection handover after verified service retirement and repeats full authentication. Neither
+session replacement nor transport handover adds checkpoint or schema authority.
 
 Starting the production process is not metadata-inventory authority. A newly observed runtime root
 starts live observation without synthesizing a continuity gap merely because it entered memory.
