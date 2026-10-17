@@ -411,6 +411,13 @@ all physical instances or one representative per confirmed exact group appears. 
 exact analysis and incremental maintenance are connected, every image remains visible. Once folding
 is connected, it becomes the initial default while preserving an explicit saved choice.
 
+Consecutive filter/search changes retain the original visible image and its fractional viewport
+position. A missing image, empty result or automatic clamp to an edge does not replace that intent;
+when conditions include the image again, restore it within the available scroll range. Actual
+scrolling, timeline navigation, source/folder selection or a changed ordering establishes a new
+browsing context. Passive catalog refresh preserves the currently displayed result and leaves the
+latent filter intent available for the next explicit filter change.
+
 The Duplicates workspace owns duplicate-only results and group review. A top-left icon in merged
 gallery mode opens every known current location of that group, including relevant availability
 states and full paths. All-images mode has no duplicate card marker. Location activation uses the existing File Explorer reveal action. A representative

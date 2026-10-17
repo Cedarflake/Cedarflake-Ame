@@ -1020,7 +1020,14 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     bool forceRefresh = false,
   }) {
     _previousWindowCompensation?.retire();
-    return _queryTransition.run((anchor) async {
+    final currentQuery = ref.read(libraryControllerProvider).query;
+    final retainsFilterContext =
+        preserveGalleryPosition &&
+        query.rootId == currentQuery.rootId &&
+        query.folderRelativePath == currentQuery.folderRelativePath &&
+        query.sortKey == currentQuery.sortKey &&
+        query.sortDirection == currentQuery.sortDirection;
+    Future<LibraryQueryUpdateOutcome> update(LibraryQueryAnchor? anchor) async {
       final controller = ref.read(libraryControllerProvider.notifier);
       final applied = await controller.updateQuery(
         query,
@@ -1032,7 +1039,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return applied
           ? LibraryQueryUpdateOutcome.applied
           : LibraryQueryUpdateOutcome.failed;
-    }, preservePosition: preserveGalleryPosition);
+    }
+
+    if (retainsFilterContext) {
+      return _queryTransition.runFilter(update);
+    }
+    return _queryTransition.run(
+      update,
+      preservePosition: preserveGalleryPosition,
+    );
   }
 
   LibraryAsset? _readViewerQueryAnchor() {
@@ -1515,6 +1530,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _beginTimelineNavigation() {
+    _queryTransition.clearFilterPosition();
     _galleryLayoutContinuity.clear();
     _previousWindowCompensation?.retire();
     _dimensionPublication.beginNavigation();

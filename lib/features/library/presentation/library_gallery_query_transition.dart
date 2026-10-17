@@ -33,6 +33,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
   final void Function(LibraryGalleryQueryPublication) onPublished;
   final void Function() onFailed;
   LibraryGalleryVisiblePosition? _pendingPosition;
+  LibraryGalleryVisiblePosition? _filterPosition;
   int _generation = 0;
   bool _isDisposed = false;
   Completer<void>? _scrollEnd;
@@ -49,7 +50,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
     if (preservePosition && scrollEnd != null) {
       return _publishAfterScroll(publication, scrollEnd.future, _generation);
     }
-    return run(
+    return _run(
       publication,
       preservePosition: preservePosition,
       reconcileSelection: true,
@@ -65,7 +66,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
     if (!isCurrent(generation)) {
       return LibraryQueryUpdateOutcome.superseded;
     }
-    return run(publication, reconcileSelection: true);
+    return _run(publication, reconcileSelection: true);
   }
 
   void setUserScrolling(bool isScrolling) {
@@ -73,6 +74,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
       return;
     }
     if (isScrolling) {
+      clearFilterPosition();
       _generation += 1;
       _pendingPosition = null;
       _scrollEnd ??= Completer<void>();
@@ -86,14 +88,45 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
     LibraryQueryPublication publication, {
     bool preservePosition = true,
     bool reconcileSelection = false,
+  }) {
+    clearFilterPosition();
+    return _run(
+      publication,
+      preservePosition: preservePosition,
+      reconcileSelection: reconcileSelection,
+    );
+  }
+
+  Future<LibraryQueryUpdateOutcome> runFilter(
+    LibraryQueryPublication publication,
+  ) {
+    if (!_isDisposed) {
+      // A fallback or clamped viewport is temporary, not new browsing intent.
+      _filterPosition ??= capturePosition(_pendingPosition != null);
+    }
+    return _run(publication, retainedPosition: _filterPosition);
+  }
+
+  void clearFilterPosition() {
+    _filterPosition = null;
+  }
+
+  Future<LibraryQueryUpdateOutcome> _run(
+    LibraryQueryPublication publication, {
+    bool preservePosition = true,
+    bool reconcileSelection = false,
+    LibraryGalleryVisiblePosition? retainedPosition,
   }) async {
     if (_isDisposed) {
       return publication(null);
     }
     final generation = ++_generation;
     final before = readState();
+    if (!preservePosition) {
+      clearFilterPosition();
+    }
     final frozen = preservePosition
-        ? capturePosition(_pendingPosition != null)
+        ? retainedPosition ?? capturePosition(_pendingPosition != null)
         : null;
     _pendingPosition = frozen;
     final viewer = reconcileSelection ? readViewerAnchor() : null;
@@ -152,6 +185,7 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
   }
 
   void dispose() {
+    clearFilterPosition();
     _isDisposed = true;
     _generation += 1;
     _pendingPosition = null;

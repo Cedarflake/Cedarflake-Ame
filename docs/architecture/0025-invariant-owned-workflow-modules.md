@@ -660,6 +660,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   application publication. The screen composes the resulting layout transition without owning a
   second asynchronous query-position lifecycle. A gesture waiter belongs to its presentation
   generation; a newer query or disposal retires it without issuing its old read.
+  Consecutive explicit filters retain a separate image/fraction anchor across absent results and
+  extent clamping. That intent is not catalog-publication authority and does not drive passive
+  refresh positioning. Scrolling, date navigation, source/folder or ordering changes and disposal
+  retire it; a failed filter can retry it, and late completions cannot recreate retired intent.
 - `library_synchronization_refresh.dart` owns the mounted presentation's highest pending catalog
   revision, one active refresh, busy/superseded delay and failure-feedback transition. It delegates
   reads to the existing application admission/publication path. Failure waits for explicit retry

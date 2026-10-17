@@ -84,12 +84,13 @@ advance physical file operations, perceptual similarity or release signing throu
 The [maintainability refactor](plans/maintainability-refactor.md) is implemented on six sequential
 responsibility branches: historical migration proof and compatibility repair, synchronization runtime
 ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths and
-release/acceptance script ownership. Native GitHub stack #28 contains draft PRs #22–#27. The plan
+release/acceptance script ownership. Native GitHub stack #28 contains draft PRs #22–#27 and #29. The plan
 links current hosted checks and the completed client comparison, scoped audit and retained
 observations. Applicable stack checks must pass before delivery closeout; integration into `main`
 remains a human decision. This maintenance precedes R4 and does not reopen R2c/R3 acceptance.
-The same plan tracks the requested card-size position correction and the subsequent continuous-filter
-anchor checks as separate behavior changes after the six refactor boundaries.
+The same plan tracks the requested card-size position correction, continuous-filter anchor retention
+and timeline stability during updates as separate behavior changes after the six refactor boundaries.
+New hosted mixed-load priority failures remain in that plan's repair queue before maintenance closeout.
 
 ## Frozen R2c ownership
 

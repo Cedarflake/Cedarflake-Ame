@@ -737,3 +737,32 @@ dependencies, schema/bridge changes, source writes or changes to scrolling primi
 contains 1,741 production lines; the new continuity owner contains 64. The wall/reflow/position
 owners contain 1,980/293/131 production lines, with zero inline-test lines. Dedicated continuity and
 size regressions contain 214/301 lines. Hosted checks for the published follow-up remain required.
+
+## Consecutive-filter position follow-up
+
+The follow-up on `codex/gallery-filter-anchor` starts from card-size correction `b85ad76`.
+Per-query capture previously replaced the original image with a temporary fallback after narrowing
+the result. Five focused cases reproduced the lost identity before the change. The existing query
+position owner now retains one image/fraction across explicit filters, separately from in-flight
+publication and the current viewport used by passive refresh. Browsing, date navigation, folder
+selection, changed ordering and disposal release it. Failed reads retain retry intent without
+granting an obsolete completion any new publication authority.
+
+The focused local runs passed 11 filter lifecycle cases, ten actual-wall widget cases and 16 existing
+query-transition cases through `quality_test_flutter.ps1`. Both equal-height and square walls restore
+the original middle offset within 0.01 pixels after narrowing to one image, the bottom, an excluded
+image or empty results. Actual drag input then establishes a new anchor. Existing viewer, passive
+refresh, late success/failure and disposal boundaries continue to pass. The fallback-first-image
+check uses the actual row alignment; the fixture's 58-pixel date heading is not assumed to be part
+of that image's anchor.
+
+The ordinary Debug build succeeded. Native inspection reused `build/test`; background update was
+active, and input inspection was paused when the user confirmed they were operating the window.
+Native filter acceptance and profile restoration remain pending until that session ends. No native
+one-image/empty-result pass is claimed from the automated cases. The running test profile retains
+its restoration receipt and protected original-catalog hashes.
+
+The scoped source review covers filter capture, scope/order reset, passive refresh and current
+generation cleanup. No confirmed new defect was found in those changes. Query transition and screen
+contain 271 and 1,757 production lines with no inline tests; dedicated filter lifecycle/pixel files
+contain 217 and 238 lines. No dependency, schema, bridge, scrolling primitive or source mutation changes.
