@@ -494,3 +494,8 @@ remained before restoration. Settings, preferences and original catalog componen
 pre-run hashes. The corpus and retained test catalog remain available; no source mutation or cloud
 hydration was requested. The run establishes the affected interaction check, not a measured speedup,
 native error-log audit or final M1–M6 comparison.
+
+The final M3 run `39014696432` rejected eight `prefer_initializing_formals` diagnostics in the two
+new constructors. They now use the pinned Dart SDK's named initializing formals, preserving the
+public argument names, private callback fields and callback types. The focused analyzer and owner
+regressions cover this correction; the replacement commit still requires its own hosted results.

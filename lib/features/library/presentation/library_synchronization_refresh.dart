@@ -7,13 +7,10 @@ import "../domain/library_state.dart";
 /// Coalesces synchronization revisions without taking catalog publication authority.
 class LibrarySynchronizationRefresh {
   LibrarySynchronizationRefresh({
-    required LibraryState Function() readState,
-    required Future<LibraryQueryUpdateOutcome> Function(BigInt revision)
-    refresh,
-    required void Function(bool hasFailure) onFailureChanged,
-  }) : _readState = readState,
-       _refresh = refresh,
-       _onFailureChanged = onFailureChanged;
+    required this._readState,
+    required this._refresh,
+    required this._onFailureChanged,
+  });
 
   final LibraryState Function() _readState;
   final Future<LibraryQueryUpdateOutcome> Function(BigInt revision) _refresh;

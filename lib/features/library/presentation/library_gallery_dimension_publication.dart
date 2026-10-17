@@ -7,17 +7,12 @@ import "widgets/library_gallery_wall.dart";
 /// Publishes recovered dimensions within one query, revision and visible-range epoch.
 class LibraryGalleryDimensionPublication {
   LibraryGalleryDimensionPublication({
-    required LibraryState Function() readState,
-    required LibraryGalleryVisiblePosition? Function(LibraryState state)
-    capturePosition,
-    required bool Function() hasPendingTransition,
-    required void Function(bool isScrolling) onUserScrollingChanged,
-    required void Function(LibraryGalleryVisiblePosition? anchor) onPublished,
-  }) : _readState = readState,
-       _capturePosition = capturePosition,
-       _hasPendingTransition = hasPendingTransition,
-       _onUserScrollingChanged = onUserScrollingChanged,
-       _onPublished = onPublished;
+    required this._readState,
+    required this._capturePosition,
+    required this._hasPendingTransition,
+    required this._onUserScrollingChanged,
+    required this._onPublished,
+  });
 
   static const _layoutDimensionQuietDelay = Duration(milliseconds: 160);
   static const _layoutDimensionMaximumDelay = Duration(milliseconds: 600);
