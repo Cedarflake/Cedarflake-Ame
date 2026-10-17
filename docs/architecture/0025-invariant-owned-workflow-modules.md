@@ -769,6 +769,14 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
 
 ### Native verification boundaries
 
+The diagnostic release facade composes physical-path admission with separate journal-broker
+owners for native interop, transaction state, write-ahead moves, uninstall progression, interrupted
+recovery, service control and application deployment. Each transaction owner retains its complete
+validation and cleanup policy. Their dot-sourced functions share the existing script constants;
+the extraction adds no new mutable transaction state or alternate entrypoint. Installer guardrails
+inspect the complete module roster. These historical diagnostic scripts do not replace ADR 0027's
+production MSI lifecycle or grant service-installation authority.
+
 `acceptance_r2c_cargo_invocation.ps1` owns exact Cargo command admission, including the locked,
 single-job library test preparation command. Its command policy retains digest validation inside
 the existing audited process boundary. `acceptance_r2c_worker_report_guardrail.ps1` owns ordered

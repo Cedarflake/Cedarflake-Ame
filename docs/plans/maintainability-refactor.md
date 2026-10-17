@@ -7,7 +7,8 @@ Updated: 2026-10-17
 Branches: M1 `codex/maintainability-refactor`; M2 `codex/synchronization-runtime`, based on M1 `ef294ad`;
 M3 `codex/gallery-publication-lifecycles`, based on M2 `6f80d66`;
 M4 `codex/gallery-retained-window`, based on M3 and including its `4335ae7` constructor correction;
-M5 `codex/retire-legacy-usn`, based on M4 `86feb69`.
+M5 `codex/retire-legacy-usn`, based on M4 `86feb69`;
+M6 `codex/workflow-script-ownership`, based on M5 `e4096a2`.
 
 ## Outcome and boundaries
 
@@ -39,7 +40,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Implementation, scoped review, focused regressions and affected Debug workflow complete; final exact-head hosted checks pending |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Implementation, scoped review and stable-state Debug check complete; exact-head CI and concurrent-return baseline comparison pending |
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Implementation, scoped review and migrated boundary/guardrail checks complete; exact-head hosted checks pending |
-| M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Pending M5 |
+| M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Release ownership extracted and focused guardrails passed; R2c-R extraction in progress |
 
 ## First boundary: schema-shape validation
 
@@ -133,3 +134,6 @@ do not infer completion from moved files or recreate an already extracted owner.
   Shared reconstruction/case/cancellation coverage belongs to active owners, and R2c-M retains the
   historical wrapper's resource and source-isolation guardrails. Persistent schema/lineage fixtures
   remain. See the acceptance coverage map before changing this retirement boundary.
+- M5 is committed as `e4096a2` in draft PR #26. M6 preserves release entrypoints while assigning
+  native interop, transaction state/moves, uninstall, recovery, service control and application
+  deployment to cohesive internal owners. All installer/ACL/identity/uninstall guardrails passed.

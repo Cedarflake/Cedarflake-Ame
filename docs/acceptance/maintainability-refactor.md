@@ -568,9 +568,24 @@ catch-up lineage, catalog tables and migration histories are untouched.
 Focused checks covered the 15 shared USN cases, 14 current application continuity/capture cases,
 broker root/identity/limit rejection and both SQLite atomic-publication/capacity rollback cases.
 The first compile exposed an unused legacy plan-preparation export; its sole caller had retired,
-so the function and export were removed before the clean recompilation. Current-owner cases,
-The new case-sensitive identity candidate and all eight root-availability/source-loading audit
+so the function and export were removed before the clean recompilation. The new case-sensitive
+identity candidate and all eight root-availability/source-loading audit
 cases passed. The consolidated R2c-M guardrails passed, including their positive and rejecting
 cases. The three changed PowerShell scripts parsed successfully; repository format checked 416 Dart
 files without changes and Rust formatting passed. Final diff/whitespace review found only the owned
 retirement, coverage and documentation changes. Exact-head hosted results remain pending.
+
+## M6 script ownership
+
+The release common facade decreased from 3,526 to 606 production lines. Native interop (372),
+transaction state (552), write-ahead moves (328), uninstall (587), interrupted recovery (558),
+service control (279) and application deployment (245) now have separate owners. None contains
+inline tests. All 91 existing PowerShell function bodies and the native initialization block
+are preserved, including marker admission, operation ordering, rollback and cleanup conditions.
+The existing dedicated installer suite now reads the complete 12-file module roster for its
+source contracts, alongside its behavioral assertions.
+
+The changed release scripts parsed successfully. Installer, ACL, identity and uninstall-policy
+guardrails passed, including rejecting paths and interrupted-transaction recovery. These checks
+use controlled fixtures; no service installation, signing, source-media operation or production
+MSI change was performed. R2c-R extraction and final hosted/client comparison remain outstanding.

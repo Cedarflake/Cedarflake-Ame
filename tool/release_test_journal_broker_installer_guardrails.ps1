@@ -1380,22 +1380,24 @@ if ($uninstallMarkerIndex -lt 0 -or
     throw "Uninstall must journal before its first tree mutation and own Application cleanup"
 }
 
-$commonText = [System.IO.File]::ReadAllText(
-    (Join-Path $PSScriptRoot "release_journal_broker_common.ps1"),
-    [System.Text.Encoding]::UTF8
+$commonModuleFiles = @(
+    "release_journal_broker_common.ps1",
+    "release_journal_broker_acl.ps1",
+    "release_journal_broker_identity.ps1",
+    "release_journal_broker_uninstall_policy.ps1",
+    "release_journal_broker_privileges.ps1",
+    "release_journal_broker_native.ps1",
+    "release_journal_broker_transaction_state.ps1",
+    "release_journal_broker_transaction_moves.ps1",
+    "release_journal_broker_uninstall.ps1",
+    "release_journal_broker_recovery.ps1",
+    "release_journal_broker_service.ps1",
+    "release_journal_broker_application.ps1"
 )
-$commonText += [IO.File]::ReadAllText(
-    (Join-Path $PSScriptRoot "release_journal_broker_identity.ps1"),
-    [Text.Encoding]::UTF8
-)
-$commonText += [IO.File]::ReadAllText(
-    (Join-Path $PSScriptRoot "release_journal_broker_acl.ps1"),
-    [Text.Encoding]::UTF8
-)
-$commonText += [IO.File]::ReadAllText(
-    (Join-Path $PSScriptRoot "release_journal_broker_privileges.ps1"),
-    [Text.Encoding]::UTF8
-)
+$commonText = foreach ($moduleFile in $commonModuleFiles) {
+    [IO.File]::ReadAllText((Join-Path $PSScriptRoot $moduleFile), [Text.Encoding]::UTF8)
+}
+$commonText = $commonText -join "`n"
 foreach ($requiredContract in @(
     "type= own",
     "start= demand",
