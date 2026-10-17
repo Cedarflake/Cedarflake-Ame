@@ -449,5 +449,48 @@ including failure notification/retry, root-warning resolution, scan-feedback pre
 authoritative removal and stale viewer lookup. No widget layout, strings or query authority changed.
 
 The screen is now 1,924 production lines, the refresh owner 123, and its dedicated tests 218.
-Recovered-dimension ownership and actual Debug comparison remain pending in M3; these focused
-results do not establish final client or hosted acceptance.
+The subsequent dimension boundary and client comparison are recorded below.
+
+## M3 recovered-dimension publication
+
+`LibraryGalleryDimensionPublication` owns pending, deferred and published dimensions, the frozen
+visible-range anchor, query/revision invalidation, manifest overlay caching and publication timing.
+The 160-ms quiet delay and 600-ms maximum delay remain unchanged. The screen retains actual scroll
+objects, query-transition composition and the layout animation. Scrolling still retires query
+position authority before dimension reclassification; transitions defer publication until completion.
+
+Nine owner cases passed for quiet/deadline publication, anchor retention, cache reuse, offscreen
+reclassification, query/revision replacement, transition admission, navigation and disposal. The
+43 existing screen cases and two synchronization-position cases passed, including recovered batches,
+sidebar/window geometry, timeline navigation and later input during refresh success/failure.
+Source comparison preserves admission, callback ordering and timer cancellation. No UI structure,
+copy, duration, catalog authority or dependency changed.
+
+The screen now has 1,732 production lines, the dimension owner 265, and its dedicated tests 244;
+none contains inline tests. Exact-head hosted checks remain outstanding.
+
+### M3 affected Debug workflow
+
+The ordinary Windows Debug build with both M3 owners used the retained 10,000-file `build/test`
+corpus and its catalog. The previous restored profile receipt was archived before creating a new
+lease against the current original settings/catalog. No original catalog snapshot was substituted
+for later user changes. The test profile retained a 256-MiB preview budget and separate derived storage.
+
+Observed scrolling during synchronization publication, sidebar collapse and rapid repeated toggles,
+maximize/restore at two window sizes, duplicate group/member navigation, two preferred-copy changes,
+member preview forward/back navigation, return to Gallery, then maximize/restore and eight rapid
+sidebar clicks. The app remained usable and did not terminate. Preferred-copy changes retained the
+member rows without replacing the page with loading feedback. Header and image leading edges still
+followed sidebar changes; right controls remained at the window edge.
+
+The retained catalog entered its existing `journal_trim` recovery path at startup. Catalog evidence
+showed recovery retirement and all 30,008 retained queue records completed. Duplicate counts changed
+as those source generations were reanalyzed; an opened obsolete group displayed its existing changed-
+location state. Subsequent current-group preview and preferred-copy checks succeeded. This run
+exercised concurrent publication; the final combined comparison must also cover stable results.
+
+The client closed through its normal window action. No active thread/handle-owning Ame process
+remained before restoration. Settings, preferences and original catalog components matched their
+pre-run hashes. The corpus and retained test catalog remain available; no source mutation or cloud
+hydration was requested. The run establishes the affected interaction check, not a measured speedup,
+native error-log audit or final M1–M6 comparison.
