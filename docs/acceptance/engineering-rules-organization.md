@@ -4,13 +4,14 @@ Status: documentation organization; no product acceptance claim
 
 Date: 2026-09-22. Baseline: `c3586612cf6bd0857bc393779a6801364935f762`.
 
-This record traces the contract reorganization and its checks. The
-[roadmap](../roadmap.md) and [R2c execution plan](../plans/r2c-closeout.md) still own delivery.
-Readability observations do not establish the cause of C05 or authorize a repository-wide rewrite.
+This record traces contract organization and its checks. The [roadmap](../roadmap.md) owns current
+delivery. The sections through Instruction discovery and verification describe the 2026-09-22
+checkpoint, including its then-active R2c scope and unresolved observations. Current routing and
+loading evidence are in the [2026-10-17 checkpoint](#2026-10-17-scoped-rule-routing).
 
 ## Ownership and retained clauses
 
-| Baseline clause | Current owner and treatment |
+| Baseline clause | Owner and treatment at the 2026-09-22 checkpoint |
 | --- | --- |
 | §1 document boundaries, roadmap continuity, private-root mapping | Root §1, condensed; complete roadmap/active-plan reads and private-path restrictions retained |
 | §2 local-first product, replaceable engines, original media and later physical operations | Root §2, condensed; no change in source authority |
@@ -75,3 +76,43 @@ Document checks cover the exact moved command body, retained section/heading ide
 Markdown link targets, UTF-8/LF bytes, absence of trailing whitespace, and `git diff --check`.
 This slice does not rerun or claim Daily, native browsing, real-library, or R2c acceptance. C05's
 native failure, C01/C02, and external acceptance obligations remain open.
+
+## 2026-10-17 scoped rule routing
+
+Baseline: `667586ea351a17a0c7afa9694fbcb7c011c3c1bf`. This documentation change preserves existing
+engineering, source-safety and delivery authority. The accepted R3 layout remains unchanged and
+R4 is not started. Existing section numbers remain discoverable from the root contract.
+
+| Baseline clauses | Current owner and preservation check |
+| --- | --- |
+| §§1–3: document boundaries, precedence, private roots and original-history recovery | Root §§1–3, condensed; canonical roadmap/active-plan reads, explicit conflict handling and historical-evidence limits retained |
+| §4: scope, delegation, complete outcomes, owner extraction and bounded diagnosis | Root §4, condensed; independent commit/push boundaries, one delegate by default, no nested execution without authorization, size evidence and no symptom concealment retained |
+| §§5–8: layers, identities, background work, media safety, persistence and dependencies | Root §§5–8, condensed; source authority, hydration prohibition, migrations, transactions, bounded work, replaceability and licensing retained |
+| §9: component admission and interface copy | [Component implementation](../product/gallery-ui.md#component-implementation) and [content/action wording](../product/gallery-ui.md#content-and-action-wording), mandatory through root §9; pinned-SDK proof, framework ownership, accessibility, bounded rendering and wording scope retained |
+| §10.1: workstation Flutter commands and ownership | [Local toolchain](quality-gates.md#local-flutter-toolchain), moved with navigation references adjusted; exact SDK commands, serial locks, descendant-only cleanup and SDK-lock safeguards retained |
+| Other §10 and §11: language, Rust, configuration and comments | Root §§10–11, condensed; strict typing, accepted-ADR condition for unsafe, warning policy, canonical configuration and generated-code exclusions retained |
+| §11.1: readable handwritten implementation | [Human-readable implementation](quality-gates.md#human-readable-implementation), body retained; root §11.1 requires it for the same source/test/SQL/workflow/diagnostic scope |
+| §12 and §12.1: verification ownership, categories, execution and source-safe storage | [Verification ownership](quality-gates.md#verification-ownership) and [execution/storage](quality-gates.md#execution-scope-and-storage), moved with navigation references adjusted; local/hosted division, real-root authority, preserved catalogs and fixture cleanup unchanged |
+| §§12.2–12.3: engineering workflow, warnings, CI and behavior-preserving review | [Required workflow](quality-gates.md#required-engineering-workflow) and [review requirements](quality-gates.md#reviewability-and-behavior-preserving-changes), moved with navigation references adjusted; no weakened gates, broad suppressions or substituted evidence |
+| Code Review Rules and §§13–15: review, ADRs, Git and completion | Retained in root; explicit merge/destructive/publication authority, English Conventional Commits, owned staging, PR content boundaries and complete user-path evidence preserved |
+
+The [design rationale](../product/gallery-ui.md#design-principles-and-rationale) explains contextual
+layout choices, useful information, spatial continuity, proportionate feedback and shared behavior.
+Its exceptions retain responsive layout, accessibility, reduced motion and product authority.
+The [UI verification map](quality-gates.md#ui-workflow-verification) links shared implementation to
+existing regressions and affected client paths. It selects relevant checks without requiring the
+whole matrix for every edit. No new skill, duplicate checklist, dependency or quality entrypoint is added.
+
+The root contract shrank from 36,421 to 21,844 UTF-8 bytes. Together with the current global file,
+its source text totals 32,528 bytes. Installed `codex-cli 0.162.0-alpha.17.2` assembled fresh input
+with `codex debug prompt-input`; exact normalized-text comparisons found both complete files,
+including the final completion section. The first workspace-restricted invocation could not access
+the CLI temporary directory; the same scoped command succeeded with the required permission.
+This checks the installed CLI's fresh assembly, not an already-running session or every host.
+No configuration was changed. Byte size alone is not treated as proof of instruction loading.
+
+Verification compared the complete seven moved bodies after explicit navigation/whitespace
+normalization and retained every root heading. All five changed documents passed 100 local-link
+and 44 anchor checks, UTF-8/LF encoding, trailing-whitespace validation and `git diff --check`.
+Condensed clauses were reviewed against the baseline mapping above. This documentation-only change
+does not claim another native UI or product acceptance.

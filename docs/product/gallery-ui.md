@@ -18,10 +18,8 @@ new interaction decisions with that application and the accepted behavior below.
 the newer Microsoft Photos application retain their recorded version and evidence scope; they do
 not establish Photos Legacy behavior or supersede this contract.
 
-UI implementation follows a reuse-first admission order: Flutter Material and framework widgets,
-repository-owned shared components, mature external packages, then the smallest necessary custom
-layer. A custom control requires a recorded capability gap and must compose around the framework
-primitive that owns interaction, focus, semantics, and platform behavior rather than replacing it.
+The [component implementation requirements](#component-implementation) own reuse order, capability
+evidence and framework interaction boundaries for every affected surface.
 
 On 2026-08-07 the user accepted this structure after interactive review. ADR 0009 records the
 current authority and fully supersedes ADR 0003. Later work may refine spacing, responsive behavior,
@@ -54,6 +52,70 @@ be introduced later without rewriting the UI structure.
 The completed R2a prototype remains acceptance evidence, not a second application entry point.
 Unavailable controls must not ship as dead production actions, and a fixture or screenshot is not
 feature-completion evidence.
+
+## Design principles and rationale
+
+These principles explain the accepted surfaces below and guide new choices within their scope.
+Keep the reason and applicable exception with a changed decision. New capabilities or reversals of
+accepted navigation require a product decision; routine spacing, component composition and responsive
+adjustments follow the established design without another approval step.
+
+| Principle | Reason and application | Adaptation boundary |
+| --- | --- | --- |
+| Give each visible element a useful role | Photos, names and paths are the work. A title identifies context, supporting text adds needed information, and controls offer distinct actions. Omit duplicated explanations, decorative icons beside sufficient previews, and buttons that repeat the same row action. | Preserve actionable errors, exceptional availability, accessible names and discoverability. A familiar auxiliary icon can save space; an unfamiliar action may need visible wording. |
+| Preserve spatial relationships | Stable controls and retained image identity let people keep their place. The title and photo wall follow the sidebar's leading boundary; window-edge controls stay anchored. Counts reserve space, and data updates preserve the current item and browsing position. | Window constraints and enlarged text may require intentional reflow. Background updates must respect interaction and publication ownership rather than hiding jumps with animation. |
+| Choose density for the information | Group cards support visual comparison; member rows expose long names and paths. Height follows actual text, preview and target sizes. Shared alignment and spacing make neighboring views predictable. | Cards, rows and text/icon actions are contextual choices, not universal formats. Check wrapping and reachability at compact widths and enlarged text; keep accessible targets. |
+| Match feedback to the affected action | Saving a preference updates that decision while the reviewed content remains usable. Initial loads, continuation reads, explicit refresh and failures retain their appropriate feedback. Counts and wording describe the actual scope and state. | A local update must still expose in-flight admission and failure. Retained content cannot imply freshness or success that the application has not established. |
+| Use motion to explain continuity | Sidebar, window and viewer transitions show where content moves and preserve the user's visual reference. Scrolling shares the established inertia behavior across surfaces. | Retarget interrupted motion from what is displayed, respect reduced motion and preserve direct input. Animation must not delay actions, mask state defects or require unbounded layout/preview work. |
+| Share behavior with appearance | Common loading, empty, scrolling, hover, focus and preview owners keep the same operation recognizable across features. Repair an invariant at its owner so adjacent callers inherit the correction. | Reuse cohesive primitives and composition. Do not force different tasks into one flag-heavy component or change established behavior merely to make shapes match. |
+
+For a changed workflow, establish its entry, primary action, resulting state and return path before
+expanding its implementation. Compare it with the adjacent accepted surface and run the affected
+interaction while the change is still small. The
+[UI verification map](../acceptance/quality-gates.md#ui-workflow-verification) links these decisions
+to shared owners, existing regressions and client checks. It is the discovery point for implementation
+and evidence; this product contract does not duplicate that inventory or record test results.
+
+## Component implementation
+
+- Prefer installed framework/design-system components, shared repository components, mature
+  packages, then minimal custom code. The [dependency policy](../../AGENTS.md#8-dependency-and-open-source-policy) also applies to UI packages; appearance cannot
+  justify stale, low-adoption, poorly documented or difficult-to-replace dependencies.
+- Before a new/substantially redesigned Flutter control, inspect `https://m3.material.io/components`
+  and the pinned SDK API/implementation. Record the official component, verified installed
+  capability, evaluated alternatives and product gap in its decision/evidence. Memory, visual
+  similarity or design availability does not establish SDK support.
+- Before custom controls, record evaluated components and missing behavior. Compose around framework
+  scrolling, selection, menus, dialogs, focus, input and accessibility;
+  do not replace those primitives. Reuse tokens, components and state mechanisms instead of isolated
+  visual constants or copied behavior. Organize behavior, structure, then presentation.
+- Use virtualization/lazy slivers, bounded thumbnail decoding/caches and stable item identity/scroll
+  position across incremental updates. Keep business/persistence state out of views; never send
+  full-resolution images or unbounded result sets across the desktop bridge.
+- Represent loading, empty, partial, cancelled, failed and stale states explicitly. Meet keyboard,
+  focus, contrast, text scaling and screen-reader accessibility expectations.
+- Apply the [content and action rules](#content-and-action-wording) to
+  affected text and adjacent controls. Copy-only work preserves layout, navigation and behavior;
+  authorized interaction changes must implement and verify the wording's promised action/result.
+
+## Content and action wording
+
+- Before editing, verify where the text appears, what triggers it, its adjacent titles and buttons,
+  and the states before and after the action. When a change affects interpretation or presentation,
+  check it in the actual interface for meaning, wrapping, truncation, and its relationship to the
+  available actions.
+- Titles describe what is happening; body text adds information needed in that situation; buttons
+  name the action they perform. Include instructions in body text when the context needs them.
+  An already clear button does not need a repeated instruction pointing to it, and a description
+  can be omitted when there is no useful information to add.
+- Organize copy by interface location and usage scenario. Document the affected locations of shared
+  text. When the same words serve different purposes in different places, separate definitions may
+  be appropriate to avoid changing another scenario unintentionally. Comments explain purpose and
+  state conditions so maintainers can locate the interface and understand when the text appears.
+- Preserve user-approved terms and wording, and edit existing text within the current authorization.
+  Copy-only work preserves layout, navigation, and behavior. When the user explicitly requests
+  interaction changes, implement the corresponding behavior and verify that the wording matches
+  the actual action and result.
 
 ## Workbench blueprint
 

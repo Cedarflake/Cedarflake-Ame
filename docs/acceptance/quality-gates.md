@@ -53,6 +53,205 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | Portable artifact | `./tool/release_package_portable_windows.ps1` | Versioned Windows x64 ZIP containing the same signed application and broker artifact, followed by archive-structure and extracted signature/publisher/protocol verification; no service installation | After a release build passes |
 | Portable publication guardrails | `./tool/release_test_portable_publication.ps1` | Exact inline workflow decision: missing attachment upload, same-digest skip, different or missing digest rejection, pagination, and fail-closed lookup errors; no network or publication | Release publication changes; included in lint |
 
+## Delivery and verification
+
+These requirements continue the [repository contract](../../AGENTS.md#12-testing-and-verification).
+Read the applicable workflow and command definitions before selecting or changing verification.
+Gate execution and client checks retain the ownership below.
+
+### Verification ownership
+
+Every completed change must be supported by verification proportional to its risk. Automated tests,
+static checks, and routine builds run through the existing GitHub Actions workflows. Add or update
+the boundary regressions needed for the change and commit them with the implementation. Applicable
+format, lint, type, unit, integration, build, and acceptance requirements remain in force; their
+execution ownership follows this document and its [command reference](#repository-command-reference).
+
+Before pushing, complete necessary local diagnosis, formatting and format checks for owned files,
+final diff inspection, `git diff --check`, and submission-scope review. Verify affected client
+workflows locally when needed to establish the actual user result, building the application for
+that purpose as necessary. Keep any diagnostic local test focused on the specific unresolved
+question. Do not repeat the full checks assigned to CI on the workstation or require a local Daily
+run before committing and pushing.
+
+After pushing, check the Actions results for that exact commit under the
+[required engineering workflow](#required-engineering-workflow). A result for an earlier commit does
+not cover uncommitted or changed inputs. Verify the affected real user path and
+source-media safety where applicable, and report outstanding limitations within their actual scope.
+
+Required test categories include, where applicable:
+
+- domain invariant and application use-case tests;
+- adapter contract tests using fixed fixtures;
+- database migration and rollback-safety tests;
+- typed bridge serialization and compatibility tests;
+- cancellation, retry, recovery, and partial-failure tests;
+- UI state and accessibility tests;
+- corrupt, locked, unavailable, Chinese-path, long-path, and wrong-extension media fixtures.
+
+Large-library benchmarks are separate acceptance evidence, not substitutes for correctness tests.
+Run necessary local heavyweight builds and benchmarks serially. If an applicable check is blocked,
+identify the specific affected result, use a safe relevant alternative where it can answer the
+question, and continue authorized work that does not depend on that result. Preserve the remaining
+verification gap without repeatedly reopening unaffected work.
+
+### Execution scope and storage
+
+Before selecting, changing, or running verification, read the applicable definitions and
+[command reference](#repository-command-reference). That document
+owns tool parameters, guardrails, environment requirements, and hosted workflow ownership.
+Use its canonical PowerShell entrypoints and ownership-prefixed script/workflow names; update
+callers and documentation together when an entrypoint changes. Do not create a second canonical alias.
+
+Keep selected local heavy work serial under the repository lock. Hosted CI owns the applicable
+automated Daily, native, performance, and release checks; focused diagnosis does not remove those
+requirements. Client and real-library acceptance that requires the workstation stays local, scoped
+to the affected user workflow rather than replaying hosted CI. Read-only real-library verification
+of known roots is included in project work and does not require separate per-run approval. Define the
+roots, read scope, resource limits, and isolated derived storage before each run; preserve source
+media and original catalogs, and never hydrate placeholders. Real-library runs remain separate
+from unattended Daily verification. Source mutation, service installation, and external publication
+retain their applicable explicit-authorization requirements.
+Hosted workflows use minimal token permissions, full-SHA action pins, no untrusted
+`pull_request_target` execution, and no restored compiled output as trusted build evidence.
+Real-library paths, tokens, catalogs, and scans never enter hosted workflows.
+
+For local gallery workflows, reuse the established library in `build/test` instead of generating
+another library per run. Cover varying image dimensions, dates, encoded sizes and non-uniform
+content. Keep the reusable corpus, original catalogs and user data; after a run ends, clean up
+disposable test storage, caches and outputs. Before cleanup, verify process retirement, profile
+restoration, exact workspace-contained targets and absence of reparse traversal. Do not delete
+active outputs or unresolved restoration backups. Hosted and unit fixtures retain isolated storage.
+
+### Required engineering workflow
+
+For every material code/configuration change:
+
+1. Recover scope, history, live source, owning ADRs, and `git status`; identify explicit owned files.
+   Never mutate, format, stage, or revert unrelated work to pass a gate.
+2. State the smallest complete outcome, affected layers, safety constraints, and proving test;
+   implement the narrow change with its boundary regressions.
+3. Format owned files. Use `quality_format.ps1` only with a clean or wholly owned target tree;
+   otherwise format explicit files and run `quality_format.ps1 -Check`.
+4. Complete the necessary local diagnosis and affected client verification selected under
+   [verification ownership](#verification-ownership).
+   Inspect the final diff, generated files, `git diff --check`, and status. Confirm that only owned
+   changes belong in the delivery, then stage, commit, and push under
+   [Git discipline](../../AGENTS.md#14-git-discipline).
+5. Inspect the hosted workflows for the pushed commit, including its applicable focused regressions,
+   lint, Daily, integration, and build gates. Check the run's source commit and actual job results;
+   do not attribute another commit's results to this change.
+6. If CI fails, read the failing logs and determine whether the cause belongs to the implementation,
+   fixtures, test expectations, or execution environment. Correct that cause and push the relevant
+   fix while retaining required workloads and behavioral assertions. Reduced requirements, broader
+   exclusions, or repeated unchanged reruns must not hide an unresolved failure.
+
+While CI is pending, continue authorized remaining work within the same goal that does not depend
+on the pending result, following the independent-delivery boundaries in
+[scope and delivery discipline](../../AGENTS.md#4-scope-and-delivery-discipline). Delivery reports
+distinguish what was committed and pushed, the actual client-verification result, and the CI status.
+Report pending CI as still running or queued. Include relevant failed, ignored, or unavailable checks,
+material risks, and preserved unrelated changes without presenting an unfinished check as passed.
+
+Warnings fail. Never weaken rules, add broad exclusions/ignore comments, or hand-edit generated
+output to pass. Fix the cause; a genuinely inapplicable rule permits only a narrow, explained
+suppression at its owning configuration. Quality-tool changes must demonstrate passing and
+representative rejecting cases where practical. Documentation-only edits use proportionate document
+checks; they neither require a new heavy product run nor establish a functional pass.
+
+### Human-readable implementation
+
+These rules cover new or materially changed handwritten source, tests, SQL, workflows, and diagnostic
+scripts. Only reproducible generator output qualifies for generated-code treatment.
+
+- Optimize for understanding and maintenance, not character, line, or token count. Use normal
+  formatting and domain names; short local loop/coordinate names are acceptable when unambiguous.
+- A simple two-way conditional is acceptable. Express ordered policies and multiple business
+  outcomes as explicit branches or switches; do not compress them into nested ternaries or boolean
+  chains. Preserve evaluation order, short-circuiting, side effects, errors, and resource lifetimes.
+- Extract named decisions with cohesive inputs/outcomes, not forwarding chains or generic mutable
+  state bags. Use named records/types when boundary values have distinct meanings; avoid wrappers
+  with no invariant. Follow ADR 0025 before expanding an existing multi-responsibility owner.
+- Keep query, publication, source, root, run, and lease identities distinct. Async operations must
+  expose result-admission authority, loading ownership, and terminal cleanup. A stale completion or
+  `finally` cannot clear a newer operation. Fewer fields are not proof of a simpler state machine.
+- Format SQL by its relational decisions; preserve NULL semantics, transaction/identity checks,
+  bounded reads, and query-plan costs. Do not introduce per-item queries for cosmetic clarity.
+- Explain non-obvious invariants, not surface syntax. Never remove guards, swallow errors, add
+  retries, weaken assertions, or change behavior silently under a readability label.
+
+### Reviewability and behavior-preserving changes
+
+- State whether a change fixes behavior or only clarifies it. For policy rewrites, enumerate branch
+  precedence, ties, nulls, and fallbacks before editing; use boundary examples, not tests mirroring
+  the new implementation. Refactoring alone does not close a reported runtime defect.
+- Review async ownership across success, failure, cancellation, disposal, supersession, and late
+  completion. Retain independent generations and prove the changed boundary's relevant races.
+- For scan/persistence extraction, account for checkpoints, old-record preservation, identity and
+  metadata reuse, atomic publication, rollback, and source safety. Do not mix broad cleanup with a fix.
+- Distinguish maintenance findings from reproduced functional failures. Record affected responsibility,
+  causal evidence, behavior risks, focused verification, and unverified paths. Formatting/analyzer
+  success alone does not prove readability or behavioral equivalence. New quality gates require
+  positive and negative checks; do not add blanket complexity limits or suppress existing warnings.
+
+### Local Flutter toolchain
+
+- The installed Flutter SDK root on this workstation is resolved from
+  `$env:USERPROFILE\develop\flutter`; do not commit the expanded user-specific path.
+- PowerShell does not currently expose `flutter` or `dart` through `PATH`. Invoke the verified
+  executables explicitly instead of searching for, downloading, or installing another SDK:
+  - Flutter: `& "$env:USERPROFILE\develop\flutter\bin\flutter.bat"`
+  - Dart: `& "$env:USERPROFILE\develop\flutter\bin\cache\dart-sdk\bin\dart.exe"`
+- Select local Flutter work under [verification ownership](#verification-ownership); these toolchain
+  rules do not add a local CI stage.
+  Run selected formatting, diagnostic commands, and client-verification builds serially on this
+  workstation. If a command hangs or leaves a tester process behind, stop and inspect that process
+  before starting another Flutter command.
+- Use the repository's lock-aware entrypoints for selected local Flutter work. When a focused widget
+  test is needed for a specific diagnosis or requested local verification, use
+  `./tool/quality_test_flutter.ps1 -TestPath <path>` instead of launching a parallel `flutter test`
+  process. Never terminate Dart or Flutter processes merely because they appeared after a command
+  began; cleanup must be limited to descendants or executables proven to belong to that command.
+- In a workspace-only agent sandbox, `flutter.bat` must still update its SDK-owned
+  `bin/cache/flutter.bat.lock`. If the batch process loops before creating a Dart child, rerun the
+  same scoped repository command with the required sandbox approval. Do not delete the SDK lock
+  file or infer that an unrelated Dart process owns it without an exclusive-open check.
+
+### UI workflow verification
+
+Use the [design rationale](../product/gallery-ui.md#design-principles-and-rationale) and the affected
+surface contract to select checks. Before implementation, identify the nearest accepted surface,
+shared owner, state transition and retained user context. Reuse the owners below rather than copying
+their appearance or state logic. When a shared boundary changes, inspect its affected callers.
+
+This map is a starting set of existing evidence, not an exhaustive test list or a claim that a path
+passed. Follow current source when an owner moves, and update its references in the same change.
+Automated regressions run through the existing hosted workflows; local diagnosis remains focused
+and uses the canonical commands below. Client verification uses the established isolated `build/test`
+library and the execution/storage safeguards above.
+
+| Changed boundary | Shared implementation and existing regression | Affected client path and observation |
+| --- | --- | --- |
+| Sidebar and responsive geometry | [Sidebar transition](../../lib/features/library/presentation/widgets/library_sidebar_transition.dart), [header](../../lib/features/library/presentation/widgets/library_gallery_header.dart) and [photo motion](../../lib/features/library/presentation/widgets/library_gallery_layout_motion.dart); [right-edge regression](../../test/features/library/presentation/library_sidebar_right_edge_test.dart) and [interrupted reflow](../../test/features/library/presentation/library_gallery_layout_motion_test.dart) | Browse mid-library, open/close the sidebar, resize, maximize/restore and reverse a toggle before it finishes. Check title/photo leading-edge continuity, fixed right controls, current image and scroll anchor; include reduced motion when transition behavior changes. |
+| Result layout and content density | [Shared card skeleton](../../lib/features/library/presentation/widgets/library_duplicate_review_cards.dart), [metrics](../../lib/features/library/presentation/widgets/library_duplicate_review_metrics.dart) and [review header](../../lib/features/library/presentation/widgets/library_duplicate_review_header.dart); [layout regression](../../test/library_duplicate_review_layout_test.dart) | Compare group cards and member rows with the gallery. Use long names/paths, compact and wide windows, and enlarged text. Inspect alignment, rounding, internal space, action reachability and category-switch count placement. |
+| Loading, empty and local updates | [Loading region](../../lib/features/library/presentation/widgets/library_gallery_loading_region.dart), [gallery message](../../lib/features/library/presentation/widgets/library_gallery_message.dart) and [review controller](../../lib/features/library/application/library_duplicate_review_controller.dart); [loading-region regression](../../test/features/library/presentation/library_gallery_loading_region_test.dart) and [preference publication](../../test/library_duplicate_preference_refresh_test.dart) | Check initial/continuation loading, an empty category and a failed read with retry. Change the preferred member twice and observe subsequent publication: rows and position remain, feedback matches the operation, and no whole-page flash replaces usable content. |
+| Hover, focus and transient surfaces | [Tile actions](../../lib/features/library/presentation/widgets/library_photo_tile_actions.dart), [overlay behavior](../../lib/app/presentation/ame_overlay_semantics.dart) and [locations sheet](../../lib/features/library/presentation/widgets/library_duplicate_locations_sheet.dart); [dismissal/focus regression](../../test/library_photo_tile_dialog_focus_test.dart) | Open and dismiss a context menu, information surface and locations sheet with mouse and keyboard. Move the pointer away. Check stale hover/tooltip removal while preserving legitimate keyboard focus, selection and accessible actions. |
+| Continuous scrolling and bounded reads | [Shared scroll motion](../../lib/app/presentation/ame_scroll_motion.dart) and [review window](../../lib/features/library/application/library_duplicate_review_window.dart); [review scrolling](../../test/library_duplicate_review_scroll_motion_test.dart), [sheet scrolling](../../test/library_duplicate_sheet_scroll_motion_test.dart) and [batch/retry regression](../../test/library_duplicate_locations_sheet_test.dart) | Scroll across catalog batches, return to an earlier range and dismiss during a pending read. Check consistent wheel behavior, retained position, reachable content, bounded preview demand and a usable continuation retry. |
+| Viewer entry, navigation and return | [Viewer transition](../../lib/features/library/presentation/widgets/library_viewer_transition.dart) and [review viewer](../../lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart); [route motion](../../test/features/library/presentation/library_viewer_route_motion_test.dart), [member publication/navigation](../../test/library_duplicate_review_viewer_test.dart) and [native accessibility integration](../../integration_test/windows_accessibility_bridge_test.dart) | Enter from Gallery and Duplicates, navigate both ways across a batch, return, maximize/restore and toggle the sidebar. Check the shared transition, current image/order and underlying position; native semantic/engine failures require native evidence beyond a widget assertion. |
+| Counts and file actions | [Gallery header](../../lib/features/library/presentation/widgets/library_gallery_header.dart), [location row](../../lib/features/library/presentation/widgets/library_duplicate_location_tile.dart) and [reveal action](../../lib/features/library/presentation/widgets/library_duplicate_reveal_action.dart); [count regression](../../test/features/library/presentation/library_gallery_count_test.dart) and [sheet regression](../../test/library_duplicate_locations_sheet_test.dart) | Switch All images/Merge duplicates under the same scope: total count remains primary and merged count is additional. Activate a location in a newly opened Explorer folder and verify the exact file is selected; opening the parent directory alone does not establish that result. |
+
+Inspect the complete changed path before delivery, including meaningful neighboring states and
+return/dismissal behavior. Compare geometry and wording in the running client; use screenshots for
+layout comparison and actual interaction for motion, focus and continuity. Add boundary regressions
+for the cause of repeatable defects, preserving keyboard, accessibility and async authority rather
+than merely hiding the reported symptom. Existing valid checks are reused; a copy-only edit does not
+schedule this entire matrix or another product-wide acceptance run.
+
+Record the checked build/revision, actual path/result and any remaining gap in the owning acceptance
+record. Keep runtime observation, automated results and unavailable verification distinguishable.
+Discovery and checks are implementation responsibilities; request user input for material product
+choices or genuinely missing access/evidence, after completing independent authorized work.
+
 ## Hosted workflow lifecycle
 
 The hosted Windows gate is implemented once in
