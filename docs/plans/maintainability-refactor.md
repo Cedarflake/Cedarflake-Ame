@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: refactor and affected client checks complete; journal query correction awaits hosted checks and remaining hosted failures are under diagnosis
+Status: refactor and affected client checks complete; journal correction passed hosted checks; catalog-proof correction and stack integration remain
 
 Updated: 2026-10-17
 
@@ -38,6 +38,9 @@ This plan tracks work and completion conditions without duplicating those rules.
 
 Each row may contain independently reversible commits. Commit and push a finished boundary before
 starting the next independent one. Pending hosted checks do not prevent unrelated authorized work.
+Further diagnostics and CI corrections use the existing review units rather than adding PRs.
+The current stack is unchanged; consolidation into six refactor PRs and one follow-up PR is proposed,
+not yet applied.
 
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
@@ -50,7 +53,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction, scoped review and 11 hosted execution jobs passed |
 | Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation, 37 focused checks and both native layouts passed; current Accessibility timeout remains |
 | Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Native update observation and 31 relevant focused cases passed; date-publication cancellation corrected; all 11 required hosted jobs passed on `db1842a` |
-| Follow-up D | Diagnose and correct excessive journal catch-up time after image processing has finished | Separate volume read, identity resolution, catalog work and scheduling delay; measure bounded backlog progress and incoming work; preserve continuity, cancellation, source safety and browsing priority | Unbounded namespace lookup work corrected; three focused regressions, same-interval native measurement, Debug convergence and scoped review passed; hosted checks remain |
+| Follow-up D | Diagnose and correct excessive journal catch-up time after image processing has finished | Separate volume read, identity resolution, catalog work and scheduling delay; measure bounded backlog progress and incoming work; preserve continuity, cancellation, source safety and browsing priority | Unbounded namespace lookup work corrected; three focused regressions, same-interval native measurement, Debug convergence, scoped review and all 11 required hosted jobs passed on `79213fc` |
 
 ## Verification and closeout
 
@@ -106,18 +109,21 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 - Latest stack runs exposed the existing mixed-load poll-connection priority regression: M2 run
   `39020716332` timed out awaiting sample 11's P2 source page; M6 run `39020913937` measured P0 P95
   at 1.962 seconds and M4 run `39020716478` at 1.188 seconds against the unchanged one-second bound.
-  Slow proof reads are being separated into namespace resolution and held-handle identity. The
-  local controlled case passed without reproducing the hosted delay. The existing slow-operation
-  diagnostic now distinguishes fresh namespace resolution from held-handle identity reads for hosted
-  attribution; it changes no production identity proof or scheduling bound.
+  Diagnostic run `39031367037` passed on `d6959e1` and recorded 51 slow namespace resolutions
+  of 100–574 ms, with no held-handle identity observation above the 100 ms reporting threshold.
+  The correction resolves only the differing disk-path prefix afresh; the complete held-file path
+  and identity remain freshly checked. Its 11 focused namespace/identity regressions and controlled
+  mixed-load case passed; exact-head hosted verification remains. This addresses the measured extra
+  work without treating one passing diagnostic run as an explanation of every older timeout.
 - Follow-up B's Accessibility job reached its eight-second deadline while loading UIA components;
   application-ready element checks had not completed. A separately bounded preparation probe now
-  validates the runtime before application startup; local guardrails passed and hosted verification
-  remains. Follow-up C's released date-seek cancellation
+  validates the runtime before application startup; local guardrails and the complete hosted
+  Accessibility job passed on `29c3c8b`. The earlier branch's failed check still needs integration
+  reconciliation. Follow-up C's released date-seek cancellation
   regression is corrected and run `39029121263` passed all required jobs. Existing assertions,
   timeouts and workloads remain unchanged.
-- Native GitHub stack #28 contains the six refactor PRs, three gallery follow-ups, journal correction
-  and hosted priority diagnosis below, with verified ancestry and adjacent
+- Native GitHub stack #28 contains the six refactor PRs, three gallery follow-ups, journal correction,
+  hosted priority diagnosis and accessibility preparation below, with verified ancestry and adjacent
   base/head branches. Each review unit remains independently inspectable. `main` merging remains
   an explicit human decision; R4 has not started.
 
@@ -134,3 +140,4 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 | Follow-up C | [PR #31](https://github.com/Cedarflake/Cedarflake-Ame/pull/31) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/31/checks) | `codex/gallery-filter-anchor` |
 | Follow-up D | [PR #32](https://github.com/Cedarflake/Cedarflake-Ame/pull/32) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/32/checks) | `codex/gallery-timeline-stability` |
 | Hosted priority diagnosis | [PR #33](https://github.com/Cedarflake/Cedarflake-Ame/pull/33) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/33/checks) | `codex/journal-catchup-latency` |
+| Accessibility preparation | [PR #34](https://github.com/Cedarflake/Cedarflake-Ame/pull/34) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/34/checks) | `codex/catalog-proof-latency` |

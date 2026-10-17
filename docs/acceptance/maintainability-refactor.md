@@ -894,6 +894,11 @@ transaction/error handling, aliases, deduplication and output capacity. No confi
 was found. The namespace owner contains 167 production lines, no inline tests and 216 dedicated
 test lines. The separate poll-connection identity-latency diagnostic is excluded from this change.
 
+Hosted run [39031217615](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39031217615)
+passed all 11 required jobs on `79213fc10330baa88ffe0f74b0a82b61b4774045`, including static/Rust,
+Flutter, both native integrations, five synthetic workloads and unsigned Release verification.
+The three separate signing-channel jobs retained their configured skips.
+
 ### Hosted catalog-proof latency attribution
 
 The remaining mixed-load hosted failures require a separate diagnosis from journal namespace SQL.
@@ -904,9 +909,44 @@ cached proof, retry, relaxed assertion or altered scheduling deadline is introdu
 
 The local controlled two-arm lifetime case passed with 25 measured samples per arm. The retained
 connection arm reported 190 ms P0 P95 and 200 ms maximum, with P1/P2 active and progressing in all
-samples; neither added substage exceeded the existing 100 ms reporting threshold. This does not
-reproduce or close the hosted failures. The next hosted run must identify which operation accounts
-for their slow `proof_identity_after` readings before a behavioral correction is selected.
+samples; neither added substage exceeded the existing 100 ms reporting threshold. This did not
+reproduce the hosted delay.
+
+Diagnostic run [39031367037](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39031367037)
+passed all 11 required jobs on `d6959e15a99389348c63eeea24ea407bef690bc2`; the Rust library suite
+reported 1,989 passes and 22 existing ignores. Its raw log recorded 51 namespace-resolution calls
+at or above the reporting threshold, ranging from 100 to 574 ms. No held-handle identity observation
+reached that threshold. The retained-connection control and production workload reported P0 P95
+of 316 and 324 ms, with P1/P2 active and progressing in all 25 samples. These readings localize the
+remaining extra work without explaining every earlier P2 wait timeout from a passing run.
+
+The namespace owner now excludes the component-exact shared suffix before expanding the differing
+DOS path prefix. This avoids another name lookup through the actively written catalog and its
+already-matching parents. [Windows long-name expansion](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-getlongpathnamew)
+can query parent directories; the optimization reduces that query scope instead of caching its
+answer. Raw spellings are validated before component removal, including embedded-NUL rejection.
+The complete held-file final path and identity are still observed on every proof. A junction alias,
+unresolved prefix or unsupported spelling retains the independent current-path lookup.
+
+Four prefix/namespace regressions and seven native identity regressions passed. They cover exact
+suffix boundaries, differing filename/case components, ambiguous paths, fresh short-path observation,
+ancestor rename, junction retarget during successful/failed SQL proof and a distinct WAL namespace
+for the same database file. The junction fixture includes a shared directory suffix. The initial
+sandbox run denied its temporary junction/hard-link operations; the same checks then passed with
+ordinary-user execution and no compiler warnings. No assertion or timeout changed.
+
+The corrected local two-arm mixed-load case passed in 117.41 seconds. Its retained-connection arm
+reported 85 ms P0 P95 and a 98 ms maximum, with P1/P2 active and progressing in all 25 samples.
+It used one poll connection across 4,196 polls; the per-poll control reported 155 ms P95 across
+1,500 opens/closes. Neither identity substage reached the 100 ms reporting threshold. This is
+local boundary evidence; the changed source still requires its own hosted run.
+
+Scoped review covered raw-path admission, component boundaries, case-sensitive equality, fresh
+identity authority, alias fallback and unchanged SQL/error ordering. No confirmed new defect was
+found. The namespace owner has 177 production lines, no inline tests, 102 dedicated namespace-test
+lines and 351 native identity-test lines. The non-mutating format gate passed with 421 Dart files
+unchanged, and the final diff passed whitespace checks. No source-media,
+schema, dependency, generated bridge or scheduling-policy change is involved.
 
 ### Accessibility runtime preparation
 
@@ -928,8 +968,16 @@ The four changed PowerShell scripts parsed successfully. The focused accessibili
 passed its preparation, assembly identity/milestone, deadline, child cleanup, cache-scope, timing,
 evidence, incomplete/out-of-order transcript and engine-error refusal checks. The real preparation
 child completed in 189 ms locally; its attempt/window/element counts stayed zero, and an application
-phase request was rejected. This local PowerShell 5.1 evidence does not establish the hosted
-PowerShell runtime result, which remains required.
+phase request was rejected. A focused rerun after tightening fixture retirement completed in 196 ms.
+
+The hosted Accessibility job [117396476839](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39032787496/job/117396476839)
+passed on `29c3c8b58766e8d9b0aad1d7f5db75e41fe0e529`. Preparation completed in 240 ms with all six
+assembly milestones and no native observations. Application-ready completed in 3,538 ms, observing
+146 native elements; all ten application phases passed in order. The completion record confirms
+exit code zero, no run or cleanup failure, retired process/job ownership and removed scratch storage.
+This establishes the complete hosted workflow for the correction, not the operating-system cause
+of the earlier intermittent load delay. The remaining jobs and earlier failed branch heads retain
+their separate integration status.
 
 The workflow facade contains 388 production lines with no inline tests; the new preparation child
 has 45. Its dedicated regression has 63 lines and is called by the existing 501-line guardrail

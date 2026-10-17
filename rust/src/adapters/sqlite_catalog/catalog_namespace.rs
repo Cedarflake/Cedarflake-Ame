@@ -101,15 +101,37 @@ fn resolves_to_pinned_disk_namespace(path: &Path, canonical: &Path) -> bool {
     if direct_disk_namespace(path, canonical) {
         return true;
     }
-    if !direct_disk_namespace(path, path) {
+    let Some((requested_prefix, pinned_prefix)) = differing_disk_prefixes(path, canonical) else {
         return false;
-    }
+    };
     // Expand DOS names afresh: a cached expansion would miss a changed short-name mapping.
-    // Junction spellings still differ from the pinned file's resolved physical namespace.
-    match super::super::local_files::windows_long_dos_path(path) {
-        Ok(expanded) => direct_disk_namespace(&expanded, canonical),
+    // Exact suffix components need no name lookup. The fresh held-handle observation still
+    // checks the complete final path; junction aliases retain the independent-path fallback.
+    match super::super::local_files::windows_long_dos_path(requested_prefix) {
+        Ok(expanded) => direct_disk_namespace(&expanded, pinned_prefix),
         Err(_) => false,
     }
+}
+
+#[cfg(windows)]
+fn differing_disk_prefixes<'a>(
+    mut requested: &'a Path,
+    mut pinned: &'a Path,
+) -> Option<(&'a Path, &'a Path)> {
+    // Validate raw spellings before Path removes components such as `.` or repeated separators.
+    if !direct_disk_namespace(requested, requested) || !direct_disk_namespace(pinned, pinned) {
+        return None;
+    }
+    while let (Some(requested_name), Some(pinned_name)) =
+        (requested.file_name(), pinned.file_name())
+    {
+        if requested_name != pinned_name {
+            break;
+        }
+        requested = requested.parent()?;
+        pinned = pinned.parent()?;
+    }
+    Some((requested, pinned))
 }
 
 #[cfg(windows)]
@@ -135,7 +157,9 @@ fn direct_disk_namespace(path: &Path, canonical: &Path) -> bool {
         for component in value[3..].split(|unit| *unit == BACKSLASH) {
             if component.is_empty()
                 || matches!(component.last().copied(), Some(SPACE | DOT))
-                || component.iter().any(|unit| matches!(*unit, SLASH | COLON))
+                || component
+                    .iter()
+                    .any(|unit| matches!(*unit, 0 | SLASH | COLON))
             {
                 return None;
             }
