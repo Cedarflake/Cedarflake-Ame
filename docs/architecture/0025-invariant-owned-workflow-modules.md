@@ -45,6 +45,14 @@ historical path reconstruction. Framing, identity widths, UTF-16/component valid
 page failure remain one boundary, with no second decoded page or per-record cloning. The parent
 `windows_usn` module retains named reference histories and path reconstruction.
 
+The superseded direct-desktop USN adapter and its all-roots catch-up orchestrator are retired.
+Shared parsing and historical-parent reconstruction remain broker dependencies with their own
+regressions. The active identity reader and persistent-journal application own case-sensitive
+candidates, per-root failure isolation and cancellation/publication authority. Historical catalog
+checkpoint, lineage and migration contracts remain intact; removing an execution path grants no
+schema or retained-data cleanup authority. The R2c-M entrypoint owns the retained metadata-only
+acceptance wrapper and its process/path guardrails; R2c-H is historical evidence only.
+
 - `journal_broker/windows/production_host.rs` owns production listener readiness and joined shutdown.
   Its lifetime owner linearizes connection admission against idle retirement and holds each lease
   through request drain and disconnect. `identity_query_access.rs` owns only the verified service's

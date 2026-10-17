@@ -6,7 +6,8 @@ Updated: 2026-10-17
 
 Branches: M1 `codex/maintainability-refactor`; M2 `codex/synchronization-runtime`, based on M1 `ef294ad`;
 M3 `codex/gallery-publication-lifecycles`, based on M2 `6f80d66`;
-M4 `codex/gallery-retained-window`, based on M3 `b287e3d`.
+M4 `codex/gallery-retained-window`, based on M3 and including its `4335ae7` constructor correction;
+M5 `codex/retire-legacy-usn`, based on M4 `86feb69`.
 
 ## Outcome and boundaries
 
@@ -37,7 +38,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Implementation and scoped review complete; final exact-head hosted checks pending |
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Implementation, scoped review, focused regressions and affected Debug workflow complete; final exact-head hosted checks pending |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Implementation, scoped review and stable-state Debug check complete; exact-head CI and concurrent-return baseline comparison pending |
-| M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Pending M4 |
+| M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Implementation, scoped review and migrated boundary/guardrail checks complete; exact-head hosted checks pending |
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Pending M5 |
 
 ## First boundary: schema-shape validation
@@ -113,14 +114,22 @@ do not infer completion from moved files or recreate an already extracted owner.
   quiet/deadline timers. Nine owner regressions, 43 screen cases and two synchronization-position
   cases passed. The affected ordinary Debug workflow passed with the retained test library and the
   original profile/catalog restored; final combined comparison remains required after M6.
-- M3 final implementation head is `b287e3d`; hosted run `39014696432` remains in progress.
+- M3 final implementation head is `4335ae7`; hosted run `39015763595` remains in progress.
 - M4 retains the original whole-page high/low watermarks and directional cursor/return semantics.
   Its 13 owner cases, ten bidirectional lifecycle/viewer cases and 56 controller cases passed.
   The actual all-images workflow and stable viewer return passed with original profile/catalog
   restoration. Compare the observed concurrent-reanalysis return-position change with the baseline
-  before final acceptance; see the owning evidence. Inspect exact-head CI after delivery.
+  before final acceptance; see the owning evidence. M4 head `86feb69` has hosted run `39015795301`
+  in progress.
 - Authorized draft [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22) triggers the existing
   hosted checks. Inspect the current pushed head; newer pushes supersede older in-progress runs.
   Feature-branch pushes alone are not CI triggers.
 - [Verification evidence](../acceptance/maintainability-refactor.md) records checks and physical
   ownership counts. The overall refactor and final client comparison remain incomplete.
+
+- M3 constructor diagnostics were corrected in `4335ae7`; M4 incorporates that correction in
+  `86feb69`. Their replacement hosted runs are `39015763595` and `39015795301` respectively.
+- M5 removes the test-only raw-volume adapter, its application path and obsolete R2c-H runner.
+  Shared reconstruction/case/cancellation coverage belongs to active owners, and R2c-M retains the
+  historical wrapper's resource and source-isolation guardrails. Persistent schema/lineage fixtures
+  remain. See the acceptance coverage map before changing this retirement boundary.

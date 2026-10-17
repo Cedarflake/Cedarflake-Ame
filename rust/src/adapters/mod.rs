@@ -19,8 +19,6 @@ pub(crate) use windows_identity_journal::current_identity_paths;
 pub(crate) use windows_identity_journal::production_factory as production_identity_journal_factory;
 #[cfg(windows)]
 mod windows_library_change_source;
-#[cfg(all(windows, test))]
-mod windows_usn_catch_up;
 
 pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;
 #[cfg(all(windows, test))]
@@ -105,10 +103,4 @@ pub(crate) fn production_library_change_source_factory() -> crate::ports::Librar
             ))
         }
     })
-}
-
-#[cfg(all(windows, test))]
-pub(crate) fn production_library_change_catch_up_source()
--> impl crate::ports::LibraryChangeCatchUpSource {
-    windows_usn_catch_up::WindowsUsnCatchUpSource::production()
 }

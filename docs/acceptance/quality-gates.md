@@ -42,7 +42,6 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
 | Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Prepared read-only R2b preview closeout |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Bounded read-only source scan, source integrity sampling, retained multi-root catalog validation | Known roots, explicit paths, isolated storage; no separate per-run approval |
-| R2c reliability | `./tool/acceptance_run_r2c_reliability.ps1` | Real watcher latency and coalescing on a disposable root; isolated retained-catalog catch-up, queue, storage, memory, placeholder, metadata, and source-byte evidence | Prepared read-only R2c-H closeout |
 | R2c replacement reliability | `./tool/acceptance_run_r2c_replacement_reliability.ps1` | Disposable watcher operation latency, storm and restart recovery; isolated retained-catalog metadata inventory, cached gallery, source metadata, placeholder, full-scan, storage, and memory evidence | Prepared read-only R2c-M closeout |
 | R2c-R controlled local reliability | `./tool/acceptance_run_r2c_change_driven_reliability.ps1` | Exactly counted production-path live, durable P1, overflow/P2, million-record, no-change, priority, reset/trim, reconnect, cancellation, replacement, placeholder, path, and multi-root evidence using only fixture-owned disposable roots | Manual non-external Windows 11 x64 checkpoint; never retained-library acceptance |
 | Journal broker integration | `./tool/integration_test_windows_journal_broker.ps1` | Exactly counted disposable local NTFS tests for proof framing, two listeners, global eight-worker bounds, active-stop drain, listener readiness, read-only identity grants, idle retirement and admission races, verified service handover, case semantics, root replacement, reparse rejection, caller lifetime, revoked directory access, root-external filtering, bounded progress through unrelated-volume storms, cancellation, must-close backpressure, identity-probe deadline, restart, and unsigned watcher-first activation | Broker transport, service, parser, or lifecycle changes |
@@ -605,38 +604,12 @@ catalog through the production loading API:
 Each source scan needs a current scope binding; a retained catalog or old token does not replace it.
 Preparing that binding under the standing read-only policy does not require another confirmation.
 
-## R2c reliability gate
+## Historical R2c-H reliability evidence
 
-Run the R2c-H gate after the synthetic performance gate passes, with both logical roots, the retained
-catalog and new empty derived storage explicitly bound to its prepared read-only scope:
-
-```powershell
-./tool/acceptance_run_r2c_reliability.ps1 `
-  -LocalRoot "<authorized local-primary root>" `
-  -CloudRoot "<authorized cloud-primary root>" `
-  -SourceCatalogPath "<retained catalog path>" `
-  -StorageRoot "<new empty storage outside every source tree>" `
-  -AuthorizationToken "<current R2c-H authorization token>" `
-  -AcknowledgeCloudReadOnly
-```
-
-The first half uses temporary files only and measures the production Windows observer, event-to-
-catalog P50/P95, idle polling, event-storm coalescing, durable queue recovery, database growth, and
-bounded shutdown. The second half opens the supplied catalog read-only, creates an online SQLite
-backup in isolated storage, and runs only downtime-catch-up discovery against the authorized roots.
-It does not publish the resulting authoritative work. Before and after that operation it compares a
-bounded metadata snapshot of every source entry, placeholder attributes, and deterministic hashes
-of locally available `local-primary` samples. Reparse directories are not followed and files marked
-offline or recall-on-access are never opened.
-
-The wrapper enforces a time limit, a peak job-memory limit, physically resolved non-overlapping
-paths, pre-created empty isolated storage, an exact token, and an explicit cloud read-only
-acknowledgement. Its non-accessing guardrails exercise junction rejection and process-job ownership
-through `./tool/acceptance_test_r2c_reliability_guardrails.ps1`. A passing tool implementation or
-`-ValidationOnly` result is not real-library evidence; the authorization-bound workload must finish
-successfully. See
-[r2c-h-large-library-reliability.md](./r2c-h-large-library-reliability.md) for the accepted metrics and
-remaining platform limitations.
+The direct-desktop USN implementation and R2c-H execution entrypoint are retired. Their
+[recorded results](r2c-h-large-library-reliability.md) remain historical; they do not validate the
+ADR 0024 runtime. Current broker/identity continuity uses the R2c-R entrypoint below. Metadata-only
+inventory checks retain the R2c-M entrypoint and its source-isolation/process guardrails.
 
 ## R2c replacement reliability gate
 
@@ -665,7 +638,7 @@ complete Windows directory-entry metadata and placeholder attributes before and 
 keeps that safety evidence distinct from the cold timing and verifies that no full-scan row was
 created.
 
-The wrapper retains the R2c-H Job Object, deadline, memory, physical path, empty storage, token, and
+The wrapper owns its Job Object, deadline, memory, physical path, empty storage, token, and
 cloud acknowledgement controls. Its non-accessing boundary is exercised through
 `./tool/acceptance_test_r2c_replacement_guardrails.ps1`. `-ValidationOnly`, disposable evidence, and
 the small retained-catalog fixture do not substitute for an authorized target-scale run. See
@@ -1376,21 +1349,14 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
   real-library gate. They require explicit known roots, bounded read-only scope and isolated storage
   outside source trees, without separate per-run approval; they never join unattended Daily verification.
-- `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
-  production Windows observer against a disposable source root, then backs up the retained catalog
-  into pre-created empty isolated storage and measures catch-up against both explicitly authorized
-  roots without publishing authoritative work or reading cloud-placeholder content.
-- `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
-  cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
-  library.
 - `./tool/acceptance_run_r2c_replacement_reliability.ps1` is the R2c-M replacement closeout gate.
   It measures production watcher operations against a disposable root, then backs up the retained
   catalog into isolated storage and measures per-root metadata-only continuity without opening
   media content or publishing a full scan. The retained-root phase follows the standing scoped
   read-only verification policy.
 - `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
-  cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
-  real library.
+  cloud acknowledgement, physical path separation, fresh storage, process ownership and final
+  resource-limit samples without accessing a real library.
 - `./tool/acceptance_run_r2c_change_driven_reliability.ps1` is the R2c-R non-external controlled
   local reliability gate for Windows 11 x64 client workstations. Its common module performs no
   dynamic compilation while being loaded; explicit initialization uses an in-memory native identity

@@ -535,3 +535,42 @@ The final M3 run `39014696432` rejected eight `prefer_initializing_formals` diag
 new constructors. They now use the pinned Dart SDK's named initializing formals, preserving the
 public argument names, private callback fields and callback types. The focused analyzer and owner
 regressions cover this correction; the replacement commit still requires its own hosted results.
+
+## M5 superseded USN path
+
+The retired adapter was compiled only by `cfg(all(windows, test))`; its application orchestrator
+was `cfg(test)`. The only remaining execution caller was the historical R2c-H acceptance fixture.
+ADR 0024 already superseded its direct raw-volume handle, all-roots enrollment and fixed-volume
+record/byte fallback. No current synchronization caller, bridge, dependency or schema was replaced.
+
+| Retired coverage | Current owning boundary and disposition |
+| --- | --- |
+| Five V2/V3 parsing and malformed-record cases | The 12 `windows_usn/parsing` cases retain Unicode, 128-bit identity, framing, malformed names/version/alignment and no partial-page admission |
+| Three later-parent deletion/rename reconstruction cases | Moved to `windows_usn/reference_tests.rs`, directly exercising the shared broker dependency |
+| Shared volume read and downtime create/rename/delete distribution | `persistent_journal_continuity::tests::one_physical_volume_read_distributes_final_state_candidates_to_independent_roots` and session-reader shared-request cases |
+| Case-sensitive paths and roots | A candidate regression now exercises the active identity translator; broker `case_sensitive_containment_keeps_photos_siblings_distinct` retains root containment |
+| Journal/root-set/catalog-revision mismatch | Current broker response binding rejects root generation, volume, journal and range mismatch; old global root-set/catalog-revision rebaseline policy is intentionally superseded |
+| Record, candidate and byte overflow | Identity-page bounded progress, broker request evidence limits and SQLite atomic-capacity rejection retain current limits; the old fixed-volume fallback is intentionally retired |
+| Five old all-roots enqueue/checkpoint/fallback cases | Current per-root failure isolation, durable typed failure admission and atomic volume publication/capacity rollback cover persistence authority; a new cancellation-after-read case proves no enrollment/checkpoint/failure publication |
+| Raw-volume smoke and controlled watcher workload | Current ordinary identity/broker and R2c-R/M controlled workflows retain these responsibilities; no raw-volume fallback smoke remains |
+| R2c-H real-root read-only sampler and its two fixture cases | Historical evidence is retained. The retired sampler's byte-hash/growth tests are not claimed as current coverage; R2c-M performs metadata-only inventory and R2c-R owns current change-driven acceptance |
+| Wrapper authorization, path isolation, process ownership and resource ceilings | Consolidated into the existing R2c-M entrypoint and guardrail suite, including wrong token, missing cloud acknowledgement, overlapping/nonempty/junction storage, owned-child termination, unrelated-child survival, exit-code retention and final resource samples |
+
+The legacy adapter had 1,183 implementation lines and 866 inline-test lines; the unused application
+owner had 250 implementation lines plus its test-module declaration and 447 dedicated-test lines.
+Its 919-line historical acceptance fixture is retired. The current 596-line shared historical
+wrapper becomes the 572-line R2c-M entrypoint, replacing the 25-line forwarding entry. The separate
+216-line H guardrail file is consolidated into the 239-line M suite. Shared reconstruction has 69
+dedicated test lines and cancellation 50; the identity candidate case adds 22 lines to its owning suite.
+Historical checkpoint and queue-batch types remain for persistence/migration fixtures; production
+catch-up lineage, catalog tables and migration histories are untouched.
+
+Focused checks covered the 15 shared USN cases, 14 current application continuity/capture cases,
+broker root/identity/limit rejection and both SQLite atomic-publication/capacity rollback cases.
+The first compile exposed an unused legacy plan-preparation export; its sole caller had retired,
+so the function and export were removed before the clean recompilation. Current-owner cases,
+The new case-sensitive identity candidate and all eight root-availability/source-loading audit
+cases passed. The consolidated R2c-M guardrails passed, including their positive and rejecting
+cases. The three changed PowerShell scripts parsed successfully; repository format checked 416 Dart
+files without changes and Rust formatting passed. Final diff/whitespace review found only the owned
+retirement, coverage and documentation changes. Exact-head hosted results remain pending.

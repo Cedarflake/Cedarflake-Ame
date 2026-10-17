@@ -1,7 +1,8 @@
 $ErrorActionPreference = "Stop"
 
 $repositoryRoot = Split-Path -Parent $PSScriptRoot
-$testRoot = Join-Path $repositoryRoot "build\r2c-m-acceptance-guardrails-$PID"
+$buildRoot = Join-Path $repositoryRoot "build"
+$testRoot = Join-Path $buildRoot "r2c-m-acceptance-guardrails-$PID"
 $localRoot = Join-Path $testRoot "local"
 $cloudRoot = Join-Path $testRoot "cloud"
 $catalogPath = Join-Path $testRoot "catalog.sqlite3"
@@ -19,6 +20,29 @@ function Assert-Contains {
     if ($Value.IndexOf($Expected, [System.StringComparison]::Ordinal) -lt 0) {
         throw "Expected R2c-M guardrail output to contain: $Expected"
     }
+}
+
+function Remove-GuardrailFixtureDirectory {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $absolutePath = [IO.Path]::GetFullPath($Path)
+    $absoluteBuild = [IO.Path]::GetFullPath($buildRoot).TrimEnd('\') + '\'
+    if ($absolutePath -notin @($testRoot, $storageRoot) -or
+        -not $absolutePath.StartsWith($absoluteBuild, [StringComparison]::OrdinalIgnoreCase)) {
+        throw "Cleanup target is not an owned guardrail fixture directory"
+    }
+    $current = Get-Item -LiteralPath $absolutePath
+    while ($null -ne $current) {
+        if (($current.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0) {
+            throw "Cleanup target traverses a reparse point"
+        }
+        $current = $current.Parent
+    }
+    $reparseChild = Get-ChildItem -LiteralPath $absolutePath -Recurse -Force |
+        Where-Object { ($_.Attributes -band [IO.FileAttributes]::ReparsePoint) -ne 0 } |
+        Select-Object -First 1
+    if ($null -ne $reparseChild) { throw "Cleanup fixture retains a reparse point" }
+    Remove-Item -LiteralPath $absolutePath -Recurse -Force
 }
 
 New-Item -ItemType Directory -Path $localRoot -Force | Out-Null
@@ -53,9 +77,9 @@ try {
         Assert-Contains $_.Exception.Message "read-only acknowledgement"
     }
 
-    $overlapStorage = Join-Path $localRoot "overlap"
-    New-Item -ItemType Directory -Path $overlapStorage -Force | Out-Null
     try {
+        $overlapStorage = Join-Path $localRoot "overlap"
+        New-Item -ItemType Directory -Path $overlapStorage -Force | Out-Null
         & "$PSScriptRoot\acceptance_run_r2c_replacement_reliability.ps1" `
             -LocalRoot $localRoot `
             -CloudRoot $cloudRoot `
@@ -85,7 +109,7 @@ try {
         Assert-Contains $_.Exception.Message "storage must be empty"
     }
 
-    Remove-Item -LiteralPath $storageRoot -Recurse -Force
+    Remove-GuardrailFixtureDirectory $storageRoot
     New-Item -ItemType Directory -Path $storageRoot -Force | Out-Null
     $valid = & "$PSScriptRoot\acceptance_run_r2c_replacement_reliability.ps1" `
         -LocalRoot $localRoot `
@@ -117,9 +141,99 @@ try {
         [System.IO.Directory]::Delete($junctionStorage)
     }
 
+    $processJob = $null
+    $jobProcess = $null
+    $sideProcess = $null
+    try {
+        $hostExecutable = (Get-Process -Id $PID).Path
+        $processJob = [AmeR2cProcessJob]::new()
+        $jobProcess = $processJob.Start(
+            $hostExecutable,
+            '-NoProfile -NonInteractive -Command "Start-Sleep -Seconds 30"',
+            $repositoryRoot
+        )
+        $sideProcess = Start-Process `
+            -FilePath $hostExecutable `
+            -ArgumentList @(
+                "-NoProfile",
+                "-NonInteractive",
+                "-Command",
+                "Start-Sleep -Seconds 30"
+            ) `
+            -WindowStyle Hidden `
+            -PassThru
+        Start-Sleep -Milliseconds 250
+        if ([UInt64]$processJob.PeakMemoryBytes -eq 0) {
+            throw "The R2c-M process job did not account for its child"
+        }
+        $processJob.Dispose()
+        $processJob = $null
+        if (-not $jobProcess.WaitForExit(5000)) {
+            throw "The R2c-M process job did not stop its owned child"
+        }
+        $sideProcess.Refresh()
+        if ($sideProcess.HasExited) {
+            throw "The R2c-M process job stopped an unrelated same-name process"
+        }
+    } finally {
+        if ($null -ne $processJob) {
+            $processJob.Dispose()
+        }
+        if ($null -ne $jobProcess -and -not $jobProcess.HasExited) {
+            $jobProcess.WaitForExit(5000) | Out-Null
+        }
+        if ($null -ne $sideProcess -and -not $sideProcess.HasExited) {
+            Stop-Process -Id $sideProcess.Id -Force
+            $sideProcess.WaitForExit()
+        }
+    }
+
+    $exitCodeJob = $null
+    try {
+        $exitCodeJob = [AmeR2cProcessJob]::new()
+        $exitCodeProcess = $exitCodeJob.Start(
+            $hostExecutable,
+            '-NoProfile -NonInteractive -Command "exit 7"',
+            $repositoryRoot
+        )
+        $exitCodeProcess.WaitForExit()
+        if ([int]$exitCodeJob.PrimaryExitCode -ne 7) {
+            throw "The R2c-M process job lost its owned process exit code"
+        }
+    } finally {
+        if ($null -ne $exitCodeJob) {
+            $exitCodeJob.Dispose()
+        }
+    }
+
+    $limitProbeTime = [DateTime]::UtcNow
+    $memoryLimitFailure = [AmeR2cProcessJob]::ResourceLimitFailure(
+        2,
+        1,
+        $limitProbeTime,
+        $limitProbeTime.AddSeconds(1)
+    )
+    Assert-Contains $memoryLimitFailure "exceeded the memory limit"
+    $timeLimitFailure = [AmeR2cProcessJob]::ResourceLimitFailure(
+        0,
+        [UInt64]::MaxValue,
+        $limitProbeTime,
+        $limitProbeTime
+    )
+    Assert-Contains $timeLimitFailure "exceeded its time limit"
+    $withinLimit = [AmeR2cProcessJob]::ResourceLimitFailure(
+        0,
+        [UInt64]::MaxValue,
+        $limitProbeTime,
+        $limitProbeTime.AddSeconds(1)
+    )
+    if ($null -ne $withinLimit) {
+        throw "The R2c-M resource limit helper rejected a bounded final sample"
+    }
+
     Write-Output "AME_R2C_M_GUARDRAILS status=passed"
 } finally {
     if (Test-Path -LiteralPath $testRoot) {
-        Remove-Item -LiteralPath $testRoot -Recurse -Force
+        Remove-GuardrailFixtureDirectory $testRoot
     }
 }

@@ -48,11 +48,7 @@ pub use library_change::{
 };
 pub use library_change_catch_up::LibraryChangeCatchUpEvidence;
 #[cfg(test)]
-pub use library_change_catch_up::{
-    LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpCompletedRoot,
-    LibraryChangeCatchUpLimits, LibraryChangeCatchUpQueueBatch, LibraryChangeCatchUpReport,
-    LibraryChangeCatchUpRootResult,
-};
+pub use library_change_catch_up::{LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpQueueBatch};
 pub use library_change_queue::{
     DurableLibraryChange, LeasedLibraryChange, LibraryChangeCapacityDeferral,
     LibraryChangeEnqueueReport, LibraryChangeFailure, LibraryChangeId, LibraryChangeLeaseIdentity,

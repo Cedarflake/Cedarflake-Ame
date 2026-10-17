@@ -1,5 +1,10 @@
 # R2c-G Windows USN downtime catch-up validation
 
+The direct-desktop USN implementation and R2c-H runner were retired during the
+[maintenance refactor](maintainability-refactor.md#m5-superseded-usn-path). Commands and measurements
+below describe the historical source, retained at commit `83c8c16`. Current continuity checks use
+the [R2c-R gate](quality-gates.md#r2c-r-controlled-local-reliability-gate).
+
 - Date: 2026-08-19
 - Scope: watcher-first Windows downtime catch-up, durable per-volume checkpoints, and explicit fallback
 - Source-media access: controlled temporary fixtures only, read-only after fixture setup

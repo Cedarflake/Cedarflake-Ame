@@ -875,9 +875,6 @@ fn project_root_status<Reservation>(
 #[path = "../../test_support/r2c_r_change_driven_reliability_acceptance.rs"]
 mod change_driven_reliability_acceptance;
 #[cfg(test)]
-#[path = "../../test_support/r2c_h_reliability_acceptance.rs"]
-mod reliability_acceptance;
-#[cfg(test)]
 #[path = "../../test_support/r2c_m_replacement_reliability_acceptance.rs"]
 mod replacement_reliability_acceptance;
 #[cfg(test)]
