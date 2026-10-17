@@ -531,3 +531,7 @@ After pausing duplicate analysis at 72 groups, repeated entry, next/previous nav
 comparison leaves query/publication admission and directional completion/error handling unchanged.
 The app closed normally, active process resources retired, and settings/preferences/original catalog
 hashes were restored. Exact-head CI and the concurrent-return comparison remain outstanding.
+The final M3 run `39014696432` rejected eight `prefer_initializing_formals` diagnostics in the two
+new constructors. They now use the pinned Dart SDK's named initializing formals, preserving the
+public argument names, private callback fields and callback types. The focused analyzer and owner
+regressions cover this correction; the replacement commit still requires its own hosted results.
