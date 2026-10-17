@@ -398,3 +398,31 @@ import to its remaining test callers. The parent now has 1,342 production/suppor
 test-only lines. Shared controlled
 resource fixtures contain 224 dedicated test lines; the session lifecycle suite contains 89.
 The remaining inline integration suites still require organization by boundary before M2 closeout.
+
+## M2 integration ownership and scoped review
+
+The remaining integration tests now have explicit startup, first-import, baseline, live-gap,
+recovery-state/authority/fairness, priority, inventory-page, legacy-capacity and publication-guard
+owners. Shared controlled sources and durable-gap fixtures remain in `production/tests.rs`.
+No production behavior changed in this final organization step. All 39 moved function bodies match
+after owner qualification and formatting, including the formatter's removal of one trailing comma.
+All 146 test names and existing attributes remain. The full test binary compiled and both current
+session-lifecycle cases passed; the updated 19-case acceptance matrix passes and rejects a stale
+source owner. The remaining regression execution belongs to the exact-commit hosted suite.
+
+| Final M2 owner | Production/support lines | Inline test-only lines | Dedicated test/fixture lines |
+| --- | ---: | ---: | ---: |
+| `production.rs` | 1,342 | 299 | Boundary suites below |
+| `production/tests.rs` | 0 | 0 | 928 shared fixtures, declarations and clock case |
+| Startup, first import and journal baseline suites | 0 | 0 | 495, 355 and 259 |
+| Live-gap, recovery authority and recovery status suites | 0 | 0 | 773, 308 and 243 |
+| Inventory pages and publication guards | 0 | 0 | 936 and 521 |
+| Priority admission, recovery fairness and legacy capacity debt | 0 | 0 | 572, 527 and 922 |
+
+Scoped review compared lifecycle admission/retirement, Live/Journal/Recovery precedence, per-root
+retry and fairness, source transfer and result publication with M2's base. The coordinator retains
+cross-lane policy; extracted owners hold private mutable state and typed immutable inputs. Existing
+shutdown deadlines, capacity/page limits, root/change/run identities, error outcomes and source-read
+authority remain. The unused reconnect path was removed without altering the active fail-closed
+session policy. No dependencies, schema, bridge or UI contracts changed. M2 implementation and scoped
+review are complete; final-head CI and the combined client comparison remain outstanding.

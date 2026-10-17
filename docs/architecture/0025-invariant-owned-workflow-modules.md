@@ -138,6 +138,10 @@ page failure remain one boundary, with no second decoded page or per-record clon
   Session replacement follows the admitted runtime lifecycle. A successful retirement allows a
   new factory connection; a cached close failure retains the old owner and prevents construction.
   There is no separate, unused runtime reconnect path with weaker close-failure semantics.
+  Cross-lane integration suites live under `production/tests` by startup, first import, baseline,
+  live-gap lineage, recovery authority/status/fairness, priority admission, inventory paging, capacity
+  debt and publication guards. Shared controlled fixtures remain in their test-only parent; tests
+  specific to a worker or lifecycle stay beside that owner.
   Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
