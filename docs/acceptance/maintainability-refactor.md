@@ -494,3 +494,40 @@ remained before restoration. Settings, preferences and original catalog componen
 pre-run hashes. The corpus and retained test catalog remain available; no source mutation or cloud
 hydration was requested. The run establishes the affected interaction check, not a measured speedup,
 native error-log audit or final M1–M6 comparison.
+
+## M4 retained catalog window
+
+`LibraryRetainedCatalogWindow` now owns page insertion, replacement by location identity, boundary
+cursor advancement and whole-page eviction. Its immutable result returns only the retained assets,
+offset, cursors and added count. The viewport keeps read admission, query/revision validation,
+publication generations, direction-specific loading/errors and completion semantics.
+
+The extraction preserves these policy boundaries: incoming replacements use the last observation
+for an existing location; overlap-only and empty pages advance only their directional cursor;
+forward completion reports newly added items while backward completion reports a nonempty response.
+Previous-page offsets keep the existing timeline clamp and missing-timeline fallback. Exactly 5,000
+items do not trim; overflow removes whole distant pages until at most 3,500 remain, retaining at least
+one page. Query/time/root replacement resets the window before publishing its accepted state.
+
+All 13 owner cases passed, including both directions, null terminal cursors, overlap replacement,
+the exact high watermark, overflow/reversal, external window adoption, query reset and a single
+oversized page. Ten existing bidirectional page/viewer cases and 56 controller cases also passed,
+covering stale success/failure, opposite-direction prefetch, queued navigation retirement, previous-
+cursor advancement, bounded detail eviction, time jumps and visible-range loading. No source,
+dependency, bridge, schema, UI or capacity contract changed.
+
+The viewport has 1,291 production lines versus 1,453 at baseline. The window owner has 196 production
+lines and its dedicated test file 269; neither production owner contains inline tests.
+
+The ordinary M4 Debug client reused the retained corpus/catalog, switched to all 10,000 images,
+positioned the time rail near the middle, scrolled forward and backward, and opened/navigated the
+viewer. The viewer showed indices 4,915/4,916/4,915. During concurrent duplicate reanalysis, the first
+visible image after return changed from `09272-3840x2160-1424.jpg` to
+`09395-3840x2160-1465.jpg` (index 4,663). This observation needs a baseline comparison before final
+behavior-equivalence acceptance; the cause is not established by this refactor.
+
+After pausing duplicate analysis at 72 groups, repeated entry, next/previous navigation
+(4,663/4,664/4,663) and return retained `09395-3840x2160-1465.jpg` and the visible geometry. Source
+comparison leaves query/publication admission and directional completion/error handling unchanged.
+The app closed normally, active process resources retired, and settings/preferences/original catalog
+hashes were restored. Exact-head CI and the concurrent-return comparison remain outstanding.

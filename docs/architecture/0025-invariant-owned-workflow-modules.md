@@ -548,6 +548,13 @@ page failure remain one boundary, with no second decoded page or per-record clon
   and superseded queued work cannot execute. The viewport revalidates query, revision, and cursor
   before a queued read; the viewer alone decides whether a completed page may change selection.
   Retired navigation remains silent, while a current explicit action with no target reports failure.
+- `library_retained_catalog_window.dart` owns retained page identity updates, directional insertion,
+  cursor advancement and whole-page eviction. It keeps the 5,000/3,500 high/low watermarks and at
+  least one page. Newer observations replace matching locations without duplicating their positions.
+  Forward publication uses the response's next cursor; backward publication retains the last kept
+  page's next cursor. The viewport validates query/revision and publication authority before merging,
+  resets the window on accepted replacement, and retains directional completion/error semantics.
+  Duplicate-review windows keep their separate checkpoint and capacity policy.
 - `library_time_navigation_requests.dart` owns pending/active target reuse, latest navigation
   intent, explicit visible-range ownership, blocked retry and operation-matched loading release.
   The viewport retains query compatibility, publication generation, query-transition authority,
