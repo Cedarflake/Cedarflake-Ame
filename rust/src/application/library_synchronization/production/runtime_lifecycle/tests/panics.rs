@@ -439,16 +439,16 @@ fn panicked_poll_retains_all_workers_and_the_expired_public_stop_deadline() {
             IncrementalLibraryChangeReport::default(),
         )));
     });
-    production.recovery = Some(RecoveryTask {
-        root_id: "panic-p2".to_owned(),
-        kind: RecoveryTaskKind::LegacyUnownedDrain {
+    production.recovery = Some(RecoveryTask::from_test_parts(
+        "panic-p2".to_owned(),
+        RecoveryTaskKind::LegacyUnownedDrain {
             continuity_revision: 1,
         },
-        phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-        cancelled: p2_cancelled,
-        receiver: p2_receiver,
-        worker: Some(p2_worker),
-    });
+        Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+        p2_cancelled,
+        p2_receiver,
+        Some(p2_worker),
+    ));
 
     let registry = ready_test_registry(production);
     let runtime_identity = {
@@ -533,7 +533,7 @@ fn panicked_poll_retains_all_workers_and_the_expired_public_stop_deadline() {
             runtime
                 .recovery
                 .as_ref()
-                .and_then(|task| task.worker.as_ref())
+                .and_then(|task| task.progress().1)
                 .is_some()
         );
     }
@@ -561,8 +561,7 @@ fn panicked_poll_retains_all_workers_and_the_expired_public_stop_deadline() {
                 && runtime
                     .recovery
                     .as_ref()
-                    .and_then(|task| task.worker.as_ref())
-                    .is_some_and(JoinHandle::is_finished)
+                    .is_some_and(|task| task.progress().1 == Some(true))
         };
         if all_finished {
             break;

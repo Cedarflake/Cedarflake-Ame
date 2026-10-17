@@ -245,16 +245,16 @@ fn one_stop_joins_delayed_p0_p1_p2_then_allows_immediate_restart() {
             IncrementalLibraryChangeReport::default(),
         )));
     });
-    runtime.recovery = Some(RecoveryTask {
-        root_id: "root-p2".to_owned(),
-        kind: RecoveryTaskKind::LegacyUnownedDrain {
+    runtime.recovery = Some(RecoveryTask::from_test_parts(
+        "root-p2".to_owned(),
+        RecoveryTaskKind::LegacyUnownedDrain {
             continuity_revision: 1,
         },
-        phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-        cancelled: Arc::clone(&p2_cancelled),
-        receiver: p2_receiver,
-        worker: Some(p2_worker),
-    });
+        Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+        Arc::clone(&p2_cancelled),
+        p2_receiver,
+        Some(p2_worker),
+    ));
     let registry = ready_test_registry(runtime);
 
     stop_runtime(&registry).expect("one stop joins every delayed worker");

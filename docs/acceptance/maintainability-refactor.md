@@ -355,3 +355,26 @@ continues to inspect the same empty-source invariant through read-only test acce
 
 Recovery worker lifetime and reconnect retirement remain pending; this boundary does not change
 source reads, durable authority, publication policy or shutdown timing.
+
+## M2 Recovery worker ownership
+
+`RecoveryTask` owns its private thread, cancellation, phase, receiver and deadline-bound retirement.
+Automatic recovery and candidate/legacy drains live beside it; slot admission, catalog validation,
+status publication and retry scheduling remain in the coordinator. Root generation, continuity
+revision and change identity remain distinct. The automatic worker still takes its retained source,
+opens the Recovery lane, reloads root authority, then defers or processes the same bounded work.
+Flattening the nested result closures preserves that error and resource-lifetime order.
+
+All 146 production-subtree tests remain. The 39 lifecycle regressions passed with normal Windows
+permissions, including delayed and panicked worker retirement. Four source-transfer cases, the two
+relocated stop/timeout cases, three active-phase projection cases and ordinary-library compilation
+passed. Source transfer still rolls
+back on thread creation failure, and a timed-out worker remains owned until a later successful join.
+The final client comparison and exact-commit hosted gates remain separate.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test/fixture lines |
+| --- | ---: | ---: | ---: |
+| `production.rs` after Recovery worker extraction | 1,374 | 7,229 | Existing child suites |
+| `recovery_work.rs` | 146 | 53 | 126 |
+| `recovery_work/automatic.rs` | 197 | 14 | Existing source-transfer and integration suites |
+| `recovery_work/drain.rs` | 145 | 0 | Existing priority and lifecycle suites |

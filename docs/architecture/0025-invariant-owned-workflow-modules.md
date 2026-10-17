@@ -129,6 +129,12 @@ page failure remain one boundary, with no second decoded page or per-record clon
   to one shared take operation; failed worker startup restores that same owner. Catalog-session
   validation precedes handoff, and pruning resolves all authority reads before removing stale
   entries. Completed pages publish their retained source through the same owner.
+  `recovery_work` owns the admitted Recovery worker's cancellation, phase, result and join lifetime.
+  Its automatic and drain implementations accept an immutable root binding and bounded policy;
+  the coordinator retains slot admission, catalog-session validation, result publication and retry
+  scheduling. Automatic work takes the retained source before opening its lane, revalidates the
+  root before processing, and restores the transfer if thread creation fails. Timeout retains the
+  same task and shutdown uses the existing absolute deadline.
   Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.

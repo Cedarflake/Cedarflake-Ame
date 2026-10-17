@@ -35,17 +35,6 @@ fn priority_queue_progress(connection: &rusqlite::Connection) -> rusqlite::Resul
     )
 }
 
-fn priority_worker_progress<'a>(
-    worker: Option<&'a JoinHandle<()>>,
-    cancelled: &AtomicBool,
-) -> (Option<&'a str>, Option<bool>, bool) {
-    (
-        worker.and_then(|worker| worker.thread().name()),
-        worker.map(JoinHandle::is_finished),
-        cancelled.load(Ordering::Acquire),
-    )
-}
-
 fn priority_inventory_progress(
     connection: &rusqlite::Connection,
     root_id: &str,
@@ -585,9 +574,11 @@ fn run_priority_workload(
                     .journal
                     .as_ref()
                     .map(JournalTask::progress),
-                fixture.production.recovery.as_ref().map(|task| {
-                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
-                }),
+                fixture
+                    .production
+                    .recovery
+                    .as_ref()
+                    .map(RecoveryTask::progress),
                 fixture.production.is_stopping,
                 fixture.production.stop_requested.load(Ordering::Acquire),
                 low_writer_operations.load(Ordering::Acquire),
@@ -661,9 +652,11 @@ fn run_priority_workload(
         if std::time::Instant::now() >= progress_deadline {
             eprintln!(
                 "controlled inventory deadline worker={:?} runtime_stopping={} stop_requested={}",
-                fixture.production.recovery.as_ref().map(|task| {
-                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
-                }),
+                fixture
+                    .production
+                    .recovery
+                    .as_ref()
+                    .map(RecoveryTask::progress),
                 fixture.production.is_stopping,
                 fixture.production.stop_requested.load(Ordering::Acquire),
             );
