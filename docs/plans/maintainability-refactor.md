@@ -14,6 +14,7 @@ Filter follow-up: `codex/gallery-filter-anchor`, based on card-size correction `
 Timeline follow-up: `codex/gallery-timeline-stability`, based on filter correction `8ebb825`.
 Journal latency follow-up: `codex/journal-catchup-latency`, based on timeline correction `db1842a`.
 Hosted priority diagnosis: `codex/catalog-proof-latency`, based on journal correction `79213fc`.
+Accessibility preparation: `codex/accessibility-probe-preparation`, based on diagnostic `d6959e1`.
 
 ## Outcome and boundaries
 
@@ -48,7 +49,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Implementation, focused guardrails, combined client comparison and final scoped audit complete; current stack checks are linked below |
 | Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction, scoped review and 11 hosted execution jobs passed |
 | Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation, 37 focused checks and both native layouts passed; current Accessibility timeout remains |
-| Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Native update observation and 31 relevant focused cases passed; hosted date-publication cancellation regression corrected, current-head revalidation remains |
+| Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Native update observation and 31 relevant focused cases passed; date-publication cancellation corrected; all 11 required hosted jobs passed on `db1842a` |
 | Follow-up D | Diagnose and correct excessive journal catch-up time after image processing has finished | Separate volume read, identity resolution, catalog work and scheduling delay; measure bounded backlog progress and incoming work; preserve continuity, cancellation, source safety and browsing priority | Unbounded namespace lookup work corrected; three focused regressions, same-interval native measurement, Debug convergence and scoped review passed; hosted checks remain |
 
 ## Verification and closeout
@@ -110,10 +111,13 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
   diagnostic now distinguishes fresh namespace resolution from held-handle identity reads for hosted
   attribution; it changes no production identity proof or scheduling bound.
 - Follow-up B's Accessibility job reached its eight-second deadline while loading UIA components;
-  application-ready element checks had not completed. Follow-up C's native Accessibility job passed,
-  but its Flutter job exposed a released date-seek cancellation regression. The narrow correction
-  preserves the existing assertions; no timeout or workload is relaxed.
-- Native GitHub stack #28 contains the six refactor PRs, three gallery follow-ups and journal correction below, with verified ancestry and adjacent
+  application-ready element checks had not completed. A separately bounded preparation probe now
+  validates the runtime before application startup; local guardrails passed and hosted verification
+  remains. Follow-up C's released date-seek cancellation
+  regression is corrected and run `39029121263` passed all required jobs. Existing assertions,
+  timeouts and workloads remain unchanged.
+- Native GitHub stack #28 contains the six refactor PRs, three gallery follow-ups, journal correction
+  and hosted priority diagnosis below, with verified ancestry and adjacent
   base/head branches. Each review unit remains independently inspectable. `main` merging remains
   an explicit human decision; R4 has not started.
 
@@ -129,3 +133,4 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 | Follow-up B | [PR #30](https://github.com/Cedarflake/Cedarflake-Ame/pull/30) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/30/checks) | `codex/gallery-card-size-anchor` |
 | Follow-up C | [PR #31](https://github.com/Cedarflake/Cedarflake-Ame/pull/31) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/31/checks) | `codex/gallery-filter-anchor` |
 | Follow-up D | [PR #32](https://github.com/Cedarflake/Cedarflake-Ame/pull/32) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/32/checks) | `codex/gallery-timeline-stability` |
+| Hosted priority diagnosis | [PR #33](https://github.com/Cedarflake/Cedarflake-Ame/pull/33) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/33/checks) | `codex/journal-catchup-latency` |

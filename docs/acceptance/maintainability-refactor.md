@@ -807,6 +807,11 @@ changed query and changed layout. All six date-publication and 11 input/publicat
 the focused lock-aware rerun; the 14 unaffected navigation/mapping results above remain applicable.
 The navigation owner now contains 806 production lines.
 
+Exact-head run [39029121263](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39029121263)
+on `db1842afecb8ac3565e65861709b177018ea5edb` subsequently passed all 11 required jobs, including
+the complete Flutter and Rust suites, native scan/accessibility, five synthetic workloads and
+unsigned Release verification. The three separate signing-channel jobs retain their configured skips.
+
 The rebuilt Debug client completed an explicit update of the existing corpus: 10,013 visited entries,
 10,000 accepted images, and 37.984 seconds recorded by the completed scan. During enumeration,
 checking and final publication, the observed year marks retained their layout without alternating
@@ -902,3 +907,31 @@ connection arm reported 190 ms P0 P95 and 200 ms maximum, with P1/P2 active and 
 samples; neither added substage exceeded the existing 100 ms reporting threshold. This does not
 reproduce or close the hosted failures. The next hosted run must identify which operation accounts
 for their slow `proof_identity_after` readings before a behavioral correction is selected.
+
+### Accessibility runtime preparation
+
+Follow-up B run `39024909889` reached its eight-second application-ready deadline after 614 ms of
+type loading and 6,176 ms of client loading. Its last progress record was locating the window with
+zero native elements observed; all six assembly markers were complete. In successful timeline run
+`39029121263`, the first type/client loads took 66/584 ms, followed by approximately 24/22 ms in
+later fresh probe processes. These observations localize the failed budget to cold preparation;
+they do not identify the operating-system cause of every loading delay.
+
+One owned preparation child now loads and verifies the fixed assemblies before application startup.
+It has the same eight-second limit, and the existing whole-run clock starts before preparation.
+All ten native phases, per-phase process limits, fresh assembly validation, UIA snapshots and exact
+assertions remain. Preparation has no window/element observation or phase-acknowledgement authority;
+a load failure still fails the run and retires its owned process. No runtime replacement, added
+dependency, extended deadline, retry or application change is involved.
+
+The four changed PowerShell scripts parsed successfully. The focused accessibility guardrail entrypoint
+passed its preparation, assembly identity/milestone, deadline, child cleanup, cache-scope, timing,
+evidence, incomplete/out-of-order transcript and engine-error refusal checks. The real preparation
+child completed in 189 ms locally; its attempt/window/element counts stayed zero, and an application
+phase request was rejected. This local PowerShell 5.1 evidence does not establish the hosted
+PowerShell runtime result, which remains required.
+
+The workflow facade contains 388 production lines with no inline tests; the new preparation child
+has 45. Its dedicated regression has 63 lines and is called by the existing 501-line guardrail
+entrypoint. Source review covered independent preparation ownership, remaining whole-run budget,
+failure propagation, unchanged acknowledgement authority and exact scratch-file cleanup.

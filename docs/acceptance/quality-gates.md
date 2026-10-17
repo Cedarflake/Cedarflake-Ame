@@ -527,6 +527,13 @@ part of `integration_test_windows_accessibility_guardrails.ps1`. The existing ei
 deadline, MTA client, owned process tree, and native positive/negative assertions remain unchanged;
 workstation PowerShell evidence does not replace execution in the hosted PowerShell runtime.
 
+An owned preparation probe validates these dependencies before starting Flutter, using the same
+eight-second process deadline and consuming the existing complete-run budget. It records preparation
+separately from the ten application phases; a preparation result cannot acknowledge any of them.
+`integration_test_windows_accessibility_preparation.ps1` covers real child loading, complete assembly
+milestones, zero native observations and refusal of an application-phase request. It runs through
+the existing accessibility guardrail entrypoint; actual UIA assertions still run in hosted integration.
+
 Six parent-owned manual-reset event markers distinguish each assembly's load entry, load return
 and completed contract validation independently of progress-file publication. The parent observes
 them only after confirmed probe exit and Job Object closure and retires every handle. They are
