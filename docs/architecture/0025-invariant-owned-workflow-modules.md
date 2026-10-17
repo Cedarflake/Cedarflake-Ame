@@ -390,8 +390,12 @@ page failure remain one boundary, with no second decoded page or per-record clon
   state-row, lineage and payload modules prove separate persisted relationships using canonical
   values. Normal journal writes reuse the lineage/payload proofs directly within their existing
   transactions; historical DDL steps retain the same canonical schema definitions.
-  Remaining historical compatibility repair is the next physical split,
-  not a completed extraction. Migration order and one-transaction rollback remain centralized.
+  `terminal_inventory_repair.rs` owns exact terminal-run cleanup; `retired_live_gap_repair.rs`
+  admits only retired-root/generation residue. `current_recovery_state.rs` keeps their combined
+  repair and validation in one transaction. `interrupted_foreground_repair.rs` owns lease/claim
+  restoration and cleanup after an interrupted explicit scan. `prerelease_journal_repair.rs`
+  admits only the exact historical trigger/window shapes. Each retains its original admission,
+  recheck and rollback rules; ordinary migration ordering remains in the coordinator.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.
   A completed window is historical coverage, not a demand to freeze the current checkpoint at its
   closing cursor. Later progress requires compatible identity and retained range evidence; a later

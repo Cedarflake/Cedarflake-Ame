@@ -16,10 +16,10 @@ impl RecoveryRepair {
     fn needed(&self, connection: &Connection) -> Result<bool, ScanError> {
         match self {
             Self::TerminalInventory => {
-                super::legacy_terminal_metadata_inventory_repair_needed(connection, SCHEMA_VERSION)
+                super::terminal_inventory_repair::needed(connection, SCHEMA_VERSION)
             }
             Self::RetiredLiveGap => {
-                super::retired_live_gap_claim_repair_needed(connection, SCHEMA_VERSION)
+                super::retired_live_gap_repair::needed(connection, SCHEMA_VERSION)
             }
             Self::RemovedRootAuthority => super::retired_root_authority::repair_needed(connection),
             Self::RetainedSourceState => super::retained_source_state::repair_needed(connection),
@@ -32,13 +32,10 @@ impl RecoveryRepair {
     fn apply(&self, transaction: &Transaction<'_>) -> Result<(), ScanError> {
         match self {
             Self::TerminalInventory => {
-                super::repair_legacy_terminal_metadata_inventory_state_transaction(
-                    transaction,
-                    SCHEMA_VERSION,
-                )
+                super::terminal_inventory_repair::apply(transaction, SCHEMA_VERSION)
             }
             Self::RetiredLiveGap => {
-                super::repair_retired_live_gap_claims_transaction(transaction, SCHEMA_VERSION)
+                super::retired_live_gap_repair::apply(transaction, SCHEMA_VERSION)
             }
             Self::RemovedRootAuthority => {
                 super::retired_root_authority::repair_in_transaction(transaction)
@@ -77,3 +74,6 @@ pub(super) fn repair_and_validate(connection: &mut Connection) -> Result<(), Sca
     super::validate_current_schema_contract_with_source_revision_rows(&transaction)?;
     transaction.commit().map_err(database_error)
 }
+
+#[cfg(test)]
+mod tests;

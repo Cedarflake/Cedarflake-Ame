@@ -193,3 +193,28 @@ Hosted run `39008498192` for `0747bfa` rejected the coordinator's `schema_versio
 non-test library build. That symbol was used only by a test. The test now refers to `schema_shape`
 directly and the ordinary library import is removed; no warning suppression or gate change is used.
 The focused ordinary-library `cargo check --lib --locked` then completed without warnings.
+
+## Exact compatibility repair ownership
+
+Terminal inventory cleanup, retired-gap residue, interrupted explicit scan recovery and exact
+prerelease Journal shape repair have separate owners. Eight function bodies retain the original
+admission predicates, SQL, transaction acquisition and validation points. The existing
+`current_recovery_state` coordinator still applies related repairs atomically. Seventeen existing
+regressions and their assertions moved with the responsible owners; shared setup now lives beside
+the repair it represents. Full catalog reopen tests continue to cover interrupted foreground
+claim restoration, handoff-owned assets and cleanup rollback.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test/fixture lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 4,124 | 2,406 | 0 |
+| `terminal_inventory_repair.rs` | 84 | 4 | 523 |
+| `retired_live_gap_repair.rs` | 131 | 4 | 623 |
+| `interrupted_foreground_repair.rs` | 156 | 0 | 0 |
+| `prerelease_journal_repair.rs` | 116 | 2 | 52 |
+| `current_recovery_state.rs` | 77 | 2 | 25 |
+
+Cargo filter `repair::tests` passed 24 tests, including the moved terminal, retired-gap and
+prerelease cases. Three unused relocation imports were then removed without changing test bodies.
+The clean rebuild and `current_recovery_state::tests` passed the combined inventory/gap repair
+regression (1 passed, 0 failed). All local checks used the repository lock and disabled incremental
+cache; hosted CI retains full upgrade/reopen coverage.

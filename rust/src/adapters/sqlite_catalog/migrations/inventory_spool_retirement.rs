@@ -183,8 +183,8 @@ pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 31)?;
-    super::repair_retired_live_gap_claims_transaction(transaction, 31)?;
+    super::terminal_inventory_repair::apply(transaction, 31)?;
+    super::retired_live_gap_repair::apply(transaction, 31)?;
     super::retired_root_authority::repair_for_schema(transaction, 31)?;
     current_schema::validate_schema_version(transaction, 31)?;
     if !super::source_revision_contract::metadata_contract_is_complete(transaction)? {

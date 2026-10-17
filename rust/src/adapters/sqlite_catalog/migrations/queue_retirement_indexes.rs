@@ -32,8 +32,8 @@ pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 38)?;
-    super::repair_retired_live_gap_claims_transaction(transaction, 38)?;
+    super::terminal_inventory_repair::apply(transaction, 38)?;
+    super::retired_live_gap_repair::apply(transaction, 38)?;
     super::retired_root_authority::repair_for_schema(transaction, 38)?;
     current_schema::validate_schema_version(transaction, 38)?;
     for (name, ddl) in INDEXES {

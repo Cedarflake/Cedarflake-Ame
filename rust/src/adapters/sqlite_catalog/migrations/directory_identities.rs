@@ -23,8 +23,8 @@ const INDEX_DDL: &str = "CREATE INDEX scan_directory_identities_by_identity
     ON scan_directory_identities(scan_id, identity_value, relative_path)";
 
 pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    super::repair_prerelease_v24_source_range_id_triggers(connection)?;
-    super::repair_prerelease_v26_recovery_window_schema(connection)?;
+    super::prerelease_journal_repair::repair_range_id_triggers(connection)?;
+    super::prerelease_journal_repair::repair_recovery_window(connection)?;
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(database_error)?;
@@ -33,8 +33,8 @@ pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 34)?;
-    super::repair_retired_live_gap_claims_transaction(transaction, 34)?;
+    super::terminal_inventory_repair::apply(transaction, 34)?;
+    super::retired_live_gap_repair::apply(transaction, 34)?;
     super::retired_root_authority::repair_for_schema(transaction, 34)?;
     current_schema::validate_schema_version(transaction, 34)?;
     for (kind, name, ddl) in [
