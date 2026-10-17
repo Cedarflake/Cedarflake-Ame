@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: first round merged; notification and preview-cleanup ownership extraction active
+Status: first round merged; current maintenance slice implemented for PR review
 
 Updated: 2026-10-18
 
@@ -59,6 +59,12 @@ current delivery. M9–M11 preserve the remaining findings in suggested executio
 a subsequent scope decision before implementation. Their order puts visible interaction ownership
 before the higher-risk source-file and durable-journal boundaries. Move the affected tests with
 each owner; retain genuinely shared fixtures without making test-file cleanup a separate workstream.
+
+Closeout also includes the merged-main mixed-load failure: recovery selection can wait on a read
+lock before the existing bounded write phase. Its reproduced boundary repair and unchanged-load
+verification stay in PR #36; the [acceptance record](../acceptance/maintainability-refactor.md#recovery-selection-contention-follow-up)
+distinguishes the confirmed lock-wait gap from the still-unclassified stage within the original
+hosted timing. Final hosted checks remain required before this slice closes.
 
 ## Completed first-round delivery queue
 
@@ -150,9 +156,10 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
   current checks own integration verification. Follow-up C's released date-seek cancellation
   regression is corrected and run `39029121263` passed all required jobs. Existing assertions,
   timeouts and workloads remain unchanged.
-- Native GitHub stack #35 contains the six refactor PRs and combined follow-up PR #29 below.
+- Native GitHub stack #35 contained the six refactor PRs and combined follow-up PR #29 below.
   PRs #30–#34 were closed without merging after their complete history was retained by #29;
-  their branches remain. The former stack #28 was unstacked, with no history rewriting or new PR.
+  their branches were retained until the authorized post-merge cleanup. The former stack #28 was
+  unstacked, with no history rewriting or new PR.
   The seven review units retained adjacent base/head branches before the authorized merge on
   2026-10-18. The current maintenance slice above owns subsequent work; R4 has not started.
 

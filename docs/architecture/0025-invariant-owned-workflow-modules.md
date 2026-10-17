@@ -254,6 +254,12 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   retires its own identity on timeout or unwind, without revoking an active permit or consuming
   another waiter's position. Callbacks run outside the admission mutex; completed-write epochs
   advance only when the admitted permit retires.
+- `change_queue/lease_write.rs` owns recovery contention across readiness selection and lease
+  publication. Its zero-busy-wait connection scope starts before the first selection read and
+  restores configuration on every return or unwind. Busy or locked selection leaves durable work
+  untouched for a later poll; other errors remain failures. Readiness still precedes writer
+  registration, the bounded FIFO admission remains intact, and the transaction revalidates the
+  selected root, generation and authority before publishing a lease.
 - `domain/gallery_time_snapshot.rs` owns semantic month resolution, display-order fallback and
   bounded target-window selection. `sqlite_catalog/gallery_time_snapshot.rs` resolves that intent
   and reads the timeline, roots and page inside one `GalleryReadTransaction`. The target ordinal

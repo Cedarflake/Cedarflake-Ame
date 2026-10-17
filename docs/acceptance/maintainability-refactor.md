@@ -26,8 +26,9 @@ untracked and untouched.
 The reviewed source candidate retains its passing run
 [39042574123](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39042574123).
 The final merged head has a separate run
-[39049188229](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39049188229), still pending
-behind the preceding `main` run at this checkpoint.
+[39049188229](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39049188229). Its mixed-load
+Rust failure and the subsequent recovery-selection repair are recorded below; the earlier passing
+candidate run does not replace this result.
 
 ## Gallery synchronization notification ownership
 
@@ -112,6 +113,36 @@ format gate passed with all 423 Dart files unchanged, and the final diff check p
 submission checks are attached to [PR #36](https://github.com/Cedarflake/Cedarflake-Ame/pull/36);
 the final delivery report must identify the exact passing source commit. M9–M11 remain follow-up
 candidates and do not extend this review.
+
+## Recovery-selection contention follow-up
+
+Merged-head run `39049188229` failed
+`p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active` while waiting for sample 23's
+next bounded P2 source page. The last poll took 4,982 ms, including 4,965 ms in recovery leasing.
+The suite reported 1,991 passes, one failure and 22 expected ignores. This was the page-start
+deadline, not the final P0 P95 assertion. A focused local run on the unchanged implementation
+completed all 25 mixed-load samples with P0 P95 100 ms and maximum 103 ms, so it did not reproduce
+the hosted delay.
+
+The lease implementation limited FIFO admission to 5 ms and disabled SQLite busy waiting only
+inside the write phase. Its preceding readiness reads still used the normal five-second timeout.
+A new exclusive-lock regression reproduced that separate gap: recovery selection did not return
+while the read boundary was held. The repair puts selection and the write attempt within one
+zero-busy-wait scope. Contention returns no lease without consuming attempts; a later poll retries
+the unchanged durable task. Other selection errors remain errors. Normal-lane behavior, SQL,
+selection order, transaction revalidation, rollback and FIFO ordering remain unchanged.
+
+All six focused lease-admission regressions passed after the repair, including the previously red
+read-lock case, external/coordinated writers, fairness, rollback and selection-error restoration.
+Normalized SQL comparison found no query changes. Production line counts changed from 455 to 472
+in `lease_matching.rs` and from 75 to 88 in `lease_write.rs`, with no inline tests; the dedicated
+lease-admission test file changed from 198 to 284 lines. Existing test-only operation timing now
+distinguishes selection, admission, transaction start, update and commit. The original hosted trace
+does not distinguish those stages, so attribution of its entire 4,965 ms to this reproduced gap
+remains unconfirmed. The repaired mixed-load test passed in 164.96 seconds, including final baseline
+publication and reopen verification. All 25 samples retained P1/P2 activity and progress; P0 P95 was
+111 ms and maximum 117 ms. The format gate passed and the updated Debug built in 50.6 seconds.
+No workload, deadline, assertion or dependency was changed.
 
 ## Shared schema-shape validation
 
