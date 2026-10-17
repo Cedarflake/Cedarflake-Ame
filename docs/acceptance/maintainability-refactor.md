@@ -333,3 +333,25 @@ compilation passed. No queue policy, retry bound, source operation or published 
 
 Recovery task/resource ownership and the unused reconnect seam remain in the M2 queue. Hosted
 checks for the next pushed commit and final client comparison remain required.
+
+## M2 retained Recovery sources
+
+`RecoverySources` owns retained inventory sources by immutable change ID, current authority/run
+pruning and result publication. `RecoverySourceTransfer` binds the original change ID to the shared
+single-take operation, including the existing poison error; failed startup restores only that
+transfer's owner. Catalog-session validation still precedes source removal, non-inventory work
+cannot consume a retained source, and pruning performs all fallible authority reads before removal.
+These ownership moves preserve the previous call order and synchronization primitive.
+
+The four existing regressions moved with their controlled source/lease fixtures. They passed for
+catalog-validation failure, worker-spawn failure restoration, different-change isolation and missing
+authority pruning. Ordinary-library compilation passed without warnings. The production debt test
+continues to inspect the same empty-source invariant through read-only test access.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test/fixture lines |
+| --- | ---: | ---: | ---: |
+| `production.rs` after retained-source extraction | 1,708 | 7,374 | Existing child suites |
+| `recovery_sources.rs` | 90 | 8 | 223 |
+
+Recovery worker lifetime and reconnect retirement remain pending; this boundary does not change
+source reads, durable authority, publication policy or shutdown timing.

@@ -1,6 +1,6 @@
 #[cfg(all(test, windows))]
 use std::cell::Cell;
-#[cfg(windows)]
+#[cfg(all(test, windows))]
 use std::collections::BTreeMap;
 #[cfg(all(test, windows))]
 use std::panic::{AssertUnwindSafe, catch_unwind};
@@ -51,8 +51,7 @@ use super::production_synchronization_cadence::ProductionSynchronizationCadence;
 use crate::application::{
     AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
     MetadataInventoryRecoveryExecution, MetadataInventoryRecoveryPage,
-    MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl,
-    RetainedMetadataInventorySource, defer_authoritative_change,
+    MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl, defer_authoritative_change,
     leased_change_requires_metadata_inventory,
     process_leased_authoritative_library_change_cancellable,
     process_leased_metadata_inventory_change_with_retained_source,
@@ -71,10 +70,12 @@ use crate::journal_broker::{
     PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalOperationError,
     production_persistent_journal_caller_claim,
 };
+#[cfg(all(test, windows))]
+use crate::ports::MetadataInventoryRepository;
 #[cfg(windows)]
 use crate::ports::{
     IncrementalCatalogRepository, LibraryChangeQueue, LibraryChangeSourceStarter,
-    MetadataInventoryRepository, PersistentJournalRepository,
+    PersistentJournalRepository,
 };
 
 #[cfg(windows)]
@@ -100,9 +101,13 @@ mod journal_lane;
 #[cfg(windows)]
 mod recovery_lane;
 #[cfg(windows)]
+mod recovery_sources;
+#[cfg(windows)]
 use journal_lane::JournalLane;
 #[cfg(windows)]
 use recovery_lane::{ReadyRecoveryWork, RecoveryLane};
+#[cfg(windows)]
+use recovery_sources::{RecoverySourceTransfer, RecoverySources};
 
 #[cfg(windows)]
 mod journal_work;
@@ -271,7 +276,7 @@ struct ProductionSynchronization {
     live: Option<LiveTask>,
     live_root_cursor: Option<String>,
     recovery: Option<RecoveryTask>,
-    recovery_inventory_sources: BTreeMap<LibraryChangeId, RetainedMetadataInventorySource>,
+    recovery_sources: RecoverySources,
     metadata_inventory_page_entries: u32,
     recovery_lane: RecoveryLane,
     legacy_automatic_scans_retired: bool,
@@ -343,21 +348,6 @@ enum RecoveryTaskOutcome {
     MetadataInventory(Box<MetadataInventoryRecoveryPage>),
     CandidateDrain(IncrementalLibraryChangeReport),
     LegacyUnownedDrain(IncrementalLibraryChangeReport),
-}
-
-#[cfg(windows)]
-fn take_transferred_inventory_source(
-    transfer: &Arc<Mutex<Option<RetainedMetadataInventorySource>>>,
-) -> Result<Option<RetainedMetadataInventorySource>, ScanError> {
-    transfer
-        .lock()
-        .map_err(|_| {
-            ScanError::new(
-                "metadata_inventory_source_transfer_poisoned",
-                "The retained metadata inventory source transfer became unavailable",
-            )
-        })
-        .map(|mut source| source.take())
 }
 
 #[cfg(windows)]
@@ -578,7 +568,7 @@ fn poll_runtime_with_storage_inner(
     let live_mutation_count = runtime.poll_live(poll_unix_ms);
     let journal_mutation_count = runtime.poll_journal();
     let recovered_mutation_count = runtime.poll_recovery(poll_unix_ms)?;
-    runtime.prune_recovery_inventory_sources(catalog)?;
+    runtime.recovery_sources.prune(catalog)?;
     runtime.cancel_stale_automatic_recovery();
     snapshot.applied_mutation_count = snapshot
         .applied_mutation_count
@@ -666,7 +656,7 @@ fn new_production_synchronization_with_factory(
         live: None,
         live_root_cursor: None,
         recovery: None,
-        recovery_inventory_sources: BTreeMap::new(),
+        recovery_sources: RecoverySources::default(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
         recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,
@@ -701,7 +691,7 @@ fn new_production_synchronization_with_connection(
         live: None,
         live_root_cursor: None,
         recovery: None,
-        recovery_inventory_sources: BTreeMap::new(),
+        recovery_sources: RecoverySources::default(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
         recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,
@@ -1276,27 +1266,6 @@ impl ProductionSynchronization {
         Ok(())
     }
 
-    fn prune_recovery_inventory_sources(
-        &mut self,
-        catalog: &SqliteCatalog,
-    ) -> Result<(), ScanError> {
-        let mut stale_change_ids = Vec::new();
-        for (change_id, source) in &self.recovery_inventory_sources {
-            let is_current = catalog
-                .load_metadata_inventory_recovery_authority(*change_id)?
-                .is_some_and(|authority| {
-                    authority.retired_unix_ms.is_none() && authority.run_id == source.run_id()
-                });
-            if !is_current {
-                stale_change_ids.push(*change_id);
-            }
-        }
-        for change_id in stale_change_ids {
-            self.recovery_inventory_sources.remove(&change_id);
-        }
-        Ok(())
-    }
-
     fn poll_recovery(&mut self, now_unix_ms: i64) -> Result<u32, ScanError> {
         let Some(task) = self.recovery.as_mut() else {
             return Ok(0);
@@ -1352,11 +1321,7 @@ impl ProductionSynchronization {
                     report,
                     retained_source,
                 } = *page;
-                if let Some(source) = retained_source {
-                    self.recovery_inventory_sources.insert(change_id, source);
-                } else {
-                    self.recovery_inventory_sources.remove(&change_id);
-                }
+                self.recovery_sources.publish(change_id, retained_source);
                 #[cfg(debug_assertions)]
                 eprintln!(
                     "[Ame sync] recovery finished kind={recovery_kind} root={root_id} result=ok leased={} completed={} retried={} deferred={} superseded={} staged={} candidates={} mutations={}",
@@ -1456,67 +1421,69 @@ impl ProductionSynchronization {
         let phase = Arc::new(Mutex::new(initial_phase));
         let worker_phase = Arc::clone(&phase);
         let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let retained_inventory_source = Arc::new(Mutex::new(if is_inventory {
-            self.recovery_inventory_sources.remove(&change_id)
+        let retained_inventory_source = if is_inventory {
+            self.recovery_sources.transfer(change_id)
         } else {
-            None
-        }));
-        let worker_retained_inventory_source = Arc::clone(&retained_inventory_source);
+            RecoverySourceTransfer::empty(change_id)
+        };
+        let worker_retained_inventory_source = retained_inventory_source.clone();
         let (sender, receiver) = mpsc::sync_channel(1);
         let worker = spawn_recovery_worker(format!("ame-{recovery_kind}-recovery"), move || {
-            let result = take_transferred_inventory_source(&worker_retained_inventory_source)
-                .and_then(|retained_inventory_source| {
-                    catalog_session
-                        .open_in_lane(LibraryChangeLane::Recovery)
-                        .and_then(|mut catalog| {
-                            let Some(root) =
-                                catalog.load_incremental_catalog_root(&worker_root_id)?
-                            else {
-                                return Ok(if is_inventory {
-                                    RecoveryTaskOutcome::MetadataInventory(Box::new(
-                                        MetadataInventoryRecoveryPage {
-                                            report: MetadataInventoryRecoveryReport::default(),
-                                            retained_source: None,
-                                        },
-                                    ))
-                                } else {
-                                    RecoveryTaskOutcome::Authoritative(
-                                        AuthoritativeLibraryChangeReport::default(),
-                                    )
-                                });
-                            };
-                            if root.root_generation != root_generation
-                                || root.active_scan_id.is_none()
-                                || root.has_running_scan
-                            {
-                                let deferred = defer_authoritative_change(
-                                    &mut catalog,
-                                    &leased,
-                                    root.catalog_revision,
-                                    now_unix_ms,
-                                )?;
-                                return Ok(if is_inventory {
-                                    RecoveryTaskOutcome::MetadataInventory(Box::new(
-                                        MetadataInventoryRecoveryPage {
-                                            report: MetadataInventoryRecoveryReport {
-                                                incremental: deferred.incremental,
-                                                ..MetadataInventoryRecoveryReport::default()
+            let result =
+                worker_retained_inventory_source
+                    .take()
+                    .and_then(|retained_inventory_source| {
+                        catalog_session
+                            .open_in_lane(LibraryChangeLane::Recovery)
+                            .and_then(|mut catalog| {
+                                let Some(root) =
+                                    catalog.load_incremental_catalog_root(&worker_root_id)?
+                                else {
+                                    return Ok(if is_inventory {
+                                        RecoveryTaskOutcome::MetadataInventory(Box::new(
+                                            MetadataInventoryRecoveryPage {
+                                                report: MetadataInventoryRecoveryReport::default(),
+                                                retained_source: None,
                                             },
-                                            retained_source: None,
-                                        },
-                                    ))
-                                } else {
-                                    RecoveryTaskOutcome::Authoritative(deferred)
-                                });
-                            }
-                            if is_inventory {
-                                let report_progress = |progress| {
-                                    if let Ok(mut phase) = worker_phase.lock() {
-                                        *phase = synchronization_phase(progress);
-                                    }
+                                        ))
+                                    } else {
+                                        RecoveryTaskOutcome::Authoritative(
+                                            AuthoritativeLibraryChangeReport::default(),
+                                        )
+                                    });
                                 };
-                                let yield_page = |_phase| thread::yield_now();
-                                process_leased_metadata_inventory_change_with_retained_source(
+                                if root.root_generation != root_generation
+                                    || root.active_scan_id.is_none()
+                                    || root.has_running_scan
+                                {
+                                    let deferred = defer_authoritative_change(
+                                        &mut catalog,
+                                        &leased,
+                                        root.catalog_revision,
+                                        now_unix_ms,
+                                    )?;
+                                    return Ok(if is_inventory {
+                                        RecoveryTaskOutcome::MetadataInventory(Box::new(
+                                            MetadataInventoryRecoveryPage {
+                                                report: MetadataInventoryRecoveryReport {
+                                                    incremental: deferred.incremental,
+                                                    ..MetadataInventoryRecoveryReport::default()
+                                                },
+                                                retained_source: None,
+                                            },
+                                        ))
+                                    } else {
+                                        RecoveryTaskOutcome::Authoritative(deferred)
+                                    });
+                                }
+                                if is_inventory {
+                                    let report_progress = |progress| {
+                                        if let Ok(mut phase) = worker_phase.lock() {
+                                            *phase = synchronization_phase(progress);
+                                        }
+                                    };
+                                    let yield_page = |_phase| thread::yield_now();
+                                    process_leased_metadata_inventory_change_with_retained_source(
                                 &mut catalog,
                                 &root,
                                 &leased,
@@ -1533,29 +1500,27 @@ impl ProductionSynchronization {
                                 retained_inventory_source,
                             )
                             .map(|page| RecoveryTaskOutcome::MetadataInventory(Box::new(page)))
-                            } else {
-                                process_leased_authoritative_library_change_cancellable(
-                                    &mut catalog,
-                                    &root,
-                                    &leased,
-                                    now_unix_ms,
-                                    queue_policy,
-                                    recovery_policy,
-                                    &worker_cancelled,
-                                )
-                                .map(RecoveryTaskOutcome::Authoritative)
-                            }
-                        })
-                });
+                                } else {
+                                    process_leased_authoritative_library_change_cancellable(
+                                        &mut catalog,
+                                        &root,
+                                        &leased,
+                                        now_unix_ms,
+                                        queue_policy,
+                                        recovery_policy,
+                                        &worker_cancelled,
+                                    )
+                                    .map(RecoveryTaskOutcome::Authoritative)
+                                }
+                            })
+                    });
             let _ = sender.send(result);
         });
         let worker = match worker {
             Ok(worker) => worker,
             Err(error) => {
-                if let Some(source) = take_transferred_inventory_source(&retained_inventory_source)?
-                {
-                    self.recovery_inventory_sources.insert(change_id, source);
-                }
+                self.recovery_sources
+                    .restore_failed_start(&retained_inventory_source)?;
                 return Err(ScanError::new(
                     "authoritative_recovery_worker_start_failed",
                     format!("Could not start {recovery_kind} recovery: {error}"),
@@ -2089,26 +2054,6 @@ mod tests {
     use rusqlite::OptionalExtension;
 
     #[cfg(windows)]
-    struct RetainedSourceProbe;
-
-    #[cfg(windows)]
-    impl crate::ports::MetadataInventorySource for RetainedSourceProbe {
-        fn next_page(
-            &mut self,
-            _max_entries: u32,
-            _cancelled: &AtomicBool,
-        ) -> Result<crate::domain::MetadataInventoryPage, ScanError> {
-            Ok(crate::domain::MetadataInventoryPage {
-                page_index: 0,
-                entries: Vec::new(),
-                cursor: None,
-                is_complete: true,
-                frontier: Vec::new(),
-            })
-        }
-    }
-
-    #[cfg(windows)]
     #[derive(Clone, Default)]
     struct QueuedSourceFactory {
         batches: Arc<
@@ -2389,55 +2334,6 @@ mod tests {
             }
             Ok(self.response)
         }
-    }
-
-    #[cfg(windows)]
-    fn metadata_inventory_lease(change_id: LibraryChangeId) -> LeasedLibraryChange {
-        let generation = LibraryRootGeneration::initial();
-        let lease_generation = 1;
-        let lease_expires_unix_ms = 10_000;
-        LeasedLibraryChange {
-            change: crate::domain::DurableLibraryChange {
-                id: change_id,
-                intent: crate::domain::LibraryChangeIntent {
-                    root_id: "root-a".to_owned(),
-                    root_generation: generation,
-                    kind: crate::domain::LibraryChangeIntentKind::FreshnessUnknown,
-                    scope: crate::domain::LibraryChangeScope::Root,
-                    relative_path: String::new(),
-                    previous_relative_path: None,
-                    origin: crate::domain::LibraryChangeOrigin::MetadataInventory,
-                    first_observed_unix_ms: 1,
-                    most_recent_observed_unix_ms: 1,
-                    first_sequence: 1,
-                    most_recent_sequence: 1,
-                    coalesced_observation_count: 1,
-                },
-                status: crate::domain::LibraryChangeQueueStatus::Leased,
-                ready_unix_ms: 1,
-                attempt_count: 1,
-                next_retry_unix_ms: None,
-                lease_generation,
-                lease_expires_unix_ms: Some(lease_expires_unix_ms),
-                last_failure: Some(crate::domain::LibraryChangeFailure {
-                    code: "metadata_inventory_required".to_owned(),
-                    message: "fixture metadata inventory authority".to_owned(),
-                }),
-                catalog_revision_at_enqueue: 0,
-                catalog_revision_at_success: None,
-                catch_up_source: None,
-                catch_up_watermark: None,
-                catch_up_lineage: Vec::new(),
-                superseded_by_change_id: None,
-            },
-            lease_generation,
-            lease_expires_unix_ms,
-        }
-    }
-
-    #[cfg(windows)]
-    fn retained_source_probe(run_id: &str) -> RetainedMetadataInventorySource {
-        RetainedMetadataInventorySource::for_test(run_id, Box::new(RetainedSourceProbe))
     }
 
     #[cfg(windows)]
@@ -5053,7 +4949,7 @@ mod tests {
             live: None,
             live_root_cursor: None,
             recovery: None,
-            recovery_inventory_sources: BTreeMap::new(),
+            recovery_sources: RecoverySources::default(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
             recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
@@ -5301,7 +5197,7 @@ mod tests {
             live: None,
             live_root_cursor: None,
             recovery: None,
-            recovery_inventory_sources: BTreeMap::new(),
+            recovery_sources: RecoverySources::default(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
             recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
@@ -5382,7 +5278,7 @@ mod tests {
             live: None,
             live_root_cursor: None,
             recovery: None,
-            recovery_inventory_sources: BTreeMap::new(),
+            recovery_sources: RecoverySources::default(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
             recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
@@ -8550,160 +8446,6 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn metadata_inventory_catalog_validation_failure_preserves_retained_change_owner() {
-        let directory = tempfile::tempdir().expect("test directory");
-        let catalog_path = directory.path().join("catalog").join("ame.sqlite3");
-        drop(SqliteCatalog::open(catalog_path.clone()).expect("fixture catalog"));
-        let mut production = new_production_synchronization_with_connection(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            test_live_only_connection(),
-        );
-        production.catalog_session = Some(Arc::new(
-            SqliteCatalogSession::validate(catalog_path.clone())
-                .expect("validated catalog session"),
-        ));
-        let change_id = LibraryChangeId::new(41).expect("fixture change ID");
-        production
-            .recovery_inventory_sources
-            .insert(change_id, retained_source_probe("retained-validation"));
-
-        let error = production
-            .start_automatic_recovery(
-                "root-a".to_owned(),
-                LibraryRootGeneration::initial(),
-                1,
-                metadata_inventory_lease(change_id),
-                1,
-                directory.path().join("different-catalog.sqlite3"),
-            )
-            .expect_err("catalog switch must fail before source handoff");
-
-        assert_eq!(error.code, "library_synchronization_catalog_changed");
-        assert_eq!(
-            production
-                .recovery_inventory_sources
-                .get(&change_id)
-                .map(RetainedMetadataInventorySource::run_id),
-            Some("retained-validation")
-        );
-        assert!(production.recovery.is_none());
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn metadata_inventory_worker_spawn_failure_restores_retained_change_owner() {
-        let directory = tempfile::tempdir().expect("test directory");
-        let catalog_path = directory.path().join("catalog").join("ame.sqlite3");
-        drop(SqliteCatalog::open(catalog_path.clone()).expect("fixture catalog"));
-        let mut production = new_production_synchronization_with_connection(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            test_live_only_connection(),
-        );
-        let change_id = LibraryChangeId::new(42).expect("fixture change ID");
-        production
-            .recovery_inventory_sources
-            .insert(change_id, retained_source_probe("retained-spawn"));
-        fail_next_recovery_worker_spawn();
-
-        let error = production
-            .start_automatic_recovery(
-                "root-a".to_owned(),
-                LibraryRootGeneration::initial(),
-                1,
-                metadata_inventory_lease(change_id),
-                1,
-                catalog_path,
-            )
-            .expect_err("injected spawn failure must restore source ownership");
-
-        assert_eq!(error.code, "authoritative_recovery_worker_start_failed");
-        assert_eq!(
-            production
-                .recovery_inventory_sources
-                .get(&change_id)
-                .map(RetainedMetadataInventorySource::run_id),
-            Some("retained-spawn")
-        );
-        assert!(production.recovery.is_none());
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn metadata_inventory_new_change_does_not_take_another_retained_owner() {
-        let directory = tempfile::tempdir().expect("test directory");
-        let catalog_path = directory.path().join("catalog").join("ame.sqlite3");
-        drop(SqliteCatalog::open(catalog_path.clone()).expect("fixture catalog"));
-        let mut production = new_production_synchronization_with_connection(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            test_live_only_connection(),
-        );
-        let retained_change_id = LibraryChangeId::new(43).expect("retained change ID");
-        let active_change_id = LibraryChangeId::new(44).expect("active change ID");
-        production.recovery_inventory_sources.insert(
-            retained_change_id,
-            retained_source_probe("retained-other-authority"),
-        );
-
-        production
-            .start_automatic_recovery(
-                "root-a".to_owned(),
-                LibraryRootGeneration::initial(),
-                1,
-                metadata_inventory_lease(active_change_id),
-                1,
-                catalog_path,
-            )
-            .expect("start independent recovery owner");
-        let deadline = Instant::now() + Duration::from_secs(5);
-        while production.recovery.is_some() {
-            production
-                .poll_recovery(2)
-                .expect("collect independent recovery result");
-            assert!(
-                Instant::now() < deadline,
-                "independent recovery did not finish"
-            );
-            thread::yield_now();
-        }
-
-        assert_eq!(
-            production
-                .recovery_inventory_sources
-                .get(&retained_change_id)
-                .map(RetainedMetadataInventorySource::run_id),
-            Some("retained-other-authority")
-        );
-        assert!(
-            !production
-                .recovery_inventory_sources
-                .contains_key(&active_change_id)
-        );
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn metadata_inventory_source_pruning_discards_missing_authority() {
-        let directory = tempfile::tempdir().expect("test directory");
-        let catalog_path = directory.path().join("catalog").join("ame.sqlite3");
-        let catalog = SqliteCatalog::open(catalog_path).expect("fixture catalog");
-        let mut production = new_production_synchronization_with_connection(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            test_live_only_connection(),
-        );
-        let change_id = LibraryChangeId::new(45).expect("stale change ID");
-        production
-            .recovery_inventory_sources
-            .insert(change_id, retained_source_probe("stale-authority"));
-
-        production
-            .prune_recovery_inventory_sources(&catalog)
-            .expect("prune stale source owner");
-
-        assert!(production.recovery_inventory_sources.is_empty());
-    }
-
-    #[cfg(windows)]
-    #[test]
     fn p2_page_completion_rotates_to_another_root_and_retains_each_frontier() {
         let directory = tempfile::tempdir().expect("test directory");
         let storage = crate::application::storage::StoragePaths {
@@ -8846,7 +8588,7 @@ mod tests {
             live: None,
             live_root_cursor: None,
             recovery: None,
-            recovery_inventory_sources: BTreeMap::new(),
+            recovery_sources: RecoverySources::default(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
             recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
@@ -8913,15 +8655,17 @@ mod tests {
             RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
             _ => panic!("second root must own metadata inventory recovery"),
         };
-        assert_eq!(production.recovery_inventory_sources.len(), 1);
+        assert_eq!(production.recovery_sources.retained_for_test().len(), 1);
         let first_retained_change_id = *production
-            .recovery_inventory_sources
+            .recovery_sources
+            .retained_for_test()
             .keys()
             .next()
             .expect("first root retained change owner");
         assert_eq!(first_retained_change_id, first_active_change_id);
         let first_retained_run_id = production
-            .recovery_inventory_sources
+            .recovery_sources
+            .retained_for_test()
             .get(&first_retained_change_id)
             .expect("first root retained source")
             .run_id()
@@ -8971,9 +8715,10 @@ mod tests {
             _ => panic!("returned first root must own metadata inventory recovery"),
         };
         assert_eq!(third_active_change_id, first_retained_change_id);
-        assert_eq!(production.recovery_inventory_sources.len(), 1);
+        assert_eq!(production.recovery_sources.retained_for_test().len(), 1);
         let second_retained_change_id = *production
-            .recovery_inventory_sources
+            .recovery_sources
+            .retained_for_test()
             .keys()
             .next()
             .expect("second root retained change owner");
@@ -9014,7 +8759,8 @@ mod tests {
         let first_retained_identity = recovery_identity(first_retained_change_id);
         let second_retained_identity = recovery_identity(second_retained_change_id);
         let second_retained_run_id = production
-            .recovery_inventory_sources
+            .recovery_sources
+            .retained_for_test()
             .get(&second_retained_change_id)
             .expect("second root retained source")
             .run_id()
@@ -9074,12 +8820,14 @@ mod tests {
         assert_eq!(second_released_identity.5, second_retained_identity.5);
         assert!(
             production
-                .recovery_inventory_sources
+                .recovery_sources
+                .retained_for_test()
                 .contains_key(&first_retained_change_id)
         );
         assert!(
             !production
-                .recovery_inventory_sources
+                .recovery_sources
+                .retained_for_test()
                 .contains_key(&second_retained_change_id)
         );
         let watcher_overlap_deadline = Instant::now() + Duration::from_secs(5);
@@ -9245,7 +8993,7 @@ mod tests {
                 receiver,
                 worker: Some(worker),
             }),
-            recovery_inventory_sources: BTreeMap::new(),
+            recovery_sources: RecoverySources::default(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
             recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
@@ -9304,7 +9052,7 @@ mod tests {
                 receiver,
                 worker: Some(worker),
             }),
-            recovery_inventory_sources: BTreeMap::new(),
+            recovery_sources: RecoverySources::default(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
             recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
