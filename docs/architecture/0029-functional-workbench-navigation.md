@@ -118,8 +118,14 @@ The group-list heading/count block, centered category switch and right-aligned a
 share one row. Equal Expanded regions on both sides keep the switch at the content-area center.
 LayoutBuilder uses a text-scaled compact-width boundary to stack these blocks when necessary,
 retaining the switch's centered alignment. The count line reserves space during loading.
-The existing Material SegmentedButton retains selection, focus and semantics. The selected group's
-action row is also right-aligned. A card-wide `InkWell`
+The existing Material SegmentedButton retains selection, focus and semantics. Material
+`TextButton.icon` and `FilledButton.icon`, available in the pinned SDK, pair the existing action
+labels with leading icons and retain framework padding, focus, disabled state and semantics.
+The selected group's back/title block and right-aligned actions share a centered Row above the
+text-scaled compact-width boundary. Below it, a Column keeps actions beneath the heading; their
+Wrap aligns every run to the right. LibraryPathText retains filename truncation and its full-path
+tooltip. This composes existing controls without a custom button or layout primitive.
+A card-wide `InkWell`
 supplies pointer, keyboard and hover behavior, while
 the text/icon buttons keep their separate actions. The pinned SDK's `Card.clipBehavior` clips the ink to
 the shared card shape; an embedded clickable `ListTile` would restrict feedback to the path region.

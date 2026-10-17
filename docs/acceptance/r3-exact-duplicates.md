@@ -784,6 +784,19 @@ bounded windows, stale reads, retry, and Windows viewer semantics. The page owns
 lines and no inline tests; the dedicated viewer test has 201 lines. Current-head Actions remain
 the owner of complete automated verification.
 
+## Duplicate header controls
+
+The post-closeout header adjustment uses the installed Material icon-button constructors while
+retaining existing labels and action admission. The member title and actions share a row at wider
+sizes and stack with right-aligned actions at compact widths or enlarged text. The existing layout
+suite passes all nine cases, covering 400/800/1200/1280 widths at 1x/2x text and bounded preview demand.
+
+An ordinary Debug build from `f1e236c` plus this header change was checked against the retained
+10,000-file test library: group/member navigation, wide-to-compact layout, pause/resume icon and label
+changes, refresh and return all completed without runtime error entries. The test process exited
+normally; original preferences, storage settings and catalog hashes were restored and verified.
+Complete automated gates remain owned by the commit's normal Actions run.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

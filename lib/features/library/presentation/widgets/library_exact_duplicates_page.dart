@@ -154,21 +154,27 @@ class _LibraryExactDuplicatesPageState
                 actions: LibraryExactAnalysisActions(
                   controller: _analysis,
                   actions: [
-                    TextButton(
+                    TextButton.icon(
                       onPressed: _review.loading || _review.saving
                           ? null
                           : () => unawaited(_review.refresh()),
-                      child: const Text(LibraryDuplicateStrings.refresh),
+                      icon: const Icon(Symbols.refresh_rounded),
+                      label: const Text(LibraryDuplicateStrings.refresh),
                     ),
                     if (selected != null)
-                      TextButton(
+                      TextButton.icon(
                         onPressed:
                             _review.saving ||
                                 _review.loading ||
                                 _review.loadFailed
                             ? null
                             : () => unawaited(_ignore()),
-                        child: Text(
+                        icon: Icon(
+                          _review.decision.ignored
+                              ? Symbols.visibility_rounded
+                              : Symbols.visibility_off_rounded,
+                        ),
+                        label: Text(
                           _review.decision.ignored
                               ? LibraryDuplicateStrings.restoreGroup
                               : LibraryDuplicateStrings.ignore,

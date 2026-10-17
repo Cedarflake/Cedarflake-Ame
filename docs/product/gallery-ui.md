@@ -169,7 +169,11 @@ category switch at the content area's horizontal center, and refresh/pause actio
 in one row. Equal flexible space on both sides keeps the switch centered independently of label
 length. Compact widths and enlarged text stack these blocks while retaining the centered switch
 and right-aligned actions.
-Group review adds ignore/restore to the right-aligned action row. Groups use responsive multi-column
+Analysis and review actions pair familiar leading icons with their existing text labels. Group
+review adds ignore/restore to the right-aligned action row. The subpage's back/title block and
+actions share one vertically centered row when space permits; compact widths and enlarged text
+move actions below the heading while retaining right alignment. Keep the full filename available
+through the existing path tooltip when the heading is truncated. Groups use responsive multi-column
 cards; group members use full-width single-column rows so paths have enough space. Both reuse the
 thumbnail/text skeleton. Group cards retain their lower-right text action; member rows place
 preference and Explorer icon buttons on the right, vertically centered, without a footer. Measure

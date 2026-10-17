@@ -18,7 +18,7 @@ import "package:flutter_test/flutter_test.dart";
 import "support/duplicate_review_fixtures.dart";
 
 void main() {
-  for (final width in [400.0, 1200.0, 1280.0]) {
+  for (final width in [400.0, 800.0, 1200.0, 1280.0]) {
     for (final scale in [1.0, 2.0]) {
       testWidgets("review cards and actions fit at $width and ${scale}x text", (
         tester,
@@ -143,6 +143,18 @@ void main() {
         expect(find.text("首选副本"), findsNothing);
         expect(find.text("本地可用"), findsNothing);
         final grid = find.byType(GridView);
+        if (width >= 800 && scale == 1) {
+          expect(tester.getCenter(title).dy, tester.getCenter(actions).dy);
+          expect(
+            tester.getTopLeft(actions).dx - tester.getTopRight(title).dx,
+            greaterThanOrEqualTo(24),
+          );
+        } else {
+          expect(
+            tester.getTopLeft(actions).dy,
+            greaterThan(tester.getBottomLeft(title).dy),
+          );
+        }
         expect(tester.getTopLeft(grid).dx, tester.getTopLeft(title).dx);
         expect(
           tester

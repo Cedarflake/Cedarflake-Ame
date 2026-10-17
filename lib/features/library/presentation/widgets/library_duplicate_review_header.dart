@@ -99,46 +99,57 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
     );
   }
 
-  Widget _memberHeader(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Row(
-        children: [
-          SizedBox(
-            width: 40,
-            child: AmeTooltip(
-              message: LibraryDuplicateStrings.back,
-              child: IconButton(
-                key: const Key("duplicate-review-back"),
-                onPressed: onBack,
-                icon: const Icon(Symbols.arrow_back_rounded),
-              ),
+  Widget _memberHeader(BuildContext context) {
+    final heading = Row(
+      children: [
+        SizedBox(
+          width: 40,
+          child: AmeTooltip(
+            message: LibraryDuplicateStrings.back,
+            child: IconButton(
+              key: const Key("duplicate-review-back"),
+              onPressed: onBack,
+              icon: const Icon(Symbols.arrow_back_rounded),
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: DefaultTextStyle(
-              style: Theme.of(context).textTheme.headlineSmall!,
-              child: LibraryPathText(
-                text: title,
-                path: title,
-                textKey: const Key("duplicate-review-title"),
-              ),
-            ),
-          ),
-        ],
-      ),
-      const SizedBox(height: 8),
-      Padding(
-        padding: const EdgeInsets.only(left: backInset),
-        child: OverflowBar(
-          alignment: MainAxisAlignment.end,
-          overflowAlignment: OverflowBarAlignment.end,
-          spacing: 16,
-          overflowSpacing: 8,
-          children: [actions],
         ),
-      ),
-    ],
-  );
+        const SizedBox(width: 8),
+        Expanded(
+          child: DefaultTextStyle(
+            style: Theme.of(context).textTheme.headlineSmall!,
+            child: LibraryPathText(
+              text: title,
+              path: title,
+              textKey: const Key("duplicate-review-title"),
+            ),
+          ),
+        ),
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final textScale = MediaQuery.textScalerOf(context).scale(24) / 24;
+        if (constraints.maxWidth < 720 * textScale) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              heading,
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: backInset),
+                child: Align(alignment: Alignment.centerRight, child: actions),
+              ),
+            ],
+          );
+        }
+        return Row(
+          children: [
+            Expanded(child: heading),
+            const SizedBox(width: 24),
+            actions,
+          ],
+        );
+      },
+    );
+  }
 }
