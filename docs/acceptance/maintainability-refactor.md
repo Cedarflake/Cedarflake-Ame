@@ -162,3 +162,34 @@ moved without changing their assertions; the v19 factory remains shared and test
 Local Cargo filter `catch_up_repair::tests`: 4 passed, 0 failed, 0 ignored, under the repository lock
 with `CARGO_INCREMENTAL=0`. The clean run followed removal of two unused coordinator imports. All
 test targets compiled; the remaining moved regressions and integration paths retain hosted ownership.
+
+## Journal schema, row and payload proof
+
+`journal_contract` owns structural admission and ordered row checks. Its child modules group schema,
+state, lineage, payload relationships and canonical values. The 28 relocated function bodies retain
+their decisions and SQL after name/format normalization; the three canonical DDL arrays are
+byte-identical. Normal persistence writes call the same lineage/payload proofs at the same transaction
+points. No schema version, accepted state, repair rule or publication authority changed.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 4,595 | 3,592 | 0 |
+| `migrations/journal_contract.rs` | 260 | 2 | 133 |
+| `journal_contract/schema.rs` | 332 | 0 | 0 |
+| `journal_contract/rows.rs` | 198 | 0 | 0 |
+| `journal_contract/state_rows.rs` | 241 | 0 | 0 |
+| `journal_contract/lineage.rs` | 344 | 0 | 0 |
+| `journal_contract/payload_children.rs` | 187 | 0 | 0 |
+| `journal_contract/payload_intents.rs` | 217 | 0 | 0 |
+| `journal_contract/lineage_payload.rs` | 220 | 0 | 0 |
+| `journal_contract/values.rs` | 118 | 0 | 0 |
+
+Local Cargo filter `journal_contract::tests`: 3 passed, 0 failed, 0 ignored under the repository
+lock with `CARGO_INCREMENTAL=0`. This covers malformed range shape, same-count replacement CHECK
+constraints and quoted SQL mutations. All test targets compiled without warnings; the complete
+journal write and historical migration workload retains hosted CI ownership.
+
+Hosted run `39008498192` for `0747bfa` rejected the coordinator's `schema_version` import in its
+non-test library build. That symbol was used only by a test. The test now refers to `schema_shape`
+directly and the ordinary library import is removed; no warning suppression or gate change is used.
+The focused ordinary-library `cargo check --lib --locked` then completed without warnings.

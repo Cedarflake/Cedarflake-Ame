@@ -386,7 +386,11 @@ page failure remain one boundary, with no second decoded page or per-record clon
   batch-handoff proof. `catch_up_repair.rs` owns the exact v19 compatibility repair;
   `scan_owner_contract.rs` owns the v17/v18 authority markers and scan-owner repair. Their
   existing preflight, lock recheck and transaction boundaries remain separate from version dispatch.
-  Other historical validators and shrink-only compatibility repair remain the next physical split,
+  `migrations/journal_contract.rs` owns journal structural admission and row-proof order. Its schema,
+  state-row, lineage and payload modules prove separate persisted relationships using canonical
+  values. Normal journal writes reuse the lineage/payload proofs directly within their existing
+  transactions; historical DDL steps retain the same canonical schema definitions.
+  Remaining historical compatibility repair is the next physical split,
   not a completed extraction. Migration order and one-transaction rollback remain centralized.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.
   A completed window is historical coverage, not a demand to freeze the current checkpoint at its

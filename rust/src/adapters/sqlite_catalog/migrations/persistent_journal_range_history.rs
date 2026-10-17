@@ -2,7 +2,8 @@ use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
-use super::{database_error, unverifiable_persistent_journal_contract};
+use super::database_error;
+use super::journal_contract::values::unverifiable_contract;
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
     let has_baselines = connection
@@ -75,7 +76,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
         )
         .map_err(database_error)?;
     if invalid {
-        return Err(unverifiable_persistent_journal_contract());
+        return Err(unverifiable_contract());
     }
     Ok(())
 }
