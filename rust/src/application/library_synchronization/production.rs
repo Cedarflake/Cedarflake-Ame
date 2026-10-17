@@ -98,7 +98,11 @@ mod journal_volume;
 #[cfg(windows)]
 mod journal_lane;
 #[cfg(windows)]
+mod recovery_lane;
+#[cfg(windows)]
 use journal_lane::JournalLane;
+#[cfg(windows)]
+use recovery_lane::{ReadyRecoveryWork, RecoveryLane};
 
 #[cfg(windows)]
 mod journal_work;
@@ -248,10 +252,6 @@ fn pause_live_worker_after_lease(root_id: &str) {
 #[cfg(windows)]
 const SYNCHRONIZATION_STOP_TIMEOUT: Duration = Duration::from_secs(2);
 #[cfg(windows)]
-const RECOVERY_RETRY_INITIAL_MILLIS: i64 = 1_000;
-#[cfg(windows)]
-const RECOVERY_RETRY_MAXIMUM_MILLIS: i64 = 5 * 60 * 1_000;
-#[cfg(windows)]
 // The absolute 4096th queue slot remains the inventory authority while one candidate page drains.
 const METADATA_INVENTORY_WORK_PAGE_ENTRIES: u32 = 4_095;
 #[cfg(windows)]
@@ -273,8 +273,7 @@ struct ProductionSynchronization {
     recovery: Option<RecoveryTask>,
     recovery_inventory_sources: BTreeMap<LibraryChangeId, RetainedMetadataInventorySource>,
     metadata_inventory_page_entries: u32,
-    recovery_retries: BTreeMap<String, RecoveryRetryState>,
-    authoritative_root_cursor: Option<String>,
+    recovery_lane: RecoveryLane,
     legacy_automatic_scans_retired: bool,
     inventory_cleanup: InventoryCleanupOwner,
     root_location: RootLocationRecoveryOwner,
@@ -378,13 +377,6 @@ fn spawn_recovery_worker(
 #[cfg(all(test, windows))]
 fn fail_next_recovery_worker_spawn() {
     FAIL_NEXT_RECOVERY_WORKER_SPAWN.with(|failure| failure.set(true));
-}
-
-#[cfg(windows)]
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-struct RecoveryRetryState {
-    failure_count: u32,
-    next_attempt_unix_ms: i64,
 }
 
 pub(crate) fn reserve_production_library_synchronization_start_ticket() -> Result<u64, ScanError> {
@@ -676,8 +668,7 @@ fn new_production_synchronization_with_factory(
         recovery: None,
         recovery_inventory_sources: BTreeMap::new(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-        recovery_retries: BTreeMap::new(),
-        authoritative_root_cursor: None,
+        recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,
         inventory_cleanup: InventoryCleanupOwner::default(),
         root_location: RootLocationRecoveryOwner::default(),
@@ -712,8 +703,7 @@ fn new_production_synchronization_with_connection(
         recovery: None,
         recovery_inventory_sources: BTreeMap::new(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-        recovery_retries: BTreeMap::new(),
-        authoritative_root_cursor: None,
+        recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,
         inventory_cleanup: InventoryCleanupOwner::default(),
         root_location: RootLocationRecoveryOwner::default(),
@@ -959,47 +949,6 @@ const fn synchronization_phase(
 }
 
 #[cfg(windows)]
-enum ReadyRecoveryWork {
-    CandidateDrain {
-        root_id: String,
-        root_generation: LibraryRootGeneration,
-    },
-    LegacyUnownedDrain {
-        root_id: String,
-        root_generation: LibraryRootGeneration,
-    },
-    Control {
-        root_id: String,
-        root_generation: LibraryRootGeneration,
-    },
-}
-
-#[cfg(windows)]
-impl ReadyRecoveryWork {
-    fn root_id(&self) -> &str {
-        match self {
-            Self::CandidateDrain { root_id, .. }
-            | Self::LegacyUnownedDrain { root_id, .. }
-            | Self::Control { root_id, .. } => root_id,
-        }
-    }
-
-    const fn root_generation(&self) -> LibraryRootGeneration {
-        match self {
-            Self::CandidateDrain {
-                root_generation, ..
-            }
-            | Self::LegacyUnownedDrain {
-                root_generation, ..
-            }
-            | Self::Control {
-                root_generation, ..
-            } => *root_generation,
-        }
-    }
-}
-
-#[cfg(windows)]
 fn ready_recovery_work(
     runtime: &mut ProductionSynchronization,
     catalog: &SqliteCatalog,
@@ -1031,87 +980,13 @@ fn ready_recovery_work(
     {
         return Ok(None);
     }
-    let start_index = runtime
-        .authoritative_root_cursor
-        .as_ref()
-        .and_then(|root_id| {
-            snapshot
-                .roots
-                .iter()
-                .position(|root| &root.root_id == root_id)
-        })
-        .map_or(0, |index| (index + 1) % snapshot.roots.len());
-    for offset in 0..snapshot.roots.len() {
-        let root = &snapshot.roots[(start_index + offset) % snapshot.roots.len()];
-        if root.availability != crate::domain::LibraryRootAvailability::Available
-            || root.source_health != crate::domain::LibraryChangeSourceHealth::Healthy
-            || root.recovery_blocked
-            || !runtime.recovery_is_due(&root.root_id, now_unix_ms)
-        {
-            continue;
-        }
-        let root_generation = crate::domain::LibraryRootGeneration::new(root.root_generation)
-            .ok_or_else(|| {
-                ScanError::new(
-                    "library_root_generation_invalid",
-                    "The synchronization root generation is invalid",
-                )
-            })?;
-        if !journal_capacity_debt_roots.is_empty()
-            && !journal_capacity_debt_roots
-                .iter()
-                .any(|(root_id, generation)| {
-                    root_id == &root.root_id && *generation == root_generation
-                })
-        {
-            continue;
-        }
-        if catalog.has_ready_metadata_inventory_recovery_candidates(
-            &root.root_id,
-            root_generation,
-            now_unix_ms,
-            runtime.runtime.queue_policy(),
-        )? {
-            runtime.authoritative_root_cursor = Some(root.root_id.clone());
-            return Ok(Some(ReadyRecoveryWork::CandidateDrain {
-                root_id: root.root_id.clone(),
-                root_generation,
-            }));
-        }
-        if catalog.has_ready_legacy_unowned_recovery_debt(
-            &root.root_id,
-            root_generation,
-            now_unix_ms,
-            runtime.runtime.queue_policy(),
-        )? {
-            runtime.authoritative_root_cursor = Some(root.root_id.clone());
-            return Ok(Some(ReadyRecoveryWork::LegacyUnownedDrain {
-                root_id: root.root_id.clone(),
-                root_generation,
-            }));
-        }
-        if !journal_capacity_debt_roots.is_empty() {
-            continue;
-        }
-        if catalog
-            .has_unresolved_metadata_inventory_recovery_candidates(&root.root_id, root_generation)?
-        {
-            continue;
-        }
-        if catalog.has_ready_metadata_inventory_recovery(
-            &root.root_id,
-            root_generation,
-            now_unix_ms,
-            runtime.runtime.queue_policy(),
-        )? {
-            runtime.authoritative_root_cursor = Some(root.root_id.clone());
-            return Ok(Some(ReadyRecoveryWork::Control {
-                root_id: root.root_id.clone(),
-                root_generation,
-            }));
-        }
-    }
-    Ok(None)
+    runtime.recovery_lane.select(
+        catalog,
+        snapshot,
+        now_unix_ms,
+        runtime.runtime.queue_policy(),
+        &journal_capacity_debt_roots,
+    )
 }
 
 #[cfg(windows)]
@@ -1463,7 +1338,7 @@ impl ProductionSynchronization {
                     report.incremental.applied_mutation_count
                 );
                 self.runtime.acknowledge_recovery_success(&root_id);
-                self.recovery_retries.remove(&root_id);
+                self.recovery_lane.record_success(&root_id);
                 Ok(report.incremental.applied_mutation_count)
             }
             Ok(RecoveryTaskOutcome::MetadataInventory(page)) => {
@@ -1495,7 +1370,7 @@ impl ProductionSynchronization {
                     report.incremental.applied_mutation_count,
                 );
                 self.runtime.acknowledge_recovery_success(&root_id);
-                self.recovery_retries.remove(&root_id);
+                self.recovery_lane.record_success(&root_id);
                 Ok(report.incremental.applied_mutation_count)
             }
             Ok(RecoveryTaskOutcome::CandidateDrain(report)) => {
@@ -1505,7 +1380,7 @@ impl ProductionSynchronization {
                     report.applied_mutation_count,
                 );
                 self.runtime.acknowledge_recovery_success(&root_id);
-                self.recovery_retries.remove(&root_id);
+                self.recovery_lane.record_success(&root_id);
                 Ok(report.applied_mutation_count)
             }
             Ok(RecoveryTaskOutcome::LegacyUnownedDrain(report)) => {
@@ -1515,7 +1390,7 @@ impl ProductionSynchronization {
                     report.applied_mutation_count,
                 );
                 self.runtime.acknowledge_recovery_success(&root_id);
-                self.recovery_retries.remove(&root_id);
+                self.recovery_lane.record_success(&root_id);
                 Ok(report.applied_mutation_count)
             }
             Err(error) => {
@@ -1525,7 +1400,7 @@ impl ProductionSynchronization {
                     error.code,
                     one_line_message(&error.message)
                 );
-                self.record_recovery_failure(&root_id, now_unix_ms);
+                self.recovery_lane.record_failure(&root_id, now_unix_ms);
                 self.runtime
                     .record_recovery_failure(&root_id, &error.code, now_unix_ms);
                 Ok(0)
@@ -2046,31 +1921,6 @@ impl ProductionSynchronization {
         self.inventory_cleanup.finish_stopping_until(deadline)?;
         self.root_location.finish_stopping_until(deadline)?;
         self.finish_core_shutdown_until(deadline)
-    }
-
-    fn recovery_is_due(&self, root_id: &str, now_unix_ms: i64) -> bool {
-        self.recovery_retries
-            .get(root_id)
-            .is_none_or(|retry| now_unix_ms >= retry.next_attempt_unix_ms)
-    }
-
-    fn record_recovery_failure(&mut self, root_id: &str, now_unix_ms: i64) {
-        let failure_count = self
-            .recovery_retries
-            .get(root_id)
-            .map_or(1, |retry| retry.failure_count.saturating_add(1));
-        let exponent = failure_count.saturating_sub(1).min(31);
-        let multiplier = 1_i64.checked_shl(exponent).unwrap_or(i64::MAX);
-        let delay = RECOVERY_RETRY_INITIAL_MILLIS
-            .saturating_mul(multiplier)
-            .min(RECOVERY_RETRY_MAXIMUM_MILLIS);
-        self.recovery_retries.insert(
-            root_id.to_owned(),
-            RecoveryRetryState {
-                failure_count,
-                next_attempt_unix_ms: now_unix_ms.saturating_add(delay),
-            },
-        );
     }
 }
 
@@ -5205,8 +5055,7 @@ mod tests {
             recovery: None,
             recovery_inventory_sources: BTreeMap::new(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
+            recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
             root_location: RootLocationRecoveryOwner::default(),
@@ -5454,8 +5303,7 @@ mod tests {
             recovery: None,
             recovery_inventory_sources: BTreeMap::new(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
+            recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
             root_location: RootLocationRecoveryOwner::default(),
@@ -5518,56 +5366,6 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn recovery_retry_is_bounded_exponential_and_isolated_by_root() {
-        let factory = crate::adapters::production_library_change_source_factory();
-        let mut production = ProductionSynchronization {
-            runtime: LibrarySynchronizationRuntime::new_erased(factory),
-            catalog_session: None,
-            poll_catalog: PollCatalogOwner::default(),
-            persistent_change_journal_factory: None,
-            _persistent_change_journal: test_live_only_connection(),
-            persistent_change_journal_opened: true,
-            persistent_change_journal_caller: None,
-            journal: None,
-            journal_status: JournalStatusOwner::default(),
-            journal_lane: JournalLane::default(),
-            live: None,
-            live_root_cursor: None,
-            recovery: None,
-            recovery_inventory_sources: BTreeMap::new(),
-            metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
-            legacy_automatic_scans_retired: false,
-            inventory_cleanup: InventoryCleanupOwner::default(),
-            root_location: RootLocationRecoveryOwner::default(),
-            is_stopping: false,
-            stop_requested: Arc::new(AtomicBool::new(false)),
-            core_stopped: false,
-            journal_closed: false,
-            journal_close: None,
-            drain_panic: None,
-        };
-
-        production.record_recovery_failure("root-a", 1_000);
-        assert!(!production.recovery_is_due("root-a", 1_999));
-        assert!(production.recovery_is_due("root-a", 2_000));
-        assert!(production.recovery_is_due("root-b", 1_000));
-        for _ in 0..40 {
-            production.record_recovery_failure("root-a", 2_000);
-        }
-        let retry = production
-            .recovery_retries
-            .get("root-a")
-            .expect("root retry state");
-        assert_eq!(
-            retry.next_attempt_unix_ms,
-            2_000 + RECOVERY_RETRY_MAXIMUM_MILLIS
-        );
-    }
-
-    #[cfg(windows)]
-    #[test]
     fn bounded_authoritative_success_clears_only_its_root_retry_history() {
         let factory = crate::adapters::production_library_change_source_factory();
         let mut production = ProductionSynchronization {
@@ -5586,8 +5384,7 @@ mod tests {
             recovery: None,
             recovery_inventory_sources: BTreeMap::new(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
+            recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
             root_location: RootLocationRecoveryOwner::default(),
@@ -5598,9 +5395,12 @@ mod tests {
             journal_close: None,
             drain_panic: None,
         };
-        production.record_recovery_failure("root-a", 1_000);
-        production.record_recovery_failure("root-b", 5_000);
-        let root_b_retry = production.recovery_retries["root-b"];
+        production.recovery_lane.record_failure("root-a", 1_000);
+        production.recovery_lane.record_failure("root-b", 5_000);
+        let root_b_retry = production
+            .recovery_lane
+            .retry_for_test("root-b")
+            .expect("root-b retry");
 
         let (sender, receiver) = mpsc::sync_channel(1);
         sender
@@ -5622,205 +5422,14 @@ mod tests {
         production
             .poll_recovery(2_000)
             .expect("bounded recovery succeeds");
-        assert!(!production.recovery_retries.contains_key("root-a"));
-        assert_eq!(production.recovery_retries["root-b"], root_b_retry);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn authoritative_root_cursor_prevents_a_busy_first_root_from_starving_peers() {
-        let directory = tempfile::tempdir().expect("catalog directory");
-        let mut catalog =
-            SqliteCatalog::open(directory.path().join("catalog.sqlite3")).expect("catalog");
-        let generation = crate::domain::LibraryRootGeneration::initial();
-        let policy = crate::domain::LibraryChangeQueuePolicy {
-            debounce_millis: 0,
-            ..crate::domain::LibraryChangeQueuePolicy::default()
-        };
-        let mut baseline_change_ids = BTreeMap::new();
-        for (index, (root_id, root_path)) in [("root-a", "C:\\RootA"), ("root-b", "C:\\RootB")]
-            .into_iter()
-            .enumerate()
-        {
-            let scan_id = format!("scan-{root_id}");
-            catalog
-                .begin_scan(
-                    &ScanRequest {
-                        scan_id: scan_id.clone(),
-                        root_path: root_path.to_owned(),
-                        max_items: None,
-                        max_entries: None,
-                        preview_edge: 512,
-                    },
-                    root_id,
-                    root_path,
-                )
-                .expect("begin root scan");
-            catalog
-                .prove_live_only_first_import_handoff_for_test(&scan_id)
-                .expect("prove recovery cursor fixture first-import handoff");
-            catalog
-                .publish_scan(&scan_id, root_id, 0, 0)
-                .expect("publish root scan");
-            catalog
-                .save_persistent_journal_capability(&PersistentJournalCapability {
-                    root_id: root_id.to_owned(),
-                    root_generation: generation,
-                    protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                    contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                    state: PersistentJournalCapabilityState::Supported,
-                    continuity: PersistentJournalContinuityState::BaselineRequired,
-                    failure: None,
-                    updated_unix_ms: 1_000,
-                })
-                .expect("persist supported baseline capability");
-            let identity_byte = u8::try_from(index + 1).expect("fixture identity byte");
-            let baseline = catalog
-                .begin_persistent_journal_baseline(
-                    &PersistentJournalBaselineStartRequest {
-                        run_id: format!("round-robin-{root_id}"),
-                        root_id: root_id.to_owned(),
-                        root_generation: generation,
-                        authority_reason: LibraryRecoveryAuthorityReason::ExistingRootBaseline,
-                        volume: PersistentJournalVolumeIdentity {
-                            volume_guid: format!("round-robin-volume-{index}"),
-                            volume_serial: u64::try_from(index + 1).expect("fixture volume serial"),
-                        },
-                        root_file_reference: JournalFileReference::V2([identity_byte; 8]),
-                        journal_id: JournalIdentifier::new(44).expect("fixture journal ID"),
-                        opening_next_usn: JournalUsn::new(20).expect("fixture opening USN"),
-                        protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                        contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                        authorized_unix_ms: 1_000,
-                    },
-                    policy,
-                )
-                .expect("begin ready baseline recovery fixture");
-            baseline_change_ids.insert(root_id, baseline.change_id);
-        }
-        catalog
-            .enqueue_library_change_intents(
-                &[crate::domain::LibraryChangeIntent {
-                    root_id: "root-a".to_owned(),
-                    root_generation: generation,
-                    kind: crate::domain::LibraryChangeIntentKind::FreshnessUnknown,
-                    scope: crate::domain::LibraryChangeScope::Root,
-                    relative_path: String::new(),
-                    previous_relative_path: None,
-                    origin: crate::domain::LibraryChangeOrigin::LiveNotification,
-                    first_observed_unix_ms: 1_500,
-                    most_recent_observed_unix_ms: 1_500,
-                    first_sequence: 2,
-                    most_recent_sequence: 2,
-                    coalesced_observation_count: 1,
-                }],
-                1_500,
-                policy,
-            )
-            .expect("enqueue competing root-a P0 gap");
-        let competing = catalog
-            .lease_live_authoritative_library_change("root-a", generation, 1_500, policy)
-            .expect("lease competing root-a P0 gap")
-            .expect("competing root-a P0 gap");
-        catalog
-            .promote_live_watcher_gap_to_metadata_inventory(
-                competing.change.id,
-                competing.lease_generation,
-                &crate::domain::LibraryChangeFailure {
-                    code: "metadata_inventory_required".to_owned(),
-                    message: "Fixture gap requires a distinct P2 owner".to_owned(),
-                },
-                1_500,
-                policy,
-            )
-            .expect("promote competing root-a P2 owner");
-        let root_a_baseline = baseline_change_ids["root-a"];
-        rusqlite::Connection::open(catalog.catalog_path())
-            .expect("open root-a affinity evidence")
-            .execute(
-                "UPDATE library_change_queue SET ready_unix_ms = 3000 WHERE id = ?1",
-                [i64::try_from(root_a_baseline.value()).expect("root-a baseline ID")],
-            )
-            .expect("delay exact root-a baseline owner");
-        let snapshot = LibrarySynchronizationSnapshot {
-            is_running: true,
-            catalog_revision: 0,
-            applied_mutation_count: 0,
-            roots: ["root-a", "root-b"]
-                .into_iter()
-                .map(|root_id| crate::domain::LibraryRootSynchronizationStatus {
-                    root_id: root_id.to_owned(),
-                    root_generation: generation.value(),
-                    availability: crate::domain::LibraryRootAvailability::Available,
-                    freshness: crate::domain::CatalogFreshnessState::NeedsReconciliation,
-                    freshness_cause: crate::domain::CatalogFreshnessCause::EvidenceGap,
-                    continuity: PersistentJournalContinuityState::RecoveryRequired,
-                    phase: LibrarySynchronizationPhase::Blocked,
-                    source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
-                    queue_health: crate::domain::LibraryChangeQueueHealth::Healthy,
-                    pending_change_count: 1,
-                    retry_wait_count: 0,
-                    freshness_unknown_count: 1,
-                    recovery_blocked: false,
-                    last_issue_code: None,
-                })
-                .collect(),
-        };
-        let factory = crate::adapters::production_library_change_source_factory();
-        let mut production = ProductionSynchronization {
-            runtime: LibrarySynchronizationRuntime::new_erased(factory),
-            catalog_session: None,
-            poll_catalog: PollCatalogOwner::default(),
-            persistent_change_journal_factory: None,
-            _persistent_change_journal: test_live_only_connection(),
-            persistent_change_journal_opened: true,
-            persistent_change_journal_caller: None,
-            journal: None,
-            journal_status: JournalStatusOwner::default(),
-            journal_lane: JournalLane::default(),
-            live: None,
-            live_root_cursor: None,
-            recovery: None,
-            recovery_inventory_sources: BTreeMap::new(),
-            metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
-            legacy_automatic_scans_retired: false,
-            inventory_cleanup: InventoryCleanupOwner::default(),
-            root_location: RootLocationRecoveryOwner::default(),
-            is_stopping: false,
-            stop_requested: Arc::new(AtomicBool::new(false)),
-            core_stopped: false,
-            journal_closed: false,
-            journal_close: None,
-            drain_panic: None,
-        };
-
-        let first = ready_recovery_work(&mut production, &catalog, &snapshot, 2_000)
-            .expect("skip unavailable exact root-a owner")
-            .expect("root-b remains ready");
-        assert_eq!(first.root_id(), "root-b");
-        rusqlite::Connection::open(catalog.catalog_path())
-            .expect("open root-a affinity release")
-            .execute(
-                "UPDATE library_change_queue SET ready_unix_ms = 2000 WHERE id = ?1",
-                [i64::try_from(root_a_baseline.value()).expect("root-a baseline ID")],
-            )
-            .expect("release exact root-a baseline owner");
-        let second = ready_recovery_work(&mut production, &catalog, &snapshot, 2_000)
-            .expect("select released exact root-a owner")
-            .expect("root-a becomes ready");
-        assert_eq!(second.root_id(), "root-a");
-        let leased_root_a = catalog
-            .lease_metadata_inventory_recovery("root-a", generation, 2_000, policy)
-            .expect("lease exact root-a baseline owner")
-            .expect("exact root-a baseline owner");
-        assert_eq!(leased_root_a.change.id, root_a_baseline);
-        let wrapped = ready_recovery_work(&mut production, &catalog, &snapshot, 2_000)
-            .expect("wrapped ready root")
-            .expect("wrapped root");
-
-        assert_eq!(wrapped.root_id(), "root-b");
+        assert!(production.recovery_lane.retry_for_test("root-a").is_none());
+        assert_eq!(
+            production
+                .recovery_lane
+                .retry_for_test("root-b")
+                .expect("root-b retry"),
+            root_b_retry
+        );
     }
 
     #[cfg(windows)]
@@ -9239,8 +8848,7 @@ mod tests {
             recovery: None,
             recovery_inventory_sources: BTreeMap::new(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
+            recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
             root_location: RootLocationRecoveryOwner::default(),
@@ -9639,8 +9247,7 @@ mod tests {
             }),
             recovery_inventory_sources: BTreeMap::new(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
+            recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
             root_location: RootLocationRecoveryOwner::default(),
@@ -9699,8 +9306,7 @@ mod tests {
             }),
             recovery_inventory_sources: BTreeMap::new(),
             metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_retries: BTreeMap::new(),
-            authoritative_root_cursor: None,
+            recovery_lane: RecoveryLane::default(),
             legacy_automatic_scans_retired: false,
             inventory_cleanup: InventoryCleanupOwner::default(),
             root_location: RootLocationRecoveryOwner::default(),

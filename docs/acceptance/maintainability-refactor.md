@@ -311,3 +311,25 @@ guard under sandbox permissions. The unchanged case passed with normal permissio
 recovery publication and reopen; its 25 P0 samples measured 88 ms P95 and 89 ms maximum while both
 lower lanes advanced. This is a controlled fixture result, not a before/after performance claim.
 Full hosted checks and the final client comparison remain separate.
+
+## M2 Recovery scheduling ownership
+
+`RecoveryLane` now owns root rotation and the bounded per-root exponential retry schedule. The
+coordinator keeps the Live/Journal gate and passes the selected Journal capacity-debt roots. The
+selection predicates, branch order, cursor publication and saturating time arithmetic match the
+previous implementation after owner qualification and formatting. Candidate drains still precede
+legacy debt, unresolved candidates block a new control page, and debt restriction cannot grant a
+new recovery authority.
+
+The retry and fair-rotation tests moved beside this owner; their former whole-runtime fixture is
+unnecessary for these rules. The production completion regression still proves that one successful
+root cannot clear another root's retry record. All three focused cases and ordinary-library
+compilation passed. No queue policy, retry bound, source operation or published contract changed.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test/fixture lines |
+| --- | ---: | ---: | ---: |
+| `production.rs` after Recovery scheduling extraction | 1,747 | 7,587 | Existing child suites |
+| `recovery_lane.rs` | 188 | 8 | 216 |
+
+Recovery task/resource ownership and the unused reconnect seam remain in the M2 queue. Hosted
+checks for the next pushed commit and final client comparison remain required.
