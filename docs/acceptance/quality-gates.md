@@ -42,7 +42,6 @@ checks the run, deadline, failure-precedence, and environment-restoration protoc
 | Retained Profile | `./tool/performance_profile_retained_gallery.ps1` | Frozen-interaction Profile frame, memory, garbage-collection, query, publication, and retained-detail evidence; no source preview materialization | Guarded R2b gallery adaptations on the retained catalog |
 | Preview performance acceptance | `./tool/acceptance_run_preview_performance.ps1` | Cold/warm bucket latency, cache growth, reuse, reclamation, regeneration, bounded memory, and sampled source integrity | Prepared read-only R2b preview closeout |
 | Real library | `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` | Bounded read-only source scan, source integrity sampling, retained multi-root catalog validation | Known roots, explicit paths, isolated storage; no separate per-run approval |
-| R2c reliability | `./tool/acceptance_run_r2c_reliability.ps1` | Real watcher latency and coalescing on a disposable root; isolated retained-catalog catch-up, queue, storage, memory, placeholder, metadata, and source-byte evidence | Prepared read-only R2c-H closeout |
 | R2c replacement reliability | `./tool/acceptance_run_r2c_replacement_reliability.ps1` | Disposable watcher operation latency, storm and restart recovery; isolated retained-catalog metadata inventory, cached gallery, source metadata, placeholder, full-scan, storage, and memory evidence | Prepared read-only R2c-M closeout |
 | R2c-R controlled local reliability | `./tool/acceptance_run_r2c_change_driven_reliability.ps1` | Exactly counted production-path live, durable P1, overflow/P2, million-record, no-change, priority, reset/trim, reconnect, cancellation, replacement, placeholder, path, and multi-root evidence using only fixture-owned disposable roots | Manual non-external Windows 11 x64 checkpoint; never retained-library acceptance |
 | Journal broker integration | `./tool/integration_test_windows_journal_broker.ps1` | Exactly counted disposable local NTFS tests for proof framing, two listeners, global eight-worker bounds, active-stop drain, listener readiness, read-only identity grants, idle retirement and admission races, verified service handover, case semantics, root replacement, reparse rejection, caller lifetime, revoked directory access, root-external filtering, bounded progress through unrelated-volume storms, cancellation, must-close backpressure, identity-probe deadline, restart, and unsigned watcher-first activation | Broker transport, service, parser, or lifecycle changes |
@@ -235,8 +234,12 @@ library and the execution/storage safeguards above.
 | Sidebar and responsive geometry | [Sidebar transition](../../lib/features/library/presentation/widgets/library_sidebar_transition.dart), [header](../../lib/features/library/presentation/widgets/library_gallery_header.dart) and [photo motion](../../lib/features/library/presentation/widgets/library_gallery_layout_motion.dart); [right-edge regression](../../test/features/library/presentation/library_sidebar_right_edge_test.dart) and [interrupted reflow](../../test/features/library/presentation/library_gallery_layout_motion_test.dart) | Browse mid-library, open/close the sidebar, resize, maximize/restore and reverse a toggle before it finishes. Check title/photo leading-edge continuity, fixed right controls, current image and scroll anchor; include reduced motion when transition behavior changes. |
 | Result layout and content density | [Shared card skeleton](../../lib/features/library/presentation/widgets/library_duplicate_review_cards.dart), [metrics](../../lib/features/library/presentation/widgets/library_duplicate_review_metrics.dart) and [review header](../../lib/features/library/presentation/widgets/library_duplicate_review_header.dart); [layout regression](../../test/library_duplicate_review_layout_test.dart) | Compare group cards and member rows with the gallery. Use long names/paths, compact and wide windows, and enlarged text. Inspect alignment, rounding, internal space, action reachability and category-switch count placement. |
 | Loading, empty and local updates | [Loading region](../../lib/features/library/presentation/widgets/library_gallery_loading_region.dart), [gallery message](../../lib/features/library/presentation/widgets/library_gallery_message.dart) and [review controller](../../lib/features/library/application/library_duplicate_review_controller.dart); [loading-region regression](../../test/features/library/presentation/library_gallery_loading_region_test.dart) and [preference publication](../../test/library_duplicate_preference_refresh_test.dart) | Check initial/continuation loading, an empty category and a failed read with retry. Change the preferred member twice and observe subsequent publication: rows and position remain, feedback matches the operation, and no whole-page flash replaces usable content. |
+| Passive synchronization refresh | [Refresh coordinator](../../lib/features/library/presentation/library_synchronization_refresh.dart) and [query position transition](../../lib/features/library/presentation/library_gallery_query_transition.dart); [revision lifecycle](../../test/features/library/presentation/library_synchronization_refresh_test.dart) and [viewer/refresh feedback](../../test/features/library/presentation/library_viewer_position_test.dart) | Keep browsing or previewing while a revision arrives, then return. Check retained position and image identity, delayed busy admission, failure retry and removal of resolved feedback; a disposed page cannot publish a late result. |
+| Timeline publication | [Rail frame and input lifetime](../../lib/features/library/presentation/widgets/library_time_rail_presentation.dart); [publication boundaries](../../test/features/library/presentation/library_time_navigation_publication_test.dart), [released date-seek alignment](../../test/features/library/presentation/library_time_publication_test.dart) and [exact row mapping](../../test/features/library/presentation/library_time_navigation_linear_layout_test.dart) | During catalog updates, inspect ticks and the current-position line through missing, estimated and complete geometry. Complete ticks remain until a coherent replacement; old gestures cannot commit, a new gesture works, released date seeks retain their resulting alignment, and wheel movement continues to follow the gallery. Check first load and changed queries separately. |
+| Consecutive filters | [Query position transition](../../lib/features/library/presentation/library_gallery_query_transition.dart); [intent lifecycle](../../test/features/library/presentation/library_gallery_filter_continuity_test.dart) and [pixel restoration](../../test/features/library/presentation/library_gallery_filter_position_test.dart) | From mid-library, narrow to one image, an edge, a result excluding the original image or no results, then expand. Check the original image and fractional position in both layouts; repeat after scrolling or date/folder navigation to establish a new position. |
+| Recovered image dimensions | [Dimension publication](../../lib/features/library/presentation/library_gallery_dimension_publication.dart); [range and timing regressions](../../test/features/library/presentation/library_gallery_dimension_publication_test.dart) and [screen integration](../../test/features/library/presentation/unified_library_screen_test.dart) | Browse while missing dimensions arrive, scroll to another range, change query and resize. Check the frozen visible anchor, bounded publication delay and retirement of obsolete updates without replacing the current layout transition. |
 | Hover, focus and transient surfaces | [Tile actions](../../lib/features/library/presentation/widgets/library_photo_tile_actions.dart), [overlay behavior](../../lib/app/presentation/ame_overlay_semantics.dart) and [locations sheet](../../lib/features/library/presentation/widgets/library_duplicate_locations_sheet.dart); [dismissal/focus regression](../../test/library_photo_tile_dialog_focus_test.dart) | Open and dismiss a context menu, information surface and locations sheet with mouse and keyboard. Move the pointer away. Check stale hover/tooltip removal while preserving legitimate keyboard focus, selection and accessible actions. |
-| Continuous scrolling and bounded reads | [Shared scroll motion](../../lib/app/presentation/ame_scroll_motion.dart) and [review window](../../lib/features/library/application/library_duplicate_review_window.dart); [review scrolling](../../test/library_duplicate_review_scroll_motion_test.dart), [sheet scrolling](../../test/library_duplicate_sheet_scroll_motion_test.dart) and [batch/retry regression](../../test/library_duplicate_locations_sheet_test.dart) | Scroll across catalog batches, return to an earlier range and dismiss during a pending read. Check consistent wheel behavior, retained position, reachable content, bounded preview demand and a usable continuation retry. |
+| Continuous scrolling and bounded reads | [Shared scroll motion](../../lib/app/presentation/ame_scroll_motion.dart), [catalog window](../../lib/features/library/application/library_retained_catalog_window.dart) and [review window](../../lib/features/library/application/library_duplicate_review_window.dart); [catalog window boundaries](../../test/features/library/application/library_retained_catalog_window_test.dart), [bidirectional page lifecycle](../../test/features/library/application/library_bidirectional_page_lifecycle_test.dart), [review scrolling](../../test/library_duplicate_review_scroll_motion_test.dart), [sheet scrolling](../../test/library_duplicate_sheet_scroll_motion_test.dart) and [batch/retry regression](../../test/library_duplicate_locations_sheet_test.dart) | Scroll across catalog batches, return to an earlier range and dismiss during a pending read. Check consistent wheel behavior, retained position, reachable content, bounded preview demand and a usable continuation retry. |
 | Viewer entry, navigation and return | [Viewer transition](../../lib/features/library/presentation/widgets/library_viewer_transition.dart) and [review viewer](../../lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart); [route motion](../../test/features/library/presentation/library_viewer_route_motion_test.dart), [member publication/navigation](../../test/library_duplicate_review_viewer_test.dart) and [native accessibility integration](../../integration_test/windows_accessibility_bridge_test.dart) | Enter from Gallery and Duplicates, navigate both ways across a batch, return, maximize/restore and toggle the sidebar. Check the shared transition, current image/order and underlying position; native semantic/engine failures require native evidence beyond a widget assertion. |
 | Counts and file actions | [Gallery header](../../lib/features/library/presentation/widgets/library_gallery_header.dart), [location row](../../lib/features/library/presentation/widgets/library_duplicate_location_tile.dart) and [reveal action](../../lib/features/library/presentation/widgets/library_duplicate_reveal_action.dart); [count regression](../../test/features/library/presentation/library_gallery_count_test.dart) and [sheet regression](../../test/library_duplicate_locations_sheet_test.dart) | Switch All images/Merge duplicates under the same scope: total count remains primary and merged count is additional. Activate a location in a newly opened Explorer folder and verify the exact file is selected; opening the parent directory alone does not establish that result. |
 
@@ -524,6 +527,13 @@ part of `integration_test_windows_accessibility_guardrails.ps1`. The existing ei
 deadline, MTA client, owned process tree, and native positive/negative assertions remain unchanged;
 workstation PowerShell evidence does not replace execution in the hosted PowerShell runtime.
 
+An owned preparation probe validates these dependencies before starting Flutter, using the same
+eight-second process deadline and consuming the existing complete-run budget. It records preparation
+separately from the ten application phases; a preparation result cannot acknowledge any of them.
+`integration_test_windows_accessibility_preparation.ps1` covers real child loading, complete assembly
+milestones, zero native observations and refusal of an application-phase request. It runs through
+the existing accessibility guardrail entrypoint; actual UIA assertions still run in hosted integration.
+
 Six parent-owned manual-reset event markers distinguish each assembly's load entry, load return
 and completed contract validation independently of progress-file publication. The parent observes
 them only after confirmed probe exit and Job Object closure and retires every handle. They are
@@ -603,38 +613,12 @@ catalog through the production loading API:
 Each source scan needs a current scope binding; a retained catalog or old token does not replace it.
 Preparing that binding under the standing read-only policy does not require another confirmation.
 
-## R2c reliability gate
+## Historical R2c-H reliability evidence
 
-Run the R2c-H gate after the synthetic performance gate passes, with both logical roots, the retained
-catalog and new empty derived storage explicitly bound to its prepared read-only scope:
-
-```powershell
-./tool/acceptance_run_r2c_reliability.ps1 `
-  -LocalRoot "<authorized local-primary root>" `
-  -CloudRoot "<authorized cloud-primary root>" `
-  -SourceCatalogPath "<retained catalog path>" `
-  -StorageRoot "<new empty storage outside every source tree>" `
-  -AuthorizationToken "<current R2c-H authorization token>" `
-  -AcknowledgeCloudReadOnly
-```
-
-The first half uses temporary files only and measures the production Windows observer, event-to-
-catalog P50/P95, idle polling, event-storm coalescing, durable queue recovery, database growth, and
-bounded shutdown. The second half opens the supplied catalog read-only, creates an online SQLite
-backup in isolated storage, and runs only downtime-catch-up discovery against the authorized roots.
-It does not publish the resulting authoritative work. Before and after that operation it compares a
-bounded metadata snapshot of every source entry, placeholder attributes, and deterministic hashes
-of locally available `local-primary` samples. Reparse directories are not followed and files marked
-offline or recall-on-access are never opened.
-
-The wrapper enforces a time limit, a peak job-memory limit, physically resolved non-overlapping
-paths, pre-created empty isolated storage, an exact token, and an explicit cloud read-only
-acknowledgement. Its non-accessing guardrails exercise junction rejection and process-job ownership
-through `./tool/acceptance_test_r2c_reliability_guardrails.ps1`. A passing tool implementation or
-`-ValidationOnly` result is not real-library evidence; the authorization-bound workload must finish
-successfully. See
-[r2c-h-large-library-reliability.md](./r2c-h-large-library-reliability.md) for the accepted metrics and
-remaining platform limitations.
+The direct-desktop USN implementation and R2c-H execution entrypoint are retired. Their
+[recorded results](r2c-h-large-library-reliability.md) remain historical; they do not validate the
+ADR 0024 runtime. Current broker/identity continuity uses the R2c-R entrypoint below. Metadata-only
+inventory checks retain the R2c-M entrypoint and its source-isolation/process guardrails.
 
 ## R2c replacement reliability gate
 
@@ -663,7 +647,7 @@ complete Windows directory-entry metadata and placeholder attributes before and 
 keeps that safety evidence distinct from the cold timing and verifies that no full-scan row was
 created.
 
-The wrapper retains the R2c-H Job Object, deadline, memory, physical path, empty storage, token, and
+The wrapper owns its Job Object, deadline, memory, physical path, empty storage, token, and
 cloud acknowledgement controls. Its non-accessing boundary is exercised through
 `./tool/acceptance_test_r2c_replacement_guardrails.ps1`. `-ValidationOnly`, disposable evidence, and
 the small retained-catalog fixture do not substitute for an authorized target-scale run. See
@@ -1374,21 +1358,14 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
 - `./tool/acceptance_run_read_only_library.ps1` and `./tool/acceptance_verify_read_only_catalog.ps1` are the
   real-library gate. They require explicit known roots, bounded read-only scope and isolated storage
   outside source trees, without separate per-run approval; they never join unattended Daily verification.
-- `./tool/acceptance_run_r2c_reliability.ps1` is the R2c-H closeout gate. It first exercises the
-  production Windows observer against a disposable source root, then backs up the retained catalog
-  into pre-created empty isolated storage and measures catch-up against both explicitly authorized
-  roots without publishing authoritative work or reading cloud-placeholder content.
-- `./tool/acceptance_test_r2c_reliability_guardrails.ps1` verifies the R2c-H authorization token,
-  cloud acknowledgement, path-separation, and fresh-storage boundary without accessing a real
-  library.
 - `./tool/acceptance_run_r2c_replacement_reliability.ps1` is the R2c-M replacement closeout gate.
   It measures production watcher operations against a disposable root, then backs up the retained
   catalog into isolated storage and measures per-root metadata-only continuity without opening
   media content or publishing a full scan. The retained-root phase follows the standing scoped
   read-only verification policy.
 - `./tool/acceptance_test_r2c_replacement_guardrails.ps1` verifies the R2c-M authorization token,
-  cloud acknowledgement, physical path separation, and fresh-storage boundary without accessing a
-  real library.
+  cloud acknowledgement, physical path separation, fresh storage, process ownership and final
+  resource-limit samples without accessing a real library.
 - `./tool/acceptance_run_r2c_change_driven_reliability.ps1` is the R2c-R non-external controlled
   local reliability gate for Windows 11 x64 client workstations. Its common module performs no
   dynamic compilation while being loaded; explicit initialization uses an in-memory native identity

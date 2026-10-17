@@ -35,17 +35,6 @@ fn priority_queue_progress(connection: &rusqlite::Connection) -> rusqlite::Resul
     )
 }
 
-fn priority_worker_progress<'a>(
-    worker: Option<&'a JoinHandle<()>>,
-    cancelled: &AtomicBool,
-) -> (Option<&'a str>, Option<bool>, bool) {
-    (
-        worker.and_then(|worker| worker.thread().name()),
-        worker.map(JoinHandle::is_finished),
-        cancelled.load(Ordering::Acquire),
-    )
-}
-
 fn priority_inventory_progress(
     connection: &rusqlite::Connection,
     root_id: &str,
@@ -580,12 +569,16 @@ fn run_priority_workload(
                 "sample {index} did not advance both active lower-priority lanes: p1={p1_completed_at_start}->{p1_completed} p2={p2_source_reads_at_start}->{p2_source_reads} visible={visible_latency:?} poll_count={poll_count} poll_total={poll_total:?} poll_maximum={poll_maximum:?} queue_admission={queue_admission_latency:?} worker_admission={worker_admission_latency:?} queue={:?} live_worker={:?} journal_worker={:?} recovery_worker={:?} runtime_stopping={} stop_requested={} low_writer_ops={} now_unix_ms={:?}",
                 priority_queue_progress(&progress_connection),
                 fixture.production.live.as_ref().map(LiveTask::progress),
-                fixture.production.journal.as_ref().map(|task| {
-                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
-                }),
-                fixture.production.recovery.as_ref().map(|task| {
-                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
-                }),
+                fixture
+                    .production
+                    .journal
+                    .as_ref()
+                    .map(JournalTask::progress),
+                fixture
+                    .production
+                    .recovery
+                    .as_ref()
+                    .map(RecoveryTask::progress),
                 fixture.production.is_stopping,
                 fixture.production.stop_requested.load(Ordering::Acquire),
                 low_writer_operations.load(Ordering::Acquire),
@@ -659,9 +652,11 @@ fn run_priority_workload(
         if std::time::Instant::now() >= progress_deadline {
             eprintln!(
                 "controlled inventory deadline worker={:?} runtime_stopping={} stop_requested={}",
-                fixture.production.recovery.as_ref().map(|task| {
-                    priority_worker_progress(task.worker.as_ref(), &task.cancelled)
-                }),
+                fixture
+                    .production
+                    .recovery
+                    .as_ref()
+                    .map(RecoveryTask::progress),
                 fixture.production.is_stopping,
                 fixture.production.stop_requested.load(Ordering::Acquire),
             );

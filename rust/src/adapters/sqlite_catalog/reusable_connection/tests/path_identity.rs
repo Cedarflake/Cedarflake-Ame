@@ -158,10 +158,11 @@ fn reusable_connection_rejects_junction_retarget_while_original_sqlite_handle_is
     let directory = tempfile::tempdir().expect("disposable catalog fixture");
     let target_a = directory.path().join("catalog-a");
     let target_b = directory.path().join("catalog-b");
-    fs::create_dir(&target_a).expect("create catalog A directory");
-    fs::create_dir(&target_b).expect("create catalog B directory");
-    let path_a = target_a.join("catalog.sqlite3");
-    let path_b = target_b.join("catalog.sqlite3");
+    let suffix = Path::new("shared").join("catalog.sqlite3");
+    fs::create_dir_all(target_a.join("shared")).expect("create catalog A directory");
+    fs::create_dir_all(target_b.join("shared")).expect("create catalog B directory");
+    let path_a = target_a.join(&suffix);
+    let path_b = target_b.join(&suffix);
     let session_a = seed_catalog(&path_a, 11);
     let session_b = seed_catalog(&path_b, 29);
     assert_eq!(schema_statements(&path_a), schema_statements(&path_b));
@@ -180,7 +181,7 @@ fn reusable_connection_rejects_junction_retarget_while_original_sqlite_handle_is
     assert_ne!(session_a.database_identity, session_b.database_identity);
 
     let junction = FixtureJunction::new(directory.path(), &target_a);
-    let alias = junction.path.join("catalog.sqlite3");
+    let alias = junction.path.join(&suffix);
     let session = SqliteCatalogSession::validate(alias.clone()).expect("FULL-validate through A");
     let catalog = session
         .open_in_lane(LibraryChangeLane::Live)

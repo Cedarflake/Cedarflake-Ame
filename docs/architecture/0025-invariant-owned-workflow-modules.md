@@ -45,6 +45,14 @@ historical path reconstruction. Framing, identity widths, UTF-16/component valid
 page failure remain one boundary, with no second decoded page or per-record cloning. The parent
 `windows_usn` module retains named reference histories and path reconstruction.
 
+The superseded direct-desktop USN adapter and its all-roots catch-up orchestrator are retired.
+Shared parsing and historical-parent reconstruction remain broker dependencies with their own
+regressions. The active identity reader and persistent-journal application own case-sensitive
+candidates, per-root failure isolation and cancellation/publication authority. Historical catalog
+checkpoint, lineage and migration contracts remain intact; removing an execution path grants no
+schema or retained-data cleanup authority. The R2c-M entrypoint owns the retained metadata-only
+acceptance wrapper and its process/path guardrails; R2c-H is historical evidence only.
+
 - `journal_broker/windows/production_host.rs` owns production listener readiness and joined shutdown.
   Its lifetime owner linearizes connection admission against idle retirement and holds each lease
   through request drain and disconnect. `identity_query_access.rs` owns only the verified service's
@@ -104,7 +112,45 @@ page failure remain one boundary, with no second decoded page or per-record clon
   durable result. The primary session retains confirmation/refresh obligations through read failures;
   dismissal or a new import cannot discard them, and Retry performs only the outstanding read.
 - `application/library_synchronization/production.rs` remains the priority and worker-lifecycle
-  coordinator. Journal baseline opening and closing use different typed work items in
+  coordinator. `production/runtime_lifecycle` owns the process registry: `state` holds the epoch,
+  typed start tickets, admitted stop-fence ledger and retained runtime; `admission` linearizes
+  ownership changes; `operation` admits results and retains panicked owners; `retirement` drains
+  that same owner within its original deadline. Its facade exposes reserve/start/poll/stop and
+  first-import ownership without exposing mutable registry state. Constructors and polling remain
+  outside the registry mutex. Timeout, panic and late completion retain the original resource and
+  epoch authority until retirement is proven. Lifecycle tests sit beside this boundary, while
+  controlled source/journal resource fixtures have a shared test-only owner.
+  `journal_lane` owns the root/volume rotation cursors and read/drain alternation. It selects a
+  typed `JournalWork` after the coordinator's unchanged Live/stopping gate: ready Journal drain,
+  recovery admission, closing boundary, opening boundary, then a capacity-admitted volume page.
+  Cursor updates retain their original admission point even when worker startup fails. `journal_work`
+  owns worker creation, cancellation, result retirement and the shared shutdown deadline; its page
+  owner retains registration guards through the existing bounded capture operation. Status projection
+  and cross-lane priority remain in their existing owners.
+  `recovery_lane` owns per-root retry timing and fair root rotation. Its typed selection preserves
+  candidate-drain, legacy-capacity-debt and recovery-control precedence after the coordinator's
+  higher-lane gate. Journal capacity debt restricts the eligible roots without admitting a new control
+  page. Success clears only the completed root's retry history; source and task lifetimes remain
+  independent of scheduling state.
+  `recovery_sources` owns retained inventory sources by change identity and admits a source only
+  while its persisted authority/run remains current. A typed transfer binds the original change ID
+  to one shared take operation; failed worker startup restores that same owner. Catalog-session
+  validation precedes handoff, and pruning resolves all authority reads before removing stale
+  entries. Completed pages publish their retained source through the same owner.
+  `recovery_work` owns the admitted Recovery worker's cancellation, phase, result and join lifetime.
+  Its automatic and drain implementations accept an immutable root binding and bounded policy;
+  the coordinator retains slot admission, catalog-session validation, result publication and retry
+  scheduling. Automatic work takes the retained source before opening its lane, revalidates the
+  root before processing, and restores the transfer if thread creation fails. Timeout retains the
+  same task and shutdown uses the existing absolute deadline.
+  Session replacement follows the admitted runtime lifecycle. A successful retirement allows a
+  new factory connection; a cached close failure retains the old owner and prevents construction.
+  There is no separate, unused runtime reconnect path with weaker close-failure semantics.
+  Cross-lane integration suites live under `production/tests` by startup, first import, baseline,
+  live-gap lineage, recovery authority/status/fairness, priority admission, inventory paging, capacity
+  debt and publication guards. Shared controlled fixtures remain in their test-only parent; tests
+  specific to a worker or lifecycle stay beside that owner.
+  Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
   `journal_baseline/opening.rs` owns opening probe admission, capability/baseline publication and
@@ -510,6 +556,13 @@ page failure remain one boundary, with no second decoded page or per-record clon
   and superseded queued work cannot execute. The viewport revalidates query, revision, and cursor
   before a queued read; the viewer alone decides whether a completed page may change selection.
   Retired navigation remains silent, while a current explicit action with no target reports failure.
+- `library_retained_catalog_window.dart` owns retained page identity updates, directional insertion,
+  cursor advancement and whole-page eviction. It keeps the 5,000/3,500 high/low watermarks and at
+  least one page. Newer observations replace matching locations without duplicating their positions.
+  Forward publication uses the response's next cursor; backward publication retains the last kept
+  page's next cursor. The viewport validates query/revision and publication authority before merging,
+  resets the window on accepted replacement, and retains directional completion/error semantics.
+  Duplicate-review windows keep their separate checkpoint and capacity policy.
 - `library_time_navigation_requests.dart` owns pending/active target reuse, latest navigation
   intent, explicit visible-range ownership, blocked retry and operation-matched loading release.
   The viewport retains query compatibility, publication generation, query-transition authority,
@@ -607,6 +660,22 @@ page failure remain one boundary, with no second decoded page or per-record clon
   application publication. The screen composes the resulting layout transition without owning a
   second asynchronous query-position lifecycle. A gesture waiter belongs to its presentation
   generation; a newer query or disposal retires it without issuing its old read.
+  Consecutive explicit filters retain a separate image/fraction anchor across absent results and
+  extent clamping. That intent is not catalog-publication authority and does not drive passive
+  refresh positioning. Scrolling, date navigation, source/folder or ordering changes and disposal
+  retire it; a failed filter can retry it, and late completions cannot recreate retired intent.
+- `library_synchronization_refresh.dart` owns the mounted presentation's highest pending catalog
+  revision, one active refresh, busy/superseded delay and failure-feedback transition. It delegates
+  reads to the existing application admission/publication path. Failure waits for explicit retry
+  unless another revision arrived during the attempt; an applied result still has to expose the
+  requested catalog revision. Disposal cancels scheduled retry and prevents late completion from
+  reading presentation state or publishing feedback. Notification content remains with the screen.
+- `library_gallery_dimension_publication.dart` owns query/revision-scoped recovered dimensions,
+  visible-range classification, the frozen recovery anchor and quiet/maximum-delay publication.
+  Scrolling reclassifies pending versus deferred dimensions; query replacement retires both and
+  the manifest overlay cache. Navigation and disposal cancel scheduled publication. The screen
+  supplies position capture and pending-transition state, retains actual scroll objects, and
+  composes the resulting layout transition. This owner grants no catalog-publication authority.
 - `library_browse_admission.dart` owns read admission independently from scan-command admission.
   A published catalog remains queryable during a primary scan; unpublished staging is never read
   as completed content. Query replacement, paging and time reads retain their distinct exclusions.
@@ -691,6 +760,17 @@ page failure remain one boundary, with no second decoded page or per-record clon
   resolve later scrolling before replacing the displayed resolver. Query and revision must match;
   detached geometry cannot supply an anchor. A transition without an admissible position retires
   through the existing generation-bound layout acknowledgement without moving the viewport.
+- `library_gallery_layout_continuity.dart` owns the anchor retained across consecutive manual
+  density/shape choices. Re-selecting the horizontal center cell after each column-count change
+  can accumulate a row of drift, so one image and its fractional viewport point survive compatible
+  layout acknowledgements. Native layout corrections retain this anchor; scrolling, query/revision
+  publication, recovered dimensions, explicit navigation, detachment and disposal release it.
+  Top/bottom intent takes precedence over image fractions; an initially non-scrollable gallery
+  prefers the top, while a previously retained bottom survives temporary extent collapse. The
+  transition admits this edge only for its captured scroll origin, and both renderers use it through
+  the shared reflow contracts. Only the current generation may publish its final scroll origin.
+  The screen composes this lifecycle with existing layout transitions; framework scrolling and bounded rendering remain
+  the owning primitives.
 - `library_synchronization_feedback.dart` owns the immutable message, detail, severity and existing
   manual-action projection of synchronization status. First-import and explicit-manual decisions
   remain distinct; blocked recovery takes precedence over automatic-progress explanations. A
@@ -701,26 +781,49 @@ page failure remain one boundary, with no second decoded page or per-record clon
   lifetime. It retains only projection/value data within compatible presentation context, never
   catalog authority or stale layout metrics. `LibraryTimeNavigation` retains seek scheduling and
   same-revision geometry; the screen retains gallery/viewer composition and the rail's width.
+  A complete frame cannot be replaced by interim estimated geometry in the same query. The
+  presentation owner retires Material input when current geometry becomes unavailable; the existing
+  navigation cancellation path releases the matching unfinished gesture value and seek intent.
+  A released date-navigation request retains its alignment through its resulting publication.
+  Cancellation carries the old intent generation, so its deferred notification cannot retire a
+  newer interaction.
 
 ### Native verification boundaries
+
+The diagnostic release facade composes physical-path admission with separate journal-broker
+owners for native interop, transaction state, write-ahead moves, uninstall progression, interrupted
+recovery, service control and application deployment. Each transaction owner retains its complete
+validation and cleanup policy. Their dot-sourced functions share the existing script constants;
+the extraction adds no new mutable transaction state or alternate entrypoint. Installer guardrails
+inspect the complete module roster. These historical diagnostic scripts do not replace ADR 0027's
+production MSI lifecycle or grant service-installation authority.
 
 `acceptance_r2c_cargo_invocation.ps1` owns exact Cargo command admission, including the locked,
 single-job library test preparation command. Its command policy retains digest validation inside
 the existing audited process boundary. `acceptance_r2c_worker_report_guardrail.ps1` owns ordered
 build preparation and report-test execution, distinct deadlines, bounded failure output, and
 independent environment, fixture and repository-lock retirement. Preparation failure prevents test
-execution; it cannot consume or extend the report test's execution deadline. The common process
-facade retains source snapshots, Job Object ownership and cancellation.
+execution; it cannot consume or extend the report test's execution deadline. The process execution
+owner retains source snapshots, Job Object ownership and cancellation.
 
 `acceptance_r2c_fixture_cleanup.ps1` owns R2c-R fixture retirement, bounded immediate remaining-entry
 evidence and first-error preservation. Each known child, metadata handle, stream and root retires independently;
 one failure cannot skip a later owned resource. Unknown children are retained without traversal.
 Metadata evidence opens at most 64 immediate entries without following reparses or recalling content,
-records truncation, and grants no new deletion authority. The common facade retains native identity
-primitives and includes the module in its exact audited source closure. Dedicated fixture-lifetime
+records truncation, and grants no new deletion authority. The native resources owner retains identity
+primitives; the common facade includes every owner in the audited source closure. Dedicated fixture-lifetime
 tests exercise real handles and rejection paths independently of the full acceptance runner.
 The first failure retains its original exception, PowerShell error text and script stack even
 when later cleanup also fails; the regressions themselves use that same retirement boundary.
+
+R2c-R compiler bootstrap owns the temporary compiler environment, handle identity and disposal
+before native type initialization. Native resources remain lazily compiled in one verified unit.
+Process execution and source audit are separate owners; the common facade retains case definitions,
+execution-context admission and composition. The audit resolves static imports transitively before
+function calls, keeping snapshots and source/depth/byte/AST/scope budgets bound to the same closure.
+Module discovery never executes imports. Unresolved loaders, unknown commands, unsafe filesystem
+operations and altered native/process digests still fail before process creation. The production
+source budget remains nine; the larger test-only self-audit explicitly accounts for its own modules.
 
 `integration_windows_accessibility_cleanup.ps1` owns independent process/job disposal, bounded exit
 confirmation, exact environment restoration, and evidence-safe scratch disposition. Failure at one

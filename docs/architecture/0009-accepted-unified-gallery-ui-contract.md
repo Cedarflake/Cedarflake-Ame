@@ -495,6 +495,11 @@ theme type crossing into widgets or application contracts.
   owning parent thread. Each probe has its own kill-on-close Job Object and a parent-enforced
   deadline of at most eight seconds, further capped by the complete gate's remaining time. A blocked
   provider therefore cannot prevent the parent from terminating the probe and test process trees.
+  Before application startup, one separate eight-second preparation probe loads and validates the
+  fixed UIA assemblies. The complete gate's deadline includes this dependency preparation so cold
+  runtime loading has an explicit bounded owner before interactive assertions begin. Its record
+  cannot acknowledge an application phase. Each actual probe still validates its own assemblies
+  and obtains a fresh native tree; no application state or UIA snapshot is reused.
   That parent is the only deadline owner. The probe atomically publishes bounded, nonce-, phase-,
   and process-bound progress at native-call boundaries, including the last assertion mismatch.
   After termination the parent validates and retains the last complete evidence record; progress

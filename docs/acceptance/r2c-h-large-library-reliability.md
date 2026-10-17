@@ -1,5 +1,10 @@
 # R2c-H large-library reliability acceptance
 
+The direct-desktop USN implementation and R2c-H runner were retired during the
+[maintenance refactor](maintainability-refactor.md#m5-superseded-usn-path). Commands and measurements
+below describe the historical source, retained at commit `83c8c16`. Current continuity checks use
+the [R2c-R gate](quality-gates.md#r2c-r-controlled-local-reliability-gate).
+
 Status: complete and independently approved
 
 Date: 2026-08-19

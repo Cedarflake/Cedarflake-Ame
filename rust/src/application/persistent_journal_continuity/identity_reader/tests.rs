@@ -84,6 +84,28 @@ fn one_identity_record_enrolls_every_hardlink_without_fabricating_usn_order() {
 }
 
 #[test]
+fn case_sensitive_sibling_paths_remain_distinct_candidates() {
+    let old = vec![location(2, "A.jpg", false), location(2, "a.jpg", false)];
+    let current = IdentityJournalResolution {
+        locations: old.clone(),
+        ..Default::default()
+    };
+
+    let (batch, next) =
+        translation::translate(&checkpoint(), &page(false), 20, 2, &old, &current).unwrap();
+
+    let paths = batch
+        .intents
+        .iter()
+        .map(|intent| intent.relative_path.as_str())
+        .collect::<std::collections::BTreeSet<_>>();
+    assert_eq!(paths, std::collections::BTreeSet::from(["A.jpg", "a.jpg"]));
+    assert_eq!(batch.intents.len(), 2);
+    assert_eq!(next.next_unread_usn.value(), 20);
+    batch.validate().unwrap();
+}
+
+#[test]
 fn directory_rename_enrolls_only_the_two_affected_subtrees() {
     let old = vec![location(2, "old", true)];
     let current = IdentityJournalResolution {

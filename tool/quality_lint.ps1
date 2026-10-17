@@ -29,7 +29,6 @@ try {
     & (Join-Path $PSScriptRoot "quality_test_unsigned_windows_payload.ps1")
     & (Join-Path $PSScriptRoot "quality_test_library_synchronization_policy.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_preview_performance_guardrails.ps1")
-    & (Join-Path $PSScriptRoot "acceptance_test_r2c_reliability_guardrails.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_r2c_replacement_guardrails.ps1")
     & (Join-Path $PSScriptRoot "quality_test_windows_powershell_compatibility.ps1")
     & (Join-Path $PSScriptRoot "acceptance_test_r2c_worker_report_guardrail.ps1")

@@ -17,6 +17,7 @@ use crate::domain::{
 use crate::ports::{PersistentJournalRepository, PersistentJournalVolumeReader};
 
 use super::catch_up_persistent_journal_volume;
+mod cancellation;
 mod capture_window;
 
 #[test]

@@ -115,6 +115,8 @@ function Remove-AmeWindowsAccessibilityScratch {
     }
     $ownedNames = [System.Collections.Generic.List[string]]::new()
     $ownedNames.Add("flutter.log")
+    $ownedNames.Add("preparation.json")
+    $ownedNames.Add("preparation.tmp")
     for ($sequence = 1; $sequence -le $expectedProbePhases.Count; $sequence += 1) {
         $suffix = $sequence.ToString("00")
         $ownedNames.Add("request-$suffix.tmp")
@@ -250,7 +252,14 @@ try {
         $testStartedAt = Get-Date
         $validatedPhases = [System.Collections.Generic.List[string]]::new()
         $probeResultTranscript = [System.Collections.Generic.List[string]]::new()
+        $runClock = [System.Diagnostics.Stopwatch]::StartNew()
         try {
+            $preparation = Invoke-AmeWindowsAccessibilityProbe `
+                -ProbeScriptPath (Join-Path $PSScriptRoot "integration_windows_accessibility_preparation_probe.ps1") `
+                -TargetProcessId $PID -Phase "runtime-preparation" `
+                -ResultPath (Join-Path $scratchRoot "preparation.json") -Token $probeToken `
+                -Timeout ([TimeSpan]::FromSeconds([Math]::Min(8, $TimeoutSeconds)))
+            $probeResultTranscript.Add((Format-AmeWindowsUiaProbeTranscript -Record $preparation))
             [System.Environment]::SetEnvironmentVariable(
                 $probeDirectoryEnvironment,
                 $scratchRoot,
@@ -263,7 +272,6 @@ try {
             )
             $processJob = [AmeWindowsAccessibilityProcessJob]::new()
             $process = $processJob.Start($cmd, $cmdArguments, $repositoryRoot)
-            $runClock = [System.Diagnostics.Stopwatch]::StartNew()
             while (-not $process.HasExited) {
                 if ($runClock.Elapsed.TotalSeconds -ge $TimeoutSeconds) {
                     throw (

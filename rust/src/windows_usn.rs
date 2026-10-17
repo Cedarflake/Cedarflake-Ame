@@ -3,13 +3,10 @@ use std::collections::{BTreeMap, BTreeSet};
 use windows_sys::Win32::System::Ioctl::{USN_REASON_FILE_DELETE, USN_REASON_RENAME_OLD_NAME};
 
 mod parsing;
+#[cfg(test)]
+mod reference_tests;
 
 pub(crate) use parsing::{UsnParseError, decode_journal_buffer, parse_journal_buffer};
-
-#[cfg_attr(not(test), allow(dead_code))]
-const WINDOWS_TO_UNIX_EPOCH_100NS: i64 = 116_444_736_000_000_000;
-#[cfg_attr(not(test), allow(dead_code))]
-const HUNDRED_NS_PER_MILLISECOND: i64 = 10_000;
 
 #[derive(Clone, Copy, Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum FileReference {
@@ -31,24 +28,11 @@ pub(crate) struct ParsedUsnRecord {
     pub(crate) file_reference: FileReference,
     pub(crate) parent_reference: FileReference,
     pub(crate) usn: i64,
-    // The legacy catch-up adapter remains test-only while the broker replaces it. Keep its
-    // timestamp semantics in the shared parser so both consumers cannot drift during removal.
     #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) timestamp_100ns: i64,
     pub(crate) reason: u32,
     pub(crate) file_attributes: u32,
     pub(crate) name: String,
-}
-
-impl ParsedUsnRecord {
-    #[cfg_attr(not(test), allow(dead_code))]
-    pub(crate) fn observed_unix_ms(&self) -> i64 {
-        self.timestamp_100ns
-            .saturating_sub(WINDOWS_TO_UNIX_EPOCH_100NS)
-            .checked_div(HUNDRED_NS_PER_MILLISECOND)
-            .unwrap_or(0)
-            .max(0)
-    }
 }
 
 pub(crate) type ReferenceHistories = BTreeMap<FileReference, Vec<usize>>;

@@ -411,6 +411,13 @@ all physical instances or one representative per confirmed exact group appears. 
 exact analysis and incremental maintenance are connected, every image remains visible. Once folding
 is connected, it becomes the initial default while preserving an explicit saved choice.
 
+Consecutive filter/search changes retain the original visible image and its fractional viewport
+position. A missing image, empty result or automatic clamp to an edge does not replace that intent;
+when conditions include the image again, restore it within the available scroll range. Actual
+scrolling, timeline navigation, source/folder selection or a changed ordering establishes a new
+browsing context. Passive catalog refresh preserves the currently displayed result and leaves the
+latent filter intent available for the next explicit filter change.
+
 The Duplicates workspace owns duplicate-only results and group review. A top-left icon in merged
 gallery mode opens every known current location of that group, including relevant availability
 states and full paths. All-images mode has no duplicate card marker. Location activation uses the existing File Explorer reveal action. A representative
@@ -443,13 +450,24 @@ Initial defaults are `等高 + 中等`.
   and decoding rules.
 
 Both choices apply to the same unified gallery canvas and preserve stable item identity and scroll
-position when possible.
+position when possible. Consecutive density or shape choices retain the same image and fractional
+viewport point until browsing moves on, so a size round trip does not accumulate a row of drift.
+Scrolling or navigation establishes the next position; an earlier layout choice must not pull the
+viewport back after that input. A layout choice made at the top or bottom retains that edge;
+content that initially fits in one viewport stays at the top. Existing bottom intent survives
+temporarily fitting in one viewport, so expanding the cards again returns to the bottom.
+Other anchors clamp to the available scroll extent.
 
 ## Gallery canvas and timeline
 
 - Default layout is a dense, aspect-preserving justified photo wall with date headers.
 - Only the visible region and a bounded overscan area are rendered and decoded.
 - The right-side time rail represents the complete filtered result set, not only loaded widgets.
+- During updates in the same query, a complete rail remains visible until replacement geometry
+  agrees with the gallery extent. Temporary window estimates cannot replace that complete frame;
+  estimates remain available on first load and after a query change. Retained paint grants no
+  stale navigation authority. Geometry replacement retires interrupted gestures and their position
+  override, while ordinary gallery scrolling remains native and immediate.
 - Material 3 defines a vertical standard `Slider` with an optional stops configuration. The Slider
   owns pointer, keyboard, focus, hover, handle, track, and semantic behavior; Ame must not recreate
   those behaviors in a parallel custom control.

@@ -6,8 +6,6 @@ pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub(crate) mod gallery_duplicates;
 mod incremental_library_changes;
-#[cfg(test)]
-mod library_change_catch_up;
 mod library_change_observer;
 mod library_change_queue;
 /// flutter_rust_bridge:ignore
@@ -48,8 +46,6 @@ pub(crate) use incremental_library_changes::process_ready_metadata_inventory_rec
 pub(crate) use incremental_library_changes::process_ready_unowned_recovery_paths_cancellable;
 pub(crate) use library_change_observer::LibraryChangeObserver;
 pub use library_change_queue::enqueue_library_change_plan;
-#[cfg(test)]
-pub(crate) use library_change_queue::prepare_library_change_catch_up_plan;
 pub use load_catalog::{
     load_catalog, load_catalog_around_asset, load_catalog_around_location,
     load_catalog_asset_by_id, load_catalog_at_time, load_catalog_query_snapshot,

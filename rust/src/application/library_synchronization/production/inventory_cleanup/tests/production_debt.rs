@@ -158,7 +158,7 @@ impl CleanupDebtFixture {
         assert!(runtime.live.is_none());
         assert!(runtime.journal.is_none());
         assert!(runtime.recovery.is_none());
-        assert!(runtime.recovery_inventory_sources.is_empty());
+        assert!(runtime.recovery_sources.retained_for_test().is_empty());
         assert_eq!(self.source_starts.load(Ordering::Relaxed), 0);
     }
 }

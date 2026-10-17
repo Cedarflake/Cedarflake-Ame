@@ -3,6 +3,29 @@ import "package:flutter/widgets.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_layout_snapshot.dart";
 
+enum LibraryGalleryScrollEdge {
+  start,
+  end;
+
+  static LibraryGalleryScrollEdge? capture(ScrollPosition? position) {
+    if (position == null ||
+        !position.hasPixels ||
+        !position.hasContentDimensions) {
+      return null;
+    }
+    // A non-scrollable gallery is at both edges; keep its first image visible.
+    if (position.pixels <= position.minScrollExtent) {
+      return start;
+    }
+    if (position.pixels >= position.maxScrollExtent) {
+      return end;
+    }
+    return null;
+  }
+
+  double offsetFor(double maximum) => this == start ? 0 : maximum;
+}
+
 class LibraryGalleryAnchorFractions {
   const LibraryGalleryAnchorFractions._(this.item, this.viewport);
 
@@ -37,6 +60,7 @@ class LibraryGalleryViewportAnchor {
     required this.itemFraction,
     required this.viewportFraction,
     this.monthKey,
+    this.scrollEdge,
   });
 
   static const _topPadding = 18.0;
@@ -48,6 +72,7 @@ class LibraryGalleryViewportAnchor {
   final double itemFraction;
   final double viewportFraction;
   final String? monthKey;
+  final LibraryGalleryScrollEdge? scrollEdge;
 
   static LibraryGalleryViewportAnchor? capture(
     LibraryGalleryLayoutSnapshot snapshot, {
@@ -120,7 +145,8 @@ class LibraryGalleryViewportAnchor {
       0,
       double.infinity,
     );
-    return target.clamp(0, maximum).toDouble();
+    return scrollEdge?.offsetFor(maximum.toDouble()) ??
+        target.clamp(0, maximum).toDouble();
   }
 
   static int centerCellIndex(List<double> cellWidths, double availableWidth) {

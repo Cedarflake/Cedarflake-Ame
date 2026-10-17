@@ -166,8 +166,7 @@ use crate::domain::{
 };
 #[cfg(test)]
 use crate::domain::{
-    LibraryChangeCatchUpBatch, LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpLimits,
-    LibraryChangeCatchUpQueueBatch, RecoverableScan,
+    LibraryChangeCatchUpCheckpoint, LibraryChangeCatchUpQueueBatch, RecoverableScan,
 };
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -607,18 +606,6 @@ pub trait LibraryChangeCatchUpRepository {
         updated_before_unix_ms: i64,
         limit: u32,
     ) -> Result<u32, ScanError>;
-}
-
-#[cfg(test)]
-pub trait LibraryChangeCatchUpSource: Send + Sync + 'static {
-    fn read_changes(
-        &self,
-        roots: &[IncrementalCatalogRoot],
-        checkpoints: &[LibraryChangeCatchUpCheckpoint],
-        observed_unix_ms: i64,
-        limits: LibraryChangeCatchUpLimits,
-        cancelled: &AtomicBool,
-    ) -> Result<LibraryChangeCatchUpBatch, ScanError>;
 }
 
 pub trait IncrementalCatalogRepository {
