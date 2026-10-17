@@ -983,3 +983,16 @@ The workflow facade contains 388 production lines with no inline tests; the new 
 has 45. Its dedicated regression has 63 lines and is called by the existing 501-line guardrail
 entrypoint. Source review covered independent preparation ownership, remaining whole-run budget,
 failure propagation, unchanged acknowledgement authority and exact scratch-file cleanup.
+
+### Review stack consolidation
+
+The twelve-PR review surface was consolidated into native GitHub stack #35, containing existing
+PRs #22–#27 and #29 in dependency order. The old stack #28 was unstacked. Branch
+`codex/gallery-card-size-anchor` was fast-forwarded from `b85ad76` to `ff1d78f`, retaining every
+original PR head as an ancestor and the complete source tree of the previous combined candidate.
+PRs #30–#34 were closed without merging; their branches and commits remain available. No PR was
+created, no commit was rewritten, and `main` remains at `83c8c16e263acab5270f14ca6617b38a1cd5cd6c`.
+
+The seven remaining PRs are drafts with each base matching the preceding head branch. This changes
+the review surface without changing product or tool inputs. Existing verification retains its
+recorded scope; current branch checks and the combined candidate still govern maintenance closeout.

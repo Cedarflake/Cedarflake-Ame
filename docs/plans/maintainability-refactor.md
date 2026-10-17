@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: refactor and affected client checks complete; journal correction passed hosted checks; catalog-proof correction and stack integration remain
+Status: refactor and affected client checks complete; seven-PR consolidation complete; catalog-proof and branch-level hosted verification remain
 
 Updated: 2026-10-17
 
@@ -9,12 +9,9 @@ M3 `codex/gallery-publication-lifecycles`, based on M2 `6f80d66`;
 M4 `codex/gallery-retained-window`, based on M3 and including its `4335ae7` constructor correction;
 M5 `codex/retire-legacy-usn`, based on M4 `86feb69`;
 M6 `codex/workflow-script-ownership`, based on M5 `e4096a2`.
-Follow-up: `codex/gallery-card-size-anchor`, based on M6 `1e87561`.
-Filter follow-up: `codex/gallery-filter-anchor`, based on card-size correction `b85ad76`.
-Timeline follow-up: `codex/gallery-timeline-stability`, based on filter correction `8ebb825`.
-Journal latency follow-up: `codex/journal-catchup-latency`, based on timeline correction `db1842a`.
-Hosted priority diagnosis: `codex/catalog-proof-latency`, based on journal correction `79213fc`.
-Accessibility preparation: `codex/accessibility-probe-preparation`, based on diagnostic `d6959e1`.
+Combined follow-up: `codex/gallery-card-size-anchor`, based on M6 `1e87561`, retains all subsequent
+gallery, journal, catalog-proof and accessibility-preparation commits through `ff1d78f`.
+The former follow-up branches remain available as historical references; PR #29 owns their delivery.
 
 ## Outcome and boundaries
 
@@ -39,8 +36,8 @@ This plan tracks work and completion conditions without duplicating those rules.
 Each row may contain independently reversible commits. Commit and push a finished boundary before
 starting the next independent one. Pending hosted checks do not prevent unrelated authorized work.
 Further diagnostics and CI corrections use the existing review units rather than adding PRs.
-The current stack is unchanged; consolidation into six refactor PRs and one follow-up PR is proposed,
-not yet applied.
+Native stack #35 contains six refactor PRs and one combined follow-up PR. The behavior changes below
+retain separate outcomes and evidence within that combined review unit.
 
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
@@ -51,7 +48,7 @@ not yet applied.
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Implementation, scoped review, migrated boundary/guardrail checks and final hosted checks passed |
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Implementation, focused guardrails, combined client comparison and final scoped audit complete; current stack checks are linked below |
 | Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction, scoped review and 11 hosted execution jobs passed |
-| Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation, 37 focused checks and both native layouts passed; current Accessibility timeout remains |
+| Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation, 37 focused checks and both native layouts passed; accessibility preparation passed its complete hosted job; consolidated checks remain |
 | Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Native update observation and 31 relevant focused cases passed; date-publication cancellation corrected; all 11 required hosted jobs passed on `db1842a` |
 | Follow-up D | Diagnose and correct excessive journal catch-up time after image processing has finished | Separate volume read, identity resolution, catalog work and scheduling delay; measure bounded backlog progress and incoming work; preserve continuity, cancellation, source safety and browsing priority | Unbounded namespace lookup work corrected; three focused regressions, same-interval native measurement, Debug convergence, scoped review and all 11 required hosted jobs passed on `79213fc` |
 
@@ -118,14 +115,15 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 - Follow-up B's Accessibility job reached its eight-second deadline while loading UIA components;
   application-ready element checks had not completed. A separately bounded preparation probe now
   validates the runtime before application startup; local guardrails and the complete hosted
-  Accessibility job passed on `29c3c8b`. The earlier branch's failed check still needs integration
-  reconciliation. Follow-up C's released date-seek cancellation
+  Accessibility job passed on `29c3c8b`. Its correction is included in consolidated PR #29, whose
+  current checks own integration verification. Follow-up C's released date-seek cancellation
   regression is corrected and run `39029121263` passed all required jobs. Existing assertions,
   timeouts and workloads remain unchanged.
-- Native GitHub stack #28 contains the six refactor PRs, three gallery follow-ups, journal correction,
-  hosted priority diagnosis and accessibility preparation below, with verified ancestry and adjacent
-  base/head branches. Each review unit remains independently inspectable. `main` merging remains
-  an explicit human decision; R4 has not started.
+- Native GitHub stack #35 contains the six refactor PRs and combined follow-up PR #29 below.
+  PRs #30–#34 were closed without merging after their complete history was retained by #29;
+  their branches remain. The former stack #28 was unstacked, with no history rewriting or new PR.
+  The seven review units retain adjacent base/head branches. `main` merging remains an explicit
+  human decision; R4 has not started.
 
 | Boundary | Review and current checks | Base branch |
 | --- | --- | --- |
@@ -135,9 +133,4 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 | M4 | [PR #25](https://github.com/Cedarflake/Cedarflake-Ame/pull/25) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/25/checks) | `codex/gallery-publication-lifecycles` |
 | M5 | [PR #26](https://github.com/Cedarflake/Cedarflake-Ame/pull/26) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/26/checks) | `codex/gallery-retained-window` |
 | M6 | [PR #27](https://github.com/Cedarflake/Cedarflake-Ame/pull/27) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/27/checks) | `codex/retire-legacy-usn` |
-| Follow-up A | [PR #29](https://github.com/Cedarflake/Cedarflake-Ame/pull/29) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/29/checks) | `codex/workflow-script-ownership` |
-| Follow-up B | [PR #30](https://github.com/Cedarflake/Cedarflake-Ame/pull/30) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/30/checks) | `codex/gallery-card-size-anchor` |
-| Follow-up C | [PR #31](https://github.com/Cedarflake/Cedarflake-Ame/pull/31) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/31/checks) | `codex/gallery-filter-anchor` |
-| Follow-up D | [PR #32](https://github.com/Cedarflake/Cedarflake-Ame/pull/32) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/32/checks) | `codex/gallery-timeline-stability` |
-| Hosted priority diagnosis | [PR #33](https://github.com/Cedarflake/Cedarflake-Ame/pull/33) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/33/checks) | `codex/journal-catchup-latency` |
-| Accessibility preparation | [PR #34](https://github.com/Cedarflake/Cedarflake-Ame/pull/34) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/34/checks) | `codex/catalog-proof-latency` |
+| Follow-ups A–D, catalog proof and accessibility preparation | [PR #29](https://github.com/Cedarflake/Cedarflake-Ame/pull/29) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/29/checks) | `codex/workflow-script-ownership` |
