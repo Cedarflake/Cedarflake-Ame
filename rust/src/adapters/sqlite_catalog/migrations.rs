@@ -22,6 +22,7 @@ use super::{
     natural_name_key, parent_relative_path, unix_time_ms,
 };
 
+mod change_lane_contract;
 mod compatibility_repair_shape;
 mod current_recovery_state;
 mod current_schema;
@@ -29,6 +30,7 @@ mod directory_identities;
 mod exact_candidate_index_retirement;
 mod exact_duplicate_review;
 mod exact_duplicates;
+mod recovery_authority_contract;
 #[cfg(test)]
 pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
@@ -1038,8 +1040,8 @@ fn validate_pre_live_gap_schema_contract_with_depth(
     validate_metadata_inventory_contract_with_depth(connection, depth)?;
     validate_terminal_media_evidence_contract_with_depth(connection, depth)?;
     validate_persistent_journal_contract_with_depth(connection, depth)?;
-    validate_change_lane_contract_with_depth(connection, depth)?;
-    validate_recovery_authority_contract_with_depth(connection, depth)?;
+    change_lane_contract::validate_with_depth(connection, depth)?;
+    recovery_authority_contract::validate_with_depth(connection, depth)?;
     validate_persistent_journal_baseline_contract_with_depth(connection, depth)?;
     validate_recovery_execution_contract_with_depth(connection, depth)?;
     validate_metadata_inventory_spool_contract_version_with_depth(
@@ -1776,244 +1778,6 @@ const METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL: &str =
        BEGIN
          SELECT RAISE(ABORT, 'completed inventory spool directory is immutable');
        END";
-
-fn validate_change_lane_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_change_lane_contract_with_depth(connection, ContractValidationDepth::Full)
-}
-
-fn validate_change_lane_contract_with_depth(
-    connection: &Connection,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    let columns_match = table_columns_match(
-        connection,
-        "library_change_lane_contract",
-        &[
-            ("singleton", "INTEGER", false, 1),
-            ("complete", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_change_queue_lanes",
-        &[
-            ("change_id", "INTEGER", false, 1),
-            ("lane", "TEXT", true, 0),
-        ],
-    )?;
-    let marker_complete = connection
-        .query_row(
-            "SELECT singleton = 1 AND complete = 1
-             FROM library_change_lane_contract",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_change_lane_contract",
-        CHANGE_LANE_CONTRACT_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_change_queue_lanes",
-        CHANGE_LANE_QUEUE_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_change_queue_lanes_eligible",
-        CHANGE_LANE_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_change_queue_lane_insert",
-        CHANGE_LANE_INSERT_TRIGGER_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_change_queue_lane_origin_update",
-        CHANGE_LANE_ORIGIN_TRIGGER_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_change_queue_lane_insert_guard",
-        CHANGE_LANE_INSERT_GUARD_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_change_queue_lane_update_guard",
-        CHANGE_LANE_UPDATE_GUARD_DDL,
-    )?;
-    let foreign_key_matches = cascade_foreign_key_matches(
-        connection,
-        "library_change_queue_lanes",
-        "change_id",
-        "library_change_queue",
-        "id",
-    )?;
-    if !columns_match || !marker_complete || !schema_matches || !foreign_key_matches {
-        return Err(unverifiable_change_lane_contract());
-    }
-    if !depth.includes_rows() {
-        return Ok(());
-    }
-    record_current_schema_row_audit();
-    let invalid_rows = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1
-               FROM library_change_queue AS queue
-               LEFT JOIN library_change_queue_lanes AS lanes ON lanes.change_id = queue.id
-               WHERE lanes.change_id IS NULL
-                  OR lanes.lane <> CASE queue.origin
-                    WHEN 'live_notification' THEN 'p0_live'
-                    WHEN 'startup_catch_up' THEN 'p1_journal'
-                    ELSE 'p2_recovery'
-                  END
-             ) OR EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check('library_change_queue_lanes')
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if invalid_rows {
-        return Err(unverifiable_change_lane_contract());
-    }
-    Ok(())
-}
-
-fn unverifiable_change_lane_contract() -> ScanError {
-    ScanError::new(
-        "catalog_change_lane_contract_unverifiable",
-        "The catalog cannot prove its durable change-lane authority",
-    )
-}
-
-fn validate_recovery_authority_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_recovery_authority_contract_with_depth(connection, ContractValidationDepth::Full)
-}
-
-fn validate_recovery_authority_contract_with_depth(
-    connection: &Connection,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    let columns_match = table_columns_match(
-        connection,
-        "library_recovery_authority_contract",
-        &[
-            ("singleton", "INTEGER", false, 1),
-            ("complete", "INTEGER", true, 0),
-        ],
-    )? && table_columns_match(
-        connection,
-        "library_recovery_authorities",
-        &[
-            ("change_id", "INTEGER", false, 1),
-            ("run_id", "TEXT", true, 0),
-            ("root_id", "TEXT", true, 0),
-            ("root_generation", "INTEGER", true, 0),
-            ("reason", "TEXT", true, 0),
-            ("opening_journal_id", "TEXT", false, 0),
-            ("opening_next_usn", "TEXT", false, 0),
-            ("authorized_unix_ms", "INTEGER", true, 0),
-            ("retired_unix_ms", "INTEGER", false, 0),
-        ],
-    )?;
-    let marker_complete = connection
-        .query_row(
-            "SELECT singleton = 1 AND complete = 1
-             FROM library_recovery_authority_contract",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .unwrap_or(false);
-    let schema_matches = schema_object_sql_matches(
-        connection,
-        "table",
-        "library_recovery_authority_contract",
-        RECOVERY_AUTHORITY_CONTRACT_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "table",
-        "library_recovery_authorities",
-        RECOVERY_AUTHORITY_TABLE_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "index",
-        "library_recovery_authorities_root",
-        RECOVERY_AUTHORITY_ROOT_INDEX_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_recovery_authority_insert_guard",
-        RECOVERY_AUTHORITY_INSERT_GUARD_DDL,
-    )? && schema_object_sql_matches(
-        connection,
-        "trigger",
-        "library_recovery_authority_update_guard",
-        RECOVERY_AUTHORITY_UPDATE_GUARD_DDL,
-    )?;
-    let foreign_key_matches = cascade_foreign_key_matches(
-        connection,
-        "library_recovery_authorities",
-        "change_id",
-        "library_change_queue",
-        "id",
-    )?;
-    if !columns_match || !marker_complete || !schema_matches || !foreign_key_matches {
-        return Err(unverifiable_recovery_authority_contract());
-    }
-    if !depth.includes_rows() {
-        return Ok(());
-    }
-    record_current_schema_row_audit();
-    let invalid_rows = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1
-               FROM library_recovery_authorities AS authority
-               LEFT JOIN library_change_queue AS queue ON queue.id = authority.change_id
-               LEFT JOIN library_change_queue_lanes AS lanes
-                 ON lanes.change_id = authority.change_id
-               WHERE queue.id IS NULL
-                  OR queue.root_id <> authority.root_id
-                  OR queue.root_generation <> authority.root_generation
-                  OR lanes.lane <> 'p2_recovery'
-             ) OR EXISTS(
-               SELECT 1 FROM pragma_foreign_key_check('library_recovery_authorities')
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    let mut boundaries = connection
-        .prepare(
-            "SELECT opening_journal_id, opening_next_usn
-             FROM library_recovery_authorities
-             WHERE opening_journal_id IS NOT NULL OR opening_next_usn IS NOT NULL",
-        )
-        .map_err(database_error)?;
-    let canonical_boundaries = boundaries
-        .query_map([], |row| {
-            Ok((row.get::<_, String>(0)?, row.get::<_, String>(1)?))
-        })
-        .map_err(database_error)?
-        .all(|row| {
-            row.is_ok_and(|(journal_id, next_usn)| {
-                JournalIdentifier::parse_canonical(&journal_id).is_ok()
-                    && JournalUsn::parse_canonical(&next_usn).is_ok()
-            })
-        });
-    if invalid_rows || !canonical_boundaries {
-        return Err(unverifiable_recovery_authority_contract());
-    }
-    Ok(())
-}
 
 fn validate_recovery_execution_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_recovery_execution_contract_with_depth(connection, ContractValidationDepth::Full)
@@ -2823,13 +2587,6 @@ fn validate_metadata_inventory_spool_contract_version_with_depth(
     }
     record_current_schema_row_audit();
     inventory_spool_rows::validate(connection, expected_contract_version)
-}
-
-fn unverifiable_recovery_authority_contract() -> ScanError {
-    ScanError::new(
-        "catalog_recovery_authority_contract_unverifiable",
-        "The catalog cannot prove its bounded recovery authority",
-    )
 }
 
 fn validate_terminal_media_evidence_contract(connection: &Connection) -> Result<(), ScanError> {
@@ -7728,8 +7485,8 @@ fn migrate_v24_to_v25_transaction(transaction: &Transaction<'_>) -> Result<(), S
     ] {
         transaction.execute_batch(sql).map_err(database_error)?;
     }
-    validate_change_lane_contract(transaction)?;
-    validate_recovery_authority_contract(transaction)?;
+    change_lane_contract::validate(transaction)?;
+    recovery_authority_contract::validate(transaction)?;
     validate_persistent_journal_baseline_contract(transaction)
 }
 
@@ -7773,8 +7530,8 @@ fn migrate_v25_to_v26(connection: &mut Connection) -> Result<(), ScanError> {
 
 fn migrate_v25_to_v26_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 25)?;
-    validate_change_lane_contract(transaction)?;
-    validate_recovery_authority_contract(transaction)?;
+    change_lane_contract::validate(transaction)?;
+    recovery_authority_contract::validate(transaction)?;
     validate_persistent_journal_baseline_contract(transaction)?;
     for sql in [
         RECOVERY_EXECUTION_CONTRACT_TABLE_DDL,
@@ -10686,7 +10443,7 @@ mod tests {
                 )
                 .expect("v27 active source spool");
         }
-        super::validate_recovery_authority_contract(&connection)
+        super::recovery_authority_contract::validate(&connection)
             .expect("valid v27 recovery authority");
         super::validate_persistent_journal_baseline_contract(&connection)
             .expect("valid v27 baseline phase");
@@ -12566,176 +12323,6 @@ mod tests {
                 .expect("reopened debt evidence");
             assert_eq!(reopened_evidence, (LEGACY_UNOWNED_P2, 0));
         }
-    }
-
-    #[test]
-    fn current_v25_rejects_weakened_lane_constraint_and_missing_lane_rows() {
-        let mut connection = Connection::open_in_memory().expect("catalog");
-        migrate_schema(&mut connection).expect("fresh current catalog");
-        let original = connection
-            .query_row(
-                "SELECT sql FROM sqlite_master
-                 WHERE type = 'table' AND name = 'library_change_queue_lanes'",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .expect("canonical lane DDL");
-        let modified = original.replacen(
-            "CHECK(lane IN ('p0_live', 'p1_journal', 'p2_recovery'))",
-            "CHECK(1)",
-            1,
-        );
-        assert_ne!(modified, original);
-        connection
-            .execute_batch("PRAGMA writable_schema = ON")
-            .expect("enable controlled schema mutation");
-        connection
-            .execute(
-                "UPDATE sqlite_master SET sql = ?1
-                 WHERE type = 'table' AND name = 'library_change_queue_lanes'",
-                [modified],
-            )
-            .expect("weaken lane CHECK");
-        connection
-            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1002")
-            .expect("publish controlled schema mutation");
-
-        let error = migrate_schema(&mut connection).expect_err("weakened v25 CHECK must fail");
-        assert_eq!(error.code, "catalog_change_lane_contract_unverifiable");
-
-        let mut connection = Connection::open_in_memory().expect("second catalog");
-        migrate_schema(&mut connection).expect("fresh current catalog");
-        connection
-            .execute_batch(
-                "INSERT INTO library_change_queue(
-                   id, root_id, root_generation, intent_kind, scope, relative_path,
-                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
-                   first_sequence, most_recent_sequence, coalesced_observation_count,
-                   status, ready_unix_ms, catalog_revision_at_enqueue,
-                   created_unix_ms, updated_unix_ms
-                 ) VALUES (
-                   201, 'root-a', 1, 'reconcile', 'path', 'photo.jpg',
-                   'live_notification', 1, 1, '1', '1', 1, 'pending', 1, 0, 1, 1
-                 );
-                 DELETE FROM library_change_queue_lanes WHERE change_id = 201;",
-            )
-            .expect("missing lane fixture");
-        let error = migrate_schema(&mut connection).expect_err("missing lane row must fail");
-        assert_eq!(error.code, "catalog_change_lane_contract_unverifiable");
-    }
-
-    #[test]
-    fn current_v25_recovery_authority_is_allowlisted_and_bound_to_p2_work() {
-        let mut connection = Connection::open_in_memory().expect("catalog");
-        migrate_schema(&mut connection).expect("fresh current catalog");
-        connection
-            .execute_batch(
-                "INSERT INTO library_change_queue(
-                   id, root_id, root_generation, intent_kind, scope, relative_path,
-                   origin, first_observed_unix_ms, most_recent_observed_unix_ms,
-                   first_sequence, most_recent_sequence, coalesced_observation_count,
-                   status, ready_unix_ms, catalog_revision_at_enqueue,
-                   created_unix_ms, updated_unix_ms
-                 ) VALUES
-                   (301, 'root-a', 1, 'freshness_unknown', 'root', '',
-                    'consistency_audit', 1, 1, '1', '1', 1, 'pending', 1, 0, 1, 1),
-                   (302, 'root-a', 1, 'reconcile', 'path', 'live.jpg',
-                    'live_notification', 1, 1, '2', '2', 1, 'pending', 1, 0, 1, 1);",
-            )
-            .expect("queue fixtures");
-
-        let invalid_reason = connection
-            .execute(
-                "INSERT INTO library_recovery_authorities(
-                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
-                 ) VALUES (301, 'run-invalid', 'root-a', 1, 'slow_queue', 1)",
-                [],
-            )
-            .expect_err("non-allowlisted reason");
-        assert!(
-            invalid_reason
-                .to_string()
-                .contains("CHECK constraint failed")
-        );
-        let missing_boundary = connection
-            .execute(
-                "INSERT INTO library_recovery_authorities(
-                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
-                 ) VALUES (301, 'run-baseline', 'root-a', 1,
-                           'existing_root_baseline', 1)",
-                [],
-            )
-            .expect_err("baseline requires opening boundary");
-        assert!(
-            missing_boundary
-                .to_string()
-                .contains("CHECK constraint failed")
-        );
-        let wrong_lane = connection
-            .execute(
-                "INSERT INTO library_recovery_authorities(
-                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
-                 ) VALUES (302, 'run-live', 'root-a', 1, 'containment_failure', 1)",
-                [],
-            )
-            .expect_err("P0 cannot own P2 authority");
-        assert!(wrong_lane.to_string().contains("does not match P2"));
-        connection
-            .execute(
-                "INSERT INTO library_recovery_authorities(
-                   change_id, run_id, root_id, root_generation, reason, authorized_unix_ms
-                 ) VALUES (301, 'run-valid', 'root-a', 1, 'containment_failure', 1)",
-                [],
-            )
-            .expect("allowlisted P2 authority");
-        let immutable = connection
-            .execute(
-                "UPDATE library_recovery_authorities
-                 SET reason = 'journal_gap' WHERE change_id = 301",
-                [],
-            )
-            .expect_err("authority identity is immutable");
-        assert!(immutable.to_string().contains("identity is immutable"));
-        migrate_schema(&mut connection).expect("validate recovery authority contract");
-    }
-
-    #[test]
-    fn current_v25_rejects_weakened_recovery_authority_shape() {
-        let mut connection = Connection::open_in_memory().expect("catalog");
-        migrate_schema(&mut connection).expect("fresh current catalog");
-        let original = connection
-            .query_row(
-                "SELECT sql FROM sqlite_master
-                 WHERE type = 'table' AND name = 'library_recovery_authorities'",
-                [],
-                |row| row.get::<_, String>(0),
-            )
-            .expect("canonical recovery authority DDL");
-        let modified = original.replacen(
-            "CHECK(retired_unix_ms IS NULL OR retired_unix_ms >= authorized_unix_ms)",
-            "CHECK(1)",
-            1,
-        );
-        assert_ne!(modified, original);
-        connection
-            .execute_batch("PRAGMA writable_schema = ON")
-            .expect("enable controlled schema mutation");
-        connection
-            .execute(
-                "UPDATE sqlite_master SET sql = ?1
-                 WHERE type = 'table' AND name = 'library_recovery_authorities'",
-                [modified],
-            )
-            .expect("weaken recovery authority CHECK");
-        connection
-            .execute_batch("PRAGMA writable_schema = OFF; PRAGMA schema_version = 1003")
-            .expect("publish controlled schema mutation");
-
-        let error = migrate_schema(&mut connection).expect_err("weakened authority must fail");
-        assert_eq!(
-            error.code,
-            "catalog_recovery_authority_contract_unverifiable"
-        );
     }
 
     #[test]

@@ -81,3 +81,21 @@ repository lock with `CARGO_INCREMENTAL=0`. Initial compilation exposed two rema
 callers of the old parent symbols; both now call the owner directly. The passing run includes those
 callers. Repository formatting (410 Dart files unchanged), final source/diff inspection and
 `git diff --check` passed. Hosted checks and final client comparison remain separate evidence.
+
+## Queue lane and recovery authority contracts
+
+The lane projection and P2 recovery-authority proofs now have separate owners, each with direct
+structural/row validation and its existing acceptance/rejection tests. Historical DDL remains with
+the ordered version steps. All six moved function bodies preserve their decisions, SQL and error
+codes after symbol relocation and formatting; origin precedence, missing-lane rejection, authority
+identity and canonical journal boundaries are unchanged.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 8,985 | 4,978 | 0 |
+| `migrations/change_lane_contract.rs` | 129 | 2 | 59 |
+| `migrations/recovery_authority_contract.rs` | 144 | 2 | 117 |
+
+Three existing regressions moved with their owners. This mechanical extraction uses hosted Rust
+compilation and tests; no new local runtime pass is claimed. Source-body comparison and final diff
+inspection preserve migration admission order and every affected test assertion.
