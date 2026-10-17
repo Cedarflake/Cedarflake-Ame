@@ -274,3 +274,9 @@ one-time retirement and post-close rename. No test assertions or time limits cha
 ordinary-library check passed without warnings after limiting parent panic/condition-variable
 imports to their actual test configuration. Complete cross-platform and integration gates remain
 hosted; Journal/Recovery extraction and final client comparison are still outstanding.
+
+The first M2 hosted run (`16680d1`, run `39010460085`) rejected two stale R2c-R test mappings after
+the shutdown cases moved to `runtime_lifecycle/tests/shutdown.rs`. The exact selectors and source
+paths now target that owner, including the existing acceptance table. A focused matrix check
+admitted all 19 cases and rejected the former source mapping. No cases, assertions or rejection
+rules were removed; the corrected commit still requires its hosted checks.
