@@ -104,7 +104,15 @@ page failure remain one boundary, with no second decoded page or per-record clon
   durable result. The primary session retains confirmation/refresh obligations through read failures;
   dismissal or a new import cannot discard them, and Retry performs only the outstanding read.
 - `application/library_synchronization/production.rs` remains the priority and worker-lifecycle
-  coordinator. Journal baseline opening and closing use different typed work items in
+  coordinator. `production/runtime_lifecycle` owns the process registry: `state` holds the epoch,
+  typed start tickets, admitted stop-fence ledger and retained runtime; `admission` linearizes
+  ownership changes; `operation` admits results and retains panicked owners; `retirement` drains
+  that same owner within its original deadline. Its facade exposes reserve/start/poll/stop and
+  first-import ownership without exposing mutable registry state. Constructors and polling remain
+  outside the registry mutex. Timeout, panic and late completion retain the original resource and
+  epoch authority until retirement is proven. Lifecycle tests sit beside this boundary, while
+  controlled source/journal resource fixtures have a shared test-only owner.
+  Journal baseline opening and closing use different typed work items in
   `journal_baseline.rs`; an opening authority is either an existing root or a first import with a
   required scan identity and start time, so mutually exclusive fields cannot form an invalid job.
   `journal_baseline/opening.rs` owns opening probe admission, capability/baseline publication and

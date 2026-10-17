@@ -246,3 +246,31 @@ rollback, consistent read snapshots, direct normal-write proof reuse, test/fixtu
 absence of dependency/schema/source-read changes. It found no remaining M1 implementation issue.
 This is source and boundary evidence; the final pushed head still requires its hosted gates, and
 the combined refactor retains the final client comparison in the execution plan.
+
+## M2 runtime lifecycle boundary
+
+`production/runtime_lifecycle` owns registry state, start/stop admission, operation completion and
+retirement. The existing Windows command facade translates raw tickets through this owner; mutable
+registry state stays internal. The 32 moved function bodies retain their predicates, lock order,
+deadline calculations, result admission and panic handling after formatting. Lifecycle fixture
+resources are shared through the test-only `runtime_test_support` owner.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test/fixture lines |
+| --- | ---: | ---: | ---: |
+| `production.rs` before | 3,507 | 10,884 | Existing child suites |
+| `production.rs` after lifecycle extraction | 2,345 | 8,079 | Existing child suites |
+| `runtime_lifecycle.rs` | 46 | 2 | 169 shared lifecycle fixture lines |
+| `runtime_lifecycle/state.rs` | 360 | 10 | 0 |
+| `runtime_lifecycle/admission.rs` | 298 | 22 | 727 |
+| `runtime_lifecycle/operation.rs` | 273 | 24 | 836 panic and 367 late-completion lines |
+| `runtime_lifecycle/retirement.rs` | 229 | 25 | 371 shutdown and 74 catalog-close lines |
+| `runtime_test_support.rs` | 0 | 0 | 208 |
+
+All 89 tests previously in the parent and its poll-catalog suite remain, with their assertions
+unchanged. The relocated lifecycle subset contains 39 tests. The scoped local run passed 37 and
+encountered filesystem access denial in two temporary-catalog rename assertions. Running those
+same two tests with normal permissions passed both, including delayed close, retained ownership,
+one-time retirement and post-close rename. No test assertions or time limits changed. The final
+ordinary-library check passed without warnings after limiting parent panic/condition-variable
+imports to their actual test configuration. Complete cross-platform and integration gates remain
+hosted; Journal/Recovery extraction and final client comparison are still outstanding.
