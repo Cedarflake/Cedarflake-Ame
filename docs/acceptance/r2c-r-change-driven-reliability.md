@@ -96,8 +96,8 @@ The fresh public gate passed all 19 cases, each as one exact test:
 | 9 | Reset/trim race fails closed in the broker service contract | `journal_broker::service::tests::reset_and_trimming_during_read_fail_closed` |
 | 10 | Broker session reconnect | `application::library_synchronization::production::tests::production_journal_factory_reconnects_after_closing_the_previous_session` |
 | 11 | Reconnect after isolated close failure | `application::library_synchronization::production::tests::reconnect_isolates_a_close_failure_and_installs_a_fresh_session` |
-| 12 | Bounded P0/P1/P2 stop and immediate restart | `application::library_synchronization::production::tests::one_stop_joins_delayed_p0_p1_p2_then_allows_immediate_restart` |
-| 13 | Cancellation and restart during blocked filesystem/writer work | `application::library_synchronization::production::tests::stop_and_restart_remain_responsive_during_blocked_filesystem_and_writer_work` |
+| 12 | Bounded P0/P1/P2 stop and immediate restart | `application::library_synchronization::production::runtime_lifecycle::tests::shutdown::one_stop_joins_delayed_p0_p1_p2_then_allows_immediate_restart` |
+| 13 | Cancellation and restart during blocked filesystem/writer work | `application::library_synchronization::production::runtime_lifecycle::tests::shutdown::stop_and_restart_remain_responsive_during_blocked_filesystem_and_writer_work` |
 | 14 | Configured-root replacement opens no enumeration path | `application::incremental_library_changes::tests::replacement_root_uses_only_the_proof_guard_and_enumerates_nothing` |
 | 15 | Retained same-volume multi-root request sharing and failure isolation | `application::library_synchronization::change_driven_reliability_acceptance::r2c_r_same_volume_roots_share_one_retained_session_read_and_isolate_failure` |
 | 16 | Placeholder evidence opens no media inspector | `application::metadata_inventory::tests::placeholder_evidence_is_staged_and_enqueued_without_media_inspection` |
