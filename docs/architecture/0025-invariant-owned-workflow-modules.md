@@ -651,6 +651,12 @@ page failure remain one boundary, with no second decoded page or per-record clon
   unless another revision arrived during the attempt; an applied result still has to expose the
   requested catalog revision. Disposal cancels scheduled retry and prevents late completion from
   reading presentation state or publishing feedback. Notification content remains with the screen.
+- `library_gallery_dimension_publication.dart` owns query/revision-scoped recovered dimensions,
+  visible-range classification, the frozen recovery anchor and quiet/maximum-delay publication.
+  Scrolling reclassifies pending versus deferred dimensions; query replacement retires both and
+  the manifest overlay cache. Navigation and disposal cancel scheduled publication. The screen
+  supplies position capture and pending-transition state, retains actual scroll objects, and
+  composes the resulting layout transition. This owner grants no catalog-publication authority.
 - `library_browse_admission.dart` owns read admission independently from scan-command admission.
   A published catalog remains queryable during a primary scan; unpublished staging is never read
   as completed content. Query replacement, paging and time reads retain their distinct exclusions.

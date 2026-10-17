@@ -34,7 +34,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | --- | --- | --- | --- |
 | M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Implementation, scoped review and final exact-head hosted checks passed |
 | M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Implementation and scoped review complete; final exact-head hosted checks pending |
-| M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Synchronization refresh owner extracted; recovered-dimension lifecycle and client comparison pending |
+| M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Implementation, scoped review, focused regressions and affected Debug workflow complete; final exact-head hosted checks pending |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Pending M3 |
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Pending M4 |
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Pending M5 |
@@ -108,7 +108,10 @@ do not infer completion from moved files or recreate an already extracted owner.
   is complete at `6f80d66`; hosted run `39013287820` remains in progress.
 - M3's synchronization refresh owner retains revision coalescing, delayed busy retry and explicit
   failure feedback. Its nine boundary tests and the 20 existing viewer/refresh cases passed.
-  Continue dimension publication ownership, then verify the affected Debug workflow.
+  Dimension publication now owns its range epoch, deferred/published maps, manifest cache and
+  quiet/deadline timers. Nine owner regressions, 43 screen cases and two synchronization-position
+  cases passed. The affected ordinary Debug workflow passed with the retained test library and the
+  original profile/catalog restored; final combined comparison remains required after M6.
 - Authorized draft [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22) triggers the existing
   hosted checks. Inspect the current pushed head; newer pushes supersede older in-progress runs.
   Feature-branch pushes alone are not CI triggers.
