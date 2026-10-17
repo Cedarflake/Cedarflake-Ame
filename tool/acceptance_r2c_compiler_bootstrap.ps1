@@ -698,4 +698,3 @@ function Remove-AmeR2cRCompilerBootstrap {
         $Bootstrap.ToolHandle = $null
     }
 }
-

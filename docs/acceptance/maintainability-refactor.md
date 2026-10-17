@@ -590,8 +590,8 @@ guardrails passed, including rejecting paths and interrupted-transaction recover
 use controlled fixtures; no service installation, signing, source-media operation or production
 MSI change was performed.
 
-The R2c-R common facade decreased from 3,102 to 253 production lines. Compiler bootstrap (701),
-lazy native resources (1,279), controlled process execution (153) and source audit (752) are separate
+The R2c-R common facade decreased from 3,102 to 253 production lines. Compiler bootstrap (700),
+lazy native resources (1,278), controlled process execution (152) and source audit (752) are separate
 owners without inline tests. The native compilation unit remains intact so its verified types,
 temporary environment and process/handle contracts are admitted together. Process and native
 implementation digests are unchanged. The exact guardrail-script digest was updated after reviewing

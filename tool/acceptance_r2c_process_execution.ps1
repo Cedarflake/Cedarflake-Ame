@@ -150,4 +150,3 @@ function Invoke-AmeR2cROwnedProcess {
     }
     return [pscustomobject]@{ ExitCode = $exitCode; Lines = $lines; ProcessId = $processId; TimedOut = $timedOut }
 }
-

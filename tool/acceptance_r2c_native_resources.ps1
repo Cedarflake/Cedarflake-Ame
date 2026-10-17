@@ -1276,4 +1276,3 @@ public sealed class AmeR2cRProcessJob : IDisposable
         }
     }
 }
-
