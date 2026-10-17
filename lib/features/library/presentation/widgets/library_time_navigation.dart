@@ -205,7 +205,11 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
               ? null
               : (direction) => _moveOneRow(metrics, direction),
           onInteractionCancelled: () {
-            if (mounted && interactionGeneration == _seekIntentGeneration) {
+            // Retire an unfinished gesture; a released date seek still owns
+            // its alignment when the resulting catalog layout is published.
+            if (mounted &&
+                _isDragging &&
+                interactionGeneration == _seekIntentGeneration) {
               _cancelTimelineIntent();
             }
           },

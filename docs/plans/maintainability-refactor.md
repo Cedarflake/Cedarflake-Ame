@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: refactor and position/timeline corrections implemented; final client checks and hosted priority failures remain
+Status: refactor and position/timeline client checks complete; hosted priority/accessibility failures and timeline revalidation remain
 
 Updated: 2026-10-17
 
@@ -39,14 +39,14 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
 | M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Implementation, scoped review and final exact-head hosted checks passed |
-| M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Implementation, scoped review and final exact-head hosted checks passed |
+| M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Implementation, scoped review and pre-stack checks passed; current stack priority failure remains |
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Implementation, scoped review, final hosted checks and affected Debug comparison passed |
-| M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Implementation, scoped review and final hosted checks passed; combined comparison recorded with retained observations below |
+| M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Implementation, scoped review and pre-stack checks passed; current stack priority failure remains; combined comparison is recorded below |
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Implementation, scoped review, migrated boundary/guardrail checks and final hosted checks passed |
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Implementation, focused guardrails, combined client comparison and final scoped audit complete; current stack checks are linked below |
-| Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction and scoped review passed; hosted checks remain |
-| Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation and 37 focused lifecycle/widget checks passed; Debug built, native input paused while the user operates that window |
-| Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Complete-frame admission and matching gesture retirement implemented; 25 focused publication/navigation cases passed; native update observation remains |
+| Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction, scoped review and 11 hosted execution jobs passed |
+| Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation, 37 focused checks and both native layouts passed; current Accessibility timeout remains |
+| Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Native update observation and 31 relevant focused cases passed; hosted date-publication cancellation regression corrected, current-head revalidation remains |
 
 ## Verification and closeout
 
@@ -101,9 +101,14 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
   the verified product/tool inputs and does not claim a new client run.
 - Latest stack runs exposed the existing mixed-load poll-connection priority regression: M2 run
   `39020716332` timed out awaiting sample 11's P2 source page; M6 run `39020913937` measured P0 P95
-  at 1.962 seconds against the unchanged one-second bound. Diagnose the owner before correction;
-  prior passing runs do not close these new failures.
-- Native GitHub stack #28 contains the six refactor PRs and the card-size/filter follow-ups below, with verified ancestry and adjacent
+  at 1.962 seconds and M4 run `39020716478` at 1.188 seconds against the unchanged one-second bound.
+  Slow proof reads are being separated into namespace resolution and held-handle identity. The
+  local controlled case passed without reproducing the hosted delay; hosted diagnosis remains.
+- Follow-up B's Accessibility job reached its eight-second deadline while loading UIA components;
+  application-ready element checks had not completed. Follow-up C's native Accessibility job passed,
+  but its Flutter job exposed a released date-seek cancellation regression. The narrow correction
+  preserves the existing assertions; no timeout or workload is relaxed.
+- Native GitHub stack #28 contains the six refactor PRs and the three gallery follow-ups below, with verified ancestry and adjacent
   base/head branches. Each review unit remains independently inspectable. `main` merging remains
   an explicit human decision; R4 has not started.
 
@@ -117,3 +122,4 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
 | M6 | [PR #27](https://github.com/Cedarflake/Cedarflake-Ame/pull/27) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/27/checks) | `codex/retire-legacy-usn` |
 | Follow-up A | [PR #29](https://github.com/Cedarflake/Cedarflake-Ame/pull/29) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/29/checks) | `codex/workflow-script-ownership` |
 | Follow-up B | [PR #30](https://github.com/Cedarflake/Cedarflake-Ame/pull/30) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/30/checks) | `codex/gallery-card-size-anchor` |
+| Follow-up C | [PR #31](https://github.com/Cedarflake/Cedarflake-Ame/pull/31) / [checks](https://github.com/Cedarflake/Cedarflake-Ame/pull/31/checks) | `codex/gallery-filter-anchor` |

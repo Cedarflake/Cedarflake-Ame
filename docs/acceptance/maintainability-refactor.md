@@ -756,11 +756,21 @@ refresh, late success/failure and disposal boundaries continue to pass. The fall
 check uses the actual row alignment; the fixture's 58-pixel date heading is not assumed to be part
 of that image's anchor.
 
-The ordinary Debug build succeeded. Native inspection reused `build/test`; background update was
-active, and input inspection was paused when the user confirmed they were operating the window.
-Native filter acceptance and profile restoration remain pending until that session ends. No native
-one-image/empty-result pass is claimed from the automated cases. The running test profile retains
-its restoration receipt and protected original-catalog hashes.
+The rebuilt ordinary Debug client reused the retained `build/test` library after the user released
+the window. Equal-height browsing narrowed from the middle to `02930`, then `029300` with no results,
+then cleared the search. The original `02930-640x480-0270.png` returned at the same approximately
+y=206 upper edge. After changing to square cards and scrolling to a new position, successive numeric
+filters excluded the original image, narrowed to `09999-3840x2160-1999.jpg`, then produced no results.
+Clearing the search restored `06314-2160x3840-0673.jpg` at approximately y=215. This also exercised
+retirement of the earlier retained position after actual scrolling. Both layouts returned to
+10,000 total images and 72 merged results. Native keyboard input established these results;
+unsuccessful text-injection attempts are not treated as product failures or completed checks.
+
+The client exited normally. Original preferences, storage settings and catalog component hashes
+were restored and verified; the comparison catalog and durable choices were restored separately.
+The restored profile receipt was retained outside the reusable derived directory. Cleanup removed
+341 disposable preview-cache files (5,950,187 bytes) after retirement, restoration and no-reparse
+checks; the corpus, catalog and Debug output remain available.
 
 The scoped source review covers filter capture, scope/order reset, passive refresh and current
 generation cleanup. No confirmed new defect was found in those changes. Query transition and screen
@@ -787,5 +797,33 @@ cases and 11 existing navigation cases. Checks include missing geometry, estimat
 unsettled extent, replacement admission, current-line alignment after cancellation, new input,
 obsolete callbacks, query/controller changes, loaded/unloaded targets and wheel/seek supersession.
 Presentation and navigation contain 144 and 802 production lines with no inline tests; the
-publication regression contains 356 lines. Native observation during an active update remains pending
-while the current Debug window is user-operated; the new implementation is not yet in that process.
+publication regression contains 356 lines.
+
+Hosted Flutter run `39026390953` then exposed three existing date-publication regressions: an already
+released navigation request lost its alignment when replacement geometry retired rail input.
+Cancellation now requires a matching unfinished drag. The original date-publication expectations
+remain unchanged, including immediate/delayed four-column geometry, resolved target, missing receipt,
+changed query and changed layout. All six date-publication and 11 input/publication cases passed in
+the focused lock-aware rerun; the 14 unaffected navigation/mapping results above remain applicable.
+The navigation owner now contains 806 production lines.
+
+The rebuilt Debug client completed an explicit update of the existing corpus: 10,013 visited entries,
+10,000 accepted images, and 37.984 seconds recorded by the completed scan. During enumeration,
+checking and final publication, the observed year marks retained their layout without alternating
+between estimated and complete arrangements. A date-rail click reached November 2015; subsequent
+wheel movement advanced the wall and current-position line. The final gallery retained 10,000 total
+images and 72 merged results, with zero unfinished queue entries and a current journal checkpoint.
+The source tile returned to `已同步`. These observations cover this native update; the focused tests
+separately establish transient geometry and late-pointer boundaries.
+
+### Prolonged updating label observation
+
+Before rebuilding, the retained client displayed `正在更新` after its image work had completed.
+Read-only catalog inspection found no unfinished queue entries, retries or failures. The journal
+checkpoint continued advancing through a captured volume range, then admitted a newer range; the
+observed intervening pages added no image work. It reached the captured end and the source tile
+changed to `已同步` without a restart or repair. This was an active journal catch-up, with no reproduced
+stale terminal label. The source of all volume activity was not attributed. The broad label does not
+distinguish this checking phase from image processing; retain that presentation observation without
+claiming a wording or catch-up performance correction. The subsequent explicit update above also
+returned to the synchronized state.
