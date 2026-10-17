@@ -90,7 +90,8 @@ scoped audit and retained observations. The six branch heads and combined source
 their applicable hosted checks. All seven PRs merged into `main` after explicit authorization on
 2026-10-18; the stack is closed. The active maintenance slice extracts gallery notification ownership
 and catalog preview-reset transactions on one new branch, with behavior-preservation checks and human
-review before another merge. Further gallery, native-file and journal decomposition remains deferred.
+review before another merge. The same plan orders all five maintenance findings as M7–M11; gallery
+interaction, native-file and persistent-journal decomposition remain subsequent candidates.
 This delivery does not start R4 or reopen R2c/R3 acceptance.
 The same plan records the completed card-size position correction, continuous-filter anchor retention,
 timeline stability during updates and journal catch-up correction as separate behavior changes after

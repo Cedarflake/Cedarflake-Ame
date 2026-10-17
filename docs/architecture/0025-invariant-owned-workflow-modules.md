@@ -883,6 +883,12 @@ the conditional location update, and effective-time invalidation in one transact
 facade delegates that complete use case. Artifact publication and metadata publication remain named
 operations under the same commit/rollback boundary; no source read or decode enters the transaction.
 
+The preview-cleanup adapter owns complete full-reset and outside-root-reset operations. It retains
+scope validation before pending-location flush, then clears location and both handoff-owner preview
+state together with artifact-index deletion in one write transaction. The facade delegates these
+operations without splitting their commit or rollback boundary. Filesystem cleanup, active-store
+invalidation and preview-root activation remain application responsibilities.
+
 ## Rejected alternatives
 
 

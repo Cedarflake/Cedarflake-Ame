@@ -45,14 +45,20 @@ human decision. Preserve existing notification text, UI layout, action admission
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
-| M7 | Move gallery synchronization notification state and typed action selection out of the screen | Repeated conditions, root generations/removal, resolved and stale actions, refresh retry, live-only capability and existing widget wiring | Implementation and 51 focused checks passed; native action check and hosted CI pending |
-| M8 | Move complete preview-reset transactions out of the catalog facade | Full/selective reset, handoff owners, dimensions and source-state preservation, invalid scope and rollback | Pending M7 implementation |
+| M7 | Move gallery synchronization notification state and typed action selection out of the screen | Repeated conditions, root generations/removal, resolved and stale actions, refresh retry, live-only capability and existing widget wiring | Implemented; 51 focused checks, native notice/history action checks and source review passed; hosted delivery through PR #36 |
+| M8 | Move complete preview-reset transactions out of the catalog facade | Full/selective reset, handoff owners, dimensions and source-state preservation, invalid scope and rollback | Implemented; 7 focused/integration checks, native cleanup/regeneration and source review passed; hosted delivery through PR #36 |
+| M9 | Consolidate shared interaction ownership across the gallery wall's complete and estimated layout paths | Wheel input, scroll notifications, visible range, preview demand and position feedback in both paths; preserve layout-specific behavior, virtualization, anchors and timeline authority | Ordered follow-up candidate; not started or included in this review |
+| M10 | Separate directory enumeration and native file-access responsibilities in `local_files.rs`, beginning with enumeration and record parsing | Corrupt directory records, cancellation, unavailable/cloud-only files, handle lifetime and identity revalidation; preserve no-hydration and source-media safety | Ordered follow-up candidate after M9; not started |
+| M11 | Separate persistent-journal baseline lifecycle, atomic batch publication and completed-record maintenance | Batch records, checkpoints and root associations commit or roll back together; preserve recovery, bounded reads, cancellation and browsing priority | Ordered follow-up candidate after M10; not started |
 
 Keep shared notification history and synchronization refresh with their existing owners. Keep each
 preview reset atomic, including pending-location flush order and all affected ownership tables.
 Use focused regressions and affected Debug notification/cache workflows, followed by hosted CI and
-scoped review. Record production and test sizes with the evidence. Gallery rendering-path sharing,
-native file access and persistent-journal decomposition remain later candidates, not this queue.
+scoped review. Record production and test sizes with the evidence. M7 and M8 are the authorized
+current delivery. M9–M11 preserve the remaining findings in suggested execution order; each needs
+a subsequent scope decision before implementation. Their order puts visible interaction ownership
+before the higher-risk source-file and durable-journal boundaries. Move the affected tests with
+each owner; retain genuinely shared fixtures without making test-file cleanup a separate workstream.
 
 ## Completed first-round delivery queue
 

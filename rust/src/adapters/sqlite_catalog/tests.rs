@@ -18,6 +18,7 @@ use crate::ports::{
 use super::migrations::downgrade_source_revision_contract_to_v30_for_test;
 use super::*;
 
+mod preview_cleanup;
 mod preview_publication;
 mod query_snapshot;
 mod root_unregistration;
@@ -1718,84 +1719,6 @@ fn preview_usage_touches_are_coarsened_to_page_publication_intervals() {
             .touch_preview_artifacts(&visible)
             .expect("coarsened usage touch"),
         0
-    );
-}
-
-#[test]
-fn preview_root_activation_resets_only_artifacts_outside_the_new_root() {
-    let directory = tempdir().expect("temporary directory");
-    let path = directory.path().join("catalog.sqlite3");
-    let mut catalog = SqliteCatalog::open(path).expect("catalog");
-    for (suffix, preview_root) in [
-        ("old", "C:\\OldPreviewRoot"),
-        ("current", "D:\\CurrentPreviewRoot"),
-    ] {
-        let scan_id = format!("root-switch-{suffix}-scan");
-        let root_id = format!("root-switch-{suffix}-root");
-        let location_id = format!("root-switch-{suffix}-location");
-        publish_fixture(
-            &mut catalog,
-            &scan_id,
-            &root_id,
-            &format!("C:\\RootSwitchSource\\{suffix}"),
-            &location_id,
-        );
-        let mut location = catalog
-            .load_active_location(&location_id)
-            .expect("active location query")
-            .expect("active location");
-        location.preview_path = format!("{preview_root}\\{suffix}.jpg");
-        location.preview_status = PreviewStatus::Ready;
-        let artifact = PreviewArtifact {
-            artifact_key: format!("root-switch-{suffix}"),
-            algorithm_id: "ame-jpeg-thumbnail".to_owned(),
-            algorithm_version: 2,
-            orientation_contract: "exif-display-v1".to_owned(),
-            size_bucket: 256,
-            path: location.preview_path.clone(),
-            byte_size: 1_024,
-            encoded_width: 256,
-            encoded_height: 192,
-            width: location.width,
-            height: location.height,
-        };
-        catalog
-            .update_active_preview(&location, Some(&artifact), None)
-            .expect("publish preview artifact");
-    }
-
-    let reset = catalog
-        .reset_previews_outside_root("D:\\CurrentPreviewRoot\\")
-        .expect("reset old preview root");
-
-    assert_eq!(reset, 1);
-    let old = catalog
-        .load_active_location("root-switch-old-location")
-        .expect("old location query")
-        .expect("old location");
-    let current = catalog
-        .load_active_location("root-switch-current-location")
-        .expect("current location query")
-        .expect("current location");
-    assert!(matches!(old.preview_status, PreviewStatus::Pending));
-    assert!(old.preview_path.is_empty());
-    assert_eq!((old.width, old.height), (40, 50));
-    assert!(matches!(current.preview_status, PreviewStatus::Ready));
-    assert_eq!(current.preview_path, "D:\\CurrentPreviewRoot\\current.jpg");
-    let artifact_count: i64 = catalog
-        .connection
-        .query_row("SELECT COUNT(*) FROM preview_artifacts", [], |row| {
-            row.get(0)
-        })
-        .expect("artifact count");
-    assert_eq!(artifact_count, 1);
-    assert!(
-        catalog
-            .is_preview_artifact_path_indexed(
-                "C:\\EquivalentPreviewAlias\\current.jpg",
-                Some("root-switch-current"),
-            )
-            .expect("artifact-key ownership lookup")
     );
 }
 
