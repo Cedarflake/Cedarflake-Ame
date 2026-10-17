@@ -2,7 +2,8 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_object_sql_matches};
+use super::schema_shape::schema_object_sql_matches;
+use super::{current_schema, database_error};
 
 const TABLE: &str = "CREATE TABLE gallery_content_fingerprints (
     source_generation INTEGER NOT NULL,

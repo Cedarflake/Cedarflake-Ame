@@ -351,14 +351,52 @@ page failure remain one boundary, with no second decoded page or per-record clon
   must either be prevented by the open objects or change the observed final path and reject reuse.
   The guard retires after its SQLite connection. Non-Windows paths retain fresh path observation.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
-  are stable. `migrations/current_schema.rs` owns current-schema proof order and its consistent read
-  snapshot: structural checks precede the complete authority-row audit. Process-owned validated
+  are stable. `migrations/schema_shape.rs` owns shared column, index, foreign-key and normalized SQL
+  comparisons, including version-dependent handoff columns. Contract and repair owners use it
+  directly so they share one acceptance rule without depending on coordinator implementation.
+  Quoted SQL tokens retain their exact meaning. `migrations/current_schema.rs` owns current-schema
+  proof order and its consistent read snapshot: structural checks precede the complete authority-row
+  audit. Historical v19/pre-live-gap proof sequences and test-only audit counters belong to that
+  owner as well; version steps and individual contracts call it directly. Process-owned validated
   sessions reuse that proof; schema markers alone are not row authority. Spool-row proof lives in
   `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
   once-grouped per-directory entry counts replace correlated recounting, without omitting parent,
   lifecycle, or foreign-key evidence. Structural proof and snapshot ownership remain upstream.
-  Other historical validators and shrink-only compatibility repair remain the next physical split,
-  not a completed extraction. Migration order and one-transaction rollback remain centralized.
+  `migrations/preview_expectation_repair.rs` owns the preview-repair marker and the exact legacy
+  reset of unbacked ready expectations. It rechecks the marker after acquiring its immediate
+  transaction and publishes the marker atomically with derived expectation/link changes; retained
+  scans, backed previews and other states remain intact.
+  `migrations/source_revision_contract.rs` owns source generation/revision proof, the metadata
+  completion marker and precontract invalidation. Both forward migrations and current-catalog
+  repair use this owner directly. The repair accepts an absent marker only after current-schema
+  proof, rejects a damaged existing marker, and publishes alias-wide invalidation with the marker
+  in one immediate transaction. Identity evidence and the coordinator's admission order remain intact.
+  `migrations/change_lane_contract.rs` proves the queue-origin lane projection;
+  `migrations/recovery_authority_contract.rs` proves immutable P2 authority and canonical opening
+  boundaries. Each owns structural/row acceptance and its rejection regressions. Historical DDL and
+  version-step ordering stay in the coordinator; the validation bodies no longer live there.
+  `migrations/metadata_inventory_contract.rs` owns inventory shape, scope/generation, staged counts
+  and entry relations; `migrations/terminal_media_contract.rs` owns terminal evidence shape and
+  root ownership. They retain version-dependent source fields and structure-before-row validation.
+  `migrations/recovery_execution_contract.rs`, `root_namespace_contract.rs`, `live_gap_contract.rs`
+  and `inventory_spool_contract.rs` own the separate execution, namespace, gap-consumer and spool
+  proofs. Current-schema and compatibility repair call them directly; the existing spool-row
+  validator remains shared. Recovery test catalogs have a test-only owner, so proof tests do not
+  depend on fixtures hidden inside the migration coordinator's test module.
+  `migrations/catch_up_contract.rs` and `scan_handoff_contract.rs` own checkpoint/lineage and
+  batch-handoff proof. `catch_up_repair.rs` owns the exact v19 compatibility repair;
+  `scan_owner_contract.rs` owns the v17/v18 authority markers and scan-owner repair. Their
+  existing preflight, lock recheck and transaction boundaries remain separate from version dispatch.
+  `migrations/journal_contract.rs` owns journal structural admission and row-proof order. Its schema,
+  state-row, lineage and payload modules prove separate persisted relationships using canonical
+  values. Normal journal writes reuse the lineage/payload proofs directly within their existing
+  transactions; historical DDL steps retain the same canonical schema definitions.
+  `terminal_inventory_repair.rs` owns exact terminal-run cleanup; `retired_live_gap_repair.rs`
+  admits only retired-root/generation residue. `current_recovery_state.rs` keeps their combined
+  repair and validation in one transaction. `interrupted_foreground_repair.rs` owns lease/claim
+  restoration and cleanup after an interrupted explicit scan. `prerelease_journal_repair.rs`
+  admits only the exact historical trigger/window shapes. Each retains its original admission,
+  recheck and rollback rules; ordinary migration ordering remains in the coordinator.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.
   A completed window is historical coverage, not a demand to freeze the current checkpoint at its
   closing cursor. Later progress requires compatible identity and retained range evidence; a later

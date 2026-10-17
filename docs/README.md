@@ -9,6 +9,7 @@ only the contracts, execution details, and evidence that own the task.
 | What is the product and which concepts or capabilities are in scope? | [Workbench contract](product/workbench.md) and [organization workflows](product/organization-workflows.md) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
 | Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality-gates.md#ui-workflow-verification) |
+| Where does the current maintenance work resume? | [Maintainability refactor execution](plans/maintainability-refactor.md), selected by the roadmap |
 | Where is the completed R3 delivery recorded? | [R3 exact duplicate implementation](plans/r3-exact-duplicates.md) and its linked verification; the roadmap selects subsequent work |
 | Where is the frozen R2c execution history? | [R2c closeout execution](plans/r2c-closeout.md), with its final checkpoint and historical coverage |
 | Why was a technical boundary chosen? | [Architecture decisions](architecture/README.md) |

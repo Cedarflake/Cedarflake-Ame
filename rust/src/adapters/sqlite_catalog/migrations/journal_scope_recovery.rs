@@ -1,6 +1,7 @@
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
-use super::{current_schema, database_error, schema_object_sql_matches};
+use super::schema_shape::schema_object_sql_matches;
+use super::{current_schema, database_error};
 use crate::domain::ScanError;
 
 const TABLE: &str = "library_journal_scope_recoveries";

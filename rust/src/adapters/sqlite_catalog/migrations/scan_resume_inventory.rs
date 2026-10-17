@@ -2,7 +2,8 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_object_sql_matches};
+use super::schema_shape::schema_object_sql_matches;
+use super::{current_schema, database_error};
 
 const OBJECTS: &[(&str, &str, &str)] = &[
     (
@@ -51,8 +52,8 @@ const OBJECTS: &[(&str, &str, &str)] = &[
 ];
 
 pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
-    super::repair_prerelease_v24_source_range_id_triggers(connection)?;
-    super::repair_prerelease_v26_recovery_window_schema(connection)?;
+    super::prerelease_journal_repair::repair_range_id_triggers(connection)?;
+    super::prerelease_journal_repair::repair_recovery_window(connection)?;
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(database_error)?;
@@ -61,13 +62,13 @@ pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
 }
 
 pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
-    super::repair_legacy_terminal_metadata_inventory_state_transaction(transaction, 32)?;
-    super::repair_retired_live_gap_claims_transaction(transaction, 32)?;
+    super::terminal_inventory_repair::apply(transaction, 32)?;
+    super::retired_live_gap_repair::apply(transaction, 32)?;
     super::retired_root_authority::repair_for_schema(transaction, 32)?;
     current_schema::validate_schema_version(transaction, 32)?;
-    if !super::source_revision_metadata_contract_is_complete(transaction)? {
-        super::invalidate_precontract_source_revision_metadata(transaction)?;
-        super::create_source_revision_metadata_contract(transaction)?;
+    if !super::source_revision_contract::metadata_contract_is_complete(transaction)? {
+        super::source_revision_contract::invalidate_precontract_metadata(transaction)?;
+        super::source_revision_contract::create_metadata_contract(transaction)?;
     }
     for (_, _, ddl) in OBJECTS {
         transaction.execute_batch(ddl).map_err(database_error)?;

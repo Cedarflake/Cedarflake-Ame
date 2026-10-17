@@ -1791,8 +1791,8 @@ pub(super) fn finalize_persistent_journal_ranges(
     transaction: &Transaction<'_>,
     completed_unix_ms: i64,
 ) -> Result<(), ScanError> {
-    super::migrations::validate_persistent_journal_lineage_rows(transaction)?;
-    super::migrations::validate_persistent_journal_payload_children(transaction)?;
+    super::migrations::journal_contract::validate_lineage_rows(transaction)?;
+    super::migrations::journal_contract::validate_payload_children(transaction)?;
     transaction
         .execute(
             "UPDATE library_persistent_journal_range_lifecycle AS lifecycle
@@ -1843,8 +1843,8 @@ pub(super) fn finalize_persistent_journal_ranges(
             [completed_unix_ms],
         )
         .map_err(database_error)?;
-    super::migrations::validate_persistent_journal_lineage_rows(transaction)?;
-    super::migrations::validate_persistent_journal_payload_children(transaction)?;
+    super::migrations::journal_contract::validate_lineage_rows(transaction)?;
+    super::migrations::journal_contract::validate_payload_children(transaction)?;
 
     let current_roots = {
         let mut statement = transaction
@@ -1937,7 +1937,7 @@ pub(super) fn finalize_persistent_journal_ranges(
         }
     }
     cleanup_completed_persistent_journal_history(transaction, completed_unix_ms, 32)?;
-    super::migrations::validate_persistent_journal_payload_children(transaction)
+    super::migrations::journal_contract::validate_payload_children(transaction)
 }
 
 fn cleanup_completed_persistent_journal_history(
@@ -6564,7 +6564,7 @@ mod tests {
             .expect("closed cleanup transaction");
         super::cleanup_completed_persistent_journal_history(&transaction, 2_400, 32)
             .expect("delete closed range proof cluster");
-        super::super::migrations::validate_persistent_journal_payload_children(&transaction)
+        super::super::migrations::journal_contract::validate_payload_children(&transaction)
             .expect("cleanup leaves payload-child equivalence");
         transaction.commit().expect("commit closed cleanup");
 
