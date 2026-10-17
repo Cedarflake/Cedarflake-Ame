@@ -1,17 +1,17 @@
 #[cfg(all(test, windows))]
-use std::cell::Cell;
-#[cfg(all(test, windows))]
 use std::collections::BTreeMap;
 #[cfg(all(test, windows))]
 use std::panic::{AssertUnwindSafe, catch_unwind};
+#[cfg(windows)]
+use std::sync::Arc;
+#[cfg(all(test, windows))]
+use std::sync::Mutex;
 #[cfg(windows)]
 use std::sync::atomic::{AtomicBool, Ordering};
 #[cfg(windows)]
 use std::sync::mpsc::RecvTimeoutError;
 #[cfg(windows)]
 use std::sync::mpsc::{self, Receiver, TryRecvError};
-#[cfg(windows)]
-use std::sync::{Arc, Mutex};
 #[cfg(all(test, windows))]
 use std::sync::{Condvar, OnceLock};
 #[cfg(windows)]
@@ -25,10 +25,8 @@ use crate::adapters::{
     SqliteCatalog, SqliteCatalogSession, inspect_root_availability,
     production_library_change_source_factory,
 };
-use crate::domain::{
-    IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeId, LibraryChangeLane,
-    LibraryRootGeneration, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot, ScanError,
-};
+#[cfg(all(test, windows))]
+use crate::domain::{IncrementalLibraryChangeReport, LibraryChangeId, LibrarySynchronizationPhase};
 #[cfg(all(test, windows))]
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryRecoveryAuthorityReason,
@@ -37,6 +35,10 @@ use crate::domain::{
     PersistentJournalContinuityState, PersistentJournalEnrollmentReport, PersistentJournalFailure,
     PersistentJournalRootFailure, PersistentJournalRootFailureKind,
     PersistentJournalVolumeIdentity,
+};
+use crate::domain::{
+    LeasedLibraryChange, LibraryChangeLane, LibraryRootGeneration, LibrarySynchronizationSnapshot,
+    ScanError,
 };
 
 #[cfg(windows)]
@@ -47,17 +49,10 @@ use super::journal_status::JournalStatusOwner;
 use super::observation_diagnostics::measure_observation;
 #[cfg(all(test, windows))]
 use super::production_synchronization_cadence::ProductionSynchronizationCadence;
+#[cfg(all(test, windows))]
+use crate::application::AuthoritativeLibraryChangeReport;
 #[cfg(windows)]
-use crate::application::{
-    AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
-    MetadataInventoryRecoveryExecution, MetadataInventoryRecoveryPage,
-    MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl, defer_authoritative_change,
-    leased_change_requires_metadata_inventory,
-    process_leased_authoritative_library_change_cancellable,
-    process_leased_metadata_inventory_change_with_retained_source,
-    process_ready_metadata_inventory_recovery_candidates_cancellable,
-    process_ready_unowned_recovery_paths_cancellable, storage_paths,
-};
+use crate::application::{MetadataInventoryRecoveryPage, storage_paths};
 #[cfg(all(test, windows))]
 use crate::journal_broker::{
     BrokerResponse, JournalCapability, PersistentChangeJournalRead, PersistentChangeJournalSession,
@@ -103,11 +98,19 @@ mod recovery_lane;
 #[cfg(windows)]
 mod recovery_sources;
 #[cfg(windows)]
+mod recovery_work;
+#[cfg(windows)]
 use journal_lane::JournalLane;
 #[cfg(windows)]
 use recovery_lane::{ReadyRecoveryWork, RecoveryLane};
 #[cfg(windows)]
-use recovery_sources::{RecoverySourceTransfer, RecoverySources};
+use recovery_sources::RecoverySources;
+#[cfg(all(test, windows))]
+use recovery_work::fail_next_recovery_worker_spawn;
+#[cfg(windows)]
+use recovery_work::{
+    RecoveryTask, RecoveryTaskKind, RecoveryTaskOutcome, RecoveryWorkPolicy, RecoveryWorkRoot,
+};
 
 #[cfg(windows)]
 mod journal_work;
@@ -148,10 +151,6 @@ use poll_diagnostics::{
     ElapsedStageTimer, SynchronizationPollStageTimings, log_synchronization_poll_diagnostic,
 };
 
-#[cfg(all(test, windows))]
-thread_local! {
-    static FAIL_NEXT_RECOVERY_WORKER_SPAWN: Cell<bool> = const { Cell::new(false) };
-}
 #[cfg(all(test, windows))]
 static LIVE_WORKER_AFTER_LEASE_PAUSES: OnceLock<
     Mutex<BTreeMap<String, Arc<LiveWorkerAfterLeasePauseState>>>,
@@ -313,60 +312,6 @@ struct JournalCloseTask {
     receiver: Receiver<Result<(), ScanError>>,
     worker: Option<JoinHandle<()>>,
     outcome: Option<Result<(), ScanError>>,
-}
-
-#[cfg(windows)]
-struct RecoveryTask {
-    root_id: String,
-    kind: RecoveryTaskKind,
-    phase: Arc<Mutex<LibrarySynchronizationPhase>>,
-    cancelled: Arc<AtomicBool>,
-    receiver: Receiver<Result<RecoveryTaskOutcome, ScanError>>,
-    worker: Option<JoinHandle<()>>,
-}
-
-#[cfg(windows)]
-enum RecoveryTaskKind {
-    BoundedAuthoritative {
-        continuity_revision: u64,
-    },
-    MetadataInventory {
-        continuity_revision: u64,
-        change_id: LibraryChangeId,
-    },
-    CandidateDrain {
-        continuity_revision: u64,
-    },
-    LegacyUnownedDrain {
-        continuity_revision: u64,
-    },
-}
-
-#[cfg(windows)]
-enum RecoveryTaskOutcome {
-    Authoritative(AuthoritativeLibraryChangeReport),
-    MetadataInventory(Box<MetadataInventoryRecoveryPage>),
-    CandidateDrain(IncrementalLibraryChangeReport),
-    LegacyUnownedDrain(IncrementalLibraryChangeReport),
-}
-
-#[cfg(windows)]
-fn spawn_recovery_worker(
-    name: String,
-    worker: impl FnOnce() + Send + 'static,
-) -> std::io::Result<JoinHandle<()>> {
-    #[cfg(test)]
-    if FAIL_NEXT_RECOVERY_WORKER_SPAWN.with(|failure| failure.replace(false)) {
-        return Err(std::io::Error::other(
-            "injected recovery worker spawn failure",
-        ));
-    }
-    thread::Builder::new().name(name).spawn(worker)
-}
-
-#[cfg(all(test, windows))]
-fn fail_next_recovery_worker_spawn() {
-    FAIL_NEXT_RECOVERY_WORKER_SPAWN.with(|failure| failure.set(true));
 }
 
 pub(crate) fn reserve_production_library_synchronization_start_ticket() -> Result<u64, ScanError> {
@@ -885,13 +830,9 @@ fn project_active_recovery_as_updating(
     let Some(recovery) = recovery else {
         return;
     };
-    let root_ids = std::slice::from_ref(&recovery.root_id);
-    let recovery_phase = recovery
-        .phase
-        .lock()
-        .map_or_else(|_| recovery.default_phase(), |phase| *phase);
+    let recovery_phase = recovery.phase();
     for status in &mut snapshot.roots {
-        if root_ids.contains(&status.root_id)
+        if status.root_id == recovery.root_id()
             && status.availability == crate::domain::LibraryRootAvailability::Available
             && status.source_health == crate::domain::LibraryChangeSourceHealth::Healthy
             && !status.recovery_blocked
@@ -899,41 +840,6 @@ fn project_active_recovery_as_updating(
             status.freshness = crate::domain::CatalogFreshnessState::Updating;
             status.freshness_cause = crate::domain::CatalogFreshnessCause::PendingChanges;
             status.phase = recovery_phase;
-        }
-    }
-}
-
-#[cfg(windows)]
-impl RecoveryTask {
-    const fn default_phase(&self) -> LibrarySynchronizationPhase {
-        match &self.kind {
-            RecoveryTaskKind::BoundedAuthoritative { .. } => {
-                LibrarySynchronizationPhase::Reconciliation
-            }
-            RecoveryTaskKind::MetadataInventory { .. } => {
-                LibrarySynchronizationPhase::InventoryEnumeration
-            }
-            RecoveryTaskKind::CandidateDrain { .. } => LibrarySynchronizationPhase::Reconciliation,
-            RecoveryTaskKind::LegacyUnownedDrain { .. } => {
-                LibrarySynchronizationPhase::Reconciliation
-            }
-        }
-    }
-}
-
-#[cfg(windows)]
-const fn synchronization_phase(
-    phase: MetadataInventoryProgressPhase,
-) -> LibrarySynchronizationPhase {
-    match phase {
-        MetadataInventoryProgressPhase::Enumeration => {
-            LibrarySynchronizationPhase::InventoryEnumeration
-        }
-        MetadataInventoryProgressPhase::Comparison => {
-            LibrarySynchronizationPhase::InventoryComparison
-        }
-        MetadataInventoryProgressPhase::QueuePublication => {
-            LibrarySynchronizationPhase::QueuePublication
         }
     }
 }
@@ -1270,34 +1176,23 @@ impl ProductionSynchronization {
         let Some(task) = self.recovery.as_mut() else {
             return Ok(0);
         };
-        let result = match task.receiver.try_recv() {
-            Ok(result) => Some(result),
-            Err(TryRecvError::Empty) => None,
-            Err(TryRecvError::Disconnected) => Some(Err(ScanError::new(
-                "authoritative_recovery_worker_disconnected",
-                "The authoritative recovery worker stopped without a result",
-            ))),
-        };
-        let Some(result) = result else {
+        let Some(result) = task.poll() else {
             return Ok(0);
         };
-        let root_id = task.root_id.clone();
-        let metadata_inventory_change_id = match &task.kind {
+        let root_id = task.root_id().to_owned();
+        let metadata_inventory_change_id = match task.kind() {
             RecoveryTaskKind::MetadataInventory { change_id, .. } => Some(*change_id),
             RecoveryTaskKind::BoundedAuthoritative { .. }
             | RecoveryTaskKind::CandidateDrain { .. }
             | RecoveryTaskKind::LegacyUnownedDrain { .. } => None,
         };
         #[cfg(debug_assertions)]
-        let recovery_kind = match &task.kind {
+        let recovery_kind = match task.kind() {
             RecoveryTaskKind::BoundedAuthoritative { .. } => "bounded-authoritative",
             RecoveryTaskKind::MetadataInventory { .. } => "metadata-inventory",
             RecoveryTaskKind::CandidateDrain { .. } => "candidate-drain",
             RecoveryTaskKind::LegacyUnownedDrain { .. } => "legacy-unowned-drain",
         };
-        if let Some(worker) = task.worker.take() {
-            let _ = worker.join();
-        }
         self.recovery = None;
         match result {
             Ok(RecoveryTaskOutcome::Authoritative(report)) => {
@@ -1388,153 +1283,23 @@ impl ProductionSynchronization {
                 "Another authoritative recovery already owns the worker slot",
             ));
         }
-        let is_inventory = leased_change_requires_metadata_inventory(&leased);
-        let change_id = leased.change.id;
-        let task_kind = if is_inventory {
-            RecoveryTaskKind::MetadataInventory {
-                continuity_revision,
-                change_id,
-            }
-        } else {
-            RecoveryTaskKind::BoundedAuthoritative {
-                continuity_revision,
-            }
-        };
-        let recovery_kind = if is_inventory {
-            "metadata-inventory"
-        } else {
-            "bounded-authoritative"
-        };
-        #[cfg(debug_assertions)]
-        eprintln!("[Ame sync] recovery started kind={recovery_kind} root={root_id}");
-        let queue_policy = self.runtime.queue_policy();
-        let recovery_policy = self.runtime.recovery_policy();
-        let metadata_inventory_page_entries = self.metadata_inventory_page_entries;
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let worker_root_id = root_id.clone();
-        let initial_phase = if is_inventory {
-            LibrarySynchronizationPhase::InventoryEnumeration
-        } else {
-            LibrarySynchronizationPhase::Reconciliation
-        };
-        let phase = Arc::new(Mutex::new(initial_phase));
-        let worker_phase = Arc::clone(&phase);
         let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let retained_inventory_source = if is_inventory {
-            self.recovery_sources.transfer(change_id)
-        } else {
-            RecoverySourceTransfer::empty(change_id)
-        };
-        let worker_retained_inventory_source = retained_inventory_source.clone();
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = spawn_recovery_worker(format!("ame-{recovery_kind}-recovery"), move || {
-            let result =
-                worker_retained_inventory_source
-                    .take()
-                    .and_then(|retained_inventory_source| {
-                        catalog_session
-                            .open_in_lane(LibraryChangeLane::Recovery)
-                            .and_then(|mut catalog| {
-                                let Some(root) =
-                                    catalog.load_incremental_catalog_root(&worker_root_id)?
-                                else {
-                                    return Ok(if is_inventory {
-                                        RecoveryTaskOutcome::MetadataInventory(Box::new(
-                                            MetadataInventoryRecoveryPage {
-                                                report: MetadataInventoryRecoveryReport::default(),
-                                                retained_source: None,
-                                            },
-                                        ))
-                                    } else {
-                                        RecoveryTaskOutcome::Authoritative(
-                                            AuthoritativeLibraryChangeReport::default(),
-                                        )
-                                    });
-                                };
-                                if root.root_generation != root_generation
-                                    || root.active_scan_id.is_none()
-                                    || root.has_running_scan
-                                {
-                                    let deferred = defer_authoritative_change(
-                                        &mut catalog,
-                                        &leased,
-                                        root.catalog_revision,
-                                        now_unix_ms,
-                                    )?;
-                                    return Ok(if is_inventory {
-                                        RecoveryTaskOutcome::MetadataInventory(Box::new(
-                                            MetadataInventoryRecoveryPage {
-                                                report: MetadataInventoryRecoveryReport {
-                                                    incremental: deferred.incremental,
-                                                    ..MetadataInventoryRecoveryReport::default()
-                                                },
-                                                retained_source: None,
-                                            },
-                                        ))
-                                    } else {
-                                        RecoveryTaskOutcome::Authoritative(deferred)
-                                    });
-                                }
-                                if is_inventory {
-                                    let report_progress = |progress| {
-                                        if let Ok(mut phase) = worker_phase.lock() {
-                                            *phase = synchronization_phase(progress);
-                                        }
-                                    };
-                                    let yield_page = |_phase| thread::yield_now();
-                                    process_leased_metadata_inventory_change_with_retained_source(
-                                &mut catalog,
-                                &root,
-                                &leased,
-                                MetadataInventoryRecoveryExecution::new(
-                                    now_unix_ms,
-                                    metadata_inventory_page_entries,
-                                    queue_policy,
-                                    MetadataInventoryWorkerControl::with_progress_and_page_yield(
-                                        &worker_cancelled,
-                                        &report_progress,
-                                        &yield_page,
-                                    ),
-                                ),
-                                retained_inventory_source,
-                            )
-                            .map(|page| RecoveryTaskOutcome::MetadataInventory(Box::new(page)))
-                                } else {
-                                    process_leased_authoritative_library_change_cancellable(
-                                        &mut catalog,
-                                        &root,
-                                        &leased,
-                                        now_unix_ms,
-                                        queue_policy,
-                                        recovery_policy,
-                                        &worker_cancelled,
-                                    )
-                                    .map(RecoveryTaskOutcome::Authoritative)
-                                }
-                            })
-                    });
-            let _ = sender.send(result);
-        });
-        let worker = match worker {
-            Ok(worker) => worker,
-            Err(error) => {
-                self.recovery_sources
-                    .restore_failed_start(&retained_inventory_source)?;
-                return Err(ScanError::new(
-                    "authoritative_recovery_worker_start_failed",
-                    format!("Could not start {recovery_kind} recovery: {error}"),
-                ));
-            }
-        };
-        self.recovery = Some(RecoveryTask {
-            root_id,
-            kind: task_kind,
-            phase,
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
+        self.recovery = Some(recovery_work::start_automatic(
+            RecoveryWorkRoot {
+                root_id,
+                root_generation,
+                continuity_revision,
+            },
+            leased,
+            now_unix_ms,
+            catalog_session,
+            RecoveryWorkPolicy {
+                queue: self.runtime.queue_policy(),
+                recovery: self.runtime.recovery_policy(),
+                metadata_inventory_page_entries: self.metadata_inventory_page_entries,
+            },
+            &mut self.recovery_sources,
+        )?);
         Ok(())
     }
 
@@ -1552,53 +1317,17 @@ impl ProductionSynchronization {
                 "Another recovery page already owns the P2 worker slot",
             ));
         }
-        let policy = self.runtime.queue_policy();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let worker_root_id = root_id.clone();
-        let phase = Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation));
         let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::Builder::new()
-            .name("ame-p2-candidate-drain".to_owned())
-            .spawn(move || {
-                let result = if worker_cancelled.load(Ordering::Acquire) {
-                    Ok(RecoveryTaskOutcome::CandidateDrain(
-                        IncrementalLibraryChangeReport::default(),
-                    ))
-                } else {
-                    catalog_session
-                        .open_in_lane(LibraryChangeLane::Recovery)
-                        .and_then(|mut catalog| {
-                            process_ready_metadata_inventory_recovery_candidates_cancellable(
-                                &mut catalog,
-                                &worker_root_id,
-                                root_generation,
-                                now_unix_ms,
-                                policy,
-                                &worker_cancelled,
-                            )
-                            .map(RecoveryTaskOutcome::CandidateDrain)
-                        })
-                };
-                let _ = sender.send(result);
-            })
-            .map_err(|error| {
-                ScanError::new(
-                    "authoritative_recovery_worker_start_failed",
-                    format!("Could not start the P2 candidate drain page: {error}"),
-                )
-            })?;
-        self.recovery = Some(RecoveryTask {
-            root_id,
-            kind: RecoveryTaskKind::CandidateDrain {
+        self.recovery = Some(recovery_work::start_candidates(
+            RecoveryWorkRoot {
+                root_id,
+                root_generation,
                 continuity_revision,
             },
-            phase,
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
+            now_unix_ms,
+            catalog_session,
+            self.runtime.queue_policy(),
+        )?);
         Ok(())
     }
 
@@ -1616,68 +1345,17 @@ impl ProductionSynchronization {
                 "Another recovery page already owns the P2 worker slot",
             ));
         }
-        let policy = self.runtime.queue_policy();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let worker_root_id = root_id.clone();
-        let phase = Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation));
         let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::Builder::new()
-            .name("ame-p2-legacy-unowned-drain".to_owned())
-            .spawn(move || {
-                let result = if worker_cancelled.load(Ordering::Acquire) {
-                    Ok(RecoveryTaskOutcome::LegacyUnownedDrain(
-                        IncrementalLibraryChangeReport::default(),
-                    ))
-                } else {
-                    catalog_session
-                        .open_in_lane(LibraryChangeLane::Recovery)
-                        .and_then(|mut catalog| {
-                            let compacted = catalog.compact_legacy_unowned_recovery_controls(
-                                &worker_root_id,
-                                root_generation,
-                                now_unix_ms,
-                                policy,
-                            )?;
-                            let mut report = process_ready_unowned_recovery_paths_cancellable(
-                                &mut catalog,
-                                &worker_root_id,
-                                root_generation,
-                                now_unix_ms,
-                                policy,
-                                &worker_cancelled,
-                            )?;
-                            report.superseded_count = report
-                                .superseded_count
-                                .checked_add(compacted)
-                                .ok_or_else(|| {
-                                    ScanError::new(
-                                        "library_change_count_overflow",
-                                        "The compacted legacy recovery count overflowed",
-                                    )
-                                })?;
-                            Ok(RecoveryTaskOutcome::LegacyUnownedDrain(report))
-                        })
-                };
-                let _ = sender.send(result);
-            })
-            .map_err(|error| {
-                ScanError::new(
-                    "authoritative_recovery_worker_start_failed",
-                    format!("Could not start the legacy unowned P2 drain page: {error}"),
-                )
-            })?;
-        self.recovery = Some(RecoveryTask {
-            root_id,
-            kind: RecoveryTaskKind::LegacyUnownedDrain {
+        self.recovery = Some(recovery_work::start_legacy_unowned(
+            RecoveryWorkRoot {
+                root_id,
+                root_generation,
                 continuity_revision,
             },
-            phase,
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
+            now_unix_ms,
+            catalog_session,
+            self.runtime.queue_policy(),
+        )?);
         Ok(())
     }
 
@@ -1685,30 +1363,16 @@ impl ProductionSynchronization {
         let Some(task) = self.recovery.as_ref() else {
             return;
         };
-        let expected_revision = match task.kind {
-            RecoveryTaskKind::BoundedAuthoritative {
-                continuity_revision,
-            }
-            | RecoveryTaskKind::MetadataInventory {
-                continuity_revision,
-                ..
-            }
-            | RecoveryTaskKind::CandidateDrain {
-                continuity_revision,
-            }
-            | RecoveryTaskKind::LegacyUnownedDrain {
-                continuity_revision,
-            } => continuity_revision,
-        };
+        let expected_revision = task.continuity_revision();
         let is_current = self
             .runtime
-            .root_continuity_revision(&task.root_id)
+            .root_continuity_revision(task.root_id())
             .is_some_and(|revision| revision == expected_revision)
             && self
                 .runtime
-                .root_is_ready_for_authoritative_recovery(&task.root_id);
+                .root_is_ready_for_authoritative_recovery(task.root_id());
         if !is_current {
-            task.cancelled.store(true, Ordering::Release);
+            task.request_stop();
         }
     }
 
@@ -1763,7 +1427,7 @@ impl ProductionSynchronization {
             task.request_stop();
         }
         if let Some(task) = &self.recovery {
-            task.cancelled.store(true, Ordering::Release);
+            task.request_stop();
         }
         self.inventory_cleanup.request_stop();
         self.root_location.request_stop();
@@ -1837,20 +1501,11 @@ impl ProductionSynchronization {
         let Some(mut task) = self.recovery.take() else {
             return Ok(());
         };
-        task.cancelled.store(true, Ordering::Release);
-        match task.receiver.recv_timeout(timeout) {
-            Ok(_) | Err(RecvTimeoutError::Disconnected) => {
-                if let Some(worker) = task.worker.take() {
-                    let _ = worker.join();
-                }
-                Ok(())
-            }
-            Err(RecvTimeoutError::Timeout) => {
+        match task.stop_with_timeout(timeout) {
+            Ok(()) => Ok(()),
+            Err(error) => {
                 self.recovery = Some(task);
-                Err(ScanError::new(
-                    "authoritative_recovery_stop_timeout",
-                    "Authoritative recovery did not stop within the bounded shutdown window",
-                ))
+                Err(error)
             }
         }
     }
@@ -1872,13 +1527,7 @@ impl ProductionSynchronization {
             self.journal = None;
         }
         if let Some(task) = self.recovery.as_mut() {
-            finish_runtime_task_until(
-                &task.receiver,
-                &mut task.worker,
-                deadline,
-                "authoritative_recovery_stop_timeout",
-                "Authoritative recovery did not stop within the bounded shutdown window",
-            )?;
+            task.finish_stopping_until(deadline)?;
             #[cfg(test)]
             self.maybe_panic_while_draining(DrainPanicPoint::P2Result);
             self.recovery = None;
@@ -5009,16 +4658,16 @@ mod tests {
     #[test]
     fn active_recovery_projects_its_real_phase_during_transient_catalog_contention() {
         let (_sender, receiver) = mpsc::sync_channel(1);
-        let recovery = RecoveryTask {
-            root_id: "root-a".to_owned(),
-            kind: RecoveryTaskKind::BoundedAuthoritative {
+        let recovery = RecoveryTask::from_test_parts(
+            "root-a".to_owned(),
+            RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision: 0,
             },
-            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-            cancelled: Arc::new(AtomicBool::new(false)),
+            Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+            Arc::new(AtomicBool::new(false)),
             receiver,
-            worker: None,
-        };
+            None,
+        );
         let mut snapshot = LibrarySynchronizationSnapshot {
             is_running: true,
             catalog_revision: 1,
@@ -5061,16 +4710,16 @@ mod tests {
     #[test]
     fn active_bounded_recovery_projects_updating_after_nominal_lease_expiry() {
         let (_sender, receiver) = mpsc::sync_channel(1);
-        let recovery = RecoveryTask {
-            root_id: "root-a".to_owned(),
-            kind: RecoveryTaskKind::BoundedAuthoritative {
+        let recovery = RecoveryTask::from_test_parts(
+            "root-a".to_owned(),
+            RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision: 0,
             },
-            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-            cancelled: Arc::new(AtomicBool::new(false)),
+            Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+            Arc::new(AtomicBool::new(false)),
             receiver,
-            worker: None,
-        };
+            None,
+        );
         let mut snapshot = LibrarySynchronizationSnapshot {
             is_running: true,
             catalog_revision: 1,
@@ -5109,16 +4758,16 @@ mod tests {
     #[test]
     fn active_recovery_does_not_hide_durable_degraded_queue_state() {
         let (_sender, receiver) = mpsc::sync_channel(1);
-        let recovery = RecoveryTask {
-            root_id: "root-a".to_owned(),
-            kind: RecoveryTaskKind::BoundedAuthoritative {
+        let recovery = RecoveryTask::from_test_parts(
+            "root-a".to_owned(),
+            RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision: 0,
             },
-            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-            cancelled: Arc::new(AtomicBool::new(false)),
+            Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+            Arc::new(AtomicBool::new(false)),
             receiver,
-            worker: None,
-        };
+            None,
+        );
         let mut snapshot = LibrarySynchronizationSnapshot {
             is_running: true,
             catalog_revision: 1,
@@ -5222,19 +4871,19 @@ mod tests {
             .expect("first continuity revision");
         let cancelled = Arc::new(AtomicBool::new(false));
         let (_sender, receiver) = mpsc::sync_channel(1);
-        production.recovery = Some(RecoveryTask {
-            root_id: root_id.to_owned(),
-            kind: RecoveryTaskKind::MetadataInventory {
+        production.recovery = Some(RecoveryTask::from_test_parts(
+            root_id.to_owned(),
+            RecoveryTaskKind::MetadataInventory {
                 continuity_revision: first_revision,
                 change_id: LibraryChangeId::new(1).expect("test recovery change ID"),
             },
-            phase: Arc::new(Mutex::new(
+            Arc::new(Mutex::new(
                 LibrarySynchronizationPhase::InventoryEnumeration,
             )),
-            cancelled: Arc::clone(&cancelled),
+            Arc::clone(&cancelled),
             receiver,
-            worker: None,
-        });
+            None,
+        ));
         production
             .runtime
             .roots
@@ -5304,16 +4953,16 @@ mod tests {
                 AuthoritativeLibraryChangeReport::default(),
             )))
             .expect("bounded recovery result");
-        production.recovery = Some(RecoveryTask {
-            root_id: "root-a".to_owned(),
-            kind: RecoveryTaskKind::BoundedAuthoritative {
+        production.recovery = Some(RecoveryTask::from_test_parts(
+            "root-a".to_owned(),
+            RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision: 0,
             },
-            phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-            cancelled: Arc::new(AtomicBool::new(false)),
+            Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+            Arc::new(AtomicBool::new(false)),
             receiver,
-            worker: None,
-        });
+            None,
+        ));
 
         production
             .poll_recovery(2_000)
@@ -5409,7 +5058,7 @@ mod tests {
         poll_runtime_with_storage(&mut production, &storage).expect("poll production runtime");
 
         assert!(matches!(
-            production.recovery.as_ref().map(|task| &task.kind),
+            production.recovery.as_ref().map(|task| task.kind()),
             Some(RecoveryTaskKind::LegacyUnownedDrain { .. })
         ));
         let deadline = std::time::Instant::now() + Duration::from_secs(5);
@@ -6329,7 +5978,7 @@ mod tests {
         poll_runtime_with_storage(&mut production, &storage)
             .expect("schedule production bounded P2 work");
         assert!(matches!(
-            production.recovery.as_ref().map(|task| &task.kind),
+            production.recovery.as_ref().map(|task| task.kind()),
             Some(RecoveryTaskKind::BoundedAuthoritative { .. })
         ));
 
@@ -6628,7 +6277,7 @@ mod tests {
         poll_runtime_with_storage(&mut production, &storage)
             .expect("start production P2 candidate drain");
         assert!(matches!(
-            production.recovery.as_ref().map(|task| &task.kind),
+            production.recovery.as_ref().map(|task| task.kind()),
             Some(RecoveryTaskKind::CandidateDrain { .. })
         ));
 
@@ -6923,14 +6572,11 @@ mod tests {
         poll_runtime_with_storage(&mut production, &storage)
             .expect("schedule first candidate root");
         assert_eq!(
-            production
-                .recovery
-                .as_ref()
-                .map(|task| task.root_id.as_str()),
+            production.recovery.as_ref().map(|task| task.root_id()),
             Some("root-a")
         );
         assert!(matches!(
-            production.recovery.as_ref().map(|task| &task.kind),
+            production.recovery.as_ref().map(|task| task.kind()),
             Some(RecoveryTaskKind::CandidateDrain { .. })
         ));
 
@@ -6942,7 +6588,7 @@ mod tests {
             if production
                 .recovery
                 .as_ref()
-                .is_some_and(|task| task.root_id == "root-b")
+                .is_some_and(|task| task.root_id() == "root-b")
             {
                 rotated = true;
                 break;
@@ -7200,7 +6846,7 @@ mod tests {
             }
             if saw_p1
                 && matches!(
-                    production.recovery.as_ref().map(|task| &task.kind),
+                    production.recovery.as_ref().map(|task| task.kind()),
                     Some(RecoveryTaskKind::CandidateDrain { .. })
                 )
             {
@@ -7524,7 +7170,7 @@ mod tests {
             "P1 page must wait for headroom"
         );
         assert!(matches!(
-            production.recovery.as_ref().map(|task| &task.kind),
+            production.recovery.as_ref().map(|task| task.kind()),
             Some(RecoveryTaskKind::CandidateDrain { .. })
         ));
 
@@ -7541,7 +7187,7 @@ mod tests {
         assert!(p1_started, "one bounded P2 drain must release P1 admission");
         assert!(
             production.recovery.as_ref().is_none_or(|task| {
-                matches!(task.kind, RecoveryTaskKind::CandidateDrain { .. })
+                matches!(task.kind(), RecoveryTaskKind::CandidateDrain { .. })
             }),
             "P1 may overlap only the already-started bounded debt drain"
         );
@@ -7776,7 +7422,7 @@ mod tests {
             poll_runtime_with_storage(&mut production, &storage)
                 .expect("drain debt and admit journal work");
             if matches!(
-                production.recovery.as_ref().map(|task| &task.kind),
+                production.recovery.as_ref().map(|task| task.kind()),
                 Some(RecoveryTaskKind::LegacyUnownedDrain { .. })
             ) && !saw_legacy_drain
             {
@@ -8003,7 +7649,7 @@ mod tests {
         poll_runtime_with_storage(&mut production, &storage)
             .expect("production schedules the single legacy survivor");
         assert!(matches!(
-            production.recovery.as_ref().map(|task| &task.kind),
+            production.recovery.as_ref().map(|task| task.kind()),
             Some(RecoveryTaskKind::LegacyUnownedDrain { .. })
         ));
 
@@ -8607,13 +8253,13 @@ mod tests {
             .recovery
             .as_ref()
             .expect("first recovery task")
-            .root_id
-            .clone();
-        let first_active_change_id = match &production
+            .root_id()
+            .to_owned();
+        let first_active_change_id = match production
             .recovery
             .as_ref()
             .expect("first recovery task")
-            .kind
+            .kind()
         {
             RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
             _ => panic!("first root must own metadata inventory recovery"),
@@ -8637,20 +8283,20 @@ mod tests {
         for _ in 0..1_000 {
             poll_runtime_with_storage(&mut production, &storage).expect("rotate P2 page");
             if let Some(task) = production.recovery.as_ref()
-                && task.root_id != first_root
+                && task.root_id() != first_root
             {
-                second_root = Some(task.root_id.clone());
+                second_root = Some(task.root_id().to_owned());
                 break;
             }
             std::thread::yield_now();
         }
         let second_root = second_root.expect("second root receives the next P2 page");
         assert_ne!(first_root, second_root);
-        let second_active_change_id = match &production
+        let second_active_change_id = match production
             .recovery
             .as_ref()
             .expect("second recovery task")
-            .kind
+            .kind()
         {
             RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
             _ => panic!("second root must own metadata inventory recovery"),
@@ -8697,19 +8343,19 @@ mod tests {
         for _ in 0..1_000 {
             poll_runtime_with_storage(&mut production, &storage).expect("return to first P2 root");
             if let Some(task) = production.recovery.as_ref()
-                && task.root_id == first_root
+                && task.root_id() == first_root
             {
-                third_root = Some(task.root_id.clone());
+                third_root = Some(task.root_id().to_owned());
                 break;
             }
             std::thread::yield_now();
         }
         assert_eq!(third_root.as_deref(), Some(first_root.as_str()));
-        let third_active_change_id = match &production
+        let third_active_change_id = match production
             .recovery
             .as_ref()
             .expect("returned first-root recovery")
-            .kind
+            .kind()
         {
             RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
             _ => panic!("returned first root must own metadata inventory recovery"),
@@ -8791,7 +8437,7 @@ mod tests {
             if production
                 .recovery
                 .as_ref()
-                .is_some_and(|task| task.root_id == second_root)
+                .is_some_and(|task| task.root_id() == second_root)
                 && second_gate.wait_until_blocked(Duration::from_millis(10))
             {
                 break;
@@ -8803,11 +8449,11 @@ mod tests {
             std::thread::yield_now();
         }
 
-        let active_second_change_id = match &production
+        let active_second_change_id = match production
             .recovery
             .as_ref()
             .expect("overlapping second-root recovery")
-            .kind
+            .kind()
         {
             RecoveryTaskKind::MetadataInventory { change_id, .. } => *change_id,
             _ => panic!("second root must own metadata inventory recovery"),
@@ -8853,9 +8499,9 @@ mod tests {
                 .expect("advance the independent second-root watcher gap");
             assert!(
                 production.recovery.as_ref().is_some_and(|task| {
-                    task.root_id == second_root
+                    task.root_id() == second_root
                         && matches!(
-                            &task.kind,
+                            task.kind(),
                             RecoveryTaskKind::MetadataInventory { change_id, .. }
                                 if *change_id == second_retained_change_id
                         )
@@ -8953,130 +8599,5 @@ mod tests {
         }
         second_gate.release();
         production.stop().expect("stop production synchronization");
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn stopping_bounded_recovery_signals_and_joins_the_background_worker() {
-        let factory = crate::adapters::production_library_change_source_factory();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::spawn(move || {
-            while !worker_cancelled.load(Ordering::Acquire) {
-                thread::yield_now();
-            }
-            let _ = sender.send(Ok(RecoveryTaskOutcome::Authoritative(
-                AuthoritativeLibraryChangeReport::default(),
-            )));
-        });
-        let mut production = ProductionSynchronization {
-            runtime: LibrarySynchronizationRuntime::new_erased(factory),
-            catalog_session: None,
-            poll_catalog: PollCatalogOwner::default(),
-            persistent_change_journal_factory: None,
-            _persistent_change_journal: test_live_only_connection(),
-            persistent_change_journal_opened: true,
-            persistent_change_journal_caller: None,
-            journal: None,
-            journal_status: JournalStatusOwner::default(),
-            journal_lane: JournalLane::default(),
-            live: None,
-            live_root_cursor: None,
-            recovery: Some(RecoveryTask {
-                root_id: "root-a".to_owned(),
-                kind: RecoveryTaskKind::BoundedAuthoritative {
-                    continuity_revision: 0,
-                },
-                phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-                cancelled: Arc::clone(&cancelled),
-                receiver,
-                worker: Some(worker),
-            }),
-            recovery_sources: RecoverySources::default(),
-            metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_lane: RecoveryLane::default(),
-            legacy_automatic_scans_retired: false,
-            inventory_cleanup: InventoryCleanupOwner::default(),
-            root_location: RootLocationRecoveryOwner::default(),
-            is_stopping: false,
-            stop_requested: Arc::new(AtomicBool::new(false)),
-            core_stopped: false,
-            journal_closed: false,
-            journal_close: None,
-            drain_panic: None,
-        };
-
-        production.stop_recovery().expect("stop bounded recovery");
-
-        assert!(cancelled.load(Ordering::Acquire));
-        assert!(production.recovery.is_none());
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn recovery_stop_timeout_retains_worker_ownership_until_a_later_join() {
-        let factory = crate::adapters::production_library_change_source_factory();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let release = Arc::new(AtomicBool::new(false));
-        let worker_release = Arc::clone(&release);
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::spawn(move || {
-            while !worker_release.load(Ordering::Acquire) {
-                thread::yield_now();
-            }
-            let _ = sender.send(Ok(RecoveryTaskOutcome::Authoritative(
-                AuthoritativeLibraryChangeReport::default(),
-            )));
-        });
-        let mut production = ProductionSynchronization {
-            runtime: LibrarySynchronizationRuntime::new_erased(factory),
-            catalog_session: None,
-            poll_catalog: PollCatalogOwner::default(),
-            persistent_change_journal_factory: None,
-            _persistent_change_journal: test_live_only_connection(),
-            persistent_change_journal_opened: true,
-            persistent_change_journal_caller: None,
-            journal: None,
-            journal_status: JournalStatusOwner::default(),
-            journal_lane: JournalLane::default(),
-            live: None,
-            live_root_cursor: None,
-            recovery: Some(RecoveryTask {
-                root_id: "root-a".to_owned(),
-                kind: RecoveryTaskKind::BoundedAuthoritative {
-                    continuity_revision: 0,
-                },
-                phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-                cancelled: Arc::clone(&cancelled),
-                receiver,
-                worker: Some(worker),
-            }),
-            recovery_sources: RecoverySources::default(),
-            metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
-            recovery_lane: RecoveryLane::default(),
-            legacy_automatic_scans_retired: false,
-            inventory_cleanup: InventoryCleanupOwner::default(),
-            root_location: RootLocationRecoveryOwner::default(),
-            is_stopping: true,
-            stop_requested: Arc::new(AtomicBool::new(true)),
-            core_stopped: false,
-            journal_closed: false,
-            journal_close: None,
-            drain_panic: None,
-        };
-
-        let error = production
-            .stop_recovery_with_timeout(Duration::from_millis(10))
-            .expect_err("uncooperative worker must exceed the short stop window");
-
-        assert_eq!(error.code, "authoritative_recovery_stop_timeout");
-        assert!(cancelled.load(Ordering::Acquire));
-        assert!(production.recovery.is_some());
-        release.store(true, Ordering::Release);
-        production
-            .stop_recovery_with_timeout(Duration::from_secs(1))
-            .expect("later stop joins retained worker");
-        assert!(production.recovery.is_none());
     }
 }

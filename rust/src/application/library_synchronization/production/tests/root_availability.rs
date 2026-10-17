@@ -213,8 +213,8 @@ fn production_offline_root_recovery_preserves_catalog_while_peer_changes_publish
             poll_runtime_with_storage(&mut production, &fixture.storage)
                 .expect("admit A recovery through its availability gap");
             if production.recovery.as_ref().is_some_and(|task| {
-                task.root_id == fixture.root_id
-                    && matches!(&task.kind, RecoveryTaskKind::MetadataInventory { .. })
+                task.root_id() == fixture.root_id
+                    && matches!(task.kind(), RecoveryTaskKind::MetadataInventory { .. })
             }) && source_gate.wait_until_blocked(Duration::from_millis(10))
             {
                 break;

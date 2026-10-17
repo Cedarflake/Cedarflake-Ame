@@ -53,16 +53,16 @@ fn runtime_with_drain_panic(
                     IncrementalLibraryChangeReport::default(),
                 )));
             });
-            runtime.recovery = Some(RecoveryTask {
-                root_id: "panic-p2".to_owned(),
-                kind: RecoveryTaskKind::LegacyUnownedDrain {
+            runtime.recovery = Some(RecoveryTask::from_test_parts(
+                "panic-p2".to_owned(),
+                RecoveryTaskKind::LegacyUnownedDrain {
                     continuity_revision: 1,
                 },
-                phase: Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
-                cancelled: Arc::new(AtomicBool::new(false)),
+                Arc::new(Mutex::new(LibrarySynchronizationPhase::Reconciliation)),
+                Arc::new(AtomicBool::new(false)),
                 receiver,
-                worker: Some(worker),
-            });
+                Some(worker),
+            ));
         }
         DrainPanicPoint::RequestStop
         | DrainPanicPoint::JournalCloseInstalled
