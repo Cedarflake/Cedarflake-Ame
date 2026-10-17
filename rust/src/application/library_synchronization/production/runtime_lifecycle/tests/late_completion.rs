@@ -275,11 +275,11 @@ fn timed_out_p1_then_journal_close_share_one_epoch_deadline_and_reap_once() {
             .into(),
         )));
     });
-    runtime.journal = Some(JournalTask {
-        cancelled: Arc::clone(&worker_cancelled),
+    runtime.journal = Some(JournalTask::from_test_parts(
+        Arc::clone(&worker_cancelled),
         receiver,
-        worker: Some(worker),
-    });
+        worker,
+    ));
     let registry = ready_test_registry(runtime);
 
     let error = stop_runtime_with_timeout(&registry, Duration::from_millis(25))
@@ -304,8 +304,7 @@ fn timed_out_p1_then_journal_close_share_one_epoch_deadline_and_reap_once() {
                     .expect("draining runtime")
                     .journal
                     .as_ref()
-                    .and_then(|task| task.worker.as_ref())
-                    .is_some_and(JoinHandle::is_finished),
+                    .is_some_and(|task| task.progress().1 == Some(true)),
                 _ => false,
             }
         };

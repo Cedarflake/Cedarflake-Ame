@@ -364,3 +364,126 @@ fn source_addition_removal_and_progress_advance_preserve_surviving_checkpoints()
         .expect("surviving source with advanced progress");
     assert_eq!(continued.checkpoint.next_unread_usn.value(), 225);
 }
+
+#[test]
+fn journal_volume_selection_excludes_a_recovery_required_sibling() {
+    let directory = tempfile::tempdir().expect("test directory");
+    let catalog_path = directory.path().join("catalog.sqlite3");
+    let generation = LibraryRootGeneration::initial();
+    let mut catalog = SqliteCatalog::open(catalog_path).expect("fixture catalog");
+    let mut checkpoints = Vec::new();
+    for (root_id, marker) in [("p1-root", 1_u8), ("p2-root", 2_u8)] {
+        let request = ScanRequest {
+            scan_id: format!("scan-{root_id}"),
+            root_path: format!("C:/{root_id}"),
+            max_items: None,
+            max_entries: None,
+            preview_edge: 512,
+        };
+        catalog
+            .begin_scan(&request, root_id, &request.root_path)
+            .expect("begin root scan");
+        catalog
+            .prove_live_only_first_import_handoff_for_test(&request.scan_id)
+            .expect("prove lane fixture first-import handoff");
+        catalog
+            .publish_scan(&request.scan_id, root_id, 0, 0)
+            .expect("publish root scan");
+        catalog
+            .save_persistent_journal_capability(&PersistentJournalCapability {
+                root_id: root_id.to_owned(),
+                root_generation: generation,
+                protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+                contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
+                state: PersistentJournalCapabilityState::Supported,
+                continuity: PersistentJournalContinuityState::Current,
+                failure: None,
+                updated_unix_ms: 1,
+            })
+            .expect("seed supported root");
+        let checkpoint = PersistentJournalCheckpoint {
+            root_id: root_id.to_owned(),
+            root_generation: generation,
+            volume: PersistentJournalVolumeIdentity {
+                volume_guid: "volume-shared".to_owned(),
+                volume_serial: 7,
+            },
+            root_file_reference: JournalFileReference::V2([marker; 8]),
+            journal_id: JournalIdentifier::new(44).expect("journal ID"),
+            next_unread_usn: JournalUsn::new(20).expect("next USN"),
+            captured_exclusive_end: JournalUsn::new(20).expect("captured end"),
+            covered_catalog_revision: 1,
+            protocol_version: crate::journal_broker::PROTOCOL_VERSION,
+            contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
+            continuity: PersistentJournalContinuityState::Current,
+            failure: None,
+            updated_unix_ms: 1,
+        };
+        catalog
+            .seed_persistent_journal_checkpoint_for_test(&checkpoint)
+            .expect("seed current checkpoint");
+        checkpoints.push(checkpoint);
+    }
+    let recovery_checkpoint = &checkpoints[1];
+    catalog
+        .persist_persistent_journal_root_failure(
+            &crate::domain::PersistentJournalRootFailure {
+                root_id: recovery_checkpoint.root_id.clone(),
+                root_generation: generation,
+                kind: crate::domain::PersistentJournalRootFailureKind::ContainmentFailure,
+                failure: PersistentJournalFailure {
+                    code: "fixture-containment".to_owned(),
+                    message: "Fixture containment failure".to_owned(),
+                },
+                opening_boundary: Some(crate::domain::LibraryRecoveryOpeningBoundary {
+                    volume: recovery_checkpoint.volume.clone(),
+                    root_file_reference: recovery_checkpoint.root_file_reference.clone(),
+                    journal_id: recovery_checkpoint.journal_id,
+                    next_usn: recovery_checkpoint.next_unread_usn,
+                    protocol_version: recovery_checkpoint.protocol_version,
+                    contract_version: recovery_checkpoint.contract_version,
+                }),
+            },
+            2,
+            crate::domain::LibraryChangeQueuePolicy {
+                debounce_millis: 0,
+                ..crate::domain::LibraryChangeQueuePolicy::default()
+            },
+        )
+        .expect("admit recovery-required sibling")
+        .expect("containment recovery is allowlisted");
+    let snapshot = LibrarySynchronizationSnapshot {
+        is_running: true,
+        catalog_revision: 0,
+        applied_mutation_count: 0,
+        roots: ["p1-root", "p2-root"]
+            .into_iter()
+            .map(|root_id| crate::domain::LibraryRootSynchronizationStatus {
+                root_id: root_id.to_owned(),
+                root_generation: generation.value(),
+                availability: crate::domain::LibraryRootAvailability::Available,
+                freshness: crate::domain::CatalogFreshnessState::Synchronized,
+                freshness_cause: crate::domain::CatalogFreshnessCause::NoPendingChanges,
+                continuity: if root_id == "p1-root" {
+                    PersistentJournalContinuityState::Current
+                } else {
+                    PersistentJournalContinuityState::RecoveryRequired
+                },
+                phase: LibrarySynchronizationPhase::Synchronized,
+                source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
+                queue_health: crate::domain::LibraryChangeQueueHealth::Healthy,
+                pending_change_count: 0,
+                retry_wait_count: 0,
+                freshness_unknown_count: 0,
+                recovery_blocked: false,
+                last_issue_code: None,
+            })
+            .collect(),
+    };
+    let work = select(&catalog, &snapshot, None)
+        .expect("select current P1 volume")
+        .expect("current P1 work");
+
+    assert_eq!(work.roots.len(), 1);
+    assert_eq!(work.roots[0].checkpoint.root_id, "p1-root");
+}

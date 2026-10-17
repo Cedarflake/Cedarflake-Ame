@@ -280,3 +280,34 @@ the shutdown cases moved to `runtime_lifecycle/tests/shutdown.rs`. The exact sel
 paths now target that owner, including the existing acceptance table. A focused matrix check
 admitted all 19 cases and rejected the former source mapping. No cases, assertions or rejection
 rules were removed; the corrected commit still requires its hosted checks.
+
+## M2 Journal selection and worker ownership
+
+The coordinator retains Live/stopping admission and status publication. `JournalLane` owns root and
+volume cursors, read/drain alternation and capacity-debt selection. Its branch order remains ready
+Journal drain, session availability, recovery admission, closing boundary, opening boundary, then
+bounded volume read. Missing caller/session, unhealthy/unavailable roots, insufficient capacity and
+the intervening drain turn retain their prior outcomes. Cursor updates still precede catalog-session
+validation and worker spawn; a failed spawn does not silently rewind fairness.
+
+`JournalTask` owns a typed opening, closing, page or drain worker and its result/cancellation/join
+lifetime. Page registration guards remain held through capture, cancellation retains its atomic
+flag, and shutdown receives the original absolute deadline. The original registration-failure and
+volume-selection regressions now sit with their owners. Controlled lifecycle tests use the task's
+test-only construction/progress boundary instead of accessing its mutable internals.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test/fixture lines |
+| --- | ---: | ---: | ---: |
+| `production.rs` after Journal extraction | 1,897 | 7,831 | Existing child suites |
+| `journal_lane.rs` | 214 | 7 | Existing volume, admission and priority suites |
+| `journal_work.rs` | 300 | 22 | Existing lifecycle suite |
+| `journal_work/page.rs` | 112 | 2 | 110 |
+| `journal_volume.rs` | Unchanged | Unchanged | 489, including the relocated selection test |
+
+All 146 tests in the production subtree remain. Normal-library compilation passed without warnings.
+The moved registration-failure regression, eight volume/admission regressions and six shutdown
+regressions passed. The simultaneous P0/P1/P2 priority case initially failed at the Windows namespace
+guard under sandbox permissions. The unchanged case passed with normal permissions, including full
+recovery publication and reopen; its 25 P0 samples measured 88 ms P95 and 89 ms maximum while both
+lower lanes advanced. This is a controlled fixture result, not a before/after performance claim.
+Full hosted checks and the final client comparison remain separate.

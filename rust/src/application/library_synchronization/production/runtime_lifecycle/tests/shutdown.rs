@@ -226,11 +226,11 @@ fn one_stop_joins_delayed_p0_p1_p2_then_allows_immediate_restart() {
             PersistentJournalEnrollmentReport::default().into(),
         )));
     });
-    runtime.journal = Some(JournalTask {
-        cancelled: Arc::clone(&p1_cancelled),
-        receiver: p1_receiver,
-        worker: Some(p1_worker),
-    });
+    runtime.journal = Some(JournalTask::from_test_parts(
+        Arc::clone(&p1_cancelled),
+        p1_receiver,
+        p1_worker,
+    ));
 
     let (p2_sender, p2_receiver) = mpsc::sync_channel(1);
     let p2_worker_cancelled = Arc::clone(&p2_cancelled);

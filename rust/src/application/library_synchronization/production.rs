@@ -27,16 +27,16 @@ use crate::adapters::{
 };
 use crate::domain::{
     IncrementalLibraryChangeReport, LeasedLibraryChange, LibraryChangeId, LibraryChangeLane,
-    LibraryRootGeneration, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot,
-    PersistentJournalEnrollmentReport, PersistentJournalRootFailure,
-    PersistentJournalRootFailureKind, ScanError,
+    LibraryRootGeneration, LibrarySynchronizationPhase, LibrarySynchronizationSnapshot, ScanError,
 };
 #[cfg(all(test, windows))]
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryRecoveryAuthorityReason,
     PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalBaselineStartRequest,
     PersistentJournalCapability, PersistentJournalCapabilityState, PersistentJournalCheckpoint,
-    PersistentJournalContinuityState, PersistentJournalFailure, PersistentJournalVolumeIdentity,
+    PersistentJournalContinuityState, PersistentJournalEnrollmentReport, PersistentJournalFailure,
+    PersistentJournalRootFailure, PersistentJournalRootFailureKind,
+    PersistentJournalVolumeIdentity,
 };
 
 #[cfg(windows)]
@@ -49,12 +49,11 @@ use super::observation_diagnostics::measure_observation;
 use super::production_synchronization_cadence::ProductionSynchronizationCadence;
 #[cfg(windows)]
 use crate::application::{
-    AuthoritativeLibraryChangeReport, JournalCaptureWindowReport, MetadataInventoryProgressPhase,
+    AuthoritativeLibraryChangeReport, MetadataInventoryProgressPhase,
     MetadataInventoryRecoveryExecution, MetadataInventoryRecoveryPage,
-    MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl, PersistentJournalBrokerRoot,
-    ProductionPersistentJournalVolumeReader, RetainedMetadataInventorySource,
-    catch_up_persistent_journal_window, classify_persistent_journal_operation_failure,
-    defer_authoritative_change, leased_change_requires_metadata_inventory,
+    MetadataInventoryRecoveryReport, MetadataInventoryWorkerControl,
+    RetainedMetadataInventorySource, defer_authoritative_change,
+    leased_change_requires_metadata_inventory,
     process_leased_authoritative_library_change_cancellable,
     process_leased_metadata_inventory_change_with_retained_source,
     process_ready_metadata_inventory_recovery_candidates_cancellable,
@@ -64,13 +63,12 @@ use crate::application::{
 use crate::journal_broker::{
     BrokerResponse, JournalCapability, PersistentChangeJournalRead, PersistentChangeJournalSession,
     QueryJournalRequest, ReadJournalRangeRequest, ReadJournalVolumeRequest, RegisterRootRequest,
-    RootCapability,
+    RootCapability, describe_production_persistent_journal_root,
 };
 #[cfg(windows)]
 use crate::journal_broker::{
     PersistentChangeJournal, PersistentChangeJournalConnection,
     PersistentChangeJournalLiveOnlyReason, PersistentChangeJournalOperationError,
-    ProductionPersistentJournalRoot, describe_production_persistent_journal_root,
     production_persistent_journal_caller_claim,
 };
 #[cfg(windows)]
@@ -98,10 +96,17 @@ mod catalog_scheduling;
 mod journal_volume;
 
 #[cfg(windows)]
-mod journal_recovery_admission;
+mod journal_lane;
+#[cfg(windows)]
+use journal_lane::JournalLane;
 
 #[cfg(windows)]
-use journal_volume::JournalVolumeWork;
+mod journal_work;
+#[cfg(windows)]
+use journal_work::{JournalTask, JournalTaskOutcome};
+
+#[cfg(windows)]
+mod journal_recovery_admission;
 
 #[cfg(windows)]
 mod inventory_cleanup;
@@ -262,9 +267,7 @@ struct ProductionSynchronization {
     persistent_change_journal_caller: Option<crate::journal_broker::CallerClaim>,
     journal_status: JournalStatusOwner,
     journal: Option<JournalTask>,
-    journal_volume_cursor: Option<String>,
-    journal_root_cursor: Option<String>,
-    journal_next_action_is_read: bool,
+    journal_lane: JournalLane,
     live: Option<LiveTask>,
     live_root_cursor: Option<String>,
     recovery: Option<RecoveryTask>,
@@ -302,24 +305,10 @@ struct DrainPanicInjection {
 }
 
 #[cfg(windows)]
-struct JournalTask {
-    cancelled: Arc<AtomicBool>,
-    receiver: Receiver<Result<JournalTaskOutcome, ScanError>>,
-    worker: Option<JoinHandle<()>>,
-}
-
-#[cfg(windows)]
 struct JournalCloseTask {
     receiver: Receiver<Result<(), ScanError>>,
     worker: Option<JoinHandle<()>>,
     outcome: Option<Result<(), ScanError>>,
-}
-
-#[cfg(windows)]
-enum JournalTaskOutcome {
-    Page(JournalCaptureWindowReport),
-    Drain(IncrementalLibraryChangeReport),
-    BaselineBoundary,
 }
 
 #[cfg(windows)]
@@ -681,9 +670,7 @@ fn new_production_synchronization_with_factory(
         persistent_change_journal_caller: None,
         journal: None,
         journal_status: JournalStatusOwner::default(),
-        journal_volume_cursor: None,
-        journal_root_cursor: None,
-        journal_next_action_is_read: true,
+        journal_lane: JournalLane::default(),
         live: None,
         live_root_cursor: None,
         recovery: None,
@@ -719,9 +706,7 @@ fn new_production_synchronization_with_connection(
         persistent_change_journal_caller: None,
         journal: None,
         journal_status: JournalStatusOwner::default(),
-        journal_volume_cursor: None,
-        journal_root_cursor: None,
-        journal_next_action_is_read: true,
+        journal_lane: JournalLane::default(),
         live: None,
         live_root_cursor: None,
         recovery: None,
@@ -1021,8 +1006,13 @@ fn ready_recovery_work(
     snapshot: &LibrarySynchronizationSnapshot,
     now_unix_ms: i64,
 ) -> Result<Option<ReadyRecoveryWork>, ScanError> {
-    let journal_capacity_debt_roots =
-        runtime.journal_page_capacity_debt_roots(catalog, snapshot)?;
+    let journal_capacity_debt_roots = runtime.journal_lane.capacity_debt_roots(
+        catalog,
+        snapshot,
+        &runtime._persistent_change_journal,
+        runtime.persistent_change_journal_caller.as_ref(),
+        runtime.runtime.queue_policy(),
+    )?;
     if snapshot.roots.is_empty()
         || runtime.live.is_some()
         || runtime.journal.is_some()
@@ -1257,37 +1247,6 @@ fn select_rotated_key<'a>(
 
 #[cfg(windows)]
 impl ProductionSynchronization {
-    fn journal_page_capacity_debt_roots(
-        &self,
-        catalog: &SqliteCatalog,
-        snapshot: &LibrarySynchronizationSnapshot,
-    ) -> Result<Vec<(String, LibraryRootGeneration)>, ScanError> {
-        if !self.journal_next_action_is_read
-            || !matches!(
-                self._persistent_change_journal,
-                PersistentChangeJournalConnection::Connected(_)
-            )
-            || self.persistent_change_journal_caller.is_none()
-        {
-            return Ok(Vec::new());
-        }
-        let Some(work) = self.next_journal_volume(catalog, snapshot)? else {
-            return Ok(Vec::new());
-        };
-        let mut roots = Vec::new();
-        for root in work.roots {
-            let checkpoint = root.checkpoint;
-            if !catalog.journal_admission_has_headroom(
-                &checkpoint.root_id,
-                checkpoint.root_generation,
-                self.runtime.queue_policy(),
-            )? {
-                roots.push((checkpoint.root_id, checkpoint.root_generation));
-            }
-        }
-        Ok(roots)
-    }
-
     fn schedule_next_live_work(
         &mut self,
         catalog: &SqliteCatalog,
@@ -1352,23 +1311,9 @@ impl ProductionSynchronization {
     }
 
     fn poll_journal(&mut self) -> u32 {
-        let Some(task) = self.journal.as_mut() else {
+        let Some(result) = self.journal.as_mut().and_then(JournalTask::poll) else {
             return 0;
         };
-        let result = match task.receiver.try_recv() {
-            Ok(result) => Some(result),
-            Err(TryRecvError::Empty) => None,
-            Err(TryRecvError::Disconnected) => Some(Err(ScanError::new(
-                "persistent_journal_worker_disconnected",
-                "The persistent journal worker stopped without a result",
-            ))),
-        };
-        let Some(result) = result else {
-            return 0;
-        };
-        if let Some(worker) = task.worker.take() {
-            let _ = worker.join();
-        }
         self.journal = None;
         match result {
             Ok(JournalTaskOutcome::Page(window)) => {
@@ -1434,386 +1379,25 @@ impl ProductionSynchronization {
         {
             return Ok(());
         }
-        if let Some((root_id, root_generation)) =
-            self.next_journal_root(catalog, snapshot, now_unix_ms)?
-        {
-            self.journal_root_cursor = Some(root_id.clone());
-            self.journal_next_action_is_read = true;
-            return self.start_journal_drain(
-                root_id,
-                root_generation,
-                now_unix_ms,
-                storage.catalog_path.clone(),
-            );
-        }
-        let (session, caller) = match (
+        let Some(work) = self.journal_lane.select(
+            catalog,
+            snapshot,
+            now_unix_ms,
             &self._persistent_change_journal,
             self.persistent_change_journal_caller.as_ref(),
-        ) {
-            (PersistentChangeJournalConnection::Connected(session), Some(caller)) => {
-                (Arc::clone(session), caller.clone())
-            }
-            (PersistentChangeJournalConnection::LiveOnly(_), _) => {
-                if let Some(work) = super::journal_baseline::select_opening_work(
-                    catalog,
-                    snapshot,
-                    self.journal_root_cursor.as_deref(),
-                    None,
-                )? {
-                    super::journal_baseline::persist_unavailable_session(
-                        catalog,
-                        &work,
-                        now_unix_ms,
-                    )?;
-                }
-                return Ok(());
-            }
-            _ => return Ok(()),
-        };
-
-        if let Some(work) = journal_recovery_admission::select(catalog, snapshot)? {
-            return self.start_journal_page(
-                work,
-                session,
-                caller,
-                now_unix_ms,
-                storage.catalog_path.clone(),
-            );
-        }
-
-        if let Some(work) = super::journal_baseline::select_closing_work(
-            catalog,
-            snapshot,
-            self.journal_root_cursor.as_deref(),
-        )? {
-            self.journal_root_cursor = Some(work.root_id().to_owned());
-            return self.start_baseline_closing(
-                work,
-                session,
-                caller,
-                now_unix_ms,
-                storage.catalog_path.clone(),
-            );
-        }
-        if let Some(work) = super::journal_baseline::select_opening_work(
-            catalog,
-            snapshot,
-            self.journal_root_cursor.as_deref(),
-            session.identity_source().as_deref(),
-        )? {
-            self.journal_root_cursor = Some(work.root_id().to_owned());
-            return self.start_baseline_opening(
-                work,
-                session,
-                caller,
-                now_unix_ms,
-                storage.catalog_path.clone(),
-            );
-        }
-
-        if self.journal_next_action_is_read
-            && let Some(work) = self.next_journal_volume(catalog, snapshot)?
-        {
-            for root in &work.roots {
-                if !catalog.journal_admission_has_headroom(
-                    &root.checkpoint.root_id,
-                    root.checkpoint.root_generation,
-                    self.runtime.queue_policy(),
-                )? {
-                    return Ok(());
-                }
-            }
-            self.journal_volume_cursor = Some(work.key.clone());
-            self.journal_next_action_is_read = false;
-            return self.start_journal_page(
-                work,
-                session,
-                caller,
-                now_unix_ms,
-                storage.catalog_path.clone(),
-            );
-        }
-        self.journal_next_action_is_read = true;
-        Ok(())
-    }
-
-    fn next_journal_volume(
-        &self,
-        catalog: &SqliteCatalog,
-        snapshot: &LibrarySynchronizationSnapshot,
-    ) -> Result<Option<JournalVolumeWork>, ScanError> {
-        journal_volume::select(catalog, snapshot, self.journal_volume_cursor.as_deref())
-    }
-
-    fn next_journal_root(
-        &self,
-        catalog: &SqliteCatalog,
-        snapshot: &LibrarySynchronizationSnapshot,
-        now_unix_ms: i64,
-    ) -> Result<Option<(String, LibraryRootGeneration)>, ScanError> {
-        let mut eligible = Vec::new();
-        for root in &snapshot.roots {
-            if root.availability != crate::domain::LibraryRootAvailability::Available
-                || root.source_health != crate::domain::LibraryChangeSourceHealth::Healthy
-            {
-                continue;
-            }
-            let generation = LibraryRootGeneration::new(root.root_generation).ok_or_else(|| {
-                ScanError::new(
-                    "library_root_generation_invalid",
-                    "The synchronization root generation is invalid",
-                )
-            })?;
-            if catalog.has_ready_journal_path_library_change(
-                &root.root_id,
-                generation,
-                now_unix_ms,
-                self.runtime.queue_policy(),
-            )? || catalog.has_ready_journal_authoritative_library_change(
-                &root.root_id,
-                generation,
-                now_unix_ms,
-                self.runtime.queue_policy(),
-            )? {
-                eligible.push(root.root_id.clone());
-            }
-        }
-        let Some(root_id) =
-            select_rotated_key(eligible.iter(), self.journal_root_cursor.as_deref())
+            self.runtime.queue_policy(),
+        )?
         else {
-            return Ok(None);
+            return Ok(());
         };
-        let root = snapshot
-            .roots
-            .iter()
-            .find(|root| root.root_id == root_id)
-            .expect("selected journal root comes from the snapshot");
-        let generation = LibraryRootGeneration::new(root.root_generation).ok_or_else(|| {
-            ScanError::new(
-                "library_root_generation_invalid",
-                "The synchronization root generation is invalid",
-            )
-        })?;
-        Ok(Some((root_id, generation)))
-    }
-
-    fn start_baseline_opening(
-        &mut self,
-        work: super::journal_baseline::JournalBaselineOpeningWork,
-        session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
-        caller: crate::journal_broker::CallerClaim,
-        observed_unix_ms: i64,
-        catalog_path: std::path::PathBuf,
-    ) -> Result<(), ScanError> {
-        let queue_policy = self.runtime.queue_policy();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::Builder::new()
-            .name("ame-p1-baseline-opening".to_owned())
-            .spawn(move || {
-                let result = super::journal_baseline::capture_opening_boundary(
-                    work,
-                    session.as_ref(),
-                    &caller,
-                    observed_unix_ms,
-                    catalog_session.as_ref(),
-                    queue_policy,
-                    worker_cancelled.as_ref(),
-                )
-                .map(|_| JournalTaskOutcome::BaselineBoundary);
-                let _ = sender.send(result);
-            })
-            .map_err(|error| {
-                ScanError::new(
-                    "persistent_journal_worker_start_failed",
-                    format!("Could not start the opening boundary worker: {error}"),
-                )
-            })?;
-        self.journal = Some(JournalTask {
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
-        Ok(())
-    }
-
-    fn start_baseline_closing(
-        &mut self,
-        work: super::journal_baseline::JournalBaselineClosingWork,
-        session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
-        caller: crate::journal_broker::CallerClaim,
-        observed_unix_ms: i64,
-        catalog_path: std::path::PathBuf,
-    ) -> Result<(), ScanError> {
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::Builder::new()
-            .name("ame-p1-baseline-closing".to_owned())
-            .spawn(move || {
-                let result = super::journal_baseline::capture_closing_boundary(
-                    work,
-                    session.as_ref(),
-                    &caller,
-                    observed_unix_ms,
-                    catalog_session.as_ref(),
-                    worker_cancelled.as_ref(),
-                )
-                .map(|()| JournalTaskOutcome::BaselineBoundary);
-                let _ = sender.send(result);
-            })
-            .map_err(|error| {
-                ScanError::new(
-                    "persistent_journal_worker_start_failed",
-                    format!("Could not start the closing boundary worker: {error}"),
-                )
-            })?;
-        self.journal = Some(JournalTask {
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
-        Ok(())
-    }
-
-    fn start_journal_page(
-        &mut self,
-        work: JournalVolumeWork,
-        session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
-        caller: crate::journal_broker::CallerClaim,
-        observed_unix_ms: i64,
-        catalog_path: std::path::PathBuf,
-    ) -> Result<(), ScanError> {
-        let policy = self.runtime.queue_policy();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::Builder::new()
-            .name("ame-p1-journal-page".to_owned())
-            .spawn(move || {
-                let result = (|| {
-                    let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
-                    let mut report = PersistentJournalEnrollmentReport::default();
-                    let mut registrations = Vec::<ProductionPersistentJournalRoot>::new();
-                    let mut broker_roots = Vec::new();
-                    let mut checkpoints = Vec::new();
-                    for root in work.roots {
-                        let checkpoint = root.checkpoint;
-                        let registration = match describe_production_persistent_journal_root(
-                            &checkpoint.root_id,
-                            checkpoint.root_generation.value(),
-                            &root.root_path,
-                        ) {
-                            Ok(registration) => registration,
-                            Err(error) => {
-                                let failure = persist_journal_registration_failure(
-                                    &mut catalog,
-                                    &checkpoint.root_id,
-                                    checkpoint.root_generation,
-                                    error,
-                                    observed_unix_ms,
-                                    policy,
-                                )?;
-                                report.failed_root_count =
-                                    report.failed_root_count.saturating_add(1);
-                                report.root_failures.push(failure);
-                                continue;
-                            }
-                        };
-                        broker_roots.push(PersistentJournalBrokerRoot {
-                            authorization: registration.authorization.clone(),
-                            client_root_handle: registration.client_root_handle,
-                            volume_serial: registration.volume_serial,
-                        });
-                        registrations.push(registration);
-                        checkpoints.push(checkpoint);
-                    }
-                    if checkpoints.is_empty() {
-                        return Ok(JournalTaskOutcome::Page(report.into()));
-                    }
-                    let reader = ProductionPersistentJournalVolumeReader::new(
-                        session,
-                        caller,
-                        broker_roots,
-                        Arc::new(crate::adapters::SqliteJournalNamespaceReader(Arc::clone(
-                            &catalog_session,
-                        ))),
-                        catalog.load_persistent_journal_baselines()?,
-                    )?;
-                    let window = catch_up_persistent_journal_window(
-                        &mut catalog,
-                        &reader,
-                        &checkpoints,
-                        observed_unix_ms,
-                        policy,
-                        &worker_cancelled,
-                    )?;
-                    drop(registrations);
-                    Ok(JournalTaskOutcome::Page(window.with_registration(report)))
-                })();
-                let _ = sender.send(result);
-            })
-            .map_err(|error| {
-                ScanError::new(
-                    "persistent_journal_worker_start_failed",
-                    format!("Could not start the persistent journal page worker: {error}"),
-                )
-            })?;
-        self.journal = Some(JournalTask {
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
-        Ok(())
-    }
-
-    fn start_journal_drain(
-        &mut self,
-        root_id: String,
-        root_generation: LibraryRootGeneration,
-        now_unix_ms: i64,
-        catalog_path: std::path::PathBuf,
-    ) -> Result<(), ScanError> {
-        let policy = self.runtime.queue_policy();
-        let recovery_policy = self.runtime.recovery_policy();
-        let cancelled = Arc::new(AtomicBool::new(false));
-        let worker_cancelled = Arc::clone(&cancelled);
-        let catalog_session = self.validated_catalog_session(&catalog_path)?;
-        let (sender, receiver) = mpsc::sync_channel(1);
-        let worker = thread::Builder::new()
-            .name("ame-p1-journal-drain".to_owned())
-            .spawn(move || {
-                let result = catalog_session
-                    .open_in_lane(LibraryChangeLane::Journal)
-                    .and_then(|mut catalog| {
-                        super::journal_drain::process_ready(
-                            &mut catalog,
-                            &root_id,
-                            root_generation,
-                            now_unix_ms,
-                            policy,
-                            recovery_policy,
-                            &worker_cancelled,
-                        )
-                        .map(JournalTaskOutcome::Drain)
-                    });
-                let _ = sender.send(result);
-            })
-            .map_err(|error| {
-                ScanError::new(
-                    "persistent_journal_worker_start_failed",
-                    format!("Could not start the persistent journal drain worker: {error}"),
-                )
-            })?;
-        self.journal = Some(JournalTask {
-            cancelled,
-            receiver,
-            worker: Some(worker),
-        });
+        let catalog_session = self.validated_catalog_session(&storage.catalog_path)?;
+        self.journal = Some(JournalTask::start(
+            work,
+            catalog_session,
+            self.runtime.queue_policy(),
+            self.runtime.recovery_policy(),
+            now_unix_ms,
+        )?);
         Ok(())
     }
 
@@ -2336,7 +1920,7 @@ impl ProductionSynchronization {
             task.request_stop();
         }
         if let Some(task) = &self.journal {
-            task.cancelled.store(true, Ordering::Release);
+            task.request_stop();
         }
         if let Some(task) = &self.recovery {
             task.cancelled.store(true, Ordering::Release);
@@ -2442,13 +2026,7 @@ impl ProductionSynchronization {
             self.live = None;
         }
         if let Some(task) = self.journal.as_mut() {
-            finish_runtime_task_until(
-                &task.receiver,
-                &mut task.worker,
-                deadline,
-                "persistent_journal_stop_timeout",
-                "Persistent journal work did not stop within the bounded shutdown window",
-            )?;
+            task.finish_stopping_until(deadline)?;
             #[cfg(test)]
             self.maybe_panic_while_draining(DrainPanicPoint::P1Result);
             self.journal = None;
@@ -2596,30 +2174,6 @@ fn finish_journal_close_task_until(
         .as_ref()
         .expect("journal close outcome exists after its worker finished")
         .clone()
-}
-
-#[cfg(windows)]
-fn persist_journal_registration_failure(
-    catalog: &mut SqliteCatalog,
-    root_id: &str,
-    root_generation: LibraryRootGeneration,
-    error: PersistentChangeJournalOperationError,
-    failed_unix_ms: i64,
-    policy: crate::domain::LibraryChangeQueuePolicy,
-) -> Result<PersistentJournalRootFailure, ScanError> {
-    let classified = classify_persistent_journal_operation_failure(error);
-    let failure = PersistentJournalRootFailure {
-        root_id: root_id.to_owned(),
-        root_generation,
-        kind: classified.kind,
-        failure: classified.failure,
-        opening_boundary: classified.opening_boundary.map(|boundary| *boundary),
-    };
-    failure.validate()?;
-    if failure.kind != PersistentJournalRootFailureKind::Cancelled {
-        catalog.persist_persistent_journal_root_failure(&failure, failed_unix_ms, policy)?;
-    }
-    Ok(failure)
 }
 
 #[cfg(all(windows, debug_assertions))]
@@ -4672,240 +4226,6 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn local_p1_registration_failure_is_durable_and_root_isolated() {
-        let directory = tempfile::tempdir().expect("test directory");
-        let catalog_path = directory.path().join("catalog.sqlite3");
-        let generation = LibraryRootGeneration::initial();
-        let policy = crate::domain::LibraryChangeQueuePolicy {
-            debounce_millis: 0,
-            ..crate::domain::LibraryChangeQueuePolicy::default()
-        };
-        let mut catalog = SqliteCatalog::open(catalog_path).expect("fixture catalog");
-        for (root_id, marker) in [("bad-root", 1_u8), ("healthy-root", 2_u8)] {
-            let root_path = directory.path().join(root_id);
-            std::fs::create_dir_all(&root_path).expect("create root");
-            let root_path = root_path.to_string_lossy().into_owned();
-            let request = ScanRequest {
-                scan_id: format!("scan-{root_id}"),
-                root_path: root_path.clone(),
-                max_items: None,
-                max_entries: None,
-                preview_edge: 512,
-            };
-            catalog
-                .begin_scan(&request, root_id, &root_path)
-                .expect("begin root scan");
-            catalog
-                .prove_live_only_first_import_handoff_for_test(&request.scan_id)
-                .expect("prove P1 fixture first-import handoff");
-            catalog
-                .publish_scan(&request.scan_id, root_id, 0, 0)
-                .expect("publish root scan");
-            catalog
-                .save_persistent_journal_capability(&PersistentJournalCapability {
-                    root_id: root_id.to_owned(),
-                    root_generation: generation,
-                    protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                    contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                    state: PersistentJournalCapabilityState::Supported,
-                    continuity: PersistentJournalContinuityState::Current,
-                    failure: None,
-                    updated_unix_ms: 1,
-                })
-                .expect("seed current capability");
-            catalog
-                .seed_persistent_journal_checkpoint_for_test(&PersistentJournalCheckpoint {
-                    root_id: root_id.to_owned(),
-                    root_generation: generation,
-                    volume: PersistentJournalVolumeIdentity {
-                        volume_guid: "registration-volume".to_owned(),
-                        volume_serial: 7,
-                    },
-                    root_file_reference: JournalFileReference::V2([marker; 8]),
-                    journal_id: JournalIdentifier::new(44).expect("journal ID"),
-                    next_unread_usn: JournalUsn::new(20).expect("next USN"),
-                    captured_exclusive_end: JournalUsn::new(20).expect("captured end"),
-                    covered_catalog_revision: 1,
-                    protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                    contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                    continuity: PersistentJournalContinuityState::Current,
-                    failure: None,
-                    updated_unix_ms: 1,
-                })
-                .expect("seed current checkpoint");
-        }
-
-        let failure = persist_journal_registration_failure(
-            &mut catalog,
-            "bad-root",
-            generation,
-            PersistentChangeJournalOperationError::InvalidRequest,
-            1_000,
-            policy,
-        )
-        .expect("persist typed registration failure");
-
-        assert_eq!(
-            failure.kind,
-            PersistentJournalRootFailureKind::NonRecoverable
-        );
-        let bad = catalog
-            .load_persistent_journal_checkpoint("bad-root", generation)
-            .expect("load bad checkpoint")
-            .expect("bad checkpoint");
-        let healthy = catalog
-            .load_persistent_journal_checkpoint("healthy-root", generation)
-            .expect("load healthy checkpoint")
-            .expect("healthy checkpoint");
-        assert_eq!(
-            bad.continuity,
-            PersistentJournalContinuityState::RecoveryRequired
-        );
-        assert_eq!(
-            healthy.continuity,
-            PersistentJournalContinuityState::Current
-        );
-        assert_eq!(bad.next_unread_usn.value(), 20);
-        let metrics = catalog
-            .load_library_change_root_queue_metrics("bad-root", generation, 1_000, policy)
-            .expect("load bad-root queue metrics");
-        assert_eq!(metrics.pending_count, 0);
-        assert_eq!(metrics.leased_count, 0);
-        assert_eq!(metrics.retry_wait_count, 0);
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn journal_volume_selection_excludes_a_recovery_required_sibling() {
-        let directory = tempfile::tempdir().expect("test directory");
-        let catalog_path = directory.path().join("catalog.sqlite3");
-        let generation = LibraryRootGeneration::initial();
-        let mut catalog = SqliteCatalog::open(catalog_path).expect("fixture catalog");
-        let mut checkpoints = Vec::new();
-        for (root_id, marker) in [("p1-root", 1_u8), ("p2-root", 2_u8)] {
-            let request = ScanRequest {
-                scan_id: format!("scan-{root_id}"),
-                root_path: format!("C:/{root_id}"),
-                max_items: None,
-                max_entries: None,
-                preview_edge: 512,
-            };
-            catalog
-                .begin_scan(&request, root_id, &request.root_path)
-                .expect("begin root scan");
-            catalog
-                .prove_live_only_first_import_handoff_for_test(&request.scan_id)
-                .expect("prove lane fixture first-import handoff");
-            catalog
-                .publish_scan(&request.scan_id, root_id, 0, 0)
-                .expect("publish root scan");
-            catalog
-                .save_persistent_journal_capability(&PersistentJournalCapability {
-                    root_id: root_id.to_owned(),
-                    root_generation: generation,
-                    protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                    contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                    state: PersistentJournalCapabilityState::Supported,
-                    continuity: PersistentJournalContinuityState::Current,
-                    failure: None,
-                    updated_unix_ms: 1,
-                })
-                .expect("seed supported root");
-            let checkpoint = PersistentJournalCheckpoint {
-                root_id: root_id.to_owned(),
-                root_generation: generation,
-                volume: PersistentJournalVolumeIdentity {
-                    volume_guid: "volume-shared".to_owned(),
-                    volume_serial: 7,
-                },
-                root_file_reference: JournalFileReference::V2([marker; 8]),
-                journal_id: JournalIdentifier::new(44).expect("journal ID"),
-                next_unread_usn: JournalUsn::new(20).expect("next USN"),
-                captured_exclusive_end: JournalUsn::new(20).expect("captured end"),
-                covered_catalog_revision: 1,
-                protocol_version: crate::journal_broker::PROTOCOL_VERSION,
-                contract_version: PERSISTENT_JOURNAL_CONTRACT_VERSION,
-                continuity: PersistentJournalContinuityState::Current,
-                failure: None,
-                updated_unix_ms: 1,
-            };
-            catalog
-                .seed_persistent_journal_checkpoint_for_test(&checkpoint)
-                .expect("seed current checkpoint");
-            checkpoints.push(checkpoint);
-        }
-        let recovery_checkpoint = &checkpoints[1];
-        catalog
-            .persist_persistent_journal_root_failure(
-                &crate::domain::PersistentJournalRootFailure {
-                    root_id: recovery_checkpoint.root_id.clone(),
-                    root_generation: generation,
-                    kind: crate::domain::PersistentJournalRootFailureKind::ContainmentFailure,
-                    failure: PersistentJournalFailure {
-                        code: "fixture-containment".to_owned(),
-                        message: "Fixture containment failure".to_owned(),
-                    },
-                    opening_boundary: Some(crate::domain::LibraryRecoveryOpeningBoundary {
-                        volume: recovery_checkpoint.volume.clone(),
-                        root_file_reference: recovery_checkpoint.root_file_reference.clone(),
-                        journal_id: recovery_checkpoint.journal_id,
-                        next_usn: recovery_checkpoint.next_unread_usn,
-                        protocol_version: recovery_checkpoint.protocol_version,
-                        contract_version: recovery_checkpoint.contract_version,
-                    }),
-                },
-                2,
-                crate::domain::LibraryChangeQueuePolicy {
-                    debounce_millis: 0,
-                    ..crate::domain::LibraryChangeQueuePolicy::default()
-                },
-            )
-            .expect("admit recovery-required sibling")
-            .expect("containment recovery is allowlisted");
-        let snapshot = LibrarySynchronizationSnapshot {
-            is_running: true,
-            catalog_revision: 0,
-            applied_mutation_count: 0,
-            roots: ["p1-root", "p2-root"]
-                .into_iter()
-                .map(|root_id| crate::domain::LibraryRootSynchronizationStatus {
-                    root_id: root_id.to_owned(),
-                    root_generation: generation.value(),
-                    availability: crate::domain::LibraryRootAvailability::Available,
-                    freshness: crate::domain::CatalogFreshnessState::Synchronized,
-                    freshness_cause: crate::domain::CatalogFreshnessCause::NoPendingChanges,
-                    continuity: if root_id == "p1-root" {
-                        PersistentJournalContinuityState::Current
-                    } else {
-                        PersistentJournalContinuityState::RecoveryRequired
-                    },
-                    phase: LibrarySynchronizationPhase::Synchronized,
-                    source_health: crate::domain::LibraryChangeSourceHealth::Healthy,
-                    queue_health: crate::domain::LibraryChangeQueueHealth::Healthy,
-                    pending_change_count: 0,
-                    retry_wait_count: 0,
-                    freshness_unknown_count: 0,
-                    recovery_blocked: false,
-                    last_issue_code: None,
-                })
-                .collect(),
-        };
-        let production = new_production_synchronization_with_connection(
-            crate::ports::erase_library_change_source_factory(HealthyFactory),
-            test_live_only_connection(),
-        );
-
-        let work = production
-            .next_journal_volume(&catalog, &snapshot)
-            .expect("select current P1 volume")
-            .expect("current P1 work");
-
-        assert_eq!(work.roots.len(), 1);
-        assert_eq!(work.roots[0].checkpoint.root_id, "p1-root");
-    }
-
-    #[cfg(windows)]
-    #[test]
     fn one_runtime_validates_the_catalog_once_across_one_hundred_polls() {
         let directory = tempfile::tempdir().expect("runtime catalog directory");
         let storage = crate::application::storage::StoragePaths {
@@ -5879,9 +5199,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: None,
@@ -6130,9 +5448,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: None,
@@ -6214,9 +5530,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: None,
@@ -6266,9 +5580,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: None,
@@ -6465,9 +5777,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: None,
@@ -8350,7 +7660,7 @@ mod tests {
             test_live_only_connection(),
         );
         production.runtime.queue_policy = policy;
-        production.journal_next_action_is_read = false;
+        production.journal_lane = JournalLane::after_page_for_test();
         assert!(
             ready_recovery_work(&mut production, &catalog, &snapshot, base_unix_ms + 3)
                 .expect("inspect P2 readiness")
@@ -9923,9 +9233,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: None,
@@ -10316,9 +9624,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: Some(RecoveryTask {
@@ -10378,9 +9684,7 @@ mod tests {
             persistent_change_journal_caller: None,
             journal: None,
             journal_status: JournalStatusOwner::default(),
-            journal_volume_cursor: None,
-            journal_root_cursor: None,
-            journal_next_action_is_read: true,
+            journal_lane: JournalLane::default(),
             live: None,
             live_root_cursor: None,
             recovery: Some(RecoveryTask {

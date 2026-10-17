@@ -415,11 +415,11 @@ fn panicked_poll_retains_all_workers_and_the_expired_public_stop_deadline() {
             PersistentJournalEnrollmentReport::default().into(),
         )));
     });
-    production.journal = Some(JournalTask {
-        cancelled: p1_cancelled,
-        receiver: p1_receiver,
-        worker: Some(p1_worker),
-    });
+    production.journal = Some(JournalTask::from_test_parts(
+        p1_cancelled,
+        p1_receiver,
+        p1_worker,
+    ));
 
     let p2_cancelled = Arc::new(AtomicBool::new(false));
     let p2_release = Arc::new(AtomicBool::new(false));
@@ -526,7 +526,7 @@ fn panicked_poll_retains_all_workers_and_the_expired_public_stop_deadline() {
             runtime
                 .journal
                 .as_ref()
-                .and_then(|task| task.worker.as_ref())
+                .and_then(|task| task.progress().1)
                 .is_some()
         );
         assert!(
@@ -557,8 +557,7 @@ fn panicked_poll_retains_all_workers_and_the_expired_public_stop_deadline() {
                 && runtime
                     .journal
                     .as_ref()
-                    .and_then(|task| task.worker.as_ref())
-                    .is_some_and(JoinHandle::is_finished)
+                    .is_some_and(|task| task.progress().1 == Some(true))
                 && runtime
                     .recovery
                     .as_ref()
