@@ -81,12 +81,13 @@ Its scope remains Favorites and virtual albums, durable decisions and resumable 
 Select its execution plan when that work is requested. Do not restart completed R2c/R3 acceptance or
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
-The current authorized maintenance queue is the [maintainability refactor](plans/maintainability-refactor.md)
-beginning on `codex/maintainability-refactor`, with sequential responsibility branches recorded in that
-plan: historical migration proof and compatibility repair, synchronization
-runtime ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths,
-then release/acceptance script ownership. Preserve delivered behavior and the accepted technology
-stack. This work precedes R4 implementation and does not reopen R2c/R3 stage acceptance.
+The [maintainability refactor](plans/maintainability-refactor.md) is implemented on six sequential
+responsibility branches: historical migration proof and compatibility repair, synchronization runtime
+ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths and
+release/acceptance script ownership. Native GitHub stack #28 contains draft PRs #22–#27. The plan
+links current hosted checks and the completed client comparison, scoped audit and retained
+observations. Applicable stack checks must pass before delivery closeout; integration into `main`
+remains a human decision. This maintenance precedes R4 and does not reopen R2c/R3 acceptance.
 
 ## Frozen R2c ownership
 

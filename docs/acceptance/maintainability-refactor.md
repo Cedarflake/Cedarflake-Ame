@@ -4,6 +4,8 @@ Date: 2026-10-17
 
 Scope and execution order belong to the [active plan](../plans/maintainability-refactor.md).
 This record covers changed boundaries, not another R2c/R3 stage acceptance run.
+The [final comparison and review](#final-comparison-and-review) owns the combined candidate result;
+earlier pending statements below describe their delivery checkpoints.
 
 ## Shared schema-shape validation
 
@@ -609,3 +611,96 @@ The complete R2c-R guardrail suite passed: all 19 current case mappings, compile
 failure injection, namespace retirement, worker-report tamper execution, no-reparse identity,
 bounded audit and owned-process timeout/retirement. Changed scripts passed syntax and whitespace
 checks. Final exact-head hosted results and combined client comparison remain outstanding.
+
+## Final comparison and review
+
+The combined implementation is `976dee84c5b513b03e27e0e957e356a3b8d8d0f6`; the unchanged product
+baseline is `83c8c16e263acab5270f14ca6617b38a1cd5cd6c`. Both ordinary Windows Debug builds used
+the same retained `build/test` corpus: 10,000 images, 72 duplicate groups and a 256-MiB preview
+budget. Each comparison began from the same SQLite backup, including the two existing durable
+duplicate decisions. The baseline and candidate were built and exercised serially.
+
+| Affected workflow | Observed baseline and candidate result |
+| --- | --- |
+| All-images mode, middle timeline navigation, forward/backward scrolling | The same September 2020 region and image returned; no top reset or persistent blank window |
+| Gallery preview, next/previous, return | `05646-7680x4320-0580.png` remained the anchor at indices 5,285/5,286/5,285, with the original gallery geometry on return |
+| Duplicate group, preferred-copy replacement and member preview | Both preferred choices updated locally; member rows stayed present without full-page loading replacement; preview and Gallery round trips retained context |
+| Maximize/restore followed by eight rapid sidebar clicks | Both clients remained responsive; title/photo leading edges followed the sidebar and right controls stayed at the window edge |
+| Equal-height cards, medium/small/large/medium | Candidate retained the same date/image context; returning to medium restored the original arrangement and visible coordinates |
+| Square cards, medium/small/large/medium with the sidebar expanded | Both builds showed the same existing approximately one-row anchor shift; the same date and image remained visible |
+| Catalog update while navigating the viewer | Both runs retained the same image during next/previous navigation and catalog publication, then returned to their original gallery geometry |
+
+The square-card observation is reproducible in both builds: the identified image moved from the
+first full row at approximately y=219 to the following row at y=383 after the size cycle. This is
+an existing behavior, not a claimed fix or an introduced regression. A future position-retention
+change should cover size switching in both layout modes, starting from a partially visible row.
+
+During each update comparison, the catalog was observed in its running state while the viewer was
+open. Both updates completed with 10,013 visited entries and 10,000 accepted images. The same image's
+ordinal changed from 5,285 to 2,374 after publication while its identity and return position remained
+stable. Existing exact fingerprints were reused: the terminal exact-analysis outcome recorded zero
+new fingerprints and zero bytes read. These runs cover concurrent catalog publication, not a new
+full fingerprint pass or a performance benchmark.
+
+The earlier M4 return-position observation during active duplicate reanalysis did not recur in the
+paired stable-state or catalog-update flows. Its original active-rehash timing was not reproduced;
+the cause remains unclassified and no repair is claimed. Existing stale-publication, viewer-refresh
+and directional-window regressions retain their separate coverage. This observation remains visible
+for later reproduction rather than being converted into a confirmed refactor regression.
+
+Each client exited through its normal window action. Before profile restoration, no Ame process
+retained active threads or handles. Original settings, preferences and catalog components matched
+their protected hashes after restoration. The retained test catalog and its durable choices were
+restored from the comparison snapshot. Disposable preview cache cleanup followed process retirement,
+restored-profile verification and workspace/no-reparse checks. The corpus, catalog, restoration
+receipts and final candidate Debug build remain available. No original-media mutation, cloud
+hydration, service installation or signing was performed.
+
+### Final scoped audit
+
+The final review reused the completed M1/M2 boundary reviews and checked the combined source against
+the baseline. It covered migration proof/repair ordering and transactional admission; synchronization
+start/stop, retained-worker and Journal/Recovery authority; gallery refresh/dimension disposal and
+supersession; bounded page insertion, directional completion and eviction; transferred USN coverage;
+and release/acceptance resource, recovery and static-import audit boundaries.
+
+The release extraction retains all 91 function bodies. R2c-R retains its 48 existing functions;
+only closure discovery changes, with one additional static-import registration owner. Positive and
+rejecting transitive-import cases retain the nine-source production limit. M3/M4 retain query and
+publication generations, callback ordering, timers and whole-page watermarks. The final refresh and
+dimension owners contain 120 and 260 production lines, with their dedicated regressions beside them.
+
+No confirmed new defect was found in the reviewed changes. Responsibility and lifecycle state now
+have explicit owners; the remaining migration coordinator contains ordered historical DDL and
+integration coverage, rather than a relocated copy of the original validator/repair monolith.
+No dependency manifest, lockfile, generated bridge, schema version or workflow definition changed.
+Final source/diff inspection and whitespace checks passed. The review does not assert a measured
+speedup, complete elimination of maintenance debt or resolution of the two observations above.
+
+### Final hosted implementation checks
+
+These are the final implementation heads recorded by their pull-request workflow runs. The workflow
+checks the PR merge snapshot using `github.sha`; the head column identifies the corresponding
+published source branch. Documentation-only closeout does not change those product/tool inputs.
+
+| Boundary | Source head | Hosted run | Result |
+| --- | --- | --- | --- |
+| M1 | `ef294adf82e15de82618c0cdf4a56f7bf7076b48` | [39009808560](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39009808560) | Passed |
+| M2 | `6f80d66b695b223d6ac6ace1e76a778cd50eec6d` | [39013287820](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39013287820) | Passed |
+| M3 | `4335ae7dda9c2aab5ba6780545000308f102db34` | [39015763595](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39015763595) | Passed |
+| M4 | `86feb69bfe162a1598a8e77ead957f5894ab2ede` | [39015795301](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39015795301) | Passed |
+| M5 | `e4096a242bece28484868fd54552abda300b424c` | [39016474033](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39016474033) | Passed |
+| M6 / combined | `976dee84c5b513b03e27e0e957e356a3b8d8d0f6` | [39017884231](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39017884231) | Superseded by stack creation before Static and Rust completed; other execution jobs passed |
+
+Completed runs contain 11 successful jobs. The three release-mode jobs are skipped by the existing
+Daily workflow conditions; Daily's separate unsigned-release checks remain included. No new signed
+release or installation qualification is claimed.
+
+Native stack #28 contains draft PRs #22–#27 with each base matching the previous head branch.
+Creation triggered fresh M2–M6 runs and superseded the incomplete M6 pre-stack run. The plan's
+[current-check links](../plans/maintainability-refactor.md#delivery-checkpoint) retain the live
+integration results for the published stack heads; the pre-stack table does not replace them.
+Closeout changes only this evidence, the execution plan and the roadmap. UTF-8, line endings,
+final-newline, local-link and whitespace checks cover those documents; product and tool inputs
+remain identical to the combined implementation above. Original branch history and `main` are
+unchanged by stack creation. Merge remains a human decision.
