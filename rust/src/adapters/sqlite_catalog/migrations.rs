@@ -45,6 +45,7 @@ mod queue_retirement_indexes;
 mod retained_source_state;
 mod retired_root_authority;
 mod scan_resume_inventory;
+mod schema_shape;
 
 use compatibility_repair_shape::{
     inventory_shape_matches as legacy_terminal_metadata_inventory_repair_shape_matches,
@@ -59,6 +60,11 @@ use persistent_journal_baseline::{
 use current_schema::{
     ContractValidationDepth, validate_current_schema_contract,
     validate_current_schema_contract_with_source_revision_rows,
+};
+
+use schema_shape::{
+    cascade_foreign_key_matches, named_index_matches, normalize_schema_sql,
+    schema_object_sql_matches, schema_version, table_columns_match,
 };
 
 pub(super) fn prepare_fresh_catalog_auto_vacuum(connection: &Connection) -> Result<(), ScanError> {
@@ -3022,14 +3028,6 @@ fn validate_terminal_media_evidence_contract_with_depth(
     Ok(())
 }
 
-fn schema_version(connection: &Connection) -> Result<i64, ScanError> {
-    connection
-        .query_row("SELECT version FROM schema_info LIMIT 1", [], |row| {
-            row.get(0)
-        })
-        .map_err(database_error)
-}
-
 fn validate_metadata_inventory_contract(connection: &Connection) -> Result<(), ScanError> {
     validate_metadata_inventory_contract_with_depth(connection, ContractValidationDepth::Full)
 }
@@ -5947,162 +5945,6 @@ fn validate_scan_handoff_batch_contract_with_depth(
     Ok(())
 }
 
-fn table_columns_match(
-    connection: &Connection,
-    table: &str,
-    expected: &[(&str, &str, bool, i64)],
-) -> Result<bool, ScanError> {
-    let mut statement = connection
-        .prepare(&format!("PRAGMA table_info('{table}')"))
-        .map_err(database_error)?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(1)?,
-                row.get::<_, String>(2)?,
-                row.get::<_, bool>(3)?,
-                row.get::<_, i64>(5)?,
-            ))
-        })
-        .map_err(database_error)?;
-    let actual = rows
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(database_error)?;
-    let mut expected = expected.to_vec();
-    if schema_version(connection)? >= 31
-        && !expected
-            .iter()
-            .any(|column| column.0 == "source_revision_token")
-        && table == "library_change_scan_handoff_items"
-    {
-        expected.push(("source_revision_token", "TEXT", false, 0));
-        expected.push(("source_generation", "INTEGER", false, 0));
-    }
-    Ok(actual.len() == expected.len()
-        && actual.iter().zip(&expected).all(|(actual, expected)| {
-            actual.0 == expected.0
-                && actual.1.eq_ignore_ascii_case(expected.1)
-                && actual.2 == expected.2
-                && actual.3 == expected.3
-        }))
-}
-
-fn named_index_matches(
-    connection: &Connection,
-    table: &str,
-    index: &str,
-    expected_columns: &[&str],
-) -> Result<bool, ScanError> {
-    let index_is_plain = connection
-        .query_row(
-            &format!(
-                "SELECT EXISTS(SELECT 1 FROM pragma_index_list('{table}')
-                 WHERE name = ?1 AND \"unique\" = 0 AND partial = 0)"
-            ),
-            [index],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if !index_is_plain {
-        return Ok(false);
-    }
-    let mut statement = connection
-        .prepare(&format!("PRAGMA index_info('{index}')"))
-        .map_err(database_error)?;
-    let columns = statement
-        .query_map([], |row| row.get::<_, String>(2))
-        .map_err(database_error)?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(database_error)?;
-    Ok(columns == expected_columns)
-}
-
-fn schema_object_sql_matches(
-    connection: &Connection,
-    object_type: &str,
-    name: &str,
-    expected: &str,
-) -> Result<bool, ScanError> {
-    let actual = connection
-        .query_row(
-            "SELECT sql FROM sqlite_master WHERE type = ?1 AND name = ?2",
-            params![object_type, name],
-            |row| row.get::<_, String>(0),
-        )
-        .optional()
-        .map_err(database_error)?;
-    Ok(
-        actual
-            .is_some_and(|actual| normalize_schema_sql(&actual) == normalize_schema_sql(expected)),
-    )
-}
-
-fn normalize_schema_sql(value: &str) -> String {
-    let mut canonical = String::with_capacity(value.len());
-    let mut characters = value.chars().peekable();
-    let mut pending_whitespace = false;
-    while let Some(character) = characters.next() {
-        if character.is_whitespace() {
-            pending_whitespace = true;
-            continue;
-        }
-        if pending_whitespace
-            && canonical
-                .chars()
-                .next_back()
-                .is_some_and(|previous| schema_tokens_require_separator(previous, character))
-        {
-            canonical.push(' ');
-        }
-        pending_whitespace = false;
-        if matches!(character, '\'' | '"' | '`' | '[') {
-            canonical.push(character);
-            let terminator = if character == '[' { ']' } else { character };
-            while let Some(quoted) = characters.next() {
-                canonical.push(quoted);
-                if quoted != terminator {
-                    continue;
-                }
-                if characters.peek() == Some(&terminator) {
-                    canonical.push(terminator);
-                    characters.next();
-                } else {
-                    break;
-                }
-            }
-        } else {
-            canonical.extend(character.to_lowercase());
-        }
-    }
-    canonical
-}
-
-fn schema_tokens_require_separator(previous: char, next: char) -> bool {
-    !is_schema_separator(previous) && !is_schema_separator(next)
-}
-
-fn is_schema_separator(character: char) -> bool {
-    matches!(
-        character,
-        '(' | ')'
-            | ','
-            | ';'
-            | '.'
-            | '='
-            | '<'
-            | '>'
-            | '!'
-            | '+'
-            | '-'
-            | '*'
-            | '/'
-            | '%'
-            | '|'
-            | '&'
-            | '~'
-    )
-}
-
 fn repair_prerelease_v24_source_range_id_triggers(
     connection: &mut Connection,
 ) -> Result<(), ScanError> {
@@ -6206,29 +6048,6 @@ fn repair_prerelease_v26_recovery_window_schema(
         .execute_batch(PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL)
         .map_err(database_error)?;
     transaction.commit().map_err(database_error)
-}
-
-fn cascade_foreign_key_matches(
-    connection: &Connection,
-    table: &str,
-    from: &str,
-    target_table: &str,
-    target_column: &str,
-) -> Result<bool, ScanError> {
-    connection
-        .query_row(
-            &format!(
-                "SELECT COUNT(*) = 1 AND EXISTS(
-                   SELECT 1 FROM pragma_foreign_key_list('{table}')
-                   WHERE \"table\" = ?1 AND \"from\" = ?2 AND \"to\" = ?3
-                     AND on_update = 'NO ACTION' AND on_delete = 'CASCADE'
-                     AND \"match\" = 'NONE'
-                 ) FROM pragma_foreign_key_list('{table}')"
-            ),
-            params![target_table, from, target_column],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)
 }
 
 fn repair_prerelease_v19_derived_indexes(connection: &mut Connection) -> Result<(), ScanError> {
@@ -12039,37 +11858,6 @@ mod tests {
         assert_eq!(
             error.code,
             "catalog_persistent_journal_contract_unverifiable"
-        );
-    }
-
-    #[test]
-    fn schema_sql_canonicalization_preserves_quoted_tokens_and_escapes() {
-        let formatted = "CREATE  TABLE [Range Name] (kind TEXT CHECK(kind = 'a  b'),\n\
-                         note TEXT CHECK(note = 'it''s'), value BLOB DEFAULT X'0A')";
-        let compact = "create table [Range Name](kind text check(kind='a  b'),\
-                       note text check(note='it''s'),value blob default x'0A')";
-        assert_eq!(
-            normalize_schema_sql(formatted),
-            normalize_schema_sql(compact)
-        );
-        for changed in [
-            compact.replace("[Range Name]", "[range name]"),
-            compact.replace("'a  b'", "'a b'"),
-            compact.replace("'it''s'", "'IT''S'"),
-            compact.replace("x'0A'", "x'0a'"),
-        ] {
-            assert_ne!(
-                normalize_schema_sql(compact),
-                normalize_schema_sql(&changed)
-            );
-        }
-        assert_ne!(
-            normalize_schema_sql("CREATE TABLE `Range` (`Value` TEXT)"),
-            normalize_schema_sql("CREATE TABLE `range` (`Value` TEXT)")
-        );
-        assert_ne!(
-            normalize_schema_sql("CREATE TABLE \"Range\" (\"Value\" TEXT)"),
-            normalize_schema_sql("CREATE TABLE \"range\" (\"Value\" TEXT)")
         );
     }
 

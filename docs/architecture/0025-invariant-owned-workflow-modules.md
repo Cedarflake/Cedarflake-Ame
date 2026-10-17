@@ -351,8 +351,12 @@ page failure remain one boundary, with no second decoded page or per-record clon
   must either be prevented by the open objects or change the observed final path and reject reuse.
   The guard retires after its SQLite connection. Non-Windows paths retain fresh path observation.
 - `sqlite_catalog/migrations.rs` remains the ordered migration coordinator while historical steps
-  are stable. `migrations/current_schema.rs` owns current-schema proof order and its consistent read
-  snapshot: structural checks precede the complete authority-row audit. Process-owned validated
+  are stable. `migrations/schema_shape.rs` owns shared column, index, foreign-key and normalized SQL
+  comparisons, including version-dependent handoff columns. Contract and repair owners use it
+  directly so they share one acceptance rule without depending on coordinator implementation.
+  Quoted SQL tokens retain their exact meaning. `migrations/current_schema.rs` owns current-schema
+  proof order and its consistent read snapshot: structural checks precede the complete authority-row
+  audit. Process-owned validated
   sessions reuse that proof; schema markers alone are not row authority. Spool-row proof lives in
   `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
   once-grouped per-directory entry counts replace correlated recounting, without omitting parent,

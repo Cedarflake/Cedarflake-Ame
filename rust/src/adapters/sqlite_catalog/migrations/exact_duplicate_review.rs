@@ -2,7 +2,8 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_object_sql_matches};
+use super::schema_shape::schema_object_sql_matches;
+use super::{current_schema, database_error};
 
 // User choices deliberately have no cascading relationship to derived evidence or locations.
 const TABLE: &str = "CREATE TABLE exact_duplicate_decisions (

@@ -9,13 +9,13 @@ mod tests;
 #[cfg(test)]
 pub(super) use fixtures::downgrade_to_v31_for_test;
 
+use super::schema_shape::schema_object_sql_matches;
 use super::{
     METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL,
     METADATA_INVENTORY_SPOOL_DIRECTORY_COMPLETE_GUARD_DDL,
     METADATA_INVENTORY_SPOOL_DIRECTORY_STATE_INDEX_DDL,
     METADATA_INVENTORY_SPOOL_DIRECTORY_TABLE_DDL, METADATA_INVENTORY_SPOOL_ENTRY_ORDER_INDEX_DDL,
     METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL, current_schema, database_error,
-    schema_object_sql_matches,
 };
 
 const CONTRACT: &str = "CREATE TABLE library_metadata_inventory_spool_contract (

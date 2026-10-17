@@ -2,7 +2,8 @@ use rusqlite::{Connection, Transaction, TransactionBehavior};
 
 use crate::domain::ScanError;
 
-use super::{current_schema, database_error, schema_object_sql_matches};
+use super::schema_shape::schema_object_sql_matches;
+use super::{current_schema, database_error};
 
 const INDEX_NAME: &str = "library_change_queue_active_origin";
 const INDEX_DDL: &str = "CREATE INDEX library_change_queue_active_origin

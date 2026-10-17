@@ -2,11 +2,11 @@ use rusqlite::Connection;
 
 use crate::domain::{JournalFileReference, JournalIdentifier, JournalUsn, ScanError};
 
+use super::schema_shape::{schema_object_sql_matches, table_columns_match};
 use super::{
     ContractValidationDepth, PERSISTENT_JOURNAL_BASELINE_INSERT_GUARD_DDL,
     PERSISTENT_JOURNAL_BASELINE_ROOT_INDEX_DDL, PERSISTENT_JOURNAL_BASELINE_TABLE_DDL,
     PERSISTENT_JOURNAL_BASELINE_UPDATE_GUARD_DDL, database_error, record_current_schema_row_audit,
-    schema_object_sql_matches, table_columns_match,
 };
 
 #[cfg(test)]
