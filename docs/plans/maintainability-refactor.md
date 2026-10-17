@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: refactor and position/timeline client checks complete; hosted priority/accessibility failures and timeline revalidation remain
+Status: refactor and affected client checks complete; journal query correction awaits hosted checks and remaining hosted failures are under diagnosis
 
 Updated: 2026-10-17
 
@@ -12,6 +12,7 @@ M6 `codex/workflow-script-ownership`, based on M5 `e4096a2`.
 Follow-up: `codex/gallery-card-size-anchor`, based on M6 `1e87561`.
 Filter follow-up: `codex/gallery-filter-anchor`, based on card-size correction `b85ad76`.
 Timeline follow-up: `codex/gallery-timeline-stability`, based on filter correction `8ebb825`.
+Journal latency follow-up: `codex/journal-catchup-latency`, based on timeline correction `db1842a`.
 
 ## Outcome and boundaries
 
@@ -47,6 +48,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction, scoped review and 11 hosted execution jobs passed |
 | Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Implementation, 37 focused checks and both native layouts passed; current Accessibility timeout remains |
 | Follow-up C | Stabilize timeline marks during catalog updates without delaying direct navigation | Complete-layout/estimated-layout transitions, revision replacement, unavailable geometry, first load and changed scope; retained paint cannot grant stale input authority | Native update observation and 31 relevant focused cases passed; hosted date-publication cancellation regression corrected, current-head revalidation remains |
+| Follow-up D | Diagnose and correct excessive journal catch-up time after image processing has finished | Separate volume read, identity resolution, catalog work and scheduling delay; measure bounded backlog progress and incoming work; preserve continuity, cancellation, source safety and browsing priority | Unbounded namespace lookup work corrected; three focused regressions, same-interval native measurement, Debug convergence and scoped review passed; hosted checks remain |
 
 ## Verification and closeout
 

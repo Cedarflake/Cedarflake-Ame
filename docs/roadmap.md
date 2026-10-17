@@ -90,6 +90,7 @@ observations. Applicable stack checks must pass before delivery closeout; integr
 remains a human decision. This maintenance precedes R4 and does not reopen R2c/R3 acceptance.
 The same plan tracks the requested card-size position correction, continuous-filter anchor retention
 and timeline stability during updates as separate behavior changes after the six refactor boundaries.
+It also owns the newly reported excessive journal catch-up time after image work has finished.
 New hosted mixed-load priority failures remain in that plan's repair queue before maintenance closeout.
 
 ## Frozen R2c ownership

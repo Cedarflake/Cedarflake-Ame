@@ -827,3 +827,64 @@ stale terminal label. The source of all volume activity was not attributed. The 
 distinguish this checking phase from image processing; retain that presentation observation without
 claiming a wording or catch-up performance correction. The subsequent explicit update above also
 returned to the synchronized state.
+
+### Journal catch-up latency diagnosis
+
+The prolonged update observation led to a measured namespace-query performance correction. A
+bounded local probe replayed 60 native pages from the same
+retained volume interval, using only metadata reads and an isolated copy of the existing test catalog.
+No original catalog or source file was modified. The production identity adapter covered 3,147,568
+journal bytes with no current or historical locations inside the selected test root.
+
+With the unchanged production namespace query and bundled SQLite 3.53.2, the measured loop took
+18.041 seconds: volume reads accounted for 1.077 seconds, current identity resolution for 1.317,
+snapshot lookup for 0.762, and historical namespace lookup for 14.835. The latter had a 241.947 ms
+median and a 373.512 ms maximum per page. These costs exceed the existing 200 ms capture quantum,
+so they also limit how many pages the production capture window can process before yielding.
+The probe measures those stages, not end-to-end client convergence or incoming volume-write rate.
+
+An independent read-only query-plan experiment on the same 10,000-image catalog found that the
+joined request roster permits repeated scans of unrelated file and directory identities. Expressing
+the same bounded roster as an `IN` predicate lets the file/directory composite indexes bind their
+identity columns. The Python SQLite experiment is diagnostic evidence; the pinned native result,
+semantic regressions and client catch-up measurement must determine delivery acceptance.
+
+The production query now applies the bounded identity roster directly to each namespace branch,
+preserving the root/generation filter, active-publication and inventory-state admission, aliases,
+deduplication, ordering, and 256-input/4,096-output limits. No schema, index, package, page-size,
+capture-quantum, cancellation or lane-priority change is involved.
+
+The same native 60-page interval and catalog copy then took 4.030 seconds. Historical namespace
+lookup fell to 0.977 seconds total, with a 16.191 ms median; native volume read and current-identity
+resolution remained approximately 1.0 and 1.3 seconds. This comparison demonstrates the affected
+read/lookup cost, not the complete client's convergence time. The one-off native probe was removed
+from product source after its measurements were retained locally.
+
+Three [namespace regressions](../../rust/src/adapters/sqlite_catalog/journal_namespace/tests.rs)
+passed. The original production query exceeded the 20,000-operation guard even with 64 unrelated
+file/directory rows. The corrected query uses 6,401 operations for the same 256-identity miss with
+both 64 and 10,000 rows. The semantic checks retain multiple aliases, directory identities, repeated
+requested identities, root/generation exclusion, inactive roots, empty input and both capacity bounds.
+The guard observes the production query through SQLite's progress callback; it does not assert a
+wall-clock threshold or copy the optimized SQL into a separate test implementation.
+
+The ordinary Debug build succeeded and reused the existing 10,000-image corpus. Its first startup
+encountered an expired retained journal checkpoint (`identity_journal_trim`), completed metadata
+recovery and returned to `已同步`. That recovery is separate from ordinary catch-up timing. From
+the resulting valid checkpoint, a second startup followed creation and retirement of 4,000 tiny
+files outside the source tree. Read-only sampling every two seconds observed 1,888,784 journal
+bytes of checkpoint advancement and 12.141 seconds from the first catching-up sample to current.
+Every sampled image-work queue was empty. The final native interface showed `已同步`, 10,000 total
+images and 72 merged results. This establishes convergence for the bounded fixture; it does not
+attribute all unrelated volume writes or assert a universal catch-up deadline.
+
+The client exited normally. Original settings, preferences and catalog component hashes were
+restored and verified; the reusable comparison catalog and durable choices were restored separately.
+The restored receipt and backups remain retained. Disposable preview data and the isolated probe
+catalog were removed after process-retirement, exact-path and no-reparse checks. Source media,
+the reusable corpus and the built Debug application remain intact.
+
+Scoped review covered equivalence of the three namespace branches, root/publication authority,
+transaction/error handling, aliases, deduplication and output capacity. No confirmed new defect
+was found. The namespace owner contains 167 production lines, no inline tests and 216 dedicated
+test lines. The separate poll-connection identity-latency diagnostic is excluded from this change.

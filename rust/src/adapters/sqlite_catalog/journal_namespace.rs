@@ -13,6 +13,8 @@ use super::{
     validate_root_publication_identity,
 };
 pub(super) mod publication;
+#[cfg(test)]
+mod tests;
 
 pub(crate) struct SqliteJournalNamespaceReader(pub(crate) Arc<SqliteCatalogSession>);
 
@@ -80,6 +82,8 @@ impl SqliteCatalog {
         let values = std::iter::repeat_n("(?)", identities.len())
             .collect::<Vec<_>>()
             .join(", ");
+        // Bounded identity predicates allow composite-index seeks within each namespace.
+        // Joining the roster can multiply work across the entire active publication.
         let query = format!(
             "WITH requested(identity_value) AS (VALUES {values}),
              selected_root AS (
@@ -89,20 +93,20 @@ impl SqliteCatalog {
                WHERE root.id = ? AND active.generation = ? AND active.is_active = 1
              ), locations(identity_value, relative_path, is_directory) AS (
                SELECT file.file_identity_value, file.relative_path, 0
-               FROM requested JOIN selected_root AS root
+               FROM selected_root AS root
                JOIN asset_locations AS file
                  ON file.scan_id = root.active_scan_id AND file.root_id = root.id
                 AND file.file_identity_scheme = 'windows-file-id-128-v1'
-                AND file.file_identity_value = requested.identity_value
+                AND file.file_identity_value IN (SELECT identity_value FROM requested)
                UNION
                SELECT directory.identity_value, directory.relative_path, 1
-               FROM requested JOIN selected_root AS root
+               FROM selected_root AS root
                JOIN scan_directory_identities AS directory
                  ON directory.scan_id = root.active_scan_id
-                AND directory.identity_value = requested.identity_value
+                AND directory.identity_value IN (SELECT identity_value FROM requested)
                UNION
                SELECT directory.directory_identity_value, directory.relative_directory, 1
-               FROM requested JOIN selected_root AS root
+               FROM selected_root AS root
                JOIN library_metadata_inventory_spools AS spool
                  ON spool.root_id = root.id AND spool.root_generation = root.generation
                 AND spool.state IN ('enumerating', 'ready')
@@ -111,7 +115,7 @@ impl SqliteCatalog {
                JOIN library_metadata_inventory_spool_directories AS directory
                  ON directory.run_id = spool.run_id
                 AND directory.directory_identity_scheme = 'windows-file-id-128-v1'
-                AND directory.directory_identity_value = requested.identity_value
+                AND directory.directory_identity_value IN (SELECT identity_value FROM requested)
                 AND directory.state IN ('enumerating', 'completed')
              )
              SELECT identity_value, relative_path, is_directory FROM locations
