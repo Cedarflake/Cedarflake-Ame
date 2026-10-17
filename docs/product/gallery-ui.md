@@ -443,7 +443,13 @@ Initial defaults are `等高 + 中等`.
   and decoding rules.
 
 Both choices apply to the same unified gallery canvas and preserve stable item identity and scroll
-position when possible.
+position when possible. Consecutive density or shape choices retain the same image and fractional
+viewport point until browsing moves on, so a size round trip does not accumulate a row of drift.
+Scrolling or navigation establishes the next position; an earlier layout choice must not pull the
+viewport back after that input. A layout choice made at the top or bottom retains that edge;
+content that initially fits in one viewport stays at the top. Existing bottom intent survives
+temporarily fitting in one viewport, so expanding the cards again returns to the bottom.
+Other anchors clamp to the available scroll extent.
 
 ## Gallery canvas and timeline
 

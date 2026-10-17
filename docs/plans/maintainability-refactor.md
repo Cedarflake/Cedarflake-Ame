@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: implementation and client comparison complete; native PR stack available for human review
+Status: refactor and card-size correction locally verified; hosted checks and filter-position follow-up remain
 
 Updated: 2026-10-17
 
@@ -9,6 +9,7 @@ M3 `codex/gallery-publication-lifecycles`, based on M2 `6f80d66`;
 M4 `codex/gallery-retained-window`, based on M3 and including its `4335ae7` constructor correction;
 M5 `codex/retire-legacy-usn`, based on M4 `86feb69`;
 M6 `codex/workflow-script-ownership`, based on M5 `e4096a2`.
+Follow-up: `codex/gallery-card-size-anchor`, based on M6 `1e87561`.
 
 ## Outcome and boundaries
 
@@ -41,6 +42,8 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Implementation, scoped review and final hosted checks passed; combined comparison recorded with retained observations below |
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Implementation, scoped review, migrated boundary/guardrail checks and final hosted checks passed |
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Implementation, focused guardrails, combined client comparison and final scoped audit complete; current stack checks are linked below |
+| Follow-up A | Correct position drift across consecutive thumbnail-size changes before R4; keep it separate from the behavior-preserving refactors | Partially visible first rows, top/bottom and short galleries, small/medium/large round trips in both layout modes and rendering paths; scrolling, supersession and navigation release the retained anchor | Implementation, 31 focused checks, Debug middle/edge interaction and scoped review passed; hosted checks remain |
+| Follow-up B | Preserve browsing intent when filtering temporarily removes or clamps the original anchor, then conditions expand again | Filter narrowing/expansion, missing/reappearing identity, edge clamping, empty results and intervening scroll/navigation; current publication authority remains unchanged | Current per-query capture inspected; focused diagnosis follows the independently published size correction |
 
 ## Verification and closeout
 
@@ -82,8 +85,9 @@ Earlier per-boundary evidence remains in that record; completed extractions are 
   durable choices. Stable browsing, concurrent catalog publication, preview, duplicate choices,
   size changes and sidebar/window transitions were exercised. Original profiles and catalogs were
   restored and verified after each run; final candidate Debug output remains available.
-- Square-card size cycling retains an existing approximately one-row position shift in both
-  versions. The earlier M4 active-rehash return observation did not recur in the paired flows;
+- The baseline square-card shift is corrected by Follow-up A, including explicit top/bottom rules;
+  its [focused evidence](../acceptance/maintainability-refactor.md#card-size-position-follow-up) is separate
+  from the behavior-preserving refactors. The earlier M4 active-rehash return observation did not recur in the paired flows;
   its exact timing remains unclassified. These observations are recorded without claiming a fix.
 - The final scoped review found no confirmed new defect. No dependency, schema, generated bridge
   or workflow-definition change was introduced. The untracked `devtools_options.yaml` remains

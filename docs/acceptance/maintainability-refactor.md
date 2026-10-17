@@ -632,8 +632,8 @@ duplicate decisions. The baseline and candidate were built and exercised seriall
 
 The square-card observation is reproducible in both builds: the identified image moved from the
 first full row at approximately y=219 to the following row at y=383 after the size cycle. This is
-an existing behavior, not a claimed fix or an introduced regression. A future position-retention
-change should cover size switching in both layout modes, starting from a partially visible row.
+an existing behavior in the refactor comparison, not an introduced regression. The subsequent
+[card-size correction](#card-size-position-follow-up) addresses it separately.
 
 During each update comparison, the catalog was observed in its running state while the viewer was
 open. Both updates completed with 10,013 visited entries and 10,000 accepted images. The same image's
@@ -704,3 +704,36 @@ Closeout changes only this evidence, the execution plan and the roadmap. UTF-8, 
 final-newline, local-link and whitespace checks cover those documents; product and tool inputs
 remain identical to the combined implementation above. Original branch history and `main` are
 unchanged by stack creation. Merge remains a human decision.
+
+## Card-size position follow-up
+
+The correction on `codex/gallery-card-size-anchor` follows M6 `1e87561`. Consecutive manual layout
+choices now retain one image anchor instead of repeatedly selecting a new horizontal center cell
+after the column count changes. A separate presentation owner releases that anchor on subsequent
+scrolling, navigation, publication, detachment or disposal. Matching generations admit completion.
+Explicit top/bottom intent takes precedence over image fractions; an initially short gallery stays
+at the top, and retained bottom intent survives shrinking to a non-scrollable viewport.
+
+Focused reproduction found both the round-trip row drift and edge-specific failures: before the
+edge correction, equal-height large cards moved the top by 94.96 pixels and left the bottom by
+276.64 pixels in the fixed fixture. The final regression run passed 20 size/edge widget cases,
+seven continuity lifecycle cases and four existing position-admission cases through
+`quality_test_flutter.ps1`. Coverage includes both layout modes, local-window and query-manifest
+rendering, three partially visible-row offsets, top/bottom, two/ten-image galleries, a temporary
+zero scroll extent, later scrolling and stale completion. Round trips preserve coordinates within
+0.01 pixels. The fixture asserts user-visible positions, not only callback invocation.
+
+The ordinary Debug client reused the retained 10,000-image corpus and 72-group catalog. Both layout
+modes completed medium/small/large/medium cycles at a partial first row without the previous drift.
+After further scrolling, the new position remained the anchor. A rebuilt client then exercised
+top/bottom density and shape choices: the top title/first row stayed at y=207/227, and the last
+image's lower edge stayed at approximately y=617. Both client runs exited normally; original
+profile/catalog hashes were restored and verified, and the comparison catalog and choices restored.
+These checks do not yet cover the separately requested continuous-filter restoration behavior.
+
+The scoped review traced retained identity, scroll-listener retirement, edge admission and current
+generation acknowledgement. No confirmed new defect was found in that scope. There are no new
+dependencies, schema/bridge changes, source writes or changes to scrolling primitives. The screen
+contains 1,741 production lines; the new continuity owner contains 64. The wall/reflow/position
+owners contain 1,980/293/131 production lines, with zero inline-test lines. Dedicated continuity and
+size regressions contain 214/301 lines. Hosted checks for the published follow-up remain required.

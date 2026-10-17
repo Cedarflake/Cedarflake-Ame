@@ -88,6 +88,8 @@ release/acceptance script ownership. Native GitHub stack #28 contains draft PRs 
 links current hosted checks and the completed client comparison, scoped audit and retained
 observations. Applicable stack checks must pass before delivery closeout; integration into `main`
 remains a human decision. This maintenance precedes R4 and does not reopen R2c/R3 acceptance.
+The same plan tracks the requested card-size position correction and the subsequent continuous-filter
+anchor checks as separate behavior changes after the six refactor boundaries.
 
 ## Frozen R2c ownership
 

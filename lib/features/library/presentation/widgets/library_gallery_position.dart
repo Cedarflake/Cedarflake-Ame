@@ -65,14 +65,27 @@ class LibraryGalleryLayoutTransition {
     required this.generation,
     required this.position,
     required ScrollPosition? scrollPosition,
+    this.scrollEdge,
   }) : _scrollOrigin = LibraryGalleryScrollOrigin(scrollPosition);
 
   final int generation;
   final LibraryGalleryVisiblePosition position;
+  final LibraryGalleryScrollEdge? scrollEdge;
   final LibraryGalleryScrollOrigin _scrollOrigin;
 
   bool retainsScrollPosition(ScrollPosition? current) =>
       _scrollOrigin.matches(current);
+
+  LibraryGalleryScrollEdge? edgeForScrollPosition(ScrollPosition? current) =>
+      retainsScrollPosition(current) ? scrollEdge : null;
+
+  double constrainScrollOffset({
+    required ScrollPosition? current,
+    required double imageOffset,
+    required double maximum,
+  }) =>
+      edgeForScrollPosition(current)?.offsetFor(maximum) ??
+      imageOffset.clamp(0, maximum).toDouble();
 
   LibraryGalleryVisiblePosition? resolvePosition({
     required ScrollPosition? current,
@@ -112,6 +125,7 @@ class LibraryGalleryLayoutTransition {
       globalItemIndex: position.globalItemIndex,
       itemFraction: position.itemFraction,
       viewportFraction: position.viewportFraction,
+      scrollEdge: scrollEdge,
     );
   }
 }

@@ -821,7 +821,11 @@ class LibraryGalleryWall extends StatelessWidget {
     final maximum = (virtualGeometry.totalContentExtent - viewportExtent)
         .clamp(0, double.infinity)
         .toDouble();
-    final boundedTarget = target.clamp(0, maximum).toDouble();
+    final boundedTarget = transition.constrainScrollOffset(
+      current: scrollController.hasClients ? scrollController.position : null,
+      imageOffset: target,
+      maximum: maximum,
+    );
     return LibraryExactExtentLayoutCorrection(
       generation: (scope: "gallery-transition", value: transition.generation),
       delta:
@@ -1578,6 +1582,11 @@ class _ManifestLibraryGalleryWallState
       globalItemIndex: position.globalItemIndex,
       itemFraction: position.itemFraction,
       viewportFraction: position.viewportFraction,
+      scrollEdge: transition?.edgeForScrollPosition(
+        widget.scrollController.hasClients
+            ? widget.scrollController.position
+            : null,
+      ),
     ).scrollOffsetFor(snapshot, viewportExtent);
     if (target == null) {
       if (transition == null) {

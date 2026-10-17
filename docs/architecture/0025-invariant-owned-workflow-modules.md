@@ -756,6 +756,17 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   resolve later scrolling before replacing the displayed resolver. Query and revision must match;
   detached geometry cannot supply an anchor. A transition without an admissible position retires
   through the existing generation-bound layout acknowledgement without moving the viewport.
+- `library_gallery_layout_continuity.dart` owns the anchor retained across consecutive manual
+  density/shape choices. Re-selecting the horizontal center cell after each column-count change
+  can accumulate a row of drift, so one image and its fractional viewport point survive compatible
+  layout acknowledgements. Native layout corrections retain this anchor; scrolling, query/revision
+  publication, recovered dimensions, explicit navigation, detachment and disposal release it.
+  Top/bottom intent takes precedence over image fractions; an initially non-scrollable gallery
+  prefers the top, while a previously retained bottom survives temporary extent collapse. The
+  transition admits this edge only for its captured scroll origin, and both renderers use it through
+  the shared reflow contracts. Only the current generation may publish its final scroll origin.
+  The screen composes this lifecycle with existing layout transitions; framework scrolling and bounded rendering remain
+  the owning primitives.
 - `library_synchronization_feedback.dart` owns the immutable message, detail, severity and existing
   manual-action projection of synchronization status. First-import and explicit-manual decisions
   remain distinct; blocked recovery takes precedence over automatic-progress explanations. A

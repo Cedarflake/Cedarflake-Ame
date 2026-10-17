@@ -28,6 +28,7 @@ import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
 import "library_gallery_dimension_publication.dart";
+import "library_gallery_layout_continuity.dart";
 import "library_gallery_query_transition.dart";
 import "library_pending_source.dart";
 import "library_strings.dart";
@@ -100,6 +101,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   _galleryLayoutSnapshot;
   LibraryGalleryVisiblePosition? _visibleGalleryPosition;
   LibraryGalleryLayoutTransition? _galleryLayoutTransition;
+  final _galleryLayoutContinuity = LibraryGalleryLayoutContinuity();
   late final LibraryGalleryQueryTransition _queryTransition;
   late final LibraryQueryProjectionRegistration _queryProjection;
   final LibraryGalleryPositionResolver _galleryPositionResolver =
@@ -197,6 +199,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   @override
   void dispose() {
     _isDisposing = true;
+    _galleryLayoutContinuity.clear();
     _previousWindowCompensation?.retire();
     _libraryController.queryProjections.detach(_queryProjection);
     _queryTransition.dispose();
@@ -704,6 +707,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _handleGalleryScrollPositionDetached(ScrollPosition position) {
+    _galleryLayoutContinuity.clear();
     position.isScrollingNotifier.removeListener(
       _synchronizeGalleryScrollActivity,
     );
@@ -725,6 +729,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted) {
       return;
     }
+    _galleryLayoutContinuity.clear();
     setState(() {
       if (_layoutShape == GalleryLayoutShape.equalHeight && anchor != null) {
         _galleryLayoutTransitionGeneration += 1;
@@ -1048,6 +1053,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       return;
     }
     _previousWindowCompensation?.retire();
+    _galleryLayoutContinuity.clear();
     final nextPosition = publication.position;
     _galleryLayoutSnapshot.value = null;
     setState(() {
@@ -1105,12 +1111,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     setState(() {
       if (position != null) {
         _galleryLayoutTransitionGeneration += 1;
-        _galleryLayoutTransition = LibraryGalleryLayoutTransition(
+        _galleryLayoutTransition = _galleryLayoutContinuity.begin(
           generation: _galleryLayoutTransitionGeneration,
-          position: position,
+          current: position,
           scrollPosition: _attachedGalleryScrollPosition,
         );
       } else {
+        _galleryLayoutContinuity.clear();
         _galleryLayoutTransition = null;
       }
       applyGeometryChange();
@@ -1199,6 +1206,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     if (!mounted || transition?.generation != generation) {
       return;
     }
+    _galleryLayoutContinuity.complete(generation);
     setState(() {
       _visibleGalleryPosition =
           _resolveCurrentGalleryPosition(ref.read(libraryControllerProvider)) ??
@@ -1507,6 +1515,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _beginTimelineNavigation() {
+    _galleryLayoutContinuity.clear();
     _previousWindowCompensation?.retire();
     _dimensionPublication.beginNavigation();
   }
