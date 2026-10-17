@@ -31,6 +31,7 @@ import "library_gallery_query_transition.dart";
 import "library_pending_source.dart";
 import "library_strings.dart";
 import "library_synchronization_feedback.dart";
+import "library_synchronization_refresh.dart";
 import "library_search_availability.dart";
 import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
@@ -113,12 +114,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   StreamSubscription<LibrarySynchronizationSnapshot>?
   _synchronizationSubscription;
   late LibrarySynchronizationSnapshot _synchronizationSnapshot;
-  BigInt? _pendingSynchronizationRevision;
-  bool _isApplyingSynchronizationRevision = false;
-  bool _hasSynchronizationRefreshFailure = false;
+  late final LibrarySynchronizationRefresh _synchronizationRefresh;
   bool _hasLiveOnlyCapabilityNotification = false;
   final Map<String, String> _synchronizationNotificationKeys = {};
-  Timer? _synchronizationRefreshRetry;
   final Map<int, LibraryGalleryLayoutDimensionUpdate>
   _pendingLayoutDimensionUpdates = {};
   final Map<int, LibraryGalleryLayoutDimensionUpdate>
@@ -157,6 +155,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _notificationController = ref.read(
       ameNotificationControllerProvider.notifier,
     );
+    _synchronizationRefresh = LibrarySynchronizationRefresh(
+      readState: () => ref.read(libraryControllerProvider),
+      refresh: (revision) => _libraryController.refreshFromSynchronization(
+        catalogRevision: revision,
+      ),
+      onFailureChanged: _publishSynchronizationRefreshFailure,
+    );
     final state = ref.read(libraryControllerProvider);
     final viewPreferences = ref.read(initialLibraryViewPreferencesProvider);
     _searchController = TextEditingController(text: state.query.searchText);
@@ -193,7 +198,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         _recordSynchronizationNotifications(_synchronizationSnapshot);
       }
     });
-    _queueSynchronizationRevision(_synchronizationSnapshot);
+    _synchronizationRefresh.queueRevision(
+      _synchronizationSnapshot.catalogRevision,
+    );
   }
 
   @override
@@ -207,7 +214,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _searchDebounce?.cancel();
     _layoutDimensionSettleTimer?.cancel();
     _layoutDimensionDeadlineTimer?.cancel();
-    _synchronizationRefreshRetry?.cancel();
+    _synchronizationRefresh.dispose();
     unawaited(_layoutDimensionSubscription?.cancel());
     unawaited(_synchronizationSubscription?.cancel());
     for (final position in _galleryScrollPositions) {
@@ -228,103 +235,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     _recordSynchronizationNotifications(snapshot);
     setState(() => _synchronizationSnapshot = snapshot);
-    _queueSynchronizationRevision(snapshot);
+    _synchronizationRefresh.queueRevision(snapshot.catalogRevision);
   }
 
-  void _queueSynchronizationRevision(LibrarySynchronizationSnapshot snapshot) {
-    final currentRevision = ref.read(libraryControllerProvider).catalogRevision;
-    if (snapshot.catalogRevision <= (currentRevision ?? BigInt.zero)) {
-      return;
-    }
-    _retainPendingSynchronizationRevision(snapshot.catalogRevision);
-    _scheduleSynchronizationRefresh();
-  }
-
-  void _retainPendingSynchronizationRevision(BigInt revision) {
-    final pendingRevision = _pendingSynchronizationRevision;
-    if (pendingRevision == null || revision > pendingRevision) {
-      _pendingSynchronizationRevision = revision;
-    }
-  }
-
-  void _scheduleSynchronizationRefresh() {
-    if (_isApplyingSynchronizationRevision || !mounted) {
-      return;
-    }
-    _synchronizationRefreshRetry?.cancel();
-    _synchronizationRefreshRetry = Timer(
-      Duration.zero,
-      () => unawaited(_drainSynchronizationRefresh()),
-    );
-  }
-
-  Future<void> _drainSynchronizationRefresh() async {
-    if (_isApplyingSynchronizationRevision || !mounted) {
-      return;
-    }
-    final targetRevision = _pendingSynchronizationRevision;
-    if (targetRevision == null) {
-      return;
-    }
-    final state = ref.read(libraryControllerProvider);
-    if (!LibraryBrowseAdmission(state).canBrowse) {
-      _synchronizationRefreshRetry = Timer(
-        const Duration(milliseconds: 250),
-        _scheduleSynchronizationRefresh,
-      );
-      return;
-    }
-    _isApplyingSynchronizationRevision = true;
-    _pendingSynchronizationRevision = null;
-    late final LibraryQueryUpdateOutcome updateOutcome;
-    try {
-      updateOutcome = await _libraryController.refreshFromSynchronization(
-        catalogRevision: targetRevision,
-      );
-    } finally {
-      _isApplyingSynchronizationRevision = false;
-    }
+  void _publishSynchronizationRefreshFailure(bool hasFailure) {
     if (!mounted) {
-      return;
-    }
-    final revisionQueuedDuringAttempt = _pendingSynchronizationRevision;
-    switch (updateOutcome) {
-      case LibraryQueryUpdateOutcome.applied:
-        _setSynchronizationRefreshFailure(false);
-        break;
-      case LibraryQueryUpdateOutcome.busy:
-      case LibraryQueryUpdateOutcome.superseded:
-        _retainPendingSynchronizationRevision(targetRevision);
-        _synchronizationRefreshRetry = Timer(
-          const Duration(milliseconds: 250),
-          _scheduleSynchronizationRefresh,
-        );
-        return;
-      case LibraryQueryUpdateOutcome.failed:
-        _retainPendingSynchronizationRevision(targetRevision);
-        _setSynchronizationRefreshFailure(true);
-        if (revisionQueuedDuringAttempt != null) {
-          _scheduleSynchronizationRefresh();
-        }
-        return;
-    }
-    final publishedRevision =
-        ref.read(libraryControllerProvider).catalogRevision ?? BigInt.zero;
-    if (publishedRevision < targetRevision) {
-      _retainPendingSynchronizationRevision(targetRevision);
-      _setSynchronizationRefreshFailure(true);
-      if (revisionQueuedDuringAttempt != null) {
-        _scheduleSynchronizationRefresh();
-      }
-      return;
-    }
-    if (_pendingSynchronizationRevision != null) {
-      _scheduleSynchronizationRefresh();
-    }
-  }
-
-  void _setSynchronizationRefreshFailure(bool hasFailure) {
-    if (!mounted || _hasSynchronizationRefreshFailure == hasFailure) {
       return;
     }
     if (hasFailure) {
@@ -342,14 +257,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     } else {
       _notificationController.resolve(_synchronizationRefreshNotificationKey);
     }
-    setState(() => _hasSynchronizationRefreshFailure = hasFailure);
-  }
-
-  Future<void> _retrySynchronizationRefresh() {
-    if (_pendingSynchronizationRevision != null) {
-      _scheduleSynchronizationRefresh();
-    }
-    return Future<void>.value();
   }
 
   void _recordSynchronizationNotifications(
@@ -469,7 +376,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     switch (action.actionId) {
       case _retrySynchronizationNotificationAction:
-        unawaited(_retrySynchronizationRefresh());
+        _synchronizationRefresh.retry();
         break;
       case _refreshBlockedRootNotificationAction:
         final rootPath = action.sourcePath;

@@ -4,7 +4,8 @@ Status: active maintenance, selected by the [roadmap](../roadmap.md#current-exec
 
 Updated: 2026-10-17
 
-Branches: M1 `codex/maintainability-refactor`; M2 `codex/synchronization-runtime`, based on M1 `ef294ad`.
+Branches: M1 `codex/maintainability-refactor`; M2 `codex/synchronization-runtime`, based on M1 `ef294ad`;
+M3 `codex/gallery-publication-lifecycles`, based on M2 `6f80d66`.
 
 ## Outcome and boundaries
 
@@ -31,9 +32,9 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
-| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Implementation and scoped review complete; final exact-head hosted checks pending |
+| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Implementation, scoped review and final exact-head hosted checks passed |
 | M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Implementation and scoped review complete; final exact-head hosted checks pending |
-| M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Pending M2 |
+| M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Synchronization refresh owner extracted; recovered-dimension lifecycle and client comparison pending |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Pending M3 |
 | M5 | Map the test-only USN catch-up path to current broker coverage; migrate remaining useful regressions before retiring redundant code | Preserve parsing, identity, ordering and continuity scenarios; retain any uncovered historical obligation explicitly rather than deleting it | Pending M4 |
 | M6 | Separate native-resource, transaction-recovery and execution responsibilities in the release and R2c-R common scripts; retain canonical entrypoints | Positive and rejecting guardrails, source-audit closure, interrupted recovery, process retirement, exact-path/no-reparse safety and cleanup | Pending M5 |
@@ -93,7 +94,7 @@ do not infer completion from moved files or recreate an already extracted owner.
   foreground and prerelease journal repairs are delivered as `9ef344c` with 17 existing regressions.
   Proof ordering and audit counters now belong to `current_schema`, with two admission-order
   regressions. M1 retains all 163 baseline migration tests and adds eight boundary cases. Final
-  M1 CI remains pending; continue M2 on its sequential branch while those checks run.
+  M1 final head `ef294ad` passed hosted run `39009808560`.
 - M2 starts from `ef294ad` on `codex/synchronization-runtime`. Registry state and admission,
   operation ownership and deadline-bound retirement are internal to `runtime_lifecycle`; the
   production facade retains platform dispatch. Dedicated lifecycle regressions and shared
@@ -104,7 +105,10 @@ do not infer completion from moved files or recreate an already extracted owner.
   cancellation, phase and retirement. The unused reconnect path is retired; its two acceptance
   cases now exercise current runtime retirement/restart and failed-close admission. Cross-lane
   integration suites are grouped by boundary, preserving all 146 current tests. M2 scoped review
-  is complete; inspect its final hosted run and continue M3 on the next sequential branch.
+  is complete at `6f80d66`; hosted run `39013287820` remains in progress.
+- M3's synchronization refresh owner retains revision coalescing, delayed busy retry and explicit
+  failure feedback. Its nine boundary tests and the 20 existing viewer/refresh cases passed.
+  Continue dimension publication ownership, then verify the affected Debug workflow.
 - Authorized draft [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22) triggers the existing
   hosted checks. Inspect the current pushed head; newer pushes supersede older in-progress runs.
   Feature-branch pushes alone are not CI triggers.
