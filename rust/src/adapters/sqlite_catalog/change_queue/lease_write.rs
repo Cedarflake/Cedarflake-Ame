@@ -2,6 +2,7 @@ use std::time::Duration;
 
 use rusqlite::{Connection, Transaction, TransactionBehavior};
 
+use super::super::operation_diagnostics::measure;
 use super::super::{SQLITE_BUSY_TIMEOUT, SqliteCatalog, database_error};
 use super::{LeasedLibraryChange, LibraryChangeLane, ScanError, lease_matching::LeaseSelection};
 
@@ -10,12 +11,15 @@ const RECOVERY_LEASE_ADMISSION_TIMEOUT: Duration = Duration::from_millis(5);
 pub(super) fn lease_in_transaction(
     catalog: &mut SqliteCatalog,
     selection: LeaseSelection,
-    lane: LibraryChangeLane,
+    select_lane: impl FnOnce(&Connection) -> Result<Option<LibraryChangeLane>, ScanError>,
     lease: impl FnOnce(&Transaction<'_>) -> Result<Vec<LeasedLibraryChange>, ScanError>,
 ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
     if matches!(selection, LeaseSelection::RecoveryAuthoritative) {
-        return try_recovery_lease(catalog, lane, lease);
+        return try_recovery_lease(catalog, select_lane, lease);
     }
+    let Some(lane) = select_lane(&catalog.connection)? else {
+        return Ok(Vec::new());
+    };
     let transaction = catalog.begin_write_in_lane(lane)?;
     let leased = lease(&transaction)?;
     transaction.commit().map_err(database_error)?;
@@ -24,17 +28,10 @@ pub(super) fn lease_in_transaction(
 
 fn try_recovery_lease(
     catalog: &mut SqliteCatalog,
-    lane: LibraryChangeLane,
+    select_lane: impl FnOnce(&Connection) -> Result<Option<LibraryChangeLane>, ScanError>,
     lease: impl FnOnce(&Transaction<'_>) -> Result<Vec<LeasedLibraryChange>, ScanError>,
 ) -> Result<Vec<LeasedLibraryChange>, ScanError> {
-    // Keep a FIFO position briefly so repeated short writers cannot starve recovery dispatch.
-    // A long publication still yields this status poll with the durable task ready to continue.
-    let Some(_permit) = catalog
-        .write_admission
-        .acquire_for(lane, RECOVERY_LEASE_ADMISSION_TIMEOUT)
-    else {
-        return Ok(Vec::new());
-    };
+    // Readiness reads share the zero-wait boundary; they can contend before writer admission.
     let restore = RestoreBusyTimeout {
         connection: &mut catalog.connection,
     };
@@ -43,12 +40,28 @@ fn try_recovery_lease(
         .busy_timeout(Duration::ZERO)
         .map_err(database_error)?;
     let result: Result<Vec<LeasedLibraryChange>, ScanError> = (|| {
-        let transaction = restore
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
-        let leased = lease(&transaction)?;
-        transaction.commit().map_err(database_error)?;
+        let Some(lane) = measure("recovery_lease_selection", || {
+            select_lane(restore.connection)
+        })?
+        else {
+            return Ok(Vec::new());
+        };
+        // Retain FIFO ordering briefly without holding a status poll behind a long publication.
+        let Some(_permit) = measure("recovery_lease_admission", || {
+            catalog
+                .write_admission
+                .acquire_for(lane, RECOVERY_LEASE_ADMISSION_TIMEOUT)
+        }) else {
+            return Ok(Vec::new());
+        };
+        let transaction = measure("recovery_lease_begin", || {
+            restore
+                .connection
+                .transaction_with_behavior(TransactionBehavior::Immediate)
+        })
+        .map_err(database_error)?;
+        let leased = measure("recovery_lease_update", || lease(&transaction))?;
+        measure("recovery_lease_commit", || transaction.commit()).map_err(database_error)?;
         Ok(leased)
     })();
     match result {

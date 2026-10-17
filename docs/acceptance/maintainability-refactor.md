@@ -1,11 +1,148 @@
 # Maintainability refactor evidence
 
-Date: 2026-10-17
+Date: 2026-10-18
 
 Scope and execution order belong to the [active plan](../plans/maintainability-refactor.md).
 This record covers changed boundaries, not another R2c/R3 stage acceptance run.
 The [final comparison and review](#final-comparison-and-review) owns the combined candidate result;
 earlier pending statements below describe their delivery checkpoints.
+
+## First-round merge and branch cleanup
+
+PRs #22–#27 and #29 merged into `main` on 2026-10-18 (local date); native stack #35 closed.
+The final merge is `40cb302d7b4fc8da8a6b32438da60b53a12034ae`. Its complete file tree equals
+audited candidate `a894b034883158dcaca34450c797f0894b173271`, and that original head is an ancestor
+of `main`. Native stack restacking changed commit identities; ordinary history-integration merges
+preserved the original commits and unchanged trees. No source change or forced history rewrite was
+used to reconcile the stack.
+
+After explicit cleanup authorization, 13 remote and 13 local obsolete branches were deleted.
+Every deleted tip had zero commits outside `main`; none was checked out or referenced by an open PR.
+Remote deletions checked the exact observed tips. The temporary history branch was also redundant
+after its complete ancestry became reachable from `main`. Local `main` was fast-forwarded; current
+work continues on `codex/maintenance-surface-ownership`. Unrelated `devtools_options.yaml` remains
+untracked and untouched.
+
+The reviewed source candidate retains its passing run
+[39042574123](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39042574123).
+The final merged head has a separate run
+[39049188229](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39049188229). Its mixed-load
+Rust failure and the subsequent recovery-selection repair are recorded below; the earlier passing
+candidate run does not replace this result.
+
+## Gallery synchronization notification ownership
+
+`LibrarySynchronizationNotifications` now owns root-generation notice keys, removal/recovery
+resolution, healthy live-only capability notice lifetime, refresh-failure publication and typed
+action selection. It uses the existing feedback projection and shared notification controller.
+Current-root lookup still occurs only after shared stale-action admission; raw/display-path matching
+retains its original first-match order. The screen retains mounted guards, stream disposal, refresh
+execution and the existing update-selection dialog. No text, layout, scheduling, dependency or
+catalog policy changed.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `unified_library_screen.dart` before | 1,757 | 0 | Existing screen regressions retained |
+| `unified_library_screen.dart` after | 1,610 | 0 | Existing screen regressions retained |
+| `library_synchronization_notifications.dart` | 190 | 0 | 336 |
+
+The new owner passed 10 boundary regressions. Existing feedback and viewer-position files passed
+21 and 20 cases respectively, including manual-update routing, refresh failure/retry, generation
+replacement and retained preview navigation. The new unrelated-action test initially assumed that
+an unkeyed notice was an active condition; its assertion now checks that unrelated notification
+state remains untouched, matching the shared controller's existing contract. No production guard
+was relaxed. The non-mutating format gate passed with 423 Dart files unchanged; the ordinary Debug
+build completed in 60.8 seconds.
+
+Native verification used the retained 10,000-image / 72-group corpus and a backed-up test catalog,
+with the existing explicit-recovery fixture applied only to that derived catalog. Both the bottom
+notice and notification-history detail opened the existing update dialog with the correct root
+selected. Cancelling retained the gallery position. Repeated snapshots produced one history entry;
+dismissing the toast did not repeatedly reopen it. The owned client exited normally, and the original
+preferences, settings and catalog hashes were restored and verified. The retained test catalog and
+durable choices were restored from the pre-check backup.
+
+Run [39051145464](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39051145464) found two
+`prefer_initializing_formals` diagnostics in the new constructor. The existing private named-formal
+style resolved both without changing caller names or behavior. The affected file passed focused
+analysis with fatal infos, and its 10 boundary regressions passed again. Hosted checks for that
+correction remain pending.
+
+## Catalog preview-cleanup ownership
+
+`sqlite_catalog/preview_cleanup.rs` now owns the complete full-reset and outside-root-reset
+transactions. Normalized body comparison against merged baseline `40cb302` confirms unchanged SQL,
+statement order, scope checks, error codes and count conversion; only the receiver became an explicit
+catalog parameter. Empty scope still fails before flushing pending locations. A valid reset flushes
+staging before beginning its own write transaction. Location records, legacy catch-up handoffs,
+current scan handoffs and artifact-index deletion still commit or roll back together. The returned
+count still counts only changed location records. Prefix matching remains case-insensitive and
+pathless failures remain untouched by selective reset.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `sqlite_catalog.rs` before | 3,194 | 431 | 8,009 in the main test module |
+| `sqlite_catalog.rs` after | 3,103 | 431 | 7,932 in the main test module |
+| `sqlite_catalog/preview_cleanup.rs` | 106 | 0 | 337 |
+
+Counts include physical whitespace; test-only attributes, imports and hooks are separated from
+production lines. Existing child test modules remain in place. The existing root-activation test
+moved unchanged into the dedicated cleanup test module. Five focused tests passed, covering both
+reset modes, staging flush, source/metadata preservation, handoff owners, idempotence, empty scope,
+case-insensitive prefixes, pathless failures and rollback after an injected final DELETE failure.
+The two retained handoff/shared-artifact integration regressions also passed.
+
+The rebuilt Debug completed in 70.6 seconds. Native verification used the retained corpus and an
+isolated derived catalog/cache: the existing confirmation led to a completed cleanup of 24 files
+and 372 KB, with reported usage at 0 B. Returning to the gallery regenerated thumbnails, and a
+12,000 × 1,500 image opened successfully and returned to the gallery. This run overlapped normal
+catalog recovery; total count remained 10,000 while duplicate consolidation changed, so it does not
+establish stable-layout or concurrent-update position acceptance. Those broader observations retain
+their existing scope below.
+
+The client exited normally. Original profile/catalog hashes and the retained test catalog with its
+durable choices were restored and verified. After process retirement and exact-path/no-reparse
+checks, 56 regenerated disposable cache files were removed; the reusable corpus, catalogs and
+restoration receipts remain.
+
+The combined source review checked notification equivalence, mounted/disposal guards, stale-action
+admission, root lookup precedence, shared notification lifetime, SQL/transaction equivalence, write
+admission, source/metadata preservation and test ownership. It found no confirmed new defect after
+the constructor correction. No dependency, schema, bridge, interface copy or layout changed. The
+format gate passed with all 423 Dart files unchanged, and the final diff check passed. Current
+submission checks are attached to [PR #36](https://github.com/Cedarflake/Cedarflake-Ame/pull/36);
+the final delivery report must identify the exact passing source commit. M9–M11 remain follow-up
+candidates and do not extend this review.
+
+## Recovery-selection contention follow-up
+
+Merged-head run `39049188229` failed
+`p0_event_to_visible_p95_stays_below_one_second_with_p1_and_p2_active` while waiting for sample 23's
+next bounded P2 source page. The last poll took 4,982 ms, including 4,965 ms in recovery leasing.
+The suite reported 1,991 passes, one failure and 22 expected ignores. This was the page-start
+deadline, not the final P0 P95 assertion. A focused local run on the unchanged implementation
+completed all 25 mixed-load samples with P0 P95 100 ms and maximum 103 ms, so it did not reproduce
+the hosted delay.
+
+The lease implementation limited FIFO admission to 5 ms and disabled SQLite busy waiting only
+inside the write phase. Its preceding readiness reads still used the normal five-second timeout.
+A new exclusive-lock regression reproduced that separate gap: recovery selection did not return
+while the read boundary was held. The repair puts selection and the write attempt within one
+zero-busy-wait scope. Contention returns no lease without consuming attempts; a later poll retries
+the unchanged durable task. Other selection errors remain errors. Normal-lane behavior, SQL,
+selection order, transaction revalidation, rollback and FIFO ordering remain unchanged.
+
+All six focused lease-admission regressions passed after the repair, including the previously red
+read-lock case, external/coordinated writers, fairness, rollback and selection-error restoration.
+Normalized SQL comparison found no query changes. Production line counts changed from 455 to 472
+in `lease_matching.rs` and from 75 to 88 in `lease_write.rs`, with no inline tests; the dedicated
+lease-admission test file changed from 198 to 284 lines. Existing test-only operation timing now
+distinguishes selection, admission, transaction start, update and commit. The original hosted trace
+does not distinguish those stages, so attribution of its entire 4,965 ms to this reproduced gap
+remains unconfirmed. The repaired mixed-load test passed in 164.96 seconds, including final baseline
+publication and reopen verification. All 25 samples retained P1/P2 activity and progress; P0 P95 was
+111 ms and maximum 117 ms. The format gate passed and the updated Debug built in 50.6 seconds.
+No workload, deadline, assertion or dependency was changed.
 
 ## Shared schema-shape validation
 
