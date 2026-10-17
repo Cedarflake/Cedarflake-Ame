@@ -86,8 +86,10 @@ do not infer completion from moved files or recreate an already extracted owner.
 - Branch created from `83c8c16`; no unrelated working-tree edits were present.
 - M1 shared schema-shape extraction is delivered as `55b4cce`; preview-repair ownership as `607b561`.
   Source-revision metadata proof/repair is delivered as `20c0ed9`. Queue-lane and recovery-authority
-  proofs have moved with their tests; remaining recovery/inventory/journal contracts and repairs follow.
+  proofs are delivered as `7f9fae7`. Inventory and terminal evidence proofs have moved with their
+  tests; remaining recovery/spool/journal contracts and repairs follow.
 - Authorized draft [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22) triggers the existing
-  hosted checks; the run for `607b561` is in progress. Feature-branch pushes alone are not CI triggers.
+  hosted checks. Inspect the current pushed head; newer pushes supersede older in-progress runs.
+  Feature-branch pushes alone are not CI triggers.
 - [Verification evidence](../acceptance/maintainability-refactor.md) records checks and physical
   ownership counts. M1 and the overall refactor remain incomplete.

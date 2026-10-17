@@ -99,3 +99,22 @@ identity and canonical journal boundaries are unchanged.
 Three existing regressions moved with their owners. This mechanical extraction uses hosted Rust
 compilation and tests; no new local runtime pass is claimed. Source-body comparison and final diff
 inspection preserve migration admission order and every affected test assertion.
+
+## Inventory and terminal evidence contracts
+
+Inventory shape and row relationships now belong to `metadata_inventory_contract`; terminal media
+evidence belongs to `terminal_media_contract`. Five production function bodies preserve SQL, error
+codes, version-dependent fields and validation depth after symbol relocation and formatting. Six
+existing rejection regressions moved alongside these owners. The shared v19 test-catalog factory
+remains a test-only fixture built through the original schema creator.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 8,661 | 4,829 | 0 |
+| `migrations/metadata_inventory_contract.rs` | 255 | 2 | 124 |
+| `migrations/terminal_media_contract.rs` | 90 | 2 | 27 |
+| `migrations/legacy_test_catalog.rs` | 0 | 0 | 11 |
+
+Source comparison and owned-file diff inspection preserve every moved assertion and the original
+migration transaction/admission boundaries. Compilation and the moved tests are assigned to PR CI;
+this record makes no new local runtime claim.

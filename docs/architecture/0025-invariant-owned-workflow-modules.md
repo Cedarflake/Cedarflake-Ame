@@ -374,6 +374,9 @@ page failure remain one boundary, with no second decoded page or per-record clon
   `migrations/recovery_authority_contract.rs` proves immutable P2 authority and canonical opening
   boundaries. Each owns structural/row acceptance and its rejection regressions. Historical DDL and
   version-step ordering stay in the coordinator; the validation bodies no longer live there.
+  `migrations/metadata_inventory_contract.rs` owns inventory shape, scope/generation, staged counts
+  and entry relations; `migrations/terminal_media_contract.rs` owns terminal evidence shape and
+  root ownership. They retain version-dependent source fields and structure-before-row validation.
   Other historical validators and shrink-only compatibility repair remain the next physical split,
   not a completed extraction. Migration order and one-transaction rollback remain centralized.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.
