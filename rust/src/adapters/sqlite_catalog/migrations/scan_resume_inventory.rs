@@ -66,9 +66,9 @@ pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), S
     super::repair_retired_live_gap_claims_transaction(transaction, 32)?;
     super::retired_root_authority::repair_for_schema(transaction, 32)?;
     current_schema::validate_schema_version(transaction, 32)?;
-    if !super::source_revision_metadata_contract_is_complete(transaction)? {
-        super::invalidate_precontract_source_revision_metadata(transaction)?;
-        super::create_source_revision_metadata_contract(transaction)?;
+    if !super::source_revision_contract::metadata_contract_is_complete(transaction)? {
+        super::source_revision_contract::invalidate_precontract_metadata(transaction)?;
+        super::source_revision_contract::create_metadata_contract(transaction)?;
     }
     for (_, _, ddl) in OBJECTS {
         transaction.execute_batch(ddl).map_err(database_error)?;

@@ -365,6 +365,11 @@ page failure remain one boundary, with no second decoded page or per-record clon
   reset of unbacked ready expectations. It rechecks the marker after acquiring its immediate
   transaction and publishes the marker atomically with derived expectation/link changes; retained
   scans, backed previews and other states remain intact.
+  `migrations/source_revision_contract.rs` owns source generation/revision proof, the metadata
+  completion marker and precontract invalidation. Both forward migrations and current-catalog
+  repair use this owner directly. The repair accepts an absent marker only after current-schema
+  proof, rejects a damaged existing marker, and publishes alias-wide invalidation with the marker
+  in one immediate transaction. Identity evidence and the coordinator's admission order remain intact.
   Other historical validators and shrink-only compatibility repair remain the next physical split,
   not a completed extraction. Migration order and one-transaction rollback remain centralized.
 - `migrations/persistent_journal_baseline.rs` owns structural and row proof for recovery windows.

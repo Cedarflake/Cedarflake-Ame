@@ -187,9 +187,9 @@ pub(super) fn migrate_transaction(transaction: &Transaction<'_>) -> Result<(), S
     super::repair_retired_live_gap_claims_transaction(transaction, 31)?;
     super::retired_root_authority::repair_for_schema(transaction, 31)?;
     current_schema::validate_schema_version(transaction, 31)?;
-    if !super::source_revision_metadata_contract_is_complete(transaction)? {
-        super::invalidate_precontract_source_revision_metadata(transaction)?;
-        super::create_source_revision_metadata_contract(transaction)?;
+    if !super::source_revision_contract::metadata_contract_is_complete(transaction)? {
+        super::source_revision_contract::invalidate_precontract_metadata(transaction)?;
+        super::source_revision_contract::create_metadata_contract(transaction)?;
     }
     // Copy all three owners before dropping any original table. Foreign keys stay enabled;
     // child-first removal cannot cascade into the independently copied storage graph.

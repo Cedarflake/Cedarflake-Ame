@@ -33,8 +33,9 @@ Local verification:
   with normal tool permissions.
 - Final source/diff review and `git diff --check`: passed. Historical migrations, repair admission
   and the source catalog remain unchanged by this extraction.
-- Delivery: `55b4cce`. Feature-branch pushes are not configured CI triggers; hosted verification
-  awaits pull-request admission. No hosted or client pass is claimed by this record.
+- Delivery: `55b4cce`. Hosted verification now runs through draft
+  [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22); feature-branch pushes alone are not
+  CI triggers. No hosted or client pass is claimed by this local record.
 
 Remaining M1 work is historical contract/row validation and exact compatibility-repair ownership.
 
@@ -53,5 +54,30 @@ handoff/link changes but before location publication. A failed attempt can subse
 
 Local Cargo filter `preview_expectation_repair::tests`: 4 passed, 0 failed, 0 ignored, with the
 repository lock and `CARGO_INCREMENTAL=0`. SQL changes in the test queries after that run only wrap
-whitespace; implementation and assertions are unchanged. Hosted verification remains unstarted
-pending PR admission. The next M1 boundary is source-revision metadata proof and compatibility repair.
+whitespace; implementation and assertions are unchanged. Delivery: `607b561`. Its
+[hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39006815585) was in progress
+when the next boundary began.
+
+## Source revision contract and metadata repair
+
+`migrations/source_revision_contract.rs` owns structural and row proof, the completion marker and
+the transaction that invalidates legacy metadata for all aliases. The ordered v30 migration and
+subsequent spool/resume migrations call that owner directly. The six production function bodies
+retain their decisions and SQL; changes are symbol ownership and formatting. No schema, migration
+order, source identity or metadata invalidation policy changed.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after | 9,228 | 5,148 | 0 |
+| `migrations/source_revision_contract.rs` | 228 | 16 | 200 |
+
+Three existing structure/marker rejection and hardlink-alias regressions moved with this owner.
+The additional regression rejects completion-marker publication after invalidation, proves both
+aliases retain their previous metadata and previews after rollback, and successfully retries the
+repair. The existing read-only reopen and audit-count expectations remain intact.
+
+Local Cargo filter `source_revision_contract::tests`: 4 passed, 0 failed, 0 ignored, under the
+repository lock with `CARGO_INCREMENTAL=0`. Initial compilation exposed two remaining forward-migration
+callers of the old parent symbols; both now call the owner directly. The passing run includes those
+callers. Repository formatting (410 Dart files unchanged), final source/diff inspection and
+`git diff --check` passed. Hosted checks and final client comparison remain separate evidence.

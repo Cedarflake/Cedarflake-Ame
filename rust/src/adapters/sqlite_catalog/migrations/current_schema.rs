@@ -2,11 +2,11 @@ use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
+use super::source_revision_contract;
 use super::{
-    SCHEMA_VERSION, database_error, source_revision_metadata_contract_is_complete,
-    validate_live_gap_recovery_contract, validate_live_gap_recovery_contract_with_depth,
-    validate_pre_live_gap_schema_contract, validate_pre_live_gap_schema_contract_with_depth,
-    validate_source_revision_rows, validate_source_revision_structure_contract,
+    SCHEMA_VERSION, database_error, validate_live_gap_recovery_contract,
+    validate_live_gap_recovery_contract_with_depth, validate_pre_live_gap_schema_contract,
+    validate_pre_live_gap_schema_contract_with_depth,
 };
 
 #[derive(Clone, Copy)]
@@ -69,7 +69,7 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     if schema_version >= 38 {
         super::media_admission_rechecks::validate_rows(connection)?;
     }
-    validate_source_revision_rows(connection)
+    source_revision_contract::validate_rows(connection)
 }
 
 pub(super) fn validate_current_schema_structure(connection: &Connection) -> Result<(), ScanError> {
@@ -91,7 +91,7 @@ pub(super) fn validate_schema_structure(
         connection,
         ContractValidationDepth::StructureOnly,
     )?;
-    validate_source_revision_structure_contract(connection)?;
+    source_revision_contract::validate_structure(connection)?;
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_structure(connection)?;
     }
@@ -138,7 +138,7 @@ fn validate_existing_source_metadata_marker(connection: &Connection) -> Result<(
         )
         .map_err(database_error)?;
     // An absent marker belongs to the exact prerelease repair; a present damaged marker does not.
-    if marker_exists && !source_revision_metadata_contract_is_complete(connection)? {
+    if marker_exists && !source_revision_contract::metadata_contract_is_complete(connection)? {
         return Err(ScanError::new(
             "catalog_source_revision_contract_unverifiable",
             "The catalog cannot prove that legacy source metadata was invalidated",

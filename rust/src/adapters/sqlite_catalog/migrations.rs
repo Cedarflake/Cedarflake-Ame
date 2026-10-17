@@ -47,6 +47,7 @@ mod retained_source_state;
 mod retired_root_authority;
 mod scan_resume_inventory;
 mod schema_shape;
+mod source_revision_contract;
 
 use compatibility_repair_shape::{
     inventory_shape_matches as legacy_terminal_metadata_inventory_repair_shape_matches,
@@ -138,7 +139,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 repair_prerelease_v24_source_range_id_triggers(connection)?;
                 repair_prerelease_v26_recovery_window_schema(connection)?;
                 current_recovery_state::repair_and_validate(connection)?;
-                repair_prerelease_v31_source_revision_metadata(connection)?;
+                source_revision_contract::repair_precontract_metadata(connection)?;
                 recover_interrupted_explicit_foreground_claims(connection)?;
                 return Ok(());
             }
@@ -627,8 +628,6 @@ fn validate_prerelease_v19_catch_up_authority(connection: &Connection) -> Result
 std::thread_local! {
     static CURRENT_SCHEMA_VALIDATION_COUNT: std::cell::Cell<usize> =
         const { std::cell::Cell::new(0) };
-    static SOURCE_REVISION_ROW_AUDIT_COUNT: std::cell::Cell<usize> =
-        const { std::cell::Cell::new(0) };
     static CURRENT_SCHEMA_ROW_AUDIT_COUNT: std::cell::Cell<usize> =
         const { std::cell::Cell::new(0) };
 }
@@ -644,16 +643,6 @@ fn current_schema_validation_count() -> usize {
 }
 
 #[cfg(test)]
-fn reset_source_revision_row_audit_count() {
-    SOURCE_REVISION_ROW_AUDIT_COUNT.with(|count| count.set(0));
-}
-
-#[cfg(test)]
-fn source_revision_row_audit_count() -> usize {
-    SOURCE_REVISION_ROW_AUDIT_COUNT.with(std::cell::Cell::get)
-}
-
-#[cfg(test)]
 fn reset_current_schema_row_audit_count() {
     CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(0));
 }
@@ -666,104 +655,6 @@ fn current_schema_row_audit_count() -> usize {
 fn record_current_schema_row_audit() {
     #[cfg(test)]
     CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(count.get() + 1));
-}
-
-fn source_revision_metadata_contract_is_complete(
-    connection: &Connection,
-) -> Result<bool, ScanError> {
-    if !schema_object_sql_matches(
-        connection,
-        "table",
-        "library_source_revision_metadata_contract",
-        SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL,
-    )? {
-        return Ok(false);
-    }
-    connection
-        .query_row(
-            "SELECT contract_version = 1 AND complete = 1
-             FROM library_source_revision_metadata_contract
-             WHERE singleton = 1",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .optional()
-        .map(|value| value.unwrap_or(false))
-        .map_err(database_error)
-}
-
-fn invalidate_precontract_source_revision_metadata(
-    transaction: &Transaction<'_>,
-) -> Result<(), ScanError> {
-    transaction
-        .execute_batch(
-            "DELETE FROM preview_artifact_locations;
-             UPDATE preview_artifacts SET lifecycle_state = 'evictable';
-             UPDATE asset_locations
-             SET preview_path = '', preview_status = 'pending',
-                 preview_issue_code = NULL, preview_issue_message = NULL,
-                 metadata_engine_id = 'ame-invalidated-media-metadata',
-                 metadata_engine_version = '0',
-                 capture_local_time = NULL, capture_offset_minutes = NULL,
-                 capture_time_source = NULL, capture_raw_value = NULL;",
-        )
-        .map_err(database_error)
-}
-
-fn create_source_revision_metadata_contract(
-    transaction: &Transaction<'_>,
-) -> Result<(), ScanError> {
-    transaction
-        .execute_batch(SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL)
-        .map_err(database_error)?;
-    transaction
-        .execute(
-            "INSERT INTO library_source_revision_metadata_contract(
-               singleton, contract_version, complete
-             ) VALUES (1, 1, 1)",
-            [],
-        )
-        .map_err(database_error)?;
-    Ok(())
-}
-
-fn repair_prerelease_v31_source_revision_metadata(
-    connection: &mut Connection,
-) -> Result<(), ScanError> {
-    let marker_sql = connection
-        .query_row(
-            "SELECT sql FROM sqlite_master
-             WHERE type = 'table'
-               AND name = 'library_source_revision_metadata_contract'",
-            [],
-            |row| row.get::<_, String>(0),
-        )
-        .optional()
-        .map_err(database_error)?;
-    if marker_sql.is_some() {
-        if source_revision_metadata_contract_is_complete(connection)? {
-            return Ok(());
-        }
-        return Err(ScanError::new(
-            "catalog_source_revision_contract_unverifiable",
-            "The catalog cannot prove that legacy source metadata was invalidated",
-        ));
-    }
-
-    let transaction = connection
-        .transaction_with_behavior(TransactionBehavior::Immediate)
-        .map_err(database_error)?;
-    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
-    invalidate_precontract_source_revision_metadata(&transaction)?;
-    create_source_revision_metadata_contract(&transaction)?;
-    if !source_revision_metadata_contract_is_complete(&transaction)? {
-        return Err(ScanError::new(
-            "catalog_source_revision_contract_unverifiable",
-            "The catalog could not record its source metadata invalidation",
-        ));
-    }
-    validate_current_schema_contract_with_source_revision_rows(&transaction)?;
-    transaction.commit().map_err(database_error)
 }
 
 fn legacy_terminal_metadata_inventory_repair_needed(
@@ -1543,12 +1434,6 @@ const METADATA_INVENTORY_SPOOL_CONTRACT_TABLE_V31_DDL: &str =
     "CREATE TABLE library_metadata_inventory_spool_contract (
        singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
        contract_version INTEGER NOT NULL CHECK(contract_version = 3),
-       complete INTEGER NOT NULL CHECK(complete = 1)
-     )";
-const SOURCE_REVISION_METADATA_CONTRACT_TABLE_DDL: &str =
-    "CREATE TABLE library_source_revision_metadata_contract (
-       singleton INTEGER PRIMARY KEY CHECK(singleton = 1),
-       contract_version INTEGER NOT NULL CHECK(contract_version = 1),
        complete INTEGER NOT NULL CHECK(complete = 1)
      )";
 const METADATA_INVENTORY_SPOOL_TABLE_DDL: &str = "CREATE TABLE library_metadata_inventory_spools (
@@ -8517,8 +8402,8 @@ fn migrate_v30_to_v31_transaction(transaction: &Transaction<'_>) -> Result<(), S
              UPDATE schema_info SET version = 31;",
         )
         .map_err(database_error)?;
-    invalidate_precontract_source_revision_metadata(transaction)?;
-    create_source_revision_metadata_contract(transaction)?;
+    source_revision_contract::invalidate_precontract_metadata(transaction)?;
+    source_revision_contract::create_metadata_contract(transaction)?;
     transaction
         .execute_batch(METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL)
         .map_err(database_error)?;
@@ -8545,126 +8430,6 @@ fn migrate_v30_to_v31_transaction(transaction: &Transaction<'_>) -> Result<(), S
         )
         .map_err(database_error)?;
     current_schema::validate_schema_version(transaction, 31)
-}
-
-fn validate_source_revision_structure_contract(connection: &Connection) -> Result<(), ScanError> {
-    let required_columns = [
-        ("catalog_state", "next_source_generation"),
-        ("asset_locations", "source_revision_token"),
-        ("asset_locations", "source_generation"),
-        ("preview_artifacts", "source_revision_token"),
-        ("preview_artifacts", "source_generation"),
-        ("library_terminal_media_evidence", "source_revision_token"),
-        ("library_terminal_media_evidence", "source_generation"),
-        ("library_change_catch_up_handoffs", "source_revision_token"),
-        ("library_change_catch_up_handoffs", "source_generation"),
-        ("library_change_scan_handoff_items", "source_revision_token"),
-        ("library_change_scan_handoff_items", "source_generation"),
-        (
-            "library_metadata_inventory_entries",
-            "source_revision_token",
-        ),
-        (
-            "library_metadata_inventory_spool_entries",
-            "source_revision_token",
-        ),
-    ];
-    let mut structure_matches = true;
-    for (table, column) in required_columns {
-        structure_matches &= connection
-            .query_row(
-                &format!(
-                    "SELECT EXISTS(SELECT 1 FROM pragma_table_info('{table}') WHERE name = ?1)"
-                ),
-                [column],
-                |row| row.get::<_, bool>(0),
-            )
-            .map_err(database_error)?;
-    }
-    structure_matches &= schema_object_sql_matches(
-        connection,
-        "trigger",
-        "asset_locations_source_generation_insert_guard",
-        "CREATE TRIGGER asset_locations_source_generation_insert_guard
-           BEFORE INSERT ON asset_locations
-           WHEN NEW.source_generation IS NULL OR NEW.source_generation <= 0
-           BEGIN
-             SELECT RAISE(ABORT, 'asset location source generation is required');
-           END",
-    )?;
-    structure_matches &= schema_object_sql_matches(
-        connection,
-        "trigger",
-        "asset_locations_source_generation_update_guard",
-        "CREATE TRIGGER asset_locations_source_generation_update_guard
-           BEFORE UPDATE OF source_generation ON asset_locations
-           WHEN NEW.source_generation IS NULL OR NEW.source_generation <= 0
-           BEGIN
-             SELECT RAISE(ABORT, 'asset location source generation is required');
-           END",
-    )?;
-    if !structure_matches {
-        return Err(ScanError::new(
-            "catalog_source_revision_contract_unverifiable",
-            "The catalog cannot prove its source revision and generation contract",
-        ));
-    }
-    Ok(())
-}
-
-fn validate_source_revision_rows(connection: &Connection) -> Result<(), ScanError> {
-    #[cfg(test)]
-    SOURCE_REVISION_ROW_AUDIT_COUNT.with(|count| count.set(count.get() + 1));
-    let invalid_state = connection
-        .query_row(
-            "SELECT EXISTS(
-               SELECT 1 FROM asset_locations
-               WHERE source_generation IS NULL OR source_generation <= 0
-                  OR (source_revision_token IS NOT NULL AND (
-                    length(source_revision_token) <> 50
-                    OR source_revision_token NOT GLOB
-                      'windows-file-change-time-100ns-v1:[0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f][0-9a-f]'
-                  ))
-             ) OR EXISTS(
-               SELECT 1 FROM preview_artifacts
-               WHERE lifecycle_state = 'ready'
-                 AND (source_generation IS NULL OR source_generation <= 0
-                      OR source_revision_token IS NULL)
-             ) OR EXISTS(
-               SELECT 1
-               FROM asset_locations AS locations
-               JOIN library_roots AS roots
-                 ON roots.id = locations.root_id
-                AND roots.active_scan_id = locations.scan_id
-               WHERE locations.file_identity_scheme IS NOT NULL
-               GROUP BY locations.file_identity_scheme, locations.file_identity_value
-               HAVING MIN(locations.source_generation) <> MAX(locations.source_generation)
-                  OR COUNT(DISTINCT locations.source_revision_token) > 1
-                  OR MIN(locations.file_size) <> MAX(locations.file_size)
-                  OR MIN(locations.modified_unix_ms) <> MAX(locations.modified_unix_ms)
-             ) OR EXISTS(
-               SELECT 1 FROM asset_locations AS locations
-               WHERE locations.file_identity_scheme IS NOT NULL
-               GROUP BY locations.scan_id, locations.file_identity_scheme,
-                        locations.file_identity_value
-               HAVING MIN(locations.source_generation) <> MAX(locations.source_generation)
-                  OR COUNT(DISTINCT locations.source_revision_token) > 1
-                  OR MIN(locations.file_size) <> MAX(locations.file_size)
-                  OR MIN(locations.modified_unix_ms) <> MAX(locations.modified_unix_ms)
-             ) OR (SELECT next_source_generation FROM catalog_state) <= COALESCE(
-               (SELECT MAX(source_generation) FROM asset_locations), 0
-             )",
-            [],
-            |row| row.get::<_, bool>(0),
-        )
-        .map_err(database_error)?;
-    if invalid_state {
-        return Err(ScanError::new(
-            "catalog_source_revision_contract_unverifiable",
-            "The catalog cannot prove its source revision and generation contract",
-        ));
-    }
-    Ok(())
 }
 
 #[cfg(test)]
@@ -10523,10 +10288,10 @@ mod tests {
             )
             .expect("v30 source fixture");
 
-        super::reset_source_revision_row_audit_count();
+        super::source_revision_contract::reset_row_audit_count();
         super::reset_current_schema_row_audit_count();
         super::migrate_v30_to_v31(&mut connection).expect("v31");
-        assert_eq!(super::source_revision_row_audit_count(), 1);
+        assert_eq!(super::source_revision_contract::row_audit_count(), 1);
         assert!(super::current_schema_row_audit_count() > 0);
 
         assert_eq!(
@@ -10575,7 +10340,7 @@ mod tests {
             .expect("migrated locations");
         assert_eq!(migrated_locations, (2, 1, 0, 2, 2, 2));
         assert!(
-            super::source_revision_metadata_contract_is_complete(&connection)
+            super::source_revision_contract::metadata_contract_is_complete(&connection)
                 .expect("source metadata contract")
         );
         assert_eq!(
@@ -11868,28 +11633,13 @@ mod tests {
             .expect("make clean current catalog read only");
 
         super::reset_current_schema_validation_count();
-        super::reset_source_revision_row_audit_count();
+        super::source_revision_contract::reset_row_audit_count();
         super::reset_current_schema_row_audit_count();
         migrate_schema(&mut connection).expect("validate clean current catalog");
 
         assert_eq!(super::current_schema_validation_count(), 1);
-        assert_eq!(super::source_revision_row_audit_count(), 1);
+        assert_eq!(super::source_revision_contract::row_audit_count(), 1);
         assert!(super::current_schema_row_audit_count() > 0);
-    }
-
-    #[test]
-    fn current_v31_source_revision_structure_damage_still_fails_closed() {
-        let mut connection = Connection::open_in_memory().expect("current catalog");
-        migrate_schema(&mut connection).expect("create current catalog");
-        connection
-            .execute_batch("DROP TRIGGER asset_locations_source_generation_update_guard;")
-            .expect("damage source revision structure");
-
-        super::reset_source_revision_row_audit_count();
-        let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
-
-        assert_eq!(error.code, "catalog_source_revision_contract_unverifiable");
-        assert_eq!(super::source_revision_row_audit_count(), 0);
     }
 
     #[test]
@@ -11904,21 +11654,6 @@ mod tests {
         let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
 
         assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
-        assert_eq!(super::current_schema_row_audit_count(), 0);
-    }
-
-    #[test]
-    fn current_v31_source_revision_marker_damage_still_fails_closed() {
-        let mut connection = Connection::open_in_memory().expect("current catalog");
-        migrate_schema(&mut connection).expect("create current catalog");
-        connection
-            .execute_batch("DELETE FROM library_source_revision_metadata_contract;")
-            .expect("damage source revision marker");
-
-        super::reset_current_schema_row_audit_count();
-        let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
-
-        assert_eq!(error.code, "catalog_source_revision_contract_unverifiable");
         assert_eq!(super::current_schema_row_audit_count(), 0);
     }
 
@@ -12308,101 +12043,6 @@ mod tests {
                 .expect("retained malformed claim");
             assert_eq!(retained, 1, "case {case} must remain unchanged");
         }
-    }
-
-    #[test]
-    fn current_v31_repairs_precontract_metadata_for_every_hardlink_alias() {
-        let mut connection = Connection::open_in_memory().expect("current catalog");
-        migrate_schema(&mut connection).expect("create current catalog");
-        connection
-            .execute_batch(
-                "UPDATE catalog_state SET next_source_generation = 2;
-                 INSERT INTO library_roots(id, path, active_scan_id, created_unix_ms)
-                   VALUES ('root-a', 'C:/source', 'published-scan', 1);
-                 INSERT INTO scan_runs(
-                   id, root_id, status, started_unix_ms, completed_unix_ms,
-                   asset_count, preview_edge
-                 ) VALUES ('published-scan', 'root-a', 'completed', 1, 2, 2, 256);
-                 INSERT INTO library_change_root_state(
-                   root_id, generation, is_active, updated_unix_ms
-                 ) VALUES ('root-a', 1, 1, 2);
-                 INSERT INTO library_persistent_journal_root_state(
-                   root_id, root_generation, protocol_version, contract_version,
-                   capability_state, continuity_state, updated_unix_ms
-                 ) VALUES ('root-a', 1, 0, 1, 'unknown', 'baseline_required', 2);
-                 INSERT INTO assets(id, created_unix_ms)
-                   VALUES ('asset-a', 1), ('asset-b', 1);
-                 INSERT INTO asset_locations(
-                   scan_id, asset_id, location_id, root_id, absolute_path, relative_path,
-                   preview_path, file_size, modified_unix_ms, width, height, preview_status,
-                   metadata_engine_id, metadata_engine_version, capture_local_time,
-                   capture_time_source, capture_raw_value,
-                   file_identity_scheme, file_identity_value,
-                   source_revision_token, source_generation
-                 ) VALUES
-                   ('published-scan', 'asset-a', 'location-a', 'root-a',
-                    'C:/source/a.bmp', 'a.bmp', 'C:/cache/a.jpg', 1024, 55, 8, 6, 'ready',
-                    'legacy-metadata', '7', '2020-01-02T03:04:05',
-                    'exif_original', '2020:01:02 03:04:05',
-                    'windows-file-id-128-v1',
-                    '0000000000000001:00000000000000000000000000000001',
-                    'windows-file-change-time-100ns-v1:0000000000000042', 1),
-                   ('published-scan', 'asset-b', 'location-b', 'root-a',
-                    'C:/source/b.bmp', 'b.bmp', 'C:/cache/b.jpg', 1024, 55, 8, 6, 'ready',
-                    'legacy-metadata', '7', '2020-01-02T03:04:05',
-                    'exif_original', '2020:01:02 03:04:05',
-                    'windows-file-id-128-v1',
-                    '0000000000000001:00000000000000000000000000000001',
-                    'windows-file-change-time-100ns-v1:0000000000000042', 1);
-                 DROP TABLE library_source_revision_metadata_contract;",
-            )
-            .expect("precontract v31 hardlink fixture");
-
-        super::reset_source_revision_row_audit_count();
-        super::reset_current_schema_row_audit_count();
-        migrate_schema(&mut connection).expect("repair precontract v31 metadata");
-        assert_eq!(
-            super::source_revision_row_audit_count(),
-            3,
-            "initial validation plus the repair transaction's before-and-after proof",
-        );
-        assert!(super::current_schema_row_audit_count() > 0);
-
-        let repaired = connection
-            .query_row(
-                "SELECT COUNT(*),
-                        SUM(metadata_engine_id = 'ame-invalidated-media-metadata'
-                            AND metadata_engine_version = '0'),
-                        SUM(capture_local_time IS NULL
-                            AND capture_time_source IS NULL
-                            AND capture_raw_value IS NULL),
-                        SUM(preview_status = 'pending' AND preview_path = ''),
-                        COUNT(DISTINCT source_generation),
-                        COUNT(DISTINCT source_revision_token)
-                 FROM asset_locations",
-                [],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, i64>(1)?,
-                        row.get::<_, i64>(2)?,
-                        row.get::<_, i64>(3)?,
-                        row.get::<_, i64>(4)?,
-                        row.get::<_, i64>(5)?,
-                    ))
-                },
-            )
-            .expect("repaired alias evidence");
-        assert_eq!(repaired, (2, 2, 2, 2, 1, 1));
-        assert!(
-            super::source_revision_metadata_contract_is_complete(&connection)
-                .expect("repaired source metadata contract")
-        );
-
-        connection
-            .execute_batch("PRAGMA query_only = ON")
-            .expect("make repaired catalog read only");
-        migrate_schema(&mut connection).expect("idempotently validate repaired v31 metadata");
     }
 
     #[test]

@@ -11,7 +11,8 @@ Branch: `codex/maintainability-refactor`
 Reduce the maintenance cost identified at baseline `83c8c16` by moving independent invariants and
 lifecycles to their owning modules, consolidating duplicated window rules, and retiring superseded
 implementation only after its useful coverage belongs to the current path. Preserve delivered R2c/R3
-behavior and the accepted UI. R4 remains unstarted.
+behavior and the accepted UI. Keep code readable to human maintainers, with clear responsibilities,
+visible policy and lifecycle authority, and cohesive tests. R4 remains unstarted.
 
 Keep the accepted Flutter/Riverpod, Rust, typed FRB bridge and SQLite stack. Freezed generation,
 the two JPEG capabilities and the patched Windows watcher retain their existing admission decisions.
@@ -30,7 +31,7 @@ starting the next independent one. Pending hosted checks do not prevent unrelate
 
 | Order | Outcome and affected owner | Required behavior-preservation evidence | State |
 | --- | --- | --- | --- |
-| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Shared schema-shape and preview-repair owners locally verified; remaining contracts/repairs pending |
+| M1 | Extract shared schema-shape checks, historical contract/row validators and exact compatibility repair from `sqlite_catalog/migrations.rs`; preserve the ordered migration facade and move tests with each owner | Accepted/rejected schema shapes, historical upgrades, quoted SQL semantics, repair admission, idempotence and transactional rollback | Schema-shape, preview-repair and source-revision owners locally verified; remaining contracts/repairs pending |
 | M2 | Separate synchronization registry/start-stop ownership, then Journal/Recovery lane state from `library_synchronization/production.rs`; reuse existing Live and scheduling owners; remove the unused reconnect seam | Late completion, start/stop races, retained ownership after timeout or panic, one shutdown deadline, lane priority and root fairness | Pending M1 |
 | M3 | Extract synchronization revision refresh and recovered-dimension publication lifecycles from `unified_library_screen.dart` | Superseded refresh, notification lifetime, coalescing/deadline, scrolling during dimension recovery, disposal and retained position | Pending M2 |
 | M4 | Give gallery retained pages one bounded merge/cursor/trim owner behind `library_viewport_controller.dart`; keep query and publication authority distinct | Overlapping pages, forward/backward eviction, stale completions, empty pages and viewer navigation across the window | Pending M3 |
@@ -58,11 +59,23 @@ monolith, shared mutable bag or forwarding facade does not complete M1.
 - M3/M4 require actual Debug interaction with the existing `build/test` library: sidebar rapid
   toggling, maximize/restore, scroll and resize, synchronization refresh, duplicate review/preview
   round trip and preferred-copy changes. Preserve and restore the user's active profile and catalog.
+- Before closeout, repeat the affected existing user workflows on the final candidate and compare
+  against the retained baseline: navigation, input response, motion, loading feedback, scroll/selection
+  retention, preview behavior and relevant bounded resource/performance results. Record regressions
+  and resolve their causes; report improvements only with observed evidence. Intermediate boundary
+  checks alone do not close this final comparison.
 - M6 guardrails must prove passing and rejecting cases. No service installation, signing or release
   publication is included.
 - Review the final changes for behavior, async/resource authority, data preservation, dependency
-  changes and unnecessary abstractions. Deliver the branch and the verified/remaining results.
-  Merging into `main` is not part of this authorization.
+  changes, human readability, clear module organization and unnecessary abstractions.
+- After the ordered implementation is finished, create the native GitHub
+  [stacked pull requests](https://docs.github.com/en/rest/pulls/stacks) review surface. Keep completed
+  responsibility groups on sequential branches/PRs so their changes remain separately reviewable;
+  the existing branch and PR #22 own M1. Preserve published history when creating later branches.
+  Verify repository admission at stack creation. Each branch and the combined candidate must have applicable
+  passing checks and resolved relevant findings before it becomes a merge candidate. A stack is
+  a review surface, not acceptance evidence. Merging into `main` remains an explicit human decision.
+  Deliver the stack and final client/CI/review evidence, including any unresolved limitation.
 
 ## Resume checkpoint
 
@@ -71,8 +84,9 @@ Preserve completed boundaries and still-valid evidence. Update this checkpoint a
 do not infer completion from moved files or recreate an already extracted owner.
 
 - Branch created from `83c8c16`; no unrelated working-tree edits were present.
-- M1 shared schema-shape extraction is delivered as `55b4cce`. Preview-repair ownership is locally
-  verified. Source-revision metadata proof/repair is next; other historical contract families remain.
-- Hosted checks require PR admission because feature-branch pushes are not configured CI triggers.
+- M1 shared schema-shape extraction is delivered as `55b4cce`; preview-repair ownership as `607b561`.
+  Source-revision metadata proof/repair is locally verified; other historical contract families remain.
+- Authorized draft [PR #22](https://github.com/Cedarflake/Cedarflake-Ame/pull/22) triggers the existing
+  hosted checks; the run for `607b561` is in progress. Feature-branch pushes alone are not CI triggers.
 - [Verification evidence](../acceptance/maintainability-refactor.md) records checks and physical
   ownership counts. M1 and the overall refactor remain incomplete.
