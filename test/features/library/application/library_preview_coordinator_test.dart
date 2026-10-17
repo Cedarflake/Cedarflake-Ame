@@ -8,6 +8,41 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
+    "review demand admits members outside the gallery and retires their late previews",
+    () async {
+      final previewer = _ControlledPreviewer();
+      final galleryPublications = <LibraryAsset>[];
+      final coordinator = LibraryPreviewCoordinator(
+        previewer: previewer,
+        defaultPreviewEdge: 512,
+        maxActive: 1,
+        canPublish: (_) => false,
+        onPublished: galleryPublications.add,
+      );
+      addTearDown(coordinator.dispose);
+      final owner = Object();
+      final visible = _asset("review-visible", LibraryPreviewStatus.pending);
+      coordinator.updateFilmstripDemand(owner, [visible], 256);
+      previewer.succeed(visible.locationId, _readyAsset("review-visible"));
+      await _flushAsyncWork();
+      expect(
+        coordinator.resolve(visible).previewStatus,
+        LibraryPreviewStatus.ready,
+      );
+      expect(galleryPublications, isEmpty);
+      final retired = _asset("review-retired", LibraryPreviewStatus.pending);
+      coordinator.updateFilmstripDemand(owner, [retired], 256);
+      coordinator.releaseFilmstripDemand(owner);
+      previewer.succeed(retired.locationId, _readyAsset("review-retired"));
+      await _flushAsyncWork();
+      expect(
+        coordinator.resolve(retired).previewStatus,
+        LibraryPreviewStatus.pending,
+      );
+    },
+  );
+
+  test(
     "reopening a filmstrip reuses ready previews and verified sizes",
     () async {
       final previewer = _ControlledPreviewer();

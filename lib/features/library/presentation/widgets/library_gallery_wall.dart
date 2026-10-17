@@ -15,7 +15,10 @@ import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_exact_extent_sliver.dart";
 import "library_gallery_layout.dart";
+import "library_gallery_card_metrics.dart";
 import "library_gallery_layout_snapshot.dart";
+import "library_gallery_layout_motion.dart";
+import "library_gallery_motion_entries.dart";
 import "library_gallery_position.dart";
 import "library_gallery_reflow.dart";
 import "library_photo_tile.dart";
@@ -143,6 +146,7 @@ class LibraryGalleryWall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isActive = TickerMode.valuesOf(context).enabled;
     final manifest = layoutManifest;
     if (manifest != null &&
         manifest.queryId == state.queryId &&
@@ -188,6 +192,7 @@ class LibraryGalleryWall extends StatelessWidget {
           return const SizedBox.shrink();
         }
         final entries = LibraryGalleryLayoutEntry.build(
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           assets: state.assets,
           availableWidth: availableWidth,
           layoutShape: layoutShape,
@@ -240,7 +245,6 @@ class LibraryGalleryWall extends StatelessWidget {
           transition: layoutTransition,
           state: state,
           entries: entries,
-          entryStartOffsets: entryStartOffsets,
           metrics: layoutMetrics,
           virtualGeometry: virtualGeometry,
           viewportExtent: constraints.maxHeight,
@@ -254,7 +258,6 @@ class LibraryGalleryWall extends StatelessWidget {
           resolve: (scrollOffset, viewportDimension) => _positionAtOffset(
             entries,
             entryStartOffsets,
-            layoutMetrics,
             scrollOffset - virtualGeometry.leadingExtent,
             viewportDimension,
             state.windowStartItemOffset,
@@ -267,12 +270,15 @@ class LibraryGalleryWall extends StatelessWidget {
           ScrollMetrics metrics,
           _LibraryPreviewMovementDirection direction,
         ) {
+          if (!context.mounted ||
+              !TickerMode.getValuesNotifier(context).value.enabled) {
+            return;
+          }
           final localScrollOffset =
               metrics.pixels - virtualGeometry.leadingExtent;
           final visiblePosition = _positionAtOffset(
             entries,
             entryStartOffsets,
-            layoutMetrics,
             localScrollOffset,
             metrics.viewportDimension,
             state.windowStartItemOffset,
@@ -332,7 +338,9 @@ class LibraryGalleryWall extends StatelessWidget {
         }
 
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!context.mounted) {
+          if (!context.mounted ||
+              !isActive ||
+              !TickerMode.getValuesNotifier(context).value.enabled) {
             return;
           }
           onLayoutChanged(layoutMetrics, virtualGeometry);
@@ -343,7 +351,7 @@ class LibraryGalleryWall extends StatelessWidget {
             );
           }
         });
-        return ScrollConfiguration(
+        final content = ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
@@ -425,6 +433,7 @@ class LibraryGalleryWall extends StatelessWidget {
                     child: KeyedSubtree(
                       key: const Key("library-photo-wall"),
                       child: CustomScrollView(
+                        clipBehavior: Clip.none,
                         key: _LibraryGalleryScrollViewKey(scrollController),
                         controller: scrollController,
                         slivers: [
@@ -465,79 +474,53 @@ class LibraryGalleryWall extends StatelessWidget {
                               addSemanticIndexes: false,
                               itemBuilder: (context, index) {
                                 final entry = entries[index];
+                                final offset =
+                                    virtualGeometry.leadingExtent +
+                                    18 +
+                                    entryStartOffsets[index];
                                 if (entry.headerLabel case final label?) {
-                                  return SizedBox(
-                                    height: entry.extent,
-                                    child: Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Semantics(
-                                        header: true,
-                                        child: Text(
-                                          label,
-                                          key: ValueKey(
-                                            "gallery-date-${entry.dateKey ?? 'unknown'}",
-                                          ),
-                                          style: Theme.of(
-                                            context,
-                                          ).textTheme.titleSmall,
-                                        ),
-                                      ),
+                                  return LibraryGalleryMotionHeader(
+                                    label: label,
+                                    dateKey: entry.dateKey,
+                                    rect: Rect.fromLTWH(
+                                      0,
+                                      offset,
+                                      availableWidth,
+                                      entry.extent,
                                     ),
                                   );
                                 }
                                 if (entry.cells.isEmpty) {
                                   return SizedBox(height: entry.extent);
                                 }
-                                return SizedBox(
-                                  height: entry.extent,
-                                  child: Align(
-                                    alignment: Alignment.topLeft,
-                                    child: SizedBox(
-                                      height: entry.rowHeight,
-                                      child: Row(
-                                        children: [
-                                          for (
-                                            var cellIndex = 0;
-                                            cellIndex < entry.cells.length;
-                                            cellIndex++
-                                          ) ...[
-                                            if (cellIndex > 0)
-                                              const SizedBox(
-                                                width: LibraryGalleryLayoutEntry
-                                                    .spacing,
-                                              ),
-                                            LibraryPhotoTile(
-                                              key: ValueKey(
-                                                entry
-                                                    .cells[cellIndex]
-                                                    .asset
-                                                    .locationId,
-                                              ),
-                                              asset:
-                                                  entry.cells[cellIndex].asset,
-                                              width:
-                                                  entry.cells[cellIndex].width,
-                                              height: entry.rowHeight,
-                                              isSelecting: isSelecting,
-                                              isSelected: selection.contains(
-                                                entry
-                                                    .cells[cellIndex]
-                                                    .asset
-                                                    .assetId,
-                                              ),
-                                              onOpen: onOpen,
-                                              onToggleSelection:
-                                                  onToggleSelection,
-                                              onViewInformation:
-                                                  onViewInformation,
-                                              onCopyPath: onCopyPath,
-                                              onRevealFile: onRevealFile,
-                                            ),
-                                          ],
-                                        ],
+                                return LibraryGalleryMotionRow(
+                                  extent: entry.extent,
+                                  width: availableWidth,
+                                  height: entry.rowHeight,
+                                  offset: offset,
+                                  cellWidths: [
+                                    for (final cell in entry.cells) cell.width,
+                                  ],
+                                  identityAt: (index) =>
+                                      entry.cells[index].asset.locationId,
+                                  builder: (index, size) {
+                                    final asset = entry.cells[index].asset;
+                                    return LibraryPhotoTile(
+                                      key: ValueKey(asset.locationId),
+                                      asset: asset,
+                                      width: size.width,
+                                      height: size.height,
+                                      isSelecting: isSelecting,
+                                      isSelected: selection.contains(
+                                        asset.assetId,
                                       ),
-                                    ),
-                                  ),
+                                      onOpen: onOpen,
+                                      onToggleSelection: onToggleSelection,
+                                      onViewInformation: onViewInformation,
+                                      onCopyPath: onCopyPath,
+                                      onRevealFile: onRevealFile,
+                                    );
+                                  },
                                 );
                               },
                             ),
@@ -612,6 +595,23 @@ class LibraryGalleryWall extends StatelessWidget {
             ],
           ),
         );
+        return LibraryGalleryLayoutMotion(
+          queryIdentity: (
+            state.queryId,
+            state.catalogRevision,
+            layoutShape,
+            thumbnailSize,
+          ),
+          geometryIdentity: (
+            availableWidth,
+            constraints.maxHeight,
+            layoutShape,
+            thumbnailSize,
+          ),
+          scrollController: scrollController,
+          scrollOffsetCorrection: layoutCorrection?.delta ?? 0,
+          child: content,
+        );
       },
     );
   }
@@ -661,7 +661,6 @@ class LibraryGalleryWall extends StatelessWidget {
   static LibraryGalleryVisiblePosition? _positionAtOffset(
     List<LibraryGalleryLayoutEntry> entries,
     List<double> entryStartOffsets,
-    LibraryGalleryLayoutMetrics metrics,
     double scrollOffset,
     double viewportDimension,
     int windowStartItemOffset,
@@ -684,11 +683,10 @@ class LibraryGalleryWall extends StatelessWidget {
     }
     final activeEntry = entries[activeIndex];
     final rowOffset = entryStartOffsets[activeIndex] + 18;
-    final rowStartItemIndex = metrics.itemIndexForScrollOffset(rowOffset);
     final centerCellIndex = LibraryGalleryViewportAnchor.centerCellIndex([
       for (final cell in activeEntry.cells) cell.width,
     ], availableWidth);
-    final itemIndex = rowStartItemIndex + centerCellIndex;
+    final itemIndex = activeEntry.startItemIndex + centerCellIndex;
     final fractions = LibraryGalleryAnchorFractions.capture(
       rowOffset: rowOffset,
       rowHeight: activeEntry.rowHeight,
@@ -769,7 +767,6 @@ class LibraryGalleryWall extends StatelessWidget {
     required LibraryGalleryLayoutTransition? transition,
     required LibraryState state,
     required List<LibraryGalleryLayoutEntry> entries,
-    required List<double> entryStartOffsets,
     required LibraryGalleryLayoutMetrics metrics,
     required LibraryVirtualGalleryGeometry virtualGeometry,
     required double viewportExtent,
@@ -809,25 +806,17 @@ class LibraryGalleryWall extends StatelessWidget {
     if (rowOffset == null) {
       return null;
     }
-    final entryTarget = rowOffset - 18;
-    var lower = 0;
-    var upper = entryStartOffsets.length;
-    while (lower < upper) {
-      final middle = lower + ((upper - lower) >> 1);
-      if (entryStartOffsets[middle] <= entryTarget) {
-        lower = middle + 1;
-      } else {
-        upper = middle;
-      }
-    }
-    final entryIndex = lower - 1;
-    if (entryIndex < 0 || entries[entryIndex].rowHeight <= 0) {
+    final row = LibraryGalleryLayoutEntry.photoRowForItemIndex(
+      entries,
+      localItemIndex,
+    );
+    if (row == null || row.rowHeight <= 0) {
       return null;
     }
     final target =
         virtualGeometry.leadingExtent +
         rowOffset +
-        entries[entryIndex].rowHeight * position.itemFraction -
+        row.rowHeight * position.itemFraction -
         viewportExtent * position.viewportFraction;
     final maximum = (virtualGeometry.totalContentExtent - viewportExtent)
         .clamp(0, double.infinity)
@@ -1164,8 +1153,6 @@ class _ManifestLibraryGalleryWall extends StatefulWidget {
 
 class _ManifestLibraryGalleryWallState
     extends State<_ManifestLibraryGalleryWall> {
-  static const _rowRoundingSlack = 0.5;
-
   LibraryGalleryLayoutSnapshot? _snapshot;
   LibraryExactExtentLayoutCorrection? _layoutCorrection;
   var _layoutCorrectionGeneration = 0;
@@ -1200,6 +1187,7 @@ class _ManifestLibraryGalleryWallState
 
   @override
   Widget build(BuildContext context) {
+    final isActive = TickerMode.valuesOf(context).enabled;
     return LayoutBuilder(
       builder: (context, constraints) {
         if (!LibraryGalleryWall._hasUsableViewport(constraints)) {
@@ -1249,7 +1237,9 @@ class _ManifestLibraryGalleryWallState
         final isPublishedLayout =
             (snapshot.availableWidth - availableWidth).abs() < 0.01;
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (!mounted) {
+          if (!mounted ||
+              !isActive ||
+              !TickerMode.getValuesNotifier(context).value.enabled) {
             return;
           }
           if (isPublishedLayout) {
@@ -1260,7 +1250,7 @@ class _ManifestLibraryGalleryWallState
             );
           }
         });
-        return ScrollConfiguration(
+        final content = ScrollConfiguration(
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
@@ -1376,6 +1366,7 @@ class _ManifestLibraryGalleryWallState
                     child: KeyedSubtree(
                       key: const Key("library-photo-wall"),
                       child: CustomScrollView(
+                        clipBehavior: Clip.none,
                         key: _LibraryGalleryScrollViewKey(
                           widget.scrollController,
                         ),
@@ -1417,9 +1408,8 @@ class _ManifestLibraryGalleryWallState
                                 return _buildEntry(
                                   context,
                                   snapshot,
-                                  snapshot.entries[index],
+                                  index,
                                   assetsByLocation,
-                                  availableWidth,
                                 );
                               },
                             ),
@@ -1483,6 +1473,18 @@ class _ManifestLibraryGalleryWallState
             ],
           ),
         );
+        return LibraryGalleryLayoutMotion(
+          queryIdentity: (
+            widget.state.queryId,
+            widget.state.catalogRevision,
+            widget.layoutShape,
+            widget.thumbnailSize,
+          ),
+          geometryIdentity: (snapshot.availableWidth, _publishedViewportExtent),
+          scrollController: widget.scrollController,
+          scrollOffsetCorrection: _layoutCorrection?.delta ?? 0,
+          child: content,
+        );
       },
     );
   }
@@ -1497,6 +1499,7 @@ class _ManifestLibraryGalleryWallState
         current.matches(
           otherManifest: widget.manifest,
           otherAvailableWidth: availableWidth,
+          otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
@@ -1520,6 +1523,7 @@ class _ManifestLibraryGalleryWallState
     _layoutCorrection = null;
     _publishedViewportExtent = viewportExtent;
     return _snapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: widget.manifest,
       availableWidth: availableWidth,
       thumbnailSize: widget.thumbnailSize,
@@ -1611,7 +1615,8 @@ class _ManifestLibraryGalleryWallState
     ScrollMetrics? scrollMetrics,
     required _LibraryPreviewMovementDirection direction,
   }) {
-    if (widget.state.assets.isEmpty) {
+    if (widget.state.assets.isEmpty ||
+        !TickerMode.getValuesNotifier(context).value.enabled) {
       return;
     }
     final metrics =
@@ -1689,6 +1694,7 @@ class _ManifestLibraryGalleryWallState
         current != null &&
         current.matchesInputs(
           otherManifest: widget.manifest,
+          otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
@@ -1749,6 +1755,7 @@ class _ManifestLibraryGalleryWallState
           (current.matches(
                 otherManifest: widget.manifest,
                 otherAvailableWidth: pendingWidth,
+                otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
                 otherThumbnailSize: widget.thumbnailSize,
                 otherLayoutShape: widget.layoutShape,
                 otherSortKey: widget.state.query.sortKey,
@@ -1761,12 +1768,14 @@ class _ManifestLibraryGalleryWallState
           current.matches(
             otherManifest: widget.manifest,
             otherAvailableWidth: pendingWidth,
+            otherMinimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
             otherThumbnailSize: widget.thumbnailSize,
             otherLayoutShape: widget.layoutShape,
             otherSortKey: widget.state.query.sortKey,
           )
           ? current
           : LibraryGalleryLayoutSnapshot.build(
+              minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
               manifest: widget.manifest,
               availableWidth: pendingWidth,
               thumbnailSize: widget.thumbnailSize,
@@ -1844,68 +1853,35 @@ class _ManifestLibraryGalleryWallState
   Widget _buildEntry(
     BuildContext context,
     LibraryGalleryLayoutSnapshot snapshot,
-    LibraryGalleryLayoutSnapshotEntry entry,
+    int entryIndex,
     Map<String, LibraryAsset> assetsByLocation,
-    double availableWidth,
   ) {
+    final entry = snapshot.entries[entryIndex];
+    final offset = 18 + snapshot.entryStartOffsets[entryIndex];
     if (entry.headerLabel case final label?) {
-      return SizedBox(
-        height: entry.extent,
-        child: Align(
-          alignment: Alignment.centerLeft,
-          child: Semantics(
-            header: true,
-            child: Text(
-              label,
-              key: ValueKey("gallery-date-${entry.dateKey ?? 'unknown'}"),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-          ),
-        ),
+      return LibraryGalleryMotionHeader(
+        label: label,
+        dateKey: entry.dateKey,
+        rect: Rect.fromLTWH(0, offset, snapshot.availableWidth, entry.extent),
       );
     }
     if (!entry.isPhotoRow) {
       return SizedBox(height: entry.extent);
     }
-    final rowPaintWidth = (snapshot.availableWidth + _rowRoundingSlack)
-        .clamp(0, LibraryGalleryWall._maximumViewportExtent)
-        .toDouble();
-    return SizedBox(
-      height: entry.extent,
-      child: Align(
-        alignment: Alignment.topLeft,
-        child: SizedBox(
-          width: availableWidth,
-          height: entry.rowHeight,
-          child: ClipRect(
-            child: OverflowBox(
-              alignment: Alignment.topLeft,
-              minWidth: rowPaintWidth,
-              maxWidth: rowPaintWidth,
-              minHeight: entry.rowHeight,
-              maxHeight: entry.rowHeight,
-              child: Row(
-                children: [
-                  for (
-                    var cellIndex = 0;
-                    cellIndex < entry.itemCount;
-                    cellIndex++
-                  ) ...[
-                    if (cellIndex > 0)
-                      const SizedBox(width: LibraryGalleryLayoutEntry.spacing),
-                    _buildCell(
-                      snapshot,
-                      entry.startItemIndex + cellIndex,
-                      entry.cellWidths[cellIndex],
-                      entry.rowHeight,
-                      assetsByLocation,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-        ),
+    return LibraryGalleryMotionRow(
+      extent: entry.extent,
+      width: snapshot.availableWidth,
+      height: entry.rowHeight,
+      offset: offset,
+      cellWidths: entry.cellWidths,
+      identityAt: (index) =>
+          snapshot.manifest.locationIdAt(entry.startItemIndex + index),
+      builder: (index, size) => _buildCell(
+        snapshot,
+        entry.startItemIndex + index,
+        size.width,
+        size.height,
+        assetsByLocation,
       ),
     );
   }

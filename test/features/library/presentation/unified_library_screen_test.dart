@@ -44,7 +44,16 @@ void main() {
 
     await tester.pumpWidget(const ProviderScope(child: AmeApp()));
 
-    expect(find.text("图库"), findsNWidgets(2));
+    for (final key in const [
+      Key("library-function-rail"),
+      Key("library-sidebar-library"),
+      Key("library-gallery-header"),
+    ]) {
+      expect(
+        find.descendant(of: find.byKey(key), matching: find.text("图库")),
+        findsOneWidget,
+      );
+    }
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
     expect(find.text("Read-only validation"), findsNothing);
     expect(find.byKey(const Key("library-task-activity-button")), findsNothing);
@@ -99,12 +108,12 @@ void main() {
     expect(find.byKey(const Key("library-global-bar")), findsOneWidget);
     expect(
       tester
-          .widget<ListTile>(find.byKey(const Key("library-sidebar-settings")))
-          .selected,
+          .widget<IconButton>(find.byKey(const Key("library-sidebar-settings")))
+          .isSelected,
       isTrue,
     );
 
-    await tester.tap(find.byKey(const Key("library-sidebar-library")));
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
     await tester.pump();
     expect(find.byKey(const Key("ame-settings-page")), findsNothing);
     expect(find.byKey(const Key("library-empty-state")), findsOneWidget);
@@ -409,9 +418,15 @@ void main() {
     )!;
     await tester.pump();
     expectCurrentAnchor();
-    final firstGeometry = tester
-        .widget<LibraryExactExtentSliver>(find.byType(LibraryExactExtentSliver))
-        .itemStartOffsets;
+    Map<String, double> visibleCardWidths() => {
+      for (final asset in assets)
+        if (find.byKey(ValueKey(asset.locationId)).evaluate().length == 1)
+          asset.locationId: tester
+              .getSize(find.byKey(ValueKey(asset.locationId)))
+              .width,
+    };
+
+    final firstWidths = visibleCardWidths();
     var completedVisible = false;
     for (var attempt = 0; attempt < 10 && !completedVisible; attempt++) {
       for (final locationId in previewer.requests.toList()) {
@@ -432,10 +447,16 @@ void main() {
     await tester.pump(const Duration(milliseconds: 160));
     await tester.pump();
     await tester.pump();
-    final secondGeometry = tester
-        .widget<LibraryExactExtentSliver>(find.byType(LibraryExactExtentSliver))
-        .itemStartOffsets;
-    expect(secondGeometry, isNot(firstGeometry));
+    final secondWidths = visibleCardWidths();
+    expect(
+      firstWidths.entries.any(
+        (entry) =>
+            secondWidths.containsKey(entry.key) &&
+            (secondWidths[entry.key]! - entry.value).abs() > 0.01,
+      ),
+      isTrue,
+      reason: "recovered dimensions must change rendered card geometry",
+    );
     expectCurrentAnchor();
     await tester.pumpWidget(const SizedBox());
   });
@@ -746,6 +767,9 @@ void main() {
     expect(find.text("Ame"), findsNothing);
     expect(find.byKey(const Key("library-search")), findsOneWidget);
     expect(find.byKey(const Key("library-import-button")), findsNothing);
+    expect(find.byKey(const Key("library-sidebar-import")), findsNothing);
+    await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
+    await tester.pumpAndSettle();
     expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
     expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
     expect(find.byKey(const Key("window-minimize")), findsOneWidget);
@@ -757,9 +781,18 @@ void main() {
     final galleryTitle = tester.getRect(
       find.byKey(const Key("library-gallery-title")),
     );
-    expect(galleryHeader.left, 77);
+    final sidebar = tester.getRect(find.byKey(const Key("library-navigation")));
+    final toggle = tester.getRect(
+      find.byKey(const Key("library-sidebar-toggle")),
+    );
+    expect(galleryHeader.left, closeTo(sidebar.right, 0.1));
     expect(galleryHeader.right, 800);
-    expect(galleryTitle.left, 105);
+    expect(galleryTitle.left, closeTo(galleryHeader.left + 28, 0.1));
+    final settings = tester.getRect(
+      find.byKey(const Key("library-sidebar-settings")),
+    );
+    expect(toggle.center.dx, settings.center.dx);
+    expect(toggle.bottom, lessThanOrEqualTo(settings.top));
   });
 
   testWidgets("shows scan controls in temporary import feedback", (

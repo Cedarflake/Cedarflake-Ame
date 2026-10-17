@@ -383,6 +383,7 @@ class RustLibraryCatalog
       revision: timeline.revision,
       queryId: timeline.queryId,
       totalItems: timeline.totalItems.toInt(),
+      totalSourceItems: timeline.totalSourceItems.toInt(),
       buckets: List.unmodifiable(
         timeline.buckets.map(
           (bucket) => LibraryTimeBucket(
@@ -469,6 +470,11 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
         rust_domain.GallerySortDirection.ascending,
       LibraryGallerySortDirection.descending =>
         rust_domain.GallerySortDirection.descending,
+    },
+    duplicateMode: switch (query.duplicateMode) {
+      LibraryGalleryDuplicateMode.all => rust_domain.GalleryDuplicateMode.all,
+      LibraryGalleryDuplicateMode.merged =>
+        rust_domain.GalleryDuplicateMode.merged,
     },
   );
 }

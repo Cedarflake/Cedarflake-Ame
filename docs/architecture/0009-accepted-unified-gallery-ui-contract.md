@@ -1,6 +1,7 @@
 # ADR 0009: Accepted unified gallery UI contract
 
-- Status: Accepted
+- Status: Accepted; shell navigation and duplicate entry/review placement are superseded by
+  [ADR 0029](0029-functional-workbench-navigation.md).
 - Date: 2026-08-07
 - Last amended: 2026-09-06
 - Supersedes: ADR 0003
@@ -392,7 +393,10 @@ by that failing portal path. `AmeTooltip` instead keeps one stable framework `Se
 the target and creates a visual `OverlayEntry` only after pointer hover. The visual entry is
 `IgnorePointer`, excluded from semantics, bounded to the screen, fades through a lazily allocated
 framework `AnimationController`, and is removed after exit or target disposal. It neither retains
-an idle route nor replaces focus, keyboard, activation, or screen-reader ownership. Other platforms
+an idle route nor replaces focus, keyboard, activation, or screen-reader ownership. Automatic focus,
+keyboard focus and focus restoration do not show or retain the visual tooltip; the stable semantic
+tooltip remains available to assistive technology. Touch long-press remains an explicit visual trigger.
+Other platforms
 retain the first-party tooltip. Updating a visible tooltip from a target rebuild schedules its
 overlay invalidation after that frame: the root entry is a sibling, not a build descendant. The
 callback must still own the same live entry, and removal must dispose it. Target replacement or

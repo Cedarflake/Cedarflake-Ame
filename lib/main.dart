@@ -11,6 +11,11 @@ import "app/window/ame_shutdown_coordinator.dart";
 import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
 import "features/library/application/library_controller.dart";
+import "features/library/application/library_exact_analysis_controller.dart";
+import "features/library/application/library_exact_analysis_scheduler.dart";
+import "features/library/application/library_gallery_duplicates.dart";
+import "features/library/application/library_exact_duplicates.dart";
+import "features/library/application/library_foreground_reads.dart";
 import "features/library/application/library_scan_shutdown.dart";
 import "features/library/application/library_synchronization.dart";
 import "features/library/application/library_view_preferences.dart";
@@ -38,6 +43,7 @@ Future<void> main() async {
     final query = LibraryGalleryQuery(
       sortKey: viewPreferences.sortKey,
       sortDirection: viewPreferences.sortDirection,
+      duplicateMode: viewPreferences.duplicateMode,
     );
     final snapshot = await catalog.load(
       maxItems: libraryCatalogWindow,
@@ -51,8 +57,22 @@ Future<void> main() async {
     final scanShutdownCoordinator = LibraryScanShutdownCoordinator();
     shutdownCoordinator.register(synchronizationLifecycle.close);
     shutdownCoordinator.register(scanShutdownCoordinator.suspend);
+    final exactAnalysis = LibraryExactAnalysisController(
+      const RustLibraryExactDuplicates(),
+    );
+    final exactScheduler = LibraryExactAnalysisScheduler(
+      exactAnalysis,
+      paused: amePreferences.exactAnalysisPaused,
+      foregroundReads: libraryForegroundReads,
+    );
+    shutdownCoordinator.register(exactScheduler.close);
     application = ProviderScope(
       overrides: [
+        libraryGalleryDuplicatesProvider.overrideWithValue(
+          const RustLibraryGalleryDuplicates(),
+        ),
+        libraryExactAnalysisControllerProvider.overrideWithValue(exactAnalysis),
+        libraryExactAnalysisSchedulerProvider.overrideWithValue(exactScheduler),
         ameWindowActionsProvider.overrideWithValue(windowActions),
         initialAmePreferencesProvider.overrideWithValue(amePreferences),
         amePreferenceStoreProvider.overrideWithValue(preferenceStore),

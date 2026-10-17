@@ -181,6 +181,8 @@ void main() {
     expect(copiedAsset, same(asset));
     expect(find.byType(AmeMenuItemContent), findsNothing);
 
+    await tester.sendKeyEvent(LogicalKeyboardKey.tab);
+    await tester.pump();
     await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
     await tester.pumpAndSettle();
 

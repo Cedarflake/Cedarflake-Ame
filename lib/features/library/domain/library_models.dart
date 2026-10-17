@@ -232,6 +232,8 @@ enum LibraryGallerySortKey { captureTime, createdTime, modifiedTime, fileName }
 
 enum LibraryGallerySortDirection { ascending, descending }
 
+enum LibraryGalleryDuplicateMode { all, merged }
+
 class LibraryGalleryQuery {
   const LibraryGalleryQuery({
     this.rootId,
@@ -240,6 +242,7 @@ class LibraryGalleryQuery {
     this.searchText = "",
     this.sortKey = LibraryGallerySortKey.captureTime,
     this.sortDirection = LibraryGallerySortDirection.descending,
+    this.duplicateMode = LibraryGalleryDuplicateMode.all,
   });
 
   static const Object _unchanged = Object();
@@ -250,6 +253,7 @@ class LibraryGalleryQuery {
   final String searchText;
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection sortDirection;
+  final LibraryGalleryDuplicateMode duplicateMode;
 
   bool get isChronological => sortKey != LibraryGallerySortKey.fileName;
 
@@ -260,6 +264,7 @@ class LibraryGalleryQuery {
     String? searchText,
     LibraryGallerySortKey? sortKey,
     LibraryGallerySortDirection? sortDirection,
+    LibraryGalleryDuplicateMode? duplicateMode,
   }) {
     return LibraryGalleryQuery(
       rootId: rootId == _unchanged ? this.rootId : rootId as String?,
@@ -270,6 +275,7 @@ class LibraryGalleryQuery {
       searchText: searchText ?? this.searchText,
       sortKey: sortKey ?? this.sortKey,
       sortDirection: sortDirection ?? this.sortDirection,
+      duplicateMode: duplicateMode ?? this.duplicateMode,
     );
   }
 
@@ -281,6 +287,7 @@ class LibraryGalleryQuery {
     searchText,
     sortKey,
     sortDirection,
+    duplicateMode,
   );
 
   @override
@@ -292,7 +299,8 @@ class LibraryGalleryQuery {
             includeDescendants == other.includeDescendants &&
             searchText == other.searchText &&
             sortKey == other.sortKey &&
-            sortDirection == other.sortDirection;
+            sortDirection == other.sortDirection &&
+            duplicateMode == other.duplicateMode;
   }
 }
 
@@ -315,12 +323,14 @@ class LibraryTimeline {
     required this.revision,
     required this.queryId,
     required this.totalItems,
+    int? totalSourceItems,
     required this.buckets,
-  });
+  }) : totalSourceItems = totalSourceItems ?? totalItems;
 
   final BigInt revision;
   final String queryId;
   final int totalItems;
+  final int totalSourceItems;
   final List<LibraryTimeBucket> buckets;
 }
 

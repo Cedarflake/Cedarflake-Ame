@@ -390,6 +390,8 @@ class FileIdentityEvidence {
           value == other.value;
 }
 
+enum GalleryDuplicateMode { all, merged }
+
 class GalleryLayoutDateGroup {
   final String? dateKey;
 
@@ -534,6 +536,7 @@ class GalleryQuery {
   final String searchText;
   final GallerySortKey sortKey;
   final GallerySortDirection sortDirection;
+  final GalleryDuplicateMode duplicateMode;
 
   const GalleryQuery({
     this.rootId,
@@ -542,6 +545,7 @@ class GalleryQuery {
     required this.searchText,
     required this.sortKey,
     required this.sortDirection,
+    required this.duplicateMode,
   });
 
   @override
@@ -551,7 +555,8 @@ class GalleryQuery {
       includeDescendants.hashCode ^
       searchText.hashCode ^
       sortKey.hashCode ^
-      sortDirection.hashCode;
+      sortDirection.hashCode ^
+      duplicateMode.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -563,7 +568,8 @@ class GalleryQuery {
           includeDescendants == other.includeDescendants &&
           searchText == other.searchText &&
           sortKey == other.sortKey &&
-          sortDirection == other.sortDirection;
+          sortDirection == other.sortDirection &&
+          duplicateMode == other.duplicateMode;
 }
 
 enum GallerySortDirection { ascending, descending }
@@ -630,12 +636,14 @@ class GalleryTimeline {
   final BigInt revision;
   final String queryId;
   final BigInt totalItems;
+  final BigInt totalSourceItems;
   final List<GalleryTimeBucket> buckets;
 
   const GalleryTimeline({
     required this.revision,
     required this.queryId,
     required this.totalItems,
+    required this.totalSourceItems,
     required this.buckets,
   });
 
@@ -644,6 +652,7 @@ class GalleryTimeline {
       revision.hashCode ^
       queryId.hashCode ^
       totalItems.hashCode ^
+      totalSourceItems.hashCode ^
       buckets.hashCode;
 
   @override
@@ -654,6 +663,7 @@ class GalleryTimeline {
           revision == other.revision &&
           queryId == other.queryId &&
           totalItems == other.totalItems &&
+          totalSourceItems == other.totalSourceItems &&
           buckets == other.buckets;
 }
 

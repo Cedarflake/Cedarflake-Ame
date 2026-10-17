@@ -4,6 +4,8 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/catalog.dart';
+import 'api/exact_duplicate_review.dart';
+import 'api/exact_duplicates.dart';
 import 'api/preview.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
@@ -13,6 +15,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'domain.dart';
+import 'domain/exact_duplicate_review.dart';
+import 'domain/exact_duplicates.dart';
 import 'domain/gallery_query_snapshot.dart';
 import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
@@ -56,6 +60,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<ExactAnalysisProgress>
+  dco_decode_StreamSink_exact_analysis_progress_Sse(dynamic raw);
+
+  @protected
   RustStreamSink<PreviewCleanupEvent>
   dco_decode_StreamSink_preview_cleanup_event_Sse(dynamic raw);
 
@@ -85,6 +93,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogReadRetryDetails dco_decode_box_autoadd_catalog_read_retry_details(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicateGroupCursor dco_decode_box_autoadd_exact_duplicate_group_cursor(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicatePreference dco_decode_box_autoadd_exact_duplicate_preference(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicateReviewKey dco_decode_box_autoadd_exact_duplicate_review_key(
     dynamic raw,
   );
 
@@ -194,7 +217,75 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
 
   @protected
+  DuplicateLocationAvailability dco_decode_duplicate_location_availability(
+    dynamic raw,
+  );
+
+  @protected
+  ExactAnalysisPhase dco_decode_exact_analysis_phase(dynamic raw);
+
+  @protected
+  ExactAnalysisProgress dco_decode_exact_analysis_progress(dynamic raw);
+
+  @protected
+  ExactDuplicateDecision dco_decode_exact_duplicate_decision(dynamic raw);
+
+  @protected
+  ExactDuplicateGroup dco_decode_exact_duplicate_group(dynamic raw);
+
+  @protected
+  ExactDuplicateGroupCursor dco_decode_exact_duplicate_group_cursor(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicateGroupPage dco_decode_exact_duplicate_group_page(dynamic raw);
+
+  @protected
+  ExactDuplicateLocation dco_decode_exact_duplicate_location(dynamic raw);
+
+  @protected
+  ExactDuplicateLocationPage dco_decode_exact_duplicate_location_page(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicatePreference dco_decode_exact_duplicate_preference(dynamic raw);
+
+  @protected
+  ExactDuplicateReviewGroup dco_decode_exact_duplicate_review_group(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicateReviewKey dco_decode_exact_duplicate_review_key(dynamic raw);
+
+  @protected
+  ExactDuplicateReviewLocation dco_decode_exact_duplicate_review_location(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicateReviewLocations dco_decode_exact_duplicate_review_locations(
+    dynamic raw,
+  );
+
+  @protected
+  ExactDuplicateReviewPage dco_decode_exact_duplicate_review_page(dynamic raw);
+
+  @protected
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
+
+  @protected
+  GalleryDuplicateAnnotation dco_decode_gallery_duplicate_annotation(
+    dynamic raw,
+  );
+
+  @protected
+  GalleryDuplicateMode dco_decode_gallery_duplicate_mode(dynamic raw);
+
+  @protected
+  GalleryDuplicatePage dco_decode_gallery_duplicate_page(dynamic raw);
 
   @protected
   GalleryLayoutDateGroup dco_decode_gallery_layout_date_group(dynamic raw);
@@ -307,6 +398,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<ExactDuplicateGroup> dco_decode_list_exact_duplicate_group(dynamic raw);
+
+  @protected
+  List<ExactDuplicateLocation> dco_decode_list_exact_duplicate_location(
+    dynamic raw,
+  );
+
+  @protected
+  List<ExactDuplicateReviewGroup> dco_decode_list_exact_duplicate_review_group(
+    dynamic raw,
+  );
+
+  @protected
+  List<ExactDuplicateReviewLocation>
+  dco_decode_list_exact_duplicate_review_location(dynamic raw);
+
+  @protected
+  List<GalleryDuplicateAnnotation> dco_decode_list_gallery_duplicate_annotation(
+    dynamic raw,
+  );
+
+  @protected
   List<GalleryLayoutDateGroup> dco_decode_list_gallery_layout_date_group(
     dynamic raw,
   );
@@ -354,6 +467,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   dco_decode_opt_box_autoadd_catalog_read_retry_details(dynamic raw);
+
+  @protected
+  ExactDuplicateGroupCursor?
+  dco_decode_opt_box_autoadd_exact_duplicate_group_cursor(dynamic raw);
+
+  @protected
+  ExactDuplicatePreference?
+  dco_decode_opt_box_autoadd_exact_duplicate_preference(dynamic raw);
 
   @protected
   FileIdentityEvidence? dco_decode_opt_box_autoadd_file_identity_evidence(
@@ -486,6 +607,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<ExactAnalysisProgress>
+  sse_decode_StreamSink_exact_analysis_progress_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustStreamSink<PreviewCleanupEvent>
   sse_decode_StreamSink_preview_cleanup_event_Sse(SseDeserializer deserializer);
 
@@ -527,6 +654,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   CatalogReadRetryDetails sse_decode_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateGroupCursor sse_decode_box_autoadd_exact_duplicate_group_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicatePreference sse_decode_box_autoadd_exact_duplicate_preference(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateReviewKey sse_decode_box_autoadd_exact_duplicate_review_key(
     SseDeserializer deserializer,
   );
 
@@ -672,7 +814,97 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  DuplicateLocationAvailability sse_decode_duplicate_location_availability(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactAnalysisPhase sse_decode_exact_analysis_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactAnalysisProgress sse_decode_exact_analysis_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateDecision sse_decode_exact_duplicate_decision(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateGroup sse_decode_exact_duplicate_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateGroupCursor sse_decode_exact_duplicate_group_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateGroupPage sse_decode_exact_duplicate_group_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateLocation sse_decode_exact_duplicate_location(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateLocationPage sse_decode_exact_duplicate_location_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicatePreference sse_decode_exact_duplicate_preference(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateReviewGroup sse_decode_exact_duplicate_review_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateReviewKey sse_decode_exact_duplicate_review_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateReviewLocation sse_decode_exact_duplicate_review_location(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateReviewLocations sse_decode_exact_duplicate_review_locations(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateReviewPage sse_decode_exact_duplicate_review_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   FileIdentityEvidence sse_decode_file_identity_evidence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryDuplicateAnnotation sse_decode_gallery_duplicate_annotation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryDuplicateMode sse_decode_gallery_duplicate_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryDuplicatePage sse_decode_gallery_duplicate_page(
     SseDeserializer deserializer,
   );
 
@@ -815,6 +1047,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<ExactDuplicateGroup> sse_decode_list_exact_duplicate_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ExactDuplicateLocation> sse_decode_list_exact_duplicate_location(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ExactDuplicateReviewGroup> sse_decode_list_exact_duplicate_review_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<ExactDuplicateReviewLocation>
+  sse_decode_list_exact_duplicate_review_location(SseDeserializer deserializer);
+
+  @protected
+  List<GalleryDuplicateAnnotation> sse_decode_list_gallery_duplicate_annotation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<GalleryLayoutDateGroup> sse_decode_list_gallery_layout_date_group(
     SseDeserializer deserializer,
   );
@@ -872,6 +1128,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   CatalogReadRetryDetails?
   sse_decode_opt_box_autoadd_catalog_read_retry_details(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateGroupCursor?
+  sse_decode_opt_box_autoadd_exact_duplicate_group_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicatePreference?
+  sse_decode_opt_box_autoadd_exact_duplicate_preference(
     SseDeserializer deserializer,
   );
 
@@ -1028,6 +1296,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_exact_analysis_progress_Sse(
+    RustStreamSink<ExactAnalysisProgress> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_StreamSink_preview_cleanup_event_Sse(
     RustStreamSink<PreviewCleanupEvent> self,
     SseSerializer serializer,
@@ -1078,6 +1352,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_catalog_read_retry_details(
     CatalogReadRetryDetails self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_exact_duplicate_group_cursor(
+    ExactDuplicateGroupCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_exact_duplicate_preference(
+    ExactDuplicatePreference self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_exact_duplicate_review_key(
+    ExactDuplicateReviewKey self,
     SseSerializer serializer,
   );
 
@@ -1256,8 +1548,116 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_duplicate_location_availability(
+    DuplicateLocationAvailability self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_analysis_phase(
+    ExactAnalysisPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_analysis_progress(
+    ExactAnalysisProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_decision(
+    ExactDuplicateDecision self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_group(
+    ExactDuplicateGroup self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_group_cursor(
+    ExactDuplicateGroupCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_group_page(
+    ExactDuplicateGroupPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_location(
+    ExactDuplicateLocation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_location_page(
+    ExactDuplicateLocationPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_preference(
+    ExactDuplicatePreference self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_review_group(
+    ExactDuplicateReviewGroup self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_review_key(
+    ExactDuplicateReviewKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_review_location(
+    ExactDuplicateReviewLocation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_review_locations(
+    ExactDuplicateReviewLocations self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_review_page(
+    ExactDuplicateReviewPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_file_identity_evidence(
     FileIdentityEvidence self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_duplicate_annotation(
+    GalleryDuplicateAnnotation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_duplicate_mode(
+    GalleryDuplicateMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_duplicate_page(
+    GalleryDuplicatePage self,
     SseSerializer serializer,
   );
 
@@ -1433,6 +1833,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_exact_duplicate_group(
+    List<ExactDuplicateGroup> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_exact_duplicate_location(
+    List<ExactDuplicateLocation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_exact_duplicate_review_group(
+    List<ExactDuplicateReviewGroup> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_exact_duplicate_review_location(
+    List<ExactDuplicateReviewLocation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_gallery_duplicate_annotation(
+    List<GalleryDuplicateAnnotation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_gallery_layout_date_group(
     List<GalleryLayoutDateGroup> self,
     SseSerializer serializer,
@@ -1504,6 +1934,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_catalog_read_retry_details(
     CatalogReadRetryDetails? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_exact_duplicate_group_cursor(
+    ExactDuplicateGroupCursor? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_exact_duplicate_preference(
+    ExactDuplicatePreference? self,
     SseSerializer serializer,
   );
 

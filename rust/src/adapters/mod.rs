@@ -1,4 +1,5 @@
 mod durable_local_metadata_inventory;
+mod exact_content_reader;
 mod exif_metadata;
 mod image_orientation;
 mod jpeg_preview;
@@ -6,6 +7,7 @@ mod local_files;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;
+pub(crate) use exact_content_reader::GuardedExactContentReader;
 mod preview_cache;
 mod sqlite_catalog;
 mod storage_settings;
@@ -75,7 +77,7 @@ pub(crate) use sqlite_catalog::{
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{
-    WatcherRecoveryObservation, full_schema_validation_count,
+    WatcherRecoveryObservation, downgrade_to_v39_for_test, full_schema_validation_count,
     remove_persistent_journal_v22_contract_for_test, reset_full_schema_validation_count,
     set_before_catalog_delta_commit_hook, set_before_metadata_inventory_spool_commit_hook,
     set_before_scan_projection_replacement_hook,

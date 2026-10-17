@@ -5,15 +5,16 @@ import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../application/library_platform_actions.dart";
+import "windows_shell_reveal.dart";
 
 class WindowsLibraryPlatformActions implements LibraryPlatformActions {
   const WindowsLibraryPlatformActions()
-    : _launchExplorer = _launchDetachedExplorer;
+    : _revealShellItem = revealWindowsShellItem;
 
   @visibleForTesting
-  WindowsLibraryPlatformActions.withLauncher(this._launchExplorer);
+  WindowsLibraryPlatformActions.withRevealer(this._revealShellItem);
 
-  final Future<void> Function(List<String> arguments) _launchExplorer;
+  final Future<void> Function(String path) _revealShellItem;
 
   @override
   Future<void> copyText(String value) {
@@ -43,7 +44,7 @@ class WindowsLibraryPlatformActions implements LibraryPlatformActions {
 
   Future<void> _revealPath(String path) {
     final shellPath = _explorerCompatiblePath(path);
-    return _launchExplorer(["/select,", shellPath]);
+    return _revealShellItem(shellPath);
   }
 }
 
@@ -55,17 +56,6 @@ String _explorerCompatiblePath(String path) {
     return path.substring(4);
   }
   return path;
-}
-
-Future<void> _launchDetachedExplorer(List<String> arguments) async {
-  if (!Platform.isWindows) {
-    throw UnsupportedError("File Explorer actions require Windows");
-  }
-  await Process.start(
-    "explorer.exe",
-    arguments,
-    mode: ProcessStartMode.detached,
-  );
 }
 
 final libraryPlatformActionsProvider = Provider<LibraryPlatformActions>((ref) {

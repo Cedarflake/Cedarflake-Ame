@@ -28,6 +28,8 @@ mod catalog_namespace;
 use catalog_namespace::{
     SqliteCatalogIdentityGuard, SqliteDatabaseIdentity, open_catalog_database_identity_guard,
 };
+mod exact_duplicate_review;
+mod exact_duplicates;
 mod folders;
 mod gallery;
 mod gallery_snapshot;
@@ -115,7 +117,7 @@ pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
 #[cfg(test)]
 pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
-const SCHEMA_VERSION: i64 = 39;
+const SCHEMA_VERSION: i64 = 43;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
@@ -209,6 +211,9 @@ pub(crate) fn full_schema_validation_count(path: &Path) -> usize {
         .copied()
         .unwrap_or(0)
 }
+
+#[cfg(test)]
+pub(crate) use migrations::downgrade_to_v39_for_test;
 
 #[cfg(test)]
 pub(crate) fn remove_persistent_journal_v22_contract_for_test(connection: &Connection) {

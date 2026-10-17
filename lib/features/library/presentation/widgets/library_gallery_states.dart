@@ -5,6 +5,7 @@ import "../../domain/library_models.dart";
 import "../../domain/library_state.dart";
 import "../library_first_import_feedback.dart";
 import "../library_strings.dart";
+import "library_gallery_message.dart";
 
 /// 图库中央的空白区域提示入口；按加载、恢复、首次添加及空结果选择对应文案。
 /// 文字集中在 LibraryStrings；首次添加的标题和说明配对见 LibraryFirstImportFeedback。
@@ -168,34 +169,15 @@ class NoGalleryResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSearch = query.searchText.isNotEmpty;
-    return Center(
+    return LibraryGalleryMessage(
       key: const Key("library-no-results"),
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              isSearch ? Symbols.image_search_rounded : Symbols.photo_rounded,
-              size: 48,
-            ),
-            const SizedBox(height: 16),
-            Text(
-              isSearch
-                  ? LibraryStrings.noSearchResults
-                  : LibraryStrings.noSourceResults,
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              isSearch
-                  ? LibraryStrings.noSearchResultsHint
-                  : LibraryStrings.noSourceResultsHint,
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
+      icon: isSearch ? Symbols.image_search_rounded : Symbols.photo_rounded,
+      title: isSearch
+          ? LibraryStrings.noSearchResults
+          : LibraryStrings.noSourceResults,
+      detail: isSearch
+          ? LibraryStrings.noSearchResultsHint
+          : LibraryStrings.noSourceResultsHint,
     );
   }
 }

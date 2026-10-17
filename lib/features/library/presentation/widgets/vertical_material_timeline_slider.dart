@@ -1,7 +1,5 @@
 import "package:flutter/material.dart";
 
-import "../../../../app/presentation/ame_overlay_semantics.dart";
-
 class VerticalMaterialTimelineSlider extends StatefulWidget {
   const VerticalMaterialTimelineSlider({
     required this.value,
@@ -39,6 +37,12 @@ class _VerticalMaterialTimelineSliderState
 
   @override
   Widget build(BuildContext context) {
+    // Slider keeps its value-indicator OverlayPortal mounted even when idle.
+    // Retire it with a hidden workspace so its traversal node cannot outlive
+    // the gallery's semantics tree; the timeline value remains externally owned.
+    if (!TickerMode.valuesOf(context).enabled) {
+      return const SizedBox.expand();
+    }
     final colorScheme = Theme.of(context).colorScheme;
     final sliderTheme = SliderTheme.of(context).copyWith(
       trackHeight: 1,
@@ -66,7 +70,10 @@ class _VerticalMaterialTimelineSliderState
             ),
           ),
         ),
-        AmeOverlayTraversalBoundary(
+        // Let the portal merge its traversal identity into this stable node.
+        // Explicit child nodes recreate its anonymous parent when enabled changes.
+        Semantics(
+          container: true,
           child: SliderTheme(
             data: sliderTheme,
             child: RotatedBox(

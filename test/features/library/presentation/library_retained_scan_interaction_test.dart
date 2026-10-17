@@ -2,6 +2,7 @@ import "dart:async";
 
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/application/library_update_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
@@ -37,18 +38,14 @@ void main() {
       await tester.tap(find.byKey(const Key("library-sidebar-settings")));
       await tester.pump();
       expect(
-        tester
-            .widget<LibraryNavigation>(find.byType(LibraryNavigation))
-            .isSettingsSelected,
-        isTrue,
+        fixture.container.read(libraryWorkbenchControllerProvider),
+        LibraryWorkspace.settings,
       );
-      await tester.tap(find.byKey(const Key("library-sidebar-library")));
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
       await tester.pump();
       expect(
-        tester
-            .widget<LibraryNavigation>(find.byType(LibraryNavigation))
-            .isSettingsSelected,
-        isFalse,
+        fixture.container.read(libraryWorkbenchControllerProvider),
+        LibraryWorkspace.gallery,
       );
       await tester.tap(find.byKey(const ValueKey("source-title-other")));
       await tester.pump();
@@ -153,15 +150,15 @@ void main() {
 
       await tester.tap(find.byKey(const Key("library-sidebar-settings")));
       await tester.pump();
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
+      await tester.pump();
       await tester.tap(find.byKey(const ValueKey("source-title-other")));
       await tester.pump();
       await tester.pump();
       expect(fixture.state.query.rootId, "other");
       expect(
-        tester
-            .widget<LibraryNavigation>(find.byType(LibraryNavigation))
-            .isSettingsSelected,
-        isFalse,
+        fixture.container.read(libraryWorkbenchControllerProvider),
+        LibraryWorkspace.gallery,
       );
       fixture.scanner.failUpdates();
       await tester.pump();

@@ -233,409 +233,413 @@ void main() {
     }
   });
 
-  testWidgets(
-    "keeps the populated application accessibility tree synchronized",
-    (tester) async {
-      const itemCount = 1200;
-      const initialLoadedCount = 160;
-      final allAssets = [
-        for (var index = 0; index < itemCount; index++) _asset(index),
-      ];
-      final state = _galleryState(
-        itemCount,
-        assets: allAssets.take(initialLoadedCount).toList(growable: false),
-      );
-      final manifest = _manifest(itemCount);
-      final snapshot = LibrarySnapshot(
-        catalogPath: "C:\\AmeData\\ame.sqlite3",
-        revision: BigInt.one,
-        queryId: state.queryId,
-        roots: state.roots,
-        assets: state.assets,
-      );
-      final catalog = _ControlledWindowCatalog(
-        initialSnapshot: snapshot,
-        timeline: state.timeline!,
-        allAssets: allAssets,
-      );
-      tester.view.physicalSize = const Size(1280, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final semanticsHandle = tester.ensureSemantics();
-      try {
-        await tester.pumpWidget(
-          ProviderScope(
-            overrides: [
-              initialLibraryStateProvider.overrideWithValue(state),
-              initialLibraryViewPreferencesProvider.overrideWithValue(
-                const LibraryViewPreferences(
-                  layoutShape: GalleryLayoutShape.square,
-                ),
+  testWidgets("keeps the populated application accessibility tree synchronized", (
+    tester,
+  ) async {
+    const itemCount = 1200;
+    const initialLoadedCount = 160;
+    final allAssets = [
+      for (var index = 0; index < itemCount; index++) _asset(index),
+    ];
+    final state = _galleryState(
+      itemCount,
+      assets: allAssets.take(initialLoadedCount).toList(growable: false),
+    );
+    final manifest = _manifest(itemCount);
+    final snapshot = LibrarySnapshot(
+      catalogPath: "C:\\AmeData\\ame.sqlite3",
+      revision: BigInt.one,
+      queryId: state.queryId,
+      roots: state.roots,
+      assets: state.assets,
+    );
+    final catalog = _ControlledWindowCatalog(
+      initialSnapshot: snapshot,
+      timeline: state.timeline!,
+      allAssets: allAssets,
+    );
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final semanticsHandle = tester.ensureSemantics();
+    try {
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            initialLibraryStateProvider.overrideWithValue(state),
+            initialLibraryViewPreferencesProvider.overrideWithValue(
+              const LibraryViewPreferences(
+                layoutShape: GalleryLayoutShape.square,
               ),
-              libraryCatalogProvider.overrideWithValue(catalog),
-              libraryScannerProvider.overrideWithValue(const _NoopScanner()),
-              libraryPreviewerProvider.overrideWithValue(
-                _StaticPreviewer(allAssets),
-              ),
-              libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
-                _StaticManifestLoader(manifest),
-              ),
-            ],
-            child: const AmeApp(),
+            ),
+            libraryCatalogProvider.overrideWithValue(catalog),
+            libraryScannerProvider.overrideWithValue(const _NoopScanner()),
+            libraryPreviewerProvider.overrideWithValue(
+              _StaticPreviewer(allAssets),
+            ),
+            libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(
+              _StaticManifestLoader(manifest),
+            ),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(MenuAnchor), findsNothing);
+      for (final name in const ["Pictures", "Documents", "Archive"]) {
+        expect(
+          find.bySemanticsLabel(
+            "$name\n${LibraryStrings.synchronizationUnconfirmed}",
           ),
+          findsOneWidget,
+        );
+      }
+      await nativeUiaProbe.checkpoint(tester, "application-ready");
+
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      await mouse.addPointer();
+      for (final key in const <Key>[
+        Key("library-sort-menu"),
+        Key("library-layout-menu"),
+        Key("library-more-menu"),
+      ]) {
+        final control = find.byKey(key).hitTestable();
+        expect(control, findsOneWidget);
+        final controlCenter = tester.getCenter(control);
+        await mouse.moveTo(controlCenter);
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.tap(control);
+        await tester.pumpAndSettle();
+        await tester.tapAt(controlCenter);
+        await tester.pumpAndSettle();
+      }
+
+      for (final rootId in const ["root-1", "root-2", "root-3"]) {
+        for (final controlName in const ["title", "expand", "more"]) {
+          final control = find.byKey(ValueKey("source-$controlName-$rootId"));
+          expect(control, findsOneWidget);
+          if (controlName != "title") {
+            expect(control.hitTestable(), findsOneWidget);
+          }
+          await mouse.moveTo(tester.getCenter(control));
+          await tester.pump(const Duration(milliseconds: 600));
+        }
+      }
+
+      final firstSourceMenu = find.byKey(const ValueKey("source-more-root-1"));
+      final secondSourceMenu = find.byKey(const ValueKey("source-more-root-2"));
+      expect(firstSourceMenu.hitTestable(), findsOneWidget);
+      expect(secondSourceMenu.hitTestable(), findsOneWidget);
+      await tester.tap(firstSourceMenu);
+      await tester.pumpAndSettle();
+      expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
+      await nativeUiaProbe.checkpoint(tester, "source-menu-open");
+      await mouse.moveTo(tester.getCenter(secondSourceMenu));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.tapAt(const Offset(1272, 792));
+      await _pumpUntil(
+        tester,
+        () => find.text(LibraryStrings.updateLibrary).evaluate().isEmpty,
+      );
+      expect(find.text(LibraryStrings.updateLibrary), findsNothing);
+      await nativeUiaProbe.checkpoint(tester, "source-menu-closed");
+      expect(secondSourceMenu.hitTestable(), findsOneWidget);
+      await tester.tap(secondSourceMenu);
+      await tester.pumpAndSettle();
+      expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
+      await tester.tapAt(const Offset(1272, 792));
+      await _pumpUntil(
+        tester,
+        () => find.text(LibraryStrings.updateLibrary).evaluate().isEmpty,
+      );
+      expect(find.text(LibraryStrings.updateLibrary), findsNothing);
+
+      final wall = tester.widget<LibraryGalleryWall>(
+        find.byType(LibraryGalleryWall),
+      );
+      wall.scrollController.jumpTo(
+        wall.scrollController.position.maxScrollExtent * 0.8,
+      );
+      await tester.pump();
+      await tester.pump();
+      expect(catalog.hasPendingTimeLoad, isTrue);
+      expect(find.byKey(const Key("library-top-loading")), findsOneWidget);
+      await nativeUiaProbe.checkpoint(tester, "square-range-loading");
+
+      final unloadedSlots = find.descendant(
+        of: find.byKey(const Key("library-photo-wall")),
+        matching: find.byWidgetPredicate((widget) {
+          final key = widget.key;
+          return widget is! LibraryPhotoTile &&
+              key is ValueKey<String> &&
+              key.value.startsWith("location-");
+        }),
+      );
+      expect(unloadedSlots, findsWidgets);
+      expect(unloadedSlots.hitTestable(), findsNothing);
+      expect(
+        find.descendant(of: unloadedSlots, matching: find.byType(DecoratedBox)),
+        findsNWidgets(unloadedSlots.evaluate().length),
+      );
+      final wallRect = tester.getRect(
+        find.byKey(const Key("library-photo-wall")),
+      );
+      final unobscuredWallRect = Rect.fromLTRB(
+        wallRect.left + 4,
+        wallRect.top + 8,
+        wallRect.right - 96,
+        wallRect.bottom - 4,
+      );
+      Key? unloadedSlotKey;
+      Rect? unloadedSlotRect;
+      var nearestDistance = double.infinity;
+      for (final element in unloadedSlots.evaluate()) {
+        final key = element.widget.key;
+        if (key == null) {
+          continue;
+        }
+        final candidateRect = tester.getRect(find.byKey(key));
+        if (!unobscuredWallRect.contains(candidateRect.center)) {
+          continue;
+        }
+        final distance =
+            (candidateRect.center - unobscuredWallRect.center).distanceSquared;
+        if (distance < nearestDistance) {
+          nearestDistance = distance;
+          unloadedSlotKey = key;
+          unloadedSlotRect = candidateRect;
+        }
+      }
+      final replacementKey = unloadedSlotKey;
+      final originalRect = unloadedSlotRect;
+      if (replacementKey == null || originalRect == null) {
+        throw StateError("No unloaded slot is visible in the gallery");
+      }
+
+      catalog.completePendingTimeLoad();
+      await tester.pumpAndSettle();
+      final replacement = find.byKey(replacementKey).hitTestable();
+      expect(replacement, findsOneWidget);
+      expect(tester.widget(replacement), isA<LibraryPhotoTile>());
+      final replacementRect = tester.getRect(replacement);
+      expect(replacementRect.left, closeTo(originalRect.left, 1));
+      expect(replacementRect.top, closeTo(originalRect.top, 1));
+      expect(replacementRect.width, closeTo(originalRect.width, 1));
+      expect(replacementRect.height, closeTo(originalRect.height, 1));
+
+      for (final fraction in <double>[0.15, 0.45, 0.75, 1, 0.6, 0.3, 0.9, 0]) {
+        wall.scrollController.jumpTo(
+          wall.scrollController.position.maxScrollExtent * fraction,
+        );
+        await tester.pump();
+        await tester.pump();
+        await tester.pump();
+
+        await tester.tap(
+          find.byType(LibraryPhotoTile).hitTestable().first,
+          buttons: kSecondaryMouseButton,
         );
         await tester.pumpAndSettle();
-        expect(find.byType(MenuAnchor), findsNothing);
-        for (final name in const ["Pictures", "Documents", "Archive"]) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+      }
+
+      final timelineSliderFinder = find
+          .byKey(const Key("timeline-slider"))
+          .hitTestable();
+      final timelineValueBefore = tester
+          .widget<Slider>(timelineSliderFinder)
+          .value;
+      final timelineRect = tester.getRect(timelineSliderFinder);
+      await mouse.moveTo(timelineRect.center);
+      await mouse.down(timelineRect.center);
+      await mouse.moveTo(
+        timelineRect.center + Offset(0, timelineRect.height * 0.25),
+      );
+      await mouse.up();
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Slider>(timelineSliderFinder).value,
+        isNot(closeTo(timelineValueBefore, 0.001)),
+      );
+
+      for (var cycle = 0; cycle < 2; cycle += 1) {
+        final tile = find.byType(LibraryPhotoTile).hitTestable().first;
+        final visibleTileRect = tester
+            .getRect(tile)
+            .intersect(
+              tester.getRect(find.byKey(const Key("library-photo-wall"))),
+            );
+        // The fixture has failed previews: avoid the central Retry control
+        // and the clipped top edge after a timeline jump.
+        await tester.tapAt(
+          Offset(visibleTileRect.left + 16, visibleTileRect.center.dy),
+        );
+        await tester.pump();
+        await tester.pump();
+        expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+        if (cycle == 0) {
           expect(
-            find.bySemanticsLabel(
-              "$name\n${LibraryStrings.synchronizationUnconfirmed}",
-            ),
+            find.bySemanticsLabel(LibraryStrings.fitImageToWindow),
             findsOneWidget,
           );
-        }
-        await nativeUiaProbe.checkpoint(tester, "application-ready");
-
-        final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-        await mouse.addPointer();
-        for (final key in const <Key>[
-          Key("library-sort-menu"),
-          Key("library-layout-menu"),
-          Key("library-more-menu"),
-        ]) {
-          final control = find.byKey(key).hitTestable();
-          expect(control, findsOneWidget);
-          final controlCenter = tester.getCenter(control);
-          await mouse.moveTo(controlCenter);
-          await tester.pump(const Duration(milliseconds: 600));
-          await tester.tap(control);
-          await tester.pumpAndSettle();
-          await tester.tapAt(controlCenter);
-          await tester.pumpAndSettle();
-        }
-
-        for (final rootId in const ["root-1", "root-2", "root-3"]) {
-          for (final controlName in const ["title", "expand", "more"]) {
-            final control = find.byKey(ValueKey("source-$controlName-$rootId"));
-            expect(control, findsOneWidget);
-            if (controlName != "title") {
-              expect(control.hitTestable(), findsOneWidget);
-            }
-            await mouse.moveTo(tester.getCenter(control));
-            await tester.pump(const Duration(milliseconds: 600));
-          }
-        }
-
-        final firstSourceMenu = find.byKey(
-          const ValueKey("source-more-root-1"),
-        );
-        final secondSourceMenu = find.byKey(
-          const ValueKey("source-more-root-2"),
-        );
-        expect(firstSourceMenu.hitTestable(), findsOneWidget);
-        expect(secondSourceMenu.hitTestable(), findsOneWidget);
-        await tester.tap(firstSourceMenu);
-        await tester.pumpAndSettle();
-        expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
-        await nativeUiaProbe.checkpoint(tester, "source-menu-open");
-        await mouse.moveTo(tester.getCenter(secondSourceMenu));
-        await tester.pump(const Duration(milliseconds: 600));
-        await tester.tapAt(const Offset(1272, 792));
-        await _pumpUntil(
-          tester,
-          () => find.text(LibraryStrings.updateLibrary).evaluate().isEmpty,
-        );
-        expect(find.text(LibraryStrings.updateLibrary), findsNothing);
-        await nativeUiaProbe.checkpoint(tester, "source-menu-closed");
-        expect(secondSourceMenu.hitTestable(), findsOneWidget);
-        await tester.tap(secondSourceMenu);
-        await tester.pumpAndSettle();
-        expect(find.text(LibraryStrings.updateLibrary), findsOneWidget);
-        await tester.tapAt(const Offset(1272, 792));
-        await _pumpUntil(
-          tester,
-          () => find.text(LibraryStrings.updateLibrary).evaluate().isEmpty,
-        );
-        expect(find.text(LibraryStrings.updateLibrary), findsNothing);
-
-        final wall = tester.widget<LibraryGalleryWall>(
-          find.byType(LibraryGalleryWall),
-        );
-        wall.scrollController.jumpTo(
-          wall.scrollController.position.maxScrollExtent * 0.8,
-        );
-        await tester.pump();
-        await tester.pump();
-        expect(catalog.hasPendingTimeLoad, isTrue);
-        expect(find.byKey(const Key("library-top-loading")), findsOneWidget);
-        await nativeUiaProbe.checkpoint(tester, "square-range-loading");
-
-        final unloadedSlots = find.descendant(
-          of: find.byKey(const Key("library-photo-wall")),
-          matching: find.byWidgetPredicate((widget) {
-            final key = widget.key;
-            return widget is! LibraryPhotoTile &&
-                key is ValueKey<String> &&
-                key.value.startsWith("location-");
-          }),
-        );
-        expect(unloadedSlots, findsWidgets);
-        expect(unloadedSlots.hitTestable(), findsNothing);
-        expect(
-          find.descendant(
-            of: unloadedSlots,
-            matching: find.byType(DecoratedBox),
-          ),
-          findsNWidgets(unloadedSlots.evaluate().length),
-        );
-        final wallRect = tester.getRect(
-          find.byKey(const Key("library-photo-wall")),
-        );
-        final unobscuredWallRect = Rect.fromLTRB(
-          wallRect.left + 4,
-          wallRect.top + 8,
-          wallRect.right - 96,
-          wallRect.bottom - 4,
-        );
-        Key? unloadedSlotKey;
-        Rect? unloadedSlotRect;
-        var nearestDistance = double.infinity;
-        for (final element in unloadedSlots.evaluate()) {
-          final key = element.widget.key;
-          if (key == null) {
-            continue;
-          }
-          final candidateRect = tester.getRect(find.byKey(key));
-          if (!unobscuredWallRect.contains(candidateRect.center)) {
-            continue;
-          }
-          final distance = (candidateRect.center - unobscuredWallRect.center)
-              .distanceSquared;
-          if (distance < nearestDistance) {
-            nearestDistance = distance;
-            unloadedSlotKey = key;
-            unloadedSlotRect = candidateRect;
-          }
-        }
-        final replacementKey = unloadedSlotKey;
-        final originalRect = unloadedSlotRect;
-        if (replacementKey == null || originalRect == null) {
-          throw StateError("No unloaded slot is visible in the gallery");
-        }
-
-        catalog.completePendingTimeLoad();
-        await tester.pumpAndSettle();
-        final replacement = find.byKey(replacementKey).hitTestable();
-        expect(replacement, findsOneWidget);
-        expect(tester.widget(replacement), isA<LibraryPhotoTile>());
-        final replacementRect = tester.getRect(replacement);
-        expect(replacementRect.left, closeTo(originalRect.left, 1));
-        expect(replacementRect.top, closeTo(originalRect.top, 1));
-        expect(replacementRect.width, closeTo(originalRect.width, 1));
-        expect(replacementRect.height, closeTo(originalRect.height, 1));
-
-        for (final fraction in <double>[
-          0.15,
-          0.45,
-          0.75,
-          1,
-          0.6,
-          0.3,
-          0.9,
-          0,
-        ]) {
-          wall.scrollController.jumpTo(
-            wall.scrollController.position.maxScrollExtent * fraction,
+          final filmstripToggle = find.byKey(
+            const Key("viewer-filmstrip-toggle"),
           );
-          await tester.pump();
-          await tester.pump();
-          await tester.pump();
-
-          await tester.tap(
-            find.byType(LibraryPhotoTile).hitTestable().first,
-            buttons: kSecondaryMouseButton,
-          );
-          await tester.pumpAndSettle();
-          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-          await tester.pumpAndSettle();
-        }
-
-        final timelineSliderFinder = find
-            .byKey(const Key("timeline-slider"))
-            .hitTestable();
-        final timelineValueBefore = tester
-            .widget<Slider>(timelineSliderFinder)
-            .value;
-        final timelineRect = tester.getRect(timelineSliderFinder);
-        await mouse.moveTo(timelineRect.center);
-        await mouse.down(timelineRect.center);
-        await mouse.moveTo(
-          timelineRect.center + Offset(0, timelineRect.height * 0.25),
-        );
-        await mouse.up();
-        await tester.pumpAndSettle();
-        expect(
-          tester.widget<Slider>(timelineSliderFinder).value,
-          isNot(closeTo(timelineValueBefore, 0.001)),
-        );
-
-        for (var cycle = 0; cycle < 2; cycle += 1) {
-          final tile = find.byType(LibraryPhotoTile).hitTestable().first;
-          final tileRect = tester.getRect(tile);
-          await tester.tapAt(tileRect.topLeft + const Offset(16, 16));
-          await tester.pump();
-          await tester.pump();
-          expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
-          if (cycle == 0) {
-            expect(
-              find.bySemanticsLabel(LibraryStrings.fitImageToWindow),
-              findsOneWidget,
+          for (var expansion = 0; expansion < 2; expansion += 1) {
+            await tester.tap(filmstripToggle);
+            await tester.pumpAndSettle(
+              const Duration(milliseconds: 100),
+              EnginePhase.sendSemanticsUpdate,
+              const Duration(seconds: 5),
             );
-            final filmstripToggle = find.byKey(
-              const Key("viewer-filmstrip-toggle"),
-            );
-            for (var expansion = 0; expansion < 2; expansion += 1) {
-              await tester.tap(filmstripToggle);
-              await tester.pumpAndSettle(
-                const Duration(milliseconds: 100),
-                EnginePhase.sendSemanticsUpdate,
-                const Duration(seconds: 5),
+            for (final direction in ["right", "left"]) {
+              final arrow = find.byKey(
+                Key("viewer-filmstrip-scroll-$direction"),
               );
-              for (final direction in ["right", "left"]) {
-                final arrow = find.byKey(
-                  Key("viewer-filmstrip-scroll-$direction"),
-                );
-                await mouse.moveTo(tester.getCenter(arrow));
-                await tester.pump(const Duration(milliseconds: 700));
-                await tester.pumpAndSettle(
-                  const Duration(milliseconds: 100),
-                  EnginePhase.sendSemanticsUpdate,
-                  const Duration(seconds: 5),
-                );
-                expect(
-                  find.text(
-                    direction == "right"
-                        ? LibraryStrings.scrollFilmstripRight
-                        : LibraryStrings.scrollFilmstripLeft,
-                  ),
-                  findsOneWidget,
-                );
-              }
-              await tester.tap(filmstripToggle);
+              await mouse.moveTo(tester.getCenter(arrow));
+              await tester.pump(const Duration(milliseconds: 700));
               await tester.pumpAndSettle(
                 const Duration(milliseconds: 100),
                 EnginePhase.sendSemanticsUpdate,
                 const Duration(seconds: 5),
               );
               expect(
-                find.text(LibraryStrings.scrollFilmstripLeft),
-                findsNothing,
+                find.text(
+                  direction == "right"
+                      ? LibraryStrings.scrollFilmstripRight
+                      : LibraryStrings.scrollFilmstripLeft,
+                ),
+                findsOneWidget,
               );
             }
-            await nativeUiaProbe.checkpoint(tester, "viewer-open");
+            await tester.tap(filmstripToggle);
+            await tester.pumpAndSettle(
+              const Duration(milliseconds: 100),
+              EnginePhase.sendSemanticsUpdate,
+              const Duration(seconds: 5),
+            );
+            expect(find.text(LibraryStrings.scrollFilmstripLeft), findsNothing);
           }
-
-          final viewerSliderFinder = find
-              .descendant(
-                of: find.byKey(const Key("viewer-zoom-controls")),
-                matching: find.byType(Slider),
-              )
-              .hitTestable();
-          final viewerValueBefore = tester
-              .widget<Slider>(viewerSliderFinder)
-              .value;
-          final viewerSliderRect = tester.getRect(viewerSliderFinder);
-          await mouse.moveTo(viewerSliderRect.center);
-          await mouse.down(viewerSliderRect.center);
-          await mouse.moveTo(
-            viewerSliderRect.center + Offset(viewerSliderRect.width * 0.25, 0),
-          );
-          await mouse.up();
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 200));
-          expect(
-            tester.widget<Slider>(viewerSliderFinder).value,
-            isNot(closeTo(viewerValueBefore, 0.001)),
-          );
-          expect(
-            find.bySemanticsLabel(LibraryStrings.showImageActualSize),
-            findsOneWidget,
-          );
-
-          final viewerMore = find.byKey(const Key("viewer-more-menu"));
-          final viewerMoreCenter = tester.getCenter(viewerMore);
-          await mouse.moveTo(viewerMoreCenter);
-          await tester.pump(const Duration(milliseconds: 600));
-          await tester.tap(viewerMore);
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 250));
-          expect(find.text(LibraryStrings.copyPath), findsOneWidget);
-          if (cycle == 0) {
-            await nativeUiaProbe.checkpoint(tester, "viewer-menu-open");
-          }
-          final viewerBack = find.byKey(const Key("viewer-back-button"));
-          await mouse.moveTo(tester.getCenter(viewerBack));
-          await tester.pump(const Duration(milliseconds: 600));
-          await tester.tapAt(viewerMoreCenter);
-          await tester.pump();
-          await tester.pump(const Duration(milliseconds: 250));
-          expect(find.text(LibraryStrings.copyPath), findsNothing);
-          expect(viewerBack, findsOneWidget);
-          expect(viewerBack.hitTestable(), findsOneWidget);
-          if (cycle == 0) {
-            await nativeUiaProbe.checkpoint(tester, "viewer-menu-closed");
-          }
-
-          await tester.tap(viewerBack);
-          await tester.pump();
-          expect(viewerBack.hitTestable(), findsNothing);
-          await tester.pump(const Duration(milliseconds: 120));
-          expect(viewerBack, findsNothing);
-          expect(find.byType(LibraryPhotoTile), findsWidgets);
+          await nativeUiaProbe.checkpoint(tester, "viewer-open");
         }
-        await mouse.removePointer();
 
-        await tester.tap(
-          find.byKey(const Key("library-sidebar-settings")).hitTestable(),
-        );
-        final settingsPage = find.byKey(const Key("ame-settings-page"));
-        await _pumpUntil(tester, () => settingsPage.evaluate().isNotEmpty);
-        expect(settingsPage, findsOneWidget);
-        final themeChoice = find.byType(SettingsChoice<AmeThemePreference>);
-        expect(themeChoice, findsOneWidget);
-        await tester.tap(
-          find
-              .descendant(
-                of: themeChoice,
-                matching: find.byType(OutlinedButton),
-              )
-              .hitTestable(),
-        );
-        final lightThemeLabel = find.text("浅色");
-        final lightThemeItem = find.ancestor(
-          of: lightThemeLabel.last,
-          matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
-        );
-        final lightThemeChoice = find
-            .descendant(of: lightThemeItem, matching: find.byType(InkWell))
+        final viewerSliderFinder = find
+            .descendant(
+              of: find.byKey(const Key("viewer-zoom-controls")),
+              matching: find.byType(Slider),
+            )
             .hitTestable();
-        await _pumpUntil(tester, () => lightThemeChoice.evaluate().isNotEmpty);
-        expect(lightThemeChoice, findsOneWidget);
-        expect(find.byType(MenuAnchor), findsNothing);
-        await nativeUiaProbe.checkpoint(tester, "settings-menu-open");
-        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-        await _pumpUntil(tester, () => lightThemeLabel.evaluate().isEmpty);
-        expect(lightThemeLabel, findsNothing);
-        await nativeUiaProbe.checkpoint(tester, "settings-menu-closed");
+        final viewerValueBefore = tester
+            .widget<Slider>(viewerSliderFinder)
+            .value;
+        final viewerSliderRect = tester.getRect(viewerSliderFinder);
+        await mouse.moveTo(viewerSliderRect.center);
+        await mouse.down(viewerSliderRect.center);
+        await mouse.moveTo(
+          viewerSliderRect.center + Offset(viewerSliderRect.width * 0.25, 0),
+        );
+        await mouse.up();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(
+          tester.widget<Slider>(viewerSliderFinder).value,
+          isNot(closeTo(viewerValueBefore, 0.001)),
+        );
+        expect(
+          find.bySemanticsLabel(LibraryStrings.showImageActualSize),
+          findsOneWidget,
+        );
 
-        await tester.pumpWidget(const SizedBox.shrink());
-        await tester.pumpAndSettle();
-      } finally {
-        semanticsHandle.dispose();
+        final viewerMore = find.byKey(const Key("viewer-more-menu"));
+        final viewerMoreCenter = tester.getCenter(viewerMore);
+        await mouse.moveTo(viewerMoreCenter);
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.tap(viewerMore);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(find.text(LibraryStrings.copyPath), findsOneWidget);
+        if (cycle == 0) {
+          await nativeUiaProbe.checkpoint(tester, "viewer-menu-open");
+        }
+        final viewerBack = find.byKey(const Key("viewer-back-button"));
+        await mouse.moveTo(tester.getCenter(viewerBack));
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.tapAt(viewerMoreCenter);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 250));
+        expect(find.text(LibraryStrings.copyPath), findsNothing);
+        expect(viewerBack, findsOneWidget);
+        expect(viewerBack.hitTestable(), findsOneWidget);
+        if (cycle == 0) {
+          await nativeUiaProbe.checkpoint(tester, "viewer-menu-closed");
+        }
+
+        await tester.tap(viewerBack);
+        await tester.pump();
+        expect(viewerBack.hitTestable(), findsNothing);
+        await tester.pump(const Duration(milliseconds: 120));
+        expect(viewerBack, findsNothing);
+        expect(find.byType(LibraryPhotoTile), findsWidgets);
       }
-    },
-  );
+      await mouse.removePointer();
+
+      await tester.tap(
+        find.byKey(const Key("library-sidebar-settings")).hitTestable(),
+      );
+      final settingsPage = find.byKey(const Key("ame-settings-page"));
+      await _pumpUntil(tester, () => settingsPage.evaluate().isNotEmpty);
+      expect(settingsPage, findsOneWidget);
+      final themeChoice = find.byType(SettingsChoice<AmeThemePreference>);
+      expect(themeChoice, findsOneWidget);
+      await tester.tap(
+        find
+            .descendant(of: themeChoice, matching: find.byType(OutlinedButton))
+            .hitTestable(),
+      );
+      final lightThemeLabel = find.text("浅色");
+      final lightThemeItem = find.ancestor(
+        of: lightThemeLabel.last,
+        matching: find.byWidgetPredicate((widget) => widget is PopupMenuItem),
+      );
+      final lightThemeChoice = find
+          .descendant(of: lightThemeItem, matching: find.byType(InkWell))
+          .hitTestable();
+      await _pumpUntil(tester, () => lightThemeChoice.evaluate().isNotEmpty);
+      expect(lightThemeChoice, findsOneWidget);
+      expect(find.byType(MenuAnchor), findsNothing);
+      await nativeUiaProbe.checkpoint(tester, "settings-menu-open");
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await _pumpUntil(tester, () => lightThemeLabel.evaluate().isEmpty);
+      await tester.pumpAndSettle(
+        const Duration(milliseconds: 100),
+        EnginePhase.sendSemanticsUpdate,
+        const Duration(seconds: 5),
+      );
+      expect(lightThemeLabel, findsNothing);
+      expect(Navigator.of(tester.element(settingsPage)).canPop(), isFalse);
+      expect(settingsPage.hitTestable(), findsOneWidget);
+      final reachableSettingsLabels = tester.semantics
+          .simulatedAccessibilityTraversal()
+          .map((node) => node.getSemanticsData().label)
+          .toList();
+      expect(
+        reachableSettingsLabels,
+        contains("设置"),
+        reason:
+            "The Flutter semantics tree must restore Settings before the native UIA probe",
+      );
+      expect(reachableSettingsLabels, isNot(contains("浅色")));
+      expect(reachableSettingsLabels, isNot(contains("深色")));
+      await nativeUiaProbe.checkpoint(tester, "settings-menu-closed");
+
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pumpAndSettle();
+    } finally {
+      semanticsHandle.dispose();
+    }
+  });
 }
 
 class _WindowsUiaProbe {

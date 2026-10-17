@@ -8,6 +8,45 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final shape in GalleryLayoutShape.values) {
+    test("$shape reserves scaled card width before detail loading", () {
+      final manifest = _manifest(aspectRatios: List.filled(6, 0.01));
+      final snapshot = LibraryGalleryLayoutSnapshot.build(
+        manifest: manifest,
+        availableWidth: 600,
+        minimumCellWidth: 256,
+        thumbnailSize: GalleryThumbnailSize.small,
+        layoutShape: shape,
+        sortKey: LibraryGallerySortKey.captureTime,
+      );
+      for (final row in snapshot.entries.where((entry) => entry.isPhotoRow)) {
+        expect(row.cellWidths, everyElement(greaterThanOrEqualTo(256)));
+      }
+      expect(
+        snapshot.matches(
+          otherManifest: manifest,
+          otherAvailableWidth: 600,
+          otherMinimumCellWidth: 128,
+          otherThumbnailSize: GalleryThumbnailSize.small,
+          otherLayoutShape: shape,
+          otherSortKey: LibraryGallerySortKey.captureTime,
+        ),
+        isFalse,
+      );
+      expect(
+        snapshot.matches(
+          otherManifest: manifest,
+          otherAvailableWidth: 600,
+          otherMinimumCellWidth: 256,
+          otherThumbnailSize: GalleryThumbnailSize.small,
+          otherLayoutShape: shape,
+          otherSortKey: LibraryGallerySortKey.captureTime,
+        ),
+        isTrue,
+      );
+    });
+  }
+
   test("builds one query-wide equal-height wall from manifest geometry", () {
     final manifest = _manifest();
 
@@ -19,16 +58,17 @@ void main() {
     );
 
     final rows = snapshot.entries.where((entry) => entry.isPhotoRow).toList();
-    expect(rows, hasLength(2));
+    expect(rows, hasLength(4));
     expect(rows[0].startItemIndex, 0);
-    expect(rows[0].itemCount, 3);
-    expect(rows[0].cellWidths, everyElement(96));
-    expect(rows[1].startItemIndex, 3);
-    expect(rows[1].itemCount, 3);
+    expect(rows[0].itemCount, 2);
+    expect(rows[0].cellWidths, everyElement(147));
+    expect(rows[1].startItemIndex, 2);
+    expect(rows[1].itemCount, 1);
+    expect(rows[1].cellWidths, everyElement(128));
     expect(snapshot.metrics.isQueryWide, isTrue);
     expect(snapshot.metrics.itemOffsets, hasLength(6));
-    expect(snapshot.metrics.itemOffsets[0], snapshot.metrics.itemOffsets[2]);
-    expect(snapshot.metrics.itemOffsets[3], snapshot.metrics.itemOffsets[5]);
+    expect(snapshot.metrics.itemOffsets[0], snapshot.metrics.itemOffsets[1]);
+    expect(snapshot.metrics.itemOffsets[3], snapshot.metrics.itemOffsets[4]);
     expect(
       snapshot.metrics.itemOffsets[3],
       greaterThan(snapshot.metrics.itemOffsets[2]),
@@ -61,7 +101,7 @@ void main() {
       secondWindow.leading + secondWindow.content + secondWindow.trailing,
       closeTo(snapshot.metrics.contentExtent, 0.01),
     );
-    expect(snapshot.entries.where((entry) => entry.isPhotoRow), hasLength(2));
+    expect(snapshot.entries.where((entry) => entry.isPhotoRow), hasLength(4));
   });
 
   test("treats malformed date keys as an unknown group", () {
@@ -102,7 +142,9 @@ void main() {
         final rows = snapshot.entries
             .where((entry) => entry.isPhotoRow)
             .toList();
-        final nextRow = rows[pointInHeading ? 3 : 1];
+        final nextRow = pointInHeading
+            ? rows.firstWhere((row) => row.startItemIndex == 9)
+            : rows[1];
         final rowOffset = snapshot.metrics.offsetForGlobalItemIndex(
           nextRow.startItemIndex,
         )!;

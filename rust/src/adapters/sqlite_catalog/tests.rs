@@ -5902,7 +5902,7 @@ fn preview_lifecycle_state(catalog: &SqliteCatalog, artifact_key: &str) -> Strin
         .expect("preview lifecycle state")
 }
 
-fn publish_gallery_fixture(
+pub(super) fn publish_gallery_fixture(
     catalog: &mut SqliteCatalog,
     scan_id: &str,
     root_id: &str,

@@ -83,6 +83,15 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 after.remove("library_media_admission_rechecks"),
                 Some(Vec::new()),
             );
+            for table in [
+                "content_fingerprints",
+                "exact_analysis_outcomes",
+                "exact_analysis_runs",
+                "exact_duplicate_decisions",
+                "gallery_content_fingerprints",
+            ] {
+                assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
+            }
             assert_eq!(after, before);
         }
     }

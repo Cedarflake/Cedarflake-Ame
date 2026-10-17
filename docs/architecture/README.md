@@ -42,3 +42,5 @@ Recorded decisions:
 - [ADR 0025: Keep workflows thin through invariant-owned modules](0025-invariant-owned-workflow-modules.md)
 - [ADR 0026: Separate hosted workload coverage from release authority](0026-hosted-synthetic-and-unsigned-build-gates.md)
 - [ADR 0027: Version the application and broker through Windows Installer](0027-windows-installer-lifecycle.md)
+- [ADR 0028: Version exact-content evidence behind a guarded reader](0028-versioned-exact-content-analysis.md)
+- [ADR 0029: Functional workbench navigation](0029-functional-workbench-navigation.md)

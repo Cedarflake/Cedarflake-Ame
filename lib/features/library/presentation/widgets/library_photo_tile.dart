@@ -14,6 +14,7 @@ import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_image_reveal.dart";
+import "library_photo_tile_actions.dart";
 import "library_preview_feedback.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
@@ -124,9 +125,10 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
             onEnter: (_) => setState(() => _isHovered = true),
             onExit: (_) => setState(() => _isHovered = false),
             child: GestureDetector(
+              // Secondary-click handling must not compete with InkWell's primary action.
+              excludeFromSemantics: true,
               behavior: HitTestBehavior.opaque,
               onSecondaryTapDown: (details) {
-                _focusNode.requestFocus();
                 final position = amePopupMenuAtGlobalPosition(
                   context: context,
                   globalPosition: details.globalPosition,
@@ -155,30 +157,18 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                       fit: StackFit.expand,
                       children: [
                         _buildPreview(context),
-                        if (isSelectionVisible)
-                          Positioned(
-                            right: 4,
-                            top: 4,
-                            child: Material(
-                              color: colorScheme.surface.withValues(
-                                alpha: 0.92,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Checkbox(
-                                key: ValueKey(
-                                  "select-${widget.asset.locationId}",
-                                ),
-                                value: widget.isSelected,
-                                onChanged: (_) =>
-                                    widget.onToggleSelection(widget.asset),
-                                materialTapTargetSize:
-                                    MaterialTapTargetSize.shrinkWrap,
-                                visualDensity: VisualDensity.compact,
-                              ),
-                            ),
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          child: LibraryPhotoTileActions(
+                            locationId: widget.asset.locationId,
+                            isSelectionVisible: isSelectionVisible,
+                            isSelected: widget.isSelected,
+                            onToggleSelection: () =>
+                                widget.onToggleSelection(widget.asset),
                           ),
+                        ),
                       ],
                     ),
                   ),

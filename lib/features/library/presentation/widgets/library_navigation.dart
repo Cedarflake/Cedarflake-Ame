@@ -21,7 +21,6 @@ class LibraryNavigation extends StatefulWidget {
   const LibraryNavigation({
     required this.isCompact,
     required this.width,
-    required this.isSettingsSelected,
     required this.roots,
     this.rootSynchronizationStatuses = const {},
     this.hasSynchronizationFailure = false,
@@ -41,7 +40,6 @@ class LibraryNavigation extends StatefulWidget {
     required this.onExpandFolder,
     required this.onLoadMoreFolders,
     required this.onAddSource,
-    required this.onOpenSettings,
     required this.onUpdateRoot,
     this.onRelocateRoot,
     required this.onOpenRoot,
@@ -52,7 +50,6 @@ class LibraryNavigation extends StatefulWidget {
 
   final bool isCompact;
   final double width;
-  final bool isSettingsSelected;
   final List<LibraryRoot> roots;
   final Map<String, LibraryRootSynchronizationStatus>
   rootSynchronizationStatuses;
@@ -75,7 +72,6 @@ class LibraryNavigation extends StatefulWidget {
   final Future<void> Function(String rootId, String parentRelativePath)
   onLoadMoreFolders;
   final VoidCallback onAddSource;
-  final VoidCallback onOpenSettings;
   final ValueChanged<LibraryRoot> onUpdateRoot;
   final ValueChanged<LibraryRoot>? onRelocateRoot;
   final ValueChanged<LibraryRoot> onOpenRoot;
@@ -184,9 +180,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         child: IconButton(
                           key: const Key("library-sidebar-library"),
                           focusNode: _libraryFocusNode,
-                          isSelected:
-                              !widget.isSettingsSelected &&
-                              widget.selectedRootId == null,
+                          isSelected: widget.selectedRootId == null,
                           onPressed: widget.isBrowseDisabled
                               ? null
                               : widget.onSelectLibrary,
@@ -210,9 +204,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       ListTile(
                         key: const Key("library-sidebar-library"),
                         focusNode: _libraryFocusNode,
-                        selected:
-                            !widget.isSettingsSelected &&
-                            widget.selectedRootId == null,
+                        selected: widget.selectedRootId == null,
                         selectedTileColor: Theme.of(
                           context,
                         ).colorScheme.secondaryContainer,
@@ -233,8 +225,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           LibraryStrings.library,
                           style: _navigationTitleStyle(
                             context,
-                            !widget.isSettingsSelected &&
-                                widget.selectedRootId == null,
+                            widget.selectedRootId == null,
                           ),
                         ),
                         trailing: SizedBox(
@@ -283,7 +274,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                             widget.hasSynchronizationFailure,
                         isCompact: widget.isCompact,
                         isSelected:
-                            !widget.isSettingsSelected &&
                             widget.selectedRootId == root.id &&
                             widget.selectedFolderRelativePath == null,
                         isExpanded: _isExpanded(root.id, ""),
@@ -313,46 +303,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                   ],
                 ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-              child: widget.isCompact
-                  ? AmeTooltip(
-                      message: LibraryStrings.settings,
-                      child: IconButton(
-                        key: const Key("library-sidebar-settings"),
-                        isSelected: widget.isSettingsSelected,
-                        onPressed: widget.onOpenSettings,
-                        icon: const Icon(Symbols.settings_rounded),
-                      ),
-                    )
-                  : ListTile(
-                      key: const Key("library-sidebar-settings"),
-                      selected: widget.isSettingsSelected,
-                      selectedTileColor: Theme.of(
-                        context,
-                      ).colorScheme.secondaryContainer,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                      ),
-                      minLeadingWidth: 24,
-                      horizontalTitleGap: 12,
-                      leading: const SizedBox(
-                        width: 24,
-                        child: Icon(Symbols.settings_rounded),
-                      ),
-                      title: Text(
-                        LibraryStrings.settings,
-                        style: _navigationTitleStyle(
-                          context,
-                          widget.isSettingsSelected,
-                        ),
-                      ),
-                      onTap: widget.onOpenSettings,
-                    ),
             ),
           ],
         ),
@@ -389,7 +339,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
           folder: folder,
           depth: depth,
           isSelected:
-              !widget.isSettingsSelected &&
               widget.selectedRootId == root.id &&
               widget.selectedFolderRelativePath == folder.relativePath,
           isExpanded: isExpanded,

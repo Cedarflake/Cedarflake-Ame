@@ -19,7 +19,7 @@ pub(super) fn inventory_shape_matches(
         27 => Some(1),
         28..=30 => Some(2),
         31 => Some(3),
-        32..=39 => Some(4),
+        32..=43 => Some(4),
         _ => return Ok(false),
     };
     let core_matches = schema_object_sql_matches(
@@ -59,7 +59,7 @@ pub(super) fn live_gap_shape_matches(
     connection: &Connection,
     schema_version: i64,
 ) -> Result<bool, ScanError> {
-    if !matches!(schema_version, 30..=39) {
+    if !matches!(schema_version, 30..=43) {
         return Ok(false);
     }
     let schema_matches = schema_object_sql_matches(

@@ -17,7 +17,7 @@ import "../support/retained_scan_fixture.dart";
 
 void main() {
   testWidgets(
-    "sidebar import from settings opens the existing gallery folder",
+    "returning from settings allows import to open the existing gallery folder",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1;
@@ -35,6 +35,8 @@ void main() {
       await tester.tap(find.byKey(const Key("library-sidebar-settings")));
       await tester.pump();
       expect(find.byType(LibraryGalleryWall), findsNothing);
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
+      await tester.pump();
       await tester.tap(find.byKey(const Key("library-sidebar-import")));
       await tester.pump();
       fixture.scanner.streams.single.add(fixture.coverage);

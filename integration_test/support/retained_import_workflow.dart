@@ -117,7 +117,7 @@ void registerRetainedImportWorkflowTests(
       await tester.tap(find.byKey(const Key("library-sidebar-settings")));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("ame-settings-page")), findsOneWidget);
-      await tester.tap(find.byKey(const Key("library-sidebar-library")));
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("ame-settings-page")), findsNothing);
       expect(container.read(libraryControllerProvider).scanId, scanId);

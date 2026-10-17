@@ -48,13 +48,13 @@ void main() {
     const layout = JustifiedGalleryLayout(targetRowHeight: 138, spacing: 6);
 
     final rows = layout.compute(
-      aspectRatios: const [0.72],
+      aspectRatios: const [1.42],
       availableWidth: 1146,
     );
 
     expect(rows.single.isJustified, isFalse);
     expect(rows.single.height, 138);
-    expect(rows.single.cells.single.width, closeTo(99.36, 0.001));
+    expect(rows.single.cells.single.width, closeTo(195.96, 0.001));
   });
 
   test("keeps extreme portrait cells wide enough for tile actions", () {
@@ -66,6 +66,26 @@ void main() {
     );
 
     expect(rows.single.height, 96);
-    expect(rows.single.cells.single.width, 48);
+    expect(rows.single.cells.single.width, 128);
+  });
+
+  test("filled rows and narrow viewports respect the card width floor", () {
+    const layout = JustifiedGalleryLayout(targetRowHeight: 96, spacing: 6);
+    for (final width in [100.0, 600.0, 1146.0]) {
+      final rows = layout.compute(
+        aspectRatios: List.filled(30, 0.01),
+        availableWidth: width,
+      );
+      expect(
+        rows.expand((row) => row.cells).map((cell) => cell.width),
+        everyElement(greaterThanOrEqualTo(width < 128 ? width : 128)),
+      );
+      for (final row in rows.where((row) => row.isJustified)) {
+        final occupied =
+            row.cells.fold(0.0, (sum, cell) => sum + cell.width) +
+            6 * (row.cells.length - 1);
+        expect(occupied, closeTo(width, 0.001));
+      }
+    }
   });
 }

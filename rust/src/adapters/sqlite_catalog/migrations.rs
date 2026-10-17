@@ -26,8 +26,14 @@ mod compatibility_repair_shape;
 mod current_recovery_state;
 mod current_schema;
 mod directory_identities;
+mod exact_candidate_index_retirement;
+mod exact_duplicate_review;
+mod exact_duplicates;
+#[cfg(test)]
+pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
 mod foreground_scan_capture;
+mod gallery_duplicates;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 mod journal_directory_namespace;
@@ -107,6 +113,10 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         journal_scope_recovery::migrate_transaction(&transaction)?;
         media_admission_rechecks::migrate_transaction(&transaction)?;
         queue_retirement_indexes::migrate_transaction(&transaction)?;
+        exact_duplicates::migrate_transaction(&transaction)?;
+        gallery_duplicates::migrate_transaction(&transaction)?;
+        exact_duplicate_review::migrate_transaction(&transaction)?;
+        exact_candidate_index_retirement::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -185,6 +195,10 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             36 => journal_scope_recovery::migrate(connection)?,
             37 => media_admission_rechecks::migrate(connection)?,
             38 => queue_retirement_indexes::migrate(connection)?,
+            39 => exact_duplicates::migrate(connection)?,
+            40 => gallery_duplicates::migrate(connection)?,
+            41 => exact_duplicate_review::migrate(connection)?,
+            42 => exact_candidate_index_retirement::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

@@ -20,6 +20,8 @@ class AmePreferences {
     this.viewerFilmstripVisible = false,
     this.previewLoadingSpeed = PreviewLoadingSpeed.medium,
     this.sidebarWidth = ameDefaultSidebarWidth,
+    this.sidebarExpanded,
+    this.exactAnalysisPaused = false,
   });
 
   final AmeThemePreference theme;
@@ -28,6 +30,8 @@ class AmePreferences {
   final bool viewerFilmstripVisible;
   final PreviewLoadingSpeed previewLoadingSpeed;
   final double sidebarWidth;
+  final bool? sidebarExpanded;
+  final bool exactAnalysisPaused;
 
   AmePreferences copyWith({
     AmeThemePreference? theme,
@@ -36,6 +40,8 @@ class AmePreferences {
     bool? viewerFilmstripVisible,
     PreviewLoadingSpeed? previewLoadingSpeed,
     double? sidebarWidth,
+    bool? sidebarExpanded,
+    bool? exactAnalysisPaused,
   }) {
     return AmePreferences(
       theme: theme ?? this.theme,
@@ -45,6 +51,8 @@ class AmePreferences {
           viewerFilmstripVisible ?? this.viewerFilmstripVisible,
       previewLoadingSpeed: previewLoadingSpeed ?? this.previewLoadingSpeed,
       sidebarWidth: sidebarWidth ?? this.sidebarWidth,
+      sidebarExpanded: sidebarExpanded ?? this.sidebarExpanded,
+      exactAnalysisPaused: exactAnalysisPaused ?? this.exactAnalysisPaused,
     );
   }
 }

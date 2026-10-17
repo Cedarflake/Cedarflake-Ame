@@ -1,6 +1,8 @@
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use crate::domain::GalleryDuplicateMode;
+
 use super::*;
 
 #[test]
@@ -89,6 +91,7 @@ fn location_anchor_bounds_preserve_filtered_order_and_missing_dates() {
                     folder_relative_path: folder.map(str::to_owned),
                     include_descendants: descendants,
                     search_text: search.to_owned(),
+                    duplicate_mode: GalleryDuplicateMode::All,
                     sort_key: sort_key.clone(),
                     sort_direction: sort_direction.clone(),
                 };

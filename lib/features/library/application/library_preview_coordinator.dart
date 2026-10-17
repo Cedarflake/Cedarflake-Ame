@@ -37,7 +37,7 @@ class LibraryPreviewCoordinator {
       maxActive: maxActive,
       onResult: _publish,
       onCompleted: _completed,
-      canPublishResult: _canPublish,
+      canPublishResult: _admits,
     );
   }
 
@@ -256,18 +256,19 @@ class LibraryPreviewCoordinator {
   }
 
   void _publish(LibraryAsset replacement) {
-    if (_isDisposed || !_canPublish(replacement)) {
+    if (_isDisposed || !_admits(replacement)) {
       return;
     }
     _store.publish(replacement);
     if (replacement.previewStatus != LibraryPreviewStatus.ready) {
       _sizing.invalidate(replacement.locationId);
     }
-    _onPublished(replacement);
+    // External review demand can outlive the gallery's current source version or window.
+    if (_canPublish(replacement)) _onPublished(replacement);
   }
 
   void _completed(LibraryPreviewCompletion completion) {
-    if (_isDisposed || !_canPublish(completion.asset)) {
+    if (_isDisposed || !_admits(completion.asset)) {
       return;
     }
     final locationId = completion.asset.locationId;
@@ -294,6 +295,18 @@ class LibraryPreviewCoordinator {
         completion.previewEdge == current.previewEdge) {
       _sizing.recordFailure(completion.asset, completion.previewEdge);
     }
+  }
+
+  bool _admits(LibraryAsset asset) {
+    final viewer = _viewerDemand;
+    if (viewer != null && viewer.locationId == asset.locationId) {
+      return libraryPreviewSourcesAreCompatible(viewer, asset);
+    }
+    final external = _filmstripDemand[asset.locationId];
+    if (external != null) {
+      return libraryPreviewSourcesAreCompatible(external.asset, asset);
+    }
+    return _canPublish(asset);
   }
 }
 

@@ -1,5 +1,7 @@
 import "package:flutter/material.dart";
 
+import "library_viewer_fade.dart";
+
 /// Retains at most one closing surface; its input and source reads retire immediately.
 class LibraryViewerTransition extends StatefulWidget {
   const LibraryViewerTransition({
@@ -19,7 +21,6 @@ class LibraryViewerTransition extends StatefulWidget {
 class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation<double> _opacity;
   Widget? _retainedViewer;
   bool _skipMotion = false;
 
@@ -29,11 +30,10 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
     _retainedViewer = widget.viewer;
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 180),
-      reverseDuration: const Duration(milliseconds: 100),
+      duration: LibraryViewerFade.enterDuration,
+      reverseDuration: LibraryViewerFade.exitDuration,
       value: widget.viewer == null ? 0 : 1,
     )..addStatusListener(_handleStatus);
-    _opacity = _controller.drive(CurveTween(curve: Curves.easeOut));
   }
 
   @override
@@ -104,10 +104,8 @@ class _LibraryViewerTransitionState extends State<LibraryViewerTransition>
             container: true,
             explicitChildNodes: true,
             hidden: !isOpen,
-            child: FadeTransition(
-              opacity: _opacity,
-              // Overlay traversal parents must remain reachable at zero opacity and during exit.
-              alwaysIncludeSemantics: true,
+            child: LibraryViewerFade(
+              animation: _controller,
               child: IgnorePointer(
                 ignoring: !isOpen,
                 child: ExcludeFocus(

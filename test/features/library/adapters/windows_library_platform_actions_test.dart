@@ -3,13 +3,11 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
-    "passes the Explorer select switch separately from its target",
+    "passes normalized Unicode paths directly to the Shell selection boundary",
     () async {
-      final launches = <List<String>>[];
-      final actions = WindowsLibraryPlatformActions.withLauncher((
-        arguments,
-      ) async {
-        launches.add(List.of(arguments));
+      final launches = <String>[];
+      final actions = WindowsLibraryPlatformActions.withRevealer((path) async {
+        launches.add(path);
       });
 
       await actions.revealFile(r"\\?\C:\Pictures\sample image.png");
@@ -21,10 +19,10 @@ void main() {
       await actions.revealFile(r"\\?\UNC\server\share\sample.png");
 
       expect(launches, [
-        [r"/select,", r"C:\Pictures\sample image.png"],
-        [r"/select,", r"C:\Pictures"],
-        [r"/select,", r"G:\CloudLibrary\图片\本机照片\2026\08"],
-        [r"/select,", r"\\server\share\sample.png"],
+        r"C:\Pictures\sample image.png",
+        r"C:\Pictures",
+        r"G:\CloudLibrary\图片\本机照片\2026\08",
+        r"\\server\share\sample.png",
       ]);
     },
   );

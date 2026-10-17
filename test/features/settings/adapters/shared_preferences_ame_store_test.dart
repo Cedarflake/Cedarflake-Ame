@@ -46,6 +46,7 @@ void main() {
       thumbnailSize: GalleryThumbnailSize.large,
       sortKey: LibraryGallerySortKey.fileName,
       sortDirection: LibraryGallerySortDirection.ascending,
+      duplicateMode: LibraryGalleryDuplicateMode.all,
     );
     const presentation = AmePreferences(
       viewerFilmstripVisible: true,
@@ -54,6 +55,8 @@ void main() {
       viewerOpenBehavior: ImageViewerOpenBehavior.actualSize,
       previewLoadingSpeed: PreviewLoadingSpeed.large,
       sidebarWidth: 348,
+      sidebarExpanded: false,
+      exactAnalysisPaused: true,
     );
 
     await store.saveWindowPlacement(placement);
@@ -72,6 +75,7 @@ void main() {
     expect(restoredGallery.thumbnailSize, gallery.thumbnailSize);
     expect(restoredGallery.sortKey, gallery.sortKey);
     expect(restoredGallery.sortDirection, gallery.sortDirection);
+    expect(restoredGallery.duplicateMode, LibraryGalleryDuplicateMode.all);
     expect(restoredPresentation.theme, presentation.theme);
     expect(
       restoredPresentation.viewerWheelBehavior,
@@ -86,7 +90,9 @@ void main() {
       presentation.previewLoadingSpeed,
     );
     expect(restoredPresentation.sidebarWidth, presentation.sidebarWidth);
+    expect(restoredPresentation.sidebarExpanded, isFalse);
     expect(restoredPresentation.viewerFilmstripVisible, isTrue);
+    expect(restoredPresentation.exactAnalysisPaused, isTrue);
   });
 
   test("falls back safely when stored preferences are malformed", () async {
@@ -142,6 +148,7 @@ void main() {
       final store = SharedPreferencesAmeStore(preferences: preferences);
       final restored = await store.loadAmePreferences();
       expect(restored.viewerFilmstripVisible, isFalse);
+      expect(restored.exactAnalysisPaused, isFalse);
       await store.saveAmePreferences(
         restored.copyWith(viewerFilmstripVisible: true),
       );

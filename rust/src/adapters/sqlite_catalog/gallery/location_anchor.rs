@@ -99,12 +99,26 @@ fn resolve_gallery_anchor(
     request: GalleryAnchorRequest<'_>,
 ) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
     let order = gallery_order_expressions(&query.sort_key);
+    let representative = if request.anchor_column == "locations.location_id" {
+        super::duplicates::representative_for_anchor(
+            transaction,
+            query,
+            request.anchor_value,
+            request.required_asset_id,
+        )?
+    } else {
+        None
+    };
+    let anchor_value = representative.as_deref().unwrap_or(request.anchor_value);
     let mut anchor_clauses = Vec::new();
     let mut anchor_parameters = Vec::new();
     push_gallery_filters(query, &mut anchor_clauses, &mut anchor_parameters);
     anchor_clauses.push(format!("{} = ?", request.anchor_column));
-    anchor_parameters.push(Value::Text(request.anchor_value.to_owned()));
-    if let Some(asset_id) = request.required_asset_id {
+    anchor_parameters.push(Value::Text(anchor_value.to_owned()));
+    if let Some(asset_id) = request
+        .required_asset_id
+        .filter(|_| representative.is_none())
+    {
         anchor_clauses.push("locations.asset_id = ?".to_owned());
         anchor_parameters.push(Value::Text(asset_id.to_owned()));
     }

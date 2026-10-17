@@ -88,7 +88,7 @@ void main() {
     }
   });
 
-  testWidgets("shows the portal-free Windows tooltip for keyboard focus", (
+  testWidgets("keyboard focus keeps the Windows tooltip hidden", (
     tester,
   ) async {
     debugDefaultTargetPlatformOverride = TargetPlatform.windows;
@@ -116,7 +116,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 150));
 
-      expect(find.text("键盘说明"), findsOneWidget);
+      expect(focusNode.hasFocus, isTrue);
+      expect(find.text("键盘说明"), findsNothing);
       expect(find.byType(Tooltip), findsNothing);
 
       focusNode.unfocus();

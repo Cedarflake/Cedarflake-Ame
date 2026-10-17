@@ -6,6 +6,7 @@ import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_gallery_layout.dart";
+import "library_gallery_card_metrics.dart";
 
 class LibraryGalleryLayoutSnapshot {
   LibraryGalleryLayoutSnapshot._({
@@ -18,6 +19,7 @@ class LibraryGalleryLayoutSnapshot {
     required this.thumbnailSize,
     required this.layoutShape,
     required this.sortKey,
+    required this.minimumCellWidth,
   });
 
   factory LibraryGalleryLayoutSnapshot.build({
@@ -26,6 +28,7 @@ class LibraryGalleryLayoutSnapshot {
     required GalleryThumbnailSize thumbnailSize,
     GalleryLayoutShape layoutShape = GalleryLayoutShape.equalHeight,
     required LibraryGallerySortKey sortKey,
+    double minimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
   }) {
     if (manifest.itemCount == 0 || availableWidth <= 0) {
       return LibraryGalleryLayoutSnapshot._(
@@ -46,6 +49,7 @@ class LibraryGalleryLayoutSnapshot {
         thumbnailSize: thumbnailSize,
         layoutShape: layoutShape,
         sortKey: sortKey,
+        minimumCellWidth: minimumCellWidth,
       );
     }
 
@@ -55,7 +59,7 @@ class LibraryGalleryLayoutSnapshot {
     final dateAnchors = <LibraryGalleryDateAnchor>[];
     final targetRowHeight = thumbnailSize.targetExtent;
     final minimumAspectRatio =
-        math.min(_minimumCellWidth, availableWidth) / targetRowHeight;
+        math.min(minimumCellWidth, availableWidth) / targetRowHeight;
     var entryExtent = 0.0;
     var groupStart = 0;
     var activeDateKey = _normalizedDateKey(manifest.dateKeyAt(0));
@@ -94,7 +98,8 @@ class LibraryGalleryLayoutSnapshot {
         final columnCount = math.max(
           1,
           ((availableWidth + LibraryGalleryLayoutEntry.spacing) /
-                  (targetRowHeight + LibraryGalleryLayoutEntry.spacing))
+                  (math.max(targetRowHeight, minimumCellWidth) +
+                      LibraryGalleryLayoutEntry.spacing))
               .floor(),
         );
         final tileExtent =
@@ -254,12 +259,12 @@ class LibraryGalleryLayoutSnapshot {
       thumbnailSize: thumbnailSize,
       layoutShape: layoutShape,
       sortKey: sortKey,
+      minimumCellWidth: minimumCellWidth,
     );
   }
 
   static const _topPadding = 18.0;
   static const _bottomPadding = 72.0;
-  static const _minimumCellWidth = 48.0;
 
   final LibraryGalleryLayoutManifest manifest;
   final List<LibraryGalleryLayoutSnapshotEntry> entries;
@@ -270,16 +275,19 @@ class LibraryGalleryLayoutSnapshot {
   final GalleryThumbnailSize thumbnailSize;
   final GalleryLayoutShape layoutShape;
   final LibraryGallerySortKey sortKey;
+  final double minimumCellWidth;
 
   bool matches({
     required LibraryGalleryLayoutManifest otherManifest,
     required double otherAvailableWidth,
+    double otherMinimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
     required GalleryThumbnailSize otherThumbnailSize,
     required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
   }) {
     return identical(manifest, otherManifest) &&
         (availableWidth - otherAvailableWidth).abs() < 0.01 &&
+        (minimumCellWidth - otherMinimumCellWidth).abs() < 0.01 &&
         thumbnailSize == otherThumbnailSize &&
         layoutShape == otherLayoutShape &&
         sortKey == otherSortKey;
@@ -290,8 +298,10 @@ class LibraryGalleryLayoutSnapshot {
     required GalleryThumbnailSize otherThumbnailSize,
     required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
+    double otherMinimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
   }) {
     return identical(manifest, otherManifest) &&
+        (minimumCellWidth - otherMinimumCellWidth).abs() < 0.01 &&
         thumbnailSize == otherThumbnailSize &&
         layoutShape == otherLayoutShape &&
         sortKey == otherSortKey;

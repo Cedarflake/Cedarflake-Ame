@@ -47,7 +47,11 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert_eq!(location[0].visibility, "");
     assert_eq!(location[0].attributes, ["cfg(windows)"]);
     assert!(!location[0].is_inline);
-    for module_name in ["gallery_query_snapshot", "gallery_time_snapshot"] {
+    for module_name in [
+        "exact_duplicate_review",
+        "gallery_query_snapshot",
+        "gallery_time_snapshot",
+    ] {
         let snapshot = DOMAIN_MODULE_CONTRACTS
             .iter()
             .filter(|contract| contract.name == module_name)
@@ -310,6 +314,12 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             DOMAIN_SOURCE,
             "pub mod gallery_time_snapshot;",
             "pub(crate) mod gallery_time_snapshot;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod exact_duplicate_review;",
+            "pub(crate) mod exact_duplicate_review;",
         ),
     ] {
         assert!(

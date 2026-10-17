@@ -1,5 +1,13 @@
 use std::fmt::{Display, Formatter};
 
+pub mod exact_duplicate_review;
+pub(crate) mod exact_duplicates;
+pub use exact_duplicates::{
+    DuplicateLocationAvailability, ExactAnalysisPhase, ExactAnalysisProgress, ExactDuplicateGroup,
+    ExactDuplicateGroupCursor, ExactDuplicateGroupPage, ExactDuplicateLocation,
+    ExactDuplicateLocationPage, GalleryDuplicateAnnotation, GalleryDuplicatePage,
+};
+
 mod journal_scope_recovery;
 pub use journal_scope_recovery::JournalScopeRecoveryOutcome;
 
@@ -434,6 +442,12 @@ pub enum GallerySortDirection {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GalleryDuplicateMode {
+    All,
+    Merged,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GalleryQuery {
     pub root_id: Option<String>,
     pub folder_relative_path: Option<String>,
@@ -441,6 +455,7 @@ pub struct GalleryQuery {
     pub search_text: String,
     pub sort_key: GallerySortKey,
     pub sort_direction: GallerySortDirection,
+    pub duplicate_mode: GalleryDuplicateMode,
 }
 
 impl Default for GalleryQuery {
@@ -452,6 +467,7 @@ impl Default for GalleryQuery {
             search_text: String::new(),
             sort_key: GallerySortKey::CaptureTime,
             sort_direction: GallerySortDirection::Descending,
+            duplicate_mode: GalleryDuplicateMode::All,
         }
     }
 }
@@ -468,6 +484,7 @@ pub struct GalleryTimeline {
     pub revision: u64,
     pub query_id: String,
     pub total_items: u64,
+    pub total_source_items: u64,
     pub buckets: Vec<GalleryTimeBucket>,
 }
 

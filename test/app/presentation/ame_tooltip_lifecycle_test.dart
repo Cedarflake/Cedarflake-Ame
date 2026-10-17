@@ -5,6 +5,76 @@ import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "focus retains the accessible name without holding a visual tooltip",
+    (tester) async {
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+      final focus = FocusNode();
+      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+      final semantics = tester.ensureSemantics();
+      const targetKey = Key("focused-tooltip-target");
+      const message = "查看重复位置";
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Center(
+                child: AmeTooltip(
+                  message: message,
+                  child: IconButton(
+                    key: targetKey,
+                    focusNode: focus,
+                    autofocus: true,
+                    onPressed: () {},
+                    icon: const Icon(Icons.photo_library),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final target = find.byKey(targetKey);
+        expect(focus.hasFocus, isTrue);
+        expect(find.text(message), findsNothing);
+        expect(
+          tester
+              .getSemantics(find.byType(AmeTooltip))
+              .getSemanticsData()
+              .tooltip,
+          message,
+        );
+
+        await mouse.addPointer(location: Offset.zero);
+        await mouse.moveTo(tester.getCenter(target));
+        await tester.pump(const Duration(milliseconds: 500));
+        await tester.pumpAndSettle();
+        expect(find.text(message), findsOneWidget);
+        await mouse.down(tester.getCenter(target));
+        await mouse.up();
+        await mouse.moveTo(Offset.zero);
+        await tester.pump(const Duration(milliseconds: 100));
+        await tester.pumpAndSettle();
+        expect(focus.hasFocus, isTrue);
+        expect(find.text(message), findsNothing);
+        expect(
+          tester
+              .getSemantics(find.byType(AmeTooltip))
+              .getSemanticsData()
+              .tooltip,
+          message,
+        );
+        expect(tester.takeException(), isNull);
+      } finally {
+        await mouse.removePointer();
+        await tester.pumpWidget(const SizedBox.shrink());
+        focus.dispose();
+        semantics.dispose();
+        debugDefaultTargetPlatformOverride = null;
+      }
+    },
+  );
+
   testWidgets("updates a visible folder tooltip during its parent rebuild", (
     tester,
   ) async {

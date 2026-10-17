@@ -1,6 +1,5 @@
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_source_navigation_tile.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -31,16 +30,12 @@ void main() {
         await tester.pump();
         final scan = fixture.state.primaryScanSnapshot;
 
-        final root = find.byWidgetPredicate(
-          (widget) =>
-              widget is LibrarySourceNavigationTile &&
-              widget.root.id == "other",
-        );
-        await tester.tap(
-          width < 940
-              ? find.descendant(of: root, matching: find.byType(IconButton))
-              : find.byKey(const ValueKey("source-title-other")),
-        );
+        if (width < 940) {
+          await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
+          await tester.pump();
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+        await tester.tap(find.byKey(const ValueKey("source-title-other")));
         await tester.pump();
         await tester.pump();
         expect(fixture.state.query.rootId, "other");

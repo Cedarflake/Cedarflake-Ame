@@ -110,6 +110,21 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 39 {
         super::queue_retirement_indexes::validate(connection)?;
     }
+    if schema_version >= 40 {
+        super::exact_duplicates::validate(connection)?;
+    }
+    if (40..=42).contains(&schema_version) {
+        super::exact_duplicates::validate_legacy_cursor(connection)?;
+    }
+    if schema_version >= 41 {
+        super::gallery_duplicates::validate(connection)?;
+    }
+    if schema_version >= 42 {
+        super::exact_duplicate_review::validate(connection)?;
+    }
+    if schema_version >= 43 {
+        super::exact_candidate_index_retirement::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

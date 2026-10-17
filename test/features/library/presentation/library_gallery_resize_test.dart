@@ -7,8 +7,10 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_card_metrics.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_reflow.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
@@ -18,6 +20,76 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final withManifest in [false, true]) {
+    testWidgets(
+      "hidden gallery retires preview work and resumes ($withManifest)",
+      (tester) async {
+        final state = _boundaryState(
+          itemCount: 40,
+          windowStart: 0,
+          windowEnd: 40,
+          hasPrevious: false,
+          hasNext: false,
+        );
+        final controller = _RecordingGalleryController();
+        final scroll = ScrollController();
+        addTearDown(scroll.dispose);
+        final active = ValueNotifier(true);
+        addTearDown(active.dispose);
+        await tester.pumpWidget(
+          ProviderScope(
+            child: MaterialApp(
+              home: ValueListenableBuilder<bool>(
+                valueListenable: active,
+                builder: (context, enabled, _) => Visibility(
+                  visible: enabled,
+                  maintainState: true,
+                  child: LibraryGalleryActivity(
+                    controller: controller,
+                    child: LibraryGalleryWall(
+                      state: state,
+                      controller: controller,
+                      scrollController: scroll,
+                      layoutShape: GalleryLayoutShape.equalHeight,
+                      thumbnailSize: GalleryThumbnailSize.medium,
+                      selection: GallerySelection.empty(state.queryId),
+                      isSelecting: false,
+                      layoutManifest: withManifest ? _manifest(40) : null,
+                      onOpen: (_) {},
+                      onToggleSelection: (_) {},
+                      onViewInformation: (_) {},
+                      onCopyPath: (_) {},
+                      onRevealFile: (_) {},
+                      onVisiblePositionChanged: (_) {},
+                      onLoadPrevious: () async {},
+                      onLayoutChanged: (_, _) {},
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pump();
+        expect(controller.previewDemandRequests.last.visible, isNotEmpty);
+        final originalPosition = scroll.position;
+        active.value = false;
+        await tester.pump();
+        expect(controller.previewDemandRequests.last.visible, isEmpty);
+        final hiddenCount = controller.previewDemandRequests.length;
+        // A late scroll notification must not repopulate hidden preview demand.
+        scroll.jumpTo(100);
+        await tester.pump();
+        expect(controller.previewDemandRequests.length, hiddenCount);
+        active.value = true;
+        await tester.pump();
+        expect(identical(scroll.position, originalPosition), isTrue);
+        expect(controller.previewDemandRequests.last.visible, isNotEmpty);
+        await tester.pumpWidget(const SizedBox.shrink());
+      },
+    );
+  }
+
   test("visible range excludes surrounding prefetch evidence", () {
     final range = LibraryGalleryVisibleRange(
       queryId: "query-1",
@@ -239,6 +311,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: initialSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -293,8 +366,10 @@ void main() {
     wallSize.value = finalSize;
     await tester.pump();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
 
     final finalSnapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: finalSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -392,6 +467,7 @@ void main() {
     wallSize.value = const Size(760, 540);
     await tester.pump();
     await tester.pump();
+    await tester.pump(const Duration(milliseconds: 180));
 
     expect(
       tester.getTopLeft(previewTile).dy,
@@ -605,6 +681,7 @@ void main() {
           ),
         );
         final targetSnapshot = LibraryGalleryLayoutSnapshot.build(
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: manifest,
           availableWidth: 860,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -788,6 +865,7 @@ void main() {
     );
 
     final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+      minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
       manifest: manifest,
       availableWidth: initialSize.width - 40,
       thumbnailSize: GalleryThumbnailSize.medium,
@@ -922,6 +1000,7 @@ void main() {
         );
 
         final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: initialManifest,
           availableWidth: wallSize.width - 40,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -976,6 +1055,7 @@ void main() {
             ),
         ]);
         final recoveredSnapshot = LibraryGalleryLayoutSnapshot.build(
+          minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
           manifest: recovered,
           availableWidth: wallSize.width - 40,
           thumbnailSize: GalleryThumbnailSize.medium,
@@ -1264,6 +1344,7 @@ void main() {
       );
 
       final initialSnapshot = LibraryGalleryLayoutSnapshot.build(
+        minimumCellWidth: LibraryGalleryCardMetrics.minimumWidth,
         manifest: manifest,
         availableWidth: wallSize.width - 40,
         thumbnailSize: GalleryThumbnailSize.medium,

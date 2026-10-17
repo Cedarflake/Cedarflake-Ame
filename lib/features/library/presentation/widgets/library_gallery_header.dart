@@ -7,11 +7,15 @@ import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
+import "library_sidebar_content.dart";
 
 class LibraryGalleryHeader extends StatelessWidget {
   const LibraryGalleryHeader({
     required this.galleryTitle,
+    this.leading,
+    this.filter,
     required this.totalItems,
+    this.mergedItems,
     required this.selectedCount,
     required this.isSelecting,
     required this.layoutShape,
@@ -29,7 +33,10 @@ class LibraryGalleryHeader extends StatelessWidget {
   });
 
   final String galleryTitle;
+  final Widget? leading;
+  final Widget? filter;
   final int totalItems;
+  final int? mergedItems;
   final int selectedCount;
   final bool isSelecting;
   final GalleryLayoutShape layoutShape;
@@ -47,7 +54,11 @@ class LibraryGalleryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = isSelecting ? "已选择 $selectedCount 个项目" : galleryTitle;
-    final subtitle = isSelecting ? galleryTitle : "$totalItems 张图片";
+    var subtitle = "$totalItems 张图片";
+    if (mergedItems case final count?) {
+      subtitle = "$subtitle · 去重后 $count 张";
+    }
+    if (isSelecting) subtitle = galleryTitle;
     return SizedBox(
       key: const Key("library-gallery-header"),
       width: double.infinity,
@@ -57,7 +68,7 @@ class LibraryGalleryHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final titleBlock = Column(
+              final titleText = Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -76,9 +87,22 @@ class LibraryGalleryHeader extends StatelessWidget {
                   ),
                 ],
               );
+              final titleBlock = LibrarySidebarLeading(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    if (leading != null) ...[
+                      leading!,
+                      const SizedBox(width: 8),
+                    ],
+                    Flexible(child: titleText),
+                  ],
+                ),
+              );
               final toolbar = isSelecting
                   ? _SelectionToolbar(onCancel: onCancelSelection)
                   : _BrowsingToolbar(
+                      filter: filter,
                       layoutShape: layoutShape,
                       thumbnailSize: thumbnailSize,
                       sortKey: sortKey,
@@ -96,11 +120,15 @@ class LibraryGalleryHeader extends StatelessWidget {
                   children: [
                     titleBlock,
                     const SizedBox(height: 12),
-                    AmeScrollMotion(
-                      scrollDirection: Axis.horizontal,
-                      child: SingleChildScrollView(
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: AmeScrollMotion(
                         scrollDirection: Axis.horizontal,
-                        child: toolbar,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          reverse: true,
+                          child: toolbar,
+                        ),
                       ),
                     ),
                   ],
@@ -140,6 +168,7 @@ class LibraryGalleryHeader extends StatelessWidget {
 
 class _BrowsingToolbar extends StatelessWidget {
   const _BrowsingToolbar({
+    this.filter,
     required this.layoutShape,
     required this.thumbnailSize,
     required this.sortKey,
@@ -152,6 +181,7 @@ class _BrowsingToolbar extends StatelessWidget {
     required this.onSortDirectionChanged,
   });
 
+  final Widget? filter;
   final GalleryLayoutShape layoutShape;
   final GalleryThumbnailSize thumbnailSize;
   final LibraryGallerySortKey sortKey;
@@ -181,6 +211,7 @@ class _BrowsingToolbar extends StatelessWidget {
           onSortKeyChanged: onSortKeyChanged,
           onDirectionChanged: onSortDirectionChanged,
         ),
+        ?filter,
         _LayoutMenu(
           shape: layoutShape,
           size: thumbnailSize,

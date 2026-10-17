@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../features/library/presentation/unified_library_screen.dart";
+import "../features/library/presentation/widgets/library_analysis_activity.dart";
 import "../features/settings/application/ame_preferences.dart";
 import "presentation/ame_localizations.dart";
 import "presentation/ame_scroll_motion_theme.dart";
@@ -27,7 +28,9 @@ class AmeApp extends ConsumerWidget {
           seedColor: seedColor,
         ),
         themeMode: ameThemeMode(preferences.theme),
-        home: const AmeScrollMotionTheme(child: UnifiedLibraryScreen()),
+        home: const LibraryAnalysisActivity(
+          child: AmeScrollMotionTheme(child: UnifiedLibraryScreen()),
+        ),
       ),
     );
   }

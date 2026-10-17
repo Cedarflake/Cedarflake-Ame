@@ -1,6 +1,7 @@
 # Unified gallery UI contract
 
-Status: retained accepted presentation contract under [ADR 0009](../architecture/0009-accepted-unified-gallery-ui-contract.md).
+Status: accepted presentation contract under [ADR 0009](../architecture/0009-accepted-unified-gallery-ui-contract.md)
+and [ADR 0029](../architecture/0029-functional-workbench-navigation.md).
 
 The [roadmap](../roadmap.md) owns delivery order and current availability. Future controls described
 here remain absent until their owning use cases are implemented. This document preserves the
@@ -27,10 +28,11 @@ current authority and fully supersedes ADR 0003. Later work may refine spacing, 
 component details, and wording, but it must not silently reverse these accepted
 information-architecture choices:
 
-- one unified gallery rather than peer folder, timeline, category, search, or duplicate pages;
-- sources and albums only in the sidebar;
-- the Library row owns Add folder, and Settings remains pinned to the sidebar bottom;
-- duplicate display and review inside the gallery filter menu rather than a standalone action;
+- one reusable gallery for folder, timeline, category and search scopes;
+- a permanent function rail selects the Library and Duplicates workspaces;
+- the Library workspace owns the collapsible source/folder sidebar and Add folder;
+- Settings remains pinned to the bottom of the function rail;
+- the gallery filter changes duplicate display; the Duplicates workspace owns group review;
 - temporary action-specific import progress rather than permanent task navigation;
 - a plain-language settings canvas rather than a dialog or engineering dashboard;
 - Simplified Chinese as the initial application language.
@@ -52,6 +54,100 @@ be introduced later without rewriting the UI structure.
 The completed R2a prototype remains acceptance evidence, not a second application entry point.
 Unavailable controls must not ship as dead production actions, and a fixture or screenshot is not
 feature-completion evidence.
+
+## Workbench blueprint
+
+The workbench has three regions in Library: a narrow function rail, a source/folder sidebar,
+and the photo wall. The rail remains visible while the secondary sidebar can collapse. Its toggle
+stays in the function rail immediately above Settings while Library is active, with `收起侧栏` and
+`展开侧栏` tooltips. Animate the sidebar boundary and photo content's left edge together over a short
+transition. The gallery title and count follow that same left edge independently of the toolbar.
+Smoothly move and resize visible photos when sidebar or window dimensions change,
+including maximize/restore, while retaining the current browsing anchor.
+Keep the gallery's right edge, toolbar and time rail anchored to the window; the toolbar
+also stays right-aligned when it wraps below the title. The gallery lays out once at its destination
+width, keeping its state and preview ownership. Respect
+reduced motion and reverse an interrupted toggle from the current boundary. Remember the
+preference and retain selected source, folder expansion, selection and gallery scroll position when
+switching workspaces. Reuse the accepted theme, global chrome, photo wall and viewer.
+
+Library supports `全部图片` and `合并重复图片` in the existing upper-right filter area. The first
+shows every location; the second shows one scoped representative of each confirmed exact group.
+The heading always starts with the total image count for the current folder/search scope. Merged
+mode appends its displayed count, for example `10000 张图片 · 去重后 72 张`; All images shows
+`10000 张图片`. Both counts come from the same catalog revision and scope.
+Ordinary and not-yet-analysed images remain visible. Remember the user's display choice. Each
+confirmed duplicate card has a top-left stacked-image action only in `合并重复图片`; `全部图片`
+has no duplicate card action. The card action shows no count, and the top-right selection checkbox
+keeps its existing independent action. Clicking the duplicate action
+opens a bottom sheet with separate filename and folder lines and a current-image marker;
+clicking a location reveals that file in File Explorer. Long filenames and paths wrap completely
+inside the sheet's continuously scrolling list, with bounded incremental reads and no pagination
+buttons. The sheet has a drag handle and no close button; Escape or a click outside dismisses it.
+Closing it retains the gallery position and restores existing keyboard focus to the badge when
+available, without creating focus after mouse activation. Normal local availability is omitted; retain the current-image marker
+and cloud-only, offline or unavailable states. Locations outside the current folder are explicitly inspectable without
+widening the gallery selection scope.
+
+Cards reserve at least 128 logical pixels of width for the duplicate icon, selection target and
+their padding. Counts no longer affect card width. Asynchronous badge arrival and hover do not
+resize cards. Both loaded-window and query-wide geometry use the same floor; square mode
+also respects it. The duplicate and selection targets have separate bounded space without clipping or
+overlap.
+
+The Duplicates workspace owns duplicate-only results, analysis controls, group inspection and
+preferred-copy/ignore decisions. It reuses gallery preview and viewing capabilities. Exact duplicates
+are byte-identical; perceptual similarity is a separate later capability and is absent until connected.
+No analysis or display choice authorizes source mutation.
+
+Use `重复图片查找` as the workspace heading and show the current category's total number of
+duplicate image groups beneath it, reserving that line while changing categories. Omit the scope,
+description and separate analysis-status text. Put the heading/count block on the left, the
+category switch at the content area's horizontal center, and refresh/pause actions on the right
+in one row. Equal flexible space on both sides keeps the switch centered independently of label
+length. Compact widths and enlarged text stack these blocks while retaining the centered switch
+and right-aligned actions.
+Group review adds ignore/restore to the right-aligned action row. Groups use responsive multi-column
+cards; group members use full-width single-column rows so paths have enough space. Both reuse the
+thumbnail/text skeleton. Group cards retain their lower-right text action; member rows place
+preference and Explorer icon buttons on the right, vertically centered, without a footer. Measure
+text and controls to reserve only their needed height, including enlarged availability text.
+The selected group's initial representative filename is the subpage heading; align
+its rows beneath that heading. Member rows use their image preview without an additional
+decorative folder icon or a separate `首选副本` label. The whole card provides hover feedback and
+opens its group or image. Member icons retain hover and accessible action names; omit
+the redundant `查看图片` button. Group actions read `查看重复图片`; the gallery sheet heading states
+the number of duplicate images. Each location row is the Explorer reveal action, without a second
+reveal button. Put `当前图片` at the right of its row; keep availability and wrapped paths beneath
+the filename. Result loading uses the gallery's two-pixel overlay at the boundary
+between toolbar and cards. Saving or switching a preference retains the member rows and scroll
+position. Subsequent catalog/analysis publication revalidates the visible range in the background
+and replaces it atomically, without clearing cards or flashing a page loader. Manual refresh and
+initial/continuation reads retain their loading feedback; read failures retain a retry action.
+
+Both levels scroll continuously without Previous/Next page buttons. Load catalog batches for the
+visible range and retain bounded payload and cursor caches; preview demand remains viewport-bound.
+Empty and failed results reuse the gallery's centered icon/title/detail component.
+Result groups and their members include bounded image previews and inspectable file locations.
+Opening a member uses the existing full-window image
+viewer, including navigation across catalog batches; returning preserves the reviewed group and scroll
+position. `设为首选` selects the representative used
+by merged gallery queries, with a deterministic in-scope fallback when that location no longer
+matches. `忽略此组` moves it to `已忽略`, where `恢复此组` restores it to the regular review list.
+These choices survive reopening and compatible reanalysis. Ignoring a group leaves its gallery
+images and badges visible, and neither action changes a source file.
+
+Analysis is automatic while Ame is running, after startup browsing and synchronization have priority.
+New or changed catalog content queues bounded analysis; compatible completed fingerprints survive
+restart and cancellation. Visible-preview and original-image reads take priority; busy browsing
+reduces or suspends background reads. Cloud-only files wait for local availability. Analysis never
+adds startup source enumeration or a second complete source copy. Retain structured analysis progress
+and expose manual pause/resume in Duplicates; automatic analysis begins without a visit to that page.
+
+Badge updates may appear in place. Changes that fold/reorder photo cards are coalesced until
+interaction is idle and preserve the current logical image anchor. An open viewer retains its current
+image and navigation sequence. The scheduler and query publication owners, rather than a loading
+message or animation, establish these guarantees.
 
 ## Global shell
 
@@ -234,51 +330,29 @@ window locally is forbidden.
 
 ## Filter and exact-duplicate behavior
 
-Exact duplicate handling is a gallery filter, not a peer toolbar action or navigation destination.
-The compact filter action follows the Microsoft Photos grouped-menu structure while exposing only
-capabilities that Ame currently supports:
+The gallery Filter menu has two independent single-choice groups:
 
 ```text
 显示子目录
 隐藏子目录
 ────────────────
-显示所有文件
-合并完全相同图片
-仅显示重复图片
-────────────────
-审查重复组
+全部图片
+合并重复图片
 ```
 
-The menu contains two independent single-choice groups followed by one command. Before R3 the
-available default is `显示子目录 + 显示所有文件`. After R3 has trustworthy exact evidence, the
-initial duplicate mode becomes `合并完全相同图片` so repeated physical copies do not multiply the
-user's review workload; the user can still select either other mode. The first group selects whether
-the current source includes descendant folders. The second group selects one exact-duplicate
-display mode:
+The source group controls descendants of the current folder. The duplicate group controls whether
+all physical instances or one representative per confirmed exact group appears. Before trustworthy
+exact analysis and incremental maintenance are connected, every image remains visible. Once folding
+is connected, it becomes the initial default while preserving an explicit saved choice.
 
-- `显示所有文件`: show every physical file instance;
-- `合并完全相同图片`: fold byte-identical copies into one representative item without merging
-  durable identities;
-- `仅显示重复图片`: show only exact duplicate groups.
+The Duplicates workspace owns duplicate-only results and group review. A top-left icon in merged
+gallery mode opens every known current location of that group, including relevant availability
+states and full paths. All-images mode has no duplicate card marker. Location activation uses the existing File Explorer reveal action. A representative
+selects a logical group; physical operations require explicit location selection in their later workflow.
 
-`审查重复组` is a contextual command at the bottom of the same filter menu. It enters review in the
-existing gallery canvas and does not create a new page or sidebar entry.
-
-R2a may exercise the confirmed duplicate choices with deterministic fixtures. They remain hidden in
-the production shell until R3 connects trustworthy exact-duplicate evidence.
-
-The current product indexes images, so the Microsoft Photos `所有媒体 / 照片 / 视频` group is not
-copied into the early UI. Video filters appear only after video indexing becomes accepted product
-scope. Classification and category choices do not become ordinary filter items. When R5 is
-functional, effective category projections appear as smart-album result groups under `相册`.
-
-A merged representative displays its copy count. Selecting a merged representative selects a
-logical group, not an arbitrary physical path. Any future path mutation requires expansion and
-explicit selection of `AssetLocation` values.
-
-Duplicate review remains in the same main canvas. Early review can inspect paths, compare file
-evidence, mark a preferred copy, ignore a group, and generate non-executable suggestions. It
-contains no delete action.
+Source/folder/date/search scope still limits gallery membership. A group spanning folders cannot
+silently widen that scope. Pending and unreadable files remain visible. Review can retain preferred
+copies and ignored groups without changing source files. Perceptual similarity remains distinct.
 
 ## Layout behavior
 
@@ -409,6 +483,10 @@ position when possible.
   may cluster. Year-text collision handling never redistributes the scroll axis or month points;
   marker thinning uses only dot collisions because text has a separate column. The current-position
   indicator has a fixed visual height and does not represent the viewport height.
+- Layout changes interpolate retained date labels, month points and the current-position line over
+  180 ms. Sidebar changes, resized viewports and gallery layout changes share this behavior. Wheel,
+  slider and keyboard position input stays immediate; reduced motion skips the transition. The
+  visual rail may retain the prior layout while awaiting its replacement, with stale input disabled.
 - Year-label collision handling follows the annotated-scrollbar rule: retain the first collection
   label, remove colliding upper labels, and keep at least 4 px between visible labels.
 - During drag, the active date label follows the current-position line, the gray hover preview is
@@ -436,6 +514,8 @@ in 100 ms without resetting the zoom transform. The existing preview element sta
 the original's first frame, including after cache eviction, and is released when the reveal finishes.
 These transitions use Flutter's image opacity and fade primitives, without an additional package,
 layout interpolation or a queue of outgoing full-resolution images.
+Duplicate review opens the same viewer with the shared fade component and timing; its full-window
+route adds no page zoom or slide. Returning retains the underlying review list and its position.
 
 The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
 one quarter is 125%, and reduction by half is 50%. The default opening preference is Automatic:
@@ -569,7 +649,8 @@ states without becoming production data paths:
 - populated unified gallery;
 - source tree, unavailable source, and source overflow menu;
 - selection and cancellation;
-- filter menu with subfolder and exact-duplicate groups, merged representative, and duplicate review;
+- filter menu with subfolder and exact-duplicate groups, merged representatives and location badges;
+- function-rail navigation, retained collapsible source sidebar and duplicate review in Duplicates;
 - layout menu with both shape modes and all three thumbnail sizes;
 - search results and empty results;
 - preview failure and retry;
@@ -580,7 +661,7 @@ states without becoming production data paths:
 
 ## Settings page
 
-The Settings row pinned to the sidebar opens one shallow settings canvas while the global bar and
+The Settings button pinned to the function rail opens one shallow settings canvas while the global bar and
 sidebar remain visible. It is not a dialog, engineering dashboard, or hierarchy of abstract
 configuration pages. The visual pattern follows Microsoft Photos: a clear `设置` title, a centered
 readable column, plain section headings, and full-width rows containing an icon, a user-facing

@@ -4,6 +4,48 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_gal
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  for (final shape in GalleryLayoutShape.values) {
+    test("$shape keeps item ordinals across fractional rows and date gaps", () {
+      final assets = [
+        for (var index = 0; index < 120; index++)
+          _asset(
+            "location-$index",
+            modifiedUnixMs: DateTime(
+              2026,
+              8,
+              1 + index ~/ 27,
+            ).millisecondsSinceEpoch,
+          ),
+      ];
+      final entries = LibraryGalleryLayoutEntry.build(
+        assets: assets,
+        availableWidth: 916,
+        layoutShape: shape,
+        thumbnailSize: GalleryThumbnailSize.medium,
+        sortKey: LibraryGallerySortKey.modifiedTime,
+      );
+      for (var index = 0; index < assets.length; index++) {
+        final row = LibraryGalleryLayoutEntry.photoRowForItemIndex(
+          entries,
+          index,
+        );
+        expect(row, isNotNull);
+        expect(
+          row!.cells[index - row.startItemIndex].asset.locationId,
+          "location-$index",
+        );
+      }
+      expect(
+        LibraryGalleryLayoutEntry.photoRowForItemIndex(entries, -1),
+        isNull,
+      );
+      expect(
+        LibraryGalleryLayoutEntry.photoRowForItemIndex(entries, 120),
+        isNull,
+      );
+    });
+  }
+
   test("groups capture, creation, and modification fallback dates", () {
     final assets = [
       _asset("capture", captureLocalTime: "2026-01-02T03:04:05"),

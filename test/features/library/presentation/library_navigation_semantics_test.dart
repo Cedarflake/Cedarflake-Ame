@@ -373,7 +373,6 @@ void main() {
             builder: (context, currentRoots, child) => LibraryNavigation(
               isCompact: false,
               width: 320,
-              isSettingsSelected: false,
               roots: currentRoots,
               selectedRootId: currentRoots.isEmpty
                   ? null
@@ -389,7 +388,6 @@ void main() {
               onExpandFolder: (_, _) async {},
               onLoadMoreFolders: (_, _) async {},
               onAddSource: _noop,
-              onOpenSettings: _noop,
               onUpdateRoot: (_) {},
               onOpenRoot: (_) {},
               onOpenFolder: (_, _) {},
@@ -869,7 +867,6 @@ Widget _buildNavigation({
     child: LibraryNavigation(
       isCompact: false,
       width: 260,
-      isSettingsSelected: false,
       roots: const [
         LibraryRoot(
           id: "root-1",
@@ -937,7 +934,6 @@ Widget _buildNavigation({
       onExpandFolder: (_, _) async {},
       onLoadMoreFolders: (_, _) async {},
       onAddSource: _noop,
-      onOpenSettings: _noop,
       onUpdateRoot: (_) {},
       onOpenRoot: (_) {},
       onOpenFolder: (_, _) {},

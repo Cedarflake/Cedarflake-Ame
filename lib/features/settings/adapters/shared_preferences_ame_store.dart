@@ -55,6 +55,11 @@ class SharedPreferencesAmeStore
         value["sortDirection"],
         LibraryGallerySortDirection.descending,
       ),
+      duplicateMode: _enumByName(
+        LibraryGalleryDuplicateMode.values,
+        value["duplicateMode"],
+        LibraryGalleryDuplicateMode.merged,
+      ),
     );
   }
 
@@ -92,6 +97,10 @@ class SharedPreferencesAmeStore
         PreviewLoadingSpeed.medium,
       ),
       viewerFilmstripVisible: value["viewerFilmstripVisible"] == true,
+      sidebarExpanded: value["sidebarExpanded"] is bool
+          ? value["sidebarExpanded"] as bool
+          : null,
+      exactAnalysisPaused: value["exactAnalysisPaused"] == true,
       sidebarWidth:
           (_readDouble(value["sidebarWidth"]) ?? ameDefaultSidebarWidth)
               .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
@@ -142,6 +151,7 @@ class SharedPreferencesAmeStore
         "thumbnailSize": preferences.thumbnailSize.name,
         "sortKey": preferences.sortKey.name,
         "sortDirection": preferences.sortDirection.name,
+        "duplicateMode": preferences.duplicateMode.name,
       }),
     );
   }
@@ -158,6 +168,8 @@ class SharedPreferencesAmeStore
         "viewerFilmstripVisible": preferences.viewerFilmstripVisible,
         "previewLoadingSpeed": preferences.previewLoadingSpeed.name,
         "sidebarWidth": preferences.sidebarWidth,
+        "sidebarExpanded": preferences.sidebarExpanded,
+        "exactAnalysisPaused": preferences.exactAnalysisPaused,
       }),
     );
   }
