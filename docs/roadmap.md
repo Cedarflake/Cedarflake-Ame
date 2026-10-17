@@ -2,10 +2,10 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-16
+Last planning update: 2026-10-17
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
-decisions. Only one stage is active. Detailed product contracts, execution procedures, architecture,
+decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
 and historical verification have separate owners in the [documentation index](README.md).
 Read the linked active execution plan before working on its scope; it cannot independently advance
 a stage or change this queue. Historical results never establish current-source acceptance.
@@ -32,8 +32,8 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2a | Accepted unified gallery and connected-control design | Accepted foundation |
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
-| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | R3-01 through R3-04 connected; affected verification and closure active |
-| R4 | Favorites, virtual albums, durable decisions, and resumable review sessions | Planned after R3 |
+| R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
+| R4 | Favorites, virtual albums, durable decisions, and resumable review sessions | Next planned stage; not started |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -48,10 +48,11 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**R2c is completed and frozen by the 2026-10-16 product decision. R3 is the active stage, completing
-affected verification and closure.** The [R3 execution plan](plans/r3-exact-duplicates.md) owns the
-selected delivery details and live checkpoint. Its scope remains the full
-[R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding).
+**R2c is frozen and R3 is completed. R4 is the next planned stage; implementation has not started.**
+The [R3 execution record](plans/r3-exact-duplicates.md) and
+[closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
+[R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
+client verification, source preservation, resource bounds and hosted results.
 
 The R2c product baseline is commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`. The
 [frozen closeout checkpoint](plans/r2c-closeout.md#current-execution-checkpoint) and
@@ -69,49 +70,16 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-Deliver R3 in the following order. Each item includes the connected user workflow, its boundary
-regressions and necessary documentation; implementation details and changing status belong in the
-[R3 execution plan](plans/r3-exact-duplicates.md#execution-checkpoint).
+R3 is closed after exact identification, physical-location inspection, both gallery modes,
+duplicate review, incremental maintenance and durable choices passed their affected verification.
+Preserve its source-read boundaries, deterministic representatives, bounded windows, retained viewer
+navigation and accepted workbench behavior. The execution and acceptance records retain the completed
+R3-01 through R3-05 deliveries; they are no longer an active repair queue.
 
-1. **R3-01: Identify exact duplicates and inspect locations.** Compare `czkawka_core` integration
-   with the existing BLAKE3 dependency, settle fingerprint compatibility, hardlink/count/scope and
-   representative rules, and record the engine decision. Read bounded candidates from the catalog,
-   publish source-versioned analysis evidence and connect the accepted function rail, collapsible
-   Library sidebar and Duplicates workspace with `查看重复位置`. Include progress,
-   cancellation, retry, stale-result rejection and restart reuse in this first delivery.
-2. **R3-02: Maintain duplicate groups incrementally.** Connect changes, replacements, moves,
-   removals and source availability to the existing synchronization/publication boundary. Reuse
-   unchanged evidence and update only affected groups, including changes made while Ame was closed.
-   Complete this before enabling default gallery folding.
-3. **R3-03: Connect gallery display modes.** Add `全部图片` and `合并重复图片` to the existing
-   filter menu; duplicate-only results belong to the Duplicates workspace. Include default folding,
-   representative images with a duplicate-location action and consistent sorting, dates, bounded
-   pagination, selection and viewer navigation.
-   Unanalysed items remain visible; analysis does not block browsing or startup.
-4. **R3-04: Review groups and retain choices.** Connect group review in the Duplicates workspace,
-   inspect physical locations and persist preferred-copy and ignore decisions. Keep logical-group
-   and physical-location selection distinct, and preserve choices across restart and reanalysis.
-5. **R3-05: Verify the affected client workflow and close R3.** Reuse `build/test`, complete relevant
-   ordinary client and resource-bound checks, inspect the applicable Actions results and clean
-   disposable outputs. Verification accompanies each delivery; this final item closes remaining
-   R3-specific gaps without restarting completed R2c acceptance.
-
-Engine comparison is part of R3-01, not another product stage. No `czkawka_core` or alternative
-engine choice is accepted by the roadmap. Ame retains candidate selection, guarded file access,
-source-version admission, persistence, user decisions and presentation through replaceable adapters.
-First analysis may read candidate contents in bounded background work. Later runs reuse compatible
-fingerprints rather than enumerating source trees or rehashing the entire catalog at startup.
-
-Preserve the completed gallery/viewer transitions, shared wheel behavior, filmstrip retention,
-opening preferences, loading geometry, scroll/return anchors, native window placement and approved
-copy. Apply the Microsoft and Google UI/UX skills to the new R3 controls and the
-[accepted workbench blueprint](product/gallery-ui.md#workbench-blueprint) under ADR 0029. Favorites/albums/general review sessions remain R4, perceptual similarity remains R6, and
-physical file operations retain their later stage and explicit authorization.
-
-The stage exits when exact identification, location inspection, both gallery modes, duplicate-only results and
-contextual review work together; incremental changes and restart preserve correct membership and
-human choices; and affected CI, client, source-preservation and resource checks pass. Update this
-roadmap at that exit rather than extending R3 with unrelated feature or maintenance work.
+The next stage is [R4 virtual organization and review](product/organization-workflows.md#r4---virtual-organization-and-review-foundation).
+Its scope remains Favorites and virtual albums, durable decisions and resumable review sessions.
+Select its execution plan when that work is requested. Do not restart completed R2c/R3 acceptance or
+advance physical file operations, perceptual similarity or release signing through this closeout.
 
 ## Frozen R2c ownership
 

@@ -9,6 +9,7 @@ recorded local checkpoint does not establish that the current product source pas
 | Record | Responsibility |
 | --- | --- |
 | [Quality gates](quality-gates.md) | Canonical commands, workload admission, hosted/client boundaries, and authorization requirements |
+| [R3 exact-content verification](r3-exact-duplicates.md) | Exact analysis, gallery modes, review decisions, client/resource checks and final closeout evidence |
 | [Library continuity contract](library-continuity.md) | R2c safety, ownership, queue, reconciliation, failure, lifecycle, and acceptance requirements |
 | [Interleaving remediation](r2c-interleaving-remediation.md) | Current accumulated runtime findings, bounded retirement, mixed-load failures, native evidence, and source-specific results |
 | [Browsing recovery](synchronization-browsing-recovery.md) | The 2026-09-09 source-version, query-snapshot, and folder recovery correction and its verification limits |
@@ -28,8 +29,9 @@ recorded local checkpoint does not establish that the current product source pas
 | [Gallery foundation](gallery-foundation.md) | Historical R0/R1/R2a/R2b acceptance, frozen interaction comparison, and retained preview/geometry requirements |
 | [Read-only real-library acceptance](read-only-real-library.md) | Explicitly authorized catalog/source evidence; no standing authority for another run |
 
-The [R2c execution plan](../plans/r2c-closeout.md) specifies how to investigate and repair the current
-bounded batch. Add observations and results here, not another priority queue in that plan or this index.
+Use the roadmap to select the current execution owner. The R2c and R3 execution records retain
+completed delivery procedures and checkpoints. Add verification here without creating another
+priority queue in this index.
 Keep private catalogs/media, machine-specific roots, account labels, and raw user logs out of records.
 
 ## Stage records and historical applicability
@@ -64,7 +66,7 @@ git show 643f7b8f71971ce33416cc87aa94bb84f41d4e05:docs/roadmap.md
 | R2c.1–10 and R2c.12–13 | [Continuity acceptance contract](library-continuity.md), subordinate to current ADRs |
 | R2c.11 per-slice remediation chronologies | The stage records above; exact earlier wording and measurements remain in the immutable Git source |
 | R3–R10 detailed scope and product value checkpoints | [Organization workflow requirements](../product/organization-workflows.md) |
-| Pre-freeze R2c queue and acceptance wording | [Roadmap at the frozen product commit](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md); the current roadmap records R2c closure and R3 preparation |
+| Pre-freeze R2c queue and acceptance wording | [Roadmap at the frozen product commit](https://github.com/Cedarflake/Cedarflake-Ame/blob/5ea62d05eb7f84a64a12967fdba20fda9008f371/docs/roadmap.md); the current roadmap owns stage order and closure |
 | Section 7: large-library ladder | The evidence ladder below, with unchanged authorization boundaries |
 | Fixed queue, current blockers, required physical splits | [Current roadmap](../roadmap.md#current-execution-queue); detailed historical attribution in the interleaving ledger |
 | Bounded investigation, eight scenarios, budgets, cautions, exit rules | [R2c closeout execution](../plans/r2c-closeout.md), transferred as one complete procedure |

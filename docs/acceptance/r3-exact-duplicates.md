@@ -1,12 +1,13 @@
 # R3 exact-content verification
 
-Status: R3-01 through R3-04 client checks recorded; affected Actions verification remains open.
+Status: R3 verification complete; stage exit is recorded in the roadmap.
 
-Date: 2026-10-16.
+Date: 2026-10-17.
 
-The [execution plan](../plans/r3-exact-duplicates.md) owns the live checkpoint. This record covers
+The [execution plan](../plans/r3-exact-duplicates.md) owns the delivery checkpoint. This record covers
 the implementation on `codex/r3-exact-duplicates`. The initial controlled run began at `aeaec3d`;
-later sections cover subsequent deliveries. It does not close R3.
+later sections cover subsequent deliveries. The final closeout below supersedes earlier pending
+verification statements while retaining their observed failures and actual coverage.
 
 ## Controlled client run
 
@@ -782,3 +783,33 @@ All 13 affected cases pass, including cross-batch navigation, late disposal, pre
 bounded windows, stale reads, retry, and Windows viewer semantics. The page owns 284 production
 lines and no inline tests; the dedicated viewer test has 201 lines. Current-head Actions remain
 the owner of complete automated verification.
+
+## R3 closeout
+
+The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head
+`3392548c572d6c24115a676e03e09bd058f042cd`. It covered analysis admission and retirement, guarded source
+reads, fingerprint/version publication, schema preservation, duplicate query and decision semantics,
+bounded Dart windows, late completions, platform reveal, gallery motion and route/semantics lifetime.
+The confirmed member-publication defect above was corrected and its regression passed. No remaining
+blocking defect was identified in the reviewed changes; this is a scoped review of PR #21, not a
+claim about every pre-existing subsystem.
+
+[Actions run 38981500571](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38981500571)
+completed successfully for that head. Static/Rust, the complete Flutter suite, Windows scan,
+Windows accessibility, all five synthetic workloads and unsigned Windows Release passed, followed
+by the aggregate Windows gate. The three signing-only release jobs were skipped by the unchanged
+daily-mode conditions. No required workload, storage limit or behavioral assertion was weakened.
+The hosted 10,000-file scan measured 63,328,256 catalog bytes and 35,950,592 resumed catalog bytes,
+both below the unchanged 64 MiB catalog ceiling.
+
+The final ordinary Debug build also completed member-viewer forward/backward navigation, return to
+members and Library, maximize/restore and sidebar collapse/expansion with zero AXTree/error entries.
+It exited normally. Original settings, preferences and catalog hashes were restored and verified.
+The reusable test corpus, retained catalog, diagnostic receipts and restoration copies were preserved.
+The ordinary entrypoint contains no diagnostic recorder. Background-member replacement is proved by
+the controlled widget regression rather than a source mutation during this native replay.
+
+PR #21 was merged on 2026-10-17 as `755db99c33cfab28b158b1863b619b43844ee56a`, and the feature branch
+was removed locally and remotely. The roadmap records R3 closure; R4 remains planned. The automatic
+main-branch workflows after integration and this documentation update retain their own run results;
+the successful run cited here is the exact pre-merge implementation gate.

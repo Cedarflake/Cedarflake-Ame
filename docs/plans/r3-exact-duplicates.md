@@ -1,7 +1,7 @@
 # R3 exact duplicate implementation
 
-Status: R3-01 through R3-04 implementation and client checks recorded; affected Actions verification in progress under the
-[roadmap](../roadmap.md#current-execution-queue).
+Status: Completed on 2026-10-17; retained delivery record under the
+[roadmap](../roadmap.md#current-stage-and-acceptance-boundary).
 
 Updated: 2026-10-17.
 
@@ -26,93 +26,30 @@ analysis engines or convert reused results into human decisions.
 
 ## Execution checkpoint
 
-Photo-wall geometry transitions now follow sidebar movement and window resizing while preserving
-the existing scroll anchor and stationary right controls. Focused and retained-catalog client
-coverage is recorded in the R3 acceptance owner. The heading follows the same left edge, and its
-count now retains the source total followed by the merged result. Query/filter counts and native
-display are checked. Photo cards now exclude their secondary-click recognizer from semantics,
-leaving one named primary action whose node survives preview replacement. A later cold-cache
-native check captured the remaining AXTree failure in the timeline Slider's portal: changing its
-enabled state replaced an anonymous traversal parent without resubmitting the portal child. The
-timeline now merges that identity into a stable semantic container. The focused boundary test
-reproduces the prior failure and passes with the correction; all 15 affected cases pass, including
-accessible adjustment, filtering, workspace return and resizing. The ordinary Debug cold-cache
-replay completed without AXTree errors and exited normally. Hosted analysis and recovered-dimension
-failures have scoped corrections. Schema 43 retires the redundant exact-candidate cursor index without
-changing catalog content or query policy. The unchanged local 10,000-image workload now passes
-at 63,455,232 bytes below the 64 MiB bound. The sixteen failures from the retained hosted Rust run
-have corrected fixtures and contract expectations; all 33 affected local regressions pass. Final
-review reproduced a member-window replacement changing the open viewer's ordinals. The route now
-retires prior member reads, defers catalog replacement while open and revalidates on return; all
-13 affected viewer, window, preference and semantics cases pass. Inspect the submitted head's
-complete Actions results, then complete the final audit and authorized PR merge.
+R3-01 through R3-05 are complete. PR #21 was merged as `755db99c33cfab28b158b1863b619b43844ee56a`;
+its local and remote feature branches were removed. The reviewed implementation head
+`3392548c572d6c24115a676e03e09bd058f042cd` passed
+[Actions run 38981500571](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/38981500571):
+all ten execution jobs and the Windows aggregate gate succeeded. Three signing-only release jobs
+were inapplicable to the daily gate and skipped by its existing conditions.
 
-Preparation starts from product commit `5ea62d05eb7f84a64a12967fdba20fda9008f371`.
-The `codex/r3-exact-duplicates` implementation adds guarded full-content analysis,
-versioned fingerprints, schema 40/41, bounded group/location queries and a generated desktop bridge.
-[ADR 0028](../architecture/0028-versioned-exact-content-analysis.md) records the BLAKE3 adapter
-choice and identity rules. Automatic incremental analysis and both gallery display modes are
-connected, including atomic gallery membership publication.
+The [verification record](../acceptance/r3-exact-duplicates.md#r3-closeout) retains the full client,
+regression, storage-bound and source-preservation evidence. Final review corrected the timeline
+portal parent and open-viewer member publication boundaries. No remaining blocking defect was
+identified in the reviewed PR changes. The ordinary Debug client uses the final implementation;
+the test session ended normally and the original profile/catalog hashes were restored and verified.
+The reusable `build/test` corpus, retained catalog, evidence and restoration backups remain available.
 
-The retained 10,000-file corpus produced 72 groups matching its existing digest oracle, with
-cancellation and continuation exercised in the client. The
-[R3 verification record](../acceptance/r3-exact-duplicates.md) retains the exact coverage and limits.
-The accepted three-region workbench replaces the More-menu/bottom-sheet prototype under ADR 0029.
-The function rail, persistent collapsible folder sidebar and duplicate-results workspace with
-location reveal are connected. Automatic analysis now follows catalog publication and yields to
-foreground browsing and media reads; pause persists across restart. Merged gallery mode includes
-duplicate-location icons without counts; all-images mode leaves cards unmarked. The selected mode
-is restored after restart. Retain the existing analysis implementation and verification;
-the changed client paths have been checked against the reusable corpus, including unchanged
-reopening with zero additional content reads. The Settings-menu accessibility failure was reproduced
-with the retained gallery's timeline slider. Its always-mounted value-indicator portal now retires
-when the gallery is hidden; the focused regression and native menu-close/return-position check pass.
-The hosted native, scan, release and synthetic checks passed on `515f5e6`. Its two analyzer findings
-and three gallery regressions are corrected: rows retain exact item ordinals, and dimension recovery
-checks rendered card widths. The content-sized card controls also passed the isolated client check.
-The card badge opens a location bottom sheet with fully wrapping file/folder lines and a current
-image marker. It replaces the earlier centered dialog; the initial anchored menu had clipped long
-paths and controls. The sheet uses continuous bounded reads without close or pagination buttons.
-Narrow-window/text-scaling, scrolling, dismissal and focus checks are recorded below.
-Group review connects visible image previews, the existing viewer and durable preferred-copy/ignore choices.
-Native checks reused the 10,000-file corpus, including preference/ignore retention after restart.
-The current head still requires its applicable Actions results.
+| Delivery | Retained result |
+| --- | --- |
+| R3-01 | Guarded exact identification, cancellation/reuse and physical-location inspection |
+| R3-02 | Incremental analysis, foreground priority, pause/resume and unchanged restart reuse |
+| R3-03 | Scoped all-images/merged modes, atomic membership, counts, badges and stable browsing |
+| R3-04 | Bounded group/member review and durable preferred-copy/ignore choices |
+| R3-05 | Affected client checks, complete hosted gate, resource bounds and final review |
 
-The current UI revision retains responsive group cards and compact single-column member rows,
-with vertically centered preference/reveal icons on the right. Header actions align right, count
-space remains stable, and empty feedback reuses the gallery component. Continuous virtual scrolling
-replaces review pagination while bounded catalog windows and preview demand remain separate.
-Preference writes and their subsequent catalog publication preserve rendered members until a
-complete replacement range is ready. The 22 focused controller/window/layout/preference cases pass;
-the two viewer boundary cases also passed before the background-revalidation addition.
-The rebuilt Debug reuses the retained 10,000-file catalog; native inspection confirms group cards,
-112-pixel member rows and preference switching without clearing the visible list. Applicable checks
-for the submitted head remain owned by Actions. Preserve the active client/profile backup until
-the visual-review session is closed.
-
-The new crash during window restore/sidebar changes was traced to the duplicate member viewer's
-initial offstage frame. Its route now owns the slider overlay lifetime; the previously failing
-retained-tree regression and 13 affected cases pass. The normal Debug client completes member
-preview/information, gallery return, maximize/restore and repeated sidebar interaction with no
-native accessibility errors. Mouse context menus now preserve the prior focus instead of focusing
-their photo card, so menu/information dismissal no longer leaves its selection control visible.
-The repeated-location surface now uses the existing modal bottom-sheet and wheel-motion components.
-Its 26 focused cases cover continuation/retry, bounded response ownership, long-path layouts,
-focus restoration, motion preferences and the duplicate-preview crash boundary. Native Debug
-inspection uses the original 600-location group and retains gallery position on dismissal.
-These scoped repairs retain their current-head hosted verification requirement.
-
-| Order | Delivery | Current state |
-| --- | --- | --- |
-| R3-01 | Identify exact duplicates and inspect their physical locations | Committed in PR #21; client and native Settings-menu restoration checks recorded; applicable Actions results pending |
-| R3-02 | Maintain duplicate results through incremental changes | Committed; automatic scheduling, foreground priority, unchanged reuse and closed-process additions/removals checked; native pause/resume and paused restart now checked; remaining automated results belong to Actions |
-| R3-03 | Connect both gallery display modes and duplicate badges | Implemented; 10,000 all-images / 72 merged entries, location reveal, restart preference and automatic 74-to-72 folding checked in the reused client corpus; new regressions await Actions |
-| R3-04 | Review groups and preserve preferred-copy/ignore decisions | Implemented with schema 42, continuous bounded review windows, source-checked preference writes and reversible ignore; affected client checks recorded; automated checks belong to Actions |
-| R3-05 | Complete affected client/performance verification and close R3 | Inspect current-head Actions and finish only the affected remaining checks; retain prior analysis and source-preservation results |
-
-Each delivery includes its implementation, connected interface, relevant regressions and necessary
-documentation. Commit and push it before beginning the next independent delivery. Update this
-checkpoint with results; keep changing progress, commit IDs and measurements out of the goal text.
+The sections below retain the delivered scope and execution requirements. Future changes preserve
+these boundaries and rerun affected checks; this record does not schedule another R3 closeout cycle.
 
 ## R3-01: Identify duplicates and inspect locations
 
