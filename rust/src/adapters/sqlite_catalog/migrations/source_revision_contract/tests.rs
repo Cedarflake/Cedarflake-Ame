@@ -26,11 +26,14 @@ fn current_v31_source_revision_marker_damage_still_fails_closed() {
         .execute_batch("DELETE FROM library_source_revision_metadata_contract;")
         .expect("damage source revision marker");
 
-    migrations::reset_current_schema_row_audit_count();
+    migrations::current_schema::reset_current_schema_row_audit_count();
     let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
 
     assert_eq!(error.code, "catalog_source_revision_contract_unverifiable");
-    assert_eq!(migrations::current_schema_row_audit_count(), 0);
+    assert_eq!(
+        migrations::current_schema::current_schema_row_audit_count(),
+        0
+    );
 }
 
 #[test]
@@ -38,14 +41,14 @@ fn current_v31_repairs_precontract_metadata_for_every_hardlink_alias() {
     let mut connection = precontract_hardlink_catalog();
 
     super::reset_row_audit_count();
-    migrations::reset_current_schema_row_audit_count();
+    migrations::current_schema::reset_current_schema_row_audit_count();
     migrate_schema(&mut connection).expect("repair precontract v31 metadata");
     assert_eq!(
         super::row_audit_count(),
         3,
         "initial validation plus the repair transaction's before-and-after proof",
     );
-    assert!(migrations::current_schema_row_audit_count() > 0);
+    assert!(migrations::current_schema::current_schema_row_audit_count() > 0);
 
     let repaired = connection
         .query_row(

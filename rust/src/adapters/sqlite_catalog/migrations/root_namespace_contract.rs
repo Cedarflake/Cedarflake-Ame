@@ -2,12 +2,12 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::domain::ScanError;
 
-use super::current_schema::ContractValidationDepth;
+use super::current_schema::{ContractValidationDepth, record_current_schema_row_audit};
 use super::schema_shape::{schema_object_sql_matches, table_columns_match};
 use super::{
     ROOT_PUBLICATION_NAMESPACE_CONTRACT_TABLE_DDL, ROOT_PUBLICATION_NAMESPACE_TABLE_DDL,
     SCAN_PUBLICATION_NAMESPACE_BINDING_TABLE_DDL, SCAN_PUBLICATION_NAMESPACE_ROOT_INDEX_DDL,
-    database_error, record_current_schema_row_audit,
+    database_error,
 };
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {

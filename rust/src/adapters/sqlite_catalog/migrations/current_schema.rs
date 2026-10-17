@@ -2,9 +2,13 @@ use rusqlite::Connection;
 
 use crate::domain::ScanError;
 
+use super::persistent_journal_baseline::validate_persistent_journal_baseline_contract_with_depth;
+use super::{SCHEMA_VERSION, database_error};
 use super::{
-    SCHEMA_VERSION, database_error, validate_pre_live_gap_schema_contract,
-    validate_pre_live_gap_schema_contract_with_depth,
+    catch_up_contract, change_lane_contract, inventory_spool_contract, journal_contract,
+    metadata_inventory_contract, preview_expectation_repair, recovery_authority_contract,
+    recovery_execution_contract, root_namespace_contract, scan_handoff_contract,
+    scan_owner_contract, terminal_media_contract,
 };
 use super::{live_gap_contract, source_revision_contract};
 
@@ -26,7 +30,7 @@ impl ContractValidationDepth {
 
 pub(super) fn validate_current_schema_contract(connection: &Connection) -> Result<(), ScanError> {
     #[cfg(test)]
-    super::CURRENT_SCHEMA_VALIDATION_COUNT.with(|count| count.set(count.get() + 1));
+    CURRENT_SCHEMA_VALIDATION_COUNT.with(|count| count.set(count.get() + 1));
     validate_current_schema_contract_with_source_revision_rows(connection)
 }
 
@@ -142,3 +146,122 @@ fn validate_existing_source_metadata_marker(connection: &Connection) -> Result<(
     }
     Ok(())
 }
+
+pub(super) fn validate_v19_schema_contract(connection: &Connection) -> Result<(), ScanError> {
+    validate_v19_schema_contract_with_depth(connection, ContractValidationDepth::Full)
+}
+
+fn validate_v19_schema_contract_with_depth(
+    connection: &Connection,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
+    scan_owner_contract::validate_queue_authority(connection)?;
+    scan_owner_contract::validate_recovery_marker(connection)?;
+    catch_up_contract::validate_with_depth(connection, depth)?;
+    scan_handoff_contract::validate_with_depth(connection, depth)?;
+    let (has_scan_runs, has_single_scan_owner_index, has_scan_owner) = connection
+        .query_row(
+            "SELECT
+               EXISTS(SELECT 1 FROM sqlite_master
+                 WHERE type = 'table' AND name = 'scan_runs'),
+               EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
+                 WHERE name = 'scan_runs_one_active_root'
+                   AND \"unique\" = 1 AND partial = 1),
+               EXISTS(SELECT 1 FROM pragma_table_info('scan_runs')
+                 WHERE name = 'scan_owner')",
+            [],
+            |row| {
+                Ok((
+                    row.get::<_, bool>(0)?,
+                    row.get::<_, bool>(1)?,
+                    row.get::<_, bool>(2)?,
+                ))
+            },
+        )
+        .map_err(database_error)?;
+    if has_scan_runs && (!has_single_scan_owner_index || !has_scan_owner) {
+        return Err(scan_owner_contract::unverifiable_recovery_contract());
+    }
+    if !preview_expectation_repair::marker_is_complete(connection)? {
+        return Err(ScanError::new(
+            "catalog_change_catch_up_contract_unverifiable",
+            "The catalog preview repair authority is missing",
+        ));
+    }
+    Ok(())
+}
+
+pub(super) fn validate_pre_live_gap_schema_contract(
+    connection: &Connection,
+    schema_version: i64,
+) -> Result<(), ScanError> {
+    validate_pre_live_gap_schema_contract_with_depth(
+        connection,
+        schema_version,
+        ContractValidationDepth::Full,
+    )
+}
+
+fn validate_pre_live_gap_schema_contract_with_depth(
+    connection: &Connection,
+    schema_version: i64,
+    depth: ContractValidationDepth,
+) -> Result<(), ScanError> {
+    validate_v19_schema_contract_with_depth(connection, depth)?;
+    metadata_inventory_contract::validate_with_depth(connection, depth)?;
+    terminal_media_contract::validate_with_depth(connection, depth)?;
+    journal_contract::validate_with_depth(connection, depth)?;
+    change_lane_contract::validate_with_depth(connection, depth)?;
+    recovery_authority_contract::validate_with_depth(connection, depth)?;
+    validate_persistent_journal_baseline_contract_with_depth(connection, depth)?;
+    recovery_execution_contract::validate_with_depth(connection, depth)?;
+    inventory_spool_contract::validate_version_with_depth(
+        connection,
+        schema_version,
+        if schema_version >= 32 {
+            4
+        } else if schema_version == 31 {
+            3
+        } else {
+            2
+        },
+        depth,
+    )?;
+    root_namespace_contract::validate_with_depth(connection, depth)
+}
+
+#[cfg(test)]
+std::thread_local! {
+    static CURRENT_SCHEMA_VALIDATION_COUNT: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
+    static CURRENT_SCHEMA_ROW_AUDIT_COUNT: std::cell::Cell<usize> =
+        const { std::cell::Cell::new(0) };
+}
+
+#[cfg(test)]
+pub(super) fn reset_current_schema_validation_count() {
+    CURRENT_SCHEMA_VALIDATION_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+pub(super) fn current_schema_validation_count() -> usize {
+    CURRENT_SCHEMA_VALIDATION_COUNT.with(std::cell::Cell::get)
+}
+
+#[cfg(test)]
+pub(super) fn reset_current_schema_row_audit_count() {
+    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(0));
+}
+
+#[cfg(test)]
+pub(super) fn current_schema_row_audit_count() -> usize {
+    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(std::cell::Cell::get)
+}
+
+pub(super) fn record_current_schema_row_audit() {
+    #[cfg(test)]
+    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(count.get() + 1));
+}
+
+#[cfg(test)]
+mod tests;

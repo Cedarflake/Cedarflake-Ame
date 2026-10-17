@@ -2,14 +2,14 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::domain::{JournalIdentifier, JournalUsn, ScanError};
 
-use super::current_schema::ContractValidationDepth;
+use super::current_schema::{ContractValidationDepth, record_current_schema_row_audit};
 use super::schema_shape::{
     cascade_foreign_key_matches, schema_object_sql_matches, table_columns_match,
 };
 use super::{
     RECOVERY_AUTHORITY_CONTRACT_TABLE_DDL, RECOVERY_AUTHORITY_INSERT_GUARD_DDL,
     RECOVERY_AUTHORITY_ROOT_INDEX_DDL, RECOVERY_AUTHORITY_TABLE_DDL,
-    RECOVERY_AUTHORITY_UPDATE_GUARD_DDL, database_error, record_current_schema_row_audit,
+    RECOVERY_AUTHORITY_UPDATE_GUARD_DDL, database_error,
 };
 
 pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {

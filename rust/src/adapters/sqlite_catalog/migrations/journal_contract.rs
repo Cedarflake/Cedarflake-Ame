@@ -2,9 +2,9 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::domain::{PERSISTENT_JOURNAL_CONTRACT_VERSION, ScanError};
 
-use super::current_schema::ContractValidationDepth;
+use super::current_schema::{ContractValidationDepth, record_current_schema_row_audit};
+use super::database_error;
 use super::schema_shape::{named_index_matches, schema_object_sql_matches, table_columns_match};
-use super::{database_error, record_current_schema_row_audit};
 
 mod lineage;
 mod lineage_payload;

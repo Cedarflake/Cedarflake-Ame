@@ -14,7 +14,7 @@ No schema version, migration order, dependency or source-read policy changes.
 
 | Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
-| `migrations.rs` before | 9,762 | 5,358 | 0 |
+| `migrations.rs` before | 9,763 | 5,357 | 0 |
 | `migrations.rs` after | 9,581 | 5,327 | 0 |
 | `migrations/schema_shape.rs` | 193 | 2 | 165 |
 
@@ -218,3 +218,31 @@ prerelease cases. Three unused relocation imports were then removed without chan
 The clean rebuild and `current_recovery_state::tests` passed the combined inventory/gap repair
 regression (1 passed, 0 failed). All local checks used the repository lock and disabled incremental
 cache; hosted CI retains full upgrade/reopen coverage.
+
+## M1 proof-order ownership and scoped review
+
+`current_schema` now owns both historical prerequisite proof sequences and the audit instrumentation.
+Contract validators reference this owner directly; the migration coordinator retains version
+dispatch, stable DDL and upgrade transactions. Four relocated proof-order bodies are unchanged
+after name/format normalization. The two admission-order regressions moved with the owner.
+
+| Owner | Production/support lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `migrations.rs` after M1 | 4,026 | 2,347 | 0 |
+| `current_schema.rs` | 238 | 29 | 36 |
+
+The complete baseline migration subtree contains 163 named tests. All remain after M1, with eight
+added boundary regressions (171 total). The parent file's total size changes from 15,120 to 6,373
+lines while historical integration tests remain beside version dispatch. Counts include whitespace;
+final counts assign complete `cfg(test)` items to test-only lines and retain intervening whitespace
+in production/support. The baseline classification above corrects a one-line attribution difference.
+
+The clean focused build and `current_schema::tests` passed 2 tests. An initial missing direct
+`ContractValidationDepth` import in the baseline validator was corrected at its actual owner.
+No assertions, warning rules or check workloads were relaxed.
+
+Scoped review covered unchanged migration order and SQL, exact repair admission, same-transaction
+rollback, consistent read snapshots, direct normal-write proof reuse, test/fixture ownership and
+absence of dependency/schema/source-read changes. It found no remaining M1 implementation issue.
+This is source and boundary evidence; the final pushed head still requires its hosted gates, and
+the combined refactor retains the final client comparison in the execution plan.

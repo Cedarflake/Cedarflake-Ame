@@ -2,9 +2,9 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::domain::ScanError;
 
-use super::current_schema::ContractValidationDepth;
+use super::current_schema::{ContractValidationDepth, record_current_schema_row_audit};
+use super::database_error;
 use super::schema_shape::{cascade_foreign_key_matches, named_index_matches, table_columns_match};
-use super::{database_error, record_current_schema_row_audit};
 
 pub(super) fn validate_with_depth(
     connection: &Connection,

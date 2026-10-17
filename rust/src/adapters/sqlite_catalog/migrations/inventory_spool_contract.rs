@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension};
 
 use crate::domain::ScanError;
 
-use super::current_schema::ContractValidationDepth;
+use super::current_schema::{ContractValidationDepth, record_current_schema_row_audit};
 use super::schema_shape::{schema_object_sql_matches, table_columns_match};
 use super::{
     METADATA_INVENTORY_SPOOL_BINDING_UPDATE_GUARD_DDL,
@@ -15,7 +15,6 @@ use super::{
     METADATA_INVENTORY_SPOOL_ENTRY_TABLE_DDL, METADATA_INVENTORY_SPOOL_ENTRY_TABLE_V31_DDL,
     METADATA_INVENTORY_SPOOL_TABLE_DDL, METADATA_INVENTORY_SPOOL_TABLE_V27_DDL,
     SQLITE_APPLICATION_ID, database_error, inventory_spool_retirement, inventory_spool_rows,
-    record_current_schema_row_audit,
 };
 
 pub(super) fn schema_matches(

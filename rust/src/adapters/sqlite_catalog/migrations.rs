@@ -60,17 +60,9 @@ mod schema_shape;
 mod source_revision_contract;
 mod terminal_media_contract;
 
-use persistent_journal_baseline::{
-    validate_persistent_journal_baseline_contract,
-    validate_persistent_journal_baseline_contract_with_depth,
-};
+use persistent_journal_baseline::validate_persistent_journal_baseline_contract;
 
 use journal_contract::schema::PERSISTENT_JOURNAL_CANONICAL_TRIGGER_DDL;
-
-use current_schema::{
-    ContractValidationDepth, validate_current_schema_contract,
-    validate_current_schema_contract_with_source_revision_rows,
-};
 
 pub(super) fn prepare_fresh_catalog_auto_vacuum(connection: &Connection) -> Result<(), ScanError> {
     let user_schema_objects: i64 = connection
@@ -176,7 +168,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 catch_up_repair::repair_scan_lineage(connection)?;
                 catch_up_repair::repair_scan_handoff_batches(connection)?;
                 preview_expectation_repair::repair(connection)?;
-                validate_v19_schema_contract(connection)?;
+                current_schema::validate_v19_schema_contract(connection)?;
                 migrate_v19_to_v20(connection)?;
             }
             20 => {
@@ -184,7 +176,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
                 migrate_v20_to_v21(connection)?;
             }
             21 => {
-                validate_v19_schema_contract(connection)?;
+                current_schema::validate_v19_schema_contract(connection)?;
                 metadata_inventory_contract::validate(connection)?;
                 terminal_media_contract::validate(connection)?;
                 migrate_v21_to_v22(connection)?;
@@ -545,122 +537,6 @@ fn create_library_change_queue_schema(transaction: &Transaction<'_>) -> Result<(
             .map_err(database_error)?;
     }
     Ok(())
-}
-
-fn validate_v19_schema_contract(connection: &Connection) -> Result<(), ScanError> {
-    validate_v19_schema_contract_with_depth(connection, ContractValidationDepth::Full)
-}
-
-fn validate_v19_schema_contract_with_depth(
-    connection: &Connection,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    scan_owner_contract::validate_queue_authority(connection)?;
-    scan_owner_contract::validate_recovery_marker(connection)?;
-    catch_up_contract::validate_with_depth(connection, depth)?;
-    scan_handoff_contract::validate_with_depth(connection, depth)?;
-    let (has_scan_runs, has_single_scan_owner_index, has_scan_owner) = connection
-        .query_row(
-            "SELECT
-               EXISTS(SELECT 1 FROM sqlite_master
-                 WHERE type = 'table' AND name = 'scan_runs'),
-               EXISTS(SELECT 1 FROM pragma_index_list('scan_runs')
-                 WHERE name = 'scan_runs_one_active_root'
-                   AND \"unique\" = 1 AND partial = 1),
-               EXISTS(SELECT 1 FROM pragma_table_info('scan_runs')
-                 WHERE name = 'scan_owner')",
-            [],
-            |row| {
-                Ok((
-                    row.get::<_, bool>(0)?,
-                    row.get::<_, bool>(1)?,
-                    row.get::<_, bool>(2)?,
-                ))
-            },
-        )
-        .map_err(database_error)?;
-    if has_scan_runs && (!has_single_scan_owner_index || !has_scan_owner) {
-        return Err(scan_owner_contract::unverifiable_recovery_contract());
-    }
-    if !preview_expectation_repair::marker_is_complete(connection)? {
-        return Err(ScanError::new(
-            "catalog_change_catch_up_contract_unverifiable",
-            "The catalog preview repair authority is missing",
-        ));
-    }
-    Ok(())
-}
-
-#[cfg(test)]
-std::thread_local! {
-    static CURRENT_SCHEMA_VALIDATION_COUNT: std::cell::Cell<usize> =
-        const { std::cell::Cell::new(0) };
-    static CURRENT_SCHEMA_ROW_AUDIT_COUNT: std::cell::Cell<usize> =
-        const { std::cell::Cell::new(0) };
-}
-
-#[cfg(test)]
-fn reset_current_schema_validation_count() {
-    CURRENT_SCHEMA_VALIDATION_COUNT.with(|count| count.set(0));
-}
-
-#[cfg(test)]
-fn current_schema_validation_count() -> usize {
-    CURRENT_SCHEMA_VALIDATION_COUNT.with(std::cell::Cell::get)
-}
-
-#[cfg(test)]
-fn reset_current_schema_row_audit_count() {
-    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(0));
-}
-
-#[cfg(test)]
-fn current_schema_row_audit_count() -> usize {
-    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(std::cell::Cell::get)
-}
-
-fn record_current_schema_row_audit() {
-    #[cfg(test)]
-    CURRENT_SCHEMA_ROW_AUDIT_COUNT.with(|count| count.set(count.get() + 1));
-}
-
-fn validate_pre_live_gap_schema_contract(
-    connection: &Connection,
-    schema_version: i64,
-) -> Result<(), ScanError> {
-    validate_pre_live_gap_schema_contract_with_depth(
-        connection,
-        schema_version,
-        ContractValidationDepth::Full,
-    )
-}
-
-fn validate_pre_live_gap_schema_contract_with_depth(
-    connection: &Connection,
-    schema_version: i64,
-    depth: ContractValidationDepth,
-) -> Result<(), ScanError> {
-    validate_v19_schema_contract_with_depth(connection, depth)?;
-    metadata_inventory_contract::validate_with_depth(connection, depth)?;
-    terminal_media_contract::validate_with_depth(connection, depth)?;
-    journal_contract::validate_with_depth(connection, depth)?;
-    change_lane_contract::validate_with_depth(connection, depth)?;
-    recovery_authority_contract::validate_with_depth(connection, depth)?;
-    validate_persistent_journal_baseline_contract_with_depth(connection, depth)?;
-    recovery_execution_contract::validate_with_depth(connection, depth)?;
-    inventory_spool_contract::validate_version_with_depth(
-        connection,
-        schema_version,
-        if schema_version >= 32 {
-            4
-        } else if schema_version == 31 {
-            3
-        } else {
-            2
-        },
-        depth,
-    )?;
-    root_namespace_contract::validate_with_depth(connection, depth)
 }
 
 const CHANGE_LANE_INDEX_DDL: &str = "CREATE INDEX library_change_queue_lanes_eligible
@@ -3134,7 +3010,7 @@ fn migrate_v29_to_v30(connection: &mut Connection) -> Result<(), ScanError> {
 
 fn migrate_v29_to_v30_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     terminal_inventory_repair::apply(transaction, 29)?;
-    validate_pre_live_gap_schema_contract(transaction, 29)?;
+    current_schema::validate_pre_live_gap_schema_contract(transaction, 29)?;
     for sql in [
         LIVE_GAP_RECOVERY_CONTRACT_TABLE_DDL,
         LIVE_GAP_RECOVERY_CLAIM_TABLE_DDL,
@@ -3249,7 +3125,7 @@ fn migrate_v30_to_v31(connection: &mut Connection) -> Result<(), ScanError> {
 
 fn migrate_v30_to_v31_transaction(transaction: &Transaction<'_>) -> Result<(), ScanError> {
     terminal_inventory_repair::apply(transaction, 30)?;
-    validate_pre_live_gap_schema_contract(transaction, 30)?;
+    current_schema::validate_pre_live_gap_schema_contract(transaction, 30)?;
     retired_live_gap_repair::apply(transaction, 30)?;
     live_gap_contract::validate(transaction)?;
     transaction
@@ -4303,7 +4179,7 @@ mod tests {
                  UPDATE schema_info SET version = 29;",
             )
             .expect("remove v30 live-gap recovery fixture");
-        super::validate_pre_live_gap_schema_contract(connection, 29)
+        super::current_schema::validate_pre_live_gap_schema_contract(connection, 29)
             .expect("validate exact v29 fixture");
     }
 
@@ -4637,10 +4513,10 @@ mod tests {
             .expect("v30 source fixture");
 
         super::source_revision_contract::reset_row_audit_count();
-        super::reset_current_schema_row_audit_count();
+        super::current_schema::reset_current_schema_row_audit_count();
         super::migrate_v30_to_v31(&mut connection).expect("v31");
         assert_eq!(super::source_revision_contract::row_audit_count(), 1);
-        assert!(super::current_schema_row_audit_count() > 0);
+        assert!(super::current_schema::current_schema_row_audit_count() > 0);
 
         assert_eq!(
             super::schema_shape::schema_version(&connection).expect("schema version"),
@@ -5543,39 +5419,6 @@ mod tests {
         migrate_schema(&mut reopened).expect("validate reopened unfinished v24 migration");
         assert_unfinished_inventory_retired(&reopened);
         assert_superseded_inventory_authority_retired(&reopened);
-    }
-
-    #[test]
-    fn clean_current_schema_validates_once_with_full_authority_audit() {
-        let mut connection = Connection::open_in_memory().expect("clean catalog");
-        migrate_schema(&mut connection).expect("create current catalog");
-        connection
-            .execute_batch("PRAGMA query_only = ON")
-            .expect("make clean current catalog read only");
-
-        super::reset_current_schema_validation_count();
-        super::source_revision_contract::reset_row_audit_count();
-        super::reset_current_schema_row_audit_count();
-        migrate_schema(&mut connection).expect("validate clean current catalog");
-
-        assert_eq!(super::current_schema_validation_count(), 1);
-        assert_eq!(super::source_revision_contract::row_audit_count(), 1);
-        assert!(super::current_schema_row_audit_count() > 0);
-    }
-
-    #[test]
-    fn current_v31_change_catch_up_ddl_damage_still_fails_closed() {
-        let mut connection = Connection::open_in_memory().expect("current catalog");
-        migrate_schema(&mut connection).expect("create current catalog");
-        connection
-            .execute_batch("DROP INDEX scan_run_catch_up_lineage_evidence;")
-            .expect("damage catch-up DDL");
-
-        super::reset_current_schema_row_audit_count();
-        let error = migrate_schema(&mut connection).expect_err("reject damaged current catalog");
-
-        assert_eq!(error.code, "catalog_change_catch_up_contract_unverifiable");
-        assert_eq!(super::current_schema_row_audit_count(), 0);
     }
 
     #[test]

@@ -63,7 +63,7 @@ pub(super) fn repair_and_validate(connection: &mut Connection) -> Result<(), Sca
         needs_repair |= repair.needed(connection)?;
     }
     if !needs_repair {
-        return super::validate_current_schema_contract(connection);
+        return super::current_schema::validate_current_schema_contract(connection);
     }
     let transaction = connection
         .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -71,7 +71,9 @@ pub(super) fn repair_and_validate(connection: &mut Connection) -> Result<(), Sca
     for repair in &repairs {
         repair.apply(&transaction)?;
     }
-    super::validate_current_schema_contract_with_source_revision_rows(&transaction)?;
+    super::current_schema::validate_current_schema_contract_with_source_revision_rows(
+        &transaction,
+    )?;
     transaction.commit().map_err(database_error)
 }
 

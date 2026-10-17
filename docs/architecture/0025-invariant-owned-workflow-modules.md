@@ -356,7 +356,8 @@ page failure remain one boundary, with no second decoded page or per-record clon
   directly so they share one acceptance rule without depending on coordinator implementation.
   Quoted SQL tokens retain their exact meaning. `migrations/current_schema.rs` owns current-schema
   proof order and its consistent read snapshot: structural checks precede the complete authority-row
-  audit. Process-owned validated
+  audit. Historical v19/pre-live-gap proof sequences and test-only audit counters belong to that
+  owner as well; version steps and individual contracts call it directly. Process-owned validated
   sessions reuse that proof; schema markers alone are not row authority. Spool-row proof lives in
   `migrations/inventory_spool_rows.rs`: ordered per-run ordinals and
   once-grouped per-directory entry counts replace correlated recounting, without omitting parent,

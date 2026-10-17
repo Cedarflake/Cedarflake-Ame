@@ -66,7 +66,7 @@ pub(super) fn repair_in_transaction(transaction: &Transaction<'_>) -> Result<(),
         return Ok(());
     }
     current_schema::validate_current_schema_structure(transaction)?;
-    super::validate_pre_live_gap_schema_contract(transaction, SCHEMA_VERSION)?;
+    super::current_schema::validate_pre_live_gap_schema_contract(transaction, SCHEMA_VERSION)?;
     super::live_gap_contract::validate(transaction)?;
     scan_resume_inventory::validate_rows(transaction)?;
     // Retire only unverified derived aliases. Their newer sibling preserves the asset;
