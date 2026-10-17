@@ -948,6 +948,15 @@ lines and 351 native identity-test lines. The non-mutating format gate passed wi
 unchanged, and the final diff passed whitespace checks. No source-media,
 schema, dependency, generated bridge or scheduling-policy change is involved.
 
+The ordinary Debug build was refreshed from `a9fc3f7` (product inputs unchanged from `ff1d78f`)
+in 56.3 seconds. It opened the retained 10,000-image catalog, displayed an existing image preview,
+returned to the gallery during metadata recovery and exited normally. The retained checkpoint
+reported `identity_journal_trim`; this observation covers catalog access and usable browsing during
+recovery, not ordinary catch-up latency or position equivalence during duplicate reanalysis.
+Original profile/catalog hashes were restored and verified, and the reusable comparison catalog
+and durable choices were restored separately. After the owned client retired, cleanup removed
+123 disposable files (1,644,874 bytes); source images, retained catalogs, receipts and Debug output remain.
+
 ### Accessibility runtime preparation
 
 Follow-up B run `39024909889` reached its eight-second application-ready deadline after 614 ms of
