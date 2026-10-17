@@ -82,7 +82,8 @@ Select its execution plan when that work is requested. Do not restart completed 
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
 The current authorized maintenance queue is the [maintainability refactor](plans/maintainability-refactor.md)
-on `codex/maintainability-refactor`: historical migration proof and compatibility repair, synchronization
+beginning on `codex/maintainability-refactor`, with sequential responsibility branches recorded in that
+plan: historical migration proof and compatibility repair, synchronization
 runtime ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths,
 then release/acceptance script ownership. Preserve delivered behavior and the accepted technology
 stack. This work precedes R4 implementation and does not reopen R2c/R3 stage acceptance.
