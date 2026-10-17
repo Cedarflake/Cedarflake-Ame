@@ -86,12 +86,13 @@ responsibility branches: historical migration proof and compatibility repair, sy
 ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths and
 release/acceptance script ownership. Native GitHub stack #35 contains draft PRs #22–#27 and the
 consolidated follow-up PR #29. The plan links current hosted checks and the completed client comparison,
-scoped audit and retained observations. Applicable stack checks must pass before delivery closeout;
-integration into `main` remains a human decision. This maintenance precedes R4 and does not reopen R2c/R3 acceptance.
-The same plan tracks the requested card-size position correction, continuous-filter anchor retention
-and timeline stability during updates as separate behavior changes after the six refactor boundaries.
-It also owns the newly reported excessive journal catch-up time after image work has finished.
-New hosted mixed-load priority failures remain in that plan's repair queue before maintenance closeout.
+scoped audit and retained observations. The six branch heads and combined source candidate passed
+their applicable hosted checks. Maintenance is delivered for human review; integration into `main`
+remains a human decision. This delivery does not start R4 or reopen R2c/R3 acceptance.
+The same plan records the completed card-size position correction, continuous-filter anchor retention,
+timeline stability during updates and journal catch-up correction as separate behavior changes after
+the six refactor boundaries. Hosted mixed-load diagnostics and the catalog-proof correction retain
+their evidence in the linked acceptance record.
 
 ## Frozen R2c ownership
 
@@ -120,9 +121,9 @@ refactor before independent R3 work; extract the boundary needed by the selected
 - Preserve typed ownership of scan execution/publication, mutually exclusive first-import versus
   existing-root journal opening, query/viewport generation, and committed-removal display refresh.
   Already extracted owners are regression boundaries, not another implementation checklist.
-- The retained physical split order is shared historical migration validators and exact shrink-only
-  compatibility repair, then production synchronization runtime ownership and Live/Journal/Recovery
-  lane state machines. Verify remaining work against current files before starting a split.
+- Historical migrations now have shared schema-shape, contract-validation and compatibility-repair
+  owners; production synchronization has dedicated runtime and Journal/Recovery owners alongside Live.
+  Preserve these delivered boundaries rather than rescheduling their extraction.
 - Move tests with their owners. Revisit viewer, selection, or sidebar decomposition only when an
   independent lifecycle requires it. Stable migration history, cohesive layout, and shared quality
   or release entrypoints are not split merely for size.

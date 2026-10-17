@@ -957,6 +957,15 @@ Original profile/catalog hashes were restored and verified, and the reusable com
 and durable choices were restored separately. After the owned client retired, cleanup removed
 123 disposable files (1,644,874 bytes); source images, retained catalogs, receipts and Debug output remain.
 
+Hosted run [39036117005](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39036117005)
+passed all 11 required jobs on `ff1d78fbe299febbcfde8f722dbf524c18f805f8`. The Rust library suite
+reported 1,992 passes and 22 existing ignores. Retained-connection and production mixed-load cases
+reported P0 P95 of 399 and 435 ms; P1/P2 were active and progressing in all 25 samples of each case.
+Production maximum response time was 500 ms, with no sample above the one-second bound.
+No namespace-resolution observation reached the 100 ms reporting threshold. Fresh held-handle
+observations retained 11 slow samples, with a maximum of 598 ms; their identity checks remain intact.
+These measurements establish this hosted workload's result without asserting a universal timing bound.
+
 ### Accessibility runtime preparation
 
 Follow-up B run `39024909889` reached its eight-second application-ready deadline after 614 ms of
@@ -1005,3 +1014,32 @@ created, no commit was rewritten, and `main` remains at `83c8c16e263acab5270f14c
 The seven remaining PRs are drafts with each base matching the preceding head branch. This changes
 the review surface without changing product or tool inputs. Existing verification retains its
 recorded scope; current branch checks and the combined candidate still govern maintenance closeout.
+
+### Final stack verification
+
+The six refactor branches and consolidated candidate passed all 11 required jobs on the sources
+below. These completed runs supersede the earlier failed integration runs for current branch status;
+the earlier observations and their diagnostic scope remain recorded above.
+
+| Review unit | Verified source | Hosted run |
+| --- | --- | --- |
+| M1 / #22 | `ef294adf82e15de82618c0cdf4a56f7bf7076b48` | [39009808560](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39009808560) |
+| M2 / #23 | `6f80d66b695b223d6ac6ace1e76a778cd50eec6d` | [39036868548](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39036868548) |
+| M3 / #24 | `4335ae7dda9c2aab5ba6780545000308f102db34` | [39036868635](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39036868635) |
+| M4 / #25 | `86feb69bfe162a1598a8e77ead957f5894ab2ede` | [39036868677](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39036868677) |
+| M5 / #26 | `e4096a242bece28484868fd54552abda300b424c` | [39036868549](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39036868549) |
+| M6 / #27 | `1e87561844723307785fe6c3762952f3f99c56f0` | [39036868770](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39036868770) |
+| Combined follow-up / #29 | `aa3f786b900e63da1d077549f19f213e75185a5d` | [39038024229](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39038024229) |
+
+Each run includes static/Rust, Flutter, scan and accessibility integration, five synthetic workloads,
+unsigned Release verification and the aggregate gate. The three separate signing-channel jobs retain
+their configured skips. The combined candidate's product and tool inputs are unchanged from the
+fully passing `ff1d78f` source above. Later closeout edits only update the three existing delivery
+records; their applicable document checks do not establish another functional result. The plan's
+current-PR links expose checks on subsequent record commits.
+
+The affected client comparison, restored profiles/catalogs and scoped audit remain the implementation
+evidence. The active-rehash viewer-return timing observation retains its unclassified scope; it was
+not reproduced by the paired comparison and is not claimed fixed. No source-media mutation,
+service installation, signed release publication or `main` merge was performed. The seven-PR stack
+is delivered for human review; this closeout does not start R4.
