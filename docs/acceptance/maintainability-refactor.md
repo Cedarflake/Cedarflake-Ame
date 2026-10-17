@@ -426,3 +426,28 @@ shutdown deadlines, capacity/page limits, root/change/run identities, error outc
 authority remain. The unused reconnect path was removed without altering the active fail-closed
 session policy. No dependencies, schema, bridge or UI contracts changed. M2 implementation and scoped
 review are complete; final-head CI and the combined client comparison remain outstanding.
+
+## Hosted M1 checkpoint
+
+Final M1 commit `ef294adf82e15de82618c0cdf4a56f7bf7076b48` passed all applicable jobs in
+[run 39009808560](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39009808560).
+Signing-dependent jobs retain their configured skips. M2's final `6f80d66` run remains in progress;
+the combined client comparison remains part of goal closeout.
+
+## M3 synchronization refresh lifecycle
+
+`LibrarySynchronizationRefresh` owns revision coalescing, one in-flight attempt, delayed retry and
+failure-feedback transitions. The screen retains synchronization subscriptions, root feedback,
+notification wording and action routing; the application still owns query admission and catalog
+publication. The same 250-ms busy/superseded delay and failure retry policy remain. Disposal is an
+explicit owner boundary, so a late result cannot read a retired screen or publish feedback.
+
+Nine focused cases passed for highest-revision selection, queued revisions during failure,
+explicit retry and deduplicated feedback, busy/superseded delay, browse admission, published-revision
+proof and disposal before/during an attempt. The 20 existing viewer/refresh cases also passed,
+including failure notification/retry, root-warning resolution, scan-feedback precedence, rename,
+authoritative removal and stale viewer lookup. No widget layout, strings or query authority changed.
+
+The screen is now 1,924 production lines, the refresh owner 123, and its dedicated tests 218.
+Recovered-dimension ownership and actual Debug comparison remain pending in M3; these focused
+results do not establish final client or hosted acceptance.

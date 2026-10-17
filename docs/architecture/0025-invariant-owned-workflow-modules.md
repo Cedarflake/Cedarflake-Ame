@@ -645,6 +645,12 @@ page failure remain one boundary, with no second decoded page or per-record clon
   application publication. The screen composes the resulting layout transition without owning a
   second asynchronous query-position lifecycle. A gesture waiter belongs to its presentation
   generation; a newer query or disposal retires it without issuing its old read.
+- `library_synchronization_refresh.dart` owns the mounted presentation's highest pending catalog
+  revision, one active refresh, busy/superseded delay and failure-feedback transition. It delegates
+  reads to the existing application admission/publication path. Failure waits for explicit retry
+  unless another revision arrived during the attempt; an applied result still has to expose the
+  requested catalog revision. Disposal cancels scheduled retry and prevents late completion from
+  reading presentation state or publishing feedback. Notification content remains with the screen.
 - `library_browse_admission.dart` owns read admission independently from scan-command admission.
   A published catalog remains queryable during a primary scan; unpublished staging is never read
   as completed content. Query replacement, paging and time reads retain their distinct exclusions.
