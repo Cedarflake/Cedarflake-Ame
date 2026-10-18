@@ -497,6 +497,13 @@ New modules enter the remaining partition automatically; duplicate names across 
 their multiplicity. Each partition then runs native libtest filters with `--test-threads=1` and
 the existing ignore policy. Coverage, argument, matrix and local serial-lock guardrails run in lint.
 
+Hosted Rust partitions use the runner's disposable temporary directory for fixture catalogs and
+sources by setting process-local `TEMP` and `TMP` in the workflow. The workstation entrypoint and
+its storage selection are unchanged. A bounded preflight records eight durable 1 MiB writes in
+both the inherited system temporary directory and runner temporary directory before testing;
+it removes only its own probe files. This records storage conditions without relaxing SQLite
+durability, workloads, timing assertions or test isolation.
+
 The static bridge gate does not treat the generated content-hash constant as sufficient freshness
 evidence. In addition to matching the Rust and Dart hashes, it checks timeline load, root removal,
 and catalog-reclamation start, snapshot, and cancellation end to end: the Rust API source must not

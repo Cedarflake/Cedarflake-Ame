@@ -117,11 +117,50 @@ jobs:
           ./tool/release_test_journal_broker_installer_guardrails.ps1
           ./tool/acceptance_test_windows_journal_broker_guardrails.ps1
 
+      - name: Measure hosted temporary storage
+        if: startsWith(matrix.component, 'rust_')
+        shell: pwsh
+        run: |
+          $buffer = [byte[]]::new(1MB)
+          [Random]::new(1).NextBytes($buffer)
+          $locations = [ordered]@{
+            system_temp = [IO.Path]::GetTempPath()
+            runner_temp = $env:RUNNER_TEMP
+          }
+          foreach ($location in $locations.GetEnumerator()) {
+            $path = Join-Path $location.Value ("ame-storage-probe-" + [Guid]::NewGuid())
+            $stream = [IO.File]::Open(
+              $path, [IO.FileMode]::CreateNew, [IO.FileAccess]::Write, [IO.FileShare]::None
+            )
+            try {
+              $samples = @(for ($sample = 0; $sample -lt 8; $sample++) {
+                $timer = [Diagnostics.Stopwatch]::StartNew()
+                $stream.Write($buffer, 0, $buffer.Length)
+                $stream.Flush($true)
+                $timer.Elapsed.TotalMilliseconds
+              })
+              [pscustomobject]@{
+                location = $location.Key
+                directory = $location.Value
+                durable_write_bytes = $buffer.Length
+                samples_ms = $samples
+              } | ConvertTo-Json -Compress
+            } finally {
+              $stream.Dispose()
+              Remove-Item -LiteralPath $path
+            }
+          }
+
       - name: Run daily component
         shell: pwsh
         env:
           AME_DAILY_COMPONENT: ${{ matrix.component }}
-        run: ./tool/quality_verify_daily.ps1 -Component $env:AME_DAILY_COMPONENT
+        run: |
+          if ($env:AME_DAILY_COMPONENT.StartsWith("rust_", [StringComparison]::Ordinal)) {
+            $env:TEMP = $env:RUNNER_TEMP
+            $env:TMP = $env:RUNNER_TEMP
+          }
+          ./tool/quality_verify_daily.ps1 -Component $env:AME_DAILY_COMPONENT
 
       - name: Check committed whitespace
         if: matrix.component == 'static'
@@ -132,7 +171,7 @@ jobs:
 
       - name: Retain controlled scan diagnostics
         if: always() && matrix.component == 'windows_scan'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: windows-scan-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
