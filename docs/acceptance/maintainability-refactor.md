@@ -191,6 +191,40 @@ verified. After process retirement and exact-path/no-reparse checks, 398 disposa
 files were removed; reusable media, catalogs and diagnostic/restoration evidence remain. Hosted
 checks for the M9 submission remain pending.
 
+## Native directory enumeration ownership
+
+M10 moves stable entry ordering and guarded cursor composition into `directory_enumeration.rs`;
+`streaming.rs` owns the native page buffer, continuation/error state and held-directory lifetime,
+while `records.rs` owns checked Windows record decoding. The public adapter remains unchanged.
+The 64 KiB native buffer, repeated-empty-page bound, duplicate detection, opening/closing identities,
+no-follow/no-recall admission and publication-guard lifetime are preserved. Test-only counters and
+gates moved with enumeration. Thirty-nine moved function bodies match baseline `4eabf98` apart from
+indentation; no parser, read policy, cancellation point or metadata classification was replaced.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test/support lines |
+| --- | ---: | ---: | ---: |
+| `local_files.rs` before / after | 3,229 / 2,399 | 3,977 / 3,562 | Existing child modules retained |
+| `directory_enumeration.rs` | 218 | 35 | Existing guarded-cursor integration retained |
+| `directory_enumeration/streaming.rs` | 405 | 62 | 118 |
+| `directory_enumeration/records.rs` | 263 | 2 | 182 |
+| `directory_enumeration/instrumentation.rs` | 0 | 0 | 157 |
+
+Counts include whitespace, test attributes/imports and hooks; instrumentation is compiled only for
+tests. Moved real-handle and parser cases retain their assertions. Added regressions cover truncated
+records, invalid UTF-16/component names, dot/non-ASCII names, offline identity refusal, negative file
+sizes and consuming a partial cursor without retaining its publication namespace. The existing root
+availability contract retains its exact call closure. Its two reviewed import digests now describe
+the narrower filesystem imports, and the new module has explicit admission plus negative controls
+for missing, exported, test-only and alternate-path declarations.
+
+The initial focused native run passed 88 cases, with one existing diagnostic ignore and two expected
+declaration mismatches. After updating only those exact import contracts, all eight affected
+availability checks passed. The existing durable-spool cancellation/restart integration also passed:
+it stops after 128 entry reads, preserves the bounded staged window and replays only the incomplete
+directory. These use actual Windows handles and disposable sources; source-byte preservation and
+release after failed cursor completion are asserted. No original media, catalog, dependency, bridge,
+schema or UI changed. Hosted checks and the final combined Debug comparison remain pending.
+
 ## Shared schema-shape validation
 
 The extraction preserves function bodies, query order, version-dependent scan-handoff columns,

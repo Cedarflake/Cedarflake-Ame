@@ -489,6 +489,15 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   for identity, revision and final metadata, retaining placeholder admission and the existing
   identity-versus-revision failure classification. Size/time, identity and revision mismatches keep
   their ordered outcomes; the shared comparator does not acquire namespace or publication authority.
+- `local_files/directory_enumeration.rs` owns stable entry ordering and publication-guarded cursors.
+  Its `streaming.rs` owner retains the root-bound directory handle, fixed native buffer, duplicate
+  detection and terminal/failed enumeration state; completion revalidates identity on that handle.
+  The cursor owns its cloned publication capability until completion or drop. `records.rs` decodes
+  checked Windows directory records into Ame metadata, including UTF-16/component bounds, attributes,
+  placeholders and identity/revision admission, without opening source content. The facade retains
+  the existing iterator contracts, and `scan_enumeration.rs` shares the anchored directory open.
+  Enumeration instrumentation and its gates are test-only. Raw record parsing, native page lifetime
+  and stable frontier ordering remain distinct responsibilities; none changes recovery batching.
 - `incremental_library_changes/preparation_catalog.rs` owns the bounded read set used to decide
   whether a prepared delta survives an unrelated catalog revision. It preserves every original
   path and global identity lookup, including negative results and ordered catch-up lineage.
