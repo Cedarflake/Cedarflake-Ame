@@ -157,6 +157,7 @@ jobs:
           AME_DAILY_COMPONENT: ${{ matrix.component }}
         run: |
           if ($env:AME_DAILY_COMPONENT.StartsWith("rust_", [StringComparison]::Ordinal)) {
+            $env:CEDARFLAKE_AME_ORDINARY_JOURNAL_PARENT = [IO.Path]::GetTempPath()
             $env:TEMP = $env:RUNNER_TEMP
             $env:TMP = $env:RUNNER_TEMP
           }

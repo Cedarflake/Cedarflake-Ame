@@ -12,10 +12,14 @@ use crate::journal_broker::{
 };
 
 pub(super) fn journal_capable_fixture() -> TempDir {
-    let parents = [
+    let mut parents = vec![
         std::env::current_dir().expect("working directory"),
         std::env::temp_dir(),
     ];
+    if let Some(parent) = std::env::var_os("CEDARFLAKE_AME_ORDINARY_JOURNAL_PARENT") {
+        // Hosted scratch storage may lack the journal required by these native fixtures.
+        parents.insert(0, parent.into());
+    }
     for (index, parent) in parents.iter().enumerate() {
         let fixture = tempfile::tempdir_in(parent).expect("owned ordinary-journal fixture");
         let source = fixture.path().join("source");
