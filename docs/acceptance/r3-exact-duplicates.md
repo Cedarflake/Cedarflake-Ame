@@ -131,6 +131,24 @@ and then the previously failing top coordinate, returning directly to 2026-09-09
 10,000, folded count stayed 72 and the source remained synchronized. The adapter contains 145
 production lines and its affected publication suite 482 dedicated test lines, with no inline tests.
 
+Both repair commits (`516e6d7` and `25ec080`) were pushed directly to `main`. After client retirement,
+the pre-replay test catalog and original preferences/settings were restored from verified backups;
+the protected original catalog component hashes also matched. The disposable baseline build was
+removed without following its plugin links, retaining the original corpus and recovery backups.
+Final schema-version inspection found one additional spool-retirement fixture still expecting 43;
+its assertion now expects 44 while retaining all retirement, reopen and source-preservation checks.
+The focused retirement case passed after updating that schema assertion. Hosted run 39123928984
+also exposed the live-gap fixture's old one-read expectation: completion now reads the added image
+and rebuilds the unchanged image's invalidated metadata. The fixture checks both reads and restored
+metadata, retaining original-content hashes, bounded enumeration and the no-foreground-scan guard;
+its focused Windows run passed. An earlier all-targets diagnostic exhausted host virtual memory
+during compilation before executing tests. The scoped retries used one Cargo build job and one test
+thread and passed. Exact-head hosted results remain pending at this checkpoint.
+
+The subsequent requested maintenance additionally covers stable retained folded cards while new
+duplicates are confirmed progressively, plus the cause of journal recovery. The previously verified
+repairs do not yet establish stable old membership during a journal-gap recovery.
+
 ## Controlled client run
 
 The existing `build/test` corpus contains 10,000 files, 10,921,494,393 encoded bytes and 72 expected

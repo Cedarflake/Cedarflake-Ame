@@ -131,12 +131,13 @@ fn production_native_need_rescan_live_only_preserves_p0_and_converges_through_p2
             .is_none(),
         "P2 absence publication must remove the deleted location"
     );
+    let unchanged = catalog
+        .load_incremental_location_by_relative_path(&fixture.root_id, "unchanged.png")
+        .expect("load unchanged P2 location")
+        .expect("unchanged baseline media must remain visible");
     assert!(
-        catalog
-            .load_incremental_location_by_relative_path(&fixture.root_id, "unchanged.png")
-            .expect("load unchanged P2 location")
-            .is_some(),
-        "unchanged baseline media must remain visible"
+        !crate::application::media_metadata_is_invalidated(&unchanged),
+        "synchronized requires the invalidated baseline metadata to be rebuilt"
     );
     let queue = catalog
         .load_library_change_root_queue_metrics(
@@ -179,7 +180,11 @@ fn production_native_need_rescan_live_only_preserves_p0_and_converges_through_p2
     assert!(!removed_path.exists());
     assert_eq!(crate::adapters::source_entry_read_count(&root_path), 2);
     assert_eq!(crate::adapters::source_spool_open_count(&root_path), 1);
-    assert_eq!(crate::adapters::source_content_open_count(&root_path), 1);
+    assert_eq!(
+        crate::adapters::source_content_open_count(&root_path),
+        2,
+        "one added image read and one invalidated metadata rebuild"
+    );
     fixture.assert_no_automatic_full_scan();
     production
         .stop()

@@ -82,10 +82,12 @@ Select its execution plan when that work is requested. Do not restart completed 
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
 The current requested maintenance scope is the
-[startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance): restore time-rail
-input during replacement layouts, then repair delayed duplicate folding and post-sync gallery
-convergence. Deliver on `main` as explicitly requested, preserving guarded source evidence and the
-existing test library. This scoped repair does not reopen R2c/R3 milestones or start R4.
+[startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance). Time-rail input,
+progressive duplicate folding and post-sync gallery convergence are implemented and client-verified
+on `main`. The subsequent request also requires stable existing folded cards while newly confirmed
+duplicates join progressively, and an evidence-based explanation of the `journal_trim` recovery
+trigger. Those repairs and exact-head hosted verification remain active. Preserve guarded source
+evidence and the existing test library. This scoped repair does not reopen R2c/R3 milestones or start R4.
 
 The [maintainability refactor](plans/maintainability-refactor.md) is implemented on six sequential
 responsibility branches: historical migration proof and compatibility repair, synchronization runtime
