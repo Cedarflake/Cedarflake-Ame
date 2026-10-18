@@ -57,7 +57,12 @@ passed with 74 ms P95 and 82 ms maximum; that result does not resolve the hosted
 Test-only held-writer observations now identify the caller, priority and permit lifetime when it
 reaches 100 ms. The observer is compiled out of product builds, and writes only after the permit
 has released the admission mutex. Scheduling, transactions, workload sizes and timing assertions
-remain unchanged. The next hosted run must supply the missing ownership evidence.
+remain unchanged. Diagnostic run
+[39097472142](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39097472142) on
+`e9d7c457fd46108004fc5de76254fd2b8cb29ca7` passed the synchronization partition with 398 passes
+and 12 existing ignores. Its two control arms and production workload reported P0 P95 of 295,
+325 and 316 ms, with no sample above one second. Long-held caller attribution is now available,
+but the previous outliers did not recur in that run and their cause remains unresolved.
 
 The diagnostic build passed ten write-admission boundary cases and the unchanged mixed-load case
 in one serial invocation (11 passes, 131.14 seconds). Its 25 measured samples reported 83 ms P95,
@@ -67,6 +72,18 @@ facade; this local result does not attribute the earlier hosted outliers. The ad
 355 physical lines, including test-only observation wiring; its dedicated observer is 38 lines
 and its existing boundary tests total 464 lines. The catalog facade has 3,538 lines, with four
 test-only caller-propagation attributes added and no transaction-policy change.
+
+The next diagnostic separates transaction begin/commit time from automatic WAL checkpoint time.
+The test-only hook retains the bundled SQLite default's 1,000-frame threshold, passive checkpoint
+call and ignored checkpoint result; production builds retain SQLite's own hook. It leaves the
+existing workload, synchronous durability, admissions and assertions intact. This is attribution
+instrumentation, not a repair or new product checkpoint policy; it must not be used as evidence
+that a passing run explains an earlier failure.
+
+The three WAL-reclamation boundaries and unchanged mixed-load case passed locally in one serial
+invocation (four passes, 141.04 seconds); P0 P95 was 88 ms and maximum was 90 ms. All-target,
+all-feature Clippy passed with warnings denied. Neither transaction commit nor automatic checkpoint
+crossed the 100 ms reporting threshold locally, so hosted attribution is still required.
 
 ## Catalog and unified-gallery test ownership
 

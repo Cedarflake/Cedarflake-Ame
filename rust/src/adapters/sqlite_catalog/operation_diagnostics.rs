@@ -1,3 +1,8 @@
+#[cfg(test)]
+mod wal_checkpoint;
+#[cfg(test)]
+pub(super) use wal_checkpoint::observe_default_checkpoint;
+
 pub(super) struct OperationTimer {
     #[cfg(test)]
     started: std::time::Instant,

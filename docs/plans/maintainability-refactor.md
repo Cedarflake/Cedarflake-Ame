@@ -79,8 +79,10 @@ Proceed in the order below without reopening product acceptance. Preserve existi
 assertions, expected ignores, data safety and isolated timing measurements. Keep each outcome in a
 separate commit and branch, and extend the existing review stack after verification. The user's
 2026-10-18 merge authorization covers this queue after the mixed-load failures are resolved and
-verification is complete; preserve published history
-and remove obsolete branches only after their commits are reachable from `main`.
+verification is complete. The user confirmed keeping the existing dependent PRs and merging the
+whole maintenance stack together; do not replace the CI and test PRs with independent deliveries.
+Preserve published history and remove obsolete branches only after their commits are reachable
+from `main`.
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
