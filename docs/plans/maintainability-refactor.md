@@ -44,9 +44,11 @@ history. Its local and remote branch was deleted after ancestry, tree and depend
 M9, M10 and M11 were implemented in order on separate branches and review PRs. Native GitHub stack
 #40 contains [M9 / #37](https://github.com/Cedarflake/Cedarflake-Ame/pull/37),
 [M10 / #38](https://github.com/Cedarflake/Cedarflake-Ame/pull/38) and
-[M11 / #39](https://github.com/Cedarflake/Cedarflake-Ame/pull/39). M9 starts from the merged baseline;
+[M11 / #39](https://github.com/Cedarflake/Cedarflake-Ame/pull/39), followed by
+[M12 / #41](https://github.com/Cedarflake/Cedarflake-Ame/pull/41) and
+[M13 / #42](https://github.com/Cedarflake/Cedarflake-Ame/pull/42). M9 starts from the merged baseline;
 each later branch retains the preceding work without rewriting published history. Stack creation
-preserved all three heads. The user authorized merging the current maintenance branches on
+and extension preserved all five heads. The user authorized merging the current maintenance branches on
 2026-10-18 after applicable checks and final review. Existing notification
 text, UI layout, action admission and source-safety boundaries are preserved.
 
@@ -86,8 +88,8 @@ from `main`.
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
-| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Implemented on `codex/ci-rust-partitions`; 2,031 compiled tests accounted for; hosted mixed-load writer-admission delay under diagnosis |
-| M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | Implemented on `codex/catalog-gallery-test-ownership`; 111 Rust cases and 43 widget cases relocated, body/inventory preservation and local widget checks passed; hosted checks pending |
+| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Partitioned CI passed in 23 minutes 18 seconds; checkpoint and final-connection retirement policies own the exposed storage work; the latest close-policy repair is under hosted verification |
+| M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | 111 Rust cases and 43 widget cases relocated; body/inventory preservation, widget checks, native workflows and combined CI passed; the latest inherited close-policy repair is under hosted verification |
 
 M12's initial partition is schema migrations plus change queue, remaining catalog tests,
 synchronization plus scan tests, and all remaining Rust tests. The baseline log attributes roughly

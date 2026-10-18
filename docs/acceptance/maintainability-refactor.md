@@ -90,6 +90,29 @@ invocation (four passes, 141.04 seconds); P0 P95 was 88 ms and maximum was 90 ms
 all-feature Clippy passed with warnings denied. Neither transaction commit nor automatic checkpoint
 crossed the 100 ms reporting threshold locally, so hosted attribution is still required.
 
+### Last-connection checkpoint retirement
+
+The native-stack run [39101370563](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39101370563)
+on source `3d6d93d` passed the mixed-load workloads (P0 P95 156, 125 and 153 ms), but the ingress-drop
+recovery case failed its existing bounded stop. The retirement observation subsequently recorded
+2,345 ms entirely in connection destruction, with autocommit true and zero measured statement-cache,
+identity-guard, session-admission or pending-buffer retirement time. This resolves the native-close
+stage left unclassified by the earlier shutdown failure.
+
+SQLite's default final-connection close checkpoints and removes its WAL. The connection-policy
+owner now disables that implicit checkpoint, retaining already durable WAL data for ordinary reopen,
+automatic passive checkpoints and explicit maintenance. A before/after regression fails against
+the old policy because connection destruction rewrites the main database; the revised policy keeps
+both database and committed WAL bytes unchanged. A second regression proves subsequent explicit
+truncation and independently readable committed rows. Existing FULL synchronization, transactions,
+read snapshots and joined shutdown deadlines remain unchanged; no worker or schema is added.
+
+The 37-line configuration owner and 158-line dedicated tests passed 39 focused connection-policy,
+identity/retry and original shutdown regressions in 34.29 seconds. All-target/all-feature Clippy
+passed with warnings denied in 11.33 seconds. The two added cases increase the compiled inventory
+from 2,033 to 2,035. The three existing explicit WAL-truncation cases also passed (1.53 seconds).
+Hosted checks and affected native close/reopen verification remain pending.
+
 ### Automatic checkpoint burst attribution
 
 Diagnostic run [39098716218](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39098716218)
@@ -121,8 +144,49 @@ The two new cases, three existing WAL-reclamation cases, original baseline shutd
 mixed-load workload passed in one serial local invocation (seven passes, 136.73 seconds). P0 P95
 was 90 ms, maximum 101 ms, and both lower-priority lanes progressed in all 25 samples before the
 full 10,000-entry recovery completed. All-target/all-feature Clippy passed with warnings denied.
-This establishes the local boundary; hosted latency comparison and shutdown verification remain
-pending for the repair candidate.
+Run [39100443519](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39100443519) on
+`3d6d93d100191c037d04658e2fdc1429cbd7ed23` passed all 14 required component jobs and the aggregate
+in 23 minutes 18 seconds. The synchronization partition passed 398 tests with 12 existing ignores,
+including the original bounded-shutdown case. The per-poll control, retained-connection control
+and production workload reported P0 P95 of 174, 105 and 133 ms respectively. Both lower-priority
+lanes progressed in all 25 production samples and the full 10,000-entry recovery completed.
+
+Combined-source dispatch [39100559374](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39100559374)
+on `2ce877138ffb3ad4439164f272f344e0b91a5f41` passed the other 13 component jobs. The production
+workload passed with 112 ms P95 and full recovery, but the removed per-poll connection policy's
+control failed its unchanged five-second source-page preparation deadline at sample 21. That
+poll's recovery-lease commit contained an 11,171 ms passive checkpoint of 540 frames. The second
+control arm was not reached. This records a synchronous-storage outlier in the historical control;
+the smaller trigger limits accumulated work, not native I/O duration.
+
+The unchanged two-arm control subsequently passed locally under the repository serial lock
+(one test, 120.30 seconds). Its 25-sample per-poll and retained-connection P95 values were 141 and
+89 ms, with both lower-priority lanes progressing in every sample. No deadline, workload, test
+admission or assertion was relaxed. Adding the two PRs to native stack #40 independently triggered
+pull-request checks on the same source heads. Combined-source run
+[39101370557](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39101370557) passed all 14
+component jobs and the aggregate in 23 minutes 14 seconds, with control P95 values of 190 and
+115 ms and production P95 of 115 ms. The original shutdown case and all 398 synchronization tests
+passed with 12 existing ignores. Its checked merge tree `c39ee04` was identical to source `2ce8771`.
+The corresponding M12 run exposed the separate final-connection shutdown issue recorded above;
+the latest retirement-policy repair requires fresh hosted results.
+
+The combined source `2ce877138ffb3ad4439164f272f344e0b91a5f41` rebuilt Debug in 35.9 seconds.
+Native verification reused the existing 10,000-image corpus and retained catalog. Closing during
+startup updating retired the client; reopening retained all 10,000 images. The existing baseline
+recovery completed in 182.645 seconds, leaving no pending, leased or failed queue entries and
+current journal continuity. Background duplicate analysis subsequently returned to 72 folded
+images. Preview opening and return remained usable while that analysis published results.
+An invalidated duplicate group declined the stale preferred-copy action during recovery; after
+recovery, changing the preferred copy succeeded and survived another normal close and restart.
+Both pre-existing durable decision rows were unchanged before that explicit test action.
+
+The catalog passed `quick_check`. No matching application crash or hang event was recorded during
+this native run. Original settings, preferences and original-catalog hashes were restored and
+verified; the retained test catalog and its original decisions were also restored. The 224
+generated test previews (3,869,062 bytes) were removed after client retirement and exact-path,
+no-reparse checks. This is affected-workflow evidence for the connection-policy change; it does
+not replace the hosted mixed-load latency and bounded-shutdown checks.
 
 ## Catalog and unified-gallery test ownership
 

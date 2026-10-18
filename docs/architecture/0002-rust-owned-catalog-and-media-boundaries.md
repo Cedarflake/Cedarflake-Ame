@@ -102,6 +102,15 @@ short protocol-read deadline and query-only policy. No background worker, schema
 catalog rewrite is introduced. Reverting the connection-local threshold restores SQLite's default
 without changing stored data or transaction semantics.
 
+Writable connections disable SQLite's implicit last-connection checkpoint using
+[`SQLITE_DBCONFIG_NO_CKPT_ON_CLOSE`](https://www.sqlite.org/c3ref/c_dbconfig_defensive.html#sqlitedbconfignockptonclose).
+Connection retirement releases handles without adding an unbounded checkpoint to the joined
+shutdown deadline. FULL commits remain durable in the WAL, and a subsequent connection reads that
+committed state. Commit-triggered passive checkpoints and explicit maintenance retain ownership of
+checkpoint progress and truncation. Retained WAL files are catalog data, not disposable cache;
+catalog backup or relocation must preserve the database and WAL together or use SQLite backup.
+Re-enabling the default close policy restores final checkpointing without a schema migration.
+
 ## Validation gates
 
 - the catalog is created outside a selected source directory;
