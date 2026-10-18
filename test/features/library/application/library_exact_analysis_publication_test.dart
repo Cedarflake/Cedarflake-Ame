@@ -7,6 +7,37 @@ import "package:cedarflake_ame/features/library/domain/library_exact_duplicates.
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "completion waits for gallery publication and retains retryable failure",
+    () async {
+      final service = _Service();
+      final analysis = LibraryExactAnalysisController(service);
+      addTearDown(analysis.dispose);
+      final first = Completer<bool>();
+      var attempts = 0;
+      final publication = LibraryExactAnalysisPublication(
+        analysis,
+        refresh: () {
+          attempts++;
+          return attempts == 1 ? first.future : Future.value(true);
+        },
+      );
+      addTearDown(publication.dispose);
+      analysis.start();
+      service.emit(LibraryExactAnalysisPhase.completed);
+      await service.finish();
+      await analysis.whenStopped;
+      expect(publication.isPublishing, isTrue);
+      first.complete(false);
+      await Future<void>.delayed(Duration.zero);
+      expect(publication.isPublishing, isFalse);
+      expect(publication.hasFailure, isTrue);
+      publication.retry();
+      await Future<void>.delayed(Duration.zero);
+      expect(publication.hasFailure, isFalse);
+      expect(attempts, 2);
+    },
+  );
   for (final phase in [
     LibraryExactAnalysisPhase.completed,
     LibraryExactAnalysisPhase.cancelled,

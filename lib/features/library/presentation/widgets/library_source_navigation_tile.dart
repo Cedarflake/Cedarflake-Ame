@@ -13,7 +13,9 @@ import "../../domain/library_synchronization_models.dart";
 import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "../library_synchronization_feedback.dart";
+import "../library_synchronization_feedback_state.dart";
 import "library_path_text.dart";
+import "library_results_progress.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
@@ -103,14 +105,20 @@ class _LibrarySourceNavigationTileState
       LibraryRootAvailability.inaccessible => Symbols.lock_rounded,
       LibraryRootAvailability.offline => Symbols.cloud_off_rounded,
     };
+    final resultsProgress = LibraryResultsProgressScope.forRoot(
+      context,
+      widget.root.id,
+    );
     final statusLabel = _statusLabel(
       widget.root,
       widget.synchronizationStatus,
       widget.hasSynchronizationFailure,
       widget.isUpdating,
+      resultsProgress,
     );
     final expandedSubtitle =
         !widget.isUpdating &&
+            resultsProgress == LibraryResultsProgress.ready &&
             _isHealthyLiveOnlySynchronization(
               widget.root,
               widget.synchronizationStatus,
@@ -296,6 +304,7 @@ class _LibrarySourceNavigationTileState
     LibraryRootSynchronizationStatus? synchronizationStatus,
     bool hasSynchronizationFailure,
     bool isUpdating,
+    LibraryResultsProgress resultsProgress,
   ) {
     if (synchronizationStatus?.isAwaitingFirstImport == true) {
       return LibraryStrings.firstImportIncomplete;
@@ -337,6 +346,13 @@ class _LibrarySourceNavigationTileState
     }
     if (synchronizationStatus == null) {
       return LibraryStrings.synchronizationUnconfirmed;
+    }
+    if (resultsProgress.label case final label?
+        when LibrarySynchronizationFeedbackState.fromStatus(
+              synchronizationStatus,
+            ) ==
+            LibrarySynchronizationFeedbackState.synchronized) {
+      return label;
     }
     return LibrarySynchronizationFeedback.fromStatus(
       synchronizationStatus,

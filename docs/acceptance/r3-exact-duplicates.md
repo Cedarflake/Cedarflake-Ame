@@ -54,7 +54,7 @@ fingerprints before its terminal outcome. The client ultimately showed 10,000 so
 merged items; a rail click during updating reached the older-date region. This replay is not a
 controlled pre-refactor performance comparison, and 416 invalidated metadata records still remained
 before final convergence. The user subsequently reported marker jumps and longer synchronization;
-both remain open in the owning maintenance plan.
+their subsequent repair evidence follows below.
 
 The changed owners contain 185 scheduler, 110 activity-adapter, 121 execution, 172 persistence-facade,
 and 66 batch-publication production lines. The publication admission owner has 37 production and
@@ -70,6 +70,53 @@ with all 14 rail-publication and six released-date-alignment cases. An ordinary 
 into the older-date region during the same fixture recovery and retained the line there across
 subsequent publications, while the merged count changed from 1,723 to 3,749. Controlled frame tests
 cover the brief zero-position transition; native snapshots establish the surrounding user interaction.
+
+[Actions run 39120364053](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39120364053)
+passed for bounded publication at `2193271`, and
+[run 39120848686](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39120848686)
+passed for retained marker position at `7c7a8d8`. Each included all applicable ordinary quality jobs.
+
+The completion repair retains metadata-only dirty inventory but admits invalidated capture metadata
+through the existing guarded P2 path worker. Admission examines at most 32 indexed candidates per
+poll, survives restart through the durable location and queue records, and never enumerates sources.
+Schema 44 adds the partial candidate index without rebuilding catalog data. An unchanged physical
+proof preserves the generation already invalidated by the dirty event, including newly computed
+fingerprints. Changed files and newer dirty evidence retain their invalidation authority. Pending
+metadata keeps native progress active; the sidebar then follows pending exact analysis and actual
+gallery publication before displaying synchronized, preserving unavailable and failure precedence.
+
+Focused diagnosis covered seven metadata recovery/migration tests and two native status tests. The
+incremental suite covered 89 cases: 87 passed in the broad invocation and two version-fixture failures
+passed after their ranges were updated. The migration suite similarly covered 174 cases: 173 passed
+initially and the unknown-version boundary passed after moving its fixture from 44 to 45. All 23
+publication/navigation-semantics checks passed, as did Dart analysis and the rebuilt Debug. Live
+`EXPLAIN QUERY PLAN` confirmed the partial-index keyset search and materialized bounded candidate page.
+
+The repaired client replay used the same protected catalog and 10,000-image corpus. Positive analysis
+retired 308,443 ms after launch, reading 10,924,792,111 bytes including superseded attempts; the
+zero-read follow-up retired at 317,702 ms. At 325,255 ms the durable queue was empty, all 10,000 current
+fingerprints were published, and all 10,000 locations had restored metadata. The client showed
+10,000 source images, 72 folded items and synchronized. A click made during recovery reached the
+older-date region. After dragging to the top and navigating away, the 468,364 ms observation retained
+zero pending metadata, no queued work and no additional analysis runs. Top content retained its
+2026-09-09 date and membership. A separate top-date single-click failure was reproduced twice after
+convergence, while dragging and a middle-date click worked; that navigation boundary remains under
+repair and is not covered by this completion result.
+
+One earlier replay of pre-refactor `83c8c16` also displayed synchronized before analysis finished.
+Positive analysis retired at 271,150 ms; 412 invalidated metadata records remained after folding to
+72. These warm client observations are not a controlled performance comparison. The repair removes
+deferred metadata work and permits progressive folding; it does not bypass the content reread required
+by genuine journal discontinuity. Further version attribution was stopped at the user's direction.
+
+New production owners contain 197 metadata-admission, 74 evidence-policy, 33 status-projection,
+53 migration and 81 presentation-progress lines. Status projection retains 51 inline-test lines;
+migration test helpers occupy 12 lines. Dedicated new workflow/migration suites contain 141/71 lines.
+The affected incremental, SQLite, migration and synchronization facades contain 1,473, 3,533, 6,376
+and 1,646 total lines respectively, including existing test hooks/helpers; migration's inline suite
+occupies 2,290 of those lines. Their added behavior is delegated to the named invariant owners.
+Publication/activity owners contain 78/133 lines and their affected dedicated suites contain 170/1,010
+lines. No generated bridge or dependency change is included.
 
 ## Controlled client run
 

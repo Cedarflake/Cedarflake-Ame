@@ -143,6 +143,11 @@ pub(crate) fn downgrade_to_v39_for_test(connection: &Connection) {
     let transaction = connection
         .unchecked_transaction()
         .expect("exact analysis fixture downgrade");
+    if version >= 44 {
+        transaction
+            .execute_batch("DROP INDEX asset_locations_pending_metadata")
+            .expect("remove pending metadata fixture index");
+    }
     if version >= 42 {
         transaction
             .execute_batch("DROP TABLE exact_duplicate_decisions")

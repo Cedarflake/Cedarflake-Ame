@@ -25,6 +25,7 @@ use super::scan_library::{stable_id, stable_location_id};
 const MAX_CATALOG_REVISION_REBASE_ATTEMPTS: usize = 2;
 
 mod authoritative_path_set;
+mod evidence_policy;
 mod media_admission_recheck;
 mod preparation_catalog;
 mod preparation_rebase;
@@ -33,6 +34,7 @@ mod terminal_media;
 pub(super) use authoritative_path_set::{
     AuthoritativePathSetContext, process_authoritative_path_set,
 };
+use evidence_policy::{apply_evidence_policy, requires_metadata_recheck};
 use preparation_catalog::PreparationCatalog;
 use preparation_rebase::{RebaseContext, RebasedPreparation, refresh_preparation};
 use terminal_media::terminal_media_change;
@@ -748,53 +750,14 @@ where
                 selected_prior.as_ref().map(location_evidence).as_ref(),
                 ReconciliationObservedState::Present(file_evidence(&file)),
             );
-            let dirty_reconcile_outcome = decision.outcome
-                == IncrementalReconciliationOutcome::Unchanged
-                || intent.previous_relative_path.is_some()
-                    && decision.outcome == IncrementalReconciliationOutcome::RenamedOrMoved;
-            if selected_prior.is_some()
-                && matches!(
-                    intent.origin,
-                    crate::domain::LibraryChangeOrigin::LiveNotification
-                        | crate::domain::LibraryChangeOrigin::StartupCatchUp
-                        | crate::domain::LibraryChangeOrigin::MetadataInventory
-                )
-                && intent.kind == crate::domain::LibraryChangeIntentKind::Reconcile
-                && intent.scope == crate::domain::LibraryChangeScope::Path
-                && dirty_reconcile_outcome
-            {
-                decision.outcome = IncrementalReconciliationOutcome::Modified;
-                decision.evidence_disposition = DerivedEvidenceDisposition::InvalidateDerived;
-                if let Some(current) = decision.current.as_mut() {
-                    current.source_generation = 0;
-                }
-            }
-            if intent.origin == crate::domain::LibraryChangeOrigin::MetadataInventory
-                && intent.kind == crate::domain::LibraryChangeIntentKind::RenameCandidate
-                && decision.outcome == IncrementalReconciliationOutcome::RenamedOrMoved
-            {
-                decision.evidence_disposition = DerivedEvidenceDisposition::InvalidateDerived;
-                if let Some(current) = decision.current.as_mut() {
-                    current.source_generation = 0;
-                }
-            }
-            if selected_prior
-                .as_ref()
-                .is_some_and(|prior| !inspection_metadata_is_compatible(prior, inspector))
-            {
-                match decision.outcome {
-                    IncrementalReconciliationOutcome::Unchanged => {
-                        decision.outcome = IncrementalReconciliationOutcome::Modified;
-                        decision.evidence_disposition =
-                            DerivedEvidenceDisposition::InvalidateDerived;
-                    }
-                    IncrementalReconciliationOutcome::RenamedOrMoved => {
-                        decision.evidence_disposition =
-                            DerivedEvidenceDisposition::InvalidateDerived;
-                    }
-                    _ => {}
-                }
-            }
+            apply_evidence_policy(
+                &mut decision,
+                selected_prior.as_ref(),
+                intent,
+                selected_prior
+                    .as_ref()
+                    .is_none_or(|prior| inspection_metadata_is_compatible(prior, inspector)),
+            );
             (decision, Some(file), selected_prior)
         }
         InspectedPath::CatalogAbsent => {
@@ -842,7 +805,10 @@ where
                         prior.file_identity.is_none() && prior.relative_path == file.relative_path
                     })
             });
-            if identity_backfill {
+            let metadata_recheck = selected_prior
+                .as_ref()
+                .is_some_and(|prior| requires_metadata_recheck(prior, intent));
+            if identity_backfill || metadata_recheck {
                 let file = current_file.as_ref().ok_or_else(|| {
                     failure(
                         "incremental_current_file_missing",
@@ -878,6 +844,9 @@ where
                     }
                 };
                 built.location.location_id.clone_from(&prior.location_id);
+                if built.issue.is_some() {
+                    completion_issue = built.issue;
+                }
                 Some(CatalogDeltaMutation {
                     change_id: leased.change.id,
                     outcome: decision.outcome,

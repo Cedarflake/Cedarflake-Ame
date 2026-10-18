@@ -1,9 +1,11 @@
 import "dart:async";
 
+import "package:flutter/foundation.dart";
+
 import "library_exact_analysis_controller.dart";
 
 /// Reconciles gallery membership after native analysis has retired its stream.
-class LibraryExactAnalysisPublication {
+class LibraryExactAnalysisPublication extends ChangeNotifier {
   LibraryExactAnalysisPublication(this._analysis, {required this.refresh}) {
     _analysis.addListener(_onAnalysisChanged);
   }
@@ -14,6 +16,19 @@ class LibraryExactAnalysisPublication {
   bool _pending = false;
   bool _refreshing = false;
   bool _isDisposed = false;
+  bool _hasFailure = false;
+
+  bool get isPublishing => _pending || _refreshing;
+  bool get hasFailure => _hasFailure;
+
+  void retry() {
+    if (_isDisposed || _refreshing || !_hasFailure) {
+      return;
+    }
+    _hasFailure = false;
+    _pending = true;
+    unawaited(_drain());
+  }
 
   void _onAnalysisChanged() {
     final progress = _analysis.progress;
@@ -28,6 +43,7 @@ class LibraryExactAnalysisPublication {
     // process. Refresh after every retirement; the catalog owns error reporting
     // and keeps newer user queries and viewport anchors during publication.
     _pending = true;
+    _hasFailure = false;
     if (!_refreshing) {
       unawaited(_drain());
     }
@@ -35,19 +51,28 @@ class LibraryExactAnalysisPublication {
 
   Future<void> _drain() async {
     _refreshing = true;
+    notifyListeners();
     try {
       while (_pending && !_isDisposed) {
         _pending = false;
-        await refresh();
+        final applied = await refresh();
+        if (!_isDisposed) {
+          _hasFailure = !applied;
+        }
       }
     } finally {
       _refreshing = false;
+      if (!_isDisposed) {
+        notifyListeners();
+      }
     }
   }
 
+  @override
   void dispose() {
     _isDisposed = true;
     _pending = false;
     _analysis.removeListener(_onAnalysisChanged);
+    super.dispose();
   }
 }

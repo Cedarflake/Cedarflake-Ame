@@ -12,6 +12,7 @@ import "../../application/library_exact_analysis_scheduler.dart";
 import "../../application/library_synchronization.dart";
 import "../../application/library_update_controller.dart";
 import "../../domain/library_synchronization_models.dart";
+import "library_results_progress.dart";
 
 /// Bridges catalog publication and foreground input to the analysis scheduler.
 class LibraryAnalysisActivity extends ConsumerStatefulWidget {
@@ -27,23 +28,27 @@ class _LibraryAnalysisActivityState
     extends ConsumerState<LibraryAnalysisActivity> {
   LibraryExactAnalysisScheduler? _scheduler;
   late final LibraryExactAnalysisPublication _publication;
+  late final LibraryExactAnalysisController _analysis;
+  late final Listenable _progress;
   StreamSubscription<LibrarySynchronizationSnapshot>? _synchronization;
   late LibrarySynchronizationSnapshot _snapshot;
 
   @override
   void initState() {
     super.initState();
+    _analysis = ref.read(libraryExactAnalysisControllerProvider);
     _publication = LibraryExactAnalysisPublication(
-      ref.read(libraryExactAnalysisControllerProvider),
+      _analysis,
       refresh: () =>
           ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
     );
     _scheduler = ref.read(libraryExactAnalysisSchedulerProvider);
+    _progress = Listenable.merge([_analysis, _publication, _scheduler]);
+    final synchronization = ref.read(librarySynchronizationProvider);
+    _snapshot = synchronization.current;
     if (_scheduler == null) {
       return;
     }
-    final synchronization = ref.read(librarySynchronizationProvider);
-    _snapshot = synchronization.current;
     _synchronization = synchronization.watch().listen((snapshot) {
       _snapshot = snapshot;
       _updateCatalog();
@@ -67,6 +72,9 @@ class _LibraryAnalysisActivityState
   void _updateCatalog() {
     final state = ref.read(libraryControllerProvider);
     final updates = ref.read(libraryUpdateControllerProvider);
+    if (!state.isBusy && state.errorMessage == null) {
+      _publication.retry();
+    }
     final revision = state.catalogRevision;
     _scheduler?.updateCatalog(
       revision: revision == null || revision < _snapshot.catalogRevision
@@ -101,10 +109,25 @@ class _LibraryAnalysisActivityState
   }
 
   @override
-  Widget build(BuildContext context) => Listener(
-    onPointerDown: (_) => _scheduler?.browsingActivity(),
-    onPointerMove: (_) => _scheduler?.browsingActivity(),
-    onPointerSignal: (_) => _scheduler?.browsingActivity(),
-    child: widget.child,
+  Widget build(BuildContext context) => AnimatedBuilder(
+    animation: _progress,
+    builder: (context, _) => LibraryResultsProgressScope(
+      progress: LibraryResultsProgress.resolve(
+        analysis: _analysis,
+        publication: _publication,
+        scheduler: _scheduler,
+        displayedRevision: ref.read(libraryControllerProvider).catalogRevision,
+        expectedRevision: _snapshot.catalogRevision,
+      ),
+      rootIds: {
+        for (final root in ref.read(libraryControllerProvider).roots) root.id,
+      },
+      child: Listener(
+        onPointerDown: (_) => _scheduler?.browsingActivity(),
+        onPointerMove: (_) => _scheduler?.browsingActivity(),
+        onPointerSignal: (_) => _scheduler?.browsingActivity(),
+        child: widget.child,
+      ),
+    ),
   );
 }

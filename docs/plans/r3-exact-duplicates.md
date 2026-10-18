@@ -65,10 +65,11 @@ analysis. Keep the three observed failures distinct while repairing their owning
 3. Reconcile synchronization, pending analysis and gallery publication so completion feedback does
    not precede the work that still changes visible membership; inspect delayed date evidence too.
 
-The user also reports longer synchronization than before refactoring. Compare the same retained
-recovery condition against the appropriate pre-refactor client, separating directory convergence,
-exact analysis and final gallery stability. A single warmed replay cannot establish that no
-performance regression exists. Keep confirmed inherited behavior distinct from newly introduced bugs.
+The later reports add marker jumps and longer synchronization. The marker repair retains the
+previous position across provisional windows. One replay of the pre-refactor baseline also showed
+directory completion before fingerprint publication and left invalidated metadata for later
+browsing. The user then prioritized resolving the observed behavior over further attribution.
+Keep those observations, complete the focused repair and do not extend the comparison campaign.
 
 Use focused boundary regressions and the existing isolated client corpus, then inspect normal
 push-triggered CI. Record runtime evidence in the

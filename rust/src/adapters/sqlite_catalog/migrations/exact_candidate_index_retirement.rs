@@ -51,6 +51,7 @@ mod tests;
 pub(in crate::adapters::sqlite_catalog::migrations) fn downgrade_to_v42_for_test(
     connection: &Connection,
 ) {
+    super::metadata_recheck_index::downgrade_to_v43_for_test(connection);
     let transaction = connection.unchecked_transaction().unwrap();
     current_schema::validate_schema_version(&transaction, 43).unwrap();
     transaction

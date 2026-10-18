@@ -15,6 +15,7 @@ impl SqliteCatalog {
             write_admission,
             pending_locations,
             pending_authoritative_retry_paths,
+            metadata_recheck_admission,
         } = self;
         let started = Instant::now();
         drop(path);
@@ -36,6 +37,7 @@ impl SqliteCatalog {
         let pending_started = Instant::now();
         drop(pending_locations);
         drop(pending_authoritative_retry_paths);
+        drop(metadata_recheck_admission);
         let pending_elapsed = pending_started.elapsed();
         let elapsed = started.elapsed();
         if elapsed >= Duration::from_millis(100) {

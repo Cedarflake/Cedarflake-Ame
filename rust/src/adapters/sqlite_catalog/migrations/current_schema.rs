@@ -125,6 +125,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 43 {
         super::exact_candidate_index_retirement::validate(connection)?;
     }
+    if schema_version >= 44 {
+        super::metadata_recheck_index::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

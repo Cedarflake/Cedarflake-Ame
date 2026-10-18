@@ -35,6 +35,7 @@ class LibraryExactAnalysisScheduler extends ChangeNotifier {
   Future<void>? _closing;
 
   bool get isPaused => _paused;
+  bool get hasPendingChanges => _pending;
   bool get isWaiting => _pending && !analysis.isRunning && !_paused;
 
   void updateCatalog({

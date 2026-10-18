@@ -240,6 +240,17 @@ remove confirmed non-images from the gallery. Retryable reads retain their entri
 physical identities remain reserved so a later repair can recover the asset identity. Completed
 rechecks are not scheduled again on restart, and source files are never removed by this repair.
 
+Invalidated media metadata also remains durable background work. Schema 44 adds a partial index
+for these existing location records without changing source generations, fingerprints or user
+decisions. A process-owned keyset cursor examines at most 32 candidates per poll and admits precise
+`ConsistencyAudit` paths to the existing P2 queue. It yields to writers, foreground scans and
+existing path/recovery authority, and wraps so a blocked prefix cannot starve later paths. Admission
+does not enumerate directories or open media. Existing guarded inspection and atomic catalog deltas
+rebuild capture dates before synchronization reports completion. A metadata-only rebuild preserves
+the current source generation only after unchanged physical evidence is proven; a new dirty event
+or changed file still invalidates content evidence. Pending metadata retains progress even between
+queue pages or during writer contention. Unavailable, blocked and failed states retain precedence.
+
 ### Preview publication at the change-driven boundary
 
 The current preview namespace is v3. Its cache key binds the requested variant to source revision

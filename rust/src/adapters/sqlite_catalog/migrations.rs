@@ -49,6 +49,7 @@ mod journal_scope_recovery;
 mod legacy_test_catalog;
 mod media_admission_rechecks;
 mod metadata_inventory_contract;
+mod metadata_recheck_index;
 mod persistent_journal_baseline;
 mod persistent_journal_range_history;
 mod preview_expectation_repair;
@@ -120,6 +121,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         gallery_duplicates::migrate_transaction(&transaction)?;
         exact_duplicate_review::migrate_transaction(&transaction)?;
         exact_candidate_index_retirement::migrate_transaction(&transaction)?;
+        metadata_recheck_index::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -202,6 +204,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             40 => gallery_duplicates::migrate(connection)?,
             41 => exact_duplicate_review::migrate(connection)?,
             42 => exact_candidate_index_retirement::migrate(connection)?,
+            43 => metadata_recheck_index::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

@@ -12,6 +12,7 @@ import "package:cedarflake_ame/features/library/presentation/widgets/library_fol
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_navigation_tile.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_results_progress.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -24,6 +25,70 @@ void main() {
   RetainedSemanticsUpdateBinding();
 
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
+
+  testWidgets(
+    "source completion waits for analysis and visible gallery results",
+    (tester) async {
+      for (final progress in LibraryResultsProgress.values) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildAmeTheme(),
+            home: Scaffold(
+              body: LibraryResultsProgressScope(
+                progress: progress,
+                rootIds: const {"root-1"},
+                child: _buildNavigation(),
+              ),
+            ),
+          ),
+        );
+        expect(
+          find.text(progress.label ?? LibraryStrings.synchronized),
+          findsOneWidget,
+        );
+        if (progress != LibraryResultsProgress.ready) {
+          expect(find.text(LibraryStrings.synchronized), findsNothing);
+        }
+      }
+      expect(tester.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    "result progress preserves unavailable and unconfirmed source states",
+    (tester) async {
+      for (final includeStatus in [true, false]) {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildAmeTheme(),
+            home: Scaffold(
+              body: LibraryResultsProgressScope(
+                progress: LibraryResultsProgress.analyzing,
+                rootIds: const {"root-1"},
+                child: _buildNavigation(
+                  includeRootStatus: includeStatus,
+                  freshness: LibraryCatalogFreshness.unavailable,
+                  phase: LibrarySynchronizationPhase.unavailable,
+                ),
+              ),
+            ),
+          ),
+        );
+        expect(
+          find.text(
+            includeStatus
+                ? LibraryStrings.sourceUnavailable
+                : LibraryStrings.synchronizationUnconfirmed,
+          ),
+          findsOneWidget,
+        );
+        expect(
+          find.text(LibraryResultsProgress.analyzing.label!),
+          findsNothing,
+        );
+      }
+    },
+  );
 
   testWidgets("source without a snapshot does not invent update progress", (
     tester,

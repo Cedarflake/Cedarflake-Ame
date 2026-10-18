@@ -29,6 +29,8 @@ mod lease_deferral;
 mod lease_matching;
 mod lease_write;
 mod media_rechecks;
+mod metadata_rechecks;
+pub(super) use metadata_rechecks::MetadataRecheckAdmission;
 mod metrics;
 mod persistence;
 mod readiness;

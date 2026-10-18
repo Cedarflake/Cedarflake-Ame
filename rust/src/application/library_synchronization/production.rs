@@ -130,6 +130,9 @@ mod root_location;
 mod poll_catalog;
 
 #[cfg(windows)]
+mod metadata_status;
+
+#[cfg(windows)]
 mod live_work;
 
 #[cfg(windows)]
@@ -466,6 +469,7 @@ fn poll_runtime_with_storage_inner(
     runtime.catalog_session = Some(checkout.session());
     let catalog = &mut *checkout;
     catalog.enqueue_media_admission_rechecks(poll_unix_ms, runtime.runtime.queue_policy())?;
+    catalog.enqueue_metadata_rechecks(poll_unix_ms, runtime.runtime.queue_policy())?;
     if !runtime.legacy_automatic_scans_retired {
         catalog.retire_legacy_automatic_full_scans(poll_unix_ms)?;
         runtime.legacy_automatic_scans_retired = true;
@@ -544,6 +548,7 @@ fn poll_runtime_with_storage_inner(
     project_active_recovery_as_updating(runtime.recovery.as_ref(), &mut snapshot);
     runtime.project_persistent_journal_continuity(catalog, &mut snapshot)?;
     admissions.revalidate(catalog, &mut runtime.runtime, &mut snapshot)?;
+    metadata_status::project_pending_metadata(catalog, &mut snapshot)?;
     admissions.append_dormant_statuses(&mut snapshot);
     drop(projection_timer);
     runtime.inventory_cleanup.poll(

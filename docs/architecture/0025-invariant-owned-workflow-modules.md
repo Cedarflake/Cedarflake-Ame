@@ -504,6 +504,13 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   the existing iterator contracts, and `scan_enumeration.rs` shares the anchored directory open.
   Enumeration instrumentation and its gates are test-only. Raw record parsing, native page lifetime
   and stable frontier ordering remain distinct responsibilities; none changes recovery batching.
+- `incremental_library_changes/evidence_policy.rs` owns precedence between dirty source events,
+  conservative inventory renames, metadata-engine replacement and rebuilding invalidated metadata.
+  An unchanged metadata recheck retains the already advanced source generation; dirty or changed
+  source evidence retains invalidation priority. `change_queue/metadata_rechecks.rs` owns bounded
+  admission and its rotating cursor, while `production/metadata_status.rs` keeps unadmitted metadata
+  work visible without overriding source failures. These owners reuse existing guarded P2 execution
+  and catalog-delta publication rather than adding another media worker or analysis store.
 - `incremental_library_changes/preparation_catalog.rs` owns the bounded read set used to decide
   whether a prepared delta survives an unrelated catalog revision. It preserves every original
   path and global identity lookup, including negative results and ordered catch-up lineage.
