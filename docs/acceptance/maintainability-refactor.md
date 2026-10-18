@@ -239,7 +239,7 @@ availability checks passed. The existing durable-spool cancellation/restart inte
 it stops after 128 entry reads, preserves the bounded staged window and replays only the incomplete
 directory. These use actual Windows handles and disposable sources; source-byte preservation and
 release after failed cursor completion are asserted. No original media, catalog, dependency, bridge,
-schema or UI changed. The combined Debug comparison is recorded below; hosted checks remain pending.
+schema or UI changed. The combined Debug comparison and passing hosted result are recorded below.
 
 The production-only Clippy pass found that the retained stable-cursor re-export is consumed only
 by the test-only metadata-inventory adapter. Its re-export now has the same test configuration;
@@ -323,7 +323,7 @@ no confirmed new product defect, and the PRs have no unresolved review comments 
 | Review unit | Checked source | Hosted run and result |
 | --- | --- | --- |
 | M9 / #37 | `a6821bef700c9427577f50bbe7c9cc922a7dffc2` | [39091226014](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091226014); all 11 applicable jobs passed |
-| M10 / #38 | `f57f36035eb08833b755eca4cb2fd9f09dd412c3` | [39091293889](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091293889); nine execution jobs passed, Static and Rust remains in progress |
+| M10 / #38 | `f57f36035eb08833b755eca4cb2fd9f09dd412c3` | [39091293889](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091293889); all 11 applicable jobs passed |
 | M11 / #39 | `114c6b2fa50a7ad3832ce6f1c615a397fe53ccaa` | [39091296104](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091296104); all 11 applicable jobs passed |
 
 The complete M11 Rust library suite reported 2,006 passes, 22 existing ignores and no failures in
