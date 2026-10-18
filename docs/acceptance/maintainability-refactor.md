@@ -156,6 +156,22 @@ All five workflow files retain their existing artifact names, paths, retention, 
 manifest checks. The hosted parallel/extended contracts and installer, ACL, identity and uninstall
 guardrails passed serially after the pin changes. Hosted artifact execution remains pending.
 
+### Hosted temporary-storage binding
+
+The narrowed close policy passed the catalog partition in runs `39105379114` and `39105401810`.
+Both synchronization partitions still failed the unchanged connection-lifetime control. In the
+first run, a 10,169 ms publication commit prevented P1 progress after P0 became visible in 55 ms.
+In the second, an 11,553 ms commit included a 9,516 ms passive checkpoint of 447 WAL frames and
+blocked sample 14 visibility. The separate production workloads passed at P95 57 and 83 ms.
+These remain failed controls; the successful production measurements do not replace them.
+
+Fixture storage previously used the inherited system temporary directory, independently of the
+runner's work disk. Hosted Rust partitions now bind `TEMP` and `TMP` to `RUNNER_TEMP` for their
+existing serial invocation. A bounded durable-write preflight records both original locations
+and their storage timings. Workstation entrypoints, test workloads, time limits, FULL commit
+synchronization and security settings remain unchanged. Hosted measurements are still required
+before attributing the intermittent storage waits or claiming the binding resolves them.
+
 ### Automatic checkpoint burst attribution
 
 Diagnostic run [39098716218](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39098716218)
