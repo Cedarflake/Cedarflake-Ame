@@ -1,11 +1,7 @@
-import "dart:async";
-
-import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/scheduler.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../application/library_controller.dart";
 import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
@@ -14,6 +10,8 @@ import "../gallery_selection.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "library_exact_extent_sliver.dart";
+import "library_gallery_interaction.dart";
+import "library_gallery_viewport_feedback.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
 import "library_gallery_layout_snapshot.dart";
@@ -25,44 +23,7 @@ import "library_photo_tile.dart";
 import "library_virtual_gallery_geometry.dart";
 
 export "library_gallery_position.dart";
-
-class LibraryGalleryVisibleRange {
-  const LibraryGalleryVisibleRange({
-    required this.queryId,
-    required this.revision,
-    required this.startGlobalItemIndex,
-    required this.endGlobalItemIndexExclusive,
-  });
-
-  final String queryId;
-  final BigInt revision;
-  final int startGlobalItemIndex;
-  final int endGlobalItemIndexExclusive;
-
-  bool contains({
-    required String queryId,
-    required BigInt revision,
-    required int globalItemIndex,
-  }) {
-    return this.queryId == queryId &&
-        this.revision == revision &&
-        containsGlobalItemIndex(globalItemIndex);
-  }
-
-  bool containsGlobalItemIndex(int globalItemIndex) {
-    return globalItemIndex >= startGlobalItemIndex &&
-        globalItemIndex < endGlobalItemIndexExclusive;
-  }
-
-  bool matches(LibraryGalleryVisibleRange other) {
-    return queryId == other.queryId &&
-        revision == other.revision &&
-        startGlobalItemIndex == other.startGlobalItemIndex &&
-        endGlobalItemIndexExclusive == other.endGlobalItemIndexExclusive;
-  }
-}
-
-enum _LibraryPreviewMovementDirection { backward, idle, forward }
+export "library_gallery_viewport_feedback.dart" show LibraryGalleryVisibleRange;
 
 class _LibraryGalleryScrollViewKey extends GlobalObjectKey {
   const _LibraryGalleryScrollViewKey(super.value);
@@ -126,8 +87,6 @@ class LibraryGalleryWall extends StatelessWidget {
   onLayoutChanged;
 
   static const double _maximumViewportExtent = 16384;
-  static const double _directionalPreviewViewportCount = 1.5;
-  static const double _guardPreviewViewportCount = 0.75;
   static const double _leadingHorizontalPadding = 24;
   static const double _trailingHorizontalPadding = 16;
 
@@ -268,7 +227,7 @@ class LibraryGalleryWall extends StatelessWidget {
         );
         void synchronizeVisibleViewport(
           ScrollMetrics metrics,
-          _LibraryPreviewMovementDirection direction,
+          LibraryPreviewMovementDirection direction,
         ) {
           if (!context.mounted ||
               !TickerMode.getValuesNotifier(context).value.enabled) {
@@ -294,7 +253,7 @@ class LibraryGalleryWall extends StatelessWidget {
               layoutShape == GalleryLayoutShape.square &&
                   virtualGeometry.isVirtualized &&
                   !isViewportInsideLoadedWindow
-              ? _estimatedSquareVisibleRangeFor(
+              ? LibraryGalleryViewportFeedback.estimatedSquareVisibleRangeFor(
                   virtualGeometry: virtualGeometry,
                   scrollOffset: metrics.pixels,
                   viewportDimension: metrics.viewportDimension,
@@ -303,7 +262,7 @@ class LibraryGalleryWall extends StatelessWidget {
                   queryId: state.queryId,
                   revision: state.catalogRevision,
                 )
-              : _visibleRangeFor(
+              : LibraryGalleryViewportFeedback.visibleRangeFor(
                   layoutMetrics: layoutMetrics,
                   scrollOffset: localScrollOffset,
                   viewportDimension: metrics.viewportDimension,
@@ -320,7 +279,7 @@ class LibraryGalleryWall extends StatelessWidget {
               );
             }
           }
-          _updatePreviewDemand(
+          LibraryGalleryViewportFeedback.updatePreviewDemand(
             controller: controller,
             state: state,
             layoutMetrics: layoutMetrics,
@@ -347,7 +306,7 @@ class LibraryGalleryWall extends StatelessWidget {
           if (scrollController.hasClients) {
             synchronizeVisibleViewport(
               scrollController.position,
-              _LibraryPreviewMovementDirection.idle,
+              LibraryPreviewMovementDirection.idle,
             );
           }
         });
@@ -355,194 +314,126 @@ class LibraryGalleryWall extends StatelessWidget {
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
-              AmeScrollMotion(
-                controller: scrollController,
-                onPointerSignal: (event) {
-                  if (event is! PointerScrollEvent ||
-                      !scrollController.hasClients) {
-                    return;
-                  }
-                  if (event.scrollDelta.dy < 0 &&
-                      _isNearLoadedStart(
-                        scrollController.position,
-                        virtualGeometry,
-                      ) &&
-                      state.hasPreviousAssets &&
-                      !state.isLoadingPage &&
-                      !state.isLoadingPreviousPage &&
-                      state.previousPageErrorMessage == null) {
-                    _deferPageRequest(context, onLoadPrevious);
-                  } else if (event.scrollDelta.dy > 0 &&
-                      _isNearLoadedEnd(
-                        scrollController.position,
-                        virtualGeometry,
-                      ) &&
-                      state.hasMoreAssets &&
-                      !state.isLoadingPage &&
-                      !state.isLoadingPreviousPage &&
-                      state.pageErrorMessage == null) {
-                    _deferPageRequest(context, controller.loadNextPage);
-                  }
-                },
-                child: NotificationListener<ScrollMetricsNotification>(
-                  onNotification: (notification) {
-                    synchronizeVisibleViewport(
-                      notification.metrics,
-                      _LibraryPreviewMovementDirection.idle,
-                    );
-                    return false;
-                  },
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      final isPositionUpdate =
-                          notification is ScrollUpdateNotification ||
-                          notification is ScrollEndNotification;
-                      if (isPositionUpdate) {
-                        synchronizeVisibleViewport(
-                          notification.metrics,
-                          _previewDirectionFor(notification),
-                        );
-                        final isDirectDragUpdate =
-                            notification is ScrollUpdateNotification &&
-                            notification.dragDetails != null;
-                        if (isDirectDragUpdate &&
-                            _isNearLoadedStart(
-                              notification.metrics,
-                              virtualGeometry,
-                            ) &&
-                            state.hasPreviousAssets &&
-                            !state.isLoadingPage &&
-                            !state.isLoadingPreviousPage &&
-                            state.previousPageErrorMessage == null) {
-                          _deferPageRequest(context, onLoadPrevious);
-                        }
-                        if (isDirectDragUpdate &&
-                            _isNearLoadedEnd(
-                              notification.metrics,
-                              virtualGeometry,
-                            ) &&
-                            state.hasMoreAssets &&
-                            !state.isLoadingPage &&
-                            !state.isLoadingPreviousPage &&
-                            state.pageErrorMessage == null) {
-                          _deferPageRequest(context, controller.loadNextPage);
-                        }
-                      }
-                      return false;
-                    },
-                    child: KeyedSubtree(
-                      key: const Key("library-photo-wall"),
-                      child: CustomScrollView(
-                        clipBehavior: Clip.none,
-                        key: _LibraryGalleryScrollViewKey(scrollController),
-                        controller: scrollController,
-                        slivers: [
-                          if (virtualGeometry.leadingExtent > 0)
-                            SliverToBoxAdapter(
-                              child: SizedBox(
-                                key: const Key("library-leading-placeholder"),
-                                height: virtualGeometry.leadingExtent,
-                              ),
-                            ),
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(
-                              horizontalPadding,
-                              18,
-                              16,
-                              72,
-                            ),
-                            sliver: LibraryExactExtentSliver.builder(
-                              itemStartOffsets: entryStartOffsets,
-                              contentExtent: _entryContentExtent(
-                                entryStartOffsets,
-                                entries.isEmpty ? 0 : entries.last.extent,
-                              ),
-                              layoutCorrection: layoutCorrection,
-                              onLayoutCorrectionApplied: (generation) {
-                                final transition = layoutTransition;
-                                if (transition != null &&
-                                    generation ==
-                                        (
-                                          scope: "gallery-transition",
-                                          value: transition.generation,
-                                        )) {
-                                  onLayoutTransitionApplied?.call(
-                                    transition.generation,
-                                  );
-                                }
-                              },
-                              addSemanticIndexes: false,
-                              itemBuilder: (context, index) {
-                                final entry = entries[index];
-                                final offset =
-                                    virtualGeometry.leadingExtent +
-                                    18 +
-                                    entryStartOffsets[index];
-                                if (entry.headerLabel case final label?) {
-                                  return LibraryGalleryMotionHeader(
-                                    label: label,
-                                    dateKey: entry.dateKey,
-                                    rect: Rect.fromLTWH(
-                                      0,
-                                      offset,
-                                      availableWidth,
-                                      entry.extent,
-                                    ),
-                                  );
-                                }
-                                if (entry.cells.isEmpty) {
-                                  return SizedBox(height: entry.extent);
-                                }
-                                return LibraryGalleryMotionRow(
-                                  extent: entry.extent,
-                                  width: availableWidth,
-                                  height: entry.rowHeight,
-                                  offset: offset,
-                                  cellWidths: [
-                                    for (final cell in entry.cells) cell.width,
-                                  ],
-                                  identityAt: (index) =>
-                                      entry.cells[index].asset.locationId,
-                                  builder: (index, size) {
-                                    final asset = entry.cells[index].asset;
-                                    return LibraryPhotoTile(
-                                      key: ValueKey(asset.locationId),
-                                      asset: asset,
-                                      width: size.width,
-                                      height: size.height,
-                                      isSelecting: isSelecting,
-                                      isSelected: selection.contains(
-                                        asset.assetId,
-                                      ),
-                                      onOpen: onOpen,
-                                      onToggleSelection: onToggleSelection,
-                                      onViewInformation: onViewInformation,
-                                      onCopyPath: onCopyPath,
-                                      onRevealFile: onRevealFile,
-                                    );
-                                  },
+              LibraryGalleryInteraction(
+                state: state,
+                scrollController: scrollController,
+                geometry: virtualGeometry,
+                onLoadPrevious: onLoadPrevious,
+                onLoadNext: controller.loadNextPage,
+                onMetricsChanged: (metrics) => synchronizeVisibleViewport(
+                  metrics,
+                  LibraryPreviewMovementDirection.idle,
+                ),
+                onPositionChanged: synchronizeVisibleViewport,
+                child: KeyedSubtree(
+                  key: const Key("library-photo-wall"),
+                  child: CustomScrollView(
+                    clipBehavior: Clip.none,
+                    key: _LibraryGalleryScrollViewKey(scrollController),
+                    controller: scrollController,
+                    slivers: [
+                      if (virtualGeometry.leadingExtent > 0)
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            key: const Key("library-leading-placeholder"),
+                            height: virtualGeometry.leadingExtent,
+                          ),
+                        ),
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          18,
+                          16,
+                          72,
+                        ),
+                        sliver: LibraryExactExtentSliver.builder(
+                          itemStartOffsets: entryStartOffsets,
+                          contentExtent: _entryContentExtent(
+                            entryStartOffsets,
+                            entries.isEmpty ? 0 : entries.last.extent,
+                          ),
+                          layoutCorrection: layoutCorrection,
+                          onLayoutCorrectionApplied: (generation) {
+                            final transition = layoutTransition;
+                            if (transition != null &&
+                                generation ==
+                                    (
+                                      scope: "gallery-transition",
+                                      value: transition.generation,
+                                    )) {
+                              onLayoutTransitionApplied?.call(
+                                transition.generation,
+                              );
+                            }
+                          },
+                          addSemanticIndexes: false,
+                          itemBuilder: (context, index) {
+                            final entry = entries[index];
+                            final offset =
+                                virtualGeometry.leadingExtent +
+                                18 +
+                                entryStartOffsets[index];
+                            if (entry.headerLabel case final label?) {
+                              return LibraryGalleryMotionHeader(
+                                label: label,
+                                dateKey: entry.dateKey,
+                                rect: Rect.fromLTWH(
+                                  0,
+                                  offset,
+                                  availableWidth,
+                                  entry.extent,
+                                ),
+                              );
+                            }
+                            if (entry.cells.isEmpty) {
+                              return SizedBox(height: entry.extent);
+                            }
+                            return LibraryGalleryMotionRow(
+                              extent: entry.extent,
+                              width: availableWidth,
+                              height: entry.rowHeight,
+                              offset: offset,
+                              cellWidths: [
+                                for (final cell in entry.cells) cell.width,
+                              ],
+                              identityAt: (index) =>
+                                  entry.cells[index].asset.locationId,
+                              builder: (index, size) {
+                                final asset = entry.cells[index].asset;
+                                return LibraryPhotoTile(
+                                  key: ValueKey(asset.locationId),
+                                  asset: asset,
+                                  width: size.width,
+                                  height: size.height,
+                                  isSelecting: isSelecting,
+                                  isSelected: selection.contains(asset.assetId),
+                                  onOpen: onOpen,
+                                  onToggleSelection: onToggleSelection,
+                                  onViewInformation: onViewInformation,
+                                  onCopyPath: onCopyPath,
+                                  onRevealFile: onRevealFile,
                                 );
                               },
-                            ),
-                          ),
-                          if (virtualGeometry.trailingExtent > 0)
-                            SliverToBoxAdapter(
-                              child: SizedBox(
-                                key: const Key("library-trailing-placeholder"),
-                                height: virtualGeometry.trailingExtent,
-                              ),
-                            ),
-                          if (!virtualGeometry.isVirtualized &&
-                              state.pageErrorMessage != null)
-                            SliverToBoxAdapter(
-                              child: SizedBox(
-                                height: 72,
-                                child: _buildNextPageStatus(),
-                              ),
-                            ),
-                        ],
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                      if (virtualGeometry.trailingExtent > 0)
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            key: const Key("library-trailing-placeholder"),
+                            height: virtualGeometry.trailingExtent,
+                          ),
+                        ),
+                      if (!virtualGeometry.isVirtualized &&
+                          state.pageErrorMessage != null)
+                        SliverToBoxAdapter(
+                          child: SizedBox(
+                            height: 72,
+                            child: _buildNextPageStatus(),
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ),
@@ -624,37 +515,6 @@ class LibraryGalleryWall extends StatelessWidget {
         icon: const Icon(Symbols.refresh_rounded),
         label: const Text(LibraryStrings.retryLoading),
       ),
-    );
-  }
-
-  static bool _isNearLoadedStart(
-    ScrollMetrics metrics,
-    LibraryVirtualGalleryGeometry geometry,
-  ) {
-    return metrics.pixels >=
-            geometry.leadingExtent - metrics.viewportDimension &&
-        metrics.pixels <= geometry.leadingExtent + 900;
-  }
-
-  static bool _isNearLoadedEnd(
-    ScrollMetrics metrics,
-    LibraryVirtualGalleryGeometry geometry,
-  ) {
-    final visibleBottom = metrics.pixels + metrics.viewportDimension;
-    return visibleBottom >= geometry.loadedEndExtent - 900 &&
-        metrics.pixels <= geometry.loadedEndExtent;
-  }
-
-  static void _deferPageRequest(
-    BuildContext context,
-    Future<void> Function() request,
-  ) {
-    unawaited(
-      Future<void>(() async {
-        if (context.mounted) {
-          await request();
-        }
-      }),
     );
   }
 
@@ -857,244 +717,6 @@ class LibraryGalleryWall extends StatelessWidget {
     }
     return entryStartOffsets.last + lastEntryExtent;
   }
-
-  static _LibraryPreviewMovementDirection _previewDirectionFor(
-    ScrollNotification notification,
-  ) {
-    if (notification case ScrollUpdateNotification(:final scrollDelta?)) {
-      if (scrollDelta > 0) {
-        return _LibraryPreviewMovementDirection.forward;
-      }
-      if (scrollDelta < 0) {
-        return _LibraryPreviewMovementDirection.backward;
-      }
-    }
-    return _LibraryPreviewMovementDirection.idle;
-  }
-
-  static void _updatePreviewDemand({
-    required LibraryController controller,
-    required LibraryState state,
-    required LibraryGalleryLayoutMetrics layoutMetrics,
-    required double scrollOffset,
-    required double viewportDimension,
-    required _LibraryPreviewMovementDirection direction,
-    required int anchorGlobalItemIndex,
-    required int Function(LibraryAsset asset, int globalItemIndex)
-    previewEdgeFor,
-  }) {
-    if (state.assets.isEmpty ||
-        layoutMetrics.itemCount == 0 ||
-        !scrollOffset.isFinite ||
-        !viewportDimension.isFinite ||
-        viewportDimension <= 0) {
-      controller.updateGalleryPreviewDemand();
-      return;
-    }
-    final visibleEndOffset = scrollOffset + viewportDimension;
-    if (visibleEndOffset <= 0 || scrollOffset >= layoutMetrics.contentExtent) {
-      controller.updateGalleryPreviewDemand();
-      return;
-    }
-
-    int globalItemAt(double offset) {
-      final bounded = offset.clamp(0, layoutMetrics.contentExtent).toDouble();
-      return layoutMetrics.itemIndexBase +
-          layoutMetrics.itemIndexForScrollOffset(bounded);
-    }
-
-    int rowStartAt(double offset) {
-      final item = globalItemAt(offset);
-      return layoutMetrics.rowStartGlobalItemIndex(item) ?? item;
-    }
-
-    int rowEndAt(double offset) {
-      final item = globalItemAt(offset);
-      return layoutMetrics.rowEndGlobalItemIndexExclusive(item) ?? item + 1;
-    }
-
-    final previewEdges = <String, int>{};
-
-    List<LibraryAsset> assetsInRange(int start, int end) {
-      final loadedStart = state.windowStartItemOffset;
-      final loadedEnd = loadedStart + state.assets.length;
-      final boundedStart = start.clamp(loadedStart, loadedEnd).toInt();
-      final boundedEnd = end.clamp(boundedStart, loadedEnd).toInt();
-      if (boundedEnd <= boundedStart) {
-        return const [];
-      }
-      final itemIndices =
-          [
-            for (
-              var itemIndex = boundedStart;
-              itemIndex < boundedEnd;
-              itemIndex += 1
-            )
-              itemIndex,
-          ]..sort((first, second) {
-            final distanceComparison = (first - anchorGlobalItemIndex)
-                .abs()
-                .compareTo((second - anchorGlobalItemIndex).abs());
-            return distanceComparison != 0
-                ? distanceComparison
-                : first.compareTo(second);
-          });
-      final assets = <LibraryAsset>[];
-      for (final itemIndex in itemIndices) {
-        final asset = state.assets[itemIndex - loadedStart];
-        previewEdges[asset.locationId] = previewEdgeFor(asset, itemIndex);
-        assets.add(asset);
-      }
-      return assets;
-    }
-
-    final visibleStart = rowStartAt(scrollOffset);
-    final visibleEnd = rowEndAt(visibleEndOffset);
-    final directionalExtent =
-        viewportDimension * _directionalPreviewViewportCount;
-    final guardExtent = viewportDimension * _guardPreviewViewportCount;
-    final backwardDirectionalStart = rowStartAt(
-      scrollOffset - directionalExtent,
-    );
-    final forwardDirectionalEnd = rowEndAt(
-      visibleEndOffset + directionalExtent,
-    );
-    final backwardGuardStart = rowStartAt(scrollOffset - guardExtent);
-    final forwardGuardEnd = rowEndAt(visibleEndOffset + guardExtent);
-
-    final nearDirection = switch (direction) {
-      _LibraryPreviewMovementDirection.backward => assetsInRange(
-        backwardDirectionalStart,
-        visibleStart,
-      ),
-      _LibraryPreviewMovementDirection.idle ||
-      _LibraryPreviewMovementDirection.forward => assetsInRange(
-        visibleEnd,
-        forwardDirectionalEnd,
-      ),
-    };
-    final guard = switch (direction) {
-      _LibraryPreviewMovementDirection.backward => assetsInRange(
-        visibleEnd,
-        forwardGuardEnd,
-      ),
-      _LibraryPreviewMovementDirection.forward => assetsInRange(
-        backwardGuardStart,
-        visibleStart,
-      ),
-      _LibraryPreviewMovementDirection.idle => [
-        ...assetsInRange(backwardGuardStart, visibleStart),
-        ...assetsInRange(visibleEnd, forwardGuardEnd),
-      ],
-    };
-    controller.updateGalleryPreviewDemand(
-      visible: assetsInRange(visibleStart, visibleEnd),
-      nearDirection: nearDirection,
-      guard: guard,
-      previewEdges: previewEdges,
-    );
-  }
-
-  static LibraryGalleryVisibleRange? _visibleRangeFor({
-    required LibraryGalleryLayoutMetrics layoutMetrics,
-    required double scrollOffset,
-    required double viewportDimension,
-    required String queryId,
-    required BigInt? revision,
-  }) {
-    if (revision == null ||
-        queryId.isEmpty ||
-        !viewportDimension.isFinite ||
-        viewportDimension <= 0) {
-      return null;
-    }
-    final visibleStart = scrollOffset
-        .clamp(0.0, layoutMetrics.contentExtent)
-        .toDouble();
-    final visibleEnd = (scrollOffset + viewportDimension)
-        .clamp(visibleStart, layoutMetrics.contentExtent)
-        .toDouble();
-    final firstVisibleItem = layoutMetrics.itemIndexForScrollOffset(
-      visibleStart,
-    );
-    final lastVisibleItem = layoutMetrics.itemIndexForScrollOffset(visibleEnd);
-    final firstVisibleRowStart = layoutMetrics.rowStartGlobalItemIndex(
-      firstVisibleItem,
-    );
-    final lastVisibleRowEnd = layoutMetrics.rowEndGlobalItemIndexExclusive(
-      lastVisibleItem,
-    );
-    if (firstVisibleRowStart == null || lastVisibleRowEnd == null) {
-      return null;
-    }
-    return LibraryGalleryVisibleRange(
-      queryId: queryId,
-      revision: revision,
-      startGlobalItemIndex: firstVisibleRowStart,
-      endGlobalItemIndexExclusive: lastVisibleRowEnd,
-    );
-  }
-
-  static LibraryGalleryVisibleRange? _estimatedSquareVisibleRangeFor({
-    required LibraryVirtualGalleryGeometry virtualGeometry,
-    required double scrollOffset,
-    required double viewportDimension,
-    required double availableWidth,
-    required GalleryThumbnailSize thumbnailSize,
-    required String queryId,
-    required BigInt? revision,
-  }) {
-    final totalItems = virtualGeometry.totalItemCount;
-    if (revision == null ||
-        queryId.isEmpty ||
-        totalItems <= 0 ||
-        !scrollOffset.isFinite ||
-        !viewportDimension.isFinite ||
-        viewportDimension <= 0 ||
-        availableWidth <= 0) {
-      return null;
-    }
-    final spacing = LibraryGalleryLayoutEntry.spacing;
-    final columnCount =
-        ((availableWidth + spacing) / (thumbnailSize.targetExtent + spacing))
-            .floor()
-            .clamp(1, totalItems)
-            .toInt();
-    final tileExtent =
-        (availableWidth - spacing * (columnCount - 1)) / columnCount;
-    final minimumSpan =
-        columnCount * ((viewportDimension / (tileExtent + spacing)).ceil() + 2);
-    final startValue = virtualGeometry.valueForScrollOffset(scrollOffset);
-    final endValue = virtualGeometry.valueForScrollOffset(
-      scrollOffset + viewportDimension,
-    );
-    var start = (startValue * totalItems)
-        .floor()
-        .clamp(0, totalItems - 1)
-        .toInt();
-    var end = (endValue * totalItems)
-        .ceil()
-        .clamp(start + 1, totalItems)
-        .toInt();
-    if (end - start < minimumSpan) {
-      final center = ((start + end) / 2).round();
-      start = (center - minimumSpan ~/ 2).clamp(0, totalItems - 1).toInt();
-      end = (start + minimumSpan).clamp(start + 1, totalItems).toInt();
-      if (end - start < minimumSpan) {
-        start = (end - minimumSpan).clamp(0, totalItems - 1).toInt();
-      }
-    }
-    start -= start % columnCount;
-    end = (((end + columnCount - 1) ~/ columnCount) * columnCount)
-        .clamp(start + 1, totalItems)
-        .toInt();
-    return LibraryGalleryVisibleRange(
-      queryId: queryId,
-      revision: revision,
-      startGlobalItemIndex: start,
-      endGlobalItemIndexExclusive: end,
-    );
-  }
 }
 
 class _ManifestLibraryGalleryWall extends StatefulWidget {
@@ -1250,7 +872,7 @@ class _ManifestLibraryGalleryWallState
             widget.onLayoutChanged(snapshot.metrics, virtualGeometry);
             _requestVisibleDetailRows(
               snapshot,
-              direction: _LibraryPreviewMovementDirection.idle,
+              direction: LibraryPreviewMovementDirection.idle,
             );
           }
         });
@@ -1258,169 +880,93 @@ class _ManifestLibraryGalleryWallState
           behavior: ScrollConfiguration.of(context).copyWith(scrollbars: false),
           child: Stack(
             children: [
-              AmeScrollMotion(
-                controller: widget.scrollController,
-                onPointerSignal: (event) {
-                  if (event is! PointerScrollEvent ||
-                      !widget.scrollController.hasClients) {
-                    return;
-                  }
-                  if (event.scrollDelta.dy < 0 &&
-                      LibraryGalleryWall._isNearLoadedStart(
-                        widget.scrollController.position,
-                        virtualGeometry,
-                      ) &&
-                      widget.state.hasPreviousAssets &&
-                      !widget.state.isLoadingPage &&
-                      !widget.state.isLoadingPreviousPage &&
-                      widget.state.previousPageErrorMessage == null) {
-                    LibraryGalleryWall._deferPageRequest(
-                      context,
-                      widget.onLoadPrevious,
+              LibraryGalleryInteraction(
+                state: widget.state,
+                scrollController: widget.scrollController,
+                geometry: virtualGeometry,
+                onLoadPrevious: widget.onLoadPrevious,
+                onLoadNext: widget.controller.loadNextPage,
+                onMetricsChanged: (metrics) {
+                  if (isPublishedLayout) {
+                    final position = _positionAtOffset(
+                      snapshot,
+                      metrics.pixels,
+                      metrics.viewportDimension,
                     );
-                  } else if (event.scrollDelta.dy > 0 &&
-                      LibraryGalleryWall._isNearLoadedEnd(
-                        widget.scrollController.position,
-                        virtualGeometry,
-                      ) &&
-                      widget.state.hasMoreAssets &&
-                      !widget.state.isLoadingPage &&
-                      !widget.state.isLoadingPreviousPage &&
-                      widget.state.pageErrorMessage == null) {
-                    LibraryGalleryWall._deferPageRequest(
-                      context,
-                      widget.controller.loadNextPage,
+                    if (position != null) {
+                      widget.onVisiblePositionChanged(position);
+                    }
+                    _requestVisibleDetailRows(
+                      snapshot,
+                      scrollMetrics: metrics,
+                      direction: LibraryPreviewMovementDirection.idle,
                     );
                   }
                 },
-                child: NotificationListener<ScrollMetricsNotification>(
-                  onNotification: (notification) {
-                    if (isPublishedLayout) {
-                      final position = _positionAtOffset(
-                        snapshot,
-                        notification.metrics.pixels,
-                        notification.metrics.viewportDimension,
-                      );
-                      if (position != null) {
-                        widget.onVisiblePositionChanged(position);
-                      }
-                      _requestVisibleDetailRows(
-                        snapshot,
-                        scrollMetrics: notification.metrics,
-                        direction: _LibraryPreviewMovementDirection.idle,
-                      );
-                    }
-                    return false;
-                  },
-                  child: NotificationListener<ScrollNotification>(
-                    onNotification: (notification) {
-                      final isPositionUpdate =
-                          notification is ScrollUpdateNotification ||
-                          notification is ScrollEndNotification;
-                      if (isPositionUpdate) {
-                        final position = _positionAtOffset(
-                          snapshot,
-                          notification.metrics.pixels,
-                          notification.metrics.viewportDimension,
-                        );
-                        if (position != null) {
-                          widget.onVisiblePositionChanged(position);
-                        }
-                        _requestVisibleDetailRows(
-                          snapshot,
-                          scrollMetrics: notification.metrics,
-                          direction: LibraryGalleryWall._previewDirectionFor(
-                            notification,
-                          ),
-                        );
-                        final isDirectDragUpdate =
-                            notification is ScrollUpdateNotification &&
-                            notification.dragDetails != null;
-                        if (isDirectDragUpdate &&
-                            LibraryGalleryWall._isNearLoadedStart(
-                              notification.metrics,
-                              virtualGeometry,
-                            ) &&
-                            widget.state.hasPreviousAssets &&
-                            !widget.state.isLoadingPage &&
-                            !widget.state.isLoadingPreviousPage &&
-                            widget.state.previousPageErrorMessage == null) {
-                          LibraryGalleryWall._deferPageRequest(
-                            context,
-                            widget.onLoadPrevious,
-                          );
-                        }
-                        if (isDirectDragUpdate &&
-                            LibraryGalleryWall._isNearLoadedEnd(
-                              notification.metrics,
-                              virtualGeometry,
-                            ) &&
-                            widget.state.hasMoreAssets &&
-                            !widget.state.isLoadingPage &&
-                            !widget.state.isLoadingPreviousPage &&
-                            widget.state.pageErrorMessage == null) {
-                          LibraryGalleryWall._deferPageRequest(
-                            context,
-                            widget.controller.loadNextPage,
-                          );
-                        }
-                      }
-                      return false;
-                    },
-                    child: KeyedSubtree(
-                      key: const Key("library-photo-wall"),
-                      child: CustomScrollView(
-                        clipBehavior: Clip.none,
-                        key: _LibraryGalleryScrollViewKey(
-                          widget.scrollController,
+                onPositionChanged: (metrics, direction) {
+                  final position = _positionAtOffset(
+                    snapshot,
+                    metrics.pixels,
+                    metrics.viewportDimension,
+                  );
+                  if (position != null) {
+                    widget.onVisiblePositionChanged(position);
+                  }
+                  _requestVisibleDetailRows(
+                    snapshot,
+                    scrollMetrics: metrics,
+                    direction: direction,
+                  );
+                },
+                child: KeyedSubtree(
+                  key: const Key("library-photo-wall"),
+                  child: CustomScrollView(
+                    clipBehavior: Clip.none,
+                    key: _LibraryGalleryScrollViewKey(widget.scrollController),
+                    controller: widget.scrollController,
+                    slivers: [
+                      SliverPadding(
+                        padding: const EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          18,
+                          16,
+                          72,
                         ),
-                        controller: widget.scrollController,
-                        slivers: [
-                          SliverPadding(
-                            padding: const EdgeInsets.fromLTRB(
-                              horizontalPadding,
-                              18,
-                              16,
-                              72,
-                            ),
-                            sliver: LibraryExactExtentSliver.builder(
-                              itemStartOffsets: snapshot.entryStartOffsets,
-                              contentExtent:
-                                  LibraryGalleryWall._entryContentExtent(
-                                    snapshot.entryStartOffsets,
-                                    snapshot.entries.isEmpty
-                                        ? 0
-                                        : snapshot.entries.last.extent,
-                                  ),
-                              layoutCorrection: _layoutCorrection,
-                              onLayoutCorrectionApplied: (generation) {
-                                final transition = widget.layoutTransition;
-                                if (canCompleteLayoutTransition &&
-                                    transition != null &&
-                                    generation ==
-                                        (
-                                          scope: "gallery-transition",
-                                          value: transition.generation,
-                                        )) {
-                                  widget.onLayoutTransitionApplied?.call(
-                                    transition.generation,
-                                  );
-                                }
-                              },
-                              addSemanticIndexes: false,
-                              itemBuilder: (context, index) {
-                                return _buildEntry(
-                                  context,
-                                  snapshot,
-                                  index,
-                                  assetsByLocation,
-                                );
-                              },
-                            ),
+                        sliver: LibraryExactExtentSliver.builder(
+                          itemStartOffsets: snapshot.entryStartOffsets,
+                          contentExtent: LibraryGalleryWall._entryContentExtent(
+                            snapshot.entryStartOffsets,
+                            snapshot.entries.isEmpty
+                                ? 0
+                                : snapshot.entries.last.extent,
                           ),
-                        ],
+                          layoutCorrection: _layoutCorrection,
+                          onLayoutCorrectionApplied: (generation) {
+                            final transition = widget.layoutTransition;
+                            if (canCompleteLayoutTransition &&
+                                transition != null &&
+                                generation ==
+                                    (
+                                      scope: "gallery-transition",
+                                      value: transition.generation,
+                                    )) {
+                              widget.onLayoutTransitionApplied?.call(
+                                transition.generation,
+                              );
+                            }
+                          },
+                          addSemanticIndexes: false,
+                          itemBuilder: (context, index) {
+                            return _buildEntry(
+                              context,
+                              snapshot,
+                              index,
+                              assetsByLocation,
+                            );
+                          },
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
               ),
@@ -1622,7 +1168,7 @@ class _ManifestLibraryGalleryWallState
   void _requestVisibleDetailRows(
     LibraryGalleryLayoutSnapshot snapshot, {
     ScrollMetrics? scrollMetrics,
-    required _LibraryPreviewMovementDirection direction,
+    required LibraryPreviewMovementDirection direction,
   }) {
     if (widget.state.assets.isEmpty ||
         !TickerMode.getValuesNotifier(context).value.enabled) {
@@ -1639,39 +1185,23 @@ class _ManifestLibraryGalleryWallState
       return;
     }
     final layoutMetrics = snapshot.metrics;
-    final visibleStart = metrics.pixels
-        .clamp(0, layoutMetrics.contentExtent)
-        .toDouble();
-    final visibleEnd = (metrics.pixels + metrics.viewportDimension)
-        .clamp(0, layoutMetrics.contentExtent)
-        .toDouble();
-    final firstVisibleItem = layoutMetrics.itemIndexForScrollOffset(
-      visibleStart,
+    final visibleRange = LibraryGalleryViewportFeedback.visibleRangeFor(
+      layoutMetrics: layoutMetrics,
+      scrollOffset: metrics.pixels,
+      viewportDimension: metrics.viewportDimension,
+      queryId: snapshot.manifest.queryId,
+      revision: snapshot.manifest.revision,
     );
-    final lastVisibleItem = layoutMetrics.itemIndexForScrollOffset(visibleEnd);
-    final firstVisibleRowStart = layoutMetrics.rowStartGlobalItemIndex(
-      firstVisibleItem,
-    );
-    final lastVisibleRowEnd = layoutMetrics.rowEndGlobalItemIndexExclusive(
-      lastVisibleItem,
-    );
-    if (firstVisibleRowStart == null || lastVisibleRowEnd == null) {
+    if (visibleRange == null) {
       return;
     }
-    widget.onVisibleRangeChanged?.call(
-      LibraryGalleryVisibleRange(
-        queryId: snapshot.manifest.queryId,
-        revision: snapshot.manifest.revision,
-        startGlobalItemIndex: firstVisibleRowStart,
-        endGlobalItemIndexExclusive: lastVisibleRowEnd,
-      ),
-    );
+    widget.onVisibleRangeChanged?.call(visibleRange);
     final centerPosition = _positionAtOffset(
       snapshot,
       metrics.pixels,
       metrics.viewportDimension,
     );
-    LibraryGalleryWall._updatePreviewDemand(
+    LibraryGalleryViewportFeedback.updatePreviewDemand(
       controller: widget.controller,
       state: widget.state,
       layoutMetrics: layoutMetrics,
@@ -1679,15 +1209,15 @@ class _ManifestLibraryGalleryWallState
       viewportDimension: metrics.viewportDimension,
       direction: direction,
       anchorGlobalItemIndex:
-          centerPosition?.globalItemIndex ?? firstVisibleRowStart,
+          centerPosition?.globalItemIndex ?? visibleRange.startGlobalItemIndex,
       previewEdgeFor: (_, itemIndex) => libraryPreviewDecodeWidth(
         snapshot.displayExtentForItemIndex(itemIndex),
         MediaQuery.devicePixelRatioOf(context),
       ),
     );
     widget.controller.ensureVisibleRange(
-      startItemOffset: firstVisibleRowStart,
-      endItemOffsetExclusive: lastVisibleRowEnd,
+      startItemOffset: visibleRange.startGlobalItemIndex,
+      endItemOffsetExclusive: visibleRange.endGlobalItemIndexExclusive,
     );
   }
 

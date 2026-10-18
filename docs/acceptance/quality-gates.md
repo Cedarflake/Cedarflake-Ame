@@ -237,9 +237,9 @@ library and the execution/storage safeguards above.
 | Passive synchronization refresh | [Refresh coordinator](../../lib/features/library/presentation/library_synchronization_refresh.dart) and [query position transition](../../lib/features/library/presentation/library_gallery_query_transition.dart); [revision lifecycle](../../test/features/library/presentation/library_synchronization_refresh_test.dart) and [viewer/refresh feedback](../../test/features/library/presentation/library_viewer_position_test.dart) | Keep browsing or previewing while a revision arrives, then return. Check retained position and image identity, delayed busy admission, failure retry and removal of resolved feedback; a disposed page cannot publish a late result. |
 | Timeline publication | [Rail frame and input lifetime](../../lib/features/library/presentation/widgets/library_time_rail_presentation.dart); [publication boundaries](../../test/features/library/presentation/library_time_navigation_publication_test.dart), [released date-seek alignment](../../test/features/library/presentation/library_time_publication_test.dart) and [exact row mapping](../../test/features/library/presentation/library_time_navigation_linear_layout_test.dart) | During catalog updates, inspect ticks and the current-position line through missing, estimated and complete geometry. Complete ticks remain until a coherent replacement; old gestures cannot commit, a new gesture works, released date seeks retain their resulting alignment, and wheel movement continues to follow the gallery. Check first load and changed queries separately. |
 | Consecutive filters | [Query position transition](../../lib/features/library/presentation/library_gallery_query_transition.dart); [intent lifecycle](../../test/features/library/presentation/library_gallery_filter_continuity_test.dart) and [pixel restoration](../../test/features/library/presentation/library_gallery_filter_position_test.dart) | From mid-library, narrow to one image, an edge, a result excluding the original image or no results, then expand. Check the original image and fractional position in both layouts; repeat after scrolling or date/folder navigation to establish a new position. |
-| Recovered image dimensions | [Dimension publication](../../lib/features/library/presentation/library_gallery_dimension_publication.dart); [range and timing regressions](../../test/features/library/presentation/library_gallery_dimension_publication_test.dart) and [screen integration](../../test/features/library/presentation/unified_library_screen_test.dart) | Browse while missing dimensions arrive, scroll to another range, change query and resize. Check the frozen visible anchor, bounded publication delay and retirement of obsolete updates without replacing the current layout transition. |
+| Recovered image dimensions | [Dimension publication](../../lib/features/library/presentation/library_gallery_dimension_publication.dart); [range and timing regressions](../../test/features/library/presentation/library_gallery_dimension_publication_test.dart) and [screen integration](../../test/features/library/presentation/unified_library_dimensions_test.dart) | Browse while missing dimensions arrive, scroll to another range, change query and resize. Check the frozen visible anchor, bounded publication delay and retirement of obsolete updates without replacing the current layout transition. |
 | Hover, focus and transient surfaces | [Tile actions](../../lib/features/library/presentation/widgets/library_photo_tile_actions.dart), [overlay behavior](../../lib/app/presentation/ame_overlay_semantics.dart) and [locations sheet](../../lib/features/library/presentation/widgets/library_duplicate_locations_sheet.dart); [dismissal/focus regression](../../test/library_photo_tile_dialog_focus_test.dart) | Open and dismiss a context menu, information surface and locations sheet with mouse and keyboard. Move the pointer away. Check stale hover/tooltip removal while preserving legitimate keyboard focus, selection and accessible actions. |
-| Continuous scrolling and bounded reads | [Shared scroll motion](../../lib/app/presentation/ame_scroll_motion.dart), [catalog window](../../lib/features/library/application/library_retained_catalog_window.dart) and [review window](../../lib/features/library/application/library_duplicate_review_window.dart); [catalog window boundaries](../../test/features/library/application/library_retained_catalog_window_test.dart), [bidirectional page lifecycle](../../test/features/library/application/library_bidirectional_page_lifecycle_test.dart), [review scrolling](../../test/library_duplicate_review_scroll_motion_test.dart), [sheet scrolling](../../test/library_duplicate_sheet_scroll_motion_test.dart) and [batch/retry regression](../../test/library_duplicate_locations_sheet_test.dart) | Scroll across catalog batches, return to an earlier range and dismiss during a pending read. Check consistent wheel behavior, retained position, reachable content, bounded preview demand and a usable continuation retry. |
+| Continuous scrolling and bounded reads | [Shared scroll motion](../../lib/app/presentation/ame_scroll_motion.dart), [gallery input](../../lib/features/library/presentation/widgets/library_gallery_interaction.dart), [viewport feedback](../../lib/features/library/presentation/widgets/library_gallery_viewport_feedback.dart), [both-renderer input regressions](../../test/features/library/presentation/library_gallery_interaction_test.dart), [range and preview demand](../../test/features/library/presentation/library_gallery_viewport_feedback_test.dart), [catalog window](../../lib/features/library/application/library_retained_catalog_window.dart) and [review window](../../lib/features/library/application/library_duplicate_review_window.dart); [catalog window boundaries](../../test/features/library/application/library_retained_catalog_window_test.dart), [bidirectional page lifecycle](../../test/features/library/application/library_bidirectional_page_lifecycle_test.dart), [review scrolling](../../test/library_duplicate_review_scroll_motion_test.dart), [sheet scrolling](../../test/library_duplicate_sheet_scroll_motion_test.dart) and [batch/retry regression](../../test/library_duplicate_locations_sheet_test.dart) | Scroll across catalog batches, return to an earlier range and dismiss during a pending read. Check consistent wheel behavior, retained position, reachable content, bounded preview demand and a usable continuation retry. |
 | Viewer entry, navigation and return | [Viewer transition](../../lib/features/library/presentation/widgets/library_viewer_transition.dart) and [review viewer](../../lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart); [route motion](../../test/features/library/presentation/library_viewer_route_motion_test.dart), [member publication/navigation](../../test/library_duplicate_review_viewer_test.dart) and [native accessibility integration](../../integration_test/windows_accessibility_bridge_test.dart) | Enter from Gallery and Duplicates, navigate both ways across a batch, return, maximize/restore and toggle the sidebar. Check the shared transition, current image/order and underlying position; native semantic/engine failures require native evidence beyond a widget assertion. |
 | Counts and file actions | [Gallery header](../../lib/features/library/presentation/widgets/library_gallery_header.dart), [location row](../../lib/features/library/presentation/widgets/library_duplicate_location_tile.dart) and [reveal action](../../lib/features/library/presentation/widgets/library_duplicate_reveal_action.dart); [count regression](../../test/features/library/presentation/library_gallery_count_test.dart) and [sheet regression](../../test/library_duplicate_locations_sheet_test.dart) | Switch All images/Merge duplicates under the same scope: total count remains primary and merged count is additional. Activate a location in a newly opened Explorer folder and verify the exact file is selected; opening the parent directory alone does not establish that result. |
 
@@ -325,9 +325,10 @@ peels the current tag through the GitHub API, requires the resolved commit to eq
 source, and rechecks the ZIP hash. Repository configuration must additionally prevent update or
 deletion of admitted version tags; no workflow can make a tag lookup and release mutation atomic.
 
-For hosted Daily runs, the shared gate fans out four isolated `windows-2025` jobs: static and Rust
-verification, Flutter widget tests, the controlled Windows scan integration, and the native Windows
-accessibility integration. It also calls `quality_gate_synthetic_windows.yml` for five separately
+For hosted Daily runs, the shared gate calls `quality_gate_daily_windows.yml` for eight isolated
+`windows-2025` jobs: static verification, four Rust partitions, Flutter widget tests, the controlled
+Windows scan integration, and the native Windows accessibility integration. It also calls
+`quality_gate_synthetic_windows.yml` for five separately
 isolated workload jobs and `quality_gate_unsigned_windows.yml` for optimized application/broker
 verification. A stable `Windows Gate` aggregation job succeeds only when every Daily, synthetic,
 and unsigned-build job succeeds; skipped or cancelled requirements fail. Once repository branch
@@ -339,9 +340,9 @@ wall-clock latency at the cost of additional hosted runner minutes. Release cand
 ordered by immutable artifacts because build, protected signing, credential-free verification, and
 publication form distinct trust boundaries.
 
-The serial static/Rust job has a 90-minute total budget; the other Daily components retain 60 minutes.
-This includes toolchain setup, lint, compilation and the full Rust suite. Product-workflow and test
-deadlines, workload sizes, assertions and serial execution remain independent and unchanged.
+Static and each Rust partition retain a 90-minute total budget; the other Daily components retain
+60 minutes. Each budget includes its own toolchain setup and compilation. Product-workflow and test
+deadlines, workload sizes, assertions and case-level serial execution remain unchanged.
 The ordinary-client restart contract queries the native adapter on generated directories before
 selecting its source volume. A repository-volume `LiveOnly` response can select the generated
 system-temp candidate; transport/query errors remain failures, and absence of any supported journal
@@ -485,6 +486,27 @@ work inside each fixture. Running unrelated synthetic catalogs alongside those c
 test-runner resource contention as well as Ame scheduling. Case-level serialization isolates that
 measurement without filtering tests, disabling fixture concurrency, or changing any runtime
 deadline or latency assertion. Hosted Daily partitions remain isolated from one another.
+
+`quality_test_rust.ps1` owns this complete Cargo invocation. With no arguments it runs the entire
+suite once, serially, under the same repository lock. Only the hosted workflow fans out work onto
+separate runners; no local entrypoint starts jobs, parallel shells or concurrent test processes.
+Its hosted partitions separate schema migrations plus change queue, remaining catalog tests,
+synchronization plus scan tests, and all remaining tests. Each runner first enumerates the complete
+compiled all-target/all-feature inventory and requires every item to have exactly one partition.
+New modules enter the remaining partition automatically; duplicate names across targets retain
+their multiplicity. Each partition then runs native libtest filters with `--test-threads=1` and
+the existing ignore policy. Coverage, argument, matrix and local serial-lock guardrails run in lint.
+
+Hosted Rust partitions use the runner's disposable temporary directory for fixture catalogs and
+sources by setting process-local `TEMP` and `TMP` in the workflow. The workstation entrypoint and
+its storage selection are unchanged. A bounded preflight records eight durable 1 MiB writes in
+both the inherited system temporary directory and runner temporary directory before testing;
+it removes only its own probe files. This records storage conditions without relaxing SQLite
+durability, workloads, timing assertions or test isolation.
+The ordinary native-journal fixtures also retain the inherited system temporary directory as a
+candidate through `CEDARFLAKE_AME_ORDINARY_JOURNAL_PARENT`. They create an owned temporary child and
+verify its existing journal capability before use; they neither enable a volume journal nor skip
+restart coverage when no capable fixture volume is available.
 
 The static bridge gate does not treat the generated content-hash constant as sufficient freshness
 evidence. In addition to matching the Rust and Dart hashes, it checks timeline load, root removal,
@@ -1309,6 +1331,11 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   checksum; the daily workstation gate does not silently download tools.
 - `./tool/quality_test_flutter.ps1` expands the requested widget-test paths and runs each test file
   in its own `flutter test --concurrency=1` process while holding the repository tool lock.
+- `./tool/quality_test_rust.ps1` runs every locked Cargo target and feature under the repository
+  lock with single-threaded case execution. Its optional `-Partition` selects one hosted owner
+  after full compiled-inventory validation; it never starts parallel local workers.
+  `quality_rust_test_partitions.ps1` owns partition membership and libtest arguments, and
+  `quality_test_rust_partition_contract.ps1` covers complete, overlapping and missing membership.
 - `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
   controlled Windows scan integration, the native Windows accessibility integration, generated
   bridge compatibility, and whitespace validation for the complete tracked diff. With no arguments

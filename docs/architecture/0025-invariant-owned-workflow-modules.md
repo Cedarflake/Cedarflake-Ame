@@ -280,6 +280,12 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
+  `baseline_lifecycle.rs` owns admission and closing-capture transactions; `baseline_state.rs`
+  owns baseline decoding and coverage reads. `volume_publication.rs` retains the complete volume
+  transaction, calling its range/checkpoint, pending-rename and cross-root-lineage owners without
+  passing commit authority. `completed_history.rs` terminalizes ranges and cleans only closed proof
+  clusters inside the caller's transaction. The facade retains the port and existing recovery
+  owners; extraction does not introduce a second transaction or reorder durable publication.
 - `sqlite_catalog/change_queue/root_retirement.rs` owns queue-generation retirement and the
   separate proof for retiring removed-root recovery authority. Cancellation and namespace
   replacement cannot acquire removal authority while a root or run remains. The removal
@@ -489,6 +495,15 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   for identity, revision and final metadata, retaining placeholder admission and the existing
   identity-versus-revision failure classification. Size/time, identity and revision mismatches keep
   their ordered outcomes; the shared comparator does not acquire namespace or publication authority.
+- `local_files/directory_enumeration.rs` owns stable entry ordering and publication-guarded cursors.
+  Its `streaming.rs` owner retains the root-bound directory handle, fixed native buffer, duplicate
+  detection and terminal/failed enumeration state; completion revalidates identity on that handle.
+  The cursor owns its cloned publication capability until completion or drop. `records.rs` decodes
+  checked Windows directory records into Ame metadata, including UTF-16/component bounds, attributes,
+  placeholders and identity/revision admission, without opening source content. The facade retains
+  the existing iterator contracts, and `scan_enumeration.rs` shares the anchored directory open.
+  Enumeration instrumentation and its gates are test-only. Raw record parsing, native page lifetime
+  and stable frontier ordering remain distinct responsibilities; none changes recovery batching.
 - `incremental_library_changes/preparation_catalog.rs` owns the bounded read set used to decide
   whether a prepared delta survives an unrelated catalog revision. It preserves every original
   path and global identity lookup, including negative results and ordered catch-up lineage.
@@ -771,6 +786,14 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   resolve later scrolling before replacing the displayed resolver. Query and revision must match;
   detached geometry cannot supply an anchor. A transition without an admissible position retires
   through the existing generation-bound layout acknowledgement without moving the viewport.
+- `library_gallery_interaction.dart` composes the existing `AmeScrollMotion` and framework scroll
+  notifications for both gallery renderers. It owns wheel/direct-drag page admission, movement
+  direction and mounted deferred dispatch; paging errors still require explicit retry. The wall
+  retains layout publication, hidden-view admission and the existing scroll-view identity.
+  `library_gallery_viewport_feedback.dart` owns query-bound visible ranges and bounded, center-first
+  preview demand. Local layout offsets become global item ordinals before row lookup. Complete
+  manifests and estimated square geometry retain their distinct range inputs; this shared owner
+  cannot grant query, revision, layout or loading authority.
 - `library_gallery_layout_continuity.dart` owns the anchor retained across consecutive manual
   density/shape choices. Re-selecting the horizontal center cell after each column-count change
   can accumulate a row of drift, so one image and its fractional viewport point survive compatible

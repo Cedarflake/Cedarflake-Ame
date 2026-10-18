@@ -1,10 +1,17 @@
+use crate::adapters::sqlite_catalog::tests::support::{
+    TEST_QUERY_ID, load_default_snapshot, publish_fixture, publish_gallery_fixture,
+    publish_gallery_query_fixture,
+};
 use crate::domain::{GalleryQueryAnchor, LibraryFolderPageDisposition};
 use crate::ports::GalleryQueryRepository;
 
 use super::super::gallery_snapshot::{
     set_after_query_anchor_read_hook, set_after_query_snapshot_read_hook,
 };
-use super::*;
+
+use tempfile::tempdir;
+
+use crate::adapters::sqlite_catalog::*;
 
 #[test]
 fn query_snapshot_keeps_page_and_timeline_in_one_read_transaction() {

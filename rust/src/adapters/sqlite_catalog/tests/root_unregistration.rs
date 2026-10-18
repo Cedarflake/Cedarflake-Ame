@@ -17,6 +17,8 @@ use crate::ports::{
 };
 
 mod compatibility;
+mod preview_ownership;
+mod source_safety;
 
 #[derive(Clone, Copy, Debug)]
 enum InventoryPhase {

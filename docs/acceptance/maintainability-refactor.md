@@ -4,8 +4,324 @@ Date: 2026-10-18
 
 Scope and execution order belong to the [active plan](../plans/maintainability-refactor.md).
 This record covers changed boundaries, not another R2c/R3 stage acceptance run.
-The [final comparison and review](#final-comparison-and-review) owns the combined candidate result;
-earlier pending statements below describe their delivery checkpoints.
+The [M9–M11 comparison](#combined-m9-m11-client-comparison) owns the latest combined client result.
+The [first-round comparison](#final-comparison-and-review) and earlier pending statements retain
+their historical delivery checkpoints.
+
+## Hosted Rust partitions and workstation serialization
+
+M12 separates static verification and four Rust test partitions onto isolated GitHub-hosted
+Windows runners. The Daily reusable workflow owns those jobs; the existing parent retains its
+stable aggregate, synthetic workloads and unsigned-build requirements. The local Daily default
+still invokes the complete suite in order under the repository mutex. The Rust entrypoint shares
+that lock, retains every target and feature, and always uses single-threaded case execution.
+There is no local fan-out, new dependency, fixture-load reduction or changed assertion/deadline.
+
+At source baseline `562f6c2`, the serial compiled inventory listed 2,031 tests across all targets
+and features. Schema/queue, remaining catalog, synchronization/scan and remaining modules contain
+304, 446, 410 and 871 entries respectively. Each entry has exactly one owner; native libtest
+filtered inventories independently matched all four counts. Existing ignored tests remain listed
+and keep their ordinary execution policy. This check compiled and enumerated cases without running
+the full local suite.
+
+Compiler-free partition tests cover membership, future-module admission, repeated names across
+targets, exact serial filter arguments, missing/overlapping owners and invalid inventory output.
+The hosted contract verifies each matrix component occurs once, immutable source binding,
+all-target/all-feature invocation, local default selection and mutex retirement. Existing negative
+aggregate fixtures continue to reject missing, failed, skipped and cancelled required jobs. These
+focused checks and `git diff --check` passed. Hosted actionlint passed in the partitioned static job.
+
+The preceding combined candidate's run
+[39091296104](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091296104) recorded 2,006
+passing library tests, 22 existing ignores and 2,682.01 seconds of library-test execution, followed
+by three passing broker integration tests. Including preparation and compilation, its combined
+Static and Rust job took 57 minutes 25 seconds; the complete run took 57 minutes 56 seconds.
+The successful partitioned run `39097472142` took 21 minutes 17 seconds overall. Its slowest Rust
+partition took 20 minutes 41 seconds and Flutter took 21 minutes 6 seconds, making Flutter the
+longest job in that run. This is a measured comparison of two hosted runs, not a repeatability
+claim; runner variability and the unresolved mixed-load outliers remain separate observations.
+
+This change affects verification orchestration only. The M9–M11 native client comparison below
+remains applicable to unchanged product code and does not need another UI replay for this change.
+
+Physical sizes after extraction: the parent workflow is 1,025 lines and the Daily workflow is 143;
+Daily dispatch is 50 lines, the Rust entrypoint 36 and partition policy 118. The dedicated hosted
+contract and partition tests contain 184 and 85 lines respectively. These are workflow or test
+owners, with no product-source or inline product-test changes.
+
+Run [39095714510](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39095714510) on
+`8c575b84c2d0dc2626abbee283c839a64abe5bdb` completed the other 13 required component jobs, but
+the synchronization/scan partition failed the existing mixed-load P0 bound: 25 samples had a
+1,166 ms P95 and 1,364 ms maximum, with two samples above one second. One slow sample waited
+1,086 ms before queue admission; its log repeatedly reports a reserved writer position waiting
+for admission. P1 and P2 remained active and progressed in every sample. This locates the waiting
+boundary without identifying the writer that held it. The unchanged local workload subsequently
+passed with 74 ms P95 and 82 ms maximum; that result does not resolve the hosted failure.
+
+Test-only held-writer observations now identify the caller, priority and permit lifetime when it
+reaches 100 ms. The observer is compiled out of product builds, and writes only after the permit
+has released the admission mutex. Scheduling, transactions, workload sizes and timing assertions
+remain unchanged. Diagnostic run
+[39097472142](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39097472142) on
+`e9d7c457fd46108004fc5de76254fd2b8cb29ca7` passed all 14 required component jobs and the aggregate;
+the synchronization partition recorded 398 passes and 12 existing ignores. Its two control arms
+and production workload reported P0 P95 of 295, 325 and 316 ms, with no sample above one second.
+Long-held caller attribution is now available, but the previous outliers did not recur in that
+run and their cause remains unresolved.
+
+The diagnostic build passed ten write-admission boundary cases and the unchanged mixed-load case
+in one serial invocation (11 passes, 131.14 seconds). Its 25 measured samples reported 83 ms P95,
+97 ms maximum and continued P1/P2 progress. Caller reporting identified catalog-delta and journal
+volume publication transactions, confirming that attribution survives the shared transaction
+facade; this local result does not attribute the earlier hosted outliers. The admission owner is
+355 physical lines, including test-only observation wiring; its dedicated observer is 38 lines
+and its existing boundary tests total 464 lines. The catalog facade has 3,538 lines, with four
+test-only caller-propagation attributes added and no transaction-policy change.
+
+The next diagnostic separates transaction begin/commit time from automatic WAL checkpoint time.
+The test-only hook retains the bundled SQLite default's 1,000-frame threshold, passive checkpoint
+call and ignored checkpoint result; production builds retain SQLite's own hook. It leaves the
+existing workload, synchronous durability, admissions and assertions intact. This is attribution
+instrumentation, not a repair or new product checkpoint policy; it must not be used as evidence
+that a passing run explains an earlier failure.
+
+The three WAL-reclamation boundaries and unchanged mixed-load case passed locally in one serial
+invocation (four passes, 141.04 seconds); P0 P95 was 88 ms and maximum was 90 ms. All-target,
+all-feature Clippy passed with warnings denied. Neither transaction commit nor automatic checkpoint
+crossed the 100 ms reporting threshold locally, so hosted attribution is still required.
+
+### Last-connection checkpoint retirement
+
+The native-stack run [39101370563](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39101370563)
+on source `3d6d93d` passed the mixed-load workloads (P0 P95 156, 125 and 153 ms), but the ingress-drop
+recovery case failed its existing bounded stop. The retirement observation subsequently recorded
+2,345 ms entirely in connection destruction, with autocommit true and zero measured statement-cache,
+identity-guard, session-admission or pending-buffer retirement time. This resolves the native-close
+stage left unclassified by the earlier shutdown failure.
+
+SQLite's default final-connection close checkpoints and removes its WAL. The retained runtime
+connection disables that implicit checkpoint, retaining already durable WAL data for ordinary reopen,
+automatic passive checkpoints and explicit maintenance. A before/after regression fails against
+the old policy because connection destruction rewrites the main database; the revised policy keeps
+both database and committed WAL bytes unchanged. A second regression proves subsequent explicit
+truncation and independently readable committed rows. Existing FULL synchronization, transactions,
+read snapshots and joined shutdown deadlines remain unchanged; no worker or schema is added.
+
+The initial 37-line configuration owner and 158-line dedicated tests passed 39 focused connection-policy,
+identity/retry and original shutdown regressions in 34.29 seconds. All-target/all-feature Clippy
+passed with warnings denied in 11.33 seconds. The two added cases increase the compiled inventory
+from 2,033 to 2,035. The three existing explicit WAL-truncation cases also passed (1.53 seconds).
+
+Combined source `530ffb90e00113d9449c24f4f5569d1e6a69c765` rebuilt Debug in 30.2 seconds. The
+affected native workflow used the existing 10,000-image corpus under a continuous repository-lock
+lease: close during updating, reopen and preview/return, finish updating, change a preferred copy,
+close and reopen again. All three normal closes retired the process. The final reopen displayed
+72 duplicate groups and the newly selected `05919-640x480-0617.jpg` representative; the complete
+decision-row digest matched the value captured after the UI action. Before that action both original
+decision rows remained unchanged. The update queue finished with 40,009 completed records and no
+pending, leased or failed records, and `quick_check` returned `ok`.
+
+No matching Windows application-crash or hang event appeared during the run. Original preferences,
+settings and original catalog components were restored and hash-verified. The retained test catalog
+and its original decisions were restored, and 219 generated previews (3,761,562 bytes) were removed
+after process retirement and exact-path/no-reparse checks.
+
+Hosted runs [39103339563](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39103339563)
+and [39103393870](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39103393870) exposed the
+initial policy's excessive scope: ordinary short-lived connections also retained their WAL. Both
+runs failed inventory-cleanup preemption (1.159 and 1.138 seconds against the existing one-second
+bound). Their per-poll controls failed lower-lane progress and visibility deadlines respectively;
+the separate production workloads passed at P95 106 and 302 ms. These observations do not establish
+one cause for every wait. The policy now applies only when the runtime installs its retained poll
+connection; ordinary connections keep their original final checkpoint. A third close regression
+proves that boundary, while the existing retained-data and explicit-maintenance assertions remain.
+
+The narrowed 43-line configuration owner, 187-line dedicated tests and one-line runtime installation
+change passed 15 focused policy, poll-ownership, recovery-preemption and original shutdown cases in
+25.16 seconds. The compiled inventory is 2,036 cases, including the new ordinary-close regression.
+The unchanged same-load connection-lifetime control passed in 119.23 seconds: both arms retained
+25 active/progress samples for both lower lanes, with P0 P95 141 ms per poll and 94 ms per epoch.
+All-target/all-feature Clippy passed with warnings denied in 14.02 seconds. Hosted verification of
+the narrowed policy remains pending.
+
+Combined source `5292cea6e2e6d19b61cd43e0c133651d49b5ea6a` rebuilt Debug in 32.4 seconds for the
+narrowed policy. Two normal closes during updating retired the client, and reopening retained
+10,000 locations and both original decision rows; `quick_check` returned `ok`. No matching Windows
+crash/hang event appeared. This focused check did not wait for the second update to finish.
+Original preferences, settings and catalog components were restored and hash-verified, the test
+catalog was restored to its original 30,008 completed queue records, and 75 generated previews
+(1,065,342 bytes) were removed after the existing process/path checks.
+
+### Hosted artifact runtime compatibility
+
+The hosted scan job reported that the previous artifact action declared Node.js 20 and was being
+forced onto Node.js 24. Official pinned manifests and MIT licenses were checked for the accepted
+upload 6.0.0 and download 7.0.0 replacements in [ADR 0015](../architecture/0015-windows-release-distribution.md#hosted-artifact-transport).
+All five workflow files retain their existing artifact names, paths, retention, permissions and
+manifest checks. The hosted parallel/extended contracts and installer, ACL, identity and uninstall
+guardrails passed serially after the pin changes. Hosted artifact execution remains pending.
+
+### Hosted temporary-storage binding
+
+The narrowed close policy passed the catalog partition in runs `39105379114` and `39105401810`.
+Both synchronization partitions still failed the unchanged connection-lifetime control. In the
+first run, a 10,169 ms publication commit prevented P1 progress after P0 became visible in 55 ms.
+In the second, an 11,553 ms commit included a 9,516 ms passive checkpoint of 447 WAL frames and
+blocked sample 14 visibility. The separate production workloads passed at P95 57 and 83 ms.
+These remain failed controls; the successful production measurements do not replace them.
+
+Fixture storage previously used the inherited system temporary directory, independently of the
+runner's work disk. Hosted Rust partitions now bind `TEMP` and `TMP` to `RUNNER_TEMP` for their
+existing serial invocation. A bounded durable-write preflight records both original locations
+and their storage timings. Workstation entrypoints, test workloads, time limits, FULL commit
+synchronization and security settings remain unchanged. Hosted measurements are still required
+before attributing the intermittent storage waits or claiming the binding resolves them.
+
+Runs `39107307582` and `39107356585` passed both lifetime-control arms, the complete production
+mixed-load workload and the original shutdown cases. On the first synchronization runner, eight
+durable 1 MiB writes took 6.99–19.22 ms in the inherited C-drive temporary directory and
+0.92–1.55 ms in the D-drive runner directory. The first run's per-poll, retained and production
+P0 P95 values were 69, 65 and 64 ms; every sample retained P1/P2 progress and complete recovery.
+Both partitions instead failed the two ordinary native-journal fixtures because both candidate
+directories now belonged to the runner volume, which exposed no readable existing journal.
+
+Those fixtures now also receive the inherited system temporary parent from the hosted workflow,
+create their own temporary child and perform the unchanged capability probe. All restart,
+catch-up, source-identity and timeout assertions remain; no volume journal is created and missing
+capability still fails. Local entrypoints do not set this override. This preserves the two distinct
+fixture requirements without placing unrelated SQLite pressure tests on the system volume.
+The test-only capability helper is 84 lines after this change. A restricted local process rejected
+native registration; the ordinary-user run selected the explicit owned candidate and passed both
+native parent cases in 3.52 seconds, with the existing subprocess-only helper ignore retained.
+Its recompilation emitted no warnings, and both hosted-wiring contracts passed serially.
+
+### Automatic checkpoint burst attribution
+
+Diagnostic run [39098716218](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39098716218)
+on `a98bcde7d31fd17571ce34d617cc8eeba228242b` identifies a slow measured P0 sample in the
+retained-connection control: sample 15 took 3,956 ms to become visible. Its ingress commit took
+3,588 ms, of which 3,428 ms was the automatic passive checkpoint of 1,001 WAL frames. The ingress
+writer permit was held for 3,591 ms. This establishes the extra synchronous checkpoint work inside
+that latency path. The same run also contains slow commits without a reported slow checkpoint;
+do not attribute all underlying storage waits to checkpointing or claim their elimination.
+
+All three mixed-load P95 values remained within the unchanged bound in this run (324, 767 and
+333 ms); the retained arm had one sample above a second. The synchronization partition instead
+failed `production_baseline_brackets_inventory_and_publishes_current_atomically` during bounded
+runtime shutdown (397 passes, one failure and 12 existing ignores). Its preceding commits took
+510 and 847 ms. The error belongs to the joined journal/catalog-close worker; its existing
+test-only connection-retirement diagnostic now writes directly to stderr so a late completion
+remains visible after the originating test has already timed out. The exact native close stage
+remains unclassified and requires the same stop boundary to pass on the repair candidate.
+
+The repair candidate moves connection configuration into one 33-line owner and reduces the passive
+automatic checkpoint trigger from 1,000 to 256 pages while retaining commit durability. Two dedicated
+regressions (95 lines) cover small-transaction WAL reuse, rolled-back deletion, independently visible
+and reopened committed data, and an older read snapshot that defers checkpointing while writes
+continue. Restoring the old 1,000-page threshold makes the first regression fail with 4,124,152 WAL
+bytes, establishing its before/after boundary. A pinned reader may still grow the WAL beyond the
+trigger; the test requires successful checkpoint progress after that reader releases its snapshot.
+The catalog facade is 3,530 physical lines; its moved configuration is no longer inline there.
+The two new cases, three existing WAL-reclamation cases, original baseline shutdown and unchanged
+mixed-load workload passed in one serial local invocation (seven passes, 136.73 seconds). P0 P95
+was 90 ms, maximum 101 ms, and both lower-priority lanes progressed in all 25 samples before the
+full 10,000-entry recovery completed. All-target/all-feature Clippy passed with warnings denied.
+Run [39100443519](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39100443519) on
+`3d6d93d100191c037d04658e2fdc1429cbd7ed23` passed all 14 required component jobs and the aggregate
+in 23 minutes 18 seconds. The synchronization partition passed 398 tests with 12 existing ignores,
+including the original bounded-shutdown case. The per-poll control, retained-connection control
+and production workload reported P0 P95 of 174, 105 and 133 ms respectively. Both lower-priority
+lanes progressed in all 25 production samples and the full 10,000-entry recovery completed.
+
+Combined-source dispatch [39100559374](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39100559374)
+on `2ce877138ffb3ad4439164f272f344e0b91a5f41` passed the other 13 component jobs. The production
+workload passed with 112 ms P95 and full recovery, but the removed per-poll connection policy's
+control failed its unchanged five-second source-page preparation deadline at sample 21. That
+poll's recovery-lease commit contained an 11,171 ms passive checkpoint of 540 frames. The second
+control arm was not reached. This records a synchronous-storage outlier in the historical control;
+the smaller trigger limits accumulated work, not native I/O duration.
+
+The unchanged two-arm control subsequently passed locally under the repository serial lock
+(one test, 120.30 seconds). Its 25-sample per-poll and retained-connection P95 values were 141 and
+89 ms, with both lower-priority lanes progressing in every sample. No deadline, workload, test
+admission or assertion was relaxed. Adding the two PRs to native stack #40 independently triggered
+pull-request checks on the same source heads. Combined-source run
+[39101370557](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39101370557) passed all 14
+component jobs and the aggregate in 23 minutes 14 seconds, with control P95 values of 190 and
+115 ms and production P95 of 115 ms. The original shutdown case and all 398 synchronization tests
+passed with 12 existing ignores. Its checked merge tree `c39ee04` was identical to source `2ce8771`.
+The corresponding M12 run exposed the separate final-connection shutdown issue recorded above;
+the latest retirement-policy repair requires fresh hosted results.
+
+The combined source `2ce877138ffb3ad4439164f272f344e0b91a5f41` rebuilt Debug in 35.9 seconds.
+Native verification reused the existing 10,000-image corpus and retained catalog. Closing during
+startup updating retired the client; reopening retained all 10,000 images. The existing baseline
+recovery completed in 182.645 seconds, leaving no pending, leased or failed queue entries and
+current journal continuity. Background duplicate analysis subsequently returned to 72 folded
+images. Preview opening and return remained usable while that analysis published results.
+An invalidated duplicate group declined the stale preferred-copy action during recovery; after
+recovery, changing the preferred copy succeeded and survived another normal close and restart.
+Both pre-existing durable decision rows were unchanged before that explicit test action.
+
+The catalog passed `quick_check`. No matching application crash or hang event was recorded during
+this native run. Original settings, preferences and original-catalog hashes were restored and
+verified; the retained test catalog and its original decisions were also restored. The 224
+generated test previews (3,869,062 bytes) were removed after client retirement and exact-path,
+no-reparse checks. This is affected-workflow evidence for the connection-policy change; it does
+not replace the hosted mixed-load latency and bounded-shutdown checks.
+
+## Catalog and unified-gallery test ownership
+
+M13 starts from `8c575b8` and changes test organization only. The catalog entrypoint now declares
+responsibility modules for write admission, session validation, historical scan/preview/recovery
+upgrades, query pages/anchors/geometry, preview reclamation and foreground recovery. Existing
+preview-publication and scan-checkpoint modules receive their corresponding cases. Root removal
+retains separate preview-ownership and source-preservation coverage. The two fixture exports used
+by neighboring catalog suites keep their existing import paths.
+
+The unified-gallery tests now have distinct shell, recovered-dimension, query, folder, preference,
+loading, task-feedback, selection, source-action and timeline files. Single-owner helpers remain
+private beside their users; only shared screen fixtures and menu interactions have support files.
+The production widget tree, test bodies, assertions, fake clocks, cleanup and wait durations remain
+unchanged. The canonical Flutter runner continues to execute each file in its own serial process.
+
+| Affected owner | Before dedicated test lines | After dedicated test lines |
+| --- | ---: | ---: |
+| Catalog test entrypoint | 7,932 | 23 module/export lines; responsibility files contain 56–642 lines |
+| Shared catalog fixtures | Mixed in the entrypoint | 596 |
+| Unified-gallery shell | 4,152 | 303 |
+| Nine additional gallery responsibility files | Mixed in the shell file | 116–797 each |
+| Shared gallery/menu fixtures | Mixed in the shell file | 325 / 77 |
+
+Product and inline product-test line counts are unchanged. Token comparison accounts for all
+145 relocated Rust functions (111 tests and 34 helpers) and 52 existing child-module functions.
+It preserves literals and attributes, normalizing only helper visibility, a qualified migration
+module path and formatting-only signature commas. The all-target/all-feature compiled inventory
+still contains exactly 2,031 tests after mapping the 111 new module paths, without additions,
+omissions or duplicates. Existing ignores outside the moved modules remain untouched.
+
+Dart AST token comparison preserves all 43 named widget cases and 33 helper bodies, allowing only
+the explicit shared-helper renames. All 43 widget cases passed through the canonical runner,
+one file at a time. All-target/all-feature Rust Clippy with warnings denied and scoped Dart analysis
+with fatal infos passed. The rebuilt Rust inventory passed; full Rust execution and the remaining
+repository gates belong to hosted CI. No new dependency, schema, product state or native-client
+behavior was introduced, so the existing M9–M11 client comparison remains applicable.
+
+Test-organization run [39096609200](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39096609200)
+on `ebfb70920625e75ae27c3e39ba2fcdebedd8f12c` passed the other component jobs but retained two
+mixed-load failures in the unchanged synchronization suite: the retained-connection control
+reported 2,319 ms P95 and the production case 1,331 ms. The latter includes one sample whose
+`ingress_commit` alone took 1,111 ms; other slow samples waited before writer admission. Keep
+these distinct from the test relocations and from the earlier admission-only observation. Merge
+remains gated on diagnosis, repair, affected regression checks and final review.
+
+The diagnostic integration `6b04256b2e5b3ceadac1a29714c093e9e128bdec` in run
+[39099166321](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39099166321) passed the
+synchronization partition with 398 passes and 12 existing ignores. Its control and production
+P95 measurements were 225, 371 and 398 ms, with no sample above one second. This run still used
+the original checkpoint threshold; the smaller-batch correction above receives separate coverage.
+The test-organization accounting preserves the original 2,031 cases; the checkpoint correction
+adds two new connection-policy cases, so the combined inventory is expected to contain 2,033.
 
 ## First-round merge and branch cleanup
 
@@ -20,7 +336,7 @@ After explicit cleanup authorization, 13 remote and 13 local obsolete branches w
 Every deleted tip had zero commits outside `main`; none was checked out or referenced by an open PR.
 Remote deletions checked the exact observed tips. The temporary history branch was also redundant
 after its complete ancestry became reachable from `main`. Local `main` was fast-forwarded; current
-work continues on `codex/maintenance-surface-ownership`. Unrelated `devtools_options.yaml` remains
+work continued on `codex/maintenance-surface-ownership`. Unrelated `devtools_options.yaml` remains
 untracked and untouched.
 
 The reviewed source candidate retains its passing run
@@ -66,7 +382,7 @@ Run [39051145464](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/3905
 `prefer_initializing_formals` diagnostics in the new constructor. The existing private named-formal
 style resolved both without changing caller names or behavior. The affected file passed focused
 analysis with fatal infos, and its 10 boundary regressions passed again. Hosted checks for that
-correction remain pending.
+correction passed in the final exact-head run recorded below.
 
 ## Catalog preview-cleanup ownership
 
@@ -110,9 +426,13 @@ admission, root lookup precedence, shared notification lifetime, SQL/transaction
 admission, source/metadata preservation and test ownership. It found no confirmed new defect after
 the constructor correction. No dependency, schema, bridge, interface copy or layout changed. The
 format gate passed with all 423 Dart files unchanged, and the final diff check passed. Current
-submission checks are attached to [PR #36](https://github.com/Cedarflake/Cedarflake-Ame/pull/36);
-the final delivery report must identify the exact passing source commit. M9–M11 remain follow-up
-candidates and do not extend this review.
+submission checks are attached to [PR #36](https://github.com/Cedarflake/Cedarflake-Ame/pull/36).
+Exact head `2dadf96d1a38eff779bf188eaf70f4460dd195db` passed all 11 applicable jobs in run
+[39057472846](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39057472846); three protected
+release jobs were configured skips. PR #36 merged at `fcb53e24522c3fdb755d11e3d48d2c9a93681edf`
+after explicit authorization. The merged tree equals the verified head and retains its ancestry.
+The local and remote delivery branch was deleted after dependency and ancestry checks. M9–M11
+have separate review boundaries under the active plan.
 
 ## Recovery-selection contention follow-up
 
@@ -143,6 +463,190 @@ remains unconfirmed. The repaired mixed-load test passed in 164.96 seconds, incl
 publication and reopen verification. All 25 samples retained P1/P2 activity and progress; P0 P95 was
 111 ms and maximum 117 ms. The format gate passed and the updated Debug built in 50.6 seconds.
 No workload, deadline, assertion or dependency was changed.
+
+## Maintenance concurrency fixture preparation
+
+Merged-main run [39087351860](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39087351860)
+reported 1,997 Rust passes, one failure and 22 expected ignores. The maintenance worker exhausted
+its five-second release wait while the test thread opened a second, uninitialized catalog; when
+that open returned, the test's maintenance reservation had already unwound. The failure occurred in
+fixture sequencing, before the intended waiter assertion, with no product-code difference from
+the previously passing PR #36 tree.
+
+The independent catalog is now initialized before holding maintenance admission. Opening its reader
+still occurs while the first catalog is under maintenance; overlap refusal, waiter wake-up and proof
+renewal assertions remain intact. No timeout was increased, assertion removed or product lock
+changed. All six scoped maintenance tests passed. This test-only correction is carried from M9
+through the later candidates; their updated hosted checks own the final result.
+
+## Shared gallery interaction ownership
+
+M9 composes both renderers through `LibraryGalleryInteraction`, preserving the existing motion
+widget, scroll-view key, notification propagation, direct-drag/wheel distinctions, loaded-edge
+thresholds and loading/error admission. Renderer callbacks retain their original order, hidden-view
+guards and published-layout checks. `LibraryGalleryViewportFeedback` owns the shared visible-range
+projection and preview-demand ordering, with unchanged directional/guard extents and loaded bounds.
+Existing viewport tests moved with this responsibility; resize and anchor tests retain their owner.
+
+The new nonzero-window regressions exposed an existing ordinal defect on baseline `fcb53e2`:
+without a complete manifest, local visible-range lookup omitted `itemIndexBase` before querying
+global row boundaries. Both equal-height and square cases failed on that baseline. The shared
+projection now adds that base; complete-manifest coordinates remain unchanged. This is an explicit
+boundary correction alongside the extraction, rather than a claim of complete behavioral identity.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test/support lines |
+| --- | ---: | ---: | ---: |
+| `library_gallery_wall.dart` before / after | 1,980 / 1,510 | 0 | Existing resize coverage retained |
+| `library_gallery_interaction.dart` | 149 | 0 | 184 |
+| `library_gallery_viewport_feedback.dart` | 275 | 0 | 290 |
+| `library_gallery_resize_test.dart` | 0 | 0 | 1,315 |
+| `support/gallery_wall_fixture.dart` | 0 | 0 | 234 |
+
+All 48 focused cases passed: 20 input cases across both renderers and shapes, 20 resize/anchor cases,
+and eight range/preview-demand cases. The baseline comparison failed the two nonzero-window cases
+and passed the other 18 input cases. Focused analysis with fatal infos passed. The Debug build
+completed in 42.9 seconds. No dependency, schema, bridge, interface copy or layout policy changed.
+
+Native checks reused the 10,000-image corpus during normal catalog recovery. Equal-height small,
+medium and large sizes, square large/medium/small sizes, both scroll directions, sidebar folding,
+maximize/restore and preview return were exercised. Preview return retained the displayed row;
+scrolling continued afterward. A first attempt ended in a native allocation failure: at 09:51:43
+local time Windows reported system virtual-memory exhaustion, and at 09:51:54 the matching dump
+faulted at `std::alloc::rust_oom` while JPEG decoder frames were present. This attempt is not a pass.
+The dump and derived crash-state catalog remain local. No Rust code or decoder budget changed in
+M9; this evidence does not establish a gallery-refactor cause or recovery from system exhaustion.
+After system memory recovered, the remaining flow completed and the client exited normally. During
+that repeat, Ame private memory was 599 MiB with about 5.7 GiB system commit headroom. Original
+profile/catalog hashes and the pre-check test catalog with durable choices were restored and
+verified. After process retirement and exact-path/no-reparse checks, 398 disposable preview-cache
+files were removed; reusable media, catalogs and diagnostic/restoration evidence remain. Hosted
+checks for the M9 submission passed in the review-stack result below.
+
+## Native directory enumeration ownership
+
+M10 moves stable entry ordering and guarded cursor composition into `directory_enumeration.rs`;
+`streaming.rs` owns the native page buffer, continuation/error state and held-directory lifetime,
+while `records.rs` owns checked Windows record decoding. The public adapter remains unchanged.
+The 64 KiB native buffer, repeated-empty-page bound, duplicate detection, opening/closing identities,
+no-follow/no-recall admission and publication-guard lifetime are preserved. Test-only counters and
+gates moved with enumeration. Thirty-nine moved function bodies match baseline `4eabf98` apart from
+indentation; no parser, read policy, cancellation point or metadata classification was replaced.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test/support lines |
+| --- | ---: | ---: | ---: |
+| `local_files.rs` before / after | 3,141 / 2,351 | 4,065 / 3,610 | Existing child modules retained |
+| `directory_enumeration.rs` | 207 | 46 | Existing guarded-cursor integration retained |
+| `directory_enumeration/streaming.rs` | 397 | 70 | 118 |
+| `directory_enumeration/records.rs` | 263 | 2 | 182 |
+| `directory_enumeration/instrumentation.rs` | 0 | 0 | 157 |
+
+Counts include whitespace, test attributes/imports and hooks; instrumentation is compiled only for
+tests. Moved real-handle and parser cases retain their assertions. Added regressions cover truncated
+records, invalid UTF-16/component names, dot/non-ASCII names, offline identity refusal, negative file
+sizes and consuming a partial cursor without retaining its publication namespace. The existing root
+availability contract retains its exact call closure. Its two reviewed import digests now describe
+the narrower filesystem imports, and the new module has explicit admission plus negative controls
+for missing, exported, test-only and alternate-path declarations.
+
+The initial focused native run passed 88 cases, with one existing diagnostic ignore and two expected
+declaration mismatches. After updating only those exact import contracts, all eight affected
+availability checks passed. The existing durable-spool cancellation/restart integration also passed:
+it stops after 128 entry reads, preserves the bounded staged window and replays only the incomplete
+directory. These use actual Windows handles and disposable sources; source-byte preservation and
+release after failed cursor completion are asserted. No original media, catalog, dependency, bridge,
+schema or UI changed. The combined Debug comparison and passing hosted result are recorded below.
+
+The production-only Clippy pass found that the retained stable-cursor re-export is consumed only
+by the test-only metadata-inventory adapter. Its re-export now has the same test configuration;
+the production Clippy pass with warnings denied succeeds. Enumeration behavior and test access
+remain unchanged.
+
+## Persistent journal lifecycle and publication ownership
+
+M11 separates baseline admission/closing transactions and baseline reads from the journal facade.
+The volume publication owner retains one transaction across source ranges, queue ownership,
+namespace publication, pending rename consumption, cross-root lineage, checkpoint advancement and
+terminalization. Its three private helpers own range/checkpoint rules, carry validation/storage and
+lineage endpoint ownership. Completed-history maintenance receives the caller's transaction and
+retains both cleanup passes, the 32-candidate budget and the 64-record active-root retention rule.
+Existing recovery, first-import, priority and root-removal owners remain in place.
+
+Comparison against `7f1e5ee` found all 24 moved production function bodies unchanged after accounting
+for formatting, module paths and the explicit catalog receiver for closing capture. SQL, statement
+order, predicates, errors, queue admission and commit/rollback placement are preserved. No schema,
+dependency, bridge or application contract changed.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `persistent_journal.rs` before / after | 3,120 / 1,144 | 5,051 / 3,452 | Existing child modules retained |
+| `baseline_lifecycle.rs` | 477 | 0 | 242 admission; 592 closing |
+| `baseline_state.rs` | 230 | 0 | Covered by lifecycle and existing window tests |
+| `volume_publication.rs` | 224 | 0 | 514 |
+| `volume_publication/source_ranges.rs` | 279 | 0 | Existing checkpoint boundaries retained |
+| `volume_publication/pending_renames.rs` | 232 | 0 | Existing durable carry/reopen tests moved |
+| `volume_publication/lineage.rs` | 254 | 0 | Existing endpoint-order and replay tests moved |
+| `completed_history.rs` | 398 | 0 | 391 |
+
+Counts include whitespace and test-only attributes/imports/hooks. Eighteen affected tests moved to
+four responsibility-owned test files; genuinely shared fixtures remain in the parent. Two new
+regressions inject a database failure after provisional writes: one after baseline/checkpoint
+capture and one while advancing the second root's checkpoint. Both verify durable rollback after
+reopening and a successful retry. All 73 scoped persistent-journal regressions passed, including
+replay equivalence, both cross-root orders, pending carries, capacity rollback, bounded cleanup,
+generation retirement, priority, corrupt payload refusal and recovery windows. Production Clippy
+passed with warnings denied. The combined client comparison and passing hosted result are recorded
+below.
+
+## Combined M9-M11 client comparison
+
+The Debug candidate built from `d6436d5` in 57.0 seconds. Native inspection used the retained generated
+10,000-image corpus with an isolated profile and a backed-up derived catalog. During recovery,
+equal-height medium/small and square small/large cards remained usable, gallery preview opened
+`00297-12000x1500-0024.jpg`, adjacent navigation opened `00292-2160x3840-0024.jpg`, and returning
+retained the current image in the wall. Maximizing/restoring and collapsing/expanding the secondary
+sidebar remained responsive while the catalog was publishing.
+
+Recovery reached the actual terminal state: 40,009 completed queue records, no pending/leased/retry
+records, one supported/current journal root and five completed baselines. The sidebar displayed
+the synchronized state. Duplicate analysis then returned to the retained 72 groups; the gallery
+kept 10,000 as its total count. From a duplicate group, preview opened
+`05919-640x480-0617.jpg`, navigated to `02462-640x480-0218.jpg`, and returned to its row list.
+The historical sequence of group preview, gallery return, maximize/restore and sidebar collapse/
+expand completed without a crash. Stable forward/backward wheel input returned to the same
+2012-03-04 range and retained time-axis feedback.
+
+The observed private memory was 629,874,688 bytes with a 572,084,224-byte working set near exit.
+The owned client exited normally; no new application crash/hang event was found for its lifetime.
+Original preferences, storage settings and catalog hashes were restored and verified, and the
+retained test catalog/durable choices were restored from backup. After retirement and exact-path/
+no-reparse checks, 319 disposable generated previews (4,013,987 bytes) were removed. Corpus,
+catalogs and restoration receipts remain. The later shared CI correction changes only fixture
+preparation and has no product-code difference from this checked Debug candidate.
+
+The scoped review covered both gallery renderers, global visible ordinals and bounded preview
+demand; native record bounds, held-handle lifetime and no-recall identity admission; and baseline,
+batch, checkpoint, lineage and cleanup transaction ordering. No confirmed new product defect remains
+from that review. The earlier host-memory failure and the merged-main test-fixture failure retain
+their separate evidence above.
+
+### M9-M11 review stack verification
+
+Native GitHub stack #40 contains PRs #37, #38 and #39 in dependency order, based on `main`.
+Creation preserved all three source commits; no branch was restacked or merged. Scoped review found
+no confirmed new product defect, and the PRs have no unresolved review comments at this checkpoint.
+
+| Review unit | Checked source | Hosted run and result |
+| --- | --- | --- |
+| M9 / #37 | `a6821bef700c9427577f50bbe7c9cc922a7dffc2` | [39091226014](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091226014); all 11 applicable jobs passed |
+| M10 / #38 | `f57f36035eb08833b755eca4cb2fd9f09dd412c3` | [39091293889](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091293889); all 11 applicable jobs passed |
+| M11 / #39 | `114c6b2fa50a7ad3832ce6f1c615a397fe53ccaa` | [39091296104](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091296104); all 11 applicable jobs passed |
+
+The complete M11 Rust library suite reported 2,006 passes, 22 existing ignores and no failures in
+2,682.01 seconds; the three broker integration tests also passed. Each completed run includes static/
+Rust, Flutter, both native integrations, five synthetic workloads, unsigned Release and the aggregate
+gate. Three separate signing-channel jobs retain their configured skips. Later edits to the delivery
+records preserve those verified product/tool inputs and use document checks. The maintenance fixture
+correction is in these candidates; the earlier merged-main failure remains recorded separately.
 
 ## Shared schema-shape validation
 

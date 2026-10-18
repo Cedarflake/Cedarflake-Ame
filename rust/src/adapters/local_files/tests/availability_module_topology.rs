@@ -14,6 +14,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     for module_name in [
         "catalog_identity",
         "directory_coverage",
+        "directory_enumeration",
         "media_signature",
         "metadata_inventory_evidence",
         "file_admission",
@@ -92,6 +93,18 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
         "pub(crate) mod media_fixtures;"
     );
     for (source, declaration, replacements, source_key, module_name) in [
+        (
+            LOCAL_SOURCE,
+            "mod directory_enumeration;",
+            vec![
+                "".to_owned(),
+                "pub mod directory_enumeration;".to_owned(),
+                "#[cfg(test)]\nmod directory_enumeration;".to_owned(),
+                "#[path = \"alternate.rs\"]\nmod directory_enumeration;".to_owned(),
+            ],
+            "local",
+            "directory_enumeration",
+        ),
         (
             LOCAL_SOURCE,
             "mod scan_enumeration;",

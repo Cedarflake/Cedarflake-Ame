@@ -28,6 +28,8 @@ mod catalog_namespace;
 use catalog_namespace::{
     SqliteCatalogIdentityGuard, SqliteDatabaseIdentity, open_catalog_database_identity_guard,
 };
+mod connection_policy;
+use connection_policy::{configure_catalog_connection, configure_catalog_read_connection};
 mod exact_duplicate_review;
 mod exact_duplicates;
 mod folders;
@@ -144,6 +146,8 @@ struct PriorityTransaction<'connection> {
 
 impl PriorityTransaction<'_> {
     fn commit(mut self) -> rusqlite::Result<()> {
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_commit");
         self.transaction
             .take()
             .expect("priority transaction is present until commit")
@@ -541,24 +545,6 @@ fn catalog_admission_path(path: &Path) -> PathBuf {
     })
 }
 
-fn configure_catalog_connection(connection: &Connection) -> Result<(), ScanError> {
-    connection
-        .busy_timeout(SQLITE_BUSY_TIMEOUT)
-        .map_err(database_error)?;
-    connection
-        .execute_batch("PRAGMA foreign_keys = ON;")
-        .map_err(database_error)
-}
-
-fn configure_catalog_read_connection(connection: &Connection) -> Result<(), ScanError> {
-    connection
-        .busy_timeout(read_retry::PROTOCOL_READ_DEADLINE)
-        .map_err(database_error)?;
-    connection
-        .execute_batch("PRAGMA foreign_keys = ON; PRAGMA query_only = ON;")
-        .map_err(database_error)
-}
-
 fn catalog_schema_cookie(connection: &Connection) -> Result<i64, ScanError> {
     catalog_pragma_integer(connection, "schema_version")
 }
@@ -719,15 +705,19 @@ impl SqliteCatalog {
         })
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_write(&mut self) -> Result<PriorityTransaction<'_>, ScanError> {
         self.begin_write_in_lane(LibraryChangeLane::Recovery)
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_write_in_lane(
         &mut self,
         lane: LibraryChangeLane,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire(lane);
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -738,12 +728,15 @@ impl SqliteCatalog {
         })
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_preemptible_write_in_lane(
         &mut self,
         lane: LibraryChangeLane,
         preempt: SqliteWritePreemptCallback,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire_preemptible(lane, preempt);
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -754,6 +747,7 @@ impl SqliteCatalog {
         })
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_user_interactive_write(&mut self) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self
             .write_admission
@@ -764,6 +758,8 @@ impl SqliteCatalog {
                     "The catalog did not release the current writer in time; retry the operation",
                 )
             })?;
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)

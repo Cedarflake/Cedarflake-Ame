@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-11
-- Last amended: 2026-09-06
+- Last amended: 2026-10-18
 
 ## Context
 
@@ -85,6 +85,16 @@ verifies it independently.
 ADR 0026 adds a separate credential-free unsigned build check to ordinary quality CI. It verifies
 the application and broker payload plus an isolated bridge smoke, but does not feed artifacts to
 this protected candidate chain or claim signing, installation, publication, or client acceptance.
+
+### Hosted artifact transport
+
+Admit `actions/upload-artifact` 6.0.0 and `actions/download-artifact` 7.0.0, both MIT-licensed,
+pinned to complete commit SHAs in the workflows. Their action manifests select Node.js 24, matching
+the hosted runner runtime without relying on forced execution of Node.js 20 actions. They require
+Actions Runner 2.327.1 or later. Existing named-artifact downloads retain their direct destination
+layout; the intervening single-artifact-by-ID path change does not apply to these workflows.
+Manifest/hash verification remains the admission boundary when replacing either action; transport
+updates do not change the signed payload, local toolchain or protected publication authority.
 
 ### ADR 0024 amendment: service-enabled distribution
 

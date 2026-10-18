@@ -46,120 +46,12 @@ permissions:
 
 jobs:
   daily_components:
-    name: Daily / ${{ matrix.label }}
+    name: Daily
     if: inputs.gate_mode == 'daily'
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - component: static
-            label: Static and Rust
-            timeout_minutes: 90
-          - component: flutter
-            label: Flutter Tests
-            timeout_minutes: 60
-          - component: windows_scan
-            label: Windows Scan
-            timeout_minutes: 60
-          - component: windows_accessibility
-            label: Windows Accessibility
-            timeout_minutes: 60
-    runs-on: windows-2025
-    timeout-minutes: ${{ matrix.timeout_minutes }}
-    env:
-      CI: "true"
-    steps:
-      - name: Check out repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          fetch-depth: 0
-          persist-credentials: false
-          ref: ${{ inputs.checkout_ref || github.sha }}
-
-      - name: Install pinned actionlint
-        if: matrix.component == 'static'
-        id: actionlint
-        shell: pwsh
-        run: |
-          $version = "1.7.12"
-          $archiveName = "actionlint_${version}_windows_amd64.zip"
-          $archivePath = Join-Path $env:RUNNER_TEMP $archiveName
-          $installPath = Join-Path $env:RUNNER_TEMP "actionlint-$version"
-          $expectedHash = "6e7241b51e6817ea6a047693d8e6fed13b31819c9a0dd6c5a726e1592d22f6e9"
-          $downloadUri = (
-            "https://github.com/rhysd/actionlint/releases/download/" +
-            "v$version/$archiveName"
-          )
-          $ProgressPreference = "SilentlyContinue"
-          Invoke-WebRequest -Uri $downloadUri -OutFile $archivePath
-          $actualHash = (
-            Get-FileHash -LiteralPath $archivePath -Algorithm SHA256
-          ).Hash.ToLowerInvariant()
-          if ($actualHash -ne $expectedHash) {
-            throw "actionlint checksum mismatch: $actualHash"
-          }
-          Expand-Archive -LiteralPath $archivePath -DestinationPath $installPath
-          "path=$installPath\actionlint.exe" >> $env:GITHUB_OUTPUT
-
-      - name: Lint GitHub Actions workflows
-        if: matrix.component == 'static'
-        shell: pwsh
-        env:
-          AME_ACTIONLINT_PATH: ${{ steps.actionlint.outputs.path }}
-        run: ./tool/quality_lint_workflows.ps1 -ActionlintPath $env:AME_ACTIONLINT_PATH
-
-      - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2.23.0
-        with:
-          channel: stable
-          flutter-version: 3.44.9
-          cache: true
-          pub-cache: true
-
-      - name: Report toolchain
-        shell: pwsh
-        run: |
-          flutter --version
-          dart --version
-          rustc --version
-          cargo --version
-
-      - name: Restore locked Dart dependencies
-        shell: pwsh
-        run: flutter pub get --enforce-lockfile
-
-      - name: Run Windows PowerShell platform compatibility probes
-        if: matrix.component == 'static'
-        shell: powershell
-        run: |
-          ./tool/quality_test_windows_powershell_compatibility.ps1
-          ./tool/release_test_journal_broker_installer_guardrails.ps1
-          ./tool/acceptance_test_windows_journal_broker_guardrails.ps1
-
-      - name: Run daily component
-        shell: pwsh
-        env:
-          AME_DAILY_COMPONENT: ${{ matrix.component }}
-        run: ./tool/quality_verify_daily.ps1 -Component $env:AME_DAILY_COMPONENT
-
-      - name: Check committed whitespace
-        if: matrix.component == 'static'
-        shell: pwsh
-        env:
-          AME_BASE_REVISION: ${{ inputs.base_revision }}
-        run: ./tool/quality_verify_git_range.ps1 -BaseRevision $env:AME_BASE_REVISION
-
-      - name: Retain controlled scan diagnostics
-        if: always() && matrix.component == 'windows_scan'
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
-        with:
-          name: windows-scan-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
-          path: |
-            build/integration-storage-*/flutter.stdout.log
-            build/integration-storage-*/flutter.stderr.log
-            build/integration-storage-*/completion.json
-          if-no-files-found: warn
-          retention-days: 7
+    uses: ./.github/workflows/quality_gate_daily_windows.yml
+    with:
+      checkout_ref: ${{ inputs.checkout_ref || github.sha }}
+      base_revision: ${{ inputs.base_revision }}
 
   quality_synthetic_windows:
     name: Synthetic Workloads
@@ -436,7 +328,7 @@ jobs:
             $env:GITHUB_OUTPUT
 
       - name: Upload immutable unsigned candidate
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ steps.unsigned_artifact.outputs.name }}
           path: build/unsigned-candidate
@@ -461,7 +353,7 @@ jobs:
       signed_candidate_artifact: ${{ steps.signed_artifact.outputs.name }}
     steps:
       - name: Download immutable unsigned candidate
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: ${{ needs.release_unsigned_windows.outputs.unsigned_candidate_artifact }}
           path: build/unsigned-candidate
@@ -769,7 +661,7 @@ jobs:
             $env:GITHUB_OUTPUT
 
       - name: Upload immutable signed candidate
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: ${{ steps.signed_artifact.outputs.name }}
           path: build/unsigned-candidate
@@ -863,7 +755,7 @@ jobs:
           }
 
       - name: Download immutable signed candidate
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: ${{ needs.release_sign_windows.outputs.signed_candidate_artifact }}
           path: build/signed-candidate

@@ -2,14 +2,12 @@
 use std::cell::{Cell, RefCell};
 #[cfg(test)]
 use std::collections::HashMap;
-#[cfg(windows)]
-use std::collections::{HashSet, VecDeque};
-use std::fs::{self, File, Metadata, ReadDir};
+use std::fs::{File, Metadata};
 #[cfg(windows)]
 use std::path::Prefix;
 use std::path::{Component, Path, PathBuf};
 #[cfg(test)]
-use std::sync::{Arc, Condvar, LazyLock, Mutex};
+use std::sync::{LazyLock, Mutex};
 use std::time::UNIX_EPOCH;
 
 #[cfg(windows)]
@@ -38,9 +36,8 @@ use windows_sys::Wdk::Storage::FileSystem::{
 
 #[cfg(windows)]
 use windows_sys::Win32::Foundation::{
-    ERROR_ACCESS_DENIED, ERROR_NO_MORE_FILES, ERROR_REPARSE_POINT_ENCOUNTERED, HANDLE,
-    INVALID_HANDLE_VALUE, OBJ_CASE_INSENSITIVE, OBJ_DONT_REPARSE, RtlNtStatusToDosError,
-    UNICODE_STRING,
+    ERROR_ACCESS_DENIED, HANDLE, INVALID_HANDLE_VALUE, OBJ_CASE_INSENSITIVE, OBJ_DONT_REPARSE,
+    RtlNtStatusToDosError, UNICODE_STRING,
 };
 #[cfg(windows)]
 use windows_sys::Win32::Globalization::{CSTR_EQUAL, CompareStringOrdinal};
@@ -54,12 +51,12 @@ use windows_sys::Win32::Storage::CloudFilters::{
 use windows_sys::Win32::Storage::FileSystem::{
     DELETE, FILE_ATTRIBUTE_DIRECTORY, FILE_ATTRIBUTE_REPARSE_POINT, FILE_ATTRIBUTE_TAG_INFO,
     FILE_BASIC_INFO, FILE_CASE_SENSITIVE_INFO, FILE_DELETE_CHILD, FILE_FLAG_BACKUP_SEMANTICS,
-    FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_EXTD_DIR_INFO, FILE_ID_INFO,
-    FILE_LIST_DIRECTORY, FILE_READ_ATTRIBUTES, FILE_READ_DATA, FILE_SHARE_DELETE, FILE_SHARE_READ,
-    FILE_SHARE_WRITE, FILE_TRAVERSE, FileAttributeTagInfo, FileBasicInfo, FileCaseSensitiveInfo,
-    FileIdExtdDirectoryInfo, FileIdExtdDirectoryRestartInfo, FileIdInfo, FindClose, FindFirstFileW,
-    GetFileInformationByHandleEx, GetFinalPathNameByHandleW, GetLongPathNameW,
-    GetVolumeInformationByHandleW, SYNCHRONIZE, WIN32_FIND_DATAW, WRITE_DAC, WRITE_OWNER,
+    FILE_FLAG_OPEN_NO_RECALL, FILE_FLAG_OPEN_REPARSE_POINT, FILE_ID_INFO, FILE_LIST_DIRECTORY,
+    FILE_READ_ATTRIBUTES, FILE_READ_DATA, FILE_SHARE_DELETE, FILE_SHARE_READ, FILE_SHARE_WRITE,
+    FILE_TRAVERSE, FileAttributeTagInfo, FileBasicInfo, FileCaseSensitiveInfo, FileIdInfo,
+    FindClose, FindFirstFileW, GetFileInformationByHandleEx, GetFinalPathNameByHandleW,
+    GetLongPathNameW, GetVolumeInformationByHandleW, SYNCHRONIZE, WIN32_FIND_DATAW, WRITE_DAC,
+    WRITE_OWNER,
 };
 #[cfg(all(windows, test))]
 use windows_sys::Win32::Storage::FileSystem::{
@@ -79,6 +76,7 @@ use crate::domain::{
 
 mod catalog_identity;
 mod directory_coverage;
+mod directory_enumeration;
 mod file_admission;
 mod file_revalidation;
 mod media_signature;
@@ -100,6 +98,17 @@ pub(crate) use catalog_identity::catalog_identity_temporary_open_count;
 pub(crate) use catalog_identity::read_open_catalog_identity;
 pub(crate) use catalog_identity::{
     CatalogFileIdentity, open_catalog_identity_guard, read_catalog_identity,
+};
+#[cfg(test)]
+pub(crate) use directory_enumeration::CheckedDirectoryEntryPaths;
+#[cfg(test)]
+use directory_enumeration::PublicationGuardedFileVisits;
+pub(crate) use directory_enumeration::PublicationGuardedMetadataInventoryEntries;
+#[cfg(test)]
+pub(crate) use directory_enumeration::instrumentation::{
+    gate_source_enumeration, record_source_peak_staged_window,
+    reset_source_enumeration_instrumentation, source_directory_open_count, source_entry_read_count,
+    source_peak_staged_window,
 };
 pub use file_admission::{FileVisit, FileVisitOutcome};
 pub use file_revalidation::revalidate_file_state;
@@ -123,20 +132,7 @@ pub(crate) use source_content_observation::{
 pub(crate) use viewer_source_guard::open_viewer_source_guard;
 
 #[cfg(windows)]
-const HANDLE_DIRECTORY_BUFFER_BYTES: usize = 64 * 1024;
-
-#[cfg(windows)]
-const WINDOWS_TO_UNIX_EPOCH_100NS: i64 = 116_444_736_000_000_000;
-
-#[cfg(windows)]
-const HUNDRED_NS_PER_MILLISECOND: i64 = 10_000;
-
-#[cfg(windows)]
 const WINDOWS_SOURCE_REVISION_SCHEME: &str = "windows-file-change-time-100ns-v1";
-
-#[cfg(test)]
-static SOURCE_ENUMERATION_COUNTS: LazyLock<Mutex<HashMap<String, SourceEnumerationCounts>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[cfg(all(windows, test))]
 static CONFIGURED_ROOT_OPEN_COUNTS: LazyLock<Mutex<HashMap<(PathBuf, bool), u64>>> =
@@ -144,18 +140,6 @@ static CONFIGURED_ROOT_OPEN_COUNTS: LazyLock<Mutex<HashMap<(PathBuf, bool), u64>
 
 #[cfg(test)]
 static ROOT_AVAILABILITY_METADATA_PROBE_COUNTS: LazyLock<Mutex<HashMap<PathBuf, u64>>> =
-    LazyLock::new(|| Mutex::new(HashMap::new()));
-
-#[cfg(test)]
-#[derive(Default)]
-struct SourceEnumerationCounts {
-    entry_reads: u64,
-    directory_opens: u64,
-    peak_staged_window: usize,
-}
-
-#[cfg(test)]
-static SOURCE_ENUMERATION_GATES: LazyLock<Mutex<HashMap<String, Arc<SourceEnumerationGateState>>>> =
     LazyLock::new(|| Mutex::new(HashMap::new()));
 
 #[cfg(all(windows, test))]
@@ -221,121 +205,6 @@ struct PublicationNamespaceGuardOpenFacts {
     flags: u32,
 }
 
-#[cfg(test)]
-struct SourceEnumerationGateState {
-    control: Mutex<SourceEnumerationGateControl>,
-    changed: Condvar,
-}
-
-#[cfg(test)]
-struct SourceEnumerationGateControl {
-    permits: usize,
-    waiting: usize,
-    released: bool,
-}
-
-#[cfg(test)]
-pub(crate) struct SourceEnumerationGateGuard {
-    root_path: String,
-    state: Arc<SourceEnumerationGateState>,
-}
-
-#[cfg(test)]
-impl SourceEnumerationGateGuard {
-    pub(crate) fn allow_entries(&self, count: usize) {
-        let mut control = self.state.control.lock().expect("source enumeration gate");
-        control.permits = control.permits.saturating_add(count);
-        self.state.changed.notify_all();
-    }
-
-    pub(crate) fn wait_until_blocked(&self, timeout: std::time::Duration) -> bool {
-        let control = self.state.control.lock().expect("source enumeration gate");
-        let (control, _) = self
-            .state
-            .changed
-            .wait_timeout_while(control, timeout, |control| {
-                control.waiting == 0 && !control.released
-            })
-            .expect("source enumeration gate wait");
-        control.waiting > 0
-    }
-
-    pub(crate) fn release(&self) {
-        let mut control = self.state.control.lock().expect("source enumeration gate");
-        control.released = true;
-        self.state.changed.notify_all();
-    }
-}
-
-#[cfg(test)]
-impl Drop for SourceEnumerationGateGuard {
-    fn drop(&mut self) {
-        self.release();
-        let mut gates = SOURCE_ENUMERATION_GATES
-            .lock()
-            .expect("source enumeration gates");
-        if gates
-            .get(&self.root_path)
-            .is_some_and(|state| Arc::ptr_eq(state, &self.state))
-        {
-            gates.remove(&self.root_path);
-        }
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn gate_source_enumeration(root_path: &str) -> SourceEnumerationGateGuard {
-    let state = Arc::new(SourceEnumerationGateState {
-        control: Mutex::new(SourceEnumerationGateControl {
-            permits: 0,
-            waiting: 0,
-            released: false,
-        }),
-        changed: Condvar::new(),
-    });
-    SOURCE_ENUMERATION_GATES
-        .lock()
-        .expect("source enumeration gates")
-        .insert(root_path.to_owned(), Arc::clone(&state));
-    SourceEnumerationGateGuard {
-        root_path: root_path.to_owned(),
-        state,
-    }
-}
-
-#[cfg(test)]
-fn wait_for_source_enumeration_permit(root_path: &str) {
-    let state = SOURCE_ENUMERATION_GATES
-        .lock()
-        .expect("source enumeration gates")
-        .get(root_path)
-        .cloned();
-    let Some(state) = state else {
-        return;
-    };
-    let mut control = state.control.lock().expect("source enumeration gate");
-    control.waiting = control.waiting.saturating_add(1);
-    state.changed.notify_all();
-    while control.permits == 0 && !control.released {
-        control = state
-            .changed
-            .wait(control)
-            .expect("source enumeration gate wait");
-    }
-    control.waiting = control.waiting.saturating_sub(1);
-    if !control.released {
-        control.permits = control.permits.saturating_sub(1);
-    }
-}
-
-#[cfg(test)]
-pub(crate) fn reset_source_enumeration_instrumentation(root_path: &str) {
-    SOURCE_ENUMERATION_COUNTS
-        .lock()
-        .expect("source enumeration instrumentation")
-        .insert(root_path.to_owned(), SourceEnumerationCounts::default());
-}
-
 #[cfg(all(windows, test))]
 pub(crate) fn reset_configured_root_open_instrumentation(root_path: &str) {
     let root = PathBuf::from(root_path);
@@ -371,44 +240,6 @@ pub(crate) fn root_availability_metadata_probe_count(root_path: &str) -> u64 {
         .get(&PathBuf::from(root_path))
         .copied()
         .unwrap_or(0)
-}
-
-#[cfg(test)]
-pub(crate) fn source_entry_read_count(root_path: &str) -> u64 {
-    SOURCE_ENUMERATION_COUNTS
-        .lock()
-        .expect("source enumeration instrumentation")
-        .get(root_path)
-        .map_or(0, |counts| counts.entry_reads)
-}
-
-#[cfg(test)]
-pub(crate) fn source_directory_open_count(root_path: &str) -> u64 {
-    SOURCE_ENUMERATION_COUNTS
-        .lock()
-        .expect("source enumeration instrumentation")
-        .get(root_path)
-        .map_or(0, |counts| counts.directory_opens)
-}
-
-#[cfg(test)]
-pub(crate) fn source_peak_staged_window(root_path: &str) -> usize {
-    SOURCE_ENUMERATION_COUNTS
-        .lock()
-        .expect("source enumeration instrumentation")
-        .get(root_path)
-        .map_or(0, |counts| counts.peak_staged_window)
-}
-
-#[cfg(test)]
-pub(crate) fn record_source_peak_staged_window(root_path: &str, staged: usize) {
-    if let Some(counts) = SOURCE_ENUMERATION_COUNTS
-        .lock()
-        .expect("source enumeration instrumentation")
-        .get_mut(root_path)
-    {
-        counts.peak_staged_window = counts.peak_staged_window.max(staged);
-    }
 }
 
 pub struct FileDiscovery {
@@ -513,58 +344,6 @@ fn classify_root_availability_metadata(
     }
 }
 
-pub(crate) struct CheckedDirectoryEntryPaths {
-    entries: Vec<CheckedDirectoryEntryPath>,
-    next_index: usize,
-    #[cfg(test)]
-    directory_identity: Option<FileIdentityEvidence>,
-}
-
-struct StreamingCheckedDirectoryEntryPaths {
-    #[cfg(not(windows))]
-    root: PathBuf,
-    #[cfg(not(windows))]
-    directory_path: PathBuf,
-    #[cfg(not(windows))]
-    entries: ReadDir,
-    #[cfg(windows)]
-    directory: File,
-    #[cfg(windows)]
-    directory_relative_path: String,
-    #[cfg(windows)]
-    buffer: Box<[u64]>,
-    #[cfg(windows)]
-    pending_entries: VecDeque<Result<MetadataInventoryEntry, ScanIssue>>,
-    #[cfg(windows)]
-    observed_paths: HashSet<String>,
-    #[cfg(windows)]
-    volume_serial: u64,
-    #[cfg(windows)]
-    should_restart: bool,
-    #[cfg(windows)]
-    enumeration_complete: bool,
-    #[cfg(windows)]
-    enumeration_failed: bool,
-    directory_identity: Option<FileIdentityEvidence>,
-    #[cfg(test)]
-    test_counter_root: Option<String>,
-}
-
-struct CheckedDirectoryEntryPath {
-    relative_path: String,
-    path: PathBuf,
-}
-
-pub(crate) struct PublicationGuardedFileVisits<'guard> {
-    discovery: &'guard FileDiscovery,
-    entries: CheckedDirectoryEntryPaths,
-}
-
-pub(crate) struct PublicationGuardedMetadataInventoryEntries {
-    entries: StreamingCheckedDirectoryEntryPaths,
-    _guard: PublicationGuardedFileDiscovery,
-}
-
 pub(crate) struct CheckedDirectoryEntry {
     relative_path: String,
     metadata: Metadata,
@@ -599,586 +378,6 @@ impl std::fmt::Display for RootRelativeContainmentViolation {
 
 #[cfg(windows)]
 impl std::error::Error for RootRelativeContainmentViolation {}
-
-impl Iterator for CheckedDirectoryEntryPaths {
-    type Item = Result<CheckedDirectoryEntry, ScanIssue>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        let entry = self.entries.get(self.next_index)?;
-        self.next_index = self.next_index.saturating_add(1);
-        Some(
-            fs::symlink_metadata(&entry.path)
-                .map_err(|error| ScanIssue {
-                    path: Some(path_text(&entry.path)),
-                    code: "directory_entry_metadata_unreadable".to_owned(),
-                    message: error.to_string(),
-                })
-                .and_then(|metadata| {
-                    checked_directory_entry_from_metadata(
-                        entry.relative_path.clone(),
-                        &entry.path,
-                        metadata,
-                    )
-                }),
-        )
-    }
-}
-
-impl Iterator for PublicationGuardedFileVisits<'_> {
-    type Item = Result<FileVisit, ScanIssue>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.entries
-            .next()
-            .map(|entry| entry.map(|entry| self.discovery.visit_directory_entry(entry)))
-    }
-}
-
-impl Iterator for PublicationGuardedMetadataInventoryEntries {
-    type Item = Result<MetadataInventoryEntry, ScanIssue>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        self.entries.next()
-    }
-}
-
-impl PublicationGuardedMetadataInventoryEntries {
-    pub(crate) fn directory_identity(&self) -> Option<&FileIdentityEvidence> {
-        self.entries.directory_identity()
-    }
-
-    pub(crate) fn finish(self) -> Result<Option<FileIdentityEvidence>, ScanIssue> {
-        self.entries.finish()
-    }
-}
-
-#[cfg(not(windows))]
-impl Iterator for StreamingCheckedDirectoryEntryPaths {
-    type Item = Result<MetadataInventoryEntry, ScanIssue>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        #[cfg(test)]
-        if let Some(root_path) = self.test_counter_root.as_deref() {
-            wait_for_source_enumeration_permit(root_path);
-        }
-        let entry = self.entries.next()?;
-        #[cfg(test)]
-        if let Some(root_path) = self.test_counter_root.as_deref()
-            && let Some(counts) = SOURCE_ENUMERATION_COUNTS
-                .lock()
-                .expect("source enumeration instrumentation")
-                .get_mut(root_path)
-        {
-            counts.entry_reads = counts.entry_reads.saturating_add(1);
-        }
-        Some(
-            entry
-                .map_err(|error| ScanIssue {
-                    path: Some(path_text(&self.directory_path)),
-                    code: "directory_entry_unreadable".to_owned(),
-                    message: error.to_string(),
-                })
-                .and_then(|entry| {
-                    let path = entry.path();
-                    let relative_path = path
-                        .strip_prefix(&self.root)
-                        .map(relative_path_text)
-                        .map_err(|_| path_containment_issue(&path))?;
-                    fs::symlink_metadata(&path)
-                        .map_err(|error| ScanIssue {
-                            path: Some(path_text(&path)),
-                            code: "directory_entry_metadata_unreadable".to_owned(),
-                            message: error.to_string(),
-                        })
-                        .and_then(|metadata| {
-                            checked_directory_entry_from_metadata(relative_path, &path, metadata)
-                        })
-                        .and_then(|entry| {
-                            metadata_inventory_entry_from_checked_directory_entry(entry, &path)
-                        })
-                }),
-        )
-    }
-}
-
-#[cfg(windows)]
-impl Iterator for StreamingCheckedDirectoryEntryPaths {
-    type Item = Result<MetadataInventoryEntry, ScanIssue>;
-
-    fn next(&mut self) -> Option<Self::Item> {
-        #[cfg(test)]
-        if let Some(root_path) = self.test_counter_root.as_deref() {
-            wait_for_source_enumeration_permit(root_path);
-        }
-        if let Some(entry) = self.pending_entries.pop_front() {
-            self.record_entry_read();
-            return Some(entry);
-        }
-        if self.enumeration_complete || self.enumeration_failed {
-            return None;
-        }
-        let mut empty_nonterminal_pages = 0_u8;
-        loop {
-            match self.read_next_handle_page() {
-                Ok(()) => {
-                    if let Some(entry) = self.pending_entries.pop_front() {
-                        self.record_entry_read();
-                        return Some(entry);
-                    }
-                    if self.enumeration_complete {
-                        return None;
-                    }
-                    empty_nonterminal_pages = empty_nonterminal_pages.saturating_add(1);
-                    if empty_nonterminal_pages >= 2 {
-                        self.enumeration_failed = true;
-                        return Some(Err(directory_enumeration_issue(
-                            &self.directory_relative_path,
-                            "The directory handle returned repeated empty non-terminal pages",
-                        )));
-                    }
-                }
-                Err(issue) => {
-                    self.enumeration_failed = true;
-                    return Some(Err(issue));
-                }
-            }
-        }
-    }
-}
-
-#[cfg(windows)]
-impl StreamingCheckedDirectoryEntryPaths {
-    fn record_entry_read(&self) {
-        #[cfg(test)]
-        if let Some(root_path) = self.test_counter_root.as_deref()
-            && let Some(counts) = SOURCE_ENUMERATION_COUNTS
-                .lock()
-                .expect("source enumeration instrumentation")
-                .get_mut(root_path)
-        {
-            counts.entry_reads = counts.entry_reads.saturating_add(1);
-        }
-    }
-
-    fn read_next_handle_page(&mut self) -> Result<(), ScanIssue> {
-        self.buffer.fill(0);
-        let information_class = if self.should_restart {
-            FileIdExtdDirectoryRestartInfo
-        } else {
-            FileIdExtdDirectoryInfo
-        };
-        let buffer_size = u32::try_from(self.buffer.len().saturating_mul(size_of::<u64>()))
-            .map_err(|_| {
-                directory_enumeration_issue(
-                    &self.directory_relative_path,
-                    "The directory enumeration buffer is too large",
-                )
-            })?;
-        // SAFETY: ADR 0024 owns this adapter-only boundary. `directory` remains live and was
-        // opened no-follow with FILE_LIST_DIRECTORY; `buffer` is aligned, initialized, writable,
-        // and exactly `buffer_size` bytes long for the duration of the call.
-        let result = unsafe {
-            GetFileInformationByHandleEx(
-                self.directory.as_raw_handle(),
-                information_class,
-                self.buffer.as_mut_ptr().cast(),
-                buffer_size,
-            )
-        };
-        if result == 0 {
-            let error = std::io::Error::last_os_error();
-            if error.raw_os_error() == Some(ERROR_NO_MORE_FILES as i32) {
-                self.enumeration_complete = true;
-                return Ok(());
-            }
-            return Err(ScanIssue {
-                path: Some(self.directory_relative_path.clone()),
-                code: "directory_entry_unreadable".to_owned(),
-                message: error.to_string(),
-            });
-        }
-        self.should_restart = false;
-        let byte_len = self.buffer.len().saturating_mul(size_of::<u64>());
-        // SAFETY: the initialized `u64` allocation is exposed only as immutable bytes for the
-        // safe, bounds-checked parser; the allocation remains alive and is not mutated meanwhile.
-        let bytes =
-            unsafe { std::slice::from_raw_parts(self.buffer.as_ptr().cast::<u8>(), byte_len) };
-        let entries = parse_handle_directory_buffer(
-            bytes,
-            self.volume_serial,
-            &self.directory_relative_path,
-        )?;
-        for entry in entries {
-            if !self.observed_paths.insert(entry.relative_path.clone()) {
-                return Err(directory_enumeration_issue(
-                    &self.directory_relative_path,
-                    "The directory handle returned a duplicate relative path",
-                ));
-            }
-            self.pending_entries.push_back(Ok(entry));
-        }
-        Ok(())
-    }
-}
-
-impl StreamingCheckedDirectoryEntryPaths {
-    pub(crate) fn directory_identity(&self) -> Option<&FileIdentityEvidence> {
-        self.directory_identity.as_ref()
-    }
-
-    #[cfg(not(windows))]
-    pub(crate) fn finish(self) -> Result<Option<FileIdentityEvidence>, ScanIssue> {
-        let closing_metadata = self
-            .directory_path
-            .symlink_metadata()
-            .map_err(|error| path_metadata_issue(&self.directory_path, error))?;
-        if !closing_metadata.is_dir()
-            || (self.directory_path != self.root && is_link_or_reparse_point(&closing_metadata))
-        {
-            return Err(path_containment_issue(&self.directory_path));
-        }
-        let closing_identity = file_identity(&self.directory_path).map_err(|error| ScanIssue {
-            path: Some(path_text(&self.directory_path)),
-            code: "directory_identity_unavailable".to_owned(),
-            message: error.to_string(),
-        })?;
-        if closing_identity != self.directory_identity {
-            return Err(ScanIssue {
-                path: Some(path_text(&self.directory_path)),
-                code: "directory_identity_changed".to_owned(),
-                message: "The directory identity changed while its durable spool was captured"
-                    .to_owned(),
-            });
-        }
-        Ok(closing_identity)
-    }
-
-    #[cfg(windows)]
-    pub(crate) fn finish(self) -> Result<Option<FileIdentityEvidence>, ScanIssue> {
-        if self.enumeration_failed || !self.enumeration_complete || !self.pending_entries.is_empty()
-        {
-            return Err(directory_enumeration_issue(
-                &self.directory_relative_path,
-                "The directory handle enumeration did not reach a trustworthy terminal boundary",
-            ));
-        }
-        let closing_identity =
-            file_identity_from_handle(&self.directory).map_err(|error| ScanIssue {
-                path: Some(self.directory_relative_path.clone()),
-                code: "directory_identity_unavailable".to_owned(),
-                message: error.to_string(),
-            })?;
-        if closing_identity != self.directory_identity {
-            return Err(ScanIssue {
-                path: Some(self.directory_relative_path.clone()),
-                code: "directory_identity_changed".to_owned(),
-                message: "The directory identity changed while its durable spool was captured"
-                    .to_owned(),
-            });
-        }
-        Ok(closing_identity)
-    }
-}
-
-impl CheckedDirectoryEntryPaths {
-    #[cfg(test)]
-    pub(crate) fn directory_identity(&self) -> Option<&FileIdentityEvidence> {
-        self.directory_identity.as_ref()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn seek_after(&mut self, relative_path: &str) {
-        self.next_index = self
-            .entries
-            .partition_point(|entry| entry.relative_path.as_str() <= relative_path);
-    }
-}
-
-fn stable_checked_directory_entries(
-    root: &Path,
-    directory_path: &Path,
-    entries: ReadDir,
-) -> Result<Vec<CheckedDirectoryEntryPath>, ScanIssue> {
-    let mut stable_entries = entries
-        .map(|entry| {
-            let entry = entry.map_err(|error| ScanIssue {
-                path: Some(path_text(directory_path)),
-                code: "directory_entry_unreadable".to_owned(),
-                message: error.to_string(),
-            })?;
-            let path = entry.path();
-            let relative_path = path
-                .strip_prefix(root)
-                .map(relative_path_text)
-                .map_err(|_| path_containment_issue(&path))?;
-            Ok(CheckedDirectoryEntryPath {
-                relative_path,
-                path,
-            })
-        })
-        .collect::<Result<Vec<_>, ScanIssue>>()?;
-    stable_entries.sort_unstable_by(|left, right| left.relative_path.cmp(&right.relative_path));
-    if stable_entries
-        .windows(2)
-        .any(|entries| entries[0].relative_path == entries[1].relative_path)
-    {
-        return Err(ScanIssue {
-            path: Some(path_text(directory_path)),
-            code: "directory_entry_identity_ambiguous".to_owned(),
-            message: "The directory contains paths that cannot be ordered uniquely".to_owned(),
-        });
-    }
-    Ok(stable_entries)
-}
-
-#[cfg(windows)]
-fn parse_handle_directory_buffer(
-    buffer: &[u8],
-    volume_serial: u64,
-    relative_directory: &str,
-) -> Result<Vec<MetadataInventoryEntry>, ScanIssue> {
-    let header_size = std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileName);
-    let mut offset = 0_usize;
-    let mut entries = Vec::new();
-    loop {
-        let record = buffer.get(offset..).ok_or_else(|| {
-            directory_enumeration_issue(
-                relative_directory,
-                "The directory handle returned an invalid record offset",
-            )
-        })?;
-        if record.len() < header_size {
-            return Err(directory_enumeration_issue(
-                relative_directory,
-                "The directory handle returned a truncated record header",
-            ));
-        }
-        let next_offset = read_u32_field(
-            record,
-            std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, NextEntryOffset),
-        )? as usize;
-        let name_length = read_u32_field(
-            record,
-            std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileNameLength),
-        )? as usize;
-        if name_length == 0 || !name_length.is_multiple_of(size_of::<u16>()) {
-            return Err(directory_enumeration_issue(
-                relative_directory,
-                "The directory handle returned an invalid UTF-16 name length",
-            ));
-        }
-        let record_extent = if next_offset == 0 {
-            record.len()
-        } else {
-            if next_offset < header_size
-                || next_offset > record.len()
-                || !next_offset.is_multiple_of(std::mem::align_of::<FILE_ID_EXTD_DIR_INFO>())
-            {
-                return Err(directory_enumeration_issue(
-                    relative_directory,
-                    "The directory handle returned an invalid continuation offset",
-                ));
-            }
-            next_offset
-        };
-        let name_end = header_size.checked_add(name_length).ok_or_else(|| {
-            directory_enumeration_issue(
-                relative_directory,
-                "The directory handle name length overflowed",
-            )
-        })?;
-        if name_end > record_extent {
-            return Err(directory_enumeration_issue(
-                relative_directory,
-                "The directory handle returned a truncated UTF-16 name",
-            ));
-        }
-        let name_bytes = &record[header_size..name_end];
-        let name_units = name_bytes
-            .chunks_exact(size_of::<u16>())
-            .map(|unit| u16::from_le_bytes([unit[0], unit[1]]))
-            .collect::<Vec<_>>();
-        let name = String::from_utf16(&name_units).map_err(|_| {
-            directory_enumeration_issue(
-                relative_directory,
-                "The directory handle returned an invalid UTF-16 name",
-            )
-        })?;
-        if name.contains(['\0', '/', '\\']) {
-            return Err(directory_enumeration_issue(
-                relative_directory,
-                "The directory handle returned a name that is not one path component",
-            ));
-        }
-        if name != "." && name != ".." {
-            let attributes = read_u32_field(
-                record,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileAttributes),
-            )?;
-            let reparse_tag = read_u32_field(
-                record,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, ReparsePointTag),
-            )?;
-            let end_of_file = read_i64_field(
-                record,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, EndOfFile),
-            )?;
-            let modified_100ns = read_i64_field(
-                record,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, LastWriteTime),
-            )?;
-            let change_time_100ns = read_i64_field(
-                record,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, ChangeTime),
-            )?;
-            let file_id_offset = std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileId);
-            let file_id_bytes: [u8; 16] = record
-                .get(file_id_offset..file_id_offset + 16)
-                .and_then(|value| value.try_into().ok())
-                .ok_or_else(|| {
-                    directory_enumeration_issue(
-                        relative_directory,
-                        "The directory handle returned a truncated file identity",
-                    )
-                })?;
-            entries.push(metadata_inventory_entry_from_handle_record(
-                relative_directory,
-                &name,
-                attributes,
-                reparse_tag,
-                end_of_file,
-                modified_100ns,
-                change_time_100ns,
-                volume_serial,
-                file_id_bytes,
-            )?);
-        }
-        if next_offset == 0 {
-            break;
-        }
-        offset = offset.checked_add(next_offset).ok_or_else(|| {
-            directory_enumeration_issue(
-                relative_directory,
-                "The directory handle continuation offset overflowed",
-            )
-        })?;
-    }
-    Ok(entries)
-}
-
-#[cfg(windows)]
-#[allow(clippy::too_many_arguments)]
-fn metadata_inventory_entry_from_handle_record(
-    relative_directory: &str,
-    name: &str,
-    attributes: u32,
-    reparse_tag: u32,
-    end_of_file: i64,
-    modified_100ns: i64,
-    change_time_100ns: i64,
-    volume_serial: u64,
-    file_id_bytes: [u8; 16],
-) -> Result<MetadataInventoryEntry, ScanIssue> {
-    let relative_path = if relative_directory.is_empty() {
-        name.to_owned()
-    } else {
-        format!("{relative_directory}/{name}")
-    };
-    let (reparse_kind, placeholder_state) = if attributes & FILE_ATTRIBUTE_REPARSE_POINT == 0 {
-        (
-            ReparseKind::None,
-            metadata_placeholder_state_from_attributes(attributes),
-        )
-    } else {
-        reparse_evidence_from_attribute_tag(attributes, reparse_tag).map_err(|error| ScanIssue {
-            path: Some(relative_path.clone()),
-            code: "file_reparse_evidence_unreadable".to_owned(),
-            message: error.to_string(),
-        })?
-    };
-    let is_directory = attributes & FILE_ATTRIBUTE_DIRECTORY != 0;
-    let is_reparse_point = attributes & FILE_ATTRIBUTE_REPARSE_POINT != 0;
-    let is_opaque_directory = is_directory
-        && (is_reparse_point || placeholder_state != MetadataInventoryPlaceholderState::Available);
-    let kind = if reparse_kind == ReparseKind::Other || is_opaque_directory {
-        MetadataInventoryEntryKind::Other
-    } else {
-        metadata_inventory_entry_kind(is_directory, !is_directory, reparse_kind)
-    };
-    let file_size = if kind == MetadataInventoryEntryKind::File {
-        Some(u64::try_from(end_of_file).map_err(|_| {
-            directory_enumeration_issue(
-                relative_directory,
-                "The directory handle returned a negative file size",
-            )
-        })?)
-    } else {
-        None
-    };
-    let file_identity = (matches!(
-        kind,
-        MetadataInventoryEntryKind::File | MetadataInventoryEntryKind::Directory
-    ) && placeholder_state == MetadataInventoryPlaceholderState::Available)
-        .then(|| FileIdentityEvidence {
-            scheme: "windows-file-id-128-v1".to_owned(),
-            value: format!(
-                "{volume_serial:016x}:{:032x}",
-                u128::from_le_bytes(file_id_bytes)
-            ),
-        });
-    Ok(MetadataInventoryEntry {
-        relative_path,
-        kind,
-        file_size,
-        modified_unix_ms: windows_file_time_to_unix_ms(modified_100ns),
-        file_identity,
-        source_revision: (kind == MetadataInventoryEntryKind::File
-            && placeholder_state == MetadataInventoryPlaceholderState::Available)
-            .then(|| windows_source_revision(change_time_100ns)),
-        placeholder_state,
-        is_reparse_point,
-    })
-}
-
-#[cfg(windows)]
-fn read_u32_field(record: &[u8], offset: usize) -> Result<u32, ScanIssue> {
-    let value: [u8; 4] = record
-        .get(offset..offset + 4)
-        .and_then(|value| value.try_into().ok())
-        .ok_or_else(|| {
-            directory_enumeration_issue("", "The directory handle record is truncated")
-        })?;
-    Ok(u32::from_le_bytes(value))
-}
-
-#[cfg(windows)]
-fn read_i64_field(record: &[u8], offset: usize) -> Result<i64, ScanIssue> {
-    let value: [u8; 8] = record
-        .get(offset..offset + 8)
-        .and_then(|value| value.try_into().ok())
-        .ok_or_else(|| {
-            directory_enumeration_issue("", "The directory handle record is truncated")
-        })?;
-    Ok(i64::from_le_bytes(value))
-}
-
-#[cfg(windows)]
-fn windows_file_time_to_unix_ms(value: i64) -> i64 {
-    value
-        .saturating_sub(WINDOWS_TO_UNIX_EPOCH_100NS)
-        .checked_div(HUNDRED_NS_PER_MILLISECOND)
-        .unwrap_or(0)
-        .max(0)
-}
-
-#[cfg(windows)]
-fn directory_enumeration_issue(relative_directory: &str, message: &str) -> ScanIssue {
-    ScanIssue {
-        path: (!relative_directory.is_empty()).then(|| relative_directory.to_owned()),
-        code: "directory_entry_unreadable".to_owned(),
-        message: message.to_owned(),
-    }
-}
 
 impl FileDiscovery {
     pub fn new(root_path: &str) -> Result<Self, ScanError> {
@@ -1343,36 +542,6 @@ impl PublicationGuardedFileDiscovery {
         self.discovery.visit_relative_path(relative_path)
     }
 
-    pub(crate) fn file_visits_in_directory(
-        &self,
-        relative_directory: &str,
-    ) -> Result<PublicationGuardedFileVisits<'_>, ScanIssue> {
-        Ok(PublicationGuardedFileVisits {
-            discovery: &self.discovery,
-            entries: self
-                .discovery
-                .checked_entry_paths_in_directory(relative_directory)?,
-        })
-    }
-
-    pub(crate) fn streaming_metadata_inventory_entries_in_directory(
-        &self,
-        relative_directory: &str,
-    ) -> Result<PublicationGuardedMetadataInventoryEntries, ScanIssue> {
-        let guard = self.try_clone_capability().map_err(|error| ScanIssue {
-            path: Some(path_text(&self.discovery.canonical_root)),
-            code: "root_publication_namespace_guard_clone_failed".to_owned(),
-            message: format!("Could not retain the publication guard for enumeration: {error}"),
-        })?;
-        let entries = guard
-            .discovery
-            .streaming_checked_entry_paths_in_directory(relative_directory)?;
-        Ok(PublicationGuardedMetadataInventoryEntries {
-            entries,
-            _guard: guard,
-        })
-    }
-
     pub(crate) fn inspect_media(
         &self,
         inspector: &super::media_inspector::LocalMediaInspector,
@@ -1452,240 +621,6 @@ impl FileDiscovery {
                 "The recovery source root no longer matches its durable handle identity",
             ))
         }
-    }
-
-    pub(crate) fn checked_entry_paths_in_directory(
-        &self,
-        relative_directory: &str,
-    ) -> Result<CheckedDirectoryEntryPaths, ScanIssue> {
-        let relative_directory_path = validated_relative_path(relative_directory)?;
-        let (directory_path, metadata) = self.checked_existing_path(relative_directory_path)?;
-        if !relative_directory_path.as_os_str().is_empty() && is_link_or_reparse_point(&metadata) {
-            return Err(path_containment_issue(&directory_path));
-        }
-        let directory_identity = file_identity(&directory_path).map_err(|error| ScanIssue {
-            path: Some(path_text(&directory_path)),
-            code: "directory_identity_unavailable".to_owned(),
-            message: error.to_string(),
-        })?;
-        let entries = fs::read_dir(&directory_path).map_err(|error| ScanIssue {
-            path: Some(path_text(&directory_path)),
-            code: "directory_unreadable".to_owned(),
-            message: error.to_string(),
-        })?;
-        let entries = stable_checked_directory_entries(&self.root, &directory_path, entries)?;
-        #[cfg(test)]
-        {
-            let root_path = path_text(&self.root);
-            if let Some(counts) = SOURCE_ENUMERATION_COUNTS
-                .lock()
-                .expect("source enumeration instrumentation")
-                .get_mut(&root_path)
-            {
-                counts.directory_opens = counts.directory_opens.saturating_add(1);
-                counts.entry_reads = counts
-                    .entry_reads
-                    .saturating_add(u64::try_from(entries.len()).unwrap_or(u64::MAX));
-            }
-        }
-        let closing_identity = file_identity(&directory_path).map_err(|error| ScanIssue {
-            path: Some(path_text(&directory_path)),
-            code: "directory_identity_unavailable".to_owned(),
-            message: error.to_string(),
-        })?;
-        if directory_identity != closing_identity {
-            return Err(ScanIssue {
-                path: Some(path_text(&directory_path)),
-                code: "directory_identity_changed".to_owned(),
-                message: "The directory identity changed while its stable frontier was opened"
-                    .to_owned(),
-            });
-        }
-        Ok(CheckedDirectoryEntryPaths {
-            entries,
-            next_index: 0,
-            #[cfg(test)]
-            directory_identity,
-        })
-    }
-
-    fn streaming_checked_entry_paths_in_directory(
-        &self,
-        relative_directory: &str,
-    ) -> Result<StreamingCheckedDirectoryEntryPaths, ScanIssue> {
-        self.streaming_checked_entry_paths_in_directory_with_hook(relative_directory, || {})
-    }
-
-    fn streaming_checked_entry_paths_in_directory_with_hook(
-        &self,
-        relative_directory: &str,
-        after_root_proof: impl FnOnce(),
-    ) -> Result<StreamingCheckedDirectoryEntryPaths, ScanIssue> {
-        let relative_directory_path = validated_relative_path(relative_directory)?;
-        #[cfg(not(windows))]
-        {
-            let (directory_path, metadata) = self.checked_existing_path(relative_directory_path)?;
-            if !metadata.is_dir()
-                || (!relative_directory_path.as_os_str().is_empty()
-                    && is_link_or_reparse_point(&metadata))
-            {
-                return Err(path_containment_issue(&directory_path));
-            }
-            let directory_identity = file_identity(&directory_path).map_err(|error| ScanIssue {
-                path: Some(path_text(&directory_path)),
-                code: "directory_identity_unavailable".to_owned(),
-                message: error.to_string(),
-            })?;
-            let entries = fs::read_dir(&directory_path).map_err(|error| ScanIssue {
-                path: Some(path_text(&directory_path)),
-                code: "directory_unreadable".to_owned(),
-                message: error.to_string(),
-            })?;
-            after_root_proof();
-            #[cfg(test)]
-            let test_counter_root = {
-                let root_path = path_text(&self.root);
-                let mut instrumentation = SOURCE_ENUMERATION_COUNTS
-                    .lock()
-                    .expect("source enumeration instrumentation");
-                if let Some(counts) = instrumentation.get_mut(&root_path) {
-                    counts.directory_opens = counts.directory_opens.saturating_add(1);
-                    Some(root_path)
-                } else {
-                    None
-                }
-            };
-            Ok(StreamingCheckedDirectoryEntryPaths {
-                root: self.root.clone(),
-                directory_path,
-                entries,
-                directory_identity,
-                #[cfg(test)]
-                test_counter_root,
-            })
-        }
-        #[cfg(windows)]
-        {
-            let (directory, directory_identity) =
-                self.open_handle_anchored_directory(relative_directory_path, after_root_proof)?;
-            #[cfg(test)]
-            let test_counter_root = {
-                let root_path = path_text(&self.root);
-                let mut instrumentation = SOURCE_ENUMERATION_COUNTS
-                    .lock()
-                    .expect("source enumeration instrumentation");
-                if let Some(counts) = instrumentation.get_mut(&root_path) {
-                    counts.directory_opens = counts.directory_opens.saturating_add(1);
-                    Some(root_path)
-                } else {
-                    None
-                }
-            };
-            Ok(StreamingCheckedDirectoryEntryPaths {
-                directory,
-                directory_relative_path: relative_path_text(relative_directory_path),
-                buffer: vec![0_u64; HANDLE_DIRECTORY_BUFFER_BYTES / size_of::<u64>()]
-                    .into_boxed_slice(),
-                pending_entries: VecDeque::new(),
-                observed_paths: HashSet::new(),
-                volume_serial: self.root_proof.volume_serial,
-                should_restart: true,
-                enumeration_complete: false,
-                enumeration_failed: false,
-                directory_identity: Some(directory_identity),
-                #[cfg(test)]
-                test_counter_root,
-            })
-        }
-    }
-
-    #[cfg(windows)]
-    fn open_handle_anchored_directory(
-        &self,
-        relative_directory: &Path,
-        after_root_proof: impl FnOnce(),
-    ) -> Result<(File, FileIdentityEvidence), ScanIssue> {
-        let root_identity =
-            file_identity_from_handle(self.root_proof.identity_handle()).map_err(|error| {
-                ScanIssue {
-                    path: Some(path_text(&self.canonical_root)),
-                    code: "root_identity_unavailable".to_owned(),
-                    message: error.to_string(),
-                }
-            })?;
-        if root_identity.as_ref() != Some(&self.root_proof.identity) {
-            return Err(ScanIssue {
-                path: Some(path_text(&self.canonical_root)),
-                code: "root_identity_changed".to_owned(),
-                message: "The authorized source root identity changed during inventory".to_owned(),
-            });
-        }
-        let expected_path = self.canonical_root.join(relative_directory);
-        after_root_proof();
-        let directory = open_root_relative_handle(
-            &self.root_proof.handle,
-            relative_directory,
-            FILE_LIST_DIRECTORY | FILE_READ_ATTRIBUTES,
-            Some(true),
-        )
-        .map_err(|error| {
-            if error.raw_os_error()
-                == Some(i32::try_from(ERROR_REPARSE_POINT_ENCOUNTERED).expect("Win32 error fits"))
-            {
-                path_containment_issue(&expected_path)
-            } else {
-                ScanIssue {
-                    path: Some(path_text(&expected_path)),
-                    code: "directory_unreadable".to_owned(),
-                    message: error.to_string(),
-                }
-            }
-        })?;
-        let info = file_attribute_tag_info_from_handle(&directory).map_err(|error| ScanIssue {
-            path: Some(path_text(&expected_path)),
-            code: "directory_identity_unavailable".to_owned(),
-            message: error.to_string(),
-        })?;
-        if info.FileAttributes & FILE_ATTRIBUTE_DIRECTORY == 0
-            || info.FileAttributes & FILE_ATTRIBUTE_REPARSE_POINT != 0
-        {
-            return Err(path_containment_issue(&expected_path));
-        }
-        let identity = file_identity_from_handle(&directory)
-            .map_err(|error| ScanIssue {
-                path: Some(path_text(&expected_path)),
-                code: "directory_identity_unavailable".to_owned(),
-                message: error.to_string(),
-            })?
-            .ok_or_else(|| ScanIssue {
-                path: Some(path_text(&expected_path)),
-                code: "directory_identity_unavailable".to_owned(),
-                message: "The directory handle has no stable Windows file identity".to_owned(),
-            })?;
-        if relative_directory.as_os_str().is_empty() && identity != self.root_proof.identity {
-            return Err(path_containment_issue(&expected_path));
-        }
-        Ok((directory, identity))
-    }
-
-    #[cfg(test)]
-    pub(crate) fn metadata_inventory_directory_identity(
-        &self,
-        relative_directory: &str,
-    ) -> Result<Option<FileIdentityEvidence>, ScanIssue> {
-        let relative_directory_path = validated_relative_path(relative_directory)?;
-        let (directory_path, metadata) = self.checked_existing_path(relative_directory_path)?;
-        if !metadata.is_dir()
-            || (!relative_directory_path.as_os_str().is_empty()
-                && is_link_or_reparse_point(&metadata))
-        {
-            return Err(path_containment_issue(&directory_path));
-        }
-        file_identity(&directory_path).map_err(|error| ScanIssue {
-            path: Some(path_text(&directory_path)),
-            code: "directory_identity_unavailable".to_owned(),
-            message: error.to_string(),
-        })
     }
 
     pub fn visit_relative_path(&self, relative_path: &str) -> FileVisit {
@@ -4036,86 +2971,6 @@ mod tests {
 
     #[cfg(windows)]
     #[test]
-    fn handle_directory_open_enumerates_a_nested_nonreparse_directory() {
-        let directory = tempdir().expect("temporary directory");
-        let album = directory.path().join("album");
-        fs::create_dir_all(&album).expect("nested directory");
-        fs::write(album.join("inside.png"), b"inside").expect("nested source");
-        let discovery =
-            FileDiscovery::new(&directory.path().to_string_lossy()).expect("file discovery");
-
-        let mut opened = discovery
-            .streaming_checked_entry_paths_in_directory("album")
-            .expect("root-relative nested directory");
-        let entry = opened
-            .next()
-            .expect("nested entry")
-            .expect("valid nested entry");
-        assert_eq!(entry.relative_path, "album/inside.png");
-        assert!(opened.next().is_none());
-        assert!(opened.finish().expect("finish nested directory").is_some());
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn handle_directory_open_completes_an_empty_directory_without_a_false_failure() {
-        let directory = tempdir().expect("temporary directory");
-        let empty = directory.path().join("empty");
-        fs::create_dir(&empty).expect("empty directory");
-        let discovery =
-            FileDiscovery::new(&directory.path().to_string_lossy()).expect("file discovery");
-
-        let mut opened = discovery
-            .streaming_checked_entry_paths_in_directory("empty")
-            .expect("root-relative empty directory");
-
-        assert!(opened.next().is_none());
-        assert!(opened.finish().expect("finish empty directory").is_some());
-    }
-
-    #[cfg(windows)]
-    #[test]
-    fn handle_directory_open_rejects_an_ancestor_junction_swap_at_the_authorization_window() {
-        use std::process::Command;
-
-        let directory = tempdir().expect("temporary directory");
-        let root = directory.path().join("root");
-        let outside = directory.path().join("outside");
-        let album = root.join("album");
-        fs::create_dir_all(&album).expect("source directory");
-        fs::create_dir_all(&outside).expect("outside directory");
-        fs::write(album.join("inside.png"), b"inside").expect("inside source");
-        fs::write(outside.join("outside.png"), b"outside").expect("outside source");
-        let discovery = FileDiscovery::new(&root.to_string_lossy()).expect("file discovery");
-
-        let opened =
-            discovery.streaming_checked_entry_paths_in_directory_with_hook("album", || {
-                fs::rename(&album, root.join("album-original")).expect("move authorized directory");
-                let junction = Command::new("cmd.exe")
-                    .arg("/C")
-                    .arg("mklink")
-                    .arg("/J")
-                    .arg(&album)
-                    .arg(&outside)
-                    .status()
-                    .expect("junction command");
-                assert!(junction.success());
-            });
-        fs::remove_dir(&album).expect("remove junction");
-
-        let issue = match opened {
-            Ok(_) => panic!("the external junction target must not be enumerated"),
-            Err(issue) => issue,
-        };
-        assert_eq!(
-            issue.code, "source_path_outside_root",
-            "unexpected root-relative open failure: {}",
-            issue.message
-        );
-    }
-
-    #[cfg(windows)]
-    #[test]
     fn pinned_content_upgrade_rejects_an_ancestor_path_replacement() {
         use std::process::Command;
 
@@ -4951,112 +3806,6 @@ mod tests {
         assert!(!data_facts.object_name_has_separator);
     }
 
-    #[cfg(windows)]
-    #[test]
-    fn handle_directory_buffer_parser_preserves_metadata_and_rejects_malformed_offsets() {
-        fn write_u32(buffer: &mut [u8], offset: usize, value: u32) {
-            buffer[offset..offset + 4].copy_from_slice(&value.to_le_bytes());
-        }
-
-        fn write_i64(buffer: &mut [u8], offset: usize, value: i64) {
-            buffer[offset..offset + 8].copy_from_slice(&value.to_le_bytes());
-        }
-
-        fn write_record(
-            buffer: &mut [u8],
-            next_offset: u32,
-            name: &str,
-            attributes: u32,
-            file_id: u128,
-        ) {
-            let name = name.encode_utf16().collect::<Vec<_>>();
-            write_u32(
-                buffer,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, NextEntryOffset),
-                next_offset,
-            );
-            write_i64(
-                buffer,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, LastWriteTime),
-                WINDOWS_TO_UNIX_EPOCH_100NS + 42 * HUNDRED_NS_PER_MILLISECOND,
-            );
-            write_i64(
-                buffer,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, ChangeTime),
-                0x0123_4567_89ab_cdef,
-            );
-            write_i64(
-                buffer,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, EndOfFile),
-                7,
-            );
-            write_u32(
-                buffer,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileAttributes),
-                attributes,
-            );
-            write_u32(
-                buffer,
-                std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileNameLength),
-                u32::try_from(name.len() * size_of::<u16>()).expect("name length"),
-            );
-            let id_offset = std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileId);
-            buffer[id_offset..id_offset + 16].copy_from_slice(&file_id.to_le_bytes());
-            let name_offset = std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, FileName);
-            for (index, unit) in name.into_iter().enumerate() {
-                let offset = name_offset + index * size_of::<u16>();
-                buffer[offset..offset + 2].copy_from_slice(&unit.to_le_bytes());
-            }
-        }
-
-        let mut buffer = vec![0_u8; 512];
-        write_record(&mut buffer[..256], 256, "first.png", 0, 11);
-        write_record(
-            &mut buffer[256..],
-            0,
-            "nested",
-            FILE_ATTRIBUTE_DIRECTORY,
-            12,
-        );
-
-        let entries = parse_handle_directory_buffer(&buffer, 9, "album").expect("valid records");
-        assert_eq!(entries.len(), 2);
-        assert_eq!(entries[0].relative_path, "album/first.png");
-        assert_eq!(entries[0].kind, MetadataInventoryEntryKind::File);
-        assert_eq!(entries[0].file_size, Some(7));
-        assert_eq!(entries[0].modified_unix_ms, 42);
-        assert_eq!(
-            entries[0].source_revision,
-            Some(SourceRevisionEvidence {
-                scheme: "windows-file-change-time-100ns-v1".to_owned(),
-                value: "0123456789abcdef".to_owned(),
-            })
-        );
-        assert_eq!(
-            entries[0]
-                .file_identity
-                .as_ref()
-                .map(|identity| identity.value.as_str()),
-            Some("0000000000000009:0000000000000000000000000000000b")
-        );
-        assert_eq!(entries[1].relative_path, "album/nested");
-        assert_eq!(entries[1].kind, MetadataInventoryEntryKind::Directory);
-        assert_eq!(
-            entries[1]
-                .file_identity
-                .as_ref()
-                .map(|identity| identity.value.as_str()),
-            Some("0000000000000009:0000000000000000000000000000000c")
-        );
-
-        write_u32(
-            &mut buffer,
-            std::mem::offset_of!(FILE_ID_EXTD_DIR_INFO, NextEntryOffset),
-            3,
-        );
-        assert!(parse_handle_directory_buffer(&buffer, 9, "album").is_err());
-    }
-
     #[test]
     fn reparse_cloud_placeholder_remains_a_present_file_entry() {
         assert_eq!(
@@ -5346,8 +4095,8 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         .expect("comments and whitespace must not affect the token contract");
 
         let broadened_file_system_import = source.replacen(
-            "GetVolumeInformationByHandleW, SYNCHRONIZE, WIN32_FIND_DATAW, WRITE_DAC, WRITE_OWNER,",
-            "GetVolumeInformationByHandleW, ReadDirectoryChangesW, SYNCHRONIZE, WIN32_FIND_DATAW, WRITE_DAC, WRITE_OWNER,",
+            "GetVolumeInformationByHandleW, SYNCHRONIZE, WIN32_FIND_DATAW,",
+            "GetVolumeInformationByHandleW, ReadDirectoryChangesW, SYNCHRONIZE, WIN32_FIND_DATAW,",
             1,
         );
         assert_ne!(broadened_file_system_import, source);
@@ -6010,6 +4759,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const LOCAL_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "directory_enumeration",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "metadata_inventory_evidence",
             visibility: "",
             attributes: &[],
@@ -6267,7 +5022,7 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             key: "local-use:std-fs-metadata",
             source: AvailabilitySupportSource::Local,
             locator: AvailabilitySupportLocator::UseContaining("std::fs::Metadata"),
-            digest: "3a4df25d620e45592770fa629bd8f1d165af68d63419273cae864fbe9d4e9deb",
+            digest: "8da9637ecef30e15314ae88197c73e3ef188de30ff79a03bbf7886f2c759af85",
             summary: "canonical std filesystem evidence types",
         },
         AvailabilitySupportContract {
@@ -6322,7 +5077,7 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             locator: AvailabilitySupportLocator::UseContaining(
                 "windows_sys::Win32::Storage::FileSystem::FindFirstFileW",
             ),
-            digest: "b0c467ca86a60e4c30e7f84976f43ad0ace573657b2d0d24ca2c4c2d38b4246a",
+            digest: "9c0592a35f160e16d2cb8e9e3928f6c9c51df9b3df950a4a60b4329b1d385365",
             summary: "shared exact-name Win32 metadata, revision, and publication APIs",
         },
         AvailabilitySupportContract {

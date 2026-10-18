@@ -5,6 +5,8 @@ use std::time::{Duration, Instant};
 use crate::domain::LibraryChangeLane;
 
 #[cfg(test)]
+mod diagnostics;
+#[cfg(test)]
 mod tests;
 
 const SQLITE_USER_INTERACTIVE_ADMISSION_TIMEOUT: Duration = Duration::from_secs(5);
@@ -33,6 +35,7 @@ impl SqliteWriteAdmission {
         }
     }
 
+    #[cfg_attr(test, track_caller)]
     pub(super) fn acquire(self: &Arc<Self>, lane: LibraryChangeLane) -> SqliteWritePermit {
         self.acquire_priority(sqlite_write_priority(lane), None)
     }
@@ -47,6 +50,7 @@ impl SqliteWriteAdmission {
         ReservedWrite { pending }
     }
 
+    #[cfg_attr(test, track_caller)]
     pub(super) fn acquire_preemptible(
         self: &Arc<Self>,
         lane: LibraryChangeLane,
@@ -55,10 +59,12 @@ impl SqliteWriteAdmission {
         self.acquire_priority(sqlite_write_priority(lane), Some(preempt))
     }
 
+    #[cfg_attr(test, track_caller)]
     pub(super) fn acquire_user_interactive(self: &Arc<Self>) -> Option<SqliteWritePermit> {
         self.acquire_user_interactive_for(SQLITE_USER_INTERACTIVE_ADMISSION_TIMEOUT)
     }
 
+    #[cfg_attr(test, track_caller)]
     pub(super) fn acquire_user_interactive_for(
         self: &Arc<Self>,
         timeout: Duration,
@@ -66,6 +72,7 @@ impl SqliteWriteAdmission {
         self.acquire_priority_for(SQLITE_USER_INTERACTIVE_PRIORITY, timeout)
     }
 
+    #[cfg_attr(test, track_caller)]
     pub(super) fn acquire_for(
         self: &Arc<Self>,
         lane: LibraryChangeLane,
@@ -74,6 +81,7 @@ impl SqliteWriteAdmission {
         self.acquire_priority_for(sqlite_write_priority(lane), timeout)
     }
 
+    #[cfg_attr(test, track_caller)]
     fn acquire_priority_for(
         self: &Arc<Self>,
         priority: usize,
@@ -104,6 +112,7 @@ impl SqliteWriteAdmission {
         }
     }
 
+    #[cfg_attr(test, track_caller)]
     fn acquire_priority(
         self: &Arc<Self>,
         priority: usize,
@@ -172,6 +181,7 @@ impl SqliteWriteAdmission {
         state.completed_write_epoch
     }
 
+    #[cfg_attr(test, track_caller)]
     pub(super) fn try_acquire(
         self: &Arc<Self>,
         lane: LibraryChangeLane,
@@ -179,6 +189,7 @@ impl SqliteWriteAdmission {
         self.try_acquire_priority(sqlite_write_priority(lane), None)
     }
 
+    #[cfg_attr(test, track_caller)]
     pub(super) fn try_acquire_preemptible_maintenance(
         self: &Arc<Self>,
         preempt: SqliteWritePreemptCallback,
@@ -186,6 +197,7 @@ impl SqliteWriteAdmission {
         self.try_acquire_priority(SQLITE_MAINTENANCE_PRIORITY, Some(preempt))
     }
 
+    #[cfg_attr(test, track_caller)]
     fn try_acquire_priority(
         self: &Arc<Self>,
         priority: usize,
@@ -202,9 +214,7 @@ impl SqliteWriteAdmission {
         state.is_active = true;
         state.active_priority = priority;
         state.active_preempt = preempt;
-        Some(SqliteWritePermit {
-            admission: Arc::clone(self),
-        })
+        Some(SqliteWritePermit::new(Arc::clone(self), priority))
     }
 }
 
@@ -219,6 +229,7 @@ pub(super) struct ReservedWrite {
 }
 
 impl ReservedWrite {
+    #[cfg_attr(test, track_caller)]
     pub(super) fn try_acquire(&mut self) -> Option<SqliteWritePermit> {
         let mut state = self
             .pending
@@ -233,9 +244,10 @@ impl ReservedWrite {
         state.is_active = true;
         state.active_priority = self.pending.priority;
         state.active_preempt = None;
-        Some(SqliteWritePermit {
-            admission: Arc::clone(&self.pending.admission),
-        })
+        Some(SqliteWritePermit::new(
+            Arc::clone(&self.pending.admission),
+            self.pending.priority,
+        ))
     }
 }
 
@@ -252,6 +264,7 @@ impl PendingWrite {
             })
     }
 
+    #[cfg_attr(test, track_caller)]
     fn admit(
         &mut self,
         state: &mut SqliteWriteAdmissionState,
@@ -262,9 +275,7 @@ impl PendingWrite {
         state.is_active = true;
         state.active_priority = self.priority;
         state.active_preempt = preempt;
-        SqliteWritePermit {
-            admission: Arc::clone(&self.admission),
-        }
+        SqliteWritePermit::new(Arc::clone(&self.admission), self.priority)
     }
 }
 
@@ -288,6 +299,21 @@ impl Drop for PendingWrite {
 
 pub(super) struct SqliteWritePermit {
     pub(super) admission: Arc<SqliteWriteAdmission>,
+    #[cfg(test)]
+    _observation: diagnostics::HeldWriteObservation,
+}
+
+impl SqliteWritePermit {
+    #[cfg_attr(test, track_caller)]
+    fn new(admission: Arc<SqliteWriteAdmission>, priority: usize) -> Self {
+        #[cfg(not(test))]
+        let _ = priority;
+        Self {
+            admission,
+            #[cfg(test)]
+            _observation: diagnostics::HeldWriteObservation::start(priority),
+        }
+    }
 }
 
 impl Drop for SqliteWritePermit {

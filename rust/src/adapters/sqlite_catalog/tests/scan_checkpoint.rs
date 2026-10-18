@@ -1,4 +1,10 @@
-use super::*;
+use crate::adapters::sqlite_catalog::tests::support::fixture_request;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+use tempfile::tempdir;
+
+use crate::adapters::sqlite_catalog::*;
 
 enum ProgressBoundary {
     Checkpoint,
@@ -256,4 +262,154 @@ fn refused_progress_commit_retains_the_batch_for_a_single_retry() {
             .expect("committed retry");
         assert_eq!((accepted, staged), (1, 1));
     }
+}
+
+#[test]
+fn directory_entry_frontier_is_idempotent_sorted_and_windowed() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let request = fixture_request("wide-scan", "C:\\Pictures");
+    let mut catalog = SqliteCatalog::open(path).expect("catalog");
+    catalog
+        .begin_scan(&request, "wide-root", "C:\\Pictures")
+        .expect("begin scan");
+    assert_eq!(
+        catalog
+            .claim_next_directory("wide-scan")
+            .expect("claim root"),
+        Some(String::new())
+    );
+    assert!(
+        !catalog
+            .is_current_directory_enumerated("wide-scan", "")
+            .expect("enumeration state")
+    );
+
+    let mut entries = (0..1025)
+        .rev()
+        .map(|index| format!("image-{index:04}.png"))
+        .collect::<Vec<_>>();
+    catalog
+        .stage_directory_entries("wide-scan", "", &entries[..17])
+        .expect("partial enumeration");
+    entries.push("image-0000.png".to_owned());
+    for batch in entries.chunks(113) {
+        catalog
+            .stage_directory_entries("wide-scan", "", batch)
+            .expect("entry batch");
+    }
+    catalog
+        .complete_directory_enumeration("wide-scan", "")
+        .expect("complete enumeration");
+
+    let mut loaded = Vec::new();
+    loop {
+        let window = catalog
+            .load_directory_entry_window("wide-scan", "", loaded.last().map(String::as_str), 128)
+            .expect("entry window");
+        assert!(window.len() <= 128);
+        if window.is_empty() {
+            break;
+        }
+        loaded.extend(window);
+    }
+
+    assert_eq!(loaded.len(), 1025);
+    assert!(loaded.windows(2).all(|pair| pair[0] < pair[1]));
+    assert!(
+        catalog
+            .has_directory_entry("wide-scan", "", "image-0512.png")
+            .expect("entry identity")
+    );
+    catalog
+        .complete_directory("wide-scan", &ScanCheckpoint::default())
+        .expect("complete directory");
+    let queued: i64 = catalog
+        .connection
+        .query_row("SELECT COUNT(*) FROM scan_directory_entries", [], |row| {
+            row.get(0)
+        })
+        .expect("entry count");
+    assert_eq!(queued, 0);
+}
+
+#[test]
+fn persists_and_validates_a_published_root_replacement_checkpoint() {
+    let directory = tempdir().expect("temporary directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let raw_root_path = r"\\?\C:\Pictures";
+    let request = fixture_request("scan-resume", raw_root_path);
+    let mut catalog = SqliteCatalog::open(path.clone()).expect("catalog");
+    let published = fixture_request("published-before-resume", raw_root_path);
+    catalog
+        .begin_scan(&published, "root-resume", raw_root_path)
+        .expect("initial import");
+    catalog
+        .prove_live_only_first_import_handoff_for_test(&published.scan_id)
+        .expect("initial capture");
+    catalog
+        .publish_scan(&published.scan_id, "root-resume", 0, 0)
+        .expect("trustworthy prior baseline");
+    let initial = catalog
+        .begin_scan(&request, "root-resume", raw_root_path)
+        .expect("begin scan");
+    assert_eq!(initial.visited_entries, 0);
+    let checkpoint = ScanCheckpoint {
+        last_visited_relative_path: Some("nested/last.png".to_owned()),
+        visited_entries: 128,
+        accepted_items: 40,
+        issue_count: 3,
+        requires_previous_snapshot: true,
+    };
+    catalog
+        .checkpoint_scan("scan-resume", &checkpoint)
+        .expect("persist checkpoint");
+    drop(catalog);
+
+    let mut restored = SqliteCatalog::open(path).expect("restored catalog");
+    let recoverable = restored
+        .load_recoverable_scan()
+        .expect("recoverable scan")
+        .expect("stored running scan");
+    assert_eq!(recoverable.scan_id, "scan-resume");
+    assert_eq!(recoverable.root_path, raw_root_path);
+    assert_eq!(recoverable.display_root_path, "C:\\Pictures");
+    assert_eq!(recoverable.visited_entries, 128);
+    assert_eq!(recoverable.accepted_items, 40);
+    assert_eq!(recoverable.issue_count, 3);
+    let create_error = restored
+        .begin_scan(&request, "unexpected-root", "C:\\Unexpected")
+        .expect_err("new scans cannot reuse a checkpoint identifier");
+    assert_eq!(create_error.code, "catalog_scan_already_exists");
+    let unexpected_root_count = restored
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM library_roots WHERE id = 'unexpected-root'",
+            [],
+            |row| row.get::<_, i64>(0),
+        )
+        .expect("unexpected root count");
+    assert_eq!(unexpected_root_count, 0);
+    let resumed = restored
+        .resume_scan(&request, "root-resume", raw_root_path)
+        .expect("resume scan");
+    assert_eq!(
+        resumed.last_visited_relative_path,
+        checkpoint.last_visited_relative_path
+    );
+    assert!(resumed.requires_previous_snapshot);
+    let publish_error = restored
+        .publish_scan("scan-resume", "root-resume", 40, 3)
+        .expect_err("an unresolved prior issue cannot publish");
+    assert_eq!(
+        publish_error.code,
+        "catalog_scan_requires_previous_snapshot"
+    );
+
+    let mut changed_request = request.clone();
+    changed_request.preview_edge = 256;
+    let error = restored
+        .resume_scan(&changed_request, "root-resume", "C:\\Pictures")
+        .expect_err("changed parameters cannot reuse a checkpoint");
+    assert_eq!(error.code, "catalog_scan_resume_mismatch");
 }

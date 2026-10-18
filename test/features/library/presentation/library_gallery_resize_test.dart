@@ -1,13 +1,9 @@
-import "dart:typed_data";
-
-import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_exact_extent_sliver.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_activity.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout_snapshot.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_card_metrics.dart";
@@ -19,215 +15,11 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
+import "support/gallery_wall_fixture.dart";
+
 void main() {
-  for (final withManifest in [false, true]) {
-    testWidgets(
-      "hidden gallery retires preview work and resumes ($withManifest)",
-      (tester) async {
-        final state = _boundaryState(
-          itemCount: 40,
-          windowStart: 0,
-          windowEnd: 40,
-          hasPrevious: false,
-          hasNext: false,
-        );
-        final controller = _RecordingGalleryController();
-        final scroll = ScrollController();
-        addTearDown(scroll.dispose);
-        final active = ValueNotifier(true);
-        addTearDown(active.dispose);
-        await tester.pumpWidget(
-          ProviderScope(
-            child: MaterialApp(
-              home: ValueListenableBuilder<bool>(
-                valueListenable: active,
-                builder: (context, enabled, _) => Visibility(
-                  visible: enabled,
-                  maintainState: true,
-                  child: LibraryGalleryActivity(
-                    controller: controller,
-                    child: LibraryGalleryWall(
-                      state: state,
-                      controller: controller,
-                      scrollController: scroll,
-                      layoutShape: GalleryLayoutShape.equalHeight,
-                      thumbnailSize: GalleryThumbnailSize.medium,
-                      selection: GallerySelection.empty(state.queryId),
-                      isSelecting: false,
-                      layoutManifest: withManifest ? _manifest(40) : null,
-                      onOpen: (_) {},
-                      onToggleSelection: (_) {},
-                      onViewInformation: (_) {},
-                      onCopyPath: (_) {},
-                      onRevealFile: (_) {},
-                      onVisiblePositionChanged: (_) {},
-                      onLoadPrevious: () async {},
-                      onLayoutChanged: (_, _) {},
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        );
-        await tester.pump();
-        expect(controller.previewDemandRequests.last.visible, isNotEmpty);
-        final originalPosition = scroll.position;
-        active.value = false;
-        await tester.pump();
-        expect(controller.previewDemandRequests.last.visible, isEmpty);
-        final hiddenCount = controller.previewDemandRequests.length;
-        // A late scroll notification must not repopulate hidden preview demand.
-        scroll.jumpTo(100);
-        await tester.pump();
-        expect(controller.previewDemandRequests.length, hiddenCount);
-        active.value = true;
-        await tester.pump();
-        expect(identical(scroll.position, originalPosition), isTrue);
-        expect(controller.previewDemandRequests.last.visible, isNotEmpty);
-        await tester.pumpWidget(const SizedBox.shrink());
-      },
-    );
-  }
-
-  test("visible range excludes surrounding prefetch evidence", () {
-    final range = LibraryGalleryVisibleRange(
-      queryId: "query-1",
-      revision: BigInt.one,
-      startGlobalItemIndex: 20,
-      endGlobalItemIndexExclusive: 30,
-    );
-
-    expect(range.containsGlobalItemIndex(19), isFalse);
-    expect(range.containsGlobalItemIndex(20), isTrue);
-    expect(range.containsGlobalItemIndex(29), isTrue);
-    expect(range.containsGlobalItemIndex(30), isFalse);
-    expect(
-      range.contains(
-        queryId: "stale-query",
-        revision: BigInt.one,
-        globalItemIndex: 24,
-      ),
-      isFalse,
-    );
-  });
-
-  testWidgets("publishes the initial visible range before a manifest arrives", (
-    tester,
-  ) async {
-    final state = _boundaryState(
-      itemCount: 40,
-      windowStart: 0,
-      windowEnd: 40,
-      hasPrevious: false,
-      hasNext: false,
-    );
-    final controller = _RecordingGalleryController();
-    final scrollController = ScrollController();
-    LibraryGalleryVisibleRange? visibleRange;
-    addTearDown(scrollController.dispose);
-
-    await tester.pumpWidget(
-      ProviderScope(
-        child: MaterialApp(
-          home: SizedBox(
-            width: 900,
-            height: 600,
-            child: LibraryGalleryWall(
-              state: state,
-              controller: controller,
-              scrollController: scrollController,
-              layoutShape: GalleryLayoutShape.equalHeight,
-              thumbnailSize: GalleryThumbnailSize.medium,
-              selection: GallerySelection.empty(state.queryId),
-              isSelecting: false,
-              onOpen: (_) {},
-              onToggleSelection: (_) {},
-              onViewInformation: (_) {},
-              onCopyPath: (_) {},
-              onRevealFile: (_) {},
-              onVisiblePositionChanged: (_) {},
-              onVisibleRangeChanged: (range) {
-                visibleRange = range;
-              },
-              onLoadPrevious: () async {},
-              onLayoutChanged: (_, _) {},
-            ),
-          ),
-        ),
-      ),
-    );
-    await tester.pump();
-
-    expect(visibleRange, isNotNull);
-    expect(visibleRange!.queryId, state.queryId);
-    expect(visibleRange!.revision, state.catalogRevision);
-    expect(visibleRange!.containsGlobalItemIndex(0), isTrue);
-    expect(controller.previewDemandRequests, isNotEmpty);
-  });
-
-  testWidgets(
-    "square direct jump requests the unloaded range before a manifest arrives",
-    (tester) async {
-      final state = _boundaryState(
-        itemCount: 4000,
-        windowStart: 0,
-        windowEnd: 80,
-        hasPrevious: false,
-        hasNext: true,
-      );
-      final controller = _RecordingGalleryController();
-      final scrollController = ScrollController();
-      addTearDown(scrollController.dispose);
-
-      await tester.pumpWidget(
-        ProviderScope(
-          child: MaterialApp(
-            home: SizedBox(
-              width: 900,
-              height: 600,
-              child: LibraryGalleryWall(
-                state: state,
-                controller: controller,
-                scrollController: scrollController,
-                layoutShape: GalleryLayoutShape.square,
-                thumbnailSize: GalleryThumbnailSize.medium,
-                selection: GallerySelection.empty(state.queryId),
-                isSelecting: false,
-                onOpen: (_) {},
-                onToggleSelection: (_) {},
-                onViewInformation: (_) {},
-                onCopyPath: (_) {},
-                onRevealFile: (_) {},
-                onVisiblePositionChanged: (_) {},
-                onVisibleRangeChanged: (_) {},
-                onLoadPrevious: () async {},
-                onLayoutChanged: (_, _) {},
-              ),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-      controller.visibleRangeRequests.clear();
-
-      scrollController.jumpTo(scrollController.position.maxScrollExtent * 0.8);
-      await tester.pump();
-
-      expect(controller.visibleRangeRequests, isNotEmpty);
-      expect(controller.visibleRangeRequests.last.start, greaterThan(80));
-      expect(
-        find.descendant(
-          of: find.byKey(const Key("library-trailing-placeholder")),
-          matching: find.byType(CustomPaint),
-        ),
-        findsNothing,
-      );
-    },
-  );
-
   test("square manifest produces query-wide fixed-cell geometry", () {
-    final manifest = _manifest(1200);
+    final manifest = galleryManifest(1200);
     final snapshot = LibraryGalleryLayoutSnapshot.build(
       manifest: manifest,
       availableWidth: 860,
@@ -251,9 +43,9 @@ void main() {
     const itemCount = 4000;
     const initialSize = Size(1000, 640);
     const finalSize = Size(760, 600);
-    final manifest = _manifest(itemCount);
-    final libraryState = ValueNotifier(_state(itemCount));
-    final controller = _RecordingGalleryController();
+    final manifest = galleryManifest(itemCount);
+    final libraryState = ValueNotifier(galleryState(itemCount));
+    final controller = RecordingGalleryController();
     final scrollController = ScrollController();
     final wallSize = ValueNotifier(initialSize);
     LibraryGalleryVisiblePosition? visiblePosition;
@@ -423,7 +215,7 @@ void main() {
       assets: [
         for (final asset in libraryState.value.assets)
           if (asset.locationId == "location-3000")
-            _asset(3000, "updated preview evidence")
+            galleryAsset(3000, "updated preview evidence")
           else
             asset,
       ],
@@ -488,9 +280,9 @@ void main() {
     (tester) async {
       const itemCount = 4000;
       const wallSize = Size(900, 620);
-      final state = _state(itemCount);
+      final state = galleryState(itemCount);
       final manifest = ValueNotifier<LibraryGalleryLayoutManifest?>(null);
-      final controller = _RecordingGalleryController();
+      final controller = RecordingGalleryController();
       final scrollController = ScrollController();
       LibraryGalleryVisiblePosition? visiblePosition;
       addTearDown(() async {
@@ -557,7 +349,7 @@ void main() {
       final anchorTopBefore =
           tester.getTopLeft(anchorFinder).dy - tester.getTopLeft(wallFinder).dy;
 
-      manifest.value = _manifest(itemCount);
+      manifest.value = galleryManifest(itemCount);
       await tester.pump();
 
       expect(find.byType(LibraryPhotoTile), findsWidgets);
@@ -625,9 +417,9 @@ void main() {
       "later scrolling retires a queued transition with ${timing.name}",
       (tester) async {
         const itemCount = 4000;
-        final state = _state(itemCount);
-        final manifest = _manifest(itemCount);
-        final controller = _RecordingGalleryController();
+        final state = galleryState(itemCount);
+        final manifest = galleryManifest(itemCount);
+        final controller = RecordingGalleryController();
         final scroll = ScrollController();
         final resolver = LibraryGalleryPositionResolver();
         final configuration = ValueNotifier((
@@ -752,15 +544,15 @@ void main() {
     tester,
   ) async {
     const itemCount = 4000;
-    final state = _state(itemCount);
-    final manifest = _manifest(itemCount);
+    final state = galleryState(itemCount);
+    final manifest = galleryManifest(itemCount);
     final snapshot = LibraryGalleryLayoutSnapshot.build(
       manifest: manifest,
       availableWidth: 860,
       thumbnailSize: GalleryThumbnailSize.medium,
       sortKey: LibraryGallerySortKey.captureTime,
     );
-    final controller = _RecordingGalleryController();
+    final controller = RecordingGalleryController();
     final scrollController = ScrollController();
     addTearDown(() async {
       scrollController.dispose();
@@ -816,9 +608,9 @@ void main() {
     const wallHeight = 640.0;
     const initialSize = Size(1000, wallHeight);
     const finalSize = Size(760, wallHeight);
-    final manifest = _manifest(itemCount);
-    final state = _state(itemCount);
-    final controller = _RecordingGalleryController();
+    final manifest = galleryManifest(itemCount);
+    final state = galleryState(itemCount);
+    final controller = RecordingGalleryController();
     final scrollController = ScrollController();
     final wallSize = ValueNotifier(initialSize);
     addTearDown(() async {
@@ -943,10 +735,13 @@ void main() {
       (tester) async {
         const itemCount = 4000;
         const wallSize = Size(900, 620);
-        final initialManifest = _manifest(itemCount, dimensionsKnown: false);
+        final initialManifest = galleryManifest(
+          itemCount,
+          dimensionsKnown: false,
+        );
         final manifest = ValueNotifier(initialManifest);
-        final state = _state(itemCount);
-        final controller = _RecordingGalleryController();
+        final state = galleryState(itemCount);
+        final controller = RecordingGalleryController();
         final scrollController = ScrollController();
         LibraryGalleryVisiblePosition? visiblePosition;
         LibraryGalleryLayoutTransition? transition;
@@ -1136,7 +931,7 @@ void main() {
     (tester) async {
       const itemCount = 60;
       const wallSize = Size(1000, 360);
-      final manifest = _manifest(itemCount);
+      final manifest = galleryManifest(itemCount);
       final snapshot = LibraryGalleryLayoutSnapshot.build(
         manifest: manifest,
         availableWidth: wallSize.width - 40,
@@ -1151,7 +946,7 @@ void main() {
 
       Future<void> pumpBoundary({
         required LibraryState state,
-        required _RecordingGalleryController controller,
+        required RecordingGalleryController controller,
         required ScrollController scrollController,
       }) async {
         await tester.pumpWidget(
@@ -1186,13 +981,13 @@ void main() {
         await tester.pump();
       }
 
-      final previousController = _RecordingGalleryController();
+      final previousController = RecordingGalleryController();
       final previousScrollController = ScrollController(
         initialScrollOffset: snapshot.metrics.itemOffsets[rowStart],
       );
       addTearDown(previousScrollController.dispose);
       await pumpBoundary(
-        state: _boundaryState(
+        state: galleryBoundaryState(
           itemCount: itemCount,
           windowStart: rowStart + 1,
           windowEnd: rowEnd,
@@ -1229,7 +1024,7 @@ void main() {
       final unloadedRect = tester.getRect(unloadedSlot);
       final unloadedOffset = previousScrollController.offset;
       await pumpBoundary(
-        state: _boundaryState(
+        state: galleryBoundaryState(
           itemCount: itemCount,
           windowStart: rowStart,
           windowEnd: rowEnd,
@@ -1243,13 +1038,13 @@ void main() {
       expect(tester.getRect(unloadedSlot), unloadedRect);
       expect(previousScrollController.offset, unloadedOffset);
 
-      final nextController = _RecordingGalleryController();
+      final nextController = RecordingGalleryController();
       final nextScrollController = ScrollController(
         initialScrollOffset: snapshot.metrics.itemOffsets[rowStart],
       );
       addTearDown(nextScrollController.dispose);
       await pumpBoundary(
-        state: _boundaryState(
+        state: galleryBoundaryState(
           itemCount: itemCount,
           windowStart: rowStart,
           windowEnd: rowEnd - 1,
@@ -1274,9 +1069,9 @@ void main() {
     (tester) async {
       const itemCount = 4000;
       const wallSize = Size(900, 620);
-      final state = _state(itemCount);
-      final manifest = _manifest(itemCount);
-      final controller = _RecordingGalleryController();
+      final state = galleryState(itemCount);
+      final manifest = galleryManifest(itemCount);
+      final controller = RecordingGalleryController();
       final scrollController = ScrollController();
       final positionResolver = LibraryGalleryPositionResolver();
       final configuration = ValueNotifier((
@@ -1452,8 +1247,8 @@ void main() {
   ) async {
     const itemCount = 4000;
     const wallSize = Size(900, 620);
-    final state = _state(itemCount);
-    final controller = _RecordingGalleryController();
+    final state = galleryState(itemCount);
+    final controller = RecordingGalleryController();
     final scrollController = ScrollController();
     final rebuild = ValueNotifier(0);
     var applied = 0;
@@ -1517,232 +1312,4 @@ void main() {
       isNot(scrollController.position.maxScrollExtent),
     );
   });
-}
-
-LibraryState _state(int itemCount) {
-  final revision = BigInt.one;
-  final cursor = LibraryCatalogCursor(
-    revision: revision,
-    queryId: "resize-query",
-    primaryMissing: false,
-    primaryText: "2026-08-10T00:00:00.000000000",
-    primaryNumber: 0,
-    rootId: "root-1",
-    locationId: "location-0",
-  );
-  const windowStart = 2800;
-  final windowEnd = itemCount < 3201 ? itemCount : 3201;
-  return LibraryState(
-    status: LibraryStatus.completed,
-    roots: [
-      LibraryRoot(
-        id: "root-1",
-        path: "C:\\Pictures",
-        displayPath: "C:\\Pictures",
-        createdUnixMs: 1,
-        assetCount: itemCount,
-        issueCount: 0,
-      ),
-    ],
-    catalogRevision: revision,
-    queryId: "resize-query",
-    windowStartItemOffset: windowStart,
-    assets: [
-      for (var index = windowStart; index < windowEnd; index++)
-        _asset(index, "initial preview evidence"),
-    ],
-    previousCursor: cursor,
-    nextCursor: cursor,
-    timeline: LibraryTimeline(
-      revision: revision,
-      queryId: "resize-query",
-      totalItems: itemCount,
-      buckets: [
-        LibraryTimeBucket(
-          monthKey: "2026-08",
-          itemCount: itemCount,
-          aspectRatioSum: itemCount.toDouble(),
-        ),
-      ],
-    ),
-  );
-}
-
-LibraryState _boundaryState({
-  required int itemCount,
-  required int windowStart,
-  required int windowEnd,
-  required bool hasPrevious,
-  required bool hasNext,
-}) {
-  final revision = BigInt.one;
-  final cursor = LibraryCatalogCursor(
-    revision: revision,
-    queryId: "resize-query",
-    primaryMissing: false,
-    primaryText: "2026-08-10T00:00:00.000000000",
-    primaryNumber: 0,
-    rootId: "root-1",
-    locationId: "location-$windowStart",
-  );
-  return LibraryState(
-    status: LibraryStatus.completed,
-    roots: [
-      LibraryRoot(
-        id: "root-1",
-        path: "C:\\Pictures",
-        displayPath: "C:\\Pictures",
-        createdUnixMs: 1,
-        assetCount: itemCount,
-        issueCount: 0,
-      ),
-    ],
-    catalogRevision: revision,
-    queryId: "resize-query",
-    windowStartItemOffset: windowStart,
-    assets: [
-      for (var index = windowStart; index < windowEnd; index++)
-        _asset(index, "boundary preview evidence"),
-    ],
-    previousCursor: hasPrevious ? cursor : null,
-    nextCursor: hasNext ? cursor : null,
-    timeline: LibraryTimeline(
-      revision: revision,
-      queryId: "resize-query",
-      totalItems: itemCount,
-      buckets: [
-        LibraryTimeBucket(
-          monthKey: "2026-08",
-          itemCount: itemCount,
-          aspectRatioSum: itemCount.toDouble(),
-        ),
-      ],
-    ),
-  );
-}
-
-LibraryAsset _asset(int index, String previewIssueMessage) {
-  return LibraryAsset(
-    assetId: "asset-$index",
-    locationId: "location-$index",
-    rootId: "root-1",
-    activeScanId: "scan-1",
-    sourceRevision: null,
-    sourceGeneration: BigInt.one,
-    sourcePath: "C:\\Pictures\\$index.jpg",
-    displayPath: "C:\\Pictures\\$index.jpg",
-    relativePath: "$index.jpg",
-    previewPath: "",
-    fileSize: BigInt.one,
-    modifiedUnixMs: 1,
-    width: 4,
-    height: 3,
-    previewStatus: LibraryPreviewStatus.failed,
-    previewIssueCode: "preview_failed",
-    previewIssueMessage: previewIssueMessage,
-  );
-}
-
-LibraryGalleryLayoutManifest _manifest(
-  int itemCount, {
-  bool dimensionsKnown = true,
-}) {
-  final revision = BigInt.one;
-  final builder = LibraryGalleryLayoutManifestBuilder(
-    revision: revision,
-    queryId: "resize-query",
-    totalItems: itemCount,
-  );
-  builder.append(
-    LibraryGalleryLayoutManifestChunk(
-      revision: revision,
-      queryId: "resize-query",
-      totalItems: itemCount,
-      startOrdinal: 0,
-      locationIds: [
-        for (var index = 0; index < itemCount; index++) "location-$index",
-      ],
-      aspectRatioMilli: Uint16List.fromList([
-        for (var index = 0; index < itemCount; index++)
-          dimensionsKnown ? 650 + (index * 277) % 2350 : 1000,
-      ]),
-      dateGroupIndices: Uint16List.fromList([
-        for (var index = 0; index < itemCount; index++) index ~/ 500,
-      ]),
-      dateGroups: const [
-        "2026-08-10",
-        "2026-08-09",
-        "2026-08-08",
-        "2026-08-07",
-        "2026-08-06",
-        "2026-08-05",
-        "2026-08-04",
-        "2026-08-03",
-      ],
-      flags: Uint8List.fromList(
-        List.filled(
-          itemCount,
-          dimensionsKnown ? libraryGalleryLayoutDimensionsKnownFlag : 0,
-        ),
-      ),
-    ),
-  );
-  return builder.build();
-}
-
-class _RecordingGalleryController extends LibraryController {
-  var nextPageRequests = 0;
-  var previousPageRequests = 0;
-  var timeSeekRequests = 0;
-  final visibleRangeRequests = <({int start, int end})>[];
-  final previewDemandRequests =
-      <
-        ({List<String> visible, List<String> nearDirection, List<String> guard})
-      >[];
-
-  @override
-  void updateGalleryPreviewDemand({
-    Iterable<LibraryAsset> visible = const <LibraryAsset>[],
-    Iterable<LibraryAsset> nearDirection = const <LibraryAsset>[],
-    Iterable<LibraryAsset> guard = const <LibraryAsset>[],
-    Iterable<LibraryAsset> idle = const <LibraryAsset>[],
-    Map<String, int> previewEdges = const <String, int>{},
-  }) {
-    previewDemandRequests.add((
-      visible: [for (final asset in visible) asset.locationId],
-      nearDirection: [for (final asset in nearDirection) asset.locationId],
-      guard: [for (final asset in guard) asset.locationId],
-    ));
-  }
-
-  @override
-  void ensureVisibleRange({
-    required int startItemOffset,
-    required int endItemOffsetExclusive,
-  }) {
-    visibleRangeRequests.add((
-      start: startItemOffset,
-      end: endItemOffsetExclusive,
-    ));
-  }
-
-  @override
-  Future<void> loadNextPage() async {
-    nextPageRequests += 1;
-  }
-
-  @override
-  Future<bool> loadPreviousPage() async {
-    previousPageRequests += 1;
-    return false;
-  }
-
-  @override
-  Future<bool> jumpToTime(
-    LibraryTimeBucket bucket, {
-    int itemOffset = 0,
-  }) async {
-    timeSeekRequests += 1;
-    return false;
-  }
 }

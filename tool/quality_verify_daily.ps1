@@ -3,6 +3,10 @@ param(
     [ValidateSet(
         "all",
         "static",
+        "rust_catalog_history",
+        "rust_catalog",
+        "rust_sync_scan",
+        "rust_other",
         "flutter",
         "windows_scan",
         "windows_accessibility"
@@ -21,16 +25,11 @@ Push-Location $repositoryRoot
 try {
     if ($Component -in @("all", "static")) {
         & (Join-Path $PSScriptRoot "quality_lint.ps1")
-        Invoke-AmeChecked $toolchain.Cargo @(
-            "test",
-            "--locked",
-            "--manifest-path",
-            "rust\Cargo.toml",
-            "--all-targets",
-            "--all-features",
-            "--",
-            "--test-threads=1"
-        )
+    }
+    if ($Component -eq "all") {
+        & (Join-Path $PSScriptRoot "quality_test_rust.ps1")
+    } elseif ($Component.StartsWith("rust_", [StringComparison]::Ordinal)) {
+        & (Join-Path $PSScriptRoot "quality_test_rust.ps1") -Partition $Component.Substring(5)
     }
     if ($Component -in @("all", "flutter")) {
         & (Join-Path $PSScriptRoot "quality_test_flutter.ps1")
