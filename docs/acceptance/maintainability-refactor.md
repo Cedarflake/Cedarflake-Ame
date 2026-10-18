@@ -4,8 +4,9 @@ Date: 2026-10-18
 
 Scope and execution order belong to the [active plan](../plans/maintainability-refactor.md).
 This record covers changed boundaries, not another R2c/R3 stage acceptance run.
-The [final comparison and review](#final-comparison-and-review) owns the combined candidate result;
-earlier pending statements below describe their delivery checkpoints.
+The [M9–M11 comparison](#combined-m9-m11-client-comparison) owns the latest combined client result.
+The [first-round comparison](#final-comparison-and-review) and earlier pending statements retain
+their historical delivery checkpoints.
 
 ## First-round merge and branch cleanup
 
@@ -204,7 +205,7 @@ that repeat, Ame private memory was 599 MiB with about 5.7 GiB system commit hea
 profile/catalog hashes and the pre-check test catalog with durable choices were restored and
 verified. After process retirement and exact-path/no-reparse checks, 398 disposable preview-cache
 files were removed; reusable media, catalogs and diagnostic/restoration evidence remain. Hosted
-checks for the M9 submission remain pending.
+checks for the M9 submission passed in the review-stack result below.
 
 ## Native directory enumeration ownership
 
@@ -238,7 +239,7 @@ availability checks passed. The existing durable-spool cancellation/restart inte
 it stops after 128 entry reads, preserves the bounded staged window and replays only the incomplete
 directory. These use actual Windows handles and disposable sources; source-byte preservation and
 release after failed cursor completion are asserted. No original media, catalog, dependency, bridge,
-schema or UI changed. Hosted checks and the final combined Debug comparison remain pending.
+schema or UI changed. The combined Debug comparison is recorded below; hosted checks remain pending.
 
 The production-only Clippy pass found that the retained stable-cursor re-export is consumed only
 by the test-only metadata-inventory adapter. Its re-export now has the same test configuration;
@@ -278,9 +279,10 @@ capture and one while advancing the second root's checkpoint. Both verify durabl
 reopening and a successful retry. All 73 scoped persistent-journal regressions passed, including
 replay equivalence, both cross-root orders, pending carries, capacity rollback, bounded cleanup,
 generation retirement, priority, corrupt payload refusal and recovery windows. Production Clippy
-passed with warnings denied. Hosted checks and the combined client comparison remain pending.
+passed with warnings denied. The combined client comparison and passing hosted result are recorded
+below.
 
-## Combined M9–M11 client comparison
+## Combined M9-M11 client comparison
 
 The Debug candidate built from `d6436d5` in 57.0 seconds. Native inspection used the retained generated
 10,000-image corpus with an isolated profile and a backed-up derived catalog. During recovery,
@@ -310,7 +312,26 @@ The scoped review covered both gallery renderers, global visible ordinals and bo
 demand; native record bounds, held-handle lifetime and no-recall identity admission; and baseline,
 batch, checkpoint, lineage and cleanup transaction ordering. No confirmed new product defect remains
 from that review. The earlier host-memory failure and the merged-main test-fixture failure retain
-their separate evidence above. Hosted results for the final branch heads are still pending.
+their separate evidence above.
+
+### M9-M11 review stack verification
+
+Native GitHub stack #40 contains PRs #37, #38 and #39 in dependency order, based on `main`.
+Creation preserved all three source commits; no branch was restacked or merged. Scoped review found
+no confirmed new product defect, and the PRs have no unresolved review comments at this checkpoint.
+
+| Review unit | Checked source | Hosted run and result |
+| --- | --- | --- |
+| M9 / #37 | `a6821bef700c9427577f50bbe7c9cc922a7dffc2` | [39091226014](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091226014); all 11 applicable jobs passed |
+| M10 / #38 | `f57f36035eb08833b755eca4cb2fd9f09dd412c3` | [39091293889](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091293889); nine execution jobs passed, Static and Rust remains in progress |
+| M11 / #39 | `114c6b2fa50a7ad3832ce6f1c615a397fe53ccaa` | [39091296104](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091296104); all 11 applicable jobs passed |
+
+The complete M11 Rust library suite reported 2,006 passes, 22 existing ignores and no failures in
+2,682.01 seconds; the three broker integration tests also passed. Each completed run includes static/
+Rust, Flutter, both native integrations, five synthetic workloads, unsigned Release and the aggregate
+gate. Three separate signing-channel jobs retain their configured skips. Later edits to the delivery
+records preserve those verified product/tool inputs and use document checks. The maintenance fixture
+correction is in these candidates; the earlier merged-main failure remains recorded separately.
 
 ## Shared schema-shape validation
 
