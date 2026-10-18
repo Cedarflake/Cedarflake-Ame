@@ -240,7 +240,10 @@ The first hosted run on `1b1ed42` stopped its static job at the guardrail's hist
 of 16. The declared production roster and generated bridge already contained all 17 asynchronous
 contracts. The guardrail now expects 17 and explicitly requires the gallery duplicate-location page
 contract. Its positive/negative method-boundary cases and all 17 generated contracts with matching
-content hashes pass after this correction. Complete hosted verification remains pending.
+content hashes pass after this correction. The same hosted run completed all other components except
+Schema and Queue: 309 cases passed and the v33 preservation fixture omitted the new empty retained
+membership table from its explicit upgrade expectations. That fixture now requires the new table
+to be empty while preserving every prior row. Complete hosted verification remains pending.
 
 ## Controlled client run
 
