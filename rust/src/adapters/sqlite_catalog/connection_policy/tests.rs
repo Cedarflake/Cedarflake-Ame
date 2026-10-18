@@ -3,7 +3,7 @@ use std::path::PathBuf;
 use rusqlite::{Connection, OpenFlags};
 use tempfile::TempDir;
 
-use super::{configure_catalog_connection, configure_catalog_read_connection};
+use super::{SqliteCatalog, configure_catalog_connection, configure_catalog_read_connection};
 
 fn fixture() -> (TempDir, PathBuf, Connection) {
     let directory = tempfile::tempdir().expect("catalog directory");
@@ -95,14 +95,18 @@ fn pinned_read_snapshot_defers_checkpointing_without_blocking_commits() {
 }
 
 #[test]
-fn closing_the_last_connection_preserves_the_committed_wal_without_rewriting_the_database() {
-    let (_directory, path, mut connection) = fixture();
-    connection
+fn closing_the_retained_connection_preserves_the_committed_wal_without_rewriting_the_database() {
+    let (_directory, path, mut catalog) = retained_fixture();
+    catalog
+        .connection
         .execute_batch("PRAGMA wal_checkpoint(TRUNCATE)")
         .expect("publish fixture schema");
-    insert_entries(&connection, 0, 8);
+    insert_entries(&catalog.connection, 0, 8);
     {
-        let transaction = connection.transaction().expect("rollback transaction");
+        let transaction = catalog
+            .connection
+            .transaction()
+            .expect("rollback transaction");
         transaction
             .execute("DELETE FROM entries", [])
             .expect("uncommitted deletion");
@@ -112,7 +116,7 @@ fn closing_the_last_connection_preserves_the_committed_wal_without_rewriting_the
     let wal_before = std::fs::read(&wal_path).expect("committed WAL before close");
     assert!(wal_before.len() > 32);
 
-    drop(connection);
+    drop(catalog);
 
     assert!(
         std::fs::read(&path).expect("database after close") == database_before,
@@ -135,9 +139,9 @@ fn closing_the_last_connection_preserves_the_committed_wal_without_rewriting_the
 
 #[test]
 fn explicit_checkpoint_reclaims_a_retained_wal_after_reopen() {
-    let (_directory, path, connection) = fixture();
-    insert_entries(&connection, 0, 8);
-    drop(connection);
+    let (_directory, path, catalog) = retained_fixture();
+    insert_entries(&catalog.connection, 0, 8);
+    drop(catalog);
     let wal_path = path.with_extension("sqlite3-wal");
     assert!(std::fs::metadata(&wal_path).expect("retained WAL").len() > 32);
 
@@ -155,4 +159,29 @@ fn explicit_checkpoint_reclaims_a_retained_wal_after_reopen() {
     let reader = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_ONLY)
         .expect("read checkpointed catalog");
     assert_eq!(entry_count(&reader), 8);
+}
+
+#[test]
+fn ordinary_connections_finish_their_wal_on_close() {
+    let (_directory, path, connection) = fixture();
+    insert_entries(&connection, 0, 8);
+    drop(connection);
+    assert!(!path.with_extension("sqlite3-wal").exists());
+    let reader = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .expect("read closed ordinary catalog");
+    assert_eq!(entry_count(&reader), 8);
+}
+
+fn retained_fixture() -> (TempDir, PathBuf, SqliteCatalog) {
+    let directory = tempfile::tempdir().expect("retained catalog directory");
+    let path = directory.path().join("catalog.sqlite3");
+    let catalog = SqliteCatalog::open(path.clone()).expect("retained catalog");
+    catalog
+        .retain_wal_on_close()
+        .expect("retained close policy");
+    catalog
+        .connection
+        .execute_batch("CREATE TABLE entries(id INTEGER PRIMARY KEY, payload BLOB NOT NULL)")
+        .expect("retained catalog entries");
+    (directory, path, catalog)
 }

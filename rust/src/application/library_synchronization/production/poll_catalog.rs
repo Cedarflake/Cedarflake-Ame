@@ -161,6 +161,7 @@ impl PollCatalogCheckout {
             }
             Err(error) => return Err(error),
         };
+        catalog.retain_wal_on_close()?;
         #[cfg(test)]
         self.owner
             .counters
