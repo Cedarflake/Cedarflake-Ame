@@ -144,6 +144,8 @@ struct PriorityTransaction<'connection> {
 
 impl PriorityTransaction<'_> {
     fn commit(mut self) -> rusqlite::Result<()> {
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_commit");
         self.transaction
             .take()
             .expect("priority transaction is present until commit")
@@ -542,6 +544,8 @@ fn catalog_admission_path(path: &Path) -> PathBuf {
 }
 
 fn configure_catalog_connection(connection: &Connection) -> Result<(), ScanError> {
+    #[cfg(test)]
+    operation_diagnostics::observe_default_checkpoint(connection).map_err(database_error)?;
     connection
         .busy_timeout(SQLITE_BUSY_TIMEOUT)
         .map_err(database_error)?;
@@ -730,6 +734,8 @@ impl SqliteCatalog {
         lane: LibraryChangeLane,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire(lane);
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -747,6 +753,8 @@ impl SqliteCatalog {
         preempt: SqliteWritePreemptCallback,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire_preemptible(lane, preempt);
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -768,6 +776,8 @@ impl SqliteCatalog {
                     "The catalog did not release the current writer in time; retry the operation",
                 )
             })?;
+        #[cfg(test)]
+        let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
             .connection
             .transaction_with_behavior(TransactionBehavior::Immediate)
