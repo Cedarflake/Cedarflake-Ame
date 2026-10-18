@@ -29,7 +29,7 @@ targets, exact serial filter arguments, missing/overlapping owners and invalid i
 The hosted contract verifies each matrix component occurs once, immutable source binding,
 all-target/all-feature invocation, local default selection and mutex retirement. Existing negative
 aggregate fixtures continue to reject missing, failed, skipped and cancelled required jobs. These
-focused checks and `git diff --check` passed. Hosted actionlint and complete execution remain pending.
+focused checks and `git diff --check` passed. Hosted actionlint passed in the partitioned static job.
 
 The preceding combined candidate's run
 [39091296104](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091296104) recorded 2,006
@@ -44,6 +44,29 @@ Physical sizes after extraction: the parent workflow is 1,025 lines and the Dail
 Daily dispatch is 50 lines, the Rust entrypoint 36 and partition policy 118. The dedicated hosted
 contract and partition tests contain 184 and 85 lines respectively. These are workflow or test
 owners, with no product-source or inline product-test changes.
+
+Run [39095714510](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39095714510) on
+`8c575b84c2d0dc2626abbee283c839a64abe5bdb` completed the other 13 required component jobs, but
+the synchronization/scan partition failed the existing mixed-load P0 bound: 25 samples had a
+1,166 ms P95 and 1,364 ms maximum, with two samples above one second. One slow sample waited
+1,086 ms before queue admission; its log repeatedly reports a reserved writer position waiting
+for admission. P1 and P2 remained active and progressed in every sample. This locates the waiting
+boundary without identifying the writer that held it. The unchanged local workload subsequently
+passed with 74 ms P95 and 82 ms maximum; that result does not resolve the hosted failure.
+
+Test-only held-writer observations now identify the caller, priority and permit lifetime when it
+reaches 100 ms. The observer is compiled out of product builds, and writes only after the permit
+has released the admission mutex. Scheduling, transactions, workload sizes and timing assertions
+remain unchanged. The next hosted run must supply the missing ownership evidence.
+
+The diagnostic build passed ten write-admission boundary cases and the unchanged mixed-load case
+in one serial invocation (11 passes, 131.14 seconds). Its 25 measured samples reported 83 ms P95,
+97 ms maximum and continued P1/P2 progress. Caller reporting identified catalog-delta and journal
+volume publication transactions, confirming that attribution survives the shared transaction
+facade; this local result does not attribute the earlier hosted outliers. The admission owner is
+355 physical lines, including test-only observation wiring; its dedicated observer is 38 lines
+and its existing boundary tests total 464 lines. The catalog facade has 3,538 lines, with four
+test-only caller-propagation attributes added and no transaction-policy change.
 
 ## Catalog and unified-gallery test ownership
 

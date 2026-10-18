@@ -719,10 +719,12 @@ impl SqliteCatalog {
         })
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_write(&mut self) -> Result<PriorityTransaction<'_>, ScanError> {
         self.begin_write_in_lane(LibraryChangeLane::Recovery)
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_write_in_lane(
         &mut self,
         lane: LibraryChangeLane,
@@ -738,6 +740,7 @@ impl SqliteCatalog {
         })
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_preemptible_write_in_lane(
         &mut self,
         lane: LibraryChangeLane,
@@ -754,6 +757,7 @@ impl SqliteCatalog {
         })
     }
 
+    #[cfg_attr(test, track_caller)]
     fn begin_user_interactive_write(&mut self) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self
             .write_admission
