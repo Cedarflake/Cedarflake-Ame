@@ -816,8 +816,13 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   catalog authority or stale layout metrics. `LibraryTimeNavigation` retains seek scheduling and
   same-revision geometry; the screen retains gallery/viewer composition and the rail's width.
   A complete frame cannot be replaced by interim estimated geometry in the same query. The
-  presentation owner retires Material input when current geometry becomes unavailable; the existing
-  navigation cancellation path releases the matching unfinished gesture value and seek intent.
+  presentation owner retires the old Material input when its navigation projection changes; the
+  existing navigation cancellation path releases the matching unfinished gesture value and seek
+  intent. New input resolves the painted month and within-month fraction through the current
+  timeline projection, including when full layout geometry is pending. Removed months resolve to
+  the nearest remaining month, while explicit endpoints retain top/bottom intent. Retained pixels
+  never authorize scrolling a current layout. The orientation adapter binds callbacks to their
+  mounted input lifetime instead of forwarding a retired callback into its replacement.
   A released date-navigation request retains its alignment through its resulting publication.
   Cancellation carries the old intent generation, so its deferred notification cannot retire a
   newer interaction.

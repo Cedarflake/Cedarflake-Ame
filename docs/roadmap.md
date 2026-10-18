@@ -81,6 +81,12 @@ Its scope remains Favorites and virtual albums, durable decisions and resumable 
 Select its execution plan when that work is requested. Do not restart completed R2c/R3 acceptance or
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
+The current requested maintenance scope is the
+[startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance): restore time-rail
+input during replacement layouts, then repair delayed duplicate folding and post-sync gallery
+convergence. Deliver on `main` as explicitly requested, preserving guarded source evidence and the
+existing test library. This scoped repair does not reopen R2c/R3 milestones or start R4.
+
 The [maintainability refactor](plans/maintainability-refactor.md) is implemented on six sequential
 responsibility branches: historical migration proof and compatibility repair, synchronization runtime
 ownership, gallery refresh/dimension lifecycles, retained-page rules, superseded test paths and

@@ -19,6 +19,7 @@ class LibraryTimeRailPresentation extends StatefulWidget {
     required this.layoutShape,
     required this.scrollController,
     required this.frame,
+    required this.navigationProjection,
     required this.isLoading,
     required this.onChangeStart,
     required this.onChanged,
@@ -32,6 +33,7 @@ class LibraryTimeRailPresentation extends StatefulWidget {
   final GalleryLayoutShape layoutShape;
   final ScrollController scrollController;
   final LibraryTimeRailFrame? frame;
+  final LibraryTimelineProjection? navigationProjection;
   final bool isLoading;
   final ValueChanged<double> onChangeStart;
   final ValueChanged<double>? onChanged;
@@ -57,7 +59,6 @@ class _LibraryTimeRailPresentationState
   @override
   void didUpdateWidget(covariant LibraryTimeRailPresentation oldWidget) {
     super.didUpdateWidget(oldWidget);
-    final previousFrame = _retainedFrame;
     if (oldWidget.timeline?.queryId != widget.timeline?.queryId ||
         oldWidget.scrollController != widget.scrollController ||
         widget.timeline == null ||
@@ -73,9 +74,10 @@ class _LibraryTimeRailPresentationState
     if (incoming != null && !awaitsCompleteLayout) {
       _retainedFrame = incoming;
     }
-    if (previousFrame != null &&
-        identical(oldWidget.frame, previousFrame) &&
-        !identical(widget.frame, _retainedFrame)) {
+    if (!identical(
+      oldWidget.navigationProjection,
+      widget.navigationProjection,
+    )) {
       final cancelInteraction = oldWidget.onInteractionCancelled;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) cancelInteraction();
@@ -83,8 +85,8 @@ class _LibraryTimeRailPresentationState
     }
   }
 
-  bool _ownsInput(LibraryTimeRailFrame frame) =>
-      mounted && identical(widget.frame, frame);
+  bool _ownsInput(LibraryTimelineProjection projection) =>
+      mounted && identical(widget.navigationProjection, projection);
 
   @override
   Widget build(BuildContext context) {
@@ -102,41 +104,59 @@ class _LibraryTimeRailPresentationState
             : null,
       );
     }
-    final hasCurrentGeometry = identical(widget.frame, frame);
-    // Material retains an active pointer across disabled/enabled updates. Retire
-    // that interaction when its catalog/layout owner changes, even if its last
-    // frame remains visible while replacement geometry is pending.
+    final navigation = widget.navigationProjection;
+    final currentFrame = widget.frame;
+    final value = currentFrame == null
+        ? frame.value
+        : frame.projection.valueFromProjection(
+            currentFrame.projection,
+            currentFrame.value,
+          );
+    // A new gesture uses current date evidence while the painted ticks stay
+    // stable. Replacing its projection still retires the old Material pointer.
     return AnnotatedTimeRail(
       interactionKey: ValueKey((
         widget.timeline?.revision,
         widget.timeline?.queryId,
         widget.layoutShape,
         widget.scrollController,
-        hasCurrentGeometry,
+        navigation,
       )),
       key: const Key("library-time-rail"),
-      value: frame.value,
+      value: value,
       maximumScrollOffset: frame.projection.maximumOffset,
       buckets: frame.projection.railBuckets,
       projection: frame.projection.projection,
-      onChangeStart: hasCurrentGeometry
+      onChangeStart: navigation != null
           ? (value) {
-              if (_ownsInput(frame)) widget.onChangeStart(value);
+              if (_ownsInput(navigation)) {
+                widget.onChangeStart(
+                  navigation.valueFromProjection(frame.projection, value),
+                );
+              }
             }
           : null,
-      onChanged: hasCurrentGeometry
+      onChanged: navigation != null && widget.onChanged != null
           ? (value) {
-              if (_ownsInput(frame)) widget.onChanged?.call(value);
+              if (_ownsInput(navigation)) {
+                widget.onChanged?.call(
+                  navigation.valueFromProjection(frame.projection, value),
+                );
+              }
             }
           : null,
-      onChangeEnd: hasCurrentGeometry
+      onChangeEnd: navigation != null && widget.onChangeEnd != null
           ? (value) {
-              if (_ownsInput(frame)) widget.onChangeEnd?.call(value);
+              if (_ownsInput(navigation)) {
+                widget.onChangeEnd?.call(
+                  navigation.valueFromProjection(frame.projection, value),
+                );
+              }
             }
           : null,
-      onStep: hasCurrentGeometry
+      onStep: navigation != null && widget.onStep != null
           ? (direction) {
-              if (_ownsInput(frame)) widget.onStep?.call(direction);
+              if (_ownsInput(navigation)) widget.onStep?.call(direction);
             }
           : null,
     );

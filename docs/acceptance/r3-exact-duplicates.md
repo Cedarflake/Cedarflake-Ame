@@ -9,6 +9,32 @@ the implementation on `codex/r3-exact-duplicates`. The initial controlled run be
 later sections cover subsequent deliveries. The final closeout below supersedes earlier pending
 verification statements while retaining their observed failures and actual coverage.
 
+## Startup-update maintenance
+
+The 2026-10-18 client observation used `main` at `b69673c` and the existing 10,000-image corpus.
+Startup admitted a `journal_trim` recovery. The root recovery queue completed 189,091 ms after
+process launch; complete fingerprints for all 10,000 current sources were available after
+433,637 ms. Their runs read 10,921,494,393 bytes in total. The gallery temporarily displayed 3,178
+merged items, then returned to 72. The reported time rail rejected clicks during this interval.
+These are runtime observations, not measurements of unchanged-startup performance.
+
+The first repair separates retained rail paint from current navigation authority. Missing,
+estimated and unsettled geometry retain ticks while a new pointer resolves its date against the
+current result. Old pointer/callback retirement remains enforced. Local focused checks cover 13
+rail-publication cases, six semantic-projection cases, six released-seek publication cases and one
+Windows semantics case. The rebuilt Debug replayed the same retained recovery catalog against the
+existing corpus. With the sidebar still updating and merged counts increasing through 2,294,
+2,928, 3,498, 4,772 and 5,668, a rail click moved from the 2015 region into 2011 and a subsequent
+drag returned to the 2026 region. These checks establish navigation during membership replacement;
+they do not claim that delayed analysis or completion feedback is repaired. The pre-replay test
+catalog is backed up separately for restoration, and source files were not changed.
+Exact-commit hosted results remain pending submission.
+
+Affected production owners contain 814 navigation, 164 rail-presentation, 247 timeline-projection
+and 114 orientation-adapter lines, with no inline tests. The directly changed dedicated suites
+contain 421 rail-publication and 152 projection lines. The navigation facade receives the current
+projection and rejects pixel-only completion without geometry; no additional seek lifecycle is added.
+
 ## Controlled client run
 
 The existing `build/test` corpus contains 10,000 files, 10,921,494,393 encoded bytes and 72 expected

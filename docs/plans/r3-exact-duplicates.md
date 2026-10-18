@@ -3,7 +3,7 @@
 Status: Completed on 2026-10-17; retained delivery record under the
 [roadmap](../roadmap.md#current-stage-and-acceptance-boundary).
 
-Updated: 2026-10-17.
+Updated: 2026-10-18.
 
 ## Outcome and scope
 
@@ -50,6 +50,25 @@ The reusable `build/test` corpus, retained catalog, evidence and restoration bac
 
 The sections below retain the delivered scope and execution requirements. Future changes preserve
 these boundaries and rerun affected checks; this record does not schedule another R3 closeout cycle.
+
+## Startup-update maintenance
+
+The roadmap retains stage closure and schedules this scoped repair on `main`. The retained
+10,000-image test catalog reached 72 merged items only after startup recovery and subsequent exact
+analysis. Keep the three observed failures distinct while repairing their owning boundaries:
+
+1. Restore new time-rail navigation while replacement geometry is missing or estimated; retain
+   stable painted ticks, current date authority and retirement of old pointers.
+2. Let bounded exact analysis and complete-result publication progress during automatic recovery,
+   preserving foreground source-read priority, cancellation and guarded fingerprint admission.
+3. Reconcile synchronization, pending analysis and gallery publication so completion feedback does
+   not precede the work that still changes visible membership; inspect delayed date evidence too.
+
+Use focused boundary regressions and the existing isolated client corpus, then inspect normal
+push-triggered CI. Record runtime evidence in the
+[startup-update verification](../acceptance/r3-exact-duplicates.md#startup-update-maintenance).
+Do not weaken source-generation invalidation after a genuine journal gap or reuse old hashes merely
+because size and timestamps match. Preserve unrelated workspace edits and original profile backups.
 
 ## R3-01: Identify duplicates and inspect locations
 

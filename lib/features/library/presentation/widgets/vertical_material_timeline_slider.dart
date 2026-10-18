@@ -43,6 +43,9 @@ class _VerticalMaterialTimelineSliderState
     if (!TickerMode.valuesOf(context).enabled) {
       return const SizedBox.expand();
     }
+    final onChanged = widget.onChanged;
+    final onChangeStart = widget.onChangeStart;
+    final onChangeEnd = widget.onChangeEnd;
     final colorScheme = Theme.of(context).colorScheme;
     final sliderTheme = SliderTheme.of(context).copyWith(
       trackHeight: 1,
@@ -81,15 +84,21 @@ class _VerticalMaterialTimelineSliderState
               child: Slider(
                 key: const Key("timeline-slider"),
                 value: 1 - widget.value.clamp(0.0, 1.0).toDouble(),
-                onChanged: widget.onChanged == null
+                onChanged: onChanged == null
                     ? null
-                    : (value) => widget.onChanged?.call(1 - value),
-                onChangeStart: widget.onChangeStart == null
+                    : (value) {
+                        if (mounted) onChanged(1 - value);
+                      },
+                onChangeStart: onChangeStart == null
                     ? null
-                    : (value) => widget.onChangeStart?.call(1 - value),
-                onChangeEnd: widget.onChangeEnd == null
+                    : (value) {
+                        if (mounted) onChangeStart(1 - value);
+                      },
+                onChangeEnd: onChangeEnd == null
                     ? null
-                    : (value) => widget.onChangeEnd?.call(1 - value),
+                    : (value) {
+                        if (mounted) onChangeEnd(1 - value);
+                      },
                 allowedInteraction: SliderInteraction.tapAndSlide,
                 focusNode: _focusNode,
                 padding: EdgeInsets.symmetric(horizontal: widget.endpointInset),

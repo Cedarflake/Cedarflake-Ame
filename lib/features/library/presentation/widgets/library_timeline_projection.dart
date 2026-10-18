@@ -61,6 +61,51 @@ class LibraryTimelineProjection {
 
   LibraryGalleryLayoutMetrics? get layoutMetrics => _layout?.metrics;
 
+  /// Retained ticks identify a date; only this projection owns current offsets.
+  double valueFromProjection(LibraryTimelineProjection source, double value) {
+    assert(_timeline.queryId == source._timeline.queryId);
+    if (identical(this, source) || value <= 0 || value >= 1) {
+      return value.clamp(0.0, 1.0).toDouble();
+    }
+    final target = source.targetForValue(value);
+    final sourceOffset = source.globalItemOffsetForValue(value);
+    final fraction =
+        (target.itemOffset + sourceOffset - sourceOffset.floor()) /
+        target.bucket.itemCount;
+    var preceding = 0;
+    for (final bucket in _timeline.buckets) {
+      if (bucket.monthKey == target.bucket.monthKey) {
+        return valueForGlobalItemOffset(
+          preceding + fraction * bucket.itemCount,
+        );
+      }
+      preceding += bucket.itemCount;
+    }
+    return valueForGlobalItemOffset(
+      _nearestMonthOffset(target.bucket.monthKey).toDouble(),
+    );
+  }
+
+  int _nearestMonthOffset(String? monthKey) {
+    final date = DateTime.tryParse("$monthKey-01");
+    final month = date == null ? null : date.year * 12 + date.month;
+    int? nearestDistance;
+    var nearestOffset = _timeline.totalItems - 1;
+    var preceding = 0;
+    for (final bucket in _timeline.buckets) {
+      final candidate = DateTime.tryParse("${bucket.monthKey}-01");
+      if (month != null && candidate != null) {
+        final distance = (candidate.year * 12 + candidate.month - month).abs();
+        if (nearestDistance == null || distance < nearestDistance) {
+          nearestDistance = distance;
+          nearestOffset = preceding;
+        }
+      }
+      preceding += bucket.itemCount;
+    }
+    return nearestOffset;
+  }
+
   double valueForGlobalItemOffset(double globalItemOffset) {
     if (_layout case final layout?) {
       return layout.valueForGlobalItemOffset(globalItemOffset);

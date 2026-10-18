@@ -35,8 +35,8 @@ void main() {
       expect(during.buckets, same(before.buckets));
       expect(during.value, before.value);
       expect(during.maximumScrollOffset, before.maximumScrollOffset);
-      expect(during.onChanged, isNull);
-      expect(during.onStep, isNull);
+      expect(during.onChanged, isNotNull);
+      expect(during.onStep, replacement == "missing" ? isNull : isNotNull);
       oldSlider.onChanged?.call(0.1);
       oldSlider.onChangeEnd?.call(0.1);
       await tester.pump();
@@ -97,6 +97,59 @@ void main() {
     );
     expect(rail.onChanged, isNotNull);
   });
+
+  for (final hasGeometry in [false, true]) {
+    testWidgets(
+      "retained ticks accept a new date seek with current geometry $hasGeometry",
+      (tester) async {
+        final fixture = _PublicationFixture(tester);
+        await fixture.show(isQueryWide: true);
+        await fixture.show(isQueryWide: true);
+        final before = tester.widget<AnnotatedTimeRail>(
+          find.byKey(const Key("library-time-rail")),
+        );
+        await fixture.show(
+          revision: 2,
+          hasGeometry: hasGeometry,
+          loadedItemCount: 0,
+          buckets: const [
+            LibraryTimeBucket(
+              monthKey: "2026-09",
+              itemCount: 900,
+              aspectRatioSum: 900,
+            ),
+            LibraryTimeBucket(
+              monthKey: "2012-03",
+              itemCount: 100,
+              aspectRatioSum: 100,
+            ),
+          ],
+        );
+        final during = tester.widget<AnnotatedTimeRail>(
+          find.byKey(const Key("library-time-rail")),
+        );
+        expect(during.buckets, same(before.buckets));
+        final bounds = tester.getRect(find.byKey(const Key("timeline-slider")));
+        final oldLine = tester.getRect(
+          find.byKey(const Key("timeline-current-line")),
+        );
+        final gesture = await tester.startGesture(
+          Offset(bounds.center.dx, bounds.top + bounds.height * 0.8),
+        );
+        await tester.pump();
+        expect(
+          tester.getRect(find.byKey(const Key("timeline-current-line"))).top,
+          greaterThan(oldLine.top),
+        );
+        await gesture.up();
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 200));
+        expect(fixture.seeks, greaterThan(0));
+        expect(fixture.lastMonth, "2012-03");
+        expect(fixture.lastItemOffset, inInclusiveRange(0, 99));
+      },
+    );
+  }
 
   testWidgets("same-revision fallback retires an active pointer", (
     tester,
@@ -184,13 +237,13 @@ void main() {
     );
     expect(
       tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).onChanged,
-      isNull,
+      isNotNull,
     );
     expect(
       tester
           .widget<IconButton>(find.byKey(const Key("timeline-next")))
           .onPressed,
-      isNull,
+      isNotNull,
     );
     oldSlider.onChanged?.call(0.1);
     oldSlider.onChangeEnd?.call(0.1);
@@ -225,7 +278,7 @@ void main() {
     expect(tester.element(marker), same(element));
     expect(
       tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).onChanged,
-      isNull,
+      isNotNull,
     );
     oldSlider.onChanged?.call(0.1);
     oldSlider.onChangeEnd?.call(0.1);
@@ -273,6 +326,8 @@ class _PublicationFixture {
   final WidgetTester tester;
   ScrollController controller = ScrollController();
   int seeks = 0;
+  String? lastMonth;
+  int? lastItemOffset;
 
   Future<void> show({
     int revision = 1,
@@ -283,7 +338,23 @@ class _PublicationFixture {
     double metricsExtent = 5000,
     String queryId = "query-1",
     GalleryLayoutShape shape = GalleryLayoutShape.square,
+    int loadedItemCount = 100,
+    List<LibraryTimeBucket>? buckets,
   }) async {
+    final currentBuckets =
+        buckets ??
+        const [
+          LibraryTimeBucket(
+            monthKey: "2026-09",
+            itemCount: 50,
+            aspectRatioSum: 50,
+          ),
+          LibraryTimeBucket(
+            monthKey: "2012-03",
+            itemCount: 50,
+            aspectRatioSum: 50,
+          ),
+        ];
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -323,27 +394,21 @@ class _PublicationFixture {
                 timeline: LibraryTimeline(
                   revision: BigInt.from(revision),
                   queryId: queryId,
-                  totalItems: isEmpty ? 0 : 100,
-                  buckets: isEmpty
-                      ? const []
-                      : const [
-                          LibraryTimeBucket(
-                            monthKey: "2026-09",
-                            itemCount: 50,
-                            aspectRatioSum: 50,
-                          ),
-                          LibraryTimeBucket(
-                            monthKey: "2012-03",
-                            itemCount: 50,
-                            aspectRatioSum: 50,
-                          ),
-                        ],
+                  totalItems: isEmpty
+                      ? 0
+                      : currentBuckets.fold(
+                          0,
+                          (sum, bucket) => sum + bucket.itemCount,
+                        ),
+                  buckets: isEmpty ? const [] : currentBuckets,
                 ),
                 layoutShape: shape,
                 windowStartItemOffset: 0,
-                loadedItemCount: 100,
-                onSeek: (_, _) async {
+                loadedItemCount: loadedItemCount,
+                onSeek: (bucket, itemOffset) async {
                   seeks += 1;
+                  lastMonth = bucket.monthKey;
+                  lastItemOffset = itemOffset;
                   return true;
                 },
               ),

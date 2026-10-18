@@ -164,27 +164,31 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
             ? widget.scrollController.position
             : null;
         LibraryTimeRailFrame? frame;
-        if (globalProjection != null &&
+        final interactiveValue = _interactiveValue;
+        if (globalProjection != null && interactiveValue != null) {
+          frame = LibraryTimeRailFrame(
+            projection: globalProjection,
+            value: interactiveValue,
+          );
+        } else if (globalProjection != null &&
             metrics != null &&
             metrics.dateAnchors.isNotEmpty) {
           frame = LibraryTimeRailFrame(
             projection: globalProjection,
-            value:
-                _interactiveValue ??
-                _valueFromGallery(
-                  globalProjection,
-                  position,
-                  metrics,
-                  geometry: widget.layoutMetrics == null
-                      ? _stableVirtualGeometry
-                      : widget.virtualGeometry,
-                  windowStartItemOffset: widget.layoutMetrics == null
-                      ? _stableWindowStartItemOffset
-                      : widget.windowStartItemOffset,
-                  loadedItemCount: widget.layoutMetrics == null
-                      ? _stableLoadedItemCount
-                      : widget.loadedItemCount,
-                ),
+            value: _valueFromGallery(
+              globalProjection,
+              position,
+              metrics,
+              geometry: widget.layoutMetrics == null
+                  ? _stableVirtualGeometry
+                  : widget.virtualGeometry,
+              windowStartItemOffset: widget.layoutMetrics == null
+                  ? _stableWindowStartItemOffset
+                  : widget.windowStartItemOffset,
+              loadedItemCount: widget.layoutMetrics == null
+                  ? _stableLoadedItemCount
+                  : widget.loadedItemCount,
+            ),
           );
         }
         final interactionGeneration = _seekIntentGeneration;
@@ -193,6 +197,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
           layoutShape: widget.layoutShape,
           scrollController: widget.scrollController,
           frame: frame,
+          navigationProjection: globalProjection,
           isLoading: widget.isLoading,
           onChangeStart: _beginInteraction,
           onChanged: globalProjection == null
@@ -718,6 +723,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
   }
 
   bool _isTargetLoaded(LibraryTimelineProjection projection, double value) {
+    if (widget.layoutMetrics == null) {
+      return false;
+    }
     return _isGlobalTargetLoaded(
       projection.targetForValue(value).globalItemOffset,
     );
