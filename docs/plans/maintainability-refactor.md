@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: first round merged; current maintenance slice implemented for PR review
+Status: M1–M8 merged; M9–M11 authorized on separate branches
 
 Updated: 2026-10-18
 
@@ -39,24 +39,26 @@ The first round merged into `main` at `40cb302` with the complete file tree of a
 reachable from `main`; the temporary history branch was removed with the obsolete delivery branches.
 The acceptance record owns merge-history details and current checks.
 
-Continue on `codex/maintenance-surface-ownership` from that merged baseline. Deliver these two
-behavior-preserving boundaries as separate commits in one review PR; a later merge needs a new
-human decision. Preserve existing notification text, UI layout, action admission and source safety.
+M7 and M8 merged through PR #36 at `fcb53e2`, preserving the complete verified `2dadf96` tree and
+history. Its local and remote branch was deleted after ancestry, tree and dependency checks.
+Continue with M9, M10 and M11 in that order, each on its own branch and review PR. Start M9 on
+`codex/gallery-wall-interactions` from the merged baseline; subsequent branches retain the preceding
+reviewed work without rewriting published history. Their eventual merge remains a human decision.
+Preserve existing notification text, UI layout, action admission and source safety.
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
-| M7 | Move gallery synchronization notification state and typed action selection out of the screen | Repeated conditions, root generations/removal, resolved and stale actions, refresh retry, live-only capability and existing widget wiring | Implemented; 51 focused checks, native notice/history action checks and source review passed; hosted delivery through PR #36 |
-| M8 | Move complete preview-reset transactions out of the catalog facade | Full/selective reset, handoff owners, dimensions and source-state preservation, invalid scope and rollback | Implemented; 7 focused/integration checks, native cleanup/regeneration and source review passed; hosted delivery through PR #36 |
-| M9 | Consolidate shared interaction ownership across the gallery wall's complete and estimated layout paths | Wheel input, scroll notifications, visible range, preview demand and position feedback in both paths; preserve layout-specific behavior, virtualization, anchors and timeline authority | Ordered follow-up candidate; not started or included in this review |
-| M10 | Separate directory enumeration and native file-access responsibilities in `local_files.rs`, beginning with enumeration and record parsing | Corrupt directory records, cancellation, unavailable/cloud-only files, handle lifetime and identity revalidation; preserve no-hydration and source-media safety | Ordered follow-up candidate after M9; not started |
-| M11 | Separate persistent-journal baseline lifecycle, atomic batch publication and completed-record maintenance | Batch records, checkpoints and root associations commit or roll back together; preserve recovery, bounded reads, cancellation and browsing priority | Ordered follow-up candidate after M10; not started |
+| M7 | Move gallery synchronization notification state and typed action selection out of the screen | Repeated conditions, root generations/removal, resolved and stale actions, refresh retry, live-only capability and existing widget wiring | Merged through PR #36; focused checks, native checks, review and exact-head CI passed |
+| M8 | Move complete preview-reset transactions out of the catalog facade | Full/selective reset, handoff owners, dimensions and source-state preservation, invalid scope and rollback | Merged through PR #36; focused checks, native checks, review and exact-head CI passed |
+| M9 | Consolidate shared interaction ownership across the gallery wall's complete and estimated layout paths | Wheel input, scroll notifications, visible range, preview demand and position feedback in both paths; preserve layout-specific behavior, virtualization, anchors and timeline authority | Implemented on `codex/gallery-wall-interactions`; focused checks, native checks and scoped review complete; hosted checks pending |
+| M10 | Separate directory enumeration and native file-access responsibilities in `local_files.rs`, beginning with enumeration and record parsing | Corrupt directory records, cancellation, unavailable/cloud-only files, handle lifetime and identity revalidation; preserve no-hydration and source-media safety | Authorized after M9, on a separate branch |
+| M11 | Separate persistent-journal baseline lifecycle, atomic batch publication and completed-record maintenance | Batch records, checkpoints and root associations commit or roll back together; preserve recovery, bounded reads, cancellation and browsing priority | Authorized after M10, on a separate branch |
 
 Keep shared notification history and synchronization refresh with their existing owners. Keep each
 preview reset atomic, including pending-location flush order and all affected ownership tables.
 Use focused regressions and affected Debug notification/cache workflows, followed by hosted CI and
-scoped review. Record production and test sizes with the evidence. M7 and M8 are the authorized
-current delivery. M9–M11 preserve the remaining findings in suggested execution order; each needs
-a subsequent scope decision before implementation. Their order puts visible interaction ownership
+scoped review. Record production and test sizes with the evidence. M9–M11 are the authorized
+current delivery. Their order puts visible interaction ownership
 before the higher-risk source-file and durable-journal boundaries. Move the affected tests with
 each owner; retain genuinely shared fixtures without making test-file cleanup a separate workstream.
 
@@ -64,7 +66,7 @@ Closeout also includes the merged-main mixed-load failure: recovery selection ca
 lock before the existing bounded write phase. Its reproduced boundary repair and unchanged-load
 verification stay in PR #36; the [acceptance record](../acceptance/maintainability-refactor.md#recovery-selection-contention-follow-up)
 distinguishes the confirmed lock-wait gap from the still-unclassified stage within the original
-hosted timing. Final hosted checks remain required before this slice closes.
+hosted timing. Exact-head run `39057472846` passed all 11 applicable jobs before the authorized merge.
 
 ## Completed first-round delivery queue
 

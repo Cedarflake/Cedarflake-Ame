@@ -771,6 +771,14 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   resolve later scrolling before replacing the displayed resolver. Query and revision must match;
   detached geometry cannot supply an anchor. A transition without an admissible position retires
   through the existing generation-bound layout acknowledgement without moving the viewport.
+- `library_gallery_interaction.dart` composes the existing `AmeScrollMotion` and framework scroll
+  notifications for both gallery renderers. It owns wheel/direct-drag page admission, movement
+  direction and mounted deferred dispatch; paging errors still require explicit retry. The wall
+  retains layout publication, hidden-view admission and the existing scroll-view identity.
+  `library_gallery_viewport_feedback.dart` owns query-bound visible ranges and bounded, center-first
+  preview demand. Local layout offsets become global item ordinals before row lookup. Complete
+  manifests and estimated square geometry retain their distinct range inputs; this shared owner
+  cannot grant query, revision, layout or loading authority.
 - `library_gallery_layout_continuity.dart` owns the anchor retained across consecutive manual
   density/shape choices. Re-selecting the horizontal center cell after each column-count change
   can accumulate a row of drift, so one image and its fractional viewport point survive compatible

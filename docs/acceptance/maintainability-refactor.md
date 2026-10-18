@@ -20,7 +20,7 @@ After explicit cleanup authorization, 13 remote and 13 local obsolete branches w
 Every deleted tip had zero commits outside `main`; none was checked out or referenced by an open PR.
 Remote deletions checked the exact observed tips. The temporary history branch was also redundant
 after its complete ancestry became reachable from `main`. Local `main` was fast-forwarded; current
-work continues on `codex/maintenance-surface-ownership`. Unrelated `devtools_options.yaml` remains
+work continued on `codex/maintenance-surface-ownership`. Unrelated `devtools_options.yaml` remains
 untracked and untouched.
 
 The reviewed source candidate retains its passing run
@@ -66,7 +66,7 @@ Run [39051145464](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/3905
 `prefer_initializing_formals` diagnostics in the new constructor. The existing private named-formal
 style resolved both without changing caller names or behavior. The affected file passed focused
 analysis with fatal infos, and its 10 boundary regressions passed again. Hosted checks for that
-correction remain pending.
+correction passed in the final exact-head run recorded below.
 
 ## Catalog preview-cleanup ownership
 
@@ -110,9 +110,13 @@ admission, root lookup precedence, shared notification lifetime, SQL/transaction
 admission, source/metadata preservation and test ownership. It found no confirmed new defect after
 the constructor correction. No dependency, schema, bridge, interface copy or layout changed. The
 format gate passed with all 423 Dart files unchanged, and the final diff check passed. Current
-submission checks are attached to [PR #36](https://github.com/Cedarflake/Cedarflake-Ame/pull/36);
-the final delivery report must identify the exact passing source commit. M9–M11 remain follow-up
-candidates and do not extend this review.
+submission checks are attached to [PR #36](https://github.com/Cedarflake/Cedarflake-Ame/pull/36).
+Exact head `2dadf96d1a38eff779bf188eaf70f4460dd195db` passed all 11 applicable jobs in run
+[39057472846](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39057472846); three protected
+release jobs were configured skips. PR #36 merged at `fcb53e24522c3fdb755d11e3d48d2c9a93681edf`
+after explicit authorization. The merged tree equals the verified head and retains its ancestry.
+The local and remote delivery branch was deleted after dependency and ancestry checks. M9–M11
+have separate review boundaries under the active plan.
 
 ## Recovery-selection contention follow-up
 
@@ -143,6 +147,49 @@ remains unconfirmed. The repaired mixed-load test passed in 164.96 seconds, incl
 publication and reopen verification. All 25 samples retained P1/P2 activity and progress; P0 P95 was
 111 ms and maximum 117 ms. The format gate passed and the updated Debug built in 50.6 seconds.
 No workload, deadline, assertion or dependency was changed.
+
+## Shared gallery interaction ownership
+
+M9 composes both renderers through `LibraryGalleryInteraction`, preserving the existing motion
+widget, scroll-view key, notification propagation, direct-drag/wheel distinctions, loaded-edge
+thresholds and loading/error admission. Renderer callbacks retain their original order, hidden-view
+guards and published-layout checks. `LibraryGalleryViewportFeedback` owns the shared visible-range
+projection and preview-demand ordering, with unchanged directional/guard extents and loaded bounds.
+Existing viewport tests moved with this responsibility; resize and anchor tests retain their owner.
+
+The new nonzero-window regressions exposed an existing ordinal defect on baseline `fcb53e2`:
+without a complete manifest, local visible-range lookup omitted `itemIndexBase` before querying
+global row boundaries. Both equal-height and square cases failed on that baseline. The shared
+projection now adds that base; complete-manifest coordinates remain unchanged. This is an explicit
+boundary correction alongside the extraction, rather than a claim of complete behavioral identity.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test/support lines |
+| --- | ---: | ---: | ---: |
+| `library_gallery_wall.dart` before / after | 1,980 / 1,510 | 0 | Existing resize coverage retained |
+| `library_gallery_interaction.dart` | 149 | 0 | 184 |
+| `library_gallery_viewport_feedback.dart` | 275 | 0 | 290 |
+| `library_gallery_resize_test.dart` | 0 | 0 | 1,315 |
+| `support/gallery_wall_fixture.dart` | 0 | 0 | 234 |
+
+All 48 focused cases passed: 20 input cases across both renderers and shapes, 20 resize/anchor cases,
+and eight range/preview-demand cases. The baseline comparison failed the two nonzero-window cases
+and passed the other 18 input cases. Focused analysis with fatal infos passed. The Debug build
+completed in 42.9 seconds. No dependency, schema, bridge, interface copy or layout policy changed.
+
+Native checks reused the 10,000-image corpus during normal catalog recovery. Equal-height small,
+medium and large sizes, square large/medium/small sizes, both scroll directions, sidebar folding,
+maximize/restore and preview return were exercised. Preview return retained the displayed row;
+scrolling continued afterward. A first attempt ended in a native allocation failure: at 09:51:43
+local time Windows reported system virtual-memory exhaustion, and at 09:51:54 the matching dump
+faulted at `std::alloc::rust_oom` while JPEG decoder frames were present. This attempt is not a pass.
+The dump and derived crash-state catalog remain local. No Rust code or decoder budget changed in
+M9; this evidence does not establish a gallery-refactor cause or recovery from system exhaustion.
+After system memory recovered, the remaining flow completed and the client exited normally. During
+that repeat, Ame private memory was 599 MiB with about 5.7 GiB system commit headroom. Original
+profile/catalog hashes and the pre-check test catalog with durable choices were restored and
+verified. After process retirement and exact-path/no-reparse checks, 398 disposable preview-cache
+files were removed; reusable media, catalogs and diagnostic/restoration evidence remain. Hosted
+checks for the M9 submission remain pending.
 
 ## Shared schema-shape validation
 
