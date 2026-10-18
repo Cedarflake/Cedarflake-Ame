@@ -6,7 +6,44 @@ Scope and execution order belong to the [active plan](../plans/maintainability-r
 This record covers changed boundaries, not another R2c/R3 stage acceptance run.
 The [M9–M11 comparison](#combined-m9-m11-client-comparison) owns the latest combined client result.
 The [first-round comparison](#final-comparison-and-review) and earlier pending statements retain
-their historical delivery checkpoints.
+their historical delivery checkpoints. The closeout below owns the final maintenance disposition.
+
+## Second-round closeout
+
+PRs #37, #38, #39, #41 and #42 merged through native stack #40 on 2026-10-18. The stack is closed.
+Final merge `48089286df86e0920a68cd15bdcf955661eed331` has tree
+`f0bdaa84bc16df9522325eb7b05608b24e3dc433`, identical to the verified combined candidate
+`2bdf124215ba6c990545d22bb5efb2be09167818`. Every original branch head remains an ancestor of
+`main`. The five remote branches were deleted with exact-tip guards, and their five local branches
+were deleted only after ancestry and checkout checks. No published commit was rewritten.
+
+| Review unit | Verified source | Final hosted run | Elapsed |
+| --- | --- | --- | --- |
+| M12 / #41 | `3462be8f8629534d9e3f9c65bec51ee91d1c3524` | [39108618602](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39108618602) | 21 min 12 s |
+| M13 / #42 | `2bdf124215ba6c990545d22bb5efb2be09167818` | [39108625056](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39108625056) | 20 min 51 s |
+
+Both runs passed all 14 component jobs and the aggregate. The three protected signing-channel
+jobs retained their configured skips. M9–M11 each retained their 11 passing applicable checks.
+The final inventory contains 2,036 Rust cases: 2,014 passed and 22 kept their existing ignores.
+The complete Flutter suite, scan/accessibility integration, five synthetic workloads, static checks
+and unsigned Release verification passed. The original serial CI baseline took 57 min 56 s;
+the final combined run was 37 min 5 s shorter. Workstation builds and tests remained serial.
+
+Both synchronization partitions passed 398 cases with 12 existing ignores. The unchanged per-poll,
+retained-connection and production mixed-load P0 P95 values were 81/58/61 ms for M12 and
+64/57/54 ms for M13. All 25 samples in each workload retained P1/P2 progress, and the full
+10,000-entry recovery completed. Both native-journal fixtures selected a capable owned directory.
+These results close the reproduced hosted failures under the retained workload and deadlines;
+they do not promise a wall-clock bound for arbitrary storage stalls.
+
+The scoped final review covered current source, fixture capabilities, durability and retirement,
+test preservation, hosted coverage, local serialization, artifact runtime pins and merge-tree
+identity. It found no unresolved blocking defect or review thread. The existing native checks below
+cover the unchanged product source; their original profiles, catalogs and decisions were restored.
+The final fixture adjustment is test-only and required no further application rebuild. No original
+media, real-root storage, service installation or signed publication was changed. Unrelated
+`devtools_options.yaml` remained untracked and untouched. Normal post-merge CI remains distinct
+from the passing source-candidate evidence above.
 
 ## Hosted Rust partitions and workstation serialization
 
@@ -141,8 +178,8 @@ change passed 15 focused policy, poll-ownership, recovery-preemption and origina
 25.16 seconds. The compiled inventory is 2,036 cases, including the new ordinary-close regression.
 The unchanged same-load connection-lifetime control passed in 119.23 seconds: both arms retained
 25 active/progress samples for both lower lanes, with P0 P95 141 ms per poll and 94 ms per epoch.
-All-target/all-feature Clippy passed with warnings denied in 14.02 seconds. Hosted verification of
-the narrowed policy remains pending.
+All-target/all-feature Clippy passed with warnings denied in 14.02 seconds. Final hosted verification
+of the narrowed policy is recorded in the second-round closeout above.
 
 Combined source `5292cea6e2e6d19b61cd43e0c133651d49b5ea6a` rebuilt Debug in 32.4 seconds for the
 narrowed policy. Two normal closes during updating retired the client, and reopening retained
@@ -159,7 +196,8 @@ forced onto Node.js 24. Official pinned manifests and MIT licenses were checked 
 upload 6.0.0 and download 7.0.0 replacements in [ADR 0015](../architecture/0015-windows-release-distribution.md#hosted-artifact-transport).
 All five workflow files retain their existing artifact names, paths, retention, permissions and
 manifest checks. The hosted parallel/extended contracts and installer, ACL, identity and uninstall
-guardrails passed serially after the pin changes. Hosted artifact execution remains pending.
+guardrails passed serially after the pin changes. Final ordinary-CI scan uploads completed without
+runtime-deprecation annotations; protected signed-channel transport was not exercised.
 
 ### Hosted temporary-storage binding
 
@@ -174,8 +212,8 @@ Fixture storage previously used the inherited system temporary directory, indepe
 runner's work disk. Hosted Rust partitions now bind `TEMP` and `TMP` to `RUNNER_TEMP` for their
 existing serial invocation. A bounded durable-write preflight records both original locations
 and their storage timings. Workstation entrypoints, test workloads, time limits, FULL commit
-synchronization and security settings remain unchanged. Hosted measurements are still required
-before attributing the intermittent storage waits or claiming the binding resolves them.
+synchronization and security settings remain unchanged. The subsequent hosted measurements below
+separate storage placement from the native-journal fixture's capability requirement.
 
 Runs `39107307582` and `39107356585` passed both lifetime-control arms, the complete production
 mixed-load workload and the original shutdown cases. On the first synchronization runner, eight

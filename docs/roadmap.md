@@ -89,13 +89,15 @@ consolidated follow-up PR #29. The plan links current hosted checks and the comp
 scoped audit and retained observations. The six branch heads and combined source candidate passed
 their applicable hosted checks. All seven PRs merged into `main` after explicit authorization on
 2026-10-18; the stack is closed. Gallery notification ownership and catalog preview-reset transactions
-subsequently merged through PR #36. M9–M11 are implemented in native stack #40: gallery interaction
-ownership, native-file enumeration and parsing, then persistent-journal decomposition. Each has a
-separate branch and review PR, behavior-preservation checks and human review before another merge.
-Their final hosted results remain in the same plan and evidence record. The user then requested CI
-parallelism and catalog/gallery test organization; M12–M13 in that plan own the next bounded queue.
-Preserve complete test coverage and isolated timing workloads while reducing waiting and review cost.
-The same plan retains the five original maintenance findings and their evidence.
+subsequently merged through PR #36. M9–M13 then merged through native stack #40 at `4808928`:
+gallery interaction ownership, native-file enumeration and parsing, persistent-journal decomposition,
+hosted CI parallelism and catalog/gallery test organization. All five PRs are merged and the stack
+is closed; original commits remain reachable and the five delivery branches were removed. The
+[final maintenance closeout](acceptance/maintainability-refactor.md#second-round-closeout)
+records the preserved behavior, client checks, final audit, complete hosted coverage and timing.
+The requested maintenance queue is complete. Preserve isolated hosted timing workloads, serial
+workstation execution and the delivered ownership boundaries. The plan retains the five original
+maintenance findings and their evidence.
 This delivery does not start R4 or reopen R2c/R3 acceptance.
 The same plan records the completed card-size position correction, continuous-filter anchor retention,
 timeline stability during updates and journal catch-up correction as separate behavior changes after

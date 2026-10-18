@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: M1–M8 merged; M9–M13 implemented; follow-up hosted verification in progress
+Status: M1–M13 merged; requested maintenance queue complete
 
 Updated: 2026-10-18
 
@@ -42,31 +42,31 @@ The acceptance record owns merge-history details and current checks.
 M7 and M8 merged through PR #36 at `fcb53e2`, preserving the complete verified `2dadf96` tree and
 history. Its local and remote branch was deleted after ancestry, tree and dependency checks.
 M9, M10 and M11 were implemented in order on separate branches and review PRs. Native GitHub stack
-#40 contains [M9 / #37](https://github.com/Cedarflake/Cedarflake-Ame/pull/37),
+#40 contained [M9 / #37](https://github.com/Cedarflake/Cedarflake-Ame/pull/37),
 [M10 / #38](https://github.com/Cedarflake/Cedarflake-Ame/pull/38) and
 [M11 / #39](https://github.com/Cedarflake/Cedarflake-Ame/pull/39), followed by
 [M12 / #41](https://github.com/Cedarflake/Cedarflake-Ame/pull/41) and
-[M13 / #42](https://github.com/Cedarflake/Cedarflake-Ame/pull/42). M9 starts from the merged baseline;
-each later branch retains the preceding work without rewriting published history. Stack creation
-and extension preserved all five heads. The user authorized merging the current maintenance branches on
-2026-10-18 after applicable checks and final review. Existing notification
-text, UI layout, action admission and source-safety boundaries are preserved.
+[M13 / #42](https://github.com/Cedarflake/Cedarflake-Ame/pull/42). All five merged on 2026-10-18
+at `4808928` after the authorized checks and final review. Its file tree equals the verified
+`2bdf124` candidate, every original head remains an ancestor, and the five local and remote branches
+were deleted after verification. Existing notification text, UI layout, action admission and
+source-safety boundaries are preserved. The [closeout evidence](../acceptance/maintainability-refactor.md#second-round-closeout)
+owns final source identities, CI results, timings and remaining observation limits.
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
 | M7 | Move gallery synchronization notification state and typed action selection out of the screen | Repeated conditions, root generations/removal, resolved and stale actions, refresh retry, live-only capability and existing widget wiring | Merged through PR #36; focused checks, native checks, review and exact-head CI passed |
 | M8 | Move complete preview-reset transactions out of the catalog facade | Full/selective reset, handoff owners, dimensions and source-state preservation, invalid scope and rollback | Merged through PR #36; focused checks, native checks, review and exact-head CI passed |
-| M9 | Consolidate shared interaction ownership across the gallery wall's complete and estimated layout paths | Wheel input, scroll notifications, visible range, preview demand and position feedback in both paths; preserve layout-specific behavior, virtualization, anchors and timeline authority | Implemented on `codex/gallery-wall-interactions`; focused checks, native checks, scoped review and all 11 hosted jobs passed |
-| M10 | Separate directory enumeration and native file-access responsibilities in `local_files.rs`, beginning with enumeration and record parsing | Corrupt directory records, cancellation, unavailable/cloud-only files, handle lifetime and identity revalidation; preserve no-hydration and source-media safety | Implemented on `codex/native-directory-enumeration`; focused native boundaries, production Clippy, scoped review, combined Debug comparison and all 11 hosted jobs passed |
-| M11 | Separate persistent-journal baseline lifecycle, atomic batch publication and completed-record maintenance | Batch records, checkpoints and root associations commit or roll back together; preserve recovery, bounded reads, cancellation and browsing priority | Implemented on `codex/persistent-journal-ownership`; 73 focused persistence regressions, production Clippy, combined Debug comparison, scoped review and all 11 hosted jobs passed |
+| M9 | Consolidate shared interaction ownership across the gallery wall's complete and estimated layout paths | Wheel input, scroll notifications, visible range, preview demand and position feedback in both paths; preserve layout-specific behavior, virtualization, anchors and timeline authority | Merged through PR #37; focused checks, native checks, scoped review and all 11 hosted jobs passed |
+| M10 | Separate directory enumeration and native file-access responsibilities in `local_files.rs`, beginning with enumeration and record parsing | Corrupt directory records, cancellation, unavailable/cloud-only files, handle lifetime and identity revalidation; preserve no-hydration and source-media safety | Merged through PR #38; native boundaries, production Clippy, scoped review, combined Debug comparison and all 11 hosted jobs passed |
+| M11 | Separate persistent-journal baseline lifecycle, atomic batch publication and completed-record maintenance | Batch records, checkpoints and root associations commit or roll back together; preserve recovery, bounded reads, cancellation and browsing priority | Merged through PR #39; 73 focused persistence regressions, production Clippy, combined Debug comparison, scoped review and all 11 hosted jobs passed |
 
 Keep shared notification history and synchronization refresh with their existing owners. Keep each
 preview reset atomic, including pending-location flush order and all affected ownership tables.
 Use focused regressions and affected Debug notification/cache workflows, followed by hosted CI and
-scoped review. Record production and test sizes with the evidence. M9–M11 are the authorized
-current delivery. Their order puts visible interaction ownership
-before the higher-risk source-file and durable-journal boundaries. Move the affected tests with
-each owner; retain genuinely shared fixtures without making test-file cleanup a separate workstream.
+scoped review. Production and test sizes remain in the evidence. The completed M9–M11 sequence put
+visible interaction ownership before source-file and durable-journal boundaries. Tests remain with
+their owners, with shared fixtures restricted to actual reuse.
 
 Closeout also includes the merged-main mixed-load failure: recovery selection can wait on a read
 lock before the existing bounded write phase. Its reproduced boundary repair and unchanged-load
@@ -77,23 +77,19 @@ hosted timing. Exact-head run `39057472846` passed all 11 applicable jobs before
 ## Requested verification-maintenance follow-ups
 
 After M9–M11 implementation, the user requested shorter CI latency and responsibility-owned tests.
-Proceed in the order below without reopening product acceptance. Preserve existing workloads,
-assertions, expected ignores, data safety and isolated timing measurements. Keep each outcome in a
-separate commit and branch, and extend the existing review stack after verification. The user's
-2026-10-18 merge authorization covers this queue after the mixed-load failures are resolved and
-verification is complete. The user confirmed keeping the existing dependent PRs and merging the
-whole maintenance stack together; do not replace the CI and test PRs with independent deliveries.
-Preserve published history and remove obsolete branches only after their commits are reachable
-from `main`.
+M12 and M13 preserved workloads, assertions, expected ignores, data safety and isolated timing
+measurements. They remained separate review units in the existing stack and merged together after
+the exposed failures were resolved and applicable verification passed. Published history is retained;
+their obsolete branches were removed only after all commits became reachable from `main`.
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
-| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Partitioned CI passed in 23 minutes 18 seconds; checkpoint and final-connection retirement policies own the exposed storage work; the latest close-policy repair is under hosted verification |
-| M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | 111 Rust cases and 43 widget cases relocated; body/inventory preservation, widget checks, native workflows and combined CI passed; the latest inherited close-policy repair is under hosted verification |
+| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Merged through PR #41; final CI passed all 15 applicable checks in 21 minutes 12 seconds, including checkpoint, retirement and fixture-storage corrections |
+| M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | Merged through PR #42; 111 Rust cases and 43 widget cases relocated; body/inventory, widget, native and final 15-check hosted verification passed |
 
 M12's initial partition is schema migrations plus change queue, remaining catalog tests,
 synchronization plus scan tests, and all remaining Rust tests. The baseline log attributes roughly
-9–13 minutes of test work to each group; actual hosted wall time must be measured after implementation.
+9–13 minutes of test work to each group; the final combined hosted run took 20 minutes 51 seconds.
 No new test framework, dependency, reduced coverage, raised deadline or shared-runner concurrency is
 included. M13 moves single-owner helpers beside their tests and keeps only genuinely shared fixtures
 in support modules; file size alone does not define the split.
@@ -106,7 +102,7 @@ selection does not authorize local fan-out.
 The mixed-load diagnosis identified automatic WAL checkpoint work inside a committing writer.
 M12 also owns the focused connection-policy repair and its durability/read-snapshot regressions;
 the [acceptance record](../acceptance/maintainability-refactor.md#automatic-checkpoint-burst-attribution)
-retains the measured cause, separate slow-storage observations and remaining hosted checks.
+retains the measured cause, separate storage observations and completed hosted checks.
 Keep the workload, P0 latency bound and shutdown deadline unchanged.
 
 ## Completed first-round delivery queue
