@@ -85,6 +85,29 @@ invocation (four passes, 141.04 seconds); P0 P95 was 88 ms and maximum was 90 ms
 all-feature Clippy passed with warnings denied. Neither transaction commit nor automatic checkpoint
 crossed the 100 ms reporting threshold locally, so hosted attribution is still required.
 
+### Last-connection checkpoint retirement
+
+The native-stack run [39101370563](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39101370563)
+on source `3d6d93d` passed the mixed-load workloads (P0 P95 156, 125 and 153 ms), but the ingress-drop
+recovery case failed its existing bounded stop. The retirement observation subsequently recorded
+2,345 ms entirely in connection destruction, with autocommit true and zero measured statement-cache,
+identity-guard, session-admission or pending-buffer retirement time. This resolves the native-close
+stage left unclassified by the earlier shutdown failure.
+
+SQLite's default final-connection close checkpoints and removes its WAL. The connection-policy
+owner now disables that implicit checkpoint, retaining already durable WAL data for ordinary reopen,
+automatic passive checkpoints and explicit maintenance. A before/after regression fails against
+the old policy because connection destruction rewrites the main database; the revised policy keeps
+both database and committed WAL bytes unchanged. A second regression proves subsequent explicit
+truncation and independently readable committed rows. Existing FULL synchronization, transactions,
+read snapshots and joined shutdown deadlines remain unchanged; no worker or schema is added.
+
+The 37-line configuration owner and 158-line dedicated tests passed 39 focused connection-policy,
+identity/retry and original shutdown regressions in 34.29 seconds. All-target/all-feature Clippy
+passed with warnings denied in 11.33 seconds. The two added cases increase the compiled inventory
+from 2,033 to 2,035. The three existing explicit WAL-truncation cases also passed (1.53 seconds).
+Hosted checks and affected native close/reopen verification remain pending.
+
 ### Automatic checkpoint burst attribution
 
 Diagnostic run [39098716218](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39098716218)
