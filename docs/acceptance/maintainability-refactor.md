@@ -280,6 +280,38 @@ replay equivalence, both cross-root orders, pending carries, capacity rollback, 
 generation retirement, priority, corrupt payload refusal and recovery windows. Production Clippy
 passed with warnings denied. Hosted checks and the combined client comparison remain pending.
 
+## Combined M9–M11 client comparison
+
+The Debug candidate built from `d6436d5` in 57.0 seconds. Native inspection used the retained generated
+10,000-image corpus with an isolated profile and a backed-up derived catalog. During recovery,
+equal-height medium/small and square small/large cards remained usable, gallery preview opened
+`00297-12000x1500-0024.jpg`, adjacent navigation opened `00292-2160x3840-0024.jpg`, and returning
+retained the current image in the wall. Maximizing/restoring and collapsing/expanding the secondary
+sidebar remained responsive while the catalog was publishing.
+
+Recovery reached the actual terminal state: 40,009 completed queue records, no pending/leased/retry
+records, one supported/current journal root and five completed baselines. The sidebar displayed
+the synchronized state. Duplicate analysis then returned to the retained 72 groups; the gallery
+kept 10,000 as its total count. From a duplicate group, preview opened
+`05919-640x480-0617.jpg`, navigated to `02462-640x480-0218.jpg`, and returned to its row list.
+The historical sequence of group preview, gallery return, maximize/restore and sidebar collapse/
+expand completed without a crash. Stable forward/backward wheel input returned to the same
+2012-03-04 range and retained time-axis feedback.
+
+The observed private memory was 629,874,688 bytes with a 572,084,224-byte working set near exit.
+The owned client exited normally; no new application crash/hang event was found for its lifetime.
+Original preferences, storage settings and catalog hashes were restored and verified, and the
+retained test catalog/durable choices were restored from backup. After retirement and exact-path/
+no-reparse checks, 319 disposable generated previews (4,013,987 bytes) were removed. Corpus,
+catalogs and restoration receipts remain. The later shared CI correction changes only fixture
+preparation and has no product-code difference from this checked Debug candidate.
+
+The scoped review covered both gallery renderers, global visible ordinals and bounded preview
+demand; native record bounds, held-handle lifetime and no-recall identity admission; and baseline,
+batch, checkpoint, lineage and cleanup transaction ordering. No confirmed new product defect remains
+from that review. The earlier host-memory failure and the merged-main test-fixture failure retain
+their separate evidence above. Hosted results for the final branch heads are still pending.
+
 ## Shared schema-shape validation
 
 The extraction preserves function bodies, query order, version-dependent scan-handoff columns,
