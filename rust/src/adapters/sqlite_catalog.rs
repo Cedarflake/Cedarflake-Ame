@@ -28,6 +28,8 @@ mod catalog_namespace;
 use catalog_namespace::{
     SqliteCatalogIdentityGuard, SqliteDatabaseIdentity, open_catalog_database_identity_guard,
 };
+mod connection_policy;
+use connection_policy::{configure_catalog_connection, configure_catalog_read_connection};
 mod exact_duplicate_review;
 mod exact_duplicates;
 mod folders;
@@ -541,26 +543,6 @@ fn catalog_admission_path(path: &Path) -> PathBuf {
             .and_then(|parent| path.file_name().map(|file_name| parent.join(file_name)))
             .unwrap_or_else(|| path.to_path_buf())
     })
-}
-
-fn configure_catalog_connection(connection: &Connection) -> Result<(), ScanError> {
-    #[cfg(test)]
-    operation_diagnostics::observe_default_checkpoint(connection).map_err(database_error)?;
-    connection
-        .busy_timeout(SQLITE_BUSY_TIMEOUT)
-        .map_err(database_error)?;
-    connection
-        .execute_batch("PRAGMA foreign_keys = ON;")
-        .map_err(database_error)
-}
-
-fn configure_catalog_read_connection(connection: &Connection) -> Result<(), ScanError> {
-    connection
-        .busy_timeout(read_retry::PROTOCOL_READ_DEADLINE)
-        .map_err(database_error)?;
-    connection
-        .execute_batch("PRAGMA foreign_keys = ON; PRAGMA query_only = ON;")
-        .map_err(database_error)
 }
 
 fn catalog_schema_cookie(connection: &Connection) -> Result<i64, ScanError> {

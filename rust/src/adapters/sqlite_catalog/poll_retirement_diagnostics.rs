@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::time::{Duration, Instant};
 
 use super::SqliteCatalog;
@@ -38,7 +39,8 @@ impl SqliteCatalog {
         let pending_elapsed = pending_started.elapsed();
         let elapsed = started.elapsed();
         if elapsed >= Duration::from_millis(100) {
-            eprintln!(
+            let _ = writeln!(
+                std::io::stderr().lock(),
                 "[Ame sync catalog retirement] total_ms={} statement_cache_ms={} \
                  connection_drop_ms={} autocommit={autocommit} \
                  identity_guard_ms={} identity_guard_present=true \

@@ -90,6 +90,40 @@ invocation (four passes, 141.04 seconds); P0 P95 was 88 ms and maximum was 90 ms
 all-feature Clippy passed with warnings denied. Neither transaction commit nor automatic checkpoint
 crossed the 100 ms reporting threshold locally, so hosted attribution is still required.
 
+### Automatic checkpoint burst attribution
+
+Diagnostic run [39098716218](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39098716218)
+on `a98bcde7d31fd17571ce34d617cc8eeba228242b` identifies a slow measured P0 sample in the
+retained-connection control: sample 15 took 3,956 ms to become visible. Its ingress commit took
+3,588 ms, of which 3,428 ms was the automatic passive checkpoint of 1,001 WAL frames. The ingress
+writer permit was held for 3,591 ms. This establishes the extra synchronous checkpoint work inside
+that latency path. The same run also contains slow commits without a reported slow checkpoint;
+do not attribute all underlying storage waits to checkpointing or claim their elimination.
+
+All three mixed-load P95 values remained within the unchanged bound in this run (324, 767 and
+333 ms); the retained arm had one sample above a second. The synchronization partition instead
+failed `production_baseline_brackets_inventory_and_publishes_current_atomically` during bounded
+runtime shutdown (397 passes, one failure and 12 existing ignores). Its preceding commits took
+510 and 847 ms. The error belongs to the joined journal/catalog-close worker; its existing
+test-only connection-retirement diagnostic now writes directly to stderr so a late completion
+remains visible after the originating test has already timed out. The exact native close stage
+remains unclassified and requires the same stop boundary to pass on the repair candidate.
+
+The repair candidate moves connection configuration into one 33-line owner and reduces the passive
+automatic checkpoint trigger from 1,000 to 256 pages while retaining commit durability. Two dedicated
+regressions (95 lines) cover small-transaction WAL reuse, rolled-back deletion, independently visible
+and reopened committed data, and an older read snapshot that defers checkpointing while writes
+continue. Restoring the old 1,000-page threshold makes the first regression fail with 4,124,152 WAL
+bytes, establishing its before/after boundary. A pinned reader may still grow the WAL beyond the
+trigger; the test requires successful checkpoint progress after that reader releases its snapshot.
+The catalog facade is 3,530 physical lines; its moved configuration is no longer inline there.
+The two new cases, three existing WAL-reclamation cases, original baseline shutdown and unchanged
+mixed-load workload passed in one serial local invocation (seven passes, 136.73 seconds). P0 P95
+was 90 ms, maximum 101 ms, and both lower-priority lanes progressed in all 25 samples before the
+full 10,000-entry recovery completed. All-target/all-feature Clippy passed with warnings denied.
+This establishes the local boundary; hosted latency comparison and shutdown verification remain
+pending for the repair candidate.
+
 ## Catalog and unified-gallery test ownership
 
 M13 starts from `8c575b8` and changes test organization only. The catalog entrypoint now declares
@@ -134,6 +168,14 @@ reported 2,319 ms P95 and the production case 1,331 ms. The latter includes one 
 `ingress_commit` alone took 1,111 ms; other slow samples waited before writer admission. Keep
 these distinct from the test relocations and from the earlier admission-only observation. Merge
 remains gated on diagnosis, repair, affected regression checks and final review.
+
+The diagnostic integration `6b04256b2e5b3ceadac1a29714c093e9e128bdec` in run
+[39099166321](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39099166321) passed the
+synchronization partition with 398 passes and 12 existing ignores. Its control and production
+P95 measurements were 225, 371 and 398 ms, with no sample above one second. This run still used
+the original checkpoint threshold; the smaller-batch correction above receives separate coverage.
+The test-organization accounting preserves the original 2,031 cases; the checkpoint correction
+adds two new connection-policy cases, so the combined inventory is expected to contain 2,033.
 
 ## First-round merge and branch cleanup
 

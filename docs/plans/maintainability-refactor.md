@@ -101,6 +101,12 @@ retain the repository mutex and execute sequentially, including inventory checks
 regressions. The workstation Daily default remains the complete serial suite; hosted partition
 selection does not authorize local fan-out.
 
+The mixed-load diagnosis identified automatic WAL checkpoint work inside a committing writer.
+M12 also owns the focused connection-policy repair and its durability/read-snapshot regressions;
+the [acceptance record](../acceptance/maintainability-refactor.md#automatic-checkpoint-burst-attribution)
+retains the measured cause, separate slow-storage observations and remaining hosted checks.
+Keep the workload, P0 latency bound and shutdown deadline unchanged.
+
 ## Completed first-round delivery queue
 
 Each row may contain independently reversible commits. Commit and push a finished boundary before
