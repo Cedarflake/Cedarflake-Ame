@@ -479,6 +479,8 @@ Other anchors clamp to the available scroll extent.
   but does not expose the specification's native vertical-orientation API. Ame therefore uses the
   already validated thin orientation adapter around the official `Slider`; replacing it with a
   hand-built gesture or semantics implementation requires new measured evidence and an ADR change.
+  Endpoint spacing belongs to the track shape inside the full pointer surface. Outer Slider
+  padding must not leave visible endpoint marks outside the clickable region.
 - Material divisions are equidistant selectable stops and therefore cannot represent Ame's
   nonuniform month offsets without changing their semantics. Year/month marks are a narrow
   annotation layer driven by the complete-result timeline data; they do not own dragging, focus, or

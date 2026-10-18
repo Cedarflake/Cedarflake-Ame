@@ -118,6 +118,19 @@ occupies 2,290 of those lines. Their added behavior is delegated to the named in
 Publication/activity owners contain 78/133 lines and their affected dedicated suites contain 170/1,010
 lines. No generated bridge or dependency change is included.
 
+The additional endpoint failure came from the rotated Material Slider's external 12-pixel padding:
+the visible top mark lay on an excluded hit-test boundary, while a drag begun inside the track could
+still reach it. A real mouse-pointer regression failed at offset 1,800 instead of reaching zero;
+the earlier callback-only checks did not exercise that boundary. The installed Flutter 3.44.9
+implementation provides `RoundedRectSliderTrackShape.getPreferredRect`; the orientation adapter now
+uses that extension to inset the track while retaining the complete Slider input surface. Framework
+gesture, keyboard, focus and accessibility ownership remain unchanged. No alternate gesture layer
+or package was introduced. All 27 annotation, publication and linear-alignment checks passed,
+including both marks and the outer endcaps. The rebuilt Debug single-clicked the bottom date region
+and then the previously failing top coordinate, returning directly to 2026-09-09. Source count stayed
+10,000, folded count stayed 72 and the source remained synchronized. The adapter contains 145
+production lines and its affected publication suite 482 dedicated test lines, with no inline tests.
+
 ## Controlled client run
 
 The existing `build/test` corpus contains 10,000 files, 10,921,494,393 encoded bytes and 72 expected

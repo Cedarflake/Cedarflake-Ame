@@ -3,10 +3,41 @@ import "package:cedarflake_ame/features/library/presentation/gallery_view_option
 import "package:cedarflake_ame/features/library/presentation/widgets/annotated_time_rail.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_layout.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_time_navigation.dart";
+import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("single pointer clicks reach both rail endpoints", (
+    tester,
+  ) async {
+    final fixture = _PublicationFixture(tester);
+    await fixture.show(isQueryWide: true);
+    await fixture.show(isQueryWide: true);
+    for (final inset in [1.0, 12.0]) {
+      fixture.controller.jumpTo(1800);
+      await tester.pumpAndSettle();
+      final track = tester.getRect(
+        find.byKey(const Key("timeline-track-background")),
+      );
+      await tester.tapAt(
+        Offset(track.center.dx, track.top + inset),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      expect(fixture.controller.offset, closeTo(0, 0.01));
+      await tester.tapAt(
+        Offset(track.center.dx, track.bottom - inset),
+        kind: PointerDeviceKind.mouse,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        fixture.controller.offset,
+        closeTo(fixture.controller.position.maxScrollExtent, 0.01),
+      );
+    }
+  });
+
   testWidgets("replacement window estimates cannot reset the retained marker", (
     tester,
   ) async {

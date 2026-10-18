@@ -53,7 +53,7 @@ class _VerticalMaterialTimelineSliderState
       inactiveTrackColor: Colors.transparent,
       disabledActiveTrackColor: Colors.transparent,
       disabledInactiveTrackColor: Colors.transparent,
-      trackShape: const RoundedRectSliderTrackShape(),
+      trackShape: _InsetTimelineTrackShape(widget.endpointInset),
       thumbShape: SliderComponentShape.noThumb,
       overlayShape: SliderComponentShape.noOverlay,
     );
@@ -101,7 +101,7 @@ class _VerticalMaterialTimelineSliderState
                       },
                 allowedInteraction: SliderInteraction.tapAndSlide,
                 focusNode: _focusNode,
-                padding: EdgeInsets.symmetric(horizontal: widget.endpointInset),
+                padding: EdgeInsets.zero,
                 semanticFormatterCallback: (value) =>
                     widget.semanticLabelFor(1 - value),
               ),
@@ -109,6 +109,37 @@ class _VerticalMaterialTimelineSliderState
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Inset the track, not the pointer surface, so both endpoint marks stay clickable.
+class _InsetTimelineTrackShape extends RoundedRectSliderTrackShape {
+  const _InsetTimelineTrackShape(this.endpointInset);
+
+  final double endpointInset;
+
+  @override
+  Rect getPreferredRect({
+    required RenderBox parentBox,
+    Offset offset = Offset.zero,
+    required SliderThemeData sliderTheme,
+    bool isEnabled = false,
+    bool isDiscrete = false,
+  }) {
+    final track = super.getPreferredRect(
+      parentBox: parentBox,
+      offset: offset,
+      sliderTheme: sliderTheme,
+      isEnabled: isEnabled,
+      isDiscrete: isDiscrete,
+    );
+    final inset = endpointInset.clamp(0.0, track.width / 2).toDouble();
+    return Rect.fromLTRB(
+      track.left + inset,
+      track.top,
+      track.right - inset,
+      track.bottom,
     );
   }
 }
