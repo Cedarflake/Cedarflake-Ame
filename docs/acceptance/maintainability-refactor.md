@@ -34,8 +34,12 @@ focused checks and `git diff --check` passed. Hosted actionlint passed in the pa
 The preceding combined candidate's run
 [39091296104](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091296104) recorded 2,006
 passing library tests, 22 existing ignores and 2,682.01 seconds of library-test execution, followed
-by three passing broker integration tests. Partitioned wall time must include each runner's setup
-and compilation before making a speed comparison; the partition counts alone establish no speedup.
+by three passing broker integration tests. Including preparation and compilation, its combined
+Static and Rust job took 57 minutes 25 seconds; the complete run took 57 minutes 56 seconds.
+The successful partitioned run `39097472142` took 21 minutes 17 seconds overall. Its slowest Rust
+partition took 20 minutes 41 seconds and Flutter took 21 minutes 6 seconds, making Flutter the
+longest job in that run. This is a measured comparison of two hosted runs, not a repeatability
+claim; runner variability and the unresolved mixed-load outliers remain separate observations.
 
 This change affects verification orchestration only. The M9–M11 native client comparison below
 remains applicable to unchanged product code and does not need another UI replay for this change.
@@ -59,10 +63,11 @@ reaches 100 ms. The observer is compiled out of product builds, and writes only 
 has released the admission mutex. Scheduling, transactions, workload sizes and timing assertions
 remain unchanged. Diagnostic run
 [39097472142](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39097472142) on
-`e9d7c457fd46108004fc5de76254fd2b8cb29ca7` passed the synchronization partition with 398 passes
-and 12 existing ignores. Its two control arms and production workload reported P0 P95 of 295,
-325 and 316 ms, with no sample above one second. Long-held caller attribution is now available,
-but the previous outliers did not recur in that run and their cause remains unresolved.
+`e9d7c457fd46108004fc5de76254fd2b8cb29ca7` passed all 14 required component jobs and the aggregate;
+the synchronization partition recorded 398 passes and 12 existing ignores. Its two control arms
+and production workload reported P0 P95 of 295, 325 and 316 ms, with no sample above one second.
+Long-held caller attribution is now available, but the previous outliers did not recur in that
+run and their cause remains unresolved.
 
 The diagnostic build passed ten write-admission boundary cases and the unchanged mixed-load case
 in one serial invocation (11 passes, 131.14 seconds). Its 25 measured samples reported 83 ms P95,
