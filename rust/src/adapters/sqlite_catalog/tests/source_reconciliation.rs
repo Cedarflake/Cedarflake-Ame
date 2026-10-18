@@ -1,4 +1,10 @@
-use super::*;
+use crate::adapters::sqlite_catalog::tests::support::{
+    fixture_request, insert_active_identity_alias, publish_fixture, publish_preview_artifact,
+};
+
+use tempfile::tempdir;
+
+use crate::adapters::sqlite_catalog::*;
 
 #[derive(Debug, PartialEq, Eq)]
 struct AliasState {

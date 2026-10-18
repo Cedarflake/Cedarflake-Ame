@@ -1,6 +1,6 @@
 # Maintainability refactor execution plan
 
-Status: M1–M8 merged; M9–M11 implemented; CI parallelism and test organization authorized next
+Status: M1–M8 merged; M9–M13 implemented; follow-up hosted verification in progress
 
 Updated: 2026-10-18
 
@@ -82,7 +82,7 @@ separate commit and branch, and extend the existing review stack after verificat
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
 | M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Implemented on `codex/ci-rust-partitions`; 2,031 compiled tests accounted for; hosted timing pending |
-| M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | Authorized; current files contain 7,932 and 4,152 lines respectively |
+| M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | Implemented on `codex/catalog-gallery-test-ownership`; 111 Rust cases and 43 widget cases relocated, body/inventory preservation and local widget checks passed; hosted checks pending |
 
 M12's initial partition is schema migrations plus change queue, remaining catalog tests,
 synchronization plus scan tests, and all remaining Rust tests. The baseline log attributes roughly

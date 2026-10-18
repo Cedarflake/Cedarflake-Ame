@@ -45,6 +45,43 @@ Daily dispatch is 50 lines, the Rust entrypoint 36 and partition policy 118. The
 contract and partition tests contain 184 and 85 lines respectively. These are workflow or test
 owners, with no product-source or inline product-test changes.
 
+## Catalog and unified-gallery test ownership
+
+M13 starts from `8c575b8` and changes test organization only. The catalog entrypoint now declares
+responsibility modules for write admission, session validation, historical scan/preview/recovery
+upgrades, query pages/anchors/geometry, preview reclamation and foreground recovery. Existing
+preview-publication and scan-checkpoint modules receive their corresponding cases. Root removal
+retains separate preview-ownership and source-preservation coverage. The two fixture exports used
+by neighboring catalog suites keep their existing import paths.
+
+The unified-gallery tests now have distinct shell, recovered-dimension, query, folder, preference,
+loading, task-feedback, selection, source-action and timeline files. Single-owner helpers remain
+private beside their users; only shared screen fixtures and menu interactions have support files.
+The production widget tree, test bodies, assertions, fake clocks, cleanup and wait durations remain
+unchanged. The canonical Flutter runner continues to execute each file in its own serial process.
+
+| Affected owner | Before dedicated test lines | After dedicated test lines |
+| --- | ---: | ---: |
+| Catalog test entrypoint | 7,932 | 23 module/export lines; responsibility files contain 56–642 lines |
+| Shared catalog fixtures | Mixed in the entrypoint | 596 |
+| Unified-gallery shell | 4,152 | 303 |
+| Nine additional gallery responsibility files | Mixed in the shell file | 116–797 each |
+| Shared gallery/menu fixtures | Mixed in the shell file | 325 / 77 |
+
+Product and inline product-test line counts are unchanged. Token comparison accounts for all
+145 relocated Rust functions (111 tests and 34 helpers) and 52 existing child-module functions.
+It preserves literals and attributes, normalizing only helper visibility, a qualified migration
+module path and formatting-only signature commas. The all-target/all-feature compiled inventory
+still contains exactly 2,031 tests after mapping the 111 new module paths, without additions,
+omissions or duplicates. Existing ignores outside the moved modules remain untouched.
+
+Dart AST token comparison preserves all 43 named widget cases and 33 helper bodies, allowing only
+the explicit shared-helper renames. All 43 widget cases passed through the canonical runner,
+one file at a time. All-target/all-feature Rust Clippy with warnings denied and scoped Dart analysis
+with fatal infos passed. The rebuilt Rust inventory passed; full Rust execution and the remaining
+repository gates belong to hosted CI. No new dependency, schema, product state or native-client
+behavior was introduced, so the existing M9–M11 client comparison remains applicable.
+
 ## First-round merge and branch cleanup
 
 PRs #22–#27 and #29 merged into `main` on 2026-10-18 (local date); native stack #35 closed.
