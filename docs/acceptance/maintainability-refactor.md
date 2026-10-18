@@ -40,6 +40,11 @@ and compilation before making a speed comparison; the partition counts alone est
 This change affects verification orchestration only. The M9–M11 native client comparison below
 remains applicable to unchanged product code and does not need another UI replay for this change.
 
+Physical sizes after extraction: the parent workflow is 1,025 lines and the Daily workflow is 143;
+Daily dispatch is 50 lines, the Rust entrypoint 36 and partition policy 118. The dedicated hosted
+contract and partition tests contain 184 and 85 lines respectively. These are workflow or test
+owners, with no product-source or inline product-test changes.
+
 ## First-round merge and branch cleanup
 
 PRs #22–#27 and #29 merged into `main` on 2026-10-18 (local date); native stack #35 closed.

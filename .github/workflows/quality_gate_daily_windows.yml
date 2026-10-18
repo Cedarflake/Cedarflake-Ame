@@ -141,4 +141,3 @@ jobs:
             build/integration-storage-*/completion.json
           if-no-files-found: warn
           retention-days: 7
-
