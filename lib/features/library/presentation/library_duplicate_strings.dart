@@ -11,10 +11,10 @@ abstract final class LibraryDuplicateStrings {
   static const retry = "重试";
   static const stop = "停止查找";
   static const stopping = "正在停止";
-  static const running = "正在查找重复图片";
+  static const running = "正在查重";
   static const completed = "查找完成";
   static const cancelled = "已停止查找";
-  static const failed = "查找未完成";
+  static const failed = "未完成查重";
   static const automaticWaiting = "等待后台";
   static const paused = "已暂停";
   static const pause = "暂停查重";
@@ -23,7 +23,7 @@ abstract final class LibraryDuplicateStrings {
   static const emptyBeforeAnalysis = "查找后，可以查看相同图片保存在哪些文件夹。";
   static const emptyAfterAnalysis = "已检查的图片中没有发现重复项";
   static const waitingForResults = "找到的重复图片会显示在这里。";
-  static const emptyLocations = "这组图片的位置已发生变化";
+  static const emptyLocations = "该组某些图片的位置已发生变化";
   static const loadFailed = "暂时无法读取结果";
   static const viewLocations = "查看重复图片";
   static const back = "返回重复图片";

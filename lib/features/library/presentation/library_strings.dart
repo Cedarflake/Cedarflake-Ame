@@ -40,7 +40,7 @@ abstract final class LibraryStrings {
   static const needsReconciliation = "更新受阻";
   static const synchronizationUnconfirmed = "尚未核对";
   static const synchronizationRetryPending = "等待重试";
-  static const continuityLiveOnly = "关闭后需手动更新";
+  static const continuityLiveOnly = "自动更新不可用";
   static const continuityUnavailable = "无法自动更新";
 
   // 左侧栏｜目录名称下方的访问状态。
@@ -102,7 +102,7 @@ abstract final class LibraryStrings {
 
   // 图库中央｜尚未添加任何目录时的标题、说明和导入按钮。
   static const emptyLibraryTitle = "建立你的图片图库";
-  static const emptyLibraryBody = "选择要在 Ame 中一起浏览的目录吧。";
+  static const emptyLibraryBody = "选择要在 Ame 中一起浏览的图片目录吧。";
   static const import = "导入";
 
   // 图库中央｜正在读取图库内容时，加载圆圈下面的文字。
@@ -262,12 +262,12 @@ abstract final class LibraryStrings {
 
   // 同步阶段的备用通知正文｜由同步状态选择当前一项。
   // 现行策略不发布更新中状态的通知，这组文字目前不会显示在通知中。
-  static const synchronizationPhaseWatcherStartup = "正在准备自动更新";
+  static const synchronizationPhaseWatcherStartup = "准备更新";
   static const synchronizationPhaseInventoryEnumeration = "正在检查目录";
-  static const synchronizationPhaseInventoryComparison = "正在检查文件变化";
+  static const synchronizationPhaseInventoryComparison = "正在检查变化";
   static const synchronizationPhaseQueuePublication = "正在更新图库";
   static const synchronizationPhaseRetryWait = "稍后自动重试";
-  static const synchronizationPhaseReconciliation = "正在检查文件变化";
+  static const synchronizationPhaseReconciliation = "正在检查变化";
   static const synchronizationPhaseFullScan = "正在扫描目录";
   static const synchronizationPhaseBlocked = "更新未完成";
   static const synchronizationPhaseSynchronized = "同步完成";
