@@ -84,9 +84,10 @@ advance physical file operations, perceptual similarity or release signing throu
 The current requested maintenance scope is the
 [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance). Time-rail input,
 progressive duplicate folding and post-sync gallery convergence are implemented and client-verified
-on `main`. The subsequent request also requires stable existing folded cards while newly confirmed
-duplicates join progressively, and an evidence-based explanation of the `journal_trim` recovery
-trigger. Those repairs and exact-head hosted verification remain active. Preserve guarded source
+on `main`. Stable existing folded cards, progressive confirmed copies, shared update status and
+bounded badge inspection are also implemented and client-verified. The `journal_trim` investigation
+confirmed expired checkpoint retention and added observed-bound diagnostics. Exact-head hosted
+verification remains active. Preserve guarded source
 evidence and the existing test library. This scoped repair does not reopen R2c/R3 milestones or start R4.
 
 The [maintainability refactor](plans/maintainability-refactor.md) is implemented on six sequential

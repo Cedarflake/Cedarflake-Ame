@@ -81,6 +81,21 @@ pub struct ExactDuplicateGroupPage {
 pub struct GalleryDuplicateAnnotation {
     pub location_id: String,
     pub group: ExactDuplicateGroup,
+    pub pending_location_count: u64,
+}
+
+#[derive(Clone, Debug)]
+pub struct GalleryDuplicateLocationPage {
+    pub locations: Vec<ExactDuplicateLocation>,
+    pub location_count: u64,
+    pub pending_location_count: u64,
+    pub next_location_id: Option<String>,
+}
+
+pub(crate) struct GalleryDuplicateCandidates {
+    pub members: Vec<FingerprintCandidate>,
+    pub location_count: u64,
+    pub pending_location_count: u64,
 }
 
 #[derive(Clone, Debug)]

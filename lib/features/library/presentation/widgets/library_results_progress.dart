@@ -23,8 +23,9 @@ enum LibraryResultsProgress {
     required BigInt? displayedRevision,
     required BigInt expectedRevision,
   }) {
-    if (analysis.isRunning) {
-      return analyzing;
+    final activity = resolveAnalysis(analysis: analysis, scheduler: scheduler);
+    if (activity == analyzing) {
+      return activity;
     }
     if (publication.isPublishing) {
       return publishing;
@@ -32,14 +33,26 @@ enum LibraryResultsProgress {
     if (publication.hasFailure) {
       return publicationFailed;
     }
-    if (analysis.hasFailure || (analysis.progress?.skippedFiles ?? 0) > 0) {
-      return analysisFailed;
-    }
-    if (scheduler?.hasPendingChanges ?? false) {
-      return scheduler?.isPaused == true ? paused : waiting;
+    if (activity != ready) {
+      return activity;
     }
     if (displayedRevision == null || displayedRevision < expectedRevision) {
       return publishing;
+    }
+    return ready;
+  }
+
+  static LibraryResultsProgress resolveAnalysis({
+    required LibraryExactAnalysisController analysis,
+    required LibraryExactAnalysisScheduler? scheduler,
+    bool hasPendingMembers = false,
+  }) {
+    if (analysis.isRunning) return analyzing;
+    if (analysis.hasFailure || (analysis.progress?.skippedFiles ?? 0) > 0) {
+      return analysisFailed;
+    }
+    if (hasPendingMembers || (scheduler?.hasPendingChanges ?? false)) {
+      return scheduler?.isPaused == true ? paused : waiting;
     }
     return ready;
   }

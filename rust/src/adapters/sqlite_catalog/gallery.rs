@@ -1,6 +1,8 @@
 mod annotations;
 pub(super) mod duplicates;
 mod location_anchor;
+mod member_locations;
+pub(super) mod retained_membership;
 mod time_anchor;
 mod timeline;
 

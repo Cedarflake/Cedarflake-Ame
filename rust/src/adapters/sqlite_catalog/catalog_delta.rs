@@ -15,9 +15,9 @@ use crate::ports::IncrementalCatalogRepository;
 
 use super::change_queue::{PERSISTENT_JOURNAL_CATCH_UP_SOURCE, admission_lane_for_change_ids};
 use super::{
-    IdentityGenerationExpectation, SqliteCatalog, allocate_source_generation, database_error,
-    load_catalog_revision, persist_location, read_stored_asset, source_revision_token,
-    sqlite_integer, sqlite_unsigned, stored_asset_view, stored_source_revision,
+    SqliteCatalog, allocate_source_generation, database_error, load_catalog_revision,
+    read_stored_asset, source_revision_token, sqlite_integer, sqlite_unsigned, stored_asset_view,
+    stored_source_revision,
 };
 
 const MAX_DELTA_MUTATIONS: usize = 256;
@@ -26,6 +26,7 @@ const MAX_DELTA_COMPLETIONS: usize = 128;
 const MAX_CATCH_UP_LINEAGE_PER_CHANGE: usize = 64;
 const MAX_INCREMENTAL_PATH_WINDOW: usize = 4_096;
 
+pub(super) mod location_mutation;
 mod location_removal;
 mod terminal_evidence_scope;
 use terminal_evidence_scope::{CompletedLeasePaths, invalidate_changed_paths};
@@ -800,81 +801,15 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     )?;
                 }
             }
-            let mut removals = mutation
-                .remove_location_ids
-                .iter()
-                .map(String::as_str)
-                .collect::<HashSet<_>>();
-            if let Some(location) = &mutation.upsert_location {
-                removals.insert(&location.location_id);
-            }
-            for location_id in removals {
-                location_removal::remove(
-                    &transaction,
-                    &active_scan_id,
-                    running_scan_id.as_deref(),
-                    &batch.root_id,
-                    location_id,
-                )?;
-            }
-            if let Some(location) = &mutation.upsert_location {
-                let persisted = persist_location(
-                    &transaction,
-                    &active_scan_id,
-                    &batch.root_id,
-                    location,
-                    IdentityGenerationExpectation::ResolveCurrent,
-                    &mut identity_generation_batch,
-                )?;
-                if let Some(running_scan_id) = running_scan_id.as_deref() {
-                    let mut mirrored_location = location.clone();
-                    mirrored_location.source_generation =
-                        sqlite_unsigned(persisted.source_generation, "mirrored source generation")?;
-                    persist_location(
-                        &transaction,
-                        running_scan_id,
-                        &batch.root_id,
-                        &mirrored_location,
-                        IdentityGenerationExpectation::MirrorCurrentActive,
-                        &mut staging_identity_generation_batch,
-                    )?;
-                }
-                if matches!(location.preview_status, PreviewStatus::Ready)
-                    && !location.preview_path.is_empty()
-                {
-                    transaction
-                        .execute(
-                            "INSERT OR IGNORE INTO preview_artifact_locations(
-                               artifact_key, location_id
-                             )
-                             SELECT artifact_key, ?1 FROM preview_artifacts
-                             WHERE artifact_path = ?2 AND lifecycle_state = 'ready'",
-                            params![location.location_id, location.preview_path],
-                        )
-                        .map_err(database_error)?;
-                    let owner = transaction
-                        .query_row(
-                            "SELECT EXISTS(
-                               SELECT 1
-                               FROM preview_artifact_locations AS owners
-                               JOIN preview_artifacts AS artifacts
-                                 ON artifacts.artifact_key = owners.artifact_key
-                               WHERE owners.location_id = ?1
-                                 AND artifacts.artifact_path = ?2
-                                 AND artifacts.lifecycle_state = 'ready'
-                             )",
-                            params![location.location_id, location.preview_path],
-                            |row| row.get::<_, bool>(0),
-                        )
-                        .map_err(database_error)?;
-                    if !owner {
-                        return Err(ScanError::new(
-                            "catalog_delta_preview_owner_missing",
-                            "A retained ready preview no longer has a compatible artifact owner",
-                        ));
-                    }
-                }
-            }
+            location_mutation::apply(
+                &transaction,
+                &active_scan_id,
+                running_scan_id.as_deref(),
+                &batch.root_id,
+                mutation,
+                &mut identity_generation_batch,
+                &mut staging_identity_generation_batch,
+            )?;
         }
         for update in &batch.terminal_media_evidence {
             let evidence = &update.evidence;

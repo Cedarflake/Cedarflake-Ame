@@ -284,6 +284,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryDuplicateLocationPage dco_decode_gallery_duplicate_location_page(
+    dynamic raw,
+  );
+
+  @protected
   GalleryDuplicateMode dco_decode_gallery_duplicate_mode(dynamic raw);
 
   @protected
@@ -897,6 +902,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryDuplicateAnnotation sse_decode_gallery_duplicate_annotation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryDuplicateLocationPage sse_decode_gallery_duplicate_location_page(
     SseDeserializer deserializer,
   );
 
@@ -1648,6 +1658,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_gallery_duplicate_annotation(
     GalleryDuplicateAnnotation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_duplicate_location_page(
+    GalleryDuplicateLocationPage self,
     SseSerializer serializer,
   );
 

@@ -8,6 +8,7 @@ import "../../application/library_controller.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_locations_sheet.dart";
+import "library_duplicate_update_status.dart";
 import "library_gallery_card_metrics.dart";
 
 class LibraryDuplicateBadge extends ConsumerStatefulWidget {
@@ -41,47 +42,51 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
     if (group == null || !TickerMode.valuesOf(context).enabled) {
       return const SizedBox.shrink();
     }
+    final count = LibraryDuplicateStrings.locations(group.locationCount);
     return AmeOverlayTraversalBoundary(
-      child: AmeTooltip(
-        message:
-            "${LibraryDuplicateStrings.viewLocations} · ${LibraryDuplicateStrings.locations(group.locationCount)}",
-        child: IconButton(
-          key: ValueKey("duplicate-badge-${widget.locationId}"),
-          focusNode: _focus,
-          style: IconButton.styleFrom(
-            backgroundColor: Theme.of(
-              context,
-            ).colorScheme.surface.withValues(alpha: 0.92),
-            foregroundColor: Theme.of(context).colorScheme.onSurface,
-            fixedSize: const Size.square(
-              LibraryGalleryCardMetrics.selectionExtent,
-            ),
-            shape: const CircleBorder(),
-            padding: EdgeInsets.zero,
-            visualDensity: VisualDensity.standard,
-            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-          ),
-          onPressed: () async {
-            final restoreFocus = _focus.hasFocus;
-            await showModalBottomSheet<void>(
-              context: context,
-              showDragHandle: true,
-              isScrollControlled: true,
-              useSafeArea: true,
-              builder: (_) => LibraryDuplicateLocationsSheet(
-                group: group,
-                currentLocationId: widget.locationId,
+      child: LibraryDuplicateUpdateStatus(
+        hasPending: group.pendingLocationCount > 0,
+        builder: (context, label) => AmeTooltip(
+          message:
+              "${LibraryDuplicateStrings.viewLocations} · $count${label == null ? '' : ' · $label'}",
+          child: IconButton(
+            key: ValueKey("duplicate-badge-${widget.locationId}"),
+            focusNode: _focus,
+            style: IconButton.styleFrom(
+              backgroundColor: Theme.of(
+                context,
+              ).colorScheme.surface.withValues(alpha: 0.92),
+              foregroundColor: Theme.of(context).colorScheme.onSurface,
+              fixedSize: const Size.square(
+                LibraryGalleryCardMetrics.selectionExtent,
               ),
-            );
-            if (restoreFocus &&
-                context.mounted &&
-                TickerMode.valuesOf(context).enabled) {
-              _focus.requestFocus();
-            }
-          },
-          icon: const Icon(
-            Symbols.photo_library_rounded,
-            size: LibraryGalleryCardMetrics.duplicateIconExtent,
+              shape: const CircleBorder(),
+              padding: EdgeInsets.zero,
+              visualDensity: VisualDensity.standard,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+            onPressed: () async {
+              final restoreFocus = _focus.hasFocus;
+              await showModalBottomSheet<void>(
+                context: context,
+                showDragHandle: true,
+                isScrollControlled: true,
+                useSafeArea: true,
+                builder: (_) => LibraryDuplicateLocationsSheet(
+                  group: group,
+                  currentLocationId: widget.locationId,
+                ),
+              );
+              if (restoreFocus &&
+                  context.mounted &&
+                  TickerMode.valuesOf(context).enabled) {
+                _focus.requestFocus();
+              }
+            },
+            icon: const Icon(
+              Symbols.photo_library_rounded,
+              size: LibraryGalleryCardMetrics.duplicateIconExtent,
+            ),
           ),
         ),
       ),

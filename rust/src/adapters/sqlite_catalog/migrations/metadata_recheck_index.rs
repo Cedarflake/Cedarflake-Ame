@@ -54,6 +54,7 @@ mod tests;
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v43_for_test(connection: &Connection) {
+    super::retained_gallery_membership::downgrade_to_v44_for_test(connection);
     if super::schema_shape::schema_version(connection).unwrap() == 44 {
         connection
             .execute_batch(

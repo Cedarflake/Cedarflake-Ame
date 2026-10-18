@@ -134,6 +134,7 @@ fn require_object(
 
 #[cfg(test)]
 pub(crate) fn downgrade_to_v39_for_test(connection: &Connection) {
+    super::retained_gallery_membership::downgrade_to_v44_for_test(connection);
     let version: i64 = connection
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("exact analysis fixture version");

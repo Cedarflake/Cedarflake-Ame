@@ -59,6 +59,7 @@ fn conflicting_metadata_index_rolls_back_before_schema_advances() {
 fn missing_metadata_index_is_rejected_by_current_schema_validation() {
     let mut connection = retained_catalog();
     migrate(&mut connection).unwrap();
+    super::super::migrate_schema(&mut connection).unwrap();
     connection
         .execute_batch("DROP INDEX asset_locations_pending_metadata")
         .unwrap();

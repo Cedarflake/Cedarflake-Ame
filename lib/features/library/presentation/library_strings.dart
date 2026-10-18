@@ -33,7 +33,7 @@ abstract final class LibraryStrings {
   static const showMoreFolders = "显示更多目录";
   static const retryFolders = "重新加载目录";
 
-  // 左侧栏｜目录名称下方的同步状态。
+  // 左侧栏｜目录名称下方的同步状态；synchronizing 也用于重复图片组的更新状态。
   // 状态选择见 library_synchronization_feedback.dart 和 widgets/library_source_navigation_tile.dart。
   static const synchronized = "已同步";
   static const synchronizing = "正在更新";

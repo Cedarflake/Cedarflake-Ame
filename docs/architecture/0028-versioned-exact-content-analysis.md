@@ -72,6 +72,46 @@ results survive cancellation, failure and restart. Human decisions are stored se
   overlapping analysis completions coalesce behind the active refresh. Zero-read terminal runs
   also refresh because they can admit evidence retained by an interrupted process.
 
+### Retained gallery membership during revalidation
+
+Schema 45 separates last-confirmed display membership from current content evidence. When dirty
+recovery advances a generation despite an unchanged physical identity, size, modification time and
+revision observation, the source-reconciliation transaction may retain the prior published content
+key for gallery display. It binds that relationship to the new generation before updating aliases.
+Changed identity/state does not receive a binding. A binding never creates a fingerprint, skips a
+content read, admits a durable preference, or enters the confirmed Duplicates review projection.
+Incremental replacement captures compatible membership before removing its prior location and binds
+it after guarded source reconciliation, within the same transaction. The location-mutation owner
+keeps removal, current/staging publication and preview ownership together; rollback restores them all.
+
+The gallery projection combines current published fingerprints with those retained relationships.
+Current publication wins; a different confirmed digest splits only its affected member, and a new
+confirmed copy joins the existing displayed group progressively. All gallery counts, paging,
+timeline/anchor resolution, annotations and location inspection use that same projection. Pending
+membership exposes the group's current update, pause or background-wait state without per-location
+verification labels; cancelled or restarted analysis retains this state without claiming completion.
+New items without previous evidence remain ordinary
+items. Source removal and scope changes still exclude absent/out-of-scope members.
+
+The existing source-generation invalidation and immutable exact fingerprints retain their strict
+contracts. The derived binding is replaced on the next physical-generation transition, and retired
+bindings are discarded in batches of at most 256 during fingerprint publication. Gallery location
+inspection reads counts and one keyset page in one snapshot, releases it, then inspects availability.
+Badge annotations are bounded current-membership reads: the requested gallery revision is a lower
+bound, so a newer committed publication does not hide their inspection action while the visible
+window catches up. Each read validates current locations and compatible display evidence in its
+transaction; removed locations yield no annotation. The presentation retires responses when its
+requested window changes. Cursor membership and exact-analysis admission retain their stricter
+revision and source-generation contracts.
+No source content is opened by this display projection. The empty forward migration preserves
+catalogs and user decisions without inventing historical relationships or rescanning. Disabling the
+retained projection restores confirmed-only display; the additional derived table is disposable.
+
+This choice retains browsing continuity during conservative recovery instead of expanding every
+previous group while hashes are temporarily unavailable. It deliberately allows visibly pending
+display relationships, while confirmed analysis and user-decision admission continue to require
+current compatible evidence.
+
 ## Group and query semantics
 
 A group key contains scheme, byte length and digest. It is content evidence, not asset identity.

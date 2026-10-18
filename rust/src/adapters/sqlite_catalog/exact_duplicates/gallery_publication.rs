@@ -54,7 +54,18 @@ pub(super) fn publish(
                  WHERE f.run_id = ? AND f.scheme = ?
                    AND f.source_generation IN ({placeholders})"
             ),
-            params_from_iter(parameters),
+            params_from_iter(&parameters),
+        )
+        .map_err(database_error)?;
+    transaction
+        .execute(
+            &format!(
+                "DELETE FROM gallery_retained_fingerprints WHERE source_generation IN (
+                   SELECT f.source_generation FROM content_fingerprints AS f
+                   WHERE f.run_id = ? AND f.scheme = ?
+                     AND f.source_generation IN ({placeholders}))"
+            ),
+            params_from_iter(&parameters),
         )
         .map_err(database_error)?;
     if changed > 0 {

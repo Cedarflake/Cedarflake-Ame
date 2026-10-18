@@ -54,6 +54,7 @@ mod persistent_journal_baseline;
 mod persistent_journal_range_history;
 mod preview_expectation_repair;
 mod queue_retirement_indexes;
+mod retained_gallery_membership;
 mod retained_source_state;
 mod retired_root_authority;
 mod scan_resume_inventory;
@@ -122,6 +123,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         exact_duplicate_review::migrate_transaction(&transaction)?;
         exact_candidate_index_retirement::migrate_transaction(&transaction)?;
         metadata_recheck_index::migrate_transaction(&transaction)?;
+        retained_gallery_membership::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -205,6 +207,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             41 => exact_duplicate_review::migrate(connection)?,
             42 => exact_candidate_index_retirement::migrate(connection)?,
             43 => metadata_recheck_index::migrate(connection)?,
+            44 => retained_gallery_membership::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

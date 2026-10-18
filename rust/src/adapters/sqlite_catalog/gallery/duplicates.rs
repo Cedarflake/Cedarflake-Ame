@@ -30,6 +30,7 @@ pub(in super::super) fn publish_completed_evidence(
             .execute("UPDATE catalog_state SET revision = revision + 1", [])
             .map_err(database_error)?;
     }
+    super::retained_membership::discard_retired_batch(transaction)?;
     Ok(())
 }
 
@@ -44,9 +45,7 @@ pub(super) fn compatible_fingerprint(location: &str) -> String {
     )
 }
 
-pub(super) const PUBLISHED_FINGERPRINTS: &str = "(content_fingerprints AS f
-    JOIN gallery_content_fingerprints AS published
-      ON published.source_generation = f.source_generation AND published.scheme = f.scheme)";
+pub(super) const DISPLAY_FINGERPRINTS: &str = "gallery_display_fingerprints AS f";
 
 pub(super) fn push_duplicate_filter(
     query: &GalleryQuery,
@@ -67,12 +66,12 @@ pub(super) fn push_duplicate_filter(
     let representative = representative_expression("locations");
     clauses.push(format!(
         "(NOT EXISTS (
-           SELECT 1 FROM {PUBLISHED_FINGERPRINTS} WHERE {compatible})
+           SELECT 1 FROM {DISPLAY_FINGERPRINTS} WHERE {compatible})
          OR locations.location_id IN (
            SELECT {representative}
            FROM library_roots AS roots
            JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
-           JOIN {PUBLISHED_FINGERPRINTS} ON {compatible}
+           JOIN {DISPLAY_FINGERPRINTS} ON {compatible}
            {DECISION_JOIN}
            WHERE {scope}
            GROUP BY f.scheme, f.digest, f.byte_length))"
@@ -106,7 +105,7 @@ pub(super) fn representative_for_anchor(
           SELECT f.digest, f.byte_length
           FROM asset_locations AS requested
           JOIN library_roots AS requested_root ON requested.scan_id = requested_root.active_scan_id
-          JOIN {PUBLISHED_FINGERPRINTS} ON {requested}
+          JOIN {DISPLAY_FINGERPRINTS} ON {requested}
           WHERE requested.location_id = ? {asset_guard})"
     ));
     transaction
@@ -115,7 +114,7 @@ pub(super) fn representative_for_anchor(
                 "SELECT {representative}
              FROM library_roots AS roots
              JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
-             JOIN {PUBLISHED_FINGERPRINTS} ON {current}
+             JOIN {DISPLAY_FINGERPRINTS} ON {current}
              {DECISION_JOIN}
              WHERE {}",
                 scope.join(" AND ")

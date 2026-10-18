@@ -11,6 +11,7 @@ import "../../application/library_exact_duplicates.dart";
 import "../../domain/library_exact_duplicates.dart";
 import "../library_duplicate_strings.dart";
 import "library_duplicate_location_tile.dart";
+import "library_duplicate_update_status.dart";
 
 class LibraryDuplicateLocationsSheet extends ConsumerStatefulWidget {
   const LibraryDuplicateLocationsSheet({
@@ -33,6 +34,7 @@ class _LibraryDuplicateLocationsSheetState
   _locations;
   int? _firstBuilt;
   int _endBuilt = 0;
+  int _pendingCount = 0;
 
   @override
   void initState() {
@@ -47,14 +49,16 @@ class _LibraryDuplicateLocationsSheetState
   void _createWindow() {
     final service = ref.read(libraryExactDuplicatesProvider);
     final group = widget.group;
-    _locations = LibraryDuplicateReviewWindow((after) async {
-      final page = await service.loadLocations(group, after);
-      return LibraryDuplicateReviewSlice(
-        items: page.locations,
-        total: group.locationCount,
-        next: page.nextLocationId,
-      );
-    })..total = group.locationCount;
+    _pendingCount = group.pendingLocationCount;
+    _locations = LibraryDuplicateReviewWindow(
+      (after) async {
+        final page = await service.loadLocations(group, after);
+        return _LocationSlice(page, group);
+      },
+      onAdmitted: (slice) {
+        if (slice is _LocationSlice) _pendingCount = slice.pendingCount;
+      },
+    )..total = group.locationCount;
     unawaited(_locations.ensureRange(0, 1));
   }
 
@@ -105,9 +109,25 @@ class _LibraryDuplicateLocationsSheetState
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
-              child: Text(
-                LibraryDuplicateStrings.duplicateImages(_locations.total),
-                style: Theme.of(context).textTheme.titleLarge,
+              child: LibraryDuplicateUpdateStatus(
+                hasPending: _pendingCount > 0,
+                builder: (context, label) => Wrap(
+                  alignment: WrapAlignment.spaceBetween,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 16,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      LibraryDuplicateStrings.duplicateImages(_locations.total),
+                      style: Theme.of(context).textTheme.titleLarge,
+                    ),
+                    if (label != null)
+                      Text(
+                        label,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                  ],
+                ),
               ),
             ),
             SizedBox(
@@ -165,4 +185,17 @@ class _LibraryDuplicateLocationsSheetState
       ),
     );
   }
+}
+
+class _LocationSlice
+    extends LibraryDuplicateReviewSlice<LibraryDuplicateLocation, String> {
+  _LocationSlice(LibraryDuplicateLocationPage page, LibraryDuplicateGroup group)
+    : pendingCount = page.pendingLocationCount ?? group.pendingLocationCount,
+      super(
+        items: page.locations,
+        total: page.locationCount ?? group.locationCount,
+        next: page.nextLocationId,
+      );
+
+  final int pendingCount;
 }

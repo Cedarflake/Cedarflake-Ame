@@ -16,6 +16,16 @@ Future<GalleryDuplicatePage> loadGalleryDuplicates({
   locationIds: locationIds,
 );
 
+Future<GalleryDuplicateLocationPage> loadGalleryDuplicateLocations({
+  required String digest,
+  required BigInt byteLength,
+  String? afterLocationId,
+}) => RustLib.instance.api.crateApiExactDuplicatesLoadGalleryDuplicateLocations(
+  digest: digest,
+  byteLength: byteLength,
+  afterLocationId: afterLocationId,
+);
+
 Stream<ExactAnalysisProgress> analyzeExactDuplicates({required String runId}) =>
     RustLib.instance.api.crateApiExactDuplicatesAnalyzeExactDuplicates(
       runId: runId,

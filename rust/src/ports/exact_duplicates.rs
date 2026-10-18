@@ -11,6 +11,12 @@ pub(crate) trait GalleryDuplicateRepository {
         revision: u64,
         location_ids: &[String],
     ) -> Result<crate::domain::GalleryDuplicatePage, ScanError>;
+    fn load_gallery_duplicate_locations(
+        &mut self,
+        digest: &str,
+        byte_length: u64,
+        after_location_id: &str,
+    ) -> Result<crate::domain::exact_duplicates::GalleryDuplicateCandidates, ScanError>;
 }
 
 pub(crate) trait FingerprintReadLease {

@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 347412659;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1551588412;
 
 // Section: executor
 
@@ -684,6 +684,45 @@ fn wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locatio
                         crate::api::exact_duplicate_review::load_exact_duplicate_review_locations(
                             api_key, api_after,
                         )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_gallery_duplicate_locations",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_digest = <String>::sse_decode(&mut deserializer);
+            let api_byte_length = <u64>::sse_decode(&mut deserializer);
+            let api_after_location_id = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::exact_duplicates::load_gallery_duplicate_locations(
+                        api_digest,
+                        api_byte_length,
+                        api_after_location_id,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -2423,9 +2462,30 @@ impl SseDecode for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
         let mut var_locationId = <String>::sse_decode(deserializer);
         let mut var_group =
             <crate::domain::exact_duplicates::ExactDuplicateGroup>::sse_decode(deserializer);
+        let mut var_pendingLocationCount = <u64>::sse_decode(deserializer);
         return crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
             location_id: var_locationId,
             group: var_group,
+            pending_location_count: var_pendingLocationCount,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::exact_duplicates::GalleryDuplicateLocationPage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_locations =
+            <Vec<crate::domain::exact_duplicates::ExactDuplicateLocation>>::sse_decode(
+                deserializer,
+            );
+        let mut var_locationCount = <u64>::sse_decode(deserializer);
+        let mut var_pendingLocationCount = <u64>::sse_decode(deserializer);
+        let mut var_nextLocationId = <Option<String>>::sse_decode(deserializer);
+        return crate::domain::exact_duplicates::GalleryDuplicateLocationPage {
+            locations: var_locations,
+            location_count: var_locationCount,
+            pending_location_count: var_pendingLocationCount,
+            next_location_id: var_nextLocationId,
         };
     }
 }
@@ -3958,137 +4018,143 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
+        18 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        19 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+        19 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        20 => {
+        20 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        21 => {
             wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len)
         }
-        21 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
+        22 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
+        23 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
+        24 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__catalog__load_library_folder_page_impl(
+        25 => wire__crate__api__catalog__load_library_folder_page_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        25 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
+        26 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
+        27 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => wire__crate__api__catalog__load_library_query_snapshot_impl(
+        28 => wire__crate__api__catalog__load_library_query_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__catalog__load_library_time_snapshot_impl(
+        29 => wire__crate__api__catalog__load_library_time_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__catalog__load_paused_library_scan_impl(
+        30 => wire__crate__api__catalog__load_paused_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        31 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => {
+        32 => {
             wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len)
         }
-        32 => wire__crate__api__preview__materialize_library_preview_impl(
+        33 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        35 => wire__crate__api__synchronization__poll_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => {
+        36 => {
             wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        36 => {
+        37 => {
             wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        39 => {
+        40 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        40 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        41 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
+        41 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        42 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
+        43 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        44 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        45 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        46 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__storage__update_storage_settings_impl(
+        48 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -4112,18 +4178,18 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        37 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        34 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        38 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        39 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        47 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -4886,6 +4952,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::exact_duplicates::GalleryD
         [
             self.location_id.into_into_dart().into_dart(),
             self.group.into_into_dart().into_dart(),
+            self.pending_location_count.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -4898,6 +4965,32 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::exact_duplicates::GalleryD
     for crate::domain::exact_duplicates::GalleryDuplicateAnnotation
 {
     fn into_into_dart(self) -> crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::exact_duplicates::GalleryDuplicateLocationPage
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.locations.into_into_dart().into_dart(),
+            self.location_count.into_into_dart().into_dart(),
+            self.pending_location_count.into_into_dart().into_dart(),
+            self.next_location_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::exact_duplicates::GalleryDuplicateLocationPage
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::domain::exact_duplicates::GalleryDuplicateLocationPage>
+    for crate::domain::exact_duplicates::GalleryDuplicateLocationPage
+{
+    fn into_into_dart(self) -> crate::domain::exact_duplicates::GalleryDuplicateLocationPage {
         self
     }
 }
@@ -6583,6 +6676,20 @@ impl SseEncode for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <String>::sse_encode(self.location_id, serializer);
         <crate::domain::exact_duplicates::ExactDuplicateGroup>::sse_encode(self.group, serializer);
+        <u64>::sse_encode(self.pending_location_count, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::exact_duplicates::GalleryDuplicateLocationPage {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::domain::exact_duplicates::ExactDuplicateLocation>>::sse_encode(
+            self.locations,
+            serializer,
+        );
+        <u64>::sse_encode(self.location_count, serializer);
+        <u64>::sse_encode(self.pending_location_count, serializer);
+        <Option<String>>::sse_encode(self.next_location_id, serializer);
     }
 }
 

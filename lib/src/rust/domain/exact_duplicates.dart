@@ -198,14 +198,17 @@ class ExactDuplicateLocationPage {
 class GalleryDuplicateAnnotation {
   final String locationId;
   final ExactDuplicateGroup group;
+  final BigInt pendingLocationCount;
 
   const GalleryDuplicateAnnotation({
     required this.locationId,
     required this.group,
+    required this.pendingLocationCount,
   });
 
   @override
-  int get hashCode => locationId.hashCode ^ group.hashCode;
+  int get hashCode =>
+      locationId.hashCode ^ group.hashCode ^ pendingLocationCount.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -213,7 +216,39 @@ class GalleryDuplicateAnnotation {
       other is GalleryDuplicateAnnotation &&
           runtimeType == other.runtimeType &&
           locationId == other.locationId &&
-          group == other.group;
+          group == other.group &&
+          pendingLocationCount == other.pendingLocationCount;
+}
+
+class GalleryDuplicateLocationPage {
+  final List<ExactDuplicateLocation> locations;
+  final BigInt locationCount;
+  final BigInt pendingLocationCount;
+  final String? nextLocationId;
+
+  const GalleryDuplicateLocationPage({
+    required this.locations,
+    required this.locationCount,
+    required this.pendingLocationCount,
+    this.nextLocationId,
+  });
+
+  @override
+  int get hashCode =>
+      locations.hashCode ^
+      locationCount.hashCode ^
+      pendingLocationCount.hashCode ^
+      nextLocationId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is GalleryDuplicateLocationPage &&
+          runtimeType == other.runtimeType &&
+          locations == other.locations &&
+          locationCount == other.locationCount &&
+          pendingLocationCount == other.pendingLocationCount &&
+          nextLocationId == other.nextLocationId;
 }
 
 class GalleryDuplicatePage {

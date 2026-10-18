@@ -24,9 +24,9 @@ class RustLibraryGalleryDuplicates implements LibraryGalleryDuplicates {
       revision: revision,
       locationIds: locationIds,
     );
-    if (page.revision != revision) {
+    if (page.revision < revision) {
       throw StateError(
-        "Duplicate annotations belong to a different gallery revision",
+        "Duplicate annotations precede the requested gallery revision",
       );
     }
     return {
@@ -38,6 +38,7 @@ class RustLibraryGalleryDuplicates implements LibraryGalleryDuplicates {
           physicalFileCount: annotation.group.physicalFileCount.toInt(),
           representativeLocationId: annotation.group.representativeLocationId,
           representativePath: annotation.group.representativePath,
+          pendingLocationCount: annotation.pendingLocationCount.toInt(),
         ),
     };
   }

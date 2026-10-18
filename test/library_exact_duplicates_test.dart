@@ -346,7 +346,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.text("已暂停查重"), findsNothing);
+        expect(find.text("已暂停"), findsNothing);
         expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
         await tester.tap(find.widgetWithText(TextButton, "继续查重"));
         await tester.pumpAndSettle();
@@ -358,7 +358,7 @@ void main() {
         if (saveFails) {
           expect(store.saved.exactAnalysisPaused, isTrue);
           expect(find.text("无法保存查重设置"), findsOneWidget);
-          expect(find.text("已暂停查重"), findsNothing);
+          expect(find.text("已暂停"), findsNothing);
           expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
         } else {
           expect(store.saved.exactAnalysisPaused, isFalse);
@@ -366,7 +366,7 @@ void main() {
           await tester.pumpAndSettle();
           expect(scheduler.isPaused, isTrue);
           expect(store.saved.exactAnalysisPaused, isTrue);
-          expect(find.text("已暂停查重"), findsNothing);
+          expect(find.text("已暂停"), findsNothing);
           expect(find.widgetWithText(TextButton, "继续查重"), findsOneWidget);
         }
         expect(tester.takeException(), isNull);

@@ -12,6 +12,18 @@ pub fn load_gallery_duplicates(
     crate::application::gallery_duplicates::load_gallery_duplicates(revision, location_ids)
 }
 
+pub fn load_gallery_duplicate_locations(
+    digest: String,
+    byte_length: u64,
+    after_location_id: Option<String>,
+) -> Result<crate::domain::exact_duplicates::GalleryDuplicateLocationPage, ScanError> {
+    crate::application::gallery_duplicates::load_gallery_duplicate_locations(
+        digest,
+        byte_length,
+        after_location_id,
+    )
+}
+
 pub fn analyze_exact_duplicates(
     run_id: String,
     sink: StreamSink<ExactAnalysisProgress>,

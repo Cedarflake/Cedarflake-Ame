@@ -173,6 +173,69 @@ and an expired checkpoint does not resolve names or read media. Read-window owne
 130 production lines; affected reader suites contain 744 and 1085 dedicated test lines respectively.
 Recovery authority, source safety, system journal size and installed services are unchanged.
 
+### Stable folded membership during recovery
+
+Schema 45 adds a derived display relationship to previously published fingerprints. Current source
+generation, full-content analysis and preference admission keep their original guards. Focused cases
+cover unchanged recovery, repeated invalidation and reopen, new confirmed copies joining a retained
+group, changed content splitting, changed revisions, scoped hardlinks, removal and transaction rollback.
+The empty forward migration preserves assets and revision, rejects conflicting objects and validates
+the view before current queries. Nine historical-fixture failures in the 89-case incremental suite
+were traced to a downgrade helper retaining schema-45 objects; its shared downgrade chain was corrected
+and all nine affected cases then passed. The other 80 cases passed in the original invocation.
+
+The first native replay exposed an incomplete capture point: a catalog delta removes its prior
+location before reconciliation, so alias propagation alone retained no display relationship. The
+location-mutation owner now captures compatible published membership before that removal and binds it
+after guarded generation allocation in the same transaction. The repeated native replay retained
+10,000 displayed members in 72 folded groups at samples with 338, 2,242, 4,882 and 5,102 pending
+members. A time-rail click during recovery moved to the 2018 region. Pause retained those groups and
+the 60-image bottom sheet displayed the shared paused label. After resume, the queue emptied,
+metadata covered all 10,000 locations, all 10,000 current fingerprints were published and pending
+display membership reached zero. The client displayed 10,000 images, 72 folded items and synchronized.
+The intentional pause excludes this replay from elapsed-time comparisons.
+
+The same check exposed badge reads rejecting a newer publication while their visible window still
+used the preceding revision. The bounded annotation API now treats that revision as a lower bound
+and returns current compatible membership from one read transaction. Future revisions are rejected,
+removed locations have no annotation, and retired presentation requests cannot replace a newer window.
+This does not relax catalog cursor or fingerprint admission. Its focused regression and final client
+check are recorded with the submitted head below.
+
+The follow-up replay also exposed an expensive UNION-view plan: member lookup selected the file-size
+index and repeatedly visited equal-size peers, while the requested keys were inlined into both
+branches. On the paused replay catalog, a 72-group read took 2,909 ms; during native updating an
+equivalent diagnostic exceeded its five-second bound. The query now materializes the at-most-256
+requested keys, pushes their digests into both existing content-index branches and uses the existing
+source-generation member index. On the same stopped-client catalog it returned the same 72 groups
+in 300 ms. A query-plan regression verifies those index boundaries. These are diagnostic query
+measurements, not an end-to-end synchronization benchmark.
+
+After the query repair, the rebuilt Debug kept badge actions present during the same automatic
+recovery. At 67,450 ms it had 1,058 pending displayed members, 10,000 total members and 72 groups.
+The 60-image sheet opened during recovery, followed by the 45-image sheet whose header displayed
+`正在更新` while its location rows remained usable. The final focused run passed all 29 exact-analysis
+cases, the new query-plan regression and all three sheet cases; format and all 17 bridge checks passed.
+
+Group status reuses `LibraryResultsProgress.resolveAnalysis`, `LibraryStrings.synchronizing` and the
+existing pause/wait strings. Tooltips and the bottom-sheet header share one presentation component;
+location rows receive no verification copy. The 31 affected Flutter cases and Dart analysis passed,
+including pause/wait/run transitions and a late page response that must not revive a completed label.
+All 17 async bridge contracts and their positive/negative guardrail cases passed. The generated bridge
+uses the repository generator; no dependency was introduced. Both native replay processes exited
+normally. Subsequent annotation replays also exited normally. The original test catalog, settings,
+preferences and protected original catalog components
+were restored and their hashes verified after the completed replay.
+
+Production owners contain 109 location-mutation, 130 retained-membership, 56 member-query, 346 source
+reconciliation, 201 locations-sheet, 46 shared-status and 94 progress lines. The catalog-delta facade
+contains 2,207 lines including test hooks, with no inline test cases; it delegates the affected
+transactional responsibility. The migration file contains 87 lines including its test-only downgrade
+helper, with 78 dedicated test lines. Annotation reads contain 113 production and 33 inline-test lines;
+dedicated retained-membership and sheet suites contain 293 and 231 lines respectively. Member rows
+reuse the existing location contract, with group counts carried by their page. Complete hosted checks
+remain required for the final implementation commit.
+
 ## Controlled client run
 
 The existing `build/test` corpus contains 10,000 files, 10,921,494,393 encoded bytes and 72 expected

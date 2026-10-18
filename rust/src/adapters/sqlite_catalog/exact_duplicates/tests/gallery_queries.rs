@@ -6,7 +6,7 @@ use crate::ports::exact_duplicates::GalleryDuplicateRepository;
 
 use super::*;
 
-fn merged() -> GalleryQuery {
+pub(super) fn merged() -> GalleryQuery {
     GalleryQuery {
         duplicate_mode: GalleryDuplicateMode::Merged,
         sort_key: GallerySortKey::FileName,
@@ -15,13 +15,13 @@ fn merged() -> GalleryQuery {
     }
 }
 
-fn finish(catalog: &mut SqliteCatalog, run: &str) {
+pub(super) fn finish(catalog: &mut SqliteCatalog, run: &str) {
     let mut progress = ExactAnalysisProgress::running(run.to_owned());
     progress.phase = ExactAnalysisPhase::Completed;
     catalog.finish_exact_analysis(&progress).unwrap();
 }
 
-fn ids(catalog: &mut SqliteCatalog, query: &GalleryQuery) -> Vec<String> {
+pub(super) fn ids(catalog: &mut SqliteCatalog, query: &GalleryQuery) -> Vec<String> {
     catalog
         .load_snapshot(10, query, "query", None, None, None)
         .unwrap()
@@ -52,9 +52,15 @@ fn partial_analysis_preserves_gallery_revision_until_atomic_publication() {
         .load_snapshot(1, &merged(), "query", None, None, None)
         .unwrap();
     assert_eq!(after.revision, before.revision + 1);
+    let annotations = catalog
+        .load_gallery_duplicates(before.revision, &["a".to_owned()])
+        .unwrap();
+    assert_eq!(annotations.revision, after.revision);
+    assert_eq!(annotations.annotations.len(), 1);
+    assert_eq!(annotations.annotations[0].group.location_count, 2);
     assert_eq!(
         catalog
-            .load_gallery_duplicates(before.revision, &["a".to_owned()])
+            .load_gallery_duplicates(after.revision + 1, &["a".to_owned()])
             .unwrap_err()
             .code,
         "catalog_revision_changed"

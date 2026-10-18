@@ -212,6 +212,11 @@ fn propagate_observation(
         AliasPropagation::None => return Ok(false),
         AliasPropagation::StagedScan(scan_id) => (Some(scan_id), false),
         AliasPropagation::CurrentLocations => {
+            super::gallery::retained_membership::rebind_unchanged_display(
+                transaction,
+                location,
+                source_generation,
+            )?;
             let active_projection_changed = transaction
                 .query_row(
                     "SELECT EXISTS(

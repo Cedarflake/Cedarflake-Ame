@@ -6,6 +6,7 @@ use super::*;
 mod candidate_index;
 mod gallery_batches;
 mod gallery_queries;
+mod retained_membership;
 mod review;
 
 fn fixture() -> (tempfile::TempDir, SqliteCatalog) {

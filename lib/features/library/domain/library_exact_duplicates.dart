@@ -32,6 +32,7 @@ class LibraryDuplicateGroup {
     required this.physicalFileCount,
     required this.representativeLocationId,
     required this.representativePath,
+    this.pendingLocationCount = 0,
   });
   final String digest;
   final int byteLength;
@@ -39,6 +40,7 @@ class LibraryDuplicateGroup {
   final int physicalFileCount;
   final String representativeLocationId;
   final String representativePath;
+  final int pendingLocationCount;
 }
 
 class LibraryDuplicateGroupPage {
@@ -64,7 +66,11 @@ class LibraryDuplicateLocationPage {
   const LibraryDuplicateLocationPage({
     required this.locations,
     this.nextLocationId,
+    this.locationCount,
+    this.pendingLocationCount,
   });
   final List<LibraryDuplicateLocation> locations;
   final String? nextLocationId;
+  final int? locationCount;
+  final int? pendingLocationCount;
 }

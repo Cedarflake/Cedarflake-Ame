@@ -75,15 +75,21 @@ The first repairs and their affected client checks are complete: new rail input 
 updates, bounded exact results publish progressively, metadata recovery finishes in the background,
 and completion waits for settled gallery results. The client check also identified and repaired
 external Slider padding that excluded endpoint clicks. The original profile and retained catalog
-were restored and hash-verified. Hosted checks identified two fixtures whose schema/read expectations
-still described the previous behavior; their owning assertions are being reconciled with the repair.
-The acceptance record retains the commands, results and scoped comparison limits.
+were restored and hash-verified. The two hosted fixture failures were reconciled with the current
+schema and metadata-read behavior; all applicable jobs passed on `cab95a6`. The acceptance record
+retains the commands, results and scoped comparison limits.
 
-The subsequent request requires both stable existing folded groups during recovery and progressive
-admission of newly confirmed duplicates. Investigate the observed `journal_trim` trigger before
-changing recovery policy. Keep retained display membership distinct from current exact evidence;
-changed or replaced sources must still invalidate evidence, and pending display cannot authorize a
-confirmed match or a durable preference. This work and exact-head hosted verification remain active.
+The subsequent request preserves existing folded groups during recovery while newly confirmed copies
+join progressively. Schema 45 retains compatible display relationships separately from current
+fingerprints; current hashing, changed-source invalidation and preference admission stay strict.
+The existing corpus retained 72 folded groups through recovery, pause and resume, then completed
+10,000 current fingerprints and metadata records. A follow-up repair lets bounded badge inspection
+read newer published membership without waiting for the visible gallery revision to catch up.
+Its client check now covers visible badge actions and shared group status during recovery; the
+annotation plan reuses content/source indexes rather than repeatedly scanning equal-size peers.
+Implementation and client verification are complete; exact-head hosted verification remains active.
+The journal investigation confirmed
+an expired checkpoint and added observed-bound diagnostics without changing recovery policy.
 
 Use focused boundary regressions and the existing isolated client corpus, then inspect normal
 push-triggered CI. Record runtime evidence in the

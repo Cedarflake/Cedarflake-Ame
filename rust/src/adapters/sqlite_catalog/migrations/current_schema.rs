@@ -128,6 +128,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 44 {
         super::metadata_recheck_index::validate(connection)?;
     }
+    if schema_version >= 45 {
+        super::retained_gallery_membership::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

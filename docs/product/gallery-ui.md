@@ -151,6 +151,15 @@ available, without creating focus after mouse activation. Normal local availabil
 and cloud-only, offline or unavailable states. Locations outside the current folder are explicitly inspectable without
 widening the gallery selection scope.
 
+During recovery, previously confirmed folded relationships may remain visible while their unchanged
+physical observations are rechecked. The badge tooltip and sheet header show one group status:
+`正在更新` during analysis, `已暂停` when paused, and `等待后台` while waiting to resume. Individual
+locations retain only their existing current-image and availability markers. The sheet's count and
+rows come from one current display snapshot. Newly confirmed copies
+join progressively, while changed identity/state or a different confirmed fingerprint removes only
+the affected old relationship. Retained display never skips content verification or authorizes a
+preferred-copy decision. Fresh items without prior evidence remain visible as ordinary images.
+
 Cards reserve at least 128 logical pixels of width for the duplicate icon, selection target and
 their padding. Counts no longer affect card width. Asynchronous badge arrival and hover do not
 resize cards. Both loaded-window and query-wide geometry use the same floor; square mode

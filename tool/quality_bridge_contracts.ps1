@@ -28,6 +28,7 @@ function Get-AmeAsyncBridgeContracts {
         @("catalog", "load_paused_library_scan", "loadPausedLibraryScan", "crateApiCatalogLoadPausedLibraryScan", "RecoverableScan?", ""),
         @("catalog", "cancel_retained_library_scan", "cancelRetainedLibraryScan", "crateApiCatalogCancelRetainedLibraryScan", "void", ""),
         @("catalog", "load_library_gallery_timeline", "loadLibraryGalleryTimeline", "crateApiCatalogLoadLibraryGalleryTimeline", "GalleryTimeline", ""),
+        @("exact_duplicates", "load_gallery_duplicate_locations", "loadGalleryDuplicateLocations", "crateApiExactDuplicatesLoadGalleryDuplicateLocations", "GalleryDuplicateLocationPage", ""),
         @("catalog", "remove_library_root", "removeLibraryRoot", "crateApiCatalogRemoveLibraryRoot", "bool", ""),
         @("storage", "start_catalog_database_reclamation", "startCatalogDatabaseReclamation", "crateApiStorageStartCatalogDatabaseReclamation", "CatalogReclamationSnapshot", ""),
         @("storage", "load_catalog_database_reclamation", "loadCatalogDatabaseReclamation", "crateApiStorageLoadCatalogDatabaseReclamation", "CatalogReclamationSnapshot", ""),

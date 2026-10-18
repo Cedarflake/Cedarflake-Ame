@@ -85,12 +85,14 @@ class RustLibraryExactDuplicates implements LibraryExactDuplicates {
     LibraryDuplicateGroup group,
     String? after,
   ) async {
-    final page = await rust_api.loadExactDuplicateLocations(
+    final page = await rust_api.loadGalleryDuplicateLocations(
       digest: group.digest,
       byteLength: BigInt.from(group.byteLength),
       afterLocationId: after,
     );
     return LibraryDuplicateLocationPage(
+      locationCount: page.locationCount.toInt(),
+      pendingLocationCount: page.pendingLocationCount.toInt(),
       locations: page.locations
           .map(
             (location) => LibraryDuplicateLocation(
