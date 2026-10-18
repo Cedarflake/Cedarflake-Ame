@@ -81,7 +81,7 @@ separate commit and branch, and extend the existing review stack after verificat
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
-| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Implemented on `codex/ci-rust-partitions`; 2,031 compiled tests accounted for; hosted timing pending |
+| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Implemented on `codex/ci-rust-partitions`; 2,031 compiled tests accounted for; hosted mixed-load writer-admission delay under diagnosis |
 | M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | Authorized; current files contain 7,932 and 4,152 lines respectively |
 
 M12's initial partition is schema migrations plus change queue, remaining catalog tests,
