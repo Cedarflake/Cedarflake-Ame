@@ -203,9 +203,9 @@ indentation; no parser, read policy, cancellation point or metadata classificati
 
 | Owner | Production lines | Inline test-only lines | Dedicated test/support lines |
 | --- | ---: | ---: | ---: |
-| `local_files.rs` before / after | 3,229 / 2,397 | 3,977 / 3,564 | Existing child modules retained |
-| `directory_enumeration.rs` | 218 | 35 | Existing guarded-cursor integration retained |
-| `directory_enumeration/streaming.rs` | 405 | 62 | 118 |
+| `local_files.rs` before / after | 3,141 / 2,351 | 4,065 / 3,610 | Existing child modules retained |
+| `directory_enumeration.rs` | 207 | 46 | Existing guarded-cursor integration retained |
+| `directory_enumeration/streaming.rs` | 397 | 70 | 118 |
 | `directory_enumeration/records.rs` | 263 | 2 | 182 |
 | `directory_enumeration/instrumentation.rs` | 0 | 0 | 157 |
 
@@ -229,6 +229,41 @@ The production-only Clippy pass found that the retained stable-cursor re-export 
 by the test-only metadata-inventory adapter. Its re-export now has the same test configuration;
 the production Clippy pass with warnings denied succeeds. Enumeration behavior and test access
 remain unchanged.
+
+## Persistent journal lifecycle and publication ownership
+
+M11 separates baseline admission/closing transactions and baseline reads from the journal facade.
+The volume publication owner retains one transaction across source ranges, queue ownership,
+namespace publication, pending rename consumption, cross-root lineage, checkpoint advancement and
+terminalization. Its three private helpers own range/checkpoint rules, carry validation/storage and
+lineage endpoint ownership. Completed-history maintenance receives the caller's transaction and
+retains both cleanup passes, the 32-candidate budget and the 64-record active-root retention rule.
+Existing recovery, first-import, priority and root-removal owners remain in place.
+
+Comparison against `7f1e5ee` found all 24 moved production function bodies unchanged after accounting
+for formatting, module paths and the explicit catalog receiver for closing capture. SQL, statement
+order, predicates, errors, queue admission and commit/rollback placement are preserved. No schema,
+dependency, bridge or application contract changed.
+
+| Owner | Production lines | Inline test-only lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| `persistent_journal.rs` before / after | 3,120 / 1,144 | 5,051 / 3,452 | Existing child modules retained |
+| `baseline_lifecycle.rs` | 477 | 0 | 242 admission; 592 closing |
+| `baseline_state.rs` | 230 | 0 | Covered by lifecycle and existing window tests |
+| `volume_publication.rs` | 224 | 0 | 514 |
+| `volume_publication/source_ranges.rs` | 279 | 0 | Existing checkpoint boundaries retained |
+| `volume_publication/pending_renames.rs` | 232 | 0 | Existing durable carry/reopen tests moved |
+| `volume_publication/lineage.rs` | 254 | 0 | Existing endpoint-order and replay tests moved |
+| `completed_history.rs` | 398 | 0 | 391 |
+
+Counts include whitespace and test-only attributes/imports/hooks. Eighteen affected tests moved to
+four responsibility-owned test files; genuinely shared fixtures remain in the parent. Two new
+regressions inject a database failure after provisional writes: one after baseline/checkpoint
+capture and one while advancing the second root's checkpoint. Both verify durable rollback after
+reopening and a successful retry. All 73 scoped persistent-journal regressions passed, including
+replay equivalence, both cross-root orders, pending carries, capacity rollback, bounded cleanup,
+generation retirement, priority, corrupt payload refusal and recovery windows. Production Clippy
+passed with warnings denied. Hosted checks and the combined client comparison remain pending.
 
 ## Shared schema-shape validation
 

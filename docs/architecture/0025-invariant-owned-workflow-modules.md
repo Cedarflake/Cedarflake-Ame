@@ -280,6 +280,12 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.
+  `baseline_lifecycle.rs` owns admission and closing-capture transactions; `baseline_state.rs`
+  owns baseline decoding and coverage reads. `volume_publication.rs` retains the complete volume
+  transaction, calling its range/checkpoint, pending-rename and cross-root-lineage owners without
+  passing commit authority. `completed_history.rs` terminalizes ranges and cleans only closed proof
+  clusters inside the caller's transaction. The facade retains the port and existing recovery
+  owners; extraction does not introduce a second transaction or reorder durable publication.
 - `sqlite_catalog/change_queue/root_retirement.rs` owns queue-generation retirement and the
   separate proof for retiring removed-root recovery authority. Cancellation and namespace
   replacement cannot acquire removal authority while a root or run remains. The removal
