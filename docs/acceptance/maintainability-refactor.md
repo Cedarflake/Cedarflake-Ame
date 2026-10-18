@@ -203,7 +203,7 @@ indentation; no parser, read policy, cancellation point or metadata classificati
 
 | Owner | Production lines | Inline test-only lines | Dedicated test/support lines |
 | --- | ---: | ---: | ---: |
-| `local_files.rs` before / after | 3,229 / 2,399 | 3,977 / 3,562 | Existing child modules retained |
+| `local_files.rs` before / after | 3,229 / 2,397 | 3,977 / 3,564 | Existing child modules retained |
 | `directory_enumeration.rs` | 218 | 35 | Existing guarded-cursor integration retained |
 | `directory_enumeration/streaming.rs` | 405 | 62 | 118 |
 | `directory_enumeration/records.rs` | 263 | 2 | 182 |
@@ -224,6 +224,11 @@ it stops after 128 entry reads, preserves the bounded staged window and replays 
 directory. These use actual Windows handles and disposable sources; source-byte preservation and
 release after failed cursor completion are asserted. No original media, catalog, dependency, bridge,
 schema or UI changed. Hosted checks and the final combined Debug comparison remain pending.
+
+The production-only Clippy pass found that the retained stable-cursor re-export is consumed only
+by the test-only metadata-inventory adapter. Its re-export now has the same test configuration;
+the production Clippy pass with warnings denied succeeds. Enumeration behavior and test access
+remain unchanged.
 
 ## Shared schema-shape validation
 

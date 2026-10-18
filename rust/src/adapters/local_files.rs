@@ -100,15 +100,15 @@ pub(crate) use catalog_identity::{
     CatalogFileIdentity, open_catalog_identity_guard, read_catalog_identity,
 };
 #[cfg(test)]
+pub(crate) use directory_enumeration::CheckedDirectoryEntryPaths;
+#[cfg(test)]
 use directory_enumeration::PublicationGuardedFileVisits;
+pub(crate) use directory_enumeration::PublicationGuardedMetadataInventoryEntries;
 #[cfg(test)]
 pub(crate) use directory_enumeration::instrumentation::{
     gate_source_enumeration, record_source_peak_staged_window,
     reset_source_enumeration_instrumentation, source_directory_open_count, source_entry_read_count,
     source_peak_staged_window,
-};
-pub(crate) use directory_enumeration::{
-    CheckedDirectoryEntryPaths, PublicationGuardedMetadataInventoryEntries,
 };
 pub use file_admission::{FileVisit, FileVisitOutcome};
 pub use file_revalidation::revalidate_file_state;
