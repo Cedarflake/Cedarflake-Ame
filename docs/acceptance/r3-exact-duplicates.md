@@ -173,6 +173,24 @@ and an expired checkpoint does not resolve names or read media. Read-window owne
 130 production lines; affected reader suites contain 744 and 1085 dedicated test lines respectively.
 Recovery authority, source safety, system journal size and installed services are unchanged.
 
+The follow-up no-change restart check used the same 10,000-image test catalog throughout a completed
+recovery and two normal close/open cycles; it did not reinstall the old replay baseline between
+launches. The initial expired checkpoint produced one `journal_trim` authority. Recovery retired,
+all 10,000 metadata and published fingerprint records completed, pending membership reached zero,
+and the client displayed synchronized. The persisted checkpoint was current and had advanced about
+1.3 seconds before normal exit.
+
+Both subsequent launches reused that checkpoint without adding recovery authorities or scan runs.
+The two samples at 24,732 and 31,161 ms respectively had an empty work queue, 10,000 published
+fingerprints, 72 folded groups and zero pending members. Each startup analysis completed with zero
+fingerprinted files and zero content bytes read. The source-generation sum remained 550065000 and
+the historical scan count remained two. The native sidebar displayed synchronized after both
+launches. These observations establish reuse across normal short-interval restarts; they do not
+establish a minimum offline retention duration. The current volume still reports a 32-MiB journal
+target with an 8-MiB allocation delta. A later volume-wide retention gap can legitimately require
+another recovery. All clients exited normally, and the original profile and protected catalog were
+restored and hash-verified after the check.
+
 ### Stable folded membership during recovery
 
 Schema 45 adds a derived display relationship to previously published fingerprints. Current source
