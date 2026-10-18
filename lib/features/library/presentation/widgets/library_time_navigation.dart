@@ -169,6 +169,7 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
           frame = LibraryTimeRailFrame(
             projection: globalProjection,
             value: interactiveValue,
+            origin: LibraryTimeRailPositionOrigin.interaction,
           );
         } else if (globalProjection != null &&
             metrics != null &&

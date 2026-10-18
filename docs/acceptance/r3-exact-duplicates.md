@@ -60,6 +60,17 @@ The changed owners contain 185 scheduler, 110 activity-adapter, 121 execution, 1
 and 66 batch-publication production lines. The publication admission owner has 37 production and
 34 inline-test lines; dedicated execution, batch and scheduler suites contain 249, 129 and 305 lines.
 
+The later marker report reproduced on `9a78f45`/`2193271`: a replacement window with no loaded items
+produced a provisional zero position, replacing a retained marker at `0.4090909090909091`. The click
+repair had started forwarding every provisional position into the retained paint. The correction
+distinguishes gallery geometry from explicit navigation intent. Incomplete replacement geometry keeps
+the last painted position; a new click or drag updates that retained position immediately. No timer,
+loading overlay or input lock conceals the transition. The failing regression now passes, together
+with all 14 rail-publication and six released-date-alignment cases. An ordinary rebuilt Debug clicked
+into the older-date region during the same fixture recovery and retained the line there across
+subsequent publications, while the merged count changed from 1,723 to 3,749. Controlled frame tests
+cover the brief zero-position transition; native snapshots establish the surrounding user interaction.
+
 ## Controlled client run
 
 The existing `build/test` corpus contains 10,000 files, 10,921,494,393 encoded bytes and 72 expected

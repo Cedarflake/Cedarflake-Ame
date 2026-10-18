@@ -7,6 +7,36 @@ import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets("replacement window estimates cannot reset the retained marker", (
+    tester,
+  ) async {
+    final fixture = _PublicationFixture(tester);
+    await fixture.show(isQueryWide: true);
+    await fixture.show(isQueryWide: true);
+    fixture.controller.jumpTo(1800);
+    await tester.pump();
+    final before = tester.widget<AnnotatedTimeRail>(
+      find.byKey(const Key("library-time-rail")),
+    );
+    expect(before.value, greaterThan(0));
+
+    await fixture.show(revision: 2, loadedItemCount: 0);
+    final replacing = tester.widget<AnnotatedTimeRail>(
+      find.byKey(const Key("library-time-rail")),
+    );
+    expect(replacing.value, before.value);
+    expect(replacing.onChanged, isNotNull);
+
+    await fixture.show(revision: 2, isQueryWide: true);
+    await fixture.show(revision: 2, isQueryWide: true);
+    expect(
+      tester
+          .widget<AnnotatedTimeRail>(find.byKey(const Key("library-time-rail")))
+          .value,
+      before.value,
+    );
+  });
+
   for (final replacement in ["missing", "estimated", "unsettled extent"]) {
     testWidgets("complete rail survives $replacement update geometry", (
       tester,

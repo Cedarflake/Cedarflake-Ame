@@ -5,12 +5,19 @@ import "../gallery_view_options.dart";
 import "annotated_time_rail.dart";
 import "library_timeline_projection.dart";
 
+enum LibraryTimeRailPositionOrigin { gallery, interaction }
+
 /// A painted rail has no catalog or layout authority of its own.
 class LibraryTimeRailFrame {
-  const LibraryTimeRailFrame({required this.projection, required this.value});
+  const LibraryTimeRailFrame({
+    required this.projection,
+    required this.value,
+    this.origin = LibraryTimeRailPositionOrigin.gallery,
+  });
 
   final LibraryTimelineProjection projection;
   final double value;
+  final LibraryTimeRailPositionOrigin origin;
 }
 
 class LibraryTimeRailPresentation extends StatefulWidget {
@@ -66,13 +73,26 @@ class _LibraryTimeRailPresentationState
       _retainedFrame = null;
     }
     final incoming = widget.frame;
+    final retained = _retainedFrame;
     // A refresh may expose window estimates before its full layout is ready.
     // Keep the complete frame until its replacement has the same precision.
     final awaitsCompleteLayout =
-        _retainedFrame?.projection.layoutMetrics != null &&
+        retained?.projection.layoutMetrics != null &&
         incoming?.projection.layoutMetrics == null;
     if (incoming != null && !awaitsCompleteLayout) {
       _retainedFrame = incoming;
+    } else if (incoming != null &&
+        retained != null &&
+        incoming.origin == LibraryTimeRailPositionOrigin.interaction) {
+      // Provisional window offsets cannot move retained paint, but user intent can.
+      _retainedFrame = LibraryTimeRailFrame(
+        projection: retained.projection,
+        value: retained.projection.valueFromProjection(
+          incoming.projection,
+          incoming.value,
+        ),
+        origin: LibraryTimeRailPositionOrigin.interaction,
+      );
     }
     if (!identical(
       oldWidget.navigationProjection,
@@ -105,13 +125,6 @@ class _LibraryTimeRailPresentationState
       );
     }
     final navigation = widget.navigationProjection;
-    final currentFrame = widget.frame;
-    final value = currentFrame == null
-        ? frame.value
-        : frame.projection.valueFromProjection(
-            currentFrame.projection,
-            currentFrame.value,
-          );
     // A new gesture uses current date evidence while the painted ticks stay
     // stable. Replacing its projection still retires the old Material pointer.
     return AnnotatedTimeRail(
@@ -123,7 +136,7 @@ class _LibraryTimeRailPresentationState
         navigation,
       )),
       key: const Key("library-time-rail"),
-      value: value,
+      value: frame.value,
       maximumScrollOffset: frame.projection.maximumOffset,
       buckets: frame.projection.railBuckets,
       projection: frame.projection.projection,
