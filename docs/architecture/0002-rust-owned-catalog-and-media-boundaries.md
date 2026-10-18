@@ -85,6 +85,23 @@ per-batch issue, and the task resumes according to an explicit retry policy.
   covered. Without that proof, explicit continuation rebuilds the first inventory behind the
   observer-first boundary; it cannot publish partial membership from the old frontier.
 
+### Catalog connection and checkpoint policy
+
+`sqlite_catalog/connection_policy.rs` owns writable and read-only connection configuration.
+Writable connections use SQLite's [passive automatic checkpoint](https://www.sqlite.org/wal.html#performance_considerations)
+at 256 WAL pages, approximately
+1 MiB at the default 4 KiB page size. This reduces the accumulated checkpoint work that one
+committing writer performs, at the cost of more frequent checkpoints. Existing FULL synchronization,
+foreign-key enforcement and write admission remain intact; the checkpoint threshold grants no
+additional publication or source authority.
+
+The threshold is a scheduling trigger, not a hard WAL size limit or a wall-clock guarantee.
+A transaction may cross it, and an active reader may prevent checkpoint progress. Preserve those
+read snapshots and retry checkpointing on subsequent commits. Read-only connections retain their
+short protocol-read deadline and query-only policy. No background worker, schema migration or
+catalog rewrite is introduced. Reverting the connection-local threshold restores SQLite's default
+without changing stored data or transaction semantics.
+
 ## Validation gates
 
 - the catalog is created outside a selected source directory;
