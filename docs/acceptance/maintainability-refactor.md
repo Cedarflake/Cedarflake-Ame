@@ -139,6 +139,23 @@ The unchanged same-load connection-lifetime control passed in 119.23 seconds: bo
 All-target/all-feature Clippy passed with warnings denied in 14.02 seconds. Hosted verification of
 the narrowed policy remains pending.
 
+Combined source `5292cea6e2e6d19b61cd43e0c133651d49b5ea6a` rebuilt Debug in 32.4 seconds for the
+narrowed policy. Two normal closes during updating retired the client, and reopening retained
+10,000 locations and both original decision rows; `quick_check` returned `ok`. No matching Windows
+crash/hang event appeared. This focused check did not wait for the second update to finish.
+Original preferences, settings and catalog components were restored and hash-verified, the test
+catalog was restored to its original 30,008 completed queue records, and 75 generated previews
+(1,065,342 bytes) were removed after the existing process/path checks.
+
+### Hosted artifact runtime compatibility
+
+The hosted scan job reported that the previous artifact action declared Node.js 20 and was being
+forced onto Node.js 24. Official pinned manifests and MIT licenses were checked for the accepted
+upload 6.0.0 and download 7.0.0 replacements in [ADR 0015](../architecture/0015-windows-release-distribution.md#hosted-artifact-transport).
+All five workflow files retain their existing artifact names, paths, retention, permissions and
+manifest checks. The hosted parallel/extended contracts and installer, ACL, identity and uninstall
+guardrails passed serially after the pin changes. Hosted artifact execution remains pending.
+
 ### Automatic checkpoint burst attribution
 
 Diagnostic run [39098716218](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39098716218)
