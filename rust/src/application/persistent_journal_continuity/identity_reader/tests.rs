@@ -218,6 +218,7 @@ fn inaccessible_unknown_identity_recovers_only_its_proven_parent_scope() {
 struct Source {
     reads: AtomicUsize,
     resolutions: AtomicUsize,
+    observed_first: i64,
     observed_end: i64,
     request: std::sync::Mutex<Option<i64>>,
     records: Vec<IdentityJournalRecord>,
@@ -298,7 +299,7 @@ impl PersistentChangeJournalSession for Session {
             binding: ResponseBinding::from_request(&request.caller, &request.root),
             capability: JournalCapability::Supported,
             journal_id: Some(9),
-            first_usn: Some(0),
+            first_usn: Some(self.0.observed_first),
             next_usn: Some(self.0.observed_end),
         })
     }
@@ -324,6 +325,7 @@ fn no_change_restart_uses_the_production_reader_without_resolving_or_enumerating
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 10,
         request: std::sync::Mutex::new(None),
         resolution_failure: None,
@@ -337,6 +339,39 @@ fn no_change_restart_uses_the_production_reader_without_resolving_or_enumerating
     assert!(matches!(outcomes[0].page, Ok(None)));
     assert_eq!(source.reads.load(Ordering::Relaxed), 0);
     assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
+}
+
+#[test]
+fn journal_trim_retains_observed_bounds_and_equality_still_allows_replay() {
+    for first in [10, 11] {
+        let source = Arc::new(Source {
+            reads: AtomicUsize::new(0),
+            resolutions: AtomicUsize::new(0),
+            observed_first: first,
+            observed_end: 20,
+            request: std::sync::Mutex::new(None),
+            resolution_failure: None,
+            records: Vec::new(),
+            locations: Vec::new(),
+        });
+        let reader = production_reader(source.clone(), Vec::new());
+        let outcomes = reader
+            .read_volume(&[checkpoint()], &[], 2, &AtomicBool::new(false))
+            .expect("read observed journal boundary");
+        if first == 10 {
+            assert!(outcomes[0].page.is_ok());
+            assert_eq!(source.reads.load(Ordering::Relaxed), 1);
+        } else {
+            let trim = outcomes[0].page.as_ref().expect_err("expired checkpoint");
+            assert_eq!(trim.kind, PersistentJournalRootFailureKind::JournalTrim);
+            assert_eq!(trim.failure.code, "identity_journal_trim");
+            assert!(trim.failure.message.contains(
+                "checkpoint_usn=10, first_usn=11, next_usn=20, checkpoint_updated_unix_ms=1"
+            ));
+            assert_eq!(source.reads.load(Ordering::Relaxed), 0);
+            assert_eq!(source.resolutions.load(Ordering::Relaxed), 0);
+        }
+    }
 }
 
 fn production_reader(
@@ -390,6 +425,7 @@ fn large_unrelated_volume_page_reaches_the_root_change_without_an_inventory() {
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 600,
         request: std::sync::Mutex::new(None),
         resolution_failure: None,
@@ -431,6 +467,7 @@ fn over_capacity_identity_page_is_rejected_before_source_resolution() {
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 200,
         request: std::sync::Mutex::new(None),
         resolution_failure: None,
@@ -450,6 +487,7 @@ fn first_import_replay_keeps_its_closing_boundary_when_the_volume_grows() {
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 30,
         request: std::sync::Mutex::new(None),
         resolution_failure: None,
@@ -509,6 +547,7 @@ fn empty_baseline_replay_reads_its_boundary_without_resolving_source_names() {
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 10,
         request: std::sync::Mutex::new(None),
         resolution_failure: None,
@@ -565,6 +604,7 @@ fn partial_catchup_finishes_its_captured_window_before_admitting_later_writes() 
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 30,
         request: std::sync::Mutex::new(None),
         resolution_failure: None,
@@ -616,6 +656,7 @@ fn failed_alias_page_enters_recovery_without_publishing_partial_locations() {
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 20,
         request: std::sync::Mutex::new(None),
         records: page(false).records,
@@ -668,6 +709,7 @@ fn retained_alias_failure_captures_a_new_opening_without_replaying_the_failed_pa
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
+        observed_first: 0,
         observed_end: 30,
         request: std::sync::Mutex::new(None),
         records: page(false).records,

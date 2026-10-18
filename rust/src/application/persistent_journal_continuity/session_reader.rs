@@ -270,11 +270,11 @@ impl SessionBackedPersistentJournalVolumeReader {
                     } else if first_usn > checkpoint.next_unread_usn.value() {
                         outcomes.push((
                             key,
-                            Err(read_failure(
-                                PersistentJournalRootFailureKind::JournalTrim,
+                            Err(super::read_boundary::trimmed_failure(
                                 "persistent_journal_trimmed",
-                                "The retained journal begins after the last current checkpoint",
-                                Some(opening),
+                                checkpoint,
+                                first_usn,
+                                opening,
                             )),
                         ));
                     } else if next_usn < checkpoint.next_unread_usn.value() {

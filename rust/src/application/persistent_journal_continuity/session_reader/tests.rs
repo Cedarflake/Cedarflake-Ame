@@ -370,6 +370,12 @@ fn session_reader_classifies_reset_and_trim_from_structured_query_fields() {
     let trim = trim[0].page.as_ref().expect_err("journal trim");
     assert_eq!(trim.kind, PersistentJournalRootFailureKind::JournalTrim);
     assert_eq!(trim.failure.code, "persistent_journal_trimmed");
+    assert!(
+        trim.failure
+            .message
+            .contains("checkpoint_usn=10, first_usn=11, next_usn=20")
+    );
+    assert!(trim.failure.message.contains("checkpoint_updated_unix_ms="));
     assert_eq!(
         trim.opening_boundary
             .as_ref()

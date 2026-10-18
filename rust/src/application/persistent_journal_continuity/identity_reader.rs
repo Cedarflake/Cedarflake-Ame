@@ -149,10 +149,11 @@ impl IdentityPersistentJournalVolumeReader {
             ));
         }
         if first > checkpoint.next_unread_usn.value() {
-            return Err(failure(
-                PersistentJournalRootFailureKind::JournalTrim,
+            return Err(super::read_boundary::trimmed_failure(
                 "identity_journal_trim",
-                Some(&opening),
+                checkpoint,
+                first,
+                opening,
             ));
         }
         if first < 0 || next < checkpoint.next_unread_usn.value() {

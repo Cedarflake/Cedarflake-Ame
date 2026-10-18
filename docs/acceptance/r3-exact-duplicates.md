@@ -149,6 +149,30 @@ The subsequent requested maintenance additionally covers stable retained folded 
 duplicates are confirmed progressively, plus the cause of journal recovery. The previously verified
 repairs do not yet establish stable old membership during a journal-gap recovery.
 
+### Journal recovery trigger
+
+Read-only inspection of the retained pre-replay catalog found a current checkpoint at USN
+195267189112, saved on 2026-10-17 at 15:53:29 +08:00. The reported 2026-10-18 startup recorded a
+`journal_trim` authority at 17:47:02 and an opening end of 196105258744, a span of 838069632 bytes.
+The volume's current journal query reports a 33554432-byte target and 8388608-byte allocation delta,
+with the same journal instance. These observations support expired retention rather than a reset;
+the original failure did not retain its observed first USN, so that instant cannot be reconstructed
+exactly from the completed recovery records.
+
+The current read-only query independently returned first USN 196117266432. Even the latest protected
+test catalog checkpoint, 196112512592 saved at 18:12:04, now precedes that boundary by 4753840 bytes.
+It therefore satisfies the existing `first_usn > next_unread_usn` recovery condition without launching
+the client or changing the journal. The retained test catalog is not a fresh unchanged-startup
+baseline. Journal retention is volume-wide; no attribution to a specific external workload is made.
+
+Both ordinary-token and broker readers now include checkpoint, observed first/end USNs and saved
+checkpoint time in their existing failure message and a path-free diagnostic entry. This preserves
+the triggering bounds after successful recovery clears the current failure. Fifteen identity-reader
+cases and the broker reset/trim case pass; the boundary case also proves that equality admits replay
+and an expired checkpoint does not resolve names or read media. Read-window ownership contains
+130 production lines; affected reader suites contain 744 and 1085 dedicated test lines respectively.
+Recovery authority, source safety, system journal size and installed services are unchanged.
+
 ## Controlled client run
 
 The existing `build/test` corpus contains 10,000 files, 10,921,494,393 encoded bytes and 72 expected
