@@ -99,19 +99,50 @@ recovery case failed its existing bounded stop. The retirement observation subse
 identity-guard, session-admission or pending-buffer retirement time. This resolves the native-close
 stage left unclassified by the earlier shutdown failure.
 
-SQLite's default final-connection close checkpoints and removes its WAL. The connection-policy
-owner now disables that implicit checkpoint, retaining already durable WAL data for ordinary reopen,
+SQLite's default final-connection close checkpoints and removes its WAL. The retained runtime
+connection disables that implicit checkpoint, retaining already durable WAL data for ordinary reopen,
 automatic passive checkpoints and explicit maintenance. A before/after regression fails against
 the old policy because connection destruction rewrites the main database; the revised policy keeps
 both database and committed WAL bytes unchanged. A second regression proves subsequent explicit
 truncation and independently readable committed rows. Existing FULL synchronization, transactions,
 read snapshots and joined shutdown deadlines remain unchanged; no worker or schema is added.
 
-The 37-line configuration owner and 158-line dedicated tests passed 39 focused connection-policy,
+The initial 37-line configuration owner and 158-line dedicated tests passed 39 focused connection-policy,
 identity/retry and original shutdown regressions in 34.29 seconds. All-target/all-feature Clippy
 passed with warnings denied in 11.33 seconds. The two added cases increase the compiled inventory
 from 2,033 to 2,035. The three existing explicit WAL-truncation cases also passed (1.53 seconds).
-Hosted checks and affected native close/reopen verification remain pending.
+
+Combined source `530ffb90e00113d9449c24f4f5569d1e6a69c765` rebuilt Debug in 30.2 seconds. The
+affected native workflow used the existing 10,000-image corpus under a continuous repository-lock
+lease: close during updating, reopen and preview/return, finish updating, change a preferred copy,
+close and reopen again. All three normal closes retired the process. The final reopen displayed
+72 duplicate groups and the newly selected `05919-640x480-0617.jpg` representative; the complete
+decision-row digest matched the value captured after the UI action. Before that action both original
+decision rows remained unchanged. The update queue finished with 40,009 completed records and no
+pending, leased or failed records, and `quick_check` returned `ok`.
+
+No matching Windows application-crash or hang event appeared during the run. Original preferences,
+settings and original catalog components were restored and hash-verified. The retained test catalog
+and its original decisions were restored, and 219 generated previews (3,761,562 bytes) were removed
+after process retirement and exact-path/no-reparse checks.
+
+Hosted runs [39103339563](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39103339563)
+and [39103393870](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39103393870) exposed the
+initial policy's excessive scope: ordinary short-lived connections also retained their WAL. Both
+runs failed inventory-cleanup preemption (1.159 and 1.138 seconds against the existing one-second
+bound). Their per-poll controls failed lower-lane progress and visibility deadlines respectively;
+the separate production workloads passed at P95 106 and 302 ms. These observations do not establish
+one cause for every wait. The policy now applies only when the runtime installs its retained poll
+connection; ordinary connections keep their original final checkpoint. A third close regression
+proves that boundary, while the existing retained-data and explicit-maintenance assertions remain.
+
+The narrowed 43-line configuration owner, 187-line dedicated tests and one-line runtime installation
+change passed 15 focused policy, poll-ownership, recovery-preemption and original shutdown cases in
+25.16 seconds. The compiled inventory is 2,036 cases, including the new ordinary-close regression.
+The unchanged same-load connection-lifetime control passed in 119.23 seconds: both arms retained
+25 active/progress samples for both lower lanes, with P0 P95 141 ms per poll and 94 ms per epoch.
+All-target/all-feature Clippy passed with warnings denied in 14.02 seconds. Hosted verification of
+the narrowed policy remains pending.
 
 ### Automatic checkpoint burst attribution
 
