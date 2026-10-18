@@ -325,9 +325,10 @@ peels the current tag through the GitHub API, requires the resolved commit to eq
 source, and rechecks the ZIP hash. Repository configuration must additionally prevent update or
 deletion of admitted version tags; no workflow can make a tag lookup and release mutation atomic.
 
-For hosted Daily runs, the shared gate fans out four isolated `windows-2025` jobs: static and Rust
-verification, Flutter widget tests, the controlled Windows scan integration, and the native Windows
-accessibility integration. It also calls `quality_gate_synthetic_windows.yml` for five separately
+For hosted Daily runs, the shared gate calls `quality_gate_daily_windows.yml` for eight isolated
+`windows-2025` jobs: static verification, four Rust partitions, Flutter widget tests, the controlled
+Windows scan integration, and the native Windows accessibility integration. It also calls
+`quality_gate_synthetic_windows.yml` for five separately
 isolated workload jobs and `quality_gate_unsigned_windows.yml` for optimized application/broker
 verification. A stable `Windows Gate` aggregation job succeeds only when every Daily, synthetic,
 and unsigned-build job succeeds; skipped or cancelled requirements fail. Once repository branch
@@ -339,9 +340,9 @@ wall-clock latency at the cost of additional hosted runner minutes. Release cand
 ordered by immutable artifacts because build, protected signing, credential-free verification, and
 publication form distinct trust boundaries.
 
-The serial static/Rust job has a 90-minute total budget; the other Daily components retain 60 minutes.
-This includes toolchain setup, lint, compilation and the full Rust suite. Product-workflow and test
-deadlines, workload sizes, assertions and serial execution remain independent and unchanged.
+Static and each Rust partition retain a 90-minute total budget; the other Daily components retain
+60 minutes. Each budget includes its own toolchain setup and compilation. Product-workflow and test
+deadlines, workload sizes, assertions and case-level serial execution remain unchanged.
 The ordinary-client restart contract queries the native adapter on generated directories before
 selecting its source volume. A repository-volume `LiveOnly` response can select the generated
 system-temp candidate; transport/query errors remain failures, and absence of any supported journal
@@ -485,6 +486,16 @@ work inside each fixture. Running unrelated synthetic catalogs alongside those c
 test-runner resource contention as well as Ame scheduling. Case-level serialization isolates that
 measurement without filtering tests, disabling fixture concurrency, or changing any runtime
 deadline or latency assertion. Hosted Daily partitions remain isolated from one another.
+
+`quality_test_rust.ps1` owns this complete Cargo invocation. With no arguments it runs the entire
+suite once, serially, under the same repository lock. Only the hosted workflow fans out work onto
+separate runners; no local entrypoint starts jobs, parallel shells or concurrent test processes.
+Its hosted partitions separate schema migrations plus change queue, remaining catalog tests,
+synchronization plus scan tests, and all remaining tests. Each runner first enumerates the complete
+compiled all-target/all-feature inventory and requires every item to have exactly one partition.
+New modules enter the remaining partition automatically; duplicate names across targets retain
+their multiplicity. Each partition then runs native libtest filters with `--test-threads=1` and
+the existing ignore policy. Coverage, argument, matrix and local serial-lock guardrails run in lint.
 
 The static bridge gate does not treat the generated content-hash constant as sufficient freshness
 evidence. In addition to matching the Rust and Dart hashes, it checks timeline load, root removal,
@@ -1309,6 +1320,11 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   checksum; the daily workstation gate does not silently download tools.
 - `./tool/quality_test_flutter.ps1` expands the requested widget-test paths and runs each test file
   in its own `flutter test --concurrency=1` process while holding the repository tool lock.
+- `./tool/quality_test_rust.ps1` runs every locked Cargo target and feature under the repository
+  lock with single-threaded case execution. Its optional `-Partition` selects one hosted owner
+  after full compiled-inventory validation; it never starts parallel local workers.
+  `quality_rust_test_partitions.ps1` owns partition membership and libtest arguments, and
+  `quality_test_rust_partition_contract.ps1` covers complete, overlapping and missing membership.
 - `./tool/quality_verify_daily.ps1` is the daily gate. It runs the lint gate, Rust tests, Flutter tests, the
   controlled Windows scan integration, the native Windows accessibility integration, generated
   bridge compatibility, and whitespace validation for the complete tracked diff. With no arguments

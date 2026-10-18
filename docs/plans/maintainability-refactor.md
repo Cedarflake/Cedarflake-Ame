@@ -81,7 +81,7 @@ separate commit and branch, and extend the existing review stack after verificat
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |
-| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Authorized; baseline timing and partition ownership inspected |
+| M12 | Run static checks and four responsibility-based Rust partitions on isolated hosted runners | The compiled all-target/all-feature inventory belongs to exactly one partition; each partition remains case-serial, failures reach the stable aggregate gate, and workstation execution remains serial | Implemented on `codex/ci-rust-partitions`; 2,031 compiled tests accounted for; hosted timing pending |
 | M13 | Organize catalog and unified-gallery tests by responsibility, moving fixtures with their actual users | Preserve every test, assertion, ignore and lifecycle guard; verify body equivalence and full inventory, with focused checks and hosted coverage | Authorized; current files contain 7,932 and 4,152 lines respectively |
 
 M12's initial partition is schema migrations plus change queue, remaining catalog tests,
@@ -90,6 +90,11 @@ synchronization plus scan tests, and all remaining Rust tests. The baseline log 
 No new test framework, dependency, reduced coverage, raised deadline or shared-runner concurrency is
 included. M13 moves single-owner helpers beside their tests and keeps only genuinely shared fixtures
 in support modules; file size alone does not define the split.
+
+Concurrency is limited to separate GitHub-hosted runners. All local builds, tests and verification
+retain the repository mutex and execute sequentially, including inventory checks and focused
+regressions. The workstation Daily default remains the complete serial suite; hosted partition
+selection does not authorize local fan-out.
 
 ## Completed first-round delivery queue
 

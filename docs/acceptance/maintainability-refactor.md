@@ -8,6 +8,38 @@ The [M9–M11 comparison](#combined-m9-m11-client-comparison) owns the latest co
 The [first-round comparison](#final-comparison-and-review) and earlier pending statements retain
 their historical delivery checkpoints.
 
+## Hosted Rust partitions and workstation serialization
+
+M12 separates static verification and four Rust test partitions onto isolated GitHub-hosted
+Windows runners. The Daily reusable workflow owns those jobs; the existing parent retains its
+stable aggregate, synthetic workloads and unsigned-build requirements. The local Daily default
+still invokes the complete suite in order under the repository mutex. The Rust entrypoint shares
+that lock, retains every target and feature, and always uses single-threaded case execution.
+There is no local fan-out, new dependency, fixture-load reduction or changed assertion/deadline.
+
+At source baseline `562f6c2`, the serial compiled inventory listed 2,031 tests across all targets
+and features. Schema/queue, remaining catalog, synchronization/scan and remaining modules contain
+304, 446, 410 and 871 entries respectively. Each entry has exactly one owner; native libtest
+filtered inventories independently matched all four counts. Existing ignored tests remain listed
+and keep their ordinary execution policy. This check compiled and enumerated cases without running
+the full local suite.
+
+Compiler-free partition tests cover membership, future-module admission, repeated names across
+targets, exact serial filter arguments, missing/overlapping owners and invalid inventory output.
+The hosted contract verifies each matrix component occurs once, immutable source binding,
+all-target/all-feature invocation, local default selection and mutex retirement. Existing negative
+aggregate fixtures continue to reject missing, failed, skipped and cancelled required jobs. These
+focused checks and `git diff --check` passed. Hosted actionlint and complete execution remain pending.
+
+The preceding combined candidate's run
+[39091296104](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39091296104) recorded 2,006
+passing library tests, 22 existing ignores and 2,682.01 seconds of library-test execution, followed
+by three passing broker integration tests. Partitioned wall time must include each runner's setup
+and compilation before making a speed comparison; the partition counts alone establish no speedup.
+
+This change affects verification orchestration only. The M9–M11 native client comparison below
+remains applicable to unchanged product code and does not need another UI replay for this change.
+
 ## First-round merge and branch cleanup
 
 PRs #22–#27 and #29 merged into `main` on 2026-10-18 (local date); native stack #35 closed.

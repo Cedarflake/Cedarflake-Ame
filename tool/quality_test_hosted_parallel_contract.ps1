@@ -12,6 +12,10 @@ $validateSet = @(
 $expectedComponents = @(
     "all",
     "flutter",
+    "rust_catalog",
+    "rust_catalog_history",
+    "rust_other",
+    "rust_sync_scan",
     "static",
     "windows_accessibility",
     "windows_scan"
@@ -34,34 +38,41 @@ if (-not $invalidComponentRejected) {
     throw "Daily gate accepted an unsupported hosted component"
 }
 
-$dailyTokens = $null
-$dailyErrors = $null
-$dailyAst = [System.Management.Automation.Language.Parser]::ParseFile(
-    $dailyScriptPath, [ref]$dailyTokens, [ref]$dailyErrors
+$rustScriptPath = Join-Path $PSScriptRoot "quality_test_rust.ps1"
+$rustTokens = $null
+$rustErrors = $null
+$rustAst = [System.Management.Automation.Language.Parser]::ParseFile(
+    $rustScriptPath, [ref]$rustTokens, [ref]$rustErrors
 )
-$cargoCalls = @($dailyAst.FindAll({
+$cargoArguments = @($rustAst.FindAll({
     param($node)
-    $node -is [System.Management.Automation.Language.CommandAst] -and
-        $node.GetCommandName() -ceq "Invoke-AmeChecked" -and
-        $node.CommandElements.Count -eq 3 -and
-        $node.CommandElements[1].Extent.Text -ceq '$toolchain.Cargo'
+    $node -is [System.Management.Automation.Language.AssignmentStatementAst] -and
+        $node.Left.Extent.Text -ceq '$cargoArguments'
 }, $true))
-if ($dailyErrors.Count -ne 0 -or $cargoCalls.Count -ne 1) {
-    throw "Daily must own exactly one complete Rust test invocation"
+if ($rustErrors.Count -ne 0 -or $cargoArguments.Count -ne 1) {
+    throw "Rust test owner must retain one complete Cargo target and feature selection"
 }
-$rustArguments = @($cargoCalls[0].CommandElements[2].SafeGetValue())
+$argumentArrays = @($cargoArguments[0].Right.FindAll({
+    param($node)
+    $node -is [System.Management.Automation.Language.ArrayExpressionAst]
+}, $true))
+if ($argumentArrays.Count -ne 1 -or
+    $argumentArrays[0].Extent.Text -cne $cargoArguments[0].Right.Extent.Text) {
+    throw "Rust target and feature selection must be one literal argument array"
+}
+$rustArguments = @($argumentArrays[0].SafeGetValue())
 $expectedRustArguments = @(
     "test", "--locked", "--manifest-path", 'rust\Cargo.toml',
-    "--all-targets", "--all-features", "--", "--test-threads=1"
+    "--all-targets", "--all-features", "--"
 )
 if (
     $rustArguments.Count -ne $expectedRustArguments.Count -or
     ($rustArguments -join "`n") -cne ($expectedRustArguments -join "`n")
 ) {
-    throw "Daily Rust tests must remain complete and case-serial with unchanged fixture concurrency"
+    throw "Rust tests must retain every target and feature in both complete and partitioned runs"
 }
 
-$workflowPath = Join-Path $repositoryRoot ".github\workflows\quality_gate_windows.yml"
+$workflowPath = Join-Path $repositoryRoot ".github\workflows\quality_gate_daily_windows.yml"
 $workflow = Get-Content -LiteralPath $workflowPath -Raw -Encoding UTF8
 $compatibilityStep = [regex]::Match(
     $workflow,
@@ -97,10 +108,12 @@ if ($lintSource.IndexOf(
     ) -lt 0) {
     throw "PowerShell 7 Daily lint must retain the complete R2c-R guardrail"
 }
-foreach ($component in $expectedComponents | Where-Object { $_ -ne "all" }) {
-    if ($workflow -notmatch "component:\s*$component(?:\r?\n|$)") {
-        throw "Hosted workflow is missing the '$component' daily lane"
-    }
+$hostedComponents = @([regex]::Matches(
+    $workflow, '(?m)^          - component: ([a-z_]+)\r?$'
+) | ForEach-Object { $_.Groups[1].Value } | Sort-Object)
+$expectedHostedComponents = @($expectedComponents | Where-Object { $_ -ne "all" })
+if (($hostedComponents -join ",") -cne ($expectedHostedComponents -join ",")) {
+    throw "Hosted daily components must each run exactly once on a separate runner"
 }
 if ($workflow -notmatch "fail-fast:\s*false") {
     throw "Hosted daily lanes must report all failures instead of stopping early"
@@ -113,6 +126,59 @@ if (
 ) {
     throw "Hosted workflow does not invoke isolated daily components"
 }
-if ($workflow -notmatch "quality_windows:\s*\r?\n\s+name:\s*Windows Gate") {
+$gate = Get-Content -LiteralPath (Join-Path $repositoryRoot `
+    ".github\workflows\quality_gate_windows.yml") -Raw -Encoding UTF8
+if ($gate -notmatch "quality_windows:\s*\r?\n\s+name:\s*Windows Gate") {
     throw "Hosted workflow must retain the stable Windows Gate aggregation check"
 }
+foreach ($required in @(
+    "    uses: ./.github/workflows/quality_gate_daily_windows.yml",
+    '      checkout_ref: ${{ inputs.checkout_ref || github.sha }}',
+    '      base_revision: ${{ inputs.base_revision }}'
+)) {
+    if (-not $gate.Contains($required)) {
+        throw "Hosted daily owner lost source or revision binding: $required"
+    }
+}
+
+foreach ($entrypoint in @($dailyScriptPath, $rustScriptPath)) {
+    $tokens = $null
+    $errors = $null
+    $ast = [System.Management.Automation.Language.Parser]::ParseFile(
+        $entrypoint, [ref]$tokens, [ref]$errors
+    )
+    if ($errors.Count -ne 0) { throw "Cannot parse serial entrypoint: $entrypoint" }
+    $selection = @($ast.ParamBlock.Parameters | Where-Object {
+        $_.Name.VariablePath.UserPath -in @("Component", "Partition")
+    })
+    if ($selection.Count -ne 1 -or $selection[0].DefaultValue.SafeGetValue() -cne "all") {
+        throw "Local quality entrypoints must default to the complete serial suite: $entrypoint"
+    }
+    $commands = @($ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.CommandAst]
+    }, $true))
+    foreach ($command in $commands) {
+        if ($command.GetCommandName() -in @(
+            "Start-Job", "Start-ThreadJob", "Start-Process", "Invoke-Command"
+        ) -or $command.CommandElements.Extent.Text -contains "-Parallel") {
+            throw "Local quality entrypoints must not dispatch concurrent work: $entrypoint"
+        }
+    }
+    $lockEntries = @($commands | Where-Object {
+        $_.GetCommandName() -eq "Enter-AmeRepositoryToolLock"
+    })
+    $lockExits = @($commands | Where-Object {
+        $_.GetCommandName() -eq "Exit-AmeRepositoryToolLock"
+    })
+    $finallyBlocks = @($ast.FindAll({
+        param($node)
+        $node -is [System.Management.Automation.Language.TryStatementAst] -and
+            $node.Finally.Extent.Text.Contains("Exit-AmeRepositoryToolLock")
+    }, $true))
+    if ($lockEntries.Count -ne 1 -or $lockExits.Count -ne 1 -or $finallyBlocks.Count -ne 1) {
+        throw "Local quality entrypoints must retain lock acquisition and final release: $entrypoint"
+    }
+}
+
+Write-Output "Hosted coverage and aggregation wiring verified; local entrypoints retain serial locks"

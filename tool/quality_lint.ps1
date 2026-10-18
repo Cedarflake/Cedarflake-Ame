@@ -24,6 +24,7 @@ try {
     & (Join-Path $PSScriptRoot "quality_test_naming_contract.ps1")
     & (Join-Path $PSScriptRoot "quality_test_bridge_contracts.ps1")
     & (Join-Path $PSScriptRoot "quality_test_hosted_parallel_contract.ps1")
+    & (Join-Path $PSScriptRoot "quality_test_rust_partition_contract.ps1")
     & (Join-Path $PSScriptRoot "quality_test_hosted_extended_contract.ps1")
     & (Join-Path $PSScriptRoot "performance_test_synthetic_guardrails.ps1")
     & (Join-Path $PSScriptRoot "quality_test_unsigned_windows_payload.ps1")
