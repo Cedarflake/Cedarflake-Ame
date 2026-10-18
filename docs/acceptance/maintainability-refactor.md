@@ -148,6 +148,21 @@ publication and reopen verification. All 25 samples retained P1/P2 activity and 
 111 ms and maximum 117 ms. The format gate passed and the updated Debug built in 50.6 seconds.
 No workload, deadline, assertion or dependency was changed.
 
+## Maintenance concurrency fixture preparation
+
+Merged-main run [39087351860](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39087351860)
+reported 1,997 Rust passes, one failure and 22 expected ignores. The maintenance worker exhausted
+its five-second release wait while the test thread opened a second, uninitialized catalog; when
+that open returned, the test's maintenance reservation had already unwound. The failure occurred in
+fixture sequencing, before the intended waiter assertion, with no product-code difference from
+the previously passing PR #36 tree.
+
+The independent catalog is now initialized before holding maintenance admission. Opening its reader
+still occurs while the first catalog is under maintenance; overlap refusal, waiter wake-up and proof
+renewal assertions remain intact. No timeout was increased, assertion removed or product lock
+changed. All six scoped maintenance tests passed. This test-only correction is carried from M9
+through the later candidates; their updated hosted checks own the final result.
+
 ## Shared gallery interaction ownership
 
 M9 composes both renderers through `LibraryGalleryInteraction`, preserving the existing motion
