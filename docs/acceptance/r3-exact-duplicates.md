@@ -236,6 +236,12 @@ dedicated retained-membership and sheet suites contain 293 and 231 lines respect
 reuse the existing location contract, with group counts carried by their page. Complete hosted checks
 remain required for the final implementation commit.
 
+The first hosted run on `1b1ed42` stopped its static job at the guardrail's historical roster count
+of 16. The declared production roster and generated bridge already contained all 17 asynchronous
+contracts. The guardrail now expects 17 and explicitly requires the gallery duplicate-location page
+contract. Its positive/negative method-boundary cases and all 17 generated contracts with matching
+content hashes pass after this correction. Complete hosted verification remains pending.
+
 ## Controlled client run
 
 The existing `build/test` corpus contains 10,000 files, 10,921,494,393 encoded bytes and 72 expected
