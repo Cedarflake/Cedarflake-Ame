@@ -96,6 +96,8 @@ fn maintenance_waiters_resume_and_other_catalogs_remain_available() {
     let path = directory.path().join("catalog.sqlite3");
     let other = directory.path().join("other.sqlite3");
     let previous = validated_catalog_session(&path).expect("prime session");
+    // Schema initialization is fixture setup, outside the held maintenance interval.
+    let _other_session = validated_catalog_session(&other).expect("prime independent catalog");
     let (entered_tx, entered_rx) = mpsc::channel();
     let (release_tx, release_rx) = mpsc::channel();
     thread::scope(|scope| {
