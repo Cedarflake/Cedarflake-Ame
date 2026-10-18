@@ -46,7 +46,8 @@ M9, M10 and M11 were implemented in order on separate branches and review PRs. N
 [M10 / #38](https://github.com/Cedarflake/Cedarflake-Ame/pull/38) and
 [M11 / #39](https://github.com/Cedarflake/Cedarflake-Ame/pull/39). M9 starts from the merged baseline;
 each later branch retains the preceding work without rewriting published history. Stack creation
-preserved all three heads. Their eventual merge remains a human decision. Existing notification
+preserved all three heads. The user authorized merging the current maintenance branches on
+2026-10-18 after applicable checks and final review. Existing notification
 text, UI layout, action admission and source-safety boundaries are preserved.
 
 | Order | Outcome | Proving boundary | State |
@@ -76,8 +77,10 @@ hosted timing. Exact-head run `39057472846` passed all 11 applicable jobs before
 After M9–M11 implementation, the user requested shorter CI latency and responsibility-owned tests.
 Proceed in the order below without reopening product acceptance. Preserve existing workloads,
 assertions, expected ignores, data safety and isolated timing measurements. Keep each outcome in a
-separate commit and branch, and extend the existing review stack after verification. Merging into
-`main` remains a human decision.
+separate commit and branch, and extend the existing review stack after verification. The user's
+2026-10-18 merge authorization covers this queue after the mixed-load failures are resolved and
+verification is complete; preserve published history
+and remove obsolete branches only after their commits are reachable from `main`.
 
 | Order | Outcome | Proving boundary | State |
 | --- | --- | --- | --- |

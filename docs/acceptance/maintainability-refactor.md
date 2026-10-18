@@ -105,6 +105,14 @@ with fatal infos passed. The rebuilt Rust inventory passed; full Rust execution 
 repository gates belong to hosted CI. No new dependency, schema, product state or native-client
 behavior was introduced, so the existing M9–M11 client comparison remains applicable.
 
+Test-organization run [39096609200](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39096609200)
+on `ebfb70920625e75ae27c3e39ba2fcdebedd8f12c` passed the other component jobs but retained two
+mixed-load failures in the unchanged synchronization suite: the retained-connection control
+reported 2,319 ms P95 and the production case 1,331 ms. The latter includes one sample whose
+`ingress_commit` alone took 1,111 ms; other slow samples waited before writer admission. Keep
+these distinct from the test relocations and from the earlier admission-only observation. Merge
+remains gated on diagnosis, repair, affected regression checks and final review.
+
 ## First-round merge and branch cleanup
 
 PRs #22–#27 and #29 merged into `main` on 2026-10-18 (local date); native stack #35 closed.
