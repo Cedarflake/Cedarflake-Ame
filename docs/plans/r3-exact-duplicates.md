@@ -58,11 +58,17 @@ The roadmap retains stage closure and schedules this scoped repair on `main`. Th
 analysis. Keep the three observed failures distinct while repairing their owning boundaries:
 
 1. Restore new time-rail navigation while replacement geometry is missing or estimated; retain
-   stable painted ticks, current date authority and retirement of old pointers.
+   stable painted ticks, current date authority and retirement of old pointers. The subsequent
+   report of the position marker briefly returning to the top remains in this boundary.
 2. Let bounded exact analysis and complete-result publication progress during automatic recovery,
    preserving foreground source-read priority, cancellation and guarded fingerprint admission.
 3. Reconcile synchronization, pending analysis and gallery publication so completion feedback does
    not precede the work that still changes visible membership; inspect delayed date evidence too.
+
+The user also reports longer synchronization than before refactoring. Compare the same retained
+recovery condition against the appropriate pre-refactor client, separating directory convergence,
+exact analysis and final gallery stability. A single warmed replay cannot establish that no
+performance regression exists. Keep confirmed inherited behavior distinct from newly introduced bugs.
 
 Use focused boundary regressions and the existing isolated client corpus, then inspect normal
 push-triggered CI. Record runtime evidence in the

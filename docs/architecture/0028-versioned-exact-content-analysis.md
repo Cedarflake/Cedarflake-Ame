@@ -57,10 +57,14 @@ results survive cancellation, failure and restart. Human decisions are stored se
 - Exact groups are query projections over current locations and compatible evidence. They do not
   merge asset IDs. Unavailable roots retain last-known locations; unavailable content is never
   opened or downloaded merely to complete analysis.
-- Gallery membership uses a separately published projection of complete fingerprints. A terminal
-  analysis transaction admits retained complete evidence and advances the catalog revision once
-  when the projection changes. Per-file evidence writes cannot change gallery counts or cursor
-  membership. Schema 41 admits existing complete evidence without rereading sources; source
+- Gallery membership uses a separately published projection of complete fingerprints. During a run,
+  publish accepted evidence after one second or 256 sources, whichever comes first, in a bounded
+  transaction that advances the catalog revision once when membership changes. The synchronization
+  snapshot observes that revision and the existing query-publication owner coalesces gallery reads.
+  A terminal transaction also admits retained complete evidence, including interrupted-process work.
+  Individual fingerprint writes cannot change gallery counts or cursor membership. Batch publication
+  retains active-run authority and never bypasses source identity or revision admission.
+  Schema 41 admits existing complete evidence without rereading sources; source
   identity/revision checks still invalidate changed or removed locations immediately. A subsequent
   zero-read analysis may observe that revision; it cannot advance the revision again unchanged.
   After the native analysis stream retires, the application requests a committed gallery refresh.
@@ -126,8 +130,13 @@ workspace governed by ADR 0029. Changing workspace does not cancel a running tas
 folding remains disabled until incremental maintenance and query consistency are connected.
 
 An application-owned scheduler observes published catalog revisions and source availability.
-It starts pending analysis after three seconds without browsing input, synchronization, preview
-reads or original-image reads. New foreground work requests cancellation; continuation waits for
+It starts pending analysis after three seconds without browsing input, explicit foreground tasks,
+preview reads or original-image reads. Automatic metadata synchronization and passive gallery reads
+can overlap bounded analysis; source generations and held-source checks reject superseded work.
+Cached browsing input delays initial admission but does not repeatedly cancel an admitted run.
+This allows fresh duplicate evidence to reach the gallery during a long startup recovery instead of
+waiting for recovery, all passive refreshes and a complete analysis run in sequence.
+Actual foreground reads and explicit tasks request cancellation; continuation waits for
 the native stream to retire and reuses completed fingerprints. A newer publication retains its
 own pending generation even when an older run completes. Failed analysis waits for a new publication
 or an explicit retry. A persisted pause preference disables automatic admission across restarts.

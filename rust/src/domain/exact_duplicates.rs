@@ -6,6 +6,7 @@ pub(crate) const EXACT_FINGERPRINT_VERSION: &str = "1.8.6";
 pub(crate) const EXACT_FINGERPRINT_PARAMETERS: &str = "full-file;output=256";
 pub(crate) const MAX_FINGERPRINT_SOURCE_BYTES: u64 = 256 * 1024 * 1024;
 pub(crate) const EXACT_DUPLICATE_PAGE_SIZE: usize = 64;
+pub(crate) const EXACT_PUBLICATION_BATCH_SIZE: usize = 256;
 
 #[derive(Clone, Debug)]
 pub(crate) struct FingerprintCandidate {

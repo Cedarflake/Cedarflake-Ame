@@ -18,6 +18,7 @@ use super::{
     stored_file_identity, unix_time_ms,
 };
 
+mod gallery_publication;
 mod publication;
 pub(super) mod queries;
 
@@ -82,6 +83,16 @@ impl ExactDuplicateRepository for SqliteCatalog {
         after_location_id: &str,
     ) -> Result<Vec<FingerprintCandidate>, ScanError> {
         queries::load_candidates(&self.connection, after_location_id)
+    }
+
+    fn publish_exact_analysis_batch(
+        &mut self,
+        run_id: &str,
+        source_generations: &[u64],
+    ) -> Result<(), ScanError> {
+        let transaction = self.begin_write()?;
+        gallery_publication::publish(&transaction, run_id, source_generations)?;
+        transaction.commit().map_err(database_error)
     }
 
     fn publish_fingerprint(

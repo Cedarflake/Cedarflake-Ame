@@ -27,7 +27,7 @@ void main() {
     expect(fixture.scheduler.isWaiting, isFalse);
   });
 
-  testWidgets("synchronization and later input restart the idle interval", (
+  testWidgets("foreground tasks and later input restart the idle interval", (
     tester,
   ) async {
     final fixture = _Fixture();
@@ -44,7 +44,23 @@ void main() {
     expect(fixture.service.runs, hasLength(1));
   });
 
-  testWidgets("browsing cancels active work and resumes after native drain", (
+  testWidgets(
+    "cached browsing and passive publications keep active work running",
+    (tester) async {
+      final fixture = _Fixture();
+      addTearDown(fixture.dispose);
+      fixture.update(1);
+      await tester.pump(const Duration(seconds: 3));
+      fixture.scheduler.browsingActivity();
+      fixture.update(2);
+      fixture.scheduler.browsingActivity();
+      await tester.pump(const Duration(seconds: 5));
+      expect(fixture.service.cancellations, isEmpty);
+      expect(fixture.service.runs, hasLength(1));
+    },
+  );
+
+  testWidgets("foreground tasks cancel active work and await native drain", (
     tester,
   ) async {
     final fixture = _Fixture();
@@ -52,10 +68,11 @@ void main() {
     fixture.service.completeCancellation = false;
     fixture.update(1);
     await tester.pump(const Duration(seconds: 3));
-    fixture.scheduler.browsingActivity();
+    fixture.update(1, busy: true);
     await tester.pump(const Duration(seconds: 5));
     expect(fixture.service.cancellations, hasLength(1));
     expect(fixture.service.runs, hasLength(1));
+    fixture.update(1);
     fixture.service.finish(LibraryExactAnalysisPhase.cancelled);
     await tester.pump();
     await tester.pump(const Duration(seconds: 3));

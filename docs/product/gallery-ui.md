@@ -203,10 +203,12 @@ matches. `忽略此组` moves it to `已忽略`, where `恢复此组` restores i
 These choices survive reopening and compatible reanalysis. Ignoring a group leaves its gallery
 images and badges visible, and neither action changes a source file.
 
-Analysis is automatic while Ame is running, after startup browsing and synchronization have priority.
+Analysis is automatic while Ame is running, after initial foreground browsing has priority.
 New or changed catalog content queues bounded analysis; compatible completed fingerprints survive
-restart and cancellation. Visible-preview and original-image reads take priority; busy browsing
-reduces or suspends background reads. Cloud-only files wait for local availability. Analysis never
+restart and cancellation. Visible-preview reads, original-image reads and explicit foreground tasks
+take priority. Automatic synchronization and cached browsing can overlap admitted analysis so a long
+update does not leave new duplicates unfolded until every other task ends. Completed evidence reaches
+the gallery in bounded batches through its existing publication owner. Cloud-only files wait for local availability. Analysis never
 adds startup source enumeration or a second complete source copy. Retain structured analysis progress
 and expose manual pause/resume in Duplicates; automatic analysis begins without a visit to that page.
 

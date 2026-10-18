@@ -31,6 +31,11 @@ pub(crate) trait ExactContentReader {
 pub(crate) trait ExactDuplicateRepository {
     fn begin_exact_analysis(&mut self, run: &ExactAnalysisRun) -> Result<(), ScanError>;
     fn finish_exact_analysis(&mut self, progress: &ExactAnalysisProgress) -> Result<(), ScanError>;
+    fn publish_exact_analysis_batch(
+        &mut self,
+        run_id: &str,
+        source_generations: &[u64],
+    ) -> Result<(), ScanError>;
     fn load_fingerprint_candidates(
         &self,
         after_location_id: &str,

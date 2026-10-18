@@ -28,12 +28,37 @@ existing corpus. With the sidebar still updating and merged counts increasing th
 drag returned to the 2026 region. These checks establish navigation during membership replacement;
 they do not claim that delayed analysis or completion feedback is repaired. The pre-replay test
 catalog is backed up separately for restoration, and source files were not changed.
-Exact-commit hosted results remain pending submission.
+[Actions run 39118859250](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39118859250)
+passed all 14 applicable component jobs and the aggregate for `9a78f45`. The three signing-only
+release jobs retained their normal daily-mode skips.
 
 Affected production owners contain 814 navigation, 164 rail-presentation, 247 timeline-projection
 and 114 orientation-adapter lines, with no inline tests. The directly changed dedicated suites
 contain 421 rail-publication and 152 projection lines. The navigation facade receives the current
 projection and rejects pixel-only completion without geometry; no additional seek lifecycle is added.
+
+The next change admits bounded analysis during automatic synchronization and passive query reads.
+Foreground media leases and explicit tasks retain cancellation priority. Accepted fingerprints publish
+at most 256 sources per batch or after one second, through the existing catalog revision and gallery
+refresh owners. Local diagnosis passed 35 exact-analysis/persistence cases and 15 scheduler/publication
+cases, including rollback, active-run authority, cancellation and idempotent publication. A removed
+unused test import was the only warning in that diagnostic invocation; the subsequent Debug build
+completed without warnings. Full lint remains owned by Actions.
+
+The same retained recovery catalog and existing corpus were replayed with this change. Directory
+recovery retired 159,757 ms after launch. Analysis processed 10,000 current fingerprints and the final
+positive run retired after 302,543 ms, reading 10,922,857,869 bytes including superseded attempts.
+There were 19 admitted runs including cancellation and zero-read follow-ups. Analysis began processing
+new evidence before directory recovery retired. A sampled active run already had 245 published
+fingerprints before its terminal outcome. The client ultimately showed 10,000 source images and 72
+merged items; a rail click during updating reached the older-date region. This replay is not a
+controlled pre-refactor performance comparison, and 416 invalidated metadata records still remained
+before final convergence. The user subsequently reported marker jumps and longer synchronization;
+both remain open in the owning maintenance plan.
+
+The changed owners contain 185 scheduler, 110 activity-adapter, 121 execution, 172 persistence-facade,
+and 66 batch-publication production lines. The publication admission owner has 37 production and
+34 inline-test lines; dedicated execution, batch and scheduler suites contain 249, 129 and 305 lines.
 
 ## Controlled client run
 

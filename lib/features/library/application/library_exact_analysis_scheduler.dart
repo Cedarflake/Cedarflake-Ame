@@ -77,9 +77,11 @@ class LibraryExactAnalysisScheduler extends ChangeNotifier {
   }
 
   void browsingActivity() {
-    if (_closed) {
+    if (_closed || analysis.isRunning) {
       return;
     }
+    // Input delays admission. Once admitted, actual foreground media leases
+    // and explicit tasks own preemption; cached browsing cannot starve analysis.
     _yieldToForeground();
     _schedule();
   }

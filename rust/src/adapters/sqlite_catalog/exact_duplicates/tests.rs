@@ -4,6 +4,7 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 use super::*;
 
 mod candidate_index;
+mod gallery_batches;
 mod gallery_queries;
 mod review;
 

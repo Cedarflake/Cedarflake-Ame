@@ -77,13 +77,9 @@ class _LibraryAnalysisActivityState
           root.id: _snapshot.roots[root.id]?.availability ?? root.availability,
       },
       isBusy:
-          state.isBusy ||
-          updates.hasActive ||
-          state.isLoadingTimeAnchor ||
-          state.isLoadingVisibleRange ||
-          _snapshot.roots.values.any(
-            (root) => root.freshness == LibraryCatalogFreshness.updating,
-          ),
+          state.isTaskProcessing ||
+          state.isCommittedRemovalReloadPending ||
+          updates.hasActive,
     );
   }
 

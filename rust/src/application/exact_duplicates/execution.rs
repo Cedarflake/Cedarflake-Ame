@@ -8,6 +8,8 @@ use crate::ports::exact_duplicates::{
     ExactContentReader, ExactDuplicateRepository, FingerprintReadLease,
 };
 
+mod publication;
+
 pub(super) fn analyze(
     repository: &mut impl ExactDuplicateRepository,
     reader: &impl ExactContentReader,
@@ -49,6 +51,7 @@ fn analyze_candidates(
 ) -> Result<(), ScanError> {
     let mut after = String::new();
     let mut last_progress = Instant::now();
+    let mut publication = publication::ExactAnalysisPublication::new(last_progress);
     while !cancelled.load(Ordering::Acquire) {
         let candidates = repository.load_fingerprint_candidates(&after)?;
         if candidates.is_empty() {
@@ -86,6 +89,7 @@ fn analyze_candidates(
                         )? {
                             progress.fingerprinted_files += 1;
                             published_generations.insert(candidate.location.source_generation);
+                            publication.retain(candidate.location.source_generation);
                         } else if !cancelled.load(Ordering::Acquire) {
                             progress.skipped_files += 1;
                             progress.issue_code = Some("exact_source_superseded".to_owned());
@@ -98,6 +102,9 @@ fn analyze_candidates(
                 }
             } else {
                 progress.skipped_files += 1;
+            }
+            if let Some(generations) = publication.take_due(Instant::now()) {
+                repository.publish_exact_analysis_batch(&progress.run_id, &generations)?;
             }
             if last_progress.elapsed() >= Duration::from_millis(100) {
                 if !emit(progress.clone()) {
