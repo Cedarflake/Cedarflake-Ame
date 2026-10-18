@@ -503,6 +503,10 @@ its storage selection are unchanged. A bounded preflight records eight durable 1
 both the inherited system temporary directory and runner temporary directory before testing;
 it removes only its own probe files. This records storage conditions without relaxing SQLite
 durability, workloads, timing assertions or test isolation.
+The ordinary native-journal fixtures also retain the inherited system temporary directory as a
+candidate through `CEDARFLAKE_AME_ORDINARY_JOURNAL_PARENT`. They create an owned temporary child and
+verify its existing journal capability before use; they neither enable a volume journal nor skip
+restart coverage when no capable fixture volume is available.
 
 The static bridge gate does not treat the generated content-hash constant as sufficient freshness
 evidence. In addition to matching the Rust and Dart hashes, it checks timeline load, root removal,

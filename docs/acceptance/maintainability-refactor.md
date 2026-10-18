@@ -177,6 +177,24 @@ and their storage timings. Workstation entrypoints, test workloads, time limits,
 synchronization and security settings remain unchanged. Hosted measurements are still required
 before attributing the intermittent storage waits or claiming the binding resolves them.
 
+Runs `39107307582` and `39107356585` passed both lifetime-control arms, the complete production
+mixed-load workload and the original shutdown cases. On the first synchronization runner, eight
+durable 1 MiB writes took 6.99–19.22 ms in the inherited C-drive temporary directory and
+0.92–1.55 ms in the D-drive runner directory. The first run's per-poll, retained and production
+P0 P95 values were 69, 65 and 64 ms; every sample retained P1/P2 progress and complete recovery.
+Both partitions instead failed the two ordinary native-journal fixtures because both candidate
+directories now belonged to the runner volume, which exposed no readable existing journal.
+
+Those fixtures now also receive the inherited system temporary parent from the hosted workflow,
+create their own temporary child and perform the unchanged capability probe. All restart,
+catch-up, source-identity and timeout assertions remain; no volume journal is created and missing
+capability still fails. Local entrypoints do not set this override. This preserves the two distinct
+fixture requirements without placing unrelated SQLite pressure tests on the system volume.
+The test-only capability helper is 84 lines after this change. A restricted local process rejected
+native registration; the ordinary-user run selected the explicit owned candidate and passed both
+native parent cases in 3.52 seconds, with the existing subprocess-only helper ignore retained.
+Its recompilation emitted no warnings, and both hosted-wiring contracts passed serially.
+
 ### Automatic checkpoint burst attribution
 
 Diagnostic run [39098716218](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39098716218)
