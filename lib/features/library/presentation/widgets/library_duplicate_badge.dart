@@ -38,7 +38,7 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
       return const SizedBox.shrink();
     }
     final groups = ref.watch(libraryGalleryDuplicateAnnotationsProvider);
-    final group = groups.asData?.value[widget.locationId];
+    final group = groups.value?[widget.locationId];
     if (group == null || !TickerMode.valuesOf(context).enabled) {
       return const SizedBox.shrink();
     }

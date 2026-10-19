@@ -1051,6 +1051,30 @@ changes, refresh and return all completed without runtime error entries. The tes
 normally; original preferences, storage settings and catalog hashes were restored and verified.
 Complete automated gates remain owned by the commit's normal Actions run.
 
+## Duplicate badge continuity during annotation refresh
+
+The gallery badge previously read only `AsyncData`. Catalog publication and scrolling-window
+replacement put the shared annotation request into `AsyncLoading` with its previous value retained,
+so every known badge disappeared until the request completed. The badge now uses Riverpod 3.4.2's
+retained value by location ID. The current completed result replaces it, including confirmed absence;
+all-images mode and disabled overlay semantics retain their existing visibility rules. No additional
+cache, delay, request, catalog policy or source access is introduced.
+
+Both revision and window-change regressions failed before the correction and passed afterward.
+The eight affected cases also cover initial absence, current absence after refresh, superseded
+responses, location replacement, display mode and bounded shared requests. The badge contains 95
+production lines with no inline tests; its dedicated widget regression contains 153 lines.
+
+An ordinary Debug build from `40e31a4` plus this correction was checked on 2026-10-19 using a copied
+catalog for the retained 10,000-image test corpus. During automatic updating, forward/reverse
+scrolling retained visible badges; opening a 600-location sheet and dismissing it preserved the
+working badge and browsing position. All-images/merged round trips hid and restored the appropriate
+actions. The client exited normally with code 0, and the original catalog and presentation
+preferences retained their hashes. The controlled delayed-response tests establish the transient
+loading boundary; the native interaction covers the connected user path. Ignored
+`main-badge-20261019` retains the build, profile and process receipts. Normal main-branch Actions own
+the remaining automated gates for the submitted commit.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head
