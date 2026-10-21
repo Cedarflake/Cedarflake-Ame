@@ -14,7 +14,9 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_image_viewer.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -1217,7 +1219,7 @@ void main() {
   );
 
   testWidgets(
-    "synchronization keeps a renamed viewer asset and closes an authoritative removal",
+    "synchronization retains the viewer through rename, replacement and removal",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1;
@@ -1283,6 +1285,43 @@ void main() {
       expect(catalog.requestedLocationIds, ["location-0"]);
       expect(catalog.preferredLocationIds, ["location-0"]);
 
+      final imageViewport = tester.getRect(find.byType(LibraryViewerImage));
+      final changedAsset = _assetAtPath(
+        renamedAsset,
+        locationId: renamedAsset.locationId,
+        relativePath: renamedAsset.relativePath,
+        sourceGeneration: BigInt.two,
+      );
+      catalog.snapshot = LibrarySnapshot(
+        catalogPath: initialSnapshot.catalogPath,
+        revision: BigInt.from(3),
+        queryId: initialSnapshot.queryId,
+        roots: initialSnapshot.roots,
+        assets: [changedAsset],
+      );
+      synchronization.publish(_synchronizationSnapshot(BigInt.from(3)));
+      await _pumpSynchronizationRefresh(tester);
+
+      expect(find.text(LibraryStrings.viewerSourceChanged), findsOneWidget);
+      expect(tester.getRect(find.byType(LibraryViewerImage)), imageViewport);
+      expect(
+        tester
+            .widget<LibraryImageViewer>(find.byType(LibraryImageViewer))
+            .asset
+            .sourceGeneration,
+        BigInt.one,
+      );
+      await tester.tap(find.byKey(const Key("viewer-source-action")));
+      await tester.pump();
+      expect(find.text(LibraryStrings.viewerSourceChanged), findsNothing);
+      expect(
+        tester
+            .widget<LibraryImageViewer>(find.byType(LibraryImageViewer))
+            .asset
+            .sourceGeneration,
+        BigInt.two,
+      );
+
       final fallbackAsset = _assetAtPath(
         initialAsset,
         assetId: "asset-fallback",
@@ -1291,7 +1330,7 @@ void main() {
       );
       catalog.snapshot = LibrarySnapshot(
         catalogPath: initialSnapshot.catalogPath,
-        revision: BigInt.from(3),
+        revision: BigInt.from(4),
         queryId: initialSnapshot.queryId,
         roots: initialSnapshot.roots,
         assets: [fallbackAsset],
@@ -1302,13 +1341,31 @@ void main() {
           windowStartItemOffset: 0,
         ),
       );
-      synchronization.publish(_synchronizationSnapshot(BigInt.from(3)));
+      synchronization.publish(_synchronizationSnapshot(BigInt.from(4)));
       await _pumpSynchronizationRefresh(tester);
 
+      expect(find.byKey(const Key("viewer-back-button")), findsOneWidget);
+      expect(find.text(LibraryStrings.viewerSourceMissing), findsOneWidget);
+      final removedViewer = tester.widget<LibraryImageViewer>(
+        find.byType(LibraryImageViewer),
+      );
+      expect(removedViewer.position, isNull);
+      expect(removedViewer.onPrevious, isNull);
+      expect(removedViewer.onNext, isNull);
+      await tester.tap(find.byKey(const Key("viewer-source-action")));
+      await tester.pumpAndSettle();
       expect(find.byKey(const Key("viewer-back-button")), findsNothing);
       expect(find.byKey(const Key("library-photo-wall")), findsOneWidget);
-      expect(catalog.requestedLocationIds, ["location-0", "location-renamed"]);
-      expect(catalog.preferredLocationIds, ["location-0", "location-renamed"]);
+      expect(catalog.requestedLocationIds, [
+        "location-0",
+        "location-renamed",
+        "location-renamed",
+      ]);
+      expect(catalog.preferredLocationIds, [
+        "location-0",
+        "location-renamed",
+        "location-renamed",
+      ]);
     },
   );
 }
@@ -1482,6 +1539,7 @@ LibraryState _stateWithAssets(LibraryState source, List<LibraryAsset> assets) {
 LibraryAsset _assetAtPath(
   LibraryAsset source, {
   String? assetId,
+  BigInt? sourceGeneration,
   required String locationId,
   required String relativePath,
 }) {
@@ -1491,7 +1549,7 @@ LibraryAsset _assetAtPath(
     rootId: source.rootId,
     activeScanId: source.activeScanId,
     sourceRevision: source.sourceRevision,
-    sourceGeneration: source.sourceGeneration,
+    sourceGeneration: sourceGeneration ?? source.sourceGeneration,
     sourcePath: "C:\\Pictures\\$relativePath",
     displayPath: "C:\\Pictures\\$relativePath",
     relativePath: relativePath,

@@ -17,6 +17,29 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/concurrent_library_scanner.dart";
 
 void main() {
+  test(
+    "background verification keeps status without announcing synchronization",
+    () {
+      final feedback = LibrarySynchronizationFeedback.fromStatus(
+        _status(
+          recoveryBlocked: false,
+          freshness: LibraryCatalogFreshness.updating,
+          phase: LibrarySynchronizationPhase.backgroundVerification,
+          continuity: LibraryContinuityState.recoveryRequired,
+          retryCount: 0,
+        ),
+      );
+      expect(feedback.sourceLabel, LibraryStrings.backgroundVerification);
+      expect(feedback.shouldNotify, isFalse);
+      expect(feedback.requiresManualLibraryUpdate, isFalse);
+      final blocked = LibrarySynchronizationFeedback.fromStatus(
+        _status(phase: LibrarySynchronizationPhase.backgroundVerification),
+      );
+      expect(blocked.shouldNotify, isTrue);
+      expect(blocked.sourceLabel, LibraryStrings.needsReconciliation);
+    },
+  );
+
   test("a notification without a loaded folder name uses a readable title", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(_status());
     expect(feedback.titleForRoot(null), "图库更新受阻");

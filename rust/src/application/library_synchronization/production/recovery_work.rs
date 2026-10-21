@@ -33,6 +33,7 @@ pub(super) struct RecoveryWorkPolicy {
     pub queue: LibraryChangeQueuePolicy,
     pub recovery: AuthoritativeRecoveryPolicy,
     pub metadata_inventory_page_entries: u32,
+    pub root_count: usize,
 }
 
 pub(super) struct RecoveryTask {
@@ -45,6 +46,10 @@ pub(super) struct RecoveryTask {
 }
 
 pub(super) enum RecoveryTaskKind {
+    IndexedStartup {
+        continuity_revision: u64,
+        change_id: LibraryChangeId,
+    },
     BoundedAuthoritative {
         continuity_revision: u64,
     },
@@ -143,7 +148,11 @@ impl RecoveryTask {
 
     pub(super) fn continuity_revision(&self) -> u64 {
         match self.kind {
-            RecoveryTaskKind::BoundedAuthoritative {
+            RecoveryTaskKind::IndexedStartup {
+                continuity_revision,
+                ..
+            }
+            | RecoveryTaskKind::BoundedAuthoritative {
                 continuity_revision,
             }
             | RecoveryTaskKind::MetadataInventory {
@@ -161,6 +170,7 @@ impl RecoveryTask {
 
     const fn default_phase(&self) -> LibrarySynchronizationPhase {
         match &self.kind {
+            RecoveryTaskKind::IndexedStartup { .. } => LibrarySynchronizationPhase::Reconciliation,
             RecoveryTaskKind::BoundedAuthoritative { .. } => {
                 LibrarySynchronizationPhase::Reconciliation
             }

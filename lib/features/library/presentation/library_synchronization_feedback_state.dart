@@ -8,6 +8,7 @@ enum LibrarySynchronizationFeedbackState {
   interrupted,
   awaitingRetry,
   updating,
+  backgroundVerification,
   unconfirmed,
   synchronized;
 
@@ -32,6 +33,9 @@ enum LibrarySynchronizationFeedbackState {
       return interrupted;
     }
     if (status.freshness == LibraryCatalogFreshness.updating) {
+      if (status.phase == LibrarySynchronizationPhase.backgroundVerification) {
+        return backgroundVerification;
+      }
       if (status.phase == LibrarySynchronizationPhase.retryWait &&
           status.retryWaitCount > BigInt.zero &&
           status.sourceStatus == LibraryChangeSourceStatus.healthy) {
@@ -49,6 +53,7 @@ enum LibrarySynchronizationFeedbackState {
         case LibrarySynchronizationPhase.blocked:
         case LibrarySynchronizationPhase.synchronized:
         case LibrarySynchronizationPhase.unavailable:
+        case LibrarySynchronizationPhase.backgroundVerification:
           break;
       }
     }
@@ -74,6 +79,7 @@ enum LibrarySynchronizationFeedbackState {
     unavailable ||
     awaitingRetry ||
     updating ||
+    backgroundVerification ||
     unconfirmed ||
     synchronized => false,
   };

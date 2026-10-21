@@ -4,6 +4,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::{self, JoinHandle};
 
+use super::super::indexed_startup::RecoveryPreparation;
 use super::super::recovery_sources::{RecoverySourceTransfer, RecoverySources};
 use super::{
     RecoveryTask, RecoveryTaskKind, RecoveryTaskOutcome, RecoveryWorkPolicy, RecoveryWorkRoot,
@@ -32,6 +33,7 @@ pub(in super::super) fn start(
     catalog_session: Arc<SqliteCatalogSession>,
     policy: RecoveryWorkPolicy,
     sources: &mut RecoverySources,
+    preparation: RecoveryPreparation,
 ) -> Result<RecoveryTask, ScanError> {
     let RecoveryWorkRoot {
         root_id,
@@ -40,7 +42,12 @@ pub(in super::super) fn start(
     } = root;
     let is_inventory = leased_change_requires_metadata_inventory(&leased);
     let change_id = leased.change.id;
-    let task_kind = if is_inventory {
+    let task_kind = if is_inventory && matches!(preparation, RecoveryPreparation::IndexedStartup) {
+        RecoveryTaskKind::IndexedStartup {
+            continuity_revision,
+            change_id,
+        }
+    } else if is_inventory {
         RecoveryTaskKind::MetadataInventory {
             continuity_revision,
             change_id,
@@ -118,6 +125,42 @@ pub(in super::super) fn start(
                 });
             }
             if is_inventory {
+                if matches!(preparation, RecoveryPreparation::IndexedStartup) {
+                    if let Err(error) = crate::application::indexed_startup::prepare(
+                        &mut catalog,
+                        &crate::adapters::windows_search_index::WindowsSearchIndex,
+                        &root,
+                        &leased,
+                        now_unix_ms,
+                        queue_policy,
+                        &worker_cancelled,
+                    ) {
+                        if !matches!(
+                            error.code.as_str(),
+                            "search_index_unavailable"
+                                | "search_index_interrupted"
+                                | "search_index_truncated"
+                        ) {
+                            return Err(error);
+                        }
+                        eprintln!("[Ame sync] indexed startup unavailable code={}", error.code);
+                    }
+                    let deferred = defer_authoritative_change(
+                        &mut catalog,
+                        &leased,
+                        root.catalog_revision,
+                        now_unix_ms,
+                    )?;
+                    return Ok(RecoveryTaskOutcome::MetadataInventory(Box::new(
+                        MetadataInventoryRecoveryPage {
+                            report: MetadataInventoryRecoveryReport {
+                                incremental: deferred.incremental,
+                                ..MetadataInventoryRecoveryReport::default()
+                            },
+                            retained_source: retained_inventory_source,
+                        },
+                    )));
+                }
                 let report_progress = |progress| {
                     if let Ok(mut phase) = worker_phase.lock() {
                         *phase = synchronization_phase(progress);
@@ -137,7 +180,8 @@ pub(in super::super) fn start(
                             &report_progress,
                             &yield_page,
                         ),
-                    ),
+                    )
+                    .with_recovery_scheduling(policy.root_count),
                     retained_inventory_source,
                 )
                 .map(|page| RecoveryTaskOutcome::MetadataInventory(Box::new(page)))

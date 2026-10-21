@@ -68,14 +68,22 @@ impl ProductionSynchronization {
                         )
                     })? {
                         let leased_for_defer = leased.clone();
-                        if let Err(start_error) = self.start_automatic_recovery(
-                            root_id,
-                            root_generation,
-                            continuity_revision,
-                            leased,
-                            poll_unix_ms,
-                            storage.catalog_path.clone(),
-                        ) {
+                        let started = self.indexed_startup.preparation(catalog, &leased).and_then(
+                            |preparation| {
+                                self.start_automatic_recovery(
+                                    RecoveryWorkRoot {
+                                        root_id,
+                                        root_generation,
+                                        continuity_revision,
+                                    },
+                                    leased,
+                                    poll_unix_ms,
+                                    storage.catalog_path.clone(),
+                                    preparation,
+                                )
+                            },
+                        );
+                        if let Err(start_error) = started {
                             if let Err(defer_error) = catalog.defer_library_change(
                                 leased_for_defer.change.id,
                                 leased_for_defer.lease_generation,

@@ -54,6 +54,10 @@ results survive cancellation, failure and restart. Human decisions are stored se
 - Evidence is keyed by the catalog-wide source generation. Hardlink aliases share one content
   read while every admitted path remains a distinct inspectable location. The existing atomic
   generation invalidation removes changed aliases from confirmed results immediately.
+- Authorized recovery may retain a generation under the accepted Windows metadata-reuse boundary
+  in [ADR 0024](0024-windows-change-driven-library-continuity.md#windows-metadata-reuse-after-lost-journal-coverage).
+  This preserves an already complete fingerprint; it never synthesizes content evidence from
+  metadata. Observed dirty events, changed properties and incomplete evidence retain invalidation.
 - Exact groups are query projections over current locations and compatible evidence. They do not
   merge asset IDs. Unavailable roots retain last-known locations; unavailable content is never
   opened or downloaded merely to complete analysis.

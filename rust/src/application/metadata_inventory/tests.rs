@@ -42,47 +42,21 @@ use super::{
     MetadataInventoryProgressPhase, MetadataInventoryRecoveryExecution,
     MetadataInventoryWorkerControl, leased_change_requires_metadata_inventory,
     metadata_inventory_run_id, process_leased_metadata_inventory_change,
-    process_leased_metadata_inventory_change_with_retained_source,
-    recovery_reason_invalidates_unchanged_sources, retry_terminalization, run_metadata_inventory,
-    set_before_metadata_inventory_finalization_hook,
+    process_leased_metadata_inventory_change_with_retained_source, retry_terminalization,
+    run_metadata_inventory, set_before_metadata_inventory_finalization_hook,
 };
 
 mod bounded_cleanup;
 #[cfg(windows)]
 mod directory_snapshot;
+#[cfg(windows)]
+mod indexed_startup;
 mod lifecycle_admission;
+#[cfg(windows)]
+mod recovery_reuse;
 mod spool_batches;
 mod spool_lifecycle;
 mod terminal_media;
-
-#[test]
-fn recovery_reason_invalidation_matrix_covers_every_authority_reason() {
-    let cases = [
-        (LibraryRecoveryAuthorityReason::ExistingRootBaseline, false),
-        (LibraryRecoveryAuthorityReason::FirstImportBoundary, false),
-        (LibraryRecoveryAuthorityReason::JournalGap, true),
-        (LibraryRecoveryAuthorityReason::JournalReset, true),
-        (LibraryRecoveryAuthorityReason::JournalTrim, true),
-        (
-            LibraryRecoveryAuthorityReason::JournalReconstructionFailure,
-            true,
-        ),
-        (LibraryRecoveryAuthorityReason::ContainmentFailure, true),
-        (
-            LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure,
-            true,
-        ),
-        (LibraryRecoveryAuthorityReason::WatcherUncoveredGap, true),
-    ];
-
-    for (reason, expected) in cases {
-        assert_eq!(
-            recovery_reason_invalidates_unchanged_sources(reason),
-            expected,
-            "unexpected invalidation policy for {reason:?}"
-        );
-    }
-}
 
 #[test]
 fn closed_process_metadata_changes_converge_through_bounded_inventory_pages() {

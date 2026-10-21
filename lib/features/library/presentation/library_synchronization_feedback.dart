@@ -56,6 +56,7 @@ class LibrarySynchronizationFeedback {
       LibrarySynchronizationFeedbackState.unconfirmed =>
         LibraryStrings.synchronizationUnconfirmedTitle(rootName),
       LibrarySynchronizationFeedbackState.updating ||
+      LibrarySynchronizationFeedbackState.backgroundVerification ||
       LibrarySynchronizationFeedbackState.awaitingRetry ||
       LibrarySynchronizationFeedbackState.synchronized ||
       LibrarySynchronizationFeedbackState.unavailable =>
@@ -96,6 +97,9 @@ String _synchronizationNotificationMessage(
   }
   if (state == LibrarySynchronizationFeedbackState.updating) {
     return _synchronizationPhaseLabel(status.phase);
+  }
+  if (state == LibrarySynchronizationFeedbackState.backgroundVerification) {
+    return "";
   }
   if (state == LibrarySynchronizationFeedbackState.synchronized) {
     if (status.continuity == LibraryContinuityState.liveOnly) {
@@ -218,6 +222,7 @@ String _synchronizationPhaseLabel(LibrarySynchronizationPhase phase) {
       LibraryStrings.synchronizationPhaseSynchronized,
     LibrarySynchronizationPhase.unavailable =>
       LibraryStrings.synchronizationPhaseUnavailable,
+    LibrarySynchronizationPhase.backgroundVerification => "",
   };
 }
 
@@ -227,6 +232,7 @@ AmeNotificationSeverity _synchronizationNotificationSeverity(
 ) {
   if (state == LibrarySynchronizationFeedbackState.awaitingFirstImport ||
       state == LibrarySynchronizationFeedbackState.updating ||
+      state == LibrarySynchronizationFeedbackState.backgroundVerification ||
       state == LibrarySynchronizationFeedbackState.awaitingRetry ||
       state == LibrarySynchronizationFeedbackState.unconfirmed ||
       state == LibrarySynchronizationFeedbackState.synchronized) {
@@ -256,6 +262,8 @@ String _synchronizationSourceLabel(
   LibrarySynchronizationFeedbackState.awaitingRetry =>
     LibraryStrings.synchronizationRetryPending,
   LibrarySynchronizationFeedbackState.updating => LibraryStrings.synchronizing,
+  LibrarySynchronizationFeedbackState.backgroundVerification =>
+    LibraryStrings.backgroundVerification,
   LibrarySynchronizationFeedbackState.unconfirmed =>
     LibraryStrings.synchronizationUnconfirmed,
   LibrarySynchronizationFeedbackState.synchronized =>

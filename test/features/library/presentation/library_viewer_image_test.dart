@@ -7,8 +7,10 @@ import "package:cedarflake_ame/features/library/application/library_source_read_
 import "package:cedarflake_ame/features/library/application/library_source_reader.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
+import "package:cedarflake_ame/features/library/presentation/library_viewer_source_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_image.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_image.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_source_notice.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -167,6 +169,61 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
+  testWidgets(
+    "confirmed removal replaces fallback retry without moving the image",
+    (tester) async {
+      final directory = Directory.systemTemp.createTempSync(
+        "ame-viewer-notice-",
+      );
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final preview = File(
+        "${directory.path}${Platform.pathSeparator}preview.png",
+      );
+      final bytes = await tester.runAsync(() => _png(Colors.blue));
+      preview.writeAsBytesSync(bytes!);
+      final asset =
+          _asset(
+            "${directory.path}${Platform.pathSeparator}missing.png",
+          ).withPreview(
+            previewPath: preview.path,
+            width: 2,
+            height: 2,
+            previewStatus: LibraryPreviewStatus.ready,
+          );
+      await tester.pumpWidget(_viewer(asset));
+      await _waitForFrame(
+        tester,
+        () => find
+            .text(LibraryStrings.originalImagePreviewFallback)
+            .evaluate()
+            .isNotEmpty,
+      );
+      final imageRect = tester.getRect(find.byType(RawImage));
+      var returned = false;
+      await tester.pumpWidget(
+        _viewer(
+          asset,
+          notice: LibraryViewerSourceNoticeBanner(
+            notice: LibraryViewerSourceNotice.missing,
+            onBack: () => returned = true,
+          ),
+        ),
+      );
+      expect(find.text(LibraryStrings.viewerSourceMissing), findsOneWidget);
+      expect(find.byKey(const Key("viewer-original-retry")), findsNothing);
+      expect(
+        find.text(LibraryStrings.originalImagePreviewFallback),
+        findsNothing,
+      );
+      expect(tester.getRect(find.byType(RawImage)), imageRect);
+      expect(await _visiblePixel(tester), [33, 150, 243, 255]);
+      await tester.tap(find.byKey(const Key("viewer-source-action")));
+      expect(returned, isTrue);
+      await tester.pumpWidget(const SizedBox.shrink());
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   for (final corruptPreview in [false, true]) {
     testWidgets(
       "unreadable fallback does not claim to display a preview: corrupt $corruptPreview",
@@ -228,16 +285,20 @@ final _sourceScheduler = LibrarySourceReadScheduler(
   reader: const _SourceReader(),
 );
 
-Widget _viewer(LibraryAsset asset, {LibrarySourceBufferLoader? bufferLoader}) =>
-    MaterialApp(
-      home: Scaffold(
-        body: LibraryViewerImage(
-          asset: asset,
-          sourceReadScheduler: _sourceScheduler,
-          sourceBufferLoader: bufferLoader,
-        ),
-      ),
-    );
+Widget _viewer(
+  LibraryAsset asset, {
+  LibrarySourceBufferLoader? bufferLoader,
+  Widget? notice,
+}) => MaterialApp(
+  home: Scaffold(
+    body: LibraryViewerImage(
+      asset: asset,
+      sourceReadScheduler: _sourceScheduler,
+      sourceBufferLoader: bufferLoader,
+      notice: notice,
+    ),
+  ),
+);
 
 class _SourceReader implements LibrarySourceReader {
   const _SourceReader();

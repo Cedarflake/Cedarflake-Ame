@@ -4,6 +4,7 @@ import "../application/library_catalog.dart";
 import "../domain/library_models.dart";
 import "../domain/library_state.dart";
 import "library_viewer_navigation_window.dart";
+import "library_viewer_source_state.dart";
 
 enum LibraryViewerDirection { previous, next }
 
@@ -52,7 +53,7 @@ class LibraryViewerSession extends ChangeNotifier {
   final void Function(LibraryAsset?) _onPreviewDemand;
   final void Function(Object) _onNavigationError;
   LibraryViewerSelection? _selection;
-  LibraryAsset? _retainedAsset;
+  LibraryViewerSourceState? _source;
   _NavigationRequest? _navigation;
   Object? _lookup;
   bool _isDisposed = false;
@@ -62,13 +63,15 @@ class LibraryViewerSession extends ChangeNotifier {
   LibraryViewerSelection? get selection => _selection;
   String? get assetId => _selection?.assetId;
   String? get locationId => _selection?.locationId;
-  LibraryAsset? get retainedAsset => _retainedAsset;
+  LibraryAsset? get retainedAsset => _source?.asset;
+  LibraryViewerSourceNotice? get sourceNotice => _source?.notice;
   int? get ordinal => _ordinal;
   bool get isNavigating => _navigation != null && _owns(_navigation!);
 
   LibraryViewerNavigation navigation(int totalItems) {
     final selection = _selection;
-    if (selection == null) {
+    if (selection == null ||
+        sourceNotice == LibraryViewerSourceNotice.missing) {
       return (position: null, canPrevious: false, canNext: false);
     }
     final state = _readLibrary();
@@ -114,7 +117,7 @@ class LibraryViewerSession extends ChangeNotifier {
       (item) => item.locationId == asset.locationId,
     );
     _ordinal = index < 0 ? ordinal : state.windowStartItemOffset + index;
-    _retainedAsset = asset;
+    _source = LibraryViewerSourceState(asset);
     _navigation = null;
     _lookup = null;
     _onPreviewDemand(asset);
@@ -127,33 +130,45 @@ class LibraryViewerSession extends ChangeNotifier {
     }
     _selection = null;
     _ordinal = null;
-    _retainedAsset = null;
+    _source = null;
     _navigation = null;
     _lookup = null;
     _onPreviewDemand(null);
     notifyListeners();
   }
 
-  void retainCatalogAsset(
+  void _retainCatalogAsset(
     LibraryViewerSelection selection,
     LibraryAsset asset,
   ) {
     if (_isDisposed ||
         !identical(_selection, selection) ||
-        asset.assetId != selection.assetId) {
+        (asset.assetId != selection.assetId &&
+            asset.locationId != selection.locationId)) {
       return;
     }
-    if (asset.locationId != selection.locationId) {
-      open(asset);
-      return;
+    final source = _source;
+    if (source == null) return;
+    source.reconcile(asset);
+    if (source.notice == null && asset.locationId != selection.locationId) {
+      _selection = LibraryViewerSelection._(asset);
+      _navigation = null;
     }
-    _retainedAsset = asset;
-    _onPreviewDemand(asset);
+    _onPreviewDemand(source.notice == null ? source.asset : null);
+    notifyListeners();
+  }
+
+  void reloadSource() {
+    final replacement = _source?.replacement;
+    if (replacement != null) open(replacement, ordinal: _ordinal);
   }
 
   Future<bool> navigate(LibraryViewerDirection direction) async {
     final selection = _selection;
-    if (_isDisposed || selection == null || isNavigating) {
+    if (_isDisposed ||
+        selection == null ||
+        sourceNotice == LibraryViewerSourceNotice.missing ||
+        isNavigating) {
       return false;
     }
     final request = _NavigationRequest(selection, _query);
@@ -164,7 +179,7 @@ class LibraryViewerSession extends ChangeNotifier {
       var state = _readLibrary();
       var index = _index(state, selection);
       if (index < 0) {
-        final retained = _retainedAsset;
+        final retained = retainedAsset;
         if (retained == null) return false;
         final neighbor = await _navigationWindow.neighbor(
           selection: retained,
@@ -253,15 +268,20 @@ class LibraryViewerSession extends ChangeNotifier {
       return;
     }
     _lookup = null;
+    asset ??= _readLibrary().assets
+        .where(
+          (item) =>
+              item.locationId == selection.locationId &&
+              item.assetId != selection.assetId,
+        )
+        .firstOrNull;
     if (asset == null) {
-      close();
+      _source?.reconcile(null);
+      _navigation = null;
+      _onPreviewDemand(null);
+      notifyListeners();
     } else {
-      if (asset.locationId != selection.locationId) {
-        open(asset);
-      } else {
-        retainCatalogAsset(selection, asset);
-        notifyListeners();
-      }
+      _retainCatalogAsset(selection, asset);
     }
   }
 
@@ -283,7 +303,7 @@ class LibraryViewerSession extends ChangeNotifier {
     final hadSelection = _selection != null;
     _isDisposed = true;
     _selection = null;
-    _retainedAsset = null;
+    _source = null;
     _navigation = null;
     _lookup = null;
     if (hadSelection) {

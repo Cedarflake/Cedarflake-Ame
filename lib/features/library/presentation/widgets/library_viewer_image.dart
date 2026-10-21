@@ -10,6 +10,7 @@ import "../library_strings.dart";
 import "library_image_reveal.dart";
 import "library_loading_indicator.dart";
 import "library_source_image.dart";
+import "library_viewer_notice.dart";
 import "library_viewer_source_scope.dart";
 import "library_viewer_transition.dart";
 
@@ -22,6 +23,7 @@ class LibraryViewerImage extends StatefulWidget {
     this.sourceReadScheduler,
     this.sourceBufferLoader,
     this.imageBuilder,
+    this.notice,
     super.key,
   });
 
@@ -29,6 +31,7 @@ class LibraryViewerImage extends StatefulWidget {
   final LibrarySourceReadScheduler? sourceReadScheduler;
   final LibrarySourceBufferLoader? sourceBufferLoader;
   final LibraryViewerImageBuilder? imageBuilder;
+  final Widget? notice;
 
   @override
   State<LibraryViewerImage> createState() => _LibraryViewerImageState();
@@ -88,35 +91,40 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
 
   @override
   Widget build(BuildContext context) {
-    return LibraryImageReveal(
-      key: ValueKey(_sourceImage),
-      image: _sourceImage,
-      revealIdentity: _sourceImage,
-      duration: const Duration(milliseconds: 100),
-      placeholder: _hasPreview ? _buildPreview() : null,
-      semanticLabel: widget.asset.relativePath,
-      fit: BoxFit.contain,
-      filterQuality: FilterQuality.high,
-      frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-        return Stack(
-          fit: StackFit.expand,
-          children: [
-            _buildImage(context, child),
-            if (frame == null && !wasSynchronouslyLoaded)
-              const IgnorePointer(
-                child: LibraryLoadingIndicator(
-                  key: Key("viewer-image-loading"),
-                  maximumDimension: 36,
-                  minimumInset: 0,
-                  strokeWidth: 4,
-                ),
-              ),
-          ],
-        );
-      },
-      errorBuilder: (context, error, stackTrace) => _buildFailure(context),
+    return Stack(
+      fit: StackFit.expand,
+      children: [_buildSource(context), ?widget.notice],
     );
   }
+
+  Widget _buildSource(BuildContext context) => LibraryImageReveal(
+    key: ValueKey(_sourceImage),
+    image: _sourceImage,
+    revealIdentity: _sourceImage,
+    duration: const Duration(milliseconds: 100),
+    placeholder: _hasPreview ? _buildPreview() : null,
+    semanticLabel: widget.asset.relativePath,
+    fit: BoxFit.contain,
+    filterQuality: FilterQuality.high,
+    frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          _buildImage(context, child),
+          if (frame == null && !wasSynchronouslyLoaded)
+            const IgnorePointer(
+              child: LibraryLoadingIndicator(
+                key: Key("viewer-image-loading"),
+                maximumDimension: 36,
+                minimumInset: 0,
+                strokeWidth: 4,
+              ),
+            ),
+        ],
+      );
+    },
+    errorBuilder: (context, error, stackTrace) => _buildFailure(context),
+  );
 
   Widget _buildImage(BuildContext context, Widget image) =>
       widget.imageBuilder?.call(context, image) ?? image;
@@ -140,39 +148,17 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   }
 
   Widget _buildPreviewFallback(BuildContext context, Widget image) {
+    if (widget.notice != null) return _buildImage(context, image);
     return Stack(
       fit: StackFit.expand,
       children: [
         _buildImage(context, image),
-        Positioned(
-          left: 16,
-          right: 16,
-          top: 16,
-          child: Center(
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-              elevation: 2,
-              borderRadius: BorderRadius.circular(20),
-              child: Padding(
-                padding: const EdgeInsets.only(left: 14, right: 6),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Symbols.broken_image_rounded, size: 20),
-                    const SizedBox(width: 8),
-                    const Flexible(
-                      child: Text(LibraryStrings.originalImagePreviewFallback),
-                    ),
-                    TextButton(
-                      key: const Key("viewer-original-retry"),
-                      onPressed: _retry,
-                      child: const Text(LibraryStrings.retryOriginalImage),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+        LibraryViewerNotice(
+          icon: Symbols.broken_image_rounded,
+          message: LibraryStrings.originalImagePreviewFallback,
+          actionLabel: LibraryStrings.retryOriginalImage,
+          onAction: _retry,
+          actionKey: const Key("viewer-original-retry"),
         ),
       ],
     );
@@ -186,13 +172,15 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
           const Icon(Symbols.broken_image_rounded, size: 64),
           const SizedBox(height: 12),
           const Text(LibraryStrings.originalImageUnavailable),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            key: const Key("viewer-original-retry"),
-            onPressed: _retry,
-            icon: const Icon(Symbols.refresh_rounded),
-            label: const Text(LibraryStrings.retryOriginalImage),
-          ),
+          if (widget.notice == null) ...[
+            const SizedBox(height: 8),
+            OutlinedButton.icon(
+              key: const Key("viewer-original-retry"),
+              onPressed: _retry,
+              icon: const Icon(Symbols.refresh_rounded),
+              label: const Text(LibraryStrings.retryOriginalImage),
+            ),
+          ],
         ],
       ),
     );

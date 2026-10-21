@@ -67,6 +67,8 @@ mod scan_admission;
 mod scan_change_capture;
 mod scan_checkpoint;
 mod scan_directories;
+#[cfg(windows)]
+mod search_index_hints;
 pub(crate) use journal_namespace::SqliteJournalNamespaceReader;
 mod scan_lifecycle;
 mod scan_publication;

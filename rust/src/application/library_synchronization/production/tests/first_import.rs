@@ -300,6 +300,7 @@ fn startup_retires_legacy_full_scan_into_bounded_inventory_without_new_scan() {
         live_root_cursor: None,
         recovery: None,
         recovery_sources: RecoverySources::default(),
+        indexed_startup: IndexedStartupOwner::default(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
         recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,

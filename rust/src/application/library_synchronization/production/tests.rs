@@ -1,6 +1,8 @@
 #[cfg(windows)]
 mod first_import;
 #[cfg(windows)]
+mod indexed_startup;
+#[cfg(windows)]
 mod inventory_pages;
 #[cfg(windows)]
 mod journal_baseline;

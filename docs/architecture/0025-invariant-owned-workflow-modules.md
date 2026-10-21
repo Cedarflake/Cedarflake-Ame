@@ -823,6 +823,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   catalog authority or stale layout metrics. `LibraryTimeNavigation` retains seek scheduling and
   same-revision geometry; the screen retains gallery/viewer composition and the rail's width.
   A complete frame cannot be replaced by interim estimated geometry in the same query. The
+  prior query's painted frame remains the motion origin while its replacement is pending under
+  the same scroll controller. Input requires the painted frame, navigation projection and current
+  timeline to share a query identity; old-query coordinates cannot navigate a new query. An initial
+  estimate for a new query may replace the old frame without waiting for complete geometry. The
   presentation owner retires the old Material input when its navigation projection changes; the
   existing navigation cancellation path releases the matching unfinished gesture value and seek
   intent. New input resolves the painted month and within-month fraction through the current

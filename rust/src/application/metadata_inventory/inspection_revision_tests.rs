@@ -6,7 +6,7 @@ use crate::domain::{
 use crate::media_fixtures::{MediaFixtureFormat, encode_rgb_quadrants};
 use crate::ports::MediaInspector;
 
-use super::inventory_matches_terminal_media_evidence;
+use super::comparison::inventory_matches_terminal_media_evidence;
 
 #[test]
 fn legacy_ico_negative_evidence_is_not_reused_after_content_admission_revision() {

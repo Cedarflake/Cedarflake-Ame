@@ -81,8 +81,22 @@ Its scope remains Favorites and virtual albums, durable decisions and resumable 
 Select its execution plan when that work is requested. Do not restart completed R2c/R3 acceptance or
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
-The current requested maintenance scope is the
-[startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance). Time-rail input,
+The current requested maintenance scope is
+[fast recovery after journal loss](plans/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
+on `codex/fast-startup-recovery`. It applies Windows Search hints through guarded actual-file checks
+at startup, then verifies the complete source quietly using the original materialized inventory.
+The accepted Windows metadata-reuse boundary and multi-root scheduling remain intact; direct
+streaming capture is withdrawn. The corrected production entrypoint has completed its retained-library
+client check. The sidebar keeps `正在核对`, and confirmed gallery-viewer changes offer reload or return
+through the shared floating notice without moving the image. Focused regressions and the affected
+client interactions pass. The requested date-condition follow-up retains the time rail's painted
+frame across query replacement so its existing motion can continue; old-query input is retired.
+Exact-commit hosted verification follows publication. The owning
+[verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss) separates indexed
+refresh, complete verification and the earlier interrupted timings. There is no fixed startup-time
+threshold for this maintenance scope.
+The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
+retains its delivered behavior. Time-rail input,
 progressive duplicate folding and post-sync gallery convergence are implemented and client-verified
 on `main`. Stable existing folded cards, progressive confirmed copies, shared update status and
 bounded badge inspection are also implemented and client-verified. The `journal_trim` investigation

@@ -374,6 +374,37 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
     }
 }
 
+#[test]
+fn root_availability_search_index_module_retains_exact_windows_loading() {
+    let declaration = "#[cfg(windows)]\npub(crate) mod windows_search_index;";
+    let adapters_source = ADAPTERS_SOURCE.replace("\r\n", "\n");
+    assert!(adapters_source.contains(declaration));
+    for replacement in [
+        String::new(),
+        format!("{declaration}\n{declaration}"),
+        declaration.replace("pub(crate)", "pub"),
+        declaration.replace("#[cfg(windows)]\n", ""),
+        declaration.replace("cfg(windows)", "cfg(test)"),
+        format!("#[path = \"alternate.rs\"]\n{declaration}"),
+        declaration.replace(';', " { mod generated {} }"),
+    ] {
+        let mutated = adapters_source.replacen(declaration, &replacement, 1);
+        assert_ne!(mutated, adapters_source);
+        let error = assert_availability_exact_source_contract_with_environment(
+            LOCAL_SOURCE,
+            Some(DOMAIN_SOURCE),
+            Some(METADATA_SOURCE),
+            Some(&mutated),
+            Some(CRATE_SOURCE),
+        )
+        .expect_err("the search index must retain its exact platform module boundary");
+        assert!(
+            error.contains("availability module topology source adapters-parent"),
+            "the adapters module must reject {replacement:?}: {error}"
+        );
+    }
+}
+
 fn assert_contract(local: &str, parent: &str) -> Result<(), String> {
     assert_availability_exact_source_contract_with_environment(
         local,

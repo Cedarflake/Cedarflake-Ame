@@ -7,6 +7,8 @@ mod local_files;
 #[cfg(test)]
 mod local_metadata_inventory;
 mod media_inspector;
+#[cfg(windows)]
+pub(crate) mod windows_search_index;
 pub(crate) use exact_content_reader::GuardedExactContentReader;
 mod preview_cache;
 mod sqlite_catalog;

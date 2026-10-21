@@ -386,27 +386,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final layoutManifest = baseLayoutManifest == null
         ? null
         : _dimensionPublication.manifestWithUpdates(baseLayoutManifest);
-    final loadedViewerAsset = _viewer.assetId == null
-        ? null
-        : _assetByStableIdentity(
-            state.assets,
-            _viewer.assetId!,
-            _viewer.locationId,
-          );
-    final viewerCatalogAsset =
-        loadedViewerAsset ??
-        (_viewer.retainedAsset?.assetId == _viewer.assetId
-            ? _viewer.retainedAsset
-            : null);
+    final viewerCatalogAsset = _viewer.retainedAsset;
     final viewerNavigation = _viewer.navigation(_totalItems(state));
-    final viewerSelection = _viewer.selection;
-    if (loadedViewerAsset != null && viewerSelection != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _viewer.retainCatalogAsset(viewerSelection, loadedViewerAsset);
-        }
-      });
-    }
 
     return CallbackShortcuts(
       bindings:
@@ -472,6 +453,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           );
                           return LibraryImageViewer(
                             asset: viewerAsset,
+                            sourceNotice: _viewer.sourceNotice,
+                            onReloadSource: _viewer.reloadSource,
                             filmstrip: LibraryViewerFilmstrip(
                               selection: viewerAsset,
                               onSelected: _viewer.open,

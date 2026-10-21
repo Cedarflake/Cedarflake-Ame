@@ -37,6 +37,7 @@ abstract final class LibraryStrings {
   // 状态选择见 library_synchronization_feedback.dart 和 widgets/library_source_navigation_tile.dart。
   static const synchronized = "已同步";
   static const synchronizing = "正在更新";
+  static const backgroundVerification = "正在核对";
   static const needsReconciliation = "更新受阻";
   static const synchronizationUnconfirmed = "尚未核对";
   static const synchronizationRetryPending = "等待重试";
@@ -173,6 +174,8 @@ abstract final class LibraryStrings {
   static const originalImageUnavailable = "无法打开原图";
   static const originalImagePreviewFallback = "原图无法打开，已暂时显示预览图";
   static const retryOriginalImage = "重新打开";
+  static const viewerSourceChanged = "图片已更新，重新加载以查看最新内容。";
+  static const viewerSourceMissing = "这张图片已不在图库中。";
 
   // 底部任务卡｜移除目录的进度、后续图片加载和失败说明。
   // 添加、暂停、取消、完成的动态标题和数量说明见 library_primary_task_feedback.dart。
