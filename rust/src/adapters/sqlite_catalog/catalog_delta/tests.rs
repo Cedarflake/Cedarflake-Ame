@@ -15,6 +15,7 @@ use super::super::SqliteCatalog;
 
 mod exact_duplicates;
 mod location_removal;
+mod prior_lookup;
 mod terminal_scope;
 
 #[test]

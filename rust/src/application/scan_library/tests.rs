@@ -3567,6 +3567,7 @@ fn user_authorized_read_only_library_acceptance() {
     let mut samples = Vec::new();
     let mut sample_error = None;
     let scan_started = Instant::now();
+    let scan_operations = operation_cost::OperationCostScope::start();
     run_scan_with_storage(
         request.clone(),
         |event| {
@@ -3642,6 +3643,10 @@ fn user_authorized_read_only_library_acceptance() {
     )
     .expect("read-only acceptance scan");
     let first_pass_elapsed = scan_started.elapsed();
+    scan_operations
+        .finish(first_pass_elapsed)
+        .expect("read-only scan operation costs")
+        .print("read-only");
     let pause_response_ms = pause_requested.map(|started| started.elapsed().as_millis());
     let cancel_response_ms = cancel_requested.map(|started| started.elapsed().as_millis());
 

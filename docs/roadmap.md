@@ -70,6 +70,13 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
+The requested [first-import performance maintenance](plans/first-import-performance.md) is active.
+The constrained Windows client took 794.052 seconds to publish its first real-library import.
+Diagnose the full scan at its owning boundaries, reduce the measured cost, and verify the affected
+client with isolated derived storage while preserving original media and publication correctness.
+This work has no fixed five-second threshold and does not start R4. Its measurements belong in the
+[acceptance record](acceptance/first-import-performance.md).
+
 R3 is closed after exact identification, physical-location inspection, both gallery modes,
 duplicate review, incremental maintenance and durable choices passed their affected verification.
 Preserve its source-read boundaries, deterministic representatives, bounded windows, retained viewer
