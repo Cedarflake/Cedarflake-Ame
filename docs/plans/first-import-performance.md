@@ -1,6 +1,6 @@
 # First-import performance
 
-Status: active maintenance investigation
+Status: implementation and cloud-client verification complete; hosted verification pending
 
 ## Outcome and boundary
 
@@ -26,6 +26,12 @@ publication behavior requires its own explicit application and presentation desi
 implied by reducing scan cost.
 
 ## Evidence
+
+The production candidate amortizes automatic SQLite checkpoints only during a foreground import
+into an empty catalog and reuses compiled prior-query statements. The complete cloud-primary client
+comparison accepted the same 19,028 locations in 145.448 seconds, including pause/resume, compared
+with the original 794.052-second observation. Full member/metadata comparison and affected gallery
+interactions passed. Current-head hosted checks remain before engineering closeout.
 
 [First-import measurements](../acceptance/first-import-performance.md) owns timings, source safety,
 diagnostic limitations, and verification. The roadmap owns the active maintenance queue.

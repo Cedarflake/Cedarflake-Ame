@@ -1,6 +1,6 @@
 # First-import performance evidence
 
-Status: diagnosis in progress
+Status: production client verified; current-head hosted verification pending
 
 ## Baseline
 
@@ -75,7 +75,7 @@ retired and restored the cloud checkout to its original source.
 The production candidate limits the larger window to an admitted first import with no published
 roots. Its lifetime belongs to the scan; all connections sharing the catalog's writer admission
 observe it before writing, and retirement restores the ordinary threshold on the next write.
-The client's full import and interruption comparison remains pending.
+The production-client comparison below verifies the full import and interruption path.
 
 Eight focused connection-policy tests pass, including scope sharing across retained and newly
 opened writers, separate-catalog isolation, last-owner retirement, published/paused admission,
@@ -85,8 +85,8 @@ the same fifteen metadata issues and fourteen source-hash samples, in 44.717 sec
 took 13.377 seconds; media inspection varied to 14.771 seconds. This does not establish a local
 total-time improvement over the earlier warm run.
 
-The scoped policy owner has 72 production lines and 178 dedicated test lines. The catalog facade
-has 3,544 production lines, writer admission 357, connection configuration 51, and scan orchestration
+The scoped policy owner has 72 production lines and 187 dedicated test lines. The catalog facade
+has 3,544 source lines, writer admission 357, connection configuration 51, and scan orchestration
 750; these owners have no inline test bodies. The policy lives in its typed scope owner; the
 facades only acquire that scope or apply its current connection setting.
 
@@ -103,9 +103,53 @@ images, retained the same fifteen metadata issues, and passed fourteen source-ha
 Prior selection fell from 4.189 to 1.119 seconds. Total time was 42.583 seconds, but media inspection
 also fell from 16.326 to 11.071 seconds without an inspection change, so the full 9.527-second
 difference cannot be attributed to query reuse. Location staging remained 14.789 seconds.
-The affected cloud-client timing remains to be measured.
+The affected cloud-client result follows below.
 
 Reviewability at this candidate: the catalog-delta owner has 2,215 production lines and no inline
 tests; its existing test owner has 1,882 lines and the new dedicated lookup regression has 103.
 The acceptance test owner has 5,521 dedicated test lines, with five operation-reporting lines added.
 No schema, engine, dependency, bridge or source-access contract changes are introduced here.
+
+## Production-client comparison
+
+The cloud-primary Release client used production source
+`7c880e5db79b23c703b3e398c2a3d30d44ea8519`, with the same installed Flutter client and SDK resolution
+as the baseline. Its rebuilt native backend was verified before launch. The original catalog,
+including its WAL and shared-memory files, was preserved together and hashed before starting an
+empty comparison catalog. The complete directory was selected through the actual native picker.
+
+| Observation | Baseline | Candidate |
+| --- | ---: | ---: |
+| Scan admission to completed publication | 794.052 s | 145.448 s |
+| Accepted and published locations | 19,028 | 19,028 |
+| Invalid capture-time issues | 16 | 16 |
+| Metadata-parse issues | 21 | 21 |
+
+The candidate visited 19,142 entries. Its recorded interval includes one interactive pause and
+resume: the client displayed the paused state at 8,355 accepted images, then continued from that
+progress. It remained empty until successful publication, displayed all 19,028 locations, loaded
+thumbnails, opened a selected image, returned to the gallery, and scrolled to another viewport.
+The client then closed normally. This is a complete production-client observation, including the
+existing synchronization runtime, rather than an extrapolation from a few files.
+After comparison, the original catalog files were restored to the client's default location and
+verified against their pre-test SHA-256 values. The candidate catalog remains separate for inspection.
+
+A read-only SQL comparison against a separate copy of the preserved baseline found zero differences
+in both directions across relative path, file size, modification time, image dimensions, capture
+time/offset/source, and filesystem identity. All 37 issue records retained their original categories
+and counts. The existing nine-file AVIF admission limitation remains unchanged.
+
+The observed interval is 648.604 seconds shorter, an 81.7% reduction. These sequential runs are not
+an isolated cold-cache benchmark: earlier complete scans warmed source data, the baseline included
+brief use of another image application, and the candidate included the pause/resume check and
+remote diagnostics. The checkpoint-only profile above identifies an independent database cost
+reduction; the entire client difference cannot be assigned to one optimization or generalized to
+other machines. The first gallery publication still waits for the full validated import.
+
+The strengthened WAL regression crosses the 4,096-page checkpoint window with 1,800 durable
+transactions, then checks WAL reuse, rollback, independent reads, policy retirement and reopen.
+It passes locally. The production source also retains the eight passing connection-policy tests,
+two prior-query regressions and complete source-safe diagnostics described above. The test-only
+follow-up is `db6c109`; current-head hosted results remain a delivery gate. Production source `7c880e5`
+passed all fourteen applicable jobs in [Quality / CI run 39680852729](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39680852729);
+the three signing-dependent jobs were skipped by their existing conditions.
