@@ -66,23 +66,25 @@ class _LibraryTimeRailPresentationState
   @override
   void didUpdateWidget(covariant LibraryTimeRailPresentation oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.timeline?.queryId != widget.timeline?.queryId ||
-        oldWidget.scrollController != widget.scrollController ||
+    // A query change retires input while keeping paint as the next motion's origin.
+    if (oldWidget.scrollController != widget.scrollController ||
         widget.timeline == null ||
-        widget.timeline!.buckets.isEmpty) {
+        widget.timeline?.buckets.isEmpty == true) {
       _retainedFrame = null;
     }
     final incoming = widget.frame;
     final retained = _retainedFrame;
-    // A refresh may expose window estimates before its full layout is ready.
+    // A same-query refresh may expose estimates before its full layout is ready.
     // Keep the complete frame until its replacement has the same precision.
     final awaitsCompleteLayout =
+        retained?.projection.queryId == incoming?.projection.queryId &&
         retained?.projection.layoutMetrics != null &&
         incoming?.projection.layoutMetrics == null;
     if (incoming != null && !awaitsCompleteLayout) {
       _retainedFrame = incoming;
     } else if (incoming != null &&
         retained != null &&
+        incoming.projection.queryId == retained.projection.queryId &&
         incoming.origin == LibraryTimeRailPositionOrigin.interaction) {
       // Provisional window offsets cannot move retained paint, but user intent can.
       _retainedFrame = LibraryTimeRailFrame(
@@ -106,7 +108,10 @@ class _LibraryTimeRailPresentationState
   }
 
   bool _ownsInput(LibraryTimelineProjection projection) =>
-      mounted && identical(widget.navigationProjection, projection);
+      mounted &&
+      identical(widget.navigationProjection, projection) &&
+      projection.queryId == widget.timeline?.queryId &&
+      projection.queryId == _retainedFrame?.projection.queryId;
 
   @override
   Widget build(BuildContext context) {
@@ -124,7 +129,11 @@ class _LibraryTimeRailPresentationState
             : null,
       );
     }
-    final navigation = widget.navigationProjection;
+    final currentNavigation = widget.navigationProjection;
+    final navigation =
+        currentNavigation != null && _ownsInput(currentNavigation)
+        ? currentNavigation
+        : null;
     // A new gesture uses current date evidence while the painted ticks stay
     // stable. Replacing its projection still retires the old Material pointer.
     return AnnotatedTimeRail(

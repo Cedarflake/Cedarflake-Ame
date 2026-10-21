@@ -57,6 +57,8 @@ class LibraryTimelineProjection {
   final List<TimelineRailBucket> railBuckets;
   late final TimelineLinearProjection projection;
 
+  String get queryId => _timeline.queryId;
+
   double get maximumOffset => projection.maximumOffset;
 
   LibraryGalleryLayoutMetrics? get layoutMetrics => _layout?.metrics;

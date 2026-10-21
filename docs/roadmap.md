@@ -89,7 +89,9 @@ The accepted Windows metadata-reuse boundary and multi-root scheduling remain in
 streaming capture is withdrawn. The corrected production entrypoint has completed its retained-library
 client check. The sidebar keeps `正在核对`, and confirmed gallery-viewer changes offer reload or return
 through the shared floating notice without moving the image. Focused regressions and the affected
-client interactions pass; exact-commit hosted verification follows publication. The owning
+client interactions pass. The requested date-condition follow-up retains the time rail's painted
+frame across query replacement so its existing motion can continue; old-query input is retired.
+Exact-commit hosted verification follows publication. The owning
 [verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss) separates indexed
 refresh, complete verification and the earlier interrupted timings. There is no fixed startup-time
 threshold for this maintenance scope.

@@ -583,9 +583,11 @@ Other anchors clamp to the available scroll extent.
   marker thinning uses only dot collisions because text has a separate column. The current-position
   indicator has a fixed visual height and does not represent the viewport height.
 - Layout changes interpolate retained date labels, month points and the current-position line over
-  180 ms. Sidebar changes, resized viewports and gallery layout changes share this behavior. Wheel,
-  slider and keyboard position input stays immediate; reduced motion skips the transition. The
-  visual rail may retain the prior layout while awaiting its replacement, with stale input disabled.
+  180 ms. Sidebar changes, resized viewports, gallery layout changes and query-condition changes
+  share this behavior. Wheel, slider and keyboard position input stays immediate; reduced motion
+  skips the transition. The visual rail retains its prior frame while a changed query awaits its
+  layout, then uses that frame as the transition origin. Prior-query ticks cannot accept input;
+  navigation resumes when the painted frame and navigation projection belong to the current query.
 - Year-label collision handling follows the annotated-scrollbar rule: retain the first collection
   label, remove colliding upper labels, and keep at least 4 px between visible labels.
 - During drag, the active date label follows the current-position line, the gray hover preview is

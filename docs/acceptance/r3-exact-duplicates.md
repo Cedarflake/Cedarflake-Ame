@@ -1242,6 +1242,36 @@ configuration or placeholder hydration is included. Viewer source-version accept
 `library_viewer_source_state.dart`; the session keeps selection/request authority, and the unified
 screen and image-viewer widget only compose the retained image, notice and actions.
 
+### Timeline transitions across query changes
+
+The date-condition follow-up keeps the painted rail mounted when the query identity changes and
+the replacement layout is pending. Clearing that frame previously removed the motion origin. The
+presentation owner now accepts input only when its frame, navigation projection and current
+timeline share the query identity. Same-query complete-layout retention, new-query estimates,
+confirmed empty results and controller replacement retain their separate behavior.
+
+The new boundary regression failed on the preceding implementation because the current-position
+element disappeared. It now proves retained element identity and position while geometry is absent,
+rejection of retired input, an intermediate position at 90 ms and the final position at 180 ms,
+followed by working input on the new query. All 29 focused navigation-publication, rail-motion and
+date-publication cases pass, including reduced motion and immediate ordinary scrolling.
+
+Release client `v12`, built from `986b81a7307c7701e9f50f690e3061c81e35ceed` plus this fix, reused
+the isolated retained 63,138-location catalog. Actual menu actions switched capture date to
+modification date, dragged the new rail into the gallery's middle, then switched back to capture
+date and scrolled normally. Pending queries retained the prior rail; completed queries published
+their new year distribution and current-position line, and subsequent navigation worked. The
+180 ms interpolation is established by the focused timed regression; native observations establish
+the connected condition-change and navigation path, without a separate frame-time measurement.
+The client closed gracefully, its owned process group retired, and original profile and catalog
+hashes were restored and verified. This reused an interrupted recovery continuation and is not a
+new startup-performance benchmark. No source writes or placeholder hydration were introduced.
+
+The rail presentation owner has 186 production lines, and the projection owner has 249; neither
+has inline tests. Dedicated verification has 528 navigation-publication lines, 138 rail-motion
+lines and 278 date-publication lines. The change is confined to presentation identity and input
+admission; it adds no schema, bridge or dependency changes.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

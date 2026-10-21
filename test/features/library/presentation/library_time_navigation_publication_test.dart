@@ -354,7 +354,57 @@ void main() {
     );
   });
 
-  for (final change in ["query", "empty", "controller"]) {
+  testWidgets("query replacement retains paint and animates the new layout", (
+    tester,
+  ) async {
+    final fixture = _PublicationFixture(tester);
+    await fixture.show();
+    fixture.controller.jumpTo(1800);
+    await tester.pumpAndSettle();
+    final marker = find.byKey(const Key("timeline-current-line"));
+    final element = tester.element(marker);
+    final before = tester.getCenter(marker);
+    final oldSlider = tester.widget<Slider>(
+      find.byKey(const Key("timeline-slider")),
+    );
+
+    await fixture.show(queryId: "modified-time", hasGeometry: false);
+    expect(tester.element(marker), same(element));
+    expect(tester.getCenter(marker), before);
+    expect(
+      tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).onChanged,
+      isNull,
+    );
+    oldSlider.onChanged?.call(0.1);
+    oldSlider.onChangeEnd?.call(0.1);
+    await tester.pump();
+    expect(fixture.controller.offset, 1800);
+    expect(fixture.seeks, 0);
+
+    await fixture.show(queryId: "modified-time", isQueryWide: true);
+    expect(tester.element(marker), same(element));
+    expect(tester.getCenter(marker), before);
+    await tester.pump(const Duration(milliseconds: 90));
+    final halfway = tester.getCenter(marker);
+    await tester.pump(const Duration(milliseconds: 90));
+    final after = tester.getCenter(marker);
+    final currentRail = tester.widget<AnnotatedTimeRail>(
+      find.byType(AnnotatedTimeRail),
+    );
+    expect(currentRail.maximumScrollOffset, 4400);
+    expect(currentRail.value, closeTo(1800 / 4400, 0.000001));
+    expect(after.dy, greaterThan(before.dy));
+    expect(halfway.dy, inExclusiveRange(before.dy, after.dy));
+    final currentSlider = tester.widget<Slider>(
+      find.byKey(const Key("timeline-slider")),
+    );
+    expect(currentSlider.onChanged, isNotNull);
+    currentSlider.onChanged!.call(0.4);
+    await tester.pump();
+    expect(fixture.controller.offset, isNot(1800));
+  });
+
+  for (final change in ["empty", "controller"]) {
     testWidgets("does not retain a rail across a $change change", (
       tester,
     ) async {
@@ -368,11 +418,7 @@ void main() {
       await fixture.show(
         revision: 2,
         hasGeometry: false,
-        queryId: change == "query" ? "other-query" : "query-1",
         isEmpty: change == "empty",
-        shape: change == "layout"
-            ? GalleryLayoutShape.equalHeight
-            : GalleryLayoutShape.square,
       );
       expect(find.byKey(const Key("library-time-rail")), findsNothing);
     });
