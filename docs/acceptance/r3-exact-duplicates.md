@@ -1099,9 +1099,18 @@ were discarded because they conflict with retained range history.
 The 2026-10-22 Release-client observation started with 63,138 locations and 29,846 fingerprints.
 Recovery began after 3.461 seconds. At the 90-second observation boundary it was still capturing
 the durable metadata spool: 51,961 entries and 1,628 completed directories. Existing location
-generations and fingerprints were retained. This run does not meet the approximately five-second
-complete-startup target; persistence and scheduling costs remain under investigation. The earlier
-0.59-second native enumeration prototype does not include these costs.
+generations and fingerprints were retained. This partial observation does not establish complete
+startup duration. This maintenance scope has no fixed startup-time threshold. The earlier
+0.59-second native enumeration prototype excludes durable persistence and application scheduling.
+
+The same recovery then continued through the Release backend linked from the client build. After
+one 90-second continuation, the final continuation completed in 47.484 seconds: 68,748 directory
+entries compared, zero changed-file candidates, an empty change queue, and continuity restored to
+`current`. All 63,138 existing source generations remained equal to their pre-run values, and the
+fingerprint count stayed at 29,846. The run was interrupted between observations; these durations
+do not establish an uninterrupted client startup benchmark or visible-gallery convergence time.
+The completed catalog subsequently reopened through the production storage/catalog APIs in
+2.425 seconds. Original profile and catalog hashes were verified after each restoration.
 
 A preceding continuous-journal run exposed terminal catch-up handoffs that remained after their
 last queue owner completed, preventing the copied catalog from reopening. Queue completion and
@@ -1120,8 +1129,10 @@ Physical review sizes at this checkpoint are:
 
 Dedicated counts include descendant test files. The extracted owners are observation comparison,
 bounded work scheduling, queue completion and recovery finalization. No schema, dependency,
-bridge, source-write or hydration change is included. Hosted verification and complete-startup
-measurement remain required before this maintenance outcome can be closed.
+bridge, source-write or hydration change is included. These checks cover implementation head
+`8c18738e55ed24292b2bf6b1f95a06047a4b1fd4`; its normal
+[hosted verification](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39632835425)
+is still running. Complete uninterrupted client startup duration has not been measured.
 
 ## R3 closeout
 

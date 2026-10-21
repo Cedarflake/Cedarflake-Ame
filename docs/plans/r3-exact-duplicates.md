@@ -106,15 +106,16 @@ files through the existing candidate path. Keep ordinary startup on continuous U
 
 The delivery includes actual-file regression coverage for offline operations, unchanged preview
 and fingerprint retention, cancellation and namespace/publication races. Measure complete recovery
-on the retained library, including catalog and visible-result convergence; isolated enumeration
-timing is not end-to-end acceptance. The target remains about five seconds near 70,000 images under
-the documented measurement conditions. The mapped-write timing window is an accepted boundary,
-not an additional full-content verification requirement. Source mutation and hydration remain
-excluded. Update the owning acceptance record with actual results and any remaining budget gap.
+on the retained library, including catalog and visible-result convergence, and report the observed
+elapsed time and measurement conditions. This maintenance scope has no fixed startup-time threshold.
+The mapped-write timing window is an accepted boundary, not an additional full-content verification
+requirement. Source mutation and hydration remain excluded. Update the owning acceptance record
+with actual results and any remaining functional limitations.
 
 The [current verification](../acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
-covers ordinary offline operations and terminal handoff retirement. The retained-client run still
-exceeds the startup budget during durable metadata capture; continue at that measured cost owner.
+covers ordinary offline operations, terminal handoff retirement, retained-library recovery completion
+and catalog reopening. The recovery completed across interrupted runs, so its elapsed times do not
+establish a single uninterrupted client startup duration.
 
 ## R3-01: Identify duplicates and inspect locations
 

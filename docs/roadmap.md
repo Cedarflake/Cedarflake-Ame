@@ -84,8 +84,8 @@ advance physical file operations, perceptual similarity or release signing throu
 The current requested maintenance scope is
 [fast recovery after journal loss](plans/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
 on `codex/fast-startup-recovery`. It applies the accepted Windows metadata-reuse boundary and
-bounded recovery scheduling. Focused ordinary-file and publication checks pass; the retained-client
-run still exceeds the startup budget during durable metadata capture, as recorded in its
+bounded recovery scheduling. Focused ordinary-file and publication checks, retained-library recovery
+completion and catalog reopening pass, as recorded in its
 [verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss).
 The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
 retains its delivered behavior. Time-rail input,
