@@ -195,6 +195,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   application command values. `scan_publication/transaction.rs` owns attempt-scoped priority
   preemption, SQLite progress interruption, callback retirement, and the transaction boundary;
   application publication owns retry admission and the pause/cancel/suspend terminal policy.
+  `connection_policy/initial_import.rs` owns the temporary checkpoint window for an empty catalog's
+  admitted first import. The scan owns its lifetime, the catalog writer admission shares its state,
+  and each writable transaction applies the current threshold without changing writer priority or
+  durability. Retained connections cannot keep a retired import policy.
 - `scan_resume_inventory.rs` owns retained first-import membership and current-run reuse lookup.
   Its roster is independent of published membership. `scan_staging.rs` owns buffered location
   persistence and transactional acceptance of retained locations. Its `scan_staging/retirement.rs`

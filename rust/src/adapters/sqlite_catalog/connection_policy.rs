@@ -2,8 +2,12 @@ use rusqlite::{Connection, config::DbConfig};
 
 use super::{SQLITE_BUSY_TIMEOUT, ScanError, SqliteCatalog, database_error, read_retry};
 
+mod initial_import;
+pub(super) use initial_import::ImportCheckpointPolicy;
+
 // Smaller checkpoints limit the accumulated work performed by the committing writer.
 pub(super) const AUTOMATIC_CHECKPOINT_PAGES: i32 = 256;
+pub(super) const INITIAL_IMPORT_CHECKPOINT_PAGES: i32 = 4_096;
 
 pub(super) fn configure_catalog_connection(connection: &Connection) -> Result<(), ScanError> {
     connection
@@ -12,8 +16,12 @@ pub(super) fn configure_catalog_connection(connection: &Connection) -> Result<()
     connection
         .execute_batch("PRAGMA foreign_keys = ON;")
         .map_err(database_error)?;
+    configure_automatic_checkpoint(connection, AUTOMATIC_CHECKPOINT_PAGES)
+}
+
+fn configure_automatic_checkpoint(connection: &Connection, pages: i32) -> Result<(), ScanError> {
     connection
-        .pragma_update(None, "wal_autocheckpoint", AUTOMATIC_CHECKPOINT_PAGES)
+        .pragma_update(None, "wal_autocheckpoint", pages)
         .map_err(database_error)?;
     #[cfg(test)]
     super::operation_diagnostics::observe_checkpoint(connection).map_err(database_error)?;

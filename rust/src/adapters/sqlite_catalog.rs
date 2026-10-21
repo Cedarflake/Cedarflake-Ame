@@ -721,6 +721,9 @@ impl SqliteCatalog {
         lane: LibraryChangeLane,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire(lane);
+        self.write_admission
+            .checkpoint_policy
+            .apply(&self.connection)?;
         #[cfg(test)]
         let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
@@ -740,6 +743,9 @@ impl SqliteCatalog {
         preempt: SqliteWritePreemptCallback,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire_preemptible(lane, preempt);
+        self.write_admission
+            .checkpoint_policy
+            .apply(&self.connection)?;
         #[cfg(test)]
         let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
@@ -763,6 +769,9 @@ impl SqliteCatalog {
                     "The catalog did not release the current writer in time; retry the operation",
                 )
             })?;
+        self.write_admission
+            .checkpoint_policy
+            .apply(&self.connection)?;
         #[cfg(test)]
         let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self

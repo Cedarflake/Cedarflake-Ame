@@ -39,8 +39,56 @@ retained, publication completed, and fourteen bounded source-hash samples matche
 | Checkpoint persistence | 2.282 |
 | Admission, final validation/publication, and other work | 4.103 |
 
-The measurements identify useful boundaries but do not establish why the affected computer is
-slower. Its same-source operation profile and the production repair remain pending.
+The local measurements identify useful boundaries but do not predict the affected computer.
+
+## Affected-computer operation profile
+
+With the client closed, the unchanged functional source scanned the complete cloud-primary trial
+collection into separate derived storage in 246.853 seconds. It accepted 19,028 images from 19,142
+visited entries, retained the same 37 metadata issues, and passed fifteen source-hash samples.
+This diagnostic also uses optimized dependencies with the Ame test package at opt-level 0. It
+omits the client and its synchronization runtime, and follows earlier reads of the source; its
+difference from the 794.052-second client observation is not an implementation improvement.
+
+| Operation | Seconds |
+| --- | ---: |
+| Source discovery | 8.666 |
+| Prior selection | 9.184 |
+| Media inspection | 54.327 |
+| Location staging | 115.170 |
+| Directory persistence | 26.772 |
+| Checkpoint persistence | 24.787 |
+| Admission, final validation/publication, and other work | 7.947 |
+
+The existing SQLite diagnostic recorded 175 automatic checkpoints taking at least 100 ms each,
+totaling 135.890 seconds. These durations are nested in the operation totals above, not additional
+scan time. This identifies repeated database checkpointing as a major cost. A separate complete
+trial changes only the automatic checkpoint threshold from 256 to 4,096 pages, retains FULL
+synchronization and ordinary final close, and records the longest checkpoint as well as throughput.
+The complete comparison took 132.448 seconds with unchanged counts, issues and fifteen matching
+source-hash samples. The 28 slow automatic checkpoints totaled 45.074 seconds, with a maximum of
+2.474 seconds. Staging fell to 45.235 seconds, directory persistence to 14.586 and checkpoint
+persistence to 8.233. Media inspection also fell to 37.859 seconds without an inspection change;
+source-cache warming therefore contributes to the total difference. Both diagnostic workers
+retired and restored the cloud checkout to its original source.
+
+The production candidate limits the larger window to an admitted first import with no published
+roots. Its lifetime belongs to the scan; all connections sharing the catalog's writer admission
+observe it before writing, and retirement restores the ordinary threshold on the next write.
+The client's full import and interruption comparison remains pending.
+
+Eight focused connection-policy tests pass, including scope sharing across retained and newly
+opened writers, separate-catalog isolation, last-owner retirement, published/paused admission,
+FULL synchronization, rollback, independent reads, reopen durability and the ordinary 1-MiB window.
+The complete production-scope candidate also passed the local-primary scan: 17,854 accepted images,
+the same fifteen metadata issues and fourteen source-hash samples, in 44.717 seconds. Its staging
+took 13.377 seconds; media inspection varied to 14.771 seconds. This does not establish a local
+total-time improvement over the earlier warm run.
+
+The scoped policy owner has 72 production lines and 178 dedicated test lines. The catalog facade
+has 3,544 production lines, writer admission 357, connection configuration 51, and scan orchestration
+750; these owners have no inline test bodies. The policy lives in its typed scope owner; the
+facades only acquire that scope or apply its current connection setting.
 
 ## Compiled prior-query reuse
 

@@ -268,6 +268,7 @@ fn run_scan_with_storage_selection(
     };
     let mut issue_count = checkpoint.issue_count;
     let result = (|| -> Result<(), ScanError> {
+        let _initial_import_writes = catalog.initial_import_write_window(&request.scan_id)?;
         let root_generation = catalog
             .load_incremental_catalog_root(&root_id)?
             .map(|root| root.root_generation)
