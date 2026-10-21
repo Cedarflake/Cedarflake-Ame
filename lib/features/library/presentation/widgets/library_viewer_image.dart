@@ -93,10 +93,7 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
   Widget build(BuildContext context) {
     return Stack(
       fit: StackFit.expand,
-      children: [
-        _buildSource(context),
-        if (widget.notice case final notice?) notice,
-      ],
+      children: [_buildSource(context), ?widget.notice],
     );
   }
 

@@ -1272,6 +1272,23 @@ has inline tests. Dedicated verification has 528 navigation-publication lines, 1
 lines and 278 date-publication lines. The change is confined to presentation identity and input
 admission; it adds no schema, bridge or dependency changes.
 
+### Hosted boundary corrections
+
+[Run 39662775532](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39662775532)
+on `6e8df0e092ee822d1dfc15c07b1ad0433cb7193e` passed the functional, synthetic and unsigned
+Release jobs, but failed Static and Rust Remaining. Static rejected the viewer notice's nullable
+collection element style; it now uses Dart's null-aware element syntax with unchanged behavior.
+The Rust source-loading guard rejected the newly introduced Windows Search module because its
+exact module roster omitted that declaration. The roster now requires crate visibility and
+`cfg(windows)` for this module. Missing, duplicate, public, platform-altered, redirected and inline
+declarations remain rejected by the added boundary regression.
+
+The focused Dart analyzer reports no issues, and all 12 root-availability regressions pass locally.
+The existing `local_files.rs` owner has 2,629 lines before its test module and 3,338 inline test/support
+lines; this repair adds only the six-line test roster entry. Its dedicated topology test file has
+416 lines. No production filesystem behavior or guard assertion is relaxed. Exact-commit hosted
+verification remains required after publication of these corrections.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

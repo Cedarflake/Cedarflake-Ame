@@ -4668,6 +4668,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             attributes: &["cfg(windows)"],
             is_inline: false,
         },
+        AvailabilityModuleContract {
+            name: "windows_search_index",
+            visibility: "pub(crate)",
+            attributes: &["cfg(windows)"],
+            is_inline: false,
+        },
     ];
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
