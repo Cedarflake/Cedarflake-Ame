@@ -1286,8 +1286,18 @@ declarations remain rejected by the added boundary regression.
 The focused Dart analyzer reports no issues, and all 12 root-availability regressions pass locally.
 The existing `local_files.rs` owner has 2,629 lines before its test module and 3,338 inline test/support
 lines; this repair adds only the six-line test roster entry. Its dedicated topology test file has
-416 lines. No production filesystem behavior or guard assertion is relaxed. Exact-commit hosted
-verification remains required after publication of these corrections.
+416 lines. No production filesystem behavior or guard assertion is relaxed.
+
+[Run 39665787954](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39665787954)
+passed for final implementation head `df8ac5e4aad8d36b73f4f3ee5529525f63a68751`: Static, all four
+Rust partitions, Flutter tests, native Windows scan and accessibility, five synthetic workloads,
+unsigned Windows Release and the aggregate Windows gate. The three signing-only jobs were skipped
+by the unchanged daily-mode conditions. PR #43 merged on 2026-10-22 as
+`d5789c6ba37c06a3d933aec2eee4a3e1b6d2ebfe`. The local checkout fast-forwarded to that merge, and
+the delivery branch was removed locally and remotely after verifying the implementation head's
+ancestry. Both main refs matched and the working tree was clean before this documentation update.
+Automatic main-branch verification retains its own result; this record cites the exact pre-merge
+implementation gate.
 
 ## R3 closeout
 

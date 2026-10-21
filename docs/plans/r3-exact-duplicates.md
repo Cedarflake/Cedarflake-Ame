@@ -129,7 +129,12 @@ capture is withdrawn from this delivery following its slower client measurement.
 The production runtime now connects bounded Windows Search queries and quiet verification. Focused
 offline-change cases, retained-library recovery and the affected gallery-viewer interactions have
 been checked. Preserve multi-root fairness, conservative handling of known dirty gaps and the
-source-row wording `正在核对`; inspect normal exact-commit hosted verification after publication.
+source-row wording `正在核对`.
+
+The final implementation head `df8ac5e4aad8d36b73f4f3ee5529525f63a68751` passed its applicable hosted
+checks. PR #43 merged as `d5789c6ba37c06a3d933aec2eee4a3e1b6d2ebfe` on 2026-10-22; its delivery
+branch was removed locally and remotely. The maintenance scope is closed, with the measurements
+and accepted content-version boundary retained in the owning acceptance record.
 
 ## R3-01: Identify duplicates and inspect locations
 
