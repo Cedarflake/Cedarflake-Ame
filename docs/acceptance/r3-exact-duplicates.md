@@ -1075,6 +1075,54 @@ loading boundary; the native interaction covers the connected user path. Ignored
 `main-badge-20261019` retains the build, profile and process receipts. Normal main-branch Actions own
 the remaining automated gates for the submitted commit.
 
+## Fast recovery after journal loss
+
+The maintenance branch `codex/fast-startup-recovery` retains unchanged Windows observations
+across a lost journal interval under the boundary in ADR 0024. Recovery compares the current
+namespace, file ID, ChangeTime, size and modification time before reusing derived results.
+Incomplete, unavailable or changed evidence still enters reconciliation. Containment failures
+retain conservative reinspection. The accepted mapped-write timing window remains explicit.
+
+The focused Windows regression uses owned files for addition, deletion, rename, directory move,
+ordinary overwrite, same-length overwrite with restored modification time, and replacement.
+It checks retained complete location records and fingerprints, changed dimensions, and pending
+fingerprints for rewritten bytes. The ten recovery/comparison/publication/cancellation checks
+passed on the workstation, together with the terminal handoff regression. Native namespace tests
+ran with the host token because the restricted token cannot establish their protected boundary.
+
+The retained-catalog check uses an isolated copy of `local-primary` and copied preview artifacts.
+The original catalog, its side files and restored profile are hash-checked; source media remains
+read-only. A typed `JournalTrim` failure and a current boundary from the production identity
+journal adapter trigger recovery without changing the system journal. Direct checkpoint edits
+were discarded because they conflict with retained range history.
+
+The 2026-10-22 Release-client observation started with 63,138 locations and 29,846 fingerprints.
+Recovery began after 3.461 seconds. At the 90-second observation boundary it was still capturing
+the durable metadata spool: 51,961 entries and 1,628 completed directories. Existing location
+generations and fingerprints were retained. This run does not meet the approximately five-second
+complete-startup target; persistence and scheduling costs remain under investigation. The earlier
+0.59-second native enumeration prototype does not include these costs.
+
+A preceding continuous-journal run exposed terminal catch-up handoffs that remained after their
+last queue owner completed, preventing the copied catalog from reopening. Queue completion and
+inventory finalization now invoke the existing guarded handoff retirement in their completion
+transaction. Active queue, scan, rename and cross-root owners keep their evidence. The regression
+checks immediate retirement and the next schema validation before retention cleanup.
+
+Responsibility extraction retains transaction guards and changes only the terminal cleanup call.
+Physical review sizes at this checkpoint are:
+
+| Owner | Production lines | Inline test/support lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Application metadata inventory facade | 1,260 | 169 | 7,403 |
+| SQLite metadata inventory facade | 2,841 | 21 | 1,117 |
+| SQLite change queue facade | 1,691 | 81 | 9,410 |
+
+Dedicated counts include descendant test files. The extracted owners are observation comparison,
+bounded work scheduling, queue completion and recovery finalization. No schema, dependency,
+bridge, source-write or hydration change is included. Hosted verification and complete-startup
+measurement remain required before this maintenance outcome can be closed.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

@@ -3241,6 +3241,19 @@ fn terminal_retention_atomically_releases_all_handoff_owners() {
         .complete_library_change(lease.change.id, lease.lease_generation, 0, 1_010)
         .expect("complete catch-up work");
 
+    let retained_handoffs: i64 = catalog
+        .connection
+        .query_row(
+            "SELECT (SELECT COUNT(*) FROM library_change_catch_up_handoffs)
+              + (SELECT COUNT(*) FROM library_change_scan_handoff_batches)",
+            [],
+            |row| row.get(0),
+        )
+        .expect("handoff owners after completion");
+    assert_eq!(retained_handoffs, 0);
+    super::super::migrations::migrate_schema(&mut catalog.connection)
+        .expect("completed catch-up remains valid at the next startup");
+
     assert_eq!(
         catalog
             .cleanup_terminal_library_changes(1_010, 1)

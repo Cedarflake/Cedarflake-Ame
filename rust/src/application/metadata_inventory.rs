@@ -5,25 +5,29 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::adapters::{LocalMediaInspector, PublicationGuardedFileDiscovery};
 use crate::domain::{
-    AssetLocationView, IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
+    IncrementalCatalogRoot, IncrementalLibraryChangeReport, LeasedLibraryChange,
     LibraryChangeFailure, LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeLane,
     LibraryChangeLeaseUpdateOutcome, LibraryChangeOrigin, LibraryChangeQueuePolicy,
     LibraryChangeScope, LibraryRecoveryAuthorityReason, MetadataInventoryComparisonStatus,
-    MetadataInventoryComparisonUpdate, MetadataInventoryEntry, MetadataInventoryEntryKind,
-    MetadataInventoryPlaceholderState, MetadataInventoryReport, MetadataInventoryRunRequest,
-    MetadataInventoryRunStatus, MetadataInventoryScope, MetadataInventoryStartRequest, ScanError,
-    TerminalMediaEvidence,
+    MetadataInventoryComparisonUpdate, MetadataInventoryEntryKind, MetadataInventoryReport,
+    MetadataInventoryRunRequest, MetadataInventoryRunStatus, MetadataInventoryScope,
+    MetadataInventoryStartRequest, ScanError,
 };
 use crate::ports::{
-    IncrementalCatalogRepository, LibraryChangeQueue, MediaInspector,
-    MetadataInventoryAbsencePublicationRequest, MetadataInventoryRepository,
-    MetadataInventorySource, MetadataInventorySourcePreparation,
+    IncrementalCatalogRepository, LibraryChangeQueue, MetadataInventoryAbsencePublicationRequest,
+    MetadataInventoryRepository, MetadataInventorySource, MetadataInventorySourcePreparation,
 };
 
 const MAX_INVENTORY_PAGE_ENTRIES: u32 = 4_096;
 const TERMINATION_ATTEMPTS: usize = 2;
 
 pub(super) mod cleanup;
+mod comparison;
+mod work_budget;
+
+pub(super) use comparison::inventory_matches_location;
+use comparison::{EntryComparison, InventoryReusePolicy, compare_entry};
+use work_budget::InventoryWorkBudget;
 
 #[cfg(test)]
 thread_local! {
@@ -123,6 +127,7 @@ pub(crate) struct MetadataInventoryRecoveryExecution<'a> {
     page_limit: u32,
     queue_policy: LibraryChangeQueuePolicy,
     control: MetadataInventoryWorkerControl<'a>,
+    budget: InventoryWorkBudget,
 }
 
 impl<'a> MetadataInventoryRecoveryExecution<'a> {
@@ -137,7 +142,13 @@ impl<'a> MetadataInventoryRecoveryExecution<'a> {
             page_limit,
             queue_policy,
             control,
+            budget: InventoryWorkBudget::OnePage,
         }
+    }
+
+    pub(crate) fn with_recovery_time_slice(mut self) -> Self {
+        self.budget = InventoryWorkBudget::recovery_slice();
+        self
     }
 
     #[cfg(test)]
@@ -159,8 +170,8 @@ impl<'a> MetadataInventoryRecoveryExecution<'a> {
 #[derive(Clone, Copy)]
 struct InventoryExecution<'a> {
     authority: Option<&'a LeasedLibraryChange>,
-    invalidates_unchanged_sources: bool,
-    yield_after_work_page: bool,
+    reuse_policy: InventoryReusePolicy,
+    budget: InventoryWorkBudget,
     observed_unix_ms: i64,
     page_limit: u32,
     queue_policy: LibraryChangeQueuePolicy,
@@ -213,6 +224,7 @@ where
         page_limit,
         queue_policy,
         control,
+        budget,
     } = execution;
     validate_start_request(request, page_limit, queue_policy)?;
     let root = repository
@@ -291,10 +303,8 @@ where
     };
     let execution = InventoryExecution {
         authority: Some(authority),
-        invalidates_unchanged_sources: recovery_reason_invalidates_unchanged_sources(
-            recovery_authority.reason,
-        ),
-        yield_after_work_page: true,
+        reuse_policy: InventoryReusePolicy::for_recovery(recovery_authority.reason),
+        budget,
         observed_unix_ms,
         page_limit,
         queue_policy,
@@ -378,6 +388,7 @@ where
         page_limit: _,
         queue_policy,
         control,
+        budget: _,
     } = execution;
     if leased.change.intent.root_id != root.root_id
         || leased.change.intent.root_generation != root.root_generation
@@ -560,21 +571,6 @@ fn metadata_inventory_recovery_reason(
     }
 }
 
-const fn recovery_reason_invalidates_unchanged_sources(
-    reason: LibraryRecoveryAuthorityReason,
-) -> bool {
-    matches!(
-        reason,
-        LibraryRecoveryAuthorityReason::JournalGap
-            | LibraryRecoveryAuthorityReason::JournalReset
-            | LibraryRecoveryAuthorityReason::JournalTrim
-            | LibraryRecoveryAuthorityReason::JournalReconstructionFailure
-            | LibraryRecoveryAuthorityReason::ContainmentFailure
-            | LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure
-            | LibraryRecoveryAuthorityReason::WatcherUncoveredGap
-    )
-}
-
 #[cfg(test)]
 fn metadata_inventory_run_id(leased: &LeasedLibraryChange) -> String {
     let intent = &leased.change.intent;
@@ -662,8 +658,8 @@ where
         request,
         InventoryExecution {
             authority: None,
-            invalidates_unchanged_sources: false,
-            yield_after_work_page: false,
+            reuse_policy: InventoryReusePolicy::ObservedRevision,
+            budget: InventoryWorkBudget::Complete,
             observed_unix_ms,
             page_limit,
             queue_policy,
@@ -724,8 +720,8 @@ where
 {
     let InventoryExecution {
         authority,
-        invalidates_unchanged_sources,
-        yield_after_work_page,
+        reuse_policy,
+        budget,
         observed_unix_ms,
         page_limit,
         queue_policy,
@@ -771,7 +767,10 @@ where
                         MetadataInventoryProgressPhase::Enumeration,
                     );
                     yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Enumeration);
-                    return Ok(report);
+                    if budget.should_yield() {
+                        return Ok(report);
+                    }
+                    continue;
                 }
                 Err(error) if error.code == "metadata_inventory_cancelled" => {
                     if authority.is_none() {
@@ -802,14 +801,14 @@ where
             report.staged_entry_count = run.staged_entry_count;
             report_inventory_progress(progress, MetadataInventoryProgressPhase::Enumeration);
             if is_complete {
-                if yield_after_work_page {
+                if budget.should_yield() {
                     yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Enumeration);
                     return Ok(report);
                 }
                 break;
             }
             yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Enumeration);
-            if yield_after_work_page {
+            if budget.should_yield() {
                 return Ok(report);
             }
         }
@@ -887,19 +886,8 @@ where
                 &media_inspector,
                 &previous_paths,
                 &mut claimed_identities,
+                reuse_policy,
             );
-            let comparison = match comparison {
-                EntryComparison::Unchanged
-                    if invalidates_unchanged_sources
-                        && entry.kind == MetadataInventoryEntryKind::File
-                        && path_priors.contains_key(&entry.relative_path) =>
-                {
-                    EntryComparison::Candidate {
-                        previous_path: None,
-                    }
-                }
-                comparison => comparison,
-            };
             match comparison {
                 EntryComparison::Unchanged => {
                     report.unchanged_count = checked_add(
@@ -995,7 +983,7 @@ where
         };
         report.candidate_count = run.candidate_count;
         report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
-        if yield_after_work_page {
+        if budget.should_yield() {
             yield_inventory_page(page_yield, MetadataInventoryProgressPhase::Comparison);
             return Ok(report);
         }
@@ -1161,7 +1149,7 @@ where
         report.candidate_count = run.candidate_count;
         absence_cursor = Some(next_cursor);
         report_inventory_progress(progress, MetadataInventoryProgressPhase::Comparison);
-        if yield_after_work_page {
+        if budget.should_yield() {
             yield_inventory_page(page_yield, MetadataInventoryProgressPhase::QueuePublication);
             return Ok(report);
         }
@@ -1202,79 +1190,6 @@ fn yield_inventory_page(
         page_yield(phase);
     }
     std::thread::yield_now();
-}
-
-fn compare_entry(
-    entry: &MetadataInventoryEntry,
-    path_prior: Option<&AssetLocationView>,
-    terminal_media_evidence: Option<&TerminalMediaEvidence>,
-    media_inspector: &impl MediaInspector,
-    previous_paths: &BTreeMap<(String, String), String>,
-    claimed_identities: &mut BTreeSet<(String, String)>,
-) -> EntryComparison {
-    if entry.kind != MetadataInventoryEntryKind::File {
-        return EntryComparison::Unchanged;
-    }
-    if path_prior.is_some_and(|prior| inventory_matches_location(entry, prior)) {
-        return EntryComparison::Unchanged;
-    }
-    if terminal_media_evidence.is_some_and(|evidence| {
-        inventory_matches_terminal_media_evidence(entry, evidence, media_inspector)
-    }) {
-        return EntryComparison::Unchanged;
-    }
-    if path_prior.is_none()
-        && let Some(identity) = entry.file_identity.as_ref()
-    {
-        let identity_key = (identity.scheme.clone(), identity.value.clone());
-        if !claimed_identities.contains(&identity_key)
-            && let Some(previous_path) = previous_paths.get(&identity_key)
-        {
-            claimed_identities.insert(identity_key);
-            return EntryComparison::Candidate {
-                previous_path: Some(previous_path.clone()),
-            };
-        }
-    }
-    EntryComparison::Candidate {
-        previous_path: None,
-    }
-}
-
-fn inventory_matches_terminal_media_evidence(
-    entry: &MetadataInventoryEntry,
-    evidence: &TerminalMediaEvidence,
-    media_inspector: &impl MediaInspector,
-) -> bool {
-    entry.file_size == Some(evidence.file_size)
-        && entry.modified_unix_ms == evidence.modified_unix_ms
-        && entry.source_revision.is_some()
-        && entry.source_revision == evidence.source_revision
-        && entry.placeholder_state == MetadataInventoryPlaceholderState::Available
-        && entry.file_identity == evidence.file_identity
-        && evidence.inspection_engine_id == media_inspector.inspection_engine_id()
-        && evidence.inspection_engine_version == media_inspector.inspection_engine_version()
-}
-
-pub(super) fn inventory_matches_location(
-    entry: &MetadataInventoryEntry,
-    prior: &AssetLocationView,
-) -> bool {
-    if entry.file_size != Some(prior.file_size) || entry.modified_unix_ms != prior.modified_unix_ms
-    {
-        return false;
-    }
-    if entry.placeholder_state != MetadataInventoryPlaceholderState::Available {
-        return entry.file_identity.is_none();
-    }
-    if entry.source_revision.is_none() || entry.source_revision != prior.source_revision {
-        return false;
-    }
-    match (&entry.file_identity, &prior.file_identity) {
-        (Some(current), Some(previous)) => current == previous,
-        (None, None) => true,
-        _ => false,
-    }
 }
 
 fn candidate_intent(
@@ -1506,11 +1421,6 @@ fn checked_add(value: u64, addend: u64, field: &str) -> Result<u64, ScanError> {
             format!("The {field} overflowed"),
         )
     })
-}
-
-enum EntryComparison {
-    Unchanged,
-    Candidate { previous_path: Option<String> },
 }
 
 #[cfg(test)]

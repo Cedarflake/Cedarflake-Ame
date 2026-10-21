@@ -137,7 +137,8 @@ pub(in super::super) fn start(
                             &report_progress,
                             &yield_page,
                         ),
-                    ),
+                    )
+                    .with_recovery_time_slice(),
                     retained_inventory_source,
                 )
                 .map(|page| RecoveryTaskOutcome::MetadataInventory(Box::new(page)))

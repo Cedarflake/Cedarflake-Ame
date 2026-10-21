@@ -94,8 +94,27 @@ an expired checkpoint and added observed-bound diagnostics without changing reco
 Use focused boundary regressions and the existing isolated client corpus, then inspect normal
 push-triggered CI. Record runtime evidence in the
 [startup-update verification](../acceptance/r3-exact-duplicates.md#startup-update-maintenance).
-Do not weaken source-generation invalidation after a genuine journal gap or reuse old hashes merely
-because size and timestamps match. Preserve unrelated workspace edits and original profile backups.
+Known dirty events and changed or incomplete source evidence retain generation invalidation.
+Preserve unrelated workspace edits and original profile backups.
+
+### Fast recovery after journal loss
+
+Implement the accepted Windows recovery-evidence policy from ADR 0024 on
+`codex/fast-startup-recovery`. Reuse the production handle-anchored inventory and its publication
+authority, retain unchanged derived results, and reconcile added, changed, renamed and missing
+files through the existing candidate path. Keep ordinary startup on continuous USN replay.
+
+The delivery includes actual-file regression coverage for offline operations, unchanged preview
+and fingerprint retention, cancellation and namespace/publication races. Measure complete recovery
+on the retained library, including catalog and visible-result convergence; isolated enumeration
+timing is not end-to-end acceptance. The target remains about five seconds near 70,000 images under
+the documented measurement conditions. The mapped-write timing window is an accepted boundary,
+not an additional full-content verification requirement. Source mutation and hydration remain
+excluded. Update the owning acceptance record with actual results and any remaining budget gap.
+
+The [current verification](../acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
+covers ordinary offline operations and terminal handoff retirement. The retained-client run still
+exceeds the startup budget during durable metadata capture; continue at that measured cost owner.
 
 ## R3-01: Identify duplicates and inspect locations
 

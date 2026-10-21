@@ -81,8 +81,14 @@ Its scope remains Favorites and virtual albums, durable decisions and resumable 
 Select its execution plan when that work is requested. Do not restart completed R2c/R3 acceptance or
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
-The current requested maintenance scope is the
-[startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance). Time-rail input,
+The current requested maintenance scope is
+[fast recovery after journal loss](plans/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
+on `codex/fast-startup-recovery`. It applies the accepted Windows metadata-reuse boundary and
+bounded recovery scheduling. Focused ordinary-file and publication checks pass; the retained-client
+run still exceeds the startup budget during durable metadata capture, as recorded in its
+[verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss).
+The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
+retains its delivered behavior. Time-rail input,
 progressive duplicate folding and post-sync gallery convergence are implemented and client-verified
 on `main`. Stable existing folded cards, progressive confirmed copies, shared update status and
 bounded badge inspection are also implemented and client-verified. The `journal_trim` investigation

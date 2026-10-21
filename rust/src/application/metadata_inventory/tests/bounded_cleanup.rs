@@ -113,8 +113,8 @@ fn cancellation_reports_bounded_cleanup_pending_and_preserves_the_remaining_page
         &request,
         InventoryExecution {
             authority: None,
-            invalidates_unchanged_sources: false,
-            yield_after_work_page: false,
+            reuse_policy: super::super::InventoryReusePolicy::ObservedRevision,
+            budget: super::super::InventoryWorkBudget::Complete,
             observed_unix_ms: 2_200,
             page_limit: 4_096,
             queue_policy: queue_policy(),

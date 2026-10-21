@@ -228,9 +228,9 @@ but the newest durable intent and generation win, so an older inspection or prev
 publish over the final source. Locked, partially written, truncated, zero-byte, wrong-extension,
 temporarily corrupt, unavailable, and cloud-placeholder states preserve retry or terminal evidence
 without reusing a stale artifact or hydrating the source; a later dirty event can recover the same
-logical location. A continuity gap does not guess from matching path metadata: it requires explicit
-recovery authority, while normal live and journal-confirmed changes remain independent of a full
-directory scan.
+logical location. A continuity gap requires explicit recovery authority. Its complete inventory
+may retain source generations under the Windows recovery evidence policy below, while normal live
+and journal-confirmed changes remain independent of a full directory scan.
 
 Legacy zero-dimension records with unsupported-media failures receive a one-time catalog-owned
 recheck roster during schema 38 migration. Normal synchronization admits at most 32 existing paths
@@ -250,6 +250,36 @@ rebuild capture dates before synchronization reports completion. A metadata-only
 the current source generation only after unchanged physical evidence is proven; a new dirty event
 or changed file still invalidates content evidence. Pending metadata retains progress even between
 queue pages or during writer contention. Unavailable, blocked and failed states retain precedence.
+
+### Windows metadata reuse after lost journal coverage
+
+For an authorized journal gap, reset, trim, reconstruction failure, broker-after-current failure
+or uncovered watcher gap, a complete handle-anchored inventory may reuse an existing location's
+source generation when its path, complete volume-plus-128-bit file identity, size, modification
+time and nonzero raw ChangeTime match. Both observations must carry the supported Windows identity
+and revision schemes. Reparse files, placeholders, missing or malformed evidence and changed
+properties are candidates for the existing guarded reconciliation path. A containment failure
+continues to require reinspection. First-authority baselines retain their existing policy.
+
+This is the accepted cache-validity boundary for ordinary local file operations. An in-place
+memory-mapped write can temporarily change readable bytes before these properties change; that
+narrow window is a known limitation. Recovery does not flush source pages, force USN close records,
+write source metadata or read every old image to exclude this window. No occurrence rate or strict
+arbitrary-write guarantee is claimed. Full fingerprints retain their original BLAKE3 provenance;
+matching metadata does not create a fingerprint or establish equality between different files.
+
+Known live/journal dirty events still invalidate generations even when all properties match.
+Renames and moves remain candidates with physical-identity association, and replacements receive
+the existing identity checks. Root generation and namespace guards, incomplete-inventory rejection,
+closing journal replay, candidate ownership and atomic completion continue to own publication and
+absence. Enumeration alone cannot mark a root current. Existing catalogs already persist the
+required evidence; missing legacy evidence is refreshed through candidates without a schema reset.
+
+Recovery comparison lives in its own application module. The worker advances bounded source and
+comparison pages within a 250 ms time slice, checking cancellation and yielding between pages.
+Time slicing removes mandatory poll waits between every small source batch without extending a
+database transaction across filesystem calls or changing Live/Journal priority. The time limit is
+checked at page boundaries; an individual native call is not interrupted by that deadline.
 
 ### Preview publication at the change-driven boundary
 
