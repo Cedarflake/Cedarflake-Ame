@@ -139,7 +139,7 @@ fn initial_import_window_keeps_full_durability_rollback_and_a_bounded_wal() {
             .unwrap(),
         1,
     );
-    for id in 0..600 {
+    for id in 0..1_800 {
         connection
             .execute("INSERT INTO entries VALUES (?1, zeroblob(8192))", [id])
             .unwrap();
@@ -147,8 +147,17 @@ fn initial_import_window_keeps_full_durability_rollback_and_a_bounded_wal() {
     let wal_bytes = std::fs::metadata(path.with_extension("sqlite3-wal"))
         .unwrap()
         .len();
+    let page_bytes: u32 = connection
+        .query_row("PRAGMA page_size", [], |row| row.get(0))
+        .unwrap();
+    let window_pages = u64::try_from(INITIAL_IMPORT_CHECKPOINT_PAGES).unwrap();
+    // WAL frames add a 24-byte header; the committing fixture transaction may cross the trigger.
+    let wal_window_bytes = 32 + (window_pages + 16) * (u64::from(page_bytes) + 24);
     assert!(wal_bytes > 1024 * 1024);
-    assert!(wal_bytes <= 16 * 1024 * 1024 + 64 * 1024);
+    assert!(
+        wal_bytes <= wal_window_bytes,
+        "WAL grew to {wal_bytes} bytes"
+    );
     {
         let transaction = connection.transaction().unwrap();
         transaction.execute("DELETE FROM entries", []).unwrap();
@@ -160,7 +169,7 @@ fn initial_import_window_keeps_full_durability_rollback_and_a_bounded_wal() {
             .query_row("SELECT COUNT(*) FROM entries", [], |row| row
                 .get::<_, i64>(0))
             .unwrap(),
-        600,
+        1_800,
     );
     drop(reader);
     drop(window);
@@ -173,6 +182,6 @@ fn initial_import_window_keeps_full_durability_rollback_and_a_bounded_wal() {
             .query_row("SELECT COUNT(*) FROM entries", [], |row| row
                 .get::<_, i64>(0))
             .unwrap(),
-        600,
+        1_800,
     );
 }
