@@ -11,6 +11,25 @@ use super::{
     validate_entry,
 };
 
+const APPEND_CHILD_DIRECTORIES_SQL: &str = "WITH base(next_ordinal) AS (
+       SELECT COALESCE(MAX(ordinal) + 1, 0)
+       FROM library_metadata_inventory_spool_directories WHERE run_id = ?1
+     ), children(relative_path, child_offset) AS (
+       SELECT relative_path, ROW_NUMBER() OVER (ORDER BY relative_path) - 1
+       FROM library_metadata_inventory_spool_entries
+         INDEXED BY library_metadata_inventory_spool_entries_directory
+       WHERE run_id = ?1 AND directory_relative_path = ?2
+         AND entry_kind = 'directory' AND placeholder_state = 'available'
+         AND is_reparse_point = 0
+     )
+     INSERT INTO library_metadata_inventory_spool_directories(
+       run_id, ordinal, relative_directory, state, source_entry_count,
+       created_unix_ms, updated_unix_ms
+     )
+     SELECT ?1, base.next_ordinal + children.child_offset,
+            children.relative_path, 'pending', 0, ?3, ?3
+     FROM children CROSS JOIN base";
+
 impl SqliteCatalog {
     pub(crate) fn begin_metadata_inventory_spool_directory(
         &mut self,
@@ -151,23 +170,7 @@ impl SqliteCatalog {
         }
         transaction
             .execute(
-                "WITH base(next_ordinal) AS (
-                   SELECT COALESCE(MAX(ordinal) + 1, 0)
-                   FROM library_metadata_inventory_spool_directories WHERE run_id = ?1
-                 ), children(relative_path, child_offset) AS (
-                   SELECT relative_path, ROW_NUMBER() OVER (ORDER BY relative_path) - 1
-                   FROM library_metadata_inventory_spool_entries
-                   WHERE run_id = ?1 AND directory_relative_path = ?2
-                     AND entry_kind = 'directory' AND placeholder_state = 'available'
-                     AND is_reparse_point = 0
-                 )
-                 INSERT INTO library_metadata_inventory_spool_directories(
-                   run_id, ordinal, relative_directory, state, source_entry_count,
-                   created_unix_ms, updated_unix_ms
-                 )
-                 SELECT ?1, base.next_ordinal + children.child_offset,
-                        children.relative_path, 'pending', 0, ?3, ?3
-                 FROM children CROSS JOIN base",
+                APPEND_CHILD_DIRECTORIES_SQL,
                 params![run_id, relative_directory, updated_unix_ms],
             )
             .map_err(metadata_inventory_spool_write_error)?;
@@ -221,32 +224,34 @@ pub(super) fn insert_spool_entries(
     entries: &[MetadataInventoryEntry],
     updated_unix_ms: i64,
 ) -> Result<(), ScanError> {
+    let mut statement = transaction
+        .prepare_cached(
+            "INSERT INTO library_metadata_inventory_spool_entries(
+               run_id, directory_relative_path, relative_path, entry_kind, file_size,
+               modified_unix_ms, file_identity_scheme, file_identity_value,
+               placeholder_state, is_reparse_point, staged_unix_ms, source_revision_token
+             ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
+        )
+        .map_err(database_error)?;
     for entry in entries {
         validate_entry(scope, entry)?;
         let (entry_kind, file_size, identity_scheme, identity_value, placeholder_state, revision) =
             entry_parts(entry)?;
-        transaction
-            .execute(
-                "INSERT INTO library_metadata_inventory_spool_entries(
-                   run_id, directory_relative_path, relative_path, entry_kind, file_size,
-                   modified_unix_ms, file_identity_scheme, file_identity_value,
-                   placeholder_state, is_reparse_point, staged_unix_ms, source_revision_token
-                 ) VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, ?11, ?12)",
-                params![
-                    run_id,
-                    relative_directory,
-                    entry.relative_path,
-                    entry_kind,
-                    file_size,
-                    entry.modified_unix_ms,
-                    identity_scheme,
-                    identity_value,
-                    placeholder_state,
-                    entry.is_reparse_point,
-                    updated_unix_ms,
-                    revision,
-                ],
-            )
+        statement
+            .execute(params![
+                run_id,
+                relative_directory,
+                entry.relative_path,
+                entry_kind,
+                file_size,
+                entry.modified_unix_ms,
+                identity_scheme,
+                identity_value,
+                placeholder_state,
+                entry.is_reparse_point,
+                updated_unix_ms,
+                revision,
+            ])
             .map_err(metadata_inventory_spool_write_error)?;
     }
     Ok(())
@@ -266,3 +271,6 @@ fn metadata_inventory_spool_write_error(error: rusqlite::Error) -> ScanError {
         database_error(error)
     }
 }
+
+#[cfg(test)]
+mod tests;

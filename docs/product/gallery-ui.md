@@ -616,6 +616,17 @@ layout interpolation or a queue of outgoing full-resolution images.
 Duplicate review opens the same viewer with the shared fade component and timing; its full-window
 route adds no page zoom or slide. Returning retains the underlying review list and its position.
 
+An open gallery viewer retains its displayed source version after a confirmed replacement and shows
+`图片已更新，重新加载以查看最新内容。` with `重新加载`. Reload adopts the latest confirmed catalog
+version through the existing guarded source reader. A confirmed removal keeps the viewer open and
+shows `这张图片已不在图库中。` with `返回图库`; its obsolete ordinal and adjacent navigation are
+unavailable. Same-version renames update the name without a content warning. Query revisions,
+selection changes and disposal retire delayed lookup results; a failed lookup cannot claim absence.
+Gallery-page rebuilds cannot silently replace the retained viewer version before the user reloads.
+These notices share the existing viewer fallback notice, neutral notification surface, rounded
+corners and action styling. They float within the image viewport without moving its contents. A
+confirmed source notice takes precedence over retry feedback for the old source version.
+
 The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
 one quarter is 125%, and reduction by half is 50%. The default opening preference is Automatic:
 images exceeding the available width or height shrink to fit the viewport, while fitting images
@@ -705,7 +716,19 @@ surface from the queue but cannot change catalog freshness. Scan progress and te
 retain priority over notifications.
 For root reconciliation, the active-condition identity is the root itself: observer-health,
 freshness-cause, and issue-code transitions update one record until the root is synchronized.
-Automatic authoritative recovery remains `正在更新图库`; an eligible deferred retry displays
+Startup recovery first applies Windows Search hints through guarded file checks. After this initial
+refresh, ordinary background verification keeps cached gallery content and anchors available, with
+`正在核对` in the source row and no additional progress notification. It does not display `已同步`
+until the backend and gallery have actually converged. A missing index takes the same quiet verification path. Unavailable sources,
+failed monitors and blocked recovery retain their existing visible feedback. Changes found by
+verification refresh only affected results through the existing anchored gallery lifecycle.
+Index hints are never a second visible source of names, dimensions or preview versions. The gallery
+consumes only guarded catalog publications. Later verified additions, removals and replacements
+use the existing revision and source-generation boundaries so an older request cannot restore stale
+information. A version change invalidates derived previews and analysis together; unchanged items
+retain their cached results. Index omissions may leave cached records visible until verification
+reaches them, without establishing synchronized freshness.
+Other automatic authoritative recovery remains `正在更新图库`; an eligible deferred retry displays
 `等待自动重试`. Neither publishes a fault notification.
 An unconfirmed startup or continuity transition has a neutral source-row label and creates no
 notification history merely because its first snapshot is incomplete.

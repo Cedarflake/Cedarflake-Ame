@@ -1130,9 +1130,117 @@ Physical review sizes at this checkpoint are:
 Dedicated counts include descendant test files. The extracted owners are observation comparison,
 bounded work scheduling, queue completion and recovery finalization. No schema, dependency,
 bridge, source-write or hydration change is included. These checks cover implementation head
-`8c18738e55ed24292b2bf6b1f95a06047a4b1fd4`; its normal
-[hosted verification](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39632835425)
-is still running. Complete uninterrupted client startup duration has not been measured.
+`8c18738e55ed24292b2bf6b1f95a06047a4b1fd4`; its associated
+[hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39632835425)
+is historical evidence, not verification of subsequent changes.
+
+The later direct-streaming Release experiment began from a completed 63,138-location baseline.
+A fresh recovery captured 68,748 entries and reached an empty queue/current continuity at 62.992
+seconds. It retained all source generations and 29,846 fingerprints, but was slower than the earlier
+continuation. That schema-46 experiment was withdrawn. Product recovery retains schema 45 and the
+materialized source spool, with its child-directory query bounded by the existing parent index.
+
+### Indexed startup and quiet background verification
+
+The current candidate queries Windows Search through a read-only OLE DB adapter, stages at most
+256 hints per page in a disk-backed temporary table, and admits at most 128 actual-file candidates
+per startup attempt. Actual guarded reconciliation owns catalog publication; incomplete index
+results cannot complete recovery or prove deletion. Healthy background verification has a distinct
+phase with `正在核对` in the sidebar, while unavailable sources, blocked recovery and failed monitors
+retain their existing visible feedback.
+The complete materialized inventory preserves the accepted Windows reuse boundary, deletion
+confirmation and final journal fence. Continuous USN startup remains unchanged.
+
+The native adapter queried `local-primary` with its actual extended Windows path prefix:
+68,748 provider rows, 68,747 accepted descendant hints, 61,169 image candidates, first page at
+50 ms and total query time 3,519 ms. The root-boundary regression includes local extended paths,
+UNC paths, Chinese names and rejected out-of-root/traversal paths. These figures measure the
+native query, excluding temporary-table comparison, candidate processing and client startup.
+
+Ten focused Rust cases pass for real production failure admission, once-per-generation attempts,
+quiet-state/error precedence, stale bindings/leases, cancellation, partial indexes, bounded admission,
+unchanged unindexed-file retention, early candidate publication and eventual correction of stale
+names/content. The actual production failure control uses `MetadataInventory` origin; its admission
+regression prevents an origin filter from skipping the index step. Eleven related recovery, source
+handoff, ordinary-file, frontier-query-cost and multi-root fairness checks also pass. Twenty-two
+Flutter feedback cases, 21 viewer-session cases, 20 viewer-position/refresh cases, seven viewer-image
+cases and all 17
+asynchronous bridge contracts pass. Viewer coverage includes same-version rename, generation-only
+content replacement, new identity at the same location, explicit reload, confirmed removal/return,
+failed lookups and superseded selection/query/request owners. The latest focused viewer run passes
+all 48 cases, including viewport retention, confirmed-notice precedence over fallback retry and
+retirement of pending navigation after removal. The native protected-source
+checks used the host token; optimized dependencies were retained while the local diagnostic test
+crate alone used opt-level 0 to shorten its rebuild. Hosted workflows own the normal complete gates.
+
+A preceding Release-client diagnostic used a fresh isolated copy with 64,492 locations and 29,754
+fingerprints. It exposed the production admission mismatch before the fix. Materialized recovery
+completed at 87.267 seconds with 68,748 entries and 2,024 candidates, leaving 63,138 locations,
+62,504 retained source generations and 29,782 fingerprints. The visible gallery converged to
+63,138 total / 47,894 folded items. Scrolling, original-image navigation and return remained usable.
+The index path and quiet presentation were not accepted from that run. Its original profile and
+catalog hashes were restored after the owned process group retired; graceful close was not observed
+before the harness deadline. This workload includes offline differences and is not comparable to
+the earlier unchanged-library continuation.
+
+The corrected Release client then completed a fresh recovery from the converged 63,138-location
+baseline. Full materialized verification finished at 63.212 seconds, with 68,748 entries, zero change
+candidates, all 63,138 source generations retained and 29,782 fingerprints unchanged. At 13.600
+seconds the cached gallery was visibly usable during verification; scrolling, opening the original
+image and returning preserved the browsing position. `已同步` appeared after convergence, with no
+new notification. This observation used the earlier empty background label; the subsequent visible
+sidebar wording is verified separately below. It measures a fresh unchanged-library recovery, not
+the historical 44.633/47.484-second continuation. The native query's 3.519-second figure does not
+establish client startup or indexed publication latency. Graceful close, owned process retirement,
+original profile restoration and original catalog hashes all passed.
+
+The subsequent Release client `v10` visibly displayed `正在核对` in the source row while the
+63,138-location retained gallery remained available, without a progress notification. This was a
+short observation of an interrupted recovery continuation, not another full-duration measurement.
+
+The final viewer Release client `v11`, built from `5f48dd9` plus this candidate, reused two owned
+copies of the existing synthetic corpus in an isolated profile. Replacing the open 640 x 480 image
+with a 1024 x 1024 version retained its old pixels and metadata until `重新加载`; the action then
+displayed the new dimensions and pixels. Renaming that test file advanced its catalog source
+generation and therefore required reload before displaying its new name. Same-version silent
+rename remains covered by the focused widget/session cases. Moving the owned copy outside its
+configured folder retained the displayed image, offered `返回图库`, disabled adjacent navigation
+and removed the obsolete position count. Returning showed the single remaining image.
+Both changed-source and removed-source notices used the shared neutral floating rounded surface
+inside the viewport; the observed image bounds stayed fixed when feedback appeared. The earlier
+full-width colored strip is absent. The earlier native removal check exposed `2 / 1 张`; the final
+session guard and client check resolve that stale-position behavior, including pending navigation.
+The final client closed gracefully, its owned process group retired, and original profile, catalog
+and reusable-corpus hashes were verified unchanged. The test copies and derived evidence remain
+under ignored `build/test/derived/fast-startup-recovery-20261021` storage.
+
+Current physical review sizes are:
+
+| Owner | Production lines | Inline test/support lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Synchronization production facade | 1,340 | 318 | 14,887 |
+| Application metadata inventory facade | 1,262 | 169 | 7,794 |
+| SQLite metadata inventory facade | 2,843 | 21 | 1,243 |
+| Indexed startup application owner | 177 | 0 | Included above |
+| Indexed startup runtime owner | 90 | 75 | Included above |
+| Windows Search adapter | 122 | 29 | 0 |
+| OLE DB boundary | 273 | 0 | 0 |
+| Unified gallery screen | 1,593 | 0 | 2,138 |
+| Viewer session | 314 | 0 | 476 |
+| Viewer source-version owner | 39 | 0 | Included above |
+| Shared image viewer | 392 | 0 | Included above |
+| Viewer image and fallback | 220 | 0 | 389 |
+| Shared viewer notice | 56 | 0 | Included above |
+| Source notice mapping | 35 | 0 | Included above |
+
+Rust counts include descendant dedicated test files; Dart test counts cover the affected refresh,
+session and image cases. New index comparison, candidate publication and
+attempt lifetime are separate owners; existing facades retain their delegation and transaction
+boundaries. The candidate adds Microsoft's `windows` 0.62.2 (MIT OR Apache-2.0) and a generated
+synchronization-phase bridge variant. No persistent schema elevation, source write, index-service
+configuration or placeholder hydration is included. Viewer source-version acceptance is owned by
+`library_viewer_source_state.dart`; the session keeps selection/request authority, and the unified
+screen and image-viewer widget only compose the retained image, notice and actions.
 
 ## R3 closeout
 

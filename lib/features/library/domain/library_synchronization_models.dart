@@ -45,6 +45,7 @@ enum LibrarySynchronizationPhase {
   blocked,
   synchronized,
   unavailable,
+  backgroundVerification,
 }
 
 class LibraryRootSynchronizationStatus {

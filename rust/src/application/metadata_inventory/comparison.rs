@@ -18,13 +18,13 @@ impl InventoryReusePolicy {
         match reason {
             LibraryRecoveryAuthorityReason::ExistingRootBaseline
             | LibraryRecoveryAuthorityReason::FirstImportBoundary => Self::ObservedRevision,
-            LibraryRecoveryAuthorityReason::ContainmentFailure => Self::Reinspect,
+            LibraryRecoveryAuthorityReason::ContainmentFailure
+            | LibraryRecoveryAuthorityReason::WatcherUncoveredGap => Self::Reinspect,
             LibraryRecoveryAuthorityReason::JournalGap
             | LibraryRecoveryAuthorityReason::JournalReset
             | LibraryRecoveryAuthorityReason::JournalTrim
             | LibraryRecoveryAuthorityReason::JournalReconstructionFailure
-            | LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure
-            | LibraryRecoveryAuthorityReason::WatcherUncoveredGap => Self::WindowsRecovery,
+            | LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure => Self::WindowsRecovery,
         }
     }
 
@@ -80,6 +80,14 @@ pub(super) fn compare_entry(
     EntryComparison::Candidate {
         previous_path: None,
     }
+}
+
+#[cfg(windows)]
+pub(in super::super) fn unchanged_windows_recovery_location(
+    entry: &MetadataInventoryEntry,
+    prior: &AssetLocationView,
+) -> bool {
+    has_windows_recovery_evidence(entry) && inventory_matches_location(entry, prior)
 }
 
 fn has_windows_recovery_evidence(entry: &MetadataInventoryEntry) -> bool {

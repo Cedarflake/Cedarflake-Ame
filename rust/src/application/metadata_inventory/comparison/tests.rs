@@ -11,15 +11,15 @@ fn recovery_reuses_a_complete_matching_windows_observation() {
         LibraryRecoveryAuthorityReason::JournalTrim,
         LibraryRecoveryAuthorityReason::JournalReconstructionFailure,
         LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure,
-        LibraryRecoveryAuthorityReason::WatcherUncoveredGap,
     ] {
         assert!(is_reused(&entry, &prior, reason), "{reason:?}");
     }
-    assert!(!is_reused(
-        &entry,
-        &prior,
+    for reason in [
         LibraryRecoveryAuthorityReason::ContainmentFailure,
-    ));
+        LibraryRecoveryAuthorityReason::WatcherUncoveredGap,
+    ] {
+        assert!(!is_reused(&entry, &prior, reason), "{reason:?}");
+    }
 }
 
 #[test]

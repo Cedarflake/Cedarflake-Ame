@@ -9,9 +9,11 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../../app/window/ame_window_fullscreen.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../domain/library_models.dart";
+import "../library_viewer_source_state.dart";
 import "library_viewer_controls.dart";
 import "library_viewer_filmstrip_slot.dart";
 import "library_viewer_image.dart";
+import "library_viewer_source_notice.dart";
 import "../library_viewer_zoom.dart";
 import "library_viewer_toolbar.dart";
 import "library_viewer_transition.dart";
@@ -30,6 +32,8 @@ class LibraryImageViewer extends ConsumerStatefulWidget {
     this.position,
     this.totalItems,
     this.filmstrip,
+    this.sourceNotice,
+    this.onReloadSource,
     super.key,
   });
 
@@ -45,6 +49,8 @@ class LibraryImageViewer extends ConsumerStatefulWidget {
   final int? position;
   final int? totalItems;
   final Widget? filmstrip;
+  final LibraryViewerSourceNotice? sourceNotice;
+  final VoidCallback? onReloadSource;
 
   @override
   ConsumerState<LibraryImageViewer> createState() => _LibraryImageViewerState();
@@ -224,6 +230,14 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
         LibraryViewerImage(
           asset: widget.asset,
           imageBuilder: _buildTransformedImage,
+          notice: switch (widget.sourceNotice) {
+            null => null,
+            final notice => LibraryViewerSourceNoticeBanner(
+              notice: notice,
+              onReload: widget.onReloadSource,
+              onBack: _back,
+            ),
+          },
         ),
         LibraryViewerNavigationButton.previous(
           onPressed: widget.onPrevious == null

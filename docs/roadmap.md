@@ -83,10 +83,16 @@ advance physical file operations, perceptual similarity or release signing throu
 
 The current requested maintenance scope is
 [fast recovery after journal loss](plans/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
-on `codex/fast-startup-recovery`. It applies the accepted Windows metadata-reuse boundary and
-bounded recovery scheduling. Focused ordinary-file and publication checks, retained-library recovery
-completion and catalog reopening pass, as recorded in its
-[verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss).
+on `codex/fast-startup-recovery`. It applies Windows Search hints through guarded actual-file checks
+at startup, then verifies the complete source quietly using the original materialized inventory.
+The accepted Windows metadata-reuse boundary and multi-root scheduling remain intact; direct
+streaming capture is withdrawn. The corrected production entrypoint has completed its retained-library
+client check. The sidebar keeps `正在核对`, and confirmed gallery-viewer changes offer reload or return
+through the shared floating notice without moving the image. Focused regressions and the affected
+client interactions pass; exact-commit hosted verification follows publication. The owning
+[verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss) separates indexed
+refresh, complete verification and the earlier interrupted timings. There is no fixed startup-time
+threshold for this maintenance scope.
 The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
 retains its delivered behavior. Time-rail input,
 progressive duplicate folding and post-sync gallery convergence are implemented and client-verified

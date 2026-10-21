@@ -11,7 +11,10 @@ pub(super) enum InventoryWorkBudget {
 }
 
 impl InventoryWorkBudget {
-    pub(super) fn recovery_slice() -> Self {
+    pub(super) fn recovery_slice(root_count: usize) -> Self {
+        if root_count != 1 {
+            return Self::OnePage;
+        }
         Self::TimeSlice {
             deadline: Instant::now() + Duration::from_millis(250),
         }

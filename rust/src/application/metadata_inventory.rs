@@ -26,6 +26,8 @@ mod comparison;
 mod work_budget;
 
 pub(super) use comparison::inventory_matches_location;
+#[cfg(windows)]
+pub(super) use comparison::unchanged_windows_recovery_location;
 use comparison::{EntryComparison, InventoryReusePolicy, compare_entry};
 use work_budget::InventoryWorkBudget;
 
@@ -146,8 +148,8 @@ impl<'a> MetadataInventoryRecoveryExecution<'a> {
         }
     }
 
-    pub(crate) fn with_recovery_time_slice(mut self) -> Self {
-        self.budget = InventoryWorkBudget::recovery_slice();
+    pub(crate) fn with_recovery_scheduling(mut self, root_count: usize) -> Self {
+        self.budget = InventoryWorkBudget::recovery_slice(root_count);
         self
     }
 

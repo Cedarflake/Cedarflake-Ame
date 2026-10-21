@@ -49,6 +49,8 @@ use super::{
 mod bounded_cleanup;
 #[cfg(windows)]
 mod directory_snapshot;
+#[cfg(windows)]
+mod indexed_startup;
 mod lifecycle_admission;
 #[cfg(windows)]
 mod recovery_reuse;

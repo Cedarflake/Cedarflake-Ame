@@ -105,6 +105,10 @@ use journal_lane::JournalLane;
 use recovery_lane::{ReadyRecoveryWork, RecoveryLane};
 #[cfg(windows)]
 use recovery_sources::RecoverySources;
+#[cfg(windows)]
+mod indexed_startup;
+#[cfg(windows)]
+use indexed_startup::IndexedStartupOwner;
 #[cfg(all(test, windows))]
 use recovery_work::fail_next_recovery_worker_spawn;
 #[cfg(windows)]
@@ -279,6 +283,7 @@ struct ProductionSynchronization {
     live_root_cursor: Option<String>,
     recovery: Option<RecoveryTask>,
     recovery_sources: RecoverySources,
+    indexed_startup: IndexedStartupOwner,
     metadata_inventory_page_entries: u32,
     recovery_lane: RecoveryLane,
     legacy_automatic_scans_retired: bool,
@@ -549,6 +554,7 @@ fn poll_runtime_with_storage_inner(
     runtime.project_persistent_journal_continuity(catalog, &mut snapshot)?;
     admissions.revalidate(catalog, &mut runtime.runtime, &mut snapshot)?;
     metadata_status::project_pending_metadata(catalog, &mut snapshot)?;
+    runtime.indexed_startup.project(&mut snapshot);
     admissions.append_dormant_statuses(&mut snapshot);
     drop(projection_timer);
     runtime.inventory_cleanup.poll(
@@ -607,6 +613,7 @@ fn new_production_synchronization_with_factory(
         live_root_cursor: None,
         recovery: None,
         recovery_sources: RecoverySources::default(),
+        indexed_startup: IndexedStartupOwner::default(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
         recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,
@@ -642,6 +649,7 @@ fn new_production_synchronization_with_connection(
         live_root_cursor: None,
         recovery: None,
         recovery_sources: RecoverySources::default(),
+        indexed_startup: IndexedStartupOwner::default(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
         recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,
@@ -1154,7 +1162,11 @@ impl ProductionSynchronization {
             return Ok(0);
         };
         let root_id = task.root_id().to_owned();
+        if matches!(task.kind(), RecoveryTaskKind::IndexedStartup { .. }) {
+            self.indexed_startup.finished(&root_id);
+        }
         let metadata_inventory_change_id = match task.kind() {
+            RecoveryTaskKind::IndexedStartup { change_id, .. } => Some(*change_id),
             RecoveryTaskKind::MetadataInventory { change_id, .. } => Some(*change_id),
             RecoveryTaskKind::BoundedAuthoritative { .. }
             | RecoveryTaskKind::CandidateDrain { .. }
@@ -1162,6 +1174,7 @@ impl ProductionSynchronization {
         };
         #[cfg(debug_assertions)]
         let recovery_kind = match task.kind() {
+            RecoveryTaskKind::IndexedStartup { .. } => "indexed-startup",
             RecoveryTaskKind::BoundedAuthoritative { .. } => "bounded-authoritative",
             RecoveryTaskKind::MetadataInventory { .. } => "metadata-inventory",
             RecoveryTaskKind::CandidateDrain { .. } => "candidate-drain",
@@ -1244,12 +1257,11 @@ impl ProductionSynchronization {
 
     fn start_automatic_recovery(
         &mut self,
-        root_id: String,
-        root_generation: crate::domain::LibraryRootGeneration,
-        continuity_revision: u64,
+        root: RecoveryWorkRoot,
         leased: LeasedLibraryChange,
         now_unix_ms: i64,
         catalog_path: std::path::PathBuf,
+        preparation: indexed_startup::RecoveryPreparation,
     ) -> Result<(), ScanError> {
         if self.recovery.is_some() {
             return Err(ScanError::new(
@@ -1258,12 +1270,9 @@ impl ProductionSynchronization {
             ));
         }
         let catalog_session = self.validated_catalog_session(&catalog_path)?;
+        let prepared_lease = leased.clone();
         self.recovery = Some(recovery_work::start_automatic(
-            RecoveryWorkRoot {
-                root_id,
-                root_generation,
-                continuity_revision,
-            },
+            root,
             leased,
             now_unix_ms,
             catalog_session,
@@ -1271,9 +1280,12 @@ impl ProductionSynchronization {
                 queue: self.runtime.queue_policy(),
                 recovery: self.runtime.recovery_policy(),
                 metadata_inventory_page_entries: self.metadata_inventory_page_entries,
+                root_count: self.runtime.roots.len(),
             },
             &mut self.recovery_sources,
+            preparation,
         )?);
+        self.indexed_startup.started(&prepared_lease, preparation);
         Ok(())
     }
 

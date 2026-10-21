@@ -170,7 +170,11 @@ fn fingerprint_baseline(fixture: &mut InventoryFixture) {
     );
 }
 
-fn finish_recovery(fixture: &mut InventoryFixture, first: LeasedLibraryChange, run_id: &str) {
+pub(super) fn finish_recovery(
+    fixture: &mut InventoryFixture,
+    first: LeasedLibraryChange,
+    run_id: &str,
+) {
     let cancelled = AtomicBool::new(false);
     let change_id = first.change.id;
     let mut lease = Some(first);
@@ -193,7 +197,7 @@ fn finish_recovery(fixture: &mut InventoryFixture, first: LeasedLibraryChange, r
                     queue_policy(),
                     &cancelled,
                 )
-                .with_recovery_time_slice(),
+                .with_recovery_scheduling(1),
                 retained.take(),
             )
             .expect("recover from journal trim");

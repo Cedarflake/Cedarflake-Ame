@@ -34,6 +34,7 @@ dbg_macro = "deny"
 todo = "deny"
 
 [target."cfg(windows)".dependencies]
+windows = { version = "=0.62.2", features = ["Win32_System_Com", "Win32_System_Ole", "Win32_System_Search", "Win32_System_Variant", "Win32_Storage_IndexServer", "Win32_UI_Shell"] }
 notify = { version = "=8.2.0", default-features = false }
 windows-sys = { version = "0.61.2", features = [
   "Wdk_Foundation",

@@ -569,6 +569,7 @@ fn p2_page_completion_rotates_to_another_root_and_retains_each_frontier() {
         live_root_cursor: None,
         recovery: None,
         recovery_sources: RecoverySources::default(),
+        indexed_startup: IndexedStartupOwner::default(),
         metadata_inventory_page_entries: METADATA_INVENTORY_WORK_PAGE_ENTRIES,
         recovery_lane: RecoveryLane::default(),
         legacy_automatic_scans_retired: false,

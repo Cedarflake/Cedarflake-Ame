@@ -104,18 +104,32 @@ Implement the accepted Windows recovery-evidence policy from ADR 0024 on
 authority, retain unchanged derived results, and reconcile added, changed, renamed and missing
 files through the existing candidate path. Keep ordinary startup on continuous USN replay.
 
-The delivery includes actual-file regression coverage for offline operations, unchanged preview
-and fingerprint retention, cancellation and namespace/publication races. Measure complete recovery
-on the retained library, including catalog and visible-result convergence, and report the observed
-elapsed time and measurement conditions. This maintenance scope has no fixed startup-time threshold.
+After lost journal coverage, query Windows Search first to prioritize changed paths, then perform
+the complete source inventory quietly in the background. Keep the cached gallery usable and retain
+its browsing position. Search results are hints: actual guarded file observations own updates and
+removals. Unavailable or incomplete indexing falls back to background verification. Healthy background
+verification displays `正在核对` in the source row without an additional progress notification;
+blocked and unavailable states remain actionable. The backend retains incomplete freshness until
+verification really finishes. An open image retains its displayed version when a confirmed update
+arrives and offers reload; a confirmed removal offers return to the gallery without closing it
+unexpectedly. Renames with the same source version update the displayed name directly.
+
+The delivery includes actual-file regression coverage for offline operations, stale or missing index
+rows, unchanged preview and fingerprint retention, cancellation and namespace/publication races.
+Measure initial gallery availability, indexed refresh and complete background convergence separately
+on the retained library. This maintenance scope has no fixed startup-time threshold.
 The mapped-write timing window is an accepted boundary, not an additional full-content verification
 requirement. Source mutation and hydration remain excluded. Update the owning acceptance record
 with actual results and any remaining functional limitations.
 
 The [current verification](../acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss)
-covers ordinary offline operations, terminal handoff retirement, retained-library recovery completion
-and catalog reopening. The recovery completed across interrupted runs, so its elapsed times do not
-establish a single uninterrupted client startup duration.
+retains ordinary offline operations, terminal handoff retirement and the initial interrupted recovery
+observations. The original materialized inventory supplies background verification; direct streaming
+capture is withdrawn from this delivery following its slower client measurement.
+The production runtime now connects bounded Windows Search queries and quiet verification. Focused
+offline-change cases, retained-library recovery and the affected gallery-viewer interactions have
+been checked. Preserve multi-root fairness, conservative handling of known dirty gaps and the
+source-row wording `正在核对`; inspect normal exact-commit hosted verification after publication.
 
 ## R3-01: Identify duplicates and inspect locations
 

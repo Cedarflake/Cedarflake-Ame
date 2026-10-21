@@ -253,13 +253,14 @@ queue pages or during writer contention. Unavailable, blocked and failed states 
 
 ### Windows metadata reuse after lost journal coverage
 
-For an authorized journal gap, reset, trim, reconstruction failure, broker-after-current failure
-or uncovered watcher gap, a complete handle-anchored inventory may reuse an existing location's
+For an authorized journal gap, reset, trim, reconstruction failure or broker-after-current failure,
+a complete handle-anchored inventory may reuse an existing location's
 source generation when its path, complete volume-plus-128-bit file identity, size, modification
 time and nonzero raw ChangeTime match. Both observations must carry the supported Windows identity
 and revision schemes. Reparse files, placeholders, missing or malformed evidence and changed
-properties are candidates for the existing guarded reconciliation path. A containment failure
-continues to require reinspection. First-authority baselines retain their existing policy.
+properties are candidates for the existing guarded reconciliation path. Containment failures and
+uncovered watcher gaps require reinspection: the latter can subsume known dirty events during
+capacity degradation. First-authority baselines retain their existing policy.
 
 This is the accepted cache-validity boundary for ordinary local file operations. An in-place
 memory-mapped write can temporarily change readable bytes before these properties change; that
@@ -275,11 +276,52 @@ closing journal replay, candidate ownership and atomic completion continue to ow
 absence. Enumeration alone cannot mark a root current. Existing catalogs already persist the
 required evidence; missing legacy evidence is refreshed through candidates without a schema reset.
 
-Recovery comparison lives in its own application module. The worker advances bounded source and
-comparison pages within a 250 ms time slice, checking cancellation and yielding between pages.
-Time slicing removes mandatory poll waits between every small source batch without extending a
-database transaction across filesystem calls or changing Live/Journal priority. The time limit is
-checked at page boundaries; an individual native call is not interrupted by that deadline.
+Recovery comparison lives in its own application module. For a single registered root, the worker
+advances bounded source and comparison pages within a 250 ms time slice, checking cancellation and
+yielding between pages. With multiple roots, each source quantum returns to the root scheduler.
+Time slicing removes mandatory poll waits between small source batches without extending a database
+transaction across filesystem calls or changing Live/Journal priority. The time limit is checked
+at page boundaries; an individual native call is not interrupted by that deadline.
+
+Background verification retains the materialized directory inventory and bounded comparison path.
+Child-directory queries use the existing parent index and materialized SQL intermediates, avoiding
+repeated whole-inventory walks. Original catalog schema 45 remains unchanged. The direct streaming
+capture experiment is not part of this product path.
+
+### Indexed startup with background verification
+
+For retained Windows roots with journal gaps, resets, trims, reconstruction failures or
+broker-after-current failures, Windows Search supplies an optional startup hint pass before the
+complete inventory. Watcher gaps and containment failures retain their conservative route.
+A read-only OLE DB query streams path, size and modification
+time in bounded pages; it does not ask Shell for per-file properties or open image content. A
+connection-local temporary comparison table bounds application memory. Index differences enter
+the existing recovery candidate queue under the current root generation, lease and run authority.
+Actual guarded reconciliation owns additions, modifications and removals. Index absence never
+establishes source absence, and matching index properties never authorize content-result reuse.
+Candidate admission is limited to 128 paths per startup attempt; remaining changes are covered by
+the complete materialized inventory. Before admission, guarded actual metadata removes unchanged
+files from stale-index differences. Extended Windows path prefixes are normalized only for the
+index query and hint comparison; filesystem identity checks retain the original root binding.
+Provider errors, truncation, cancellation and unavailable indexing cannot finish root recovery.
+
+The startup attempt belongs to the runtime and is repeated after restart. Complete verification
+retains durable inventory continuation and final journal/absence checks. Healthy background work
+displays `正在核对` in the sidebar without a progress notification while backend freshness remains
+incomplete. Blocked, unavailable and unhealthy source states take precedence. Continuous journal
+startup keeps its existing path.
+
+The Windows adapter uses Microsoft's `windows` 0.62.2 crate (MIT OR Apache-2.0) for typed OLE DB
+interfaces. No additional service, index configuration, source write or cloud hydration is admitted.
+Its unsafe boundary is restricted to COM initialization, interface calls and row buffers. COM
+objects stay on their initializing worker and are released before apartment teardown. Bindings use
+checked fixed-layout buffers; truncated or invalid paths are rejected, missing size/time properties
+remain unknown hints, and row handles and provider
+allocations are released on every exit. The adapter translates only Ame-owned hint values across
+its port. Removing this optional adapter restores the complete background verification route.
+The provider command timeout is five seconds; the reader checks a ten-second elapsed deadline
+between rows and rejects a one-million-row truncation. These are best-effort query bounds:
+synchronous COM calls retain worker ownership until they return, including during cancellation.
 
 ### Preview publication at the change-driven boundary
 

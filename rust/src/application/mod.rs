@@ -6,6 +6,8 @@ pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub(crate) mod gallery_duplicates;
 mod incremental_library_changes;
+#[cfg(windows)]
+pub(crate) mod indexed_startup;
 mod library_change_observer;
 mod library_change_queue;
 /// flutter_rust_bridge:ignore

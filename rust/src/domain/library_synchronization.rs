@@ -23,6 +23,7 @@ pub enum LibrarySynchronizationPhase {
     Blocked,
     Synchronized,
     Unavailable,
+    BackgroundVerification,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

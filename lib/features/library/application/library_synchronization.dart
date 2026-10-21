@@ -623,6 +623,8 @@ class RustLibrarySynchronization implements LibrarySynchronization {
         LibrarySynchronizationPhase.synchronized,
       rust_sync.LibrarySynchronizationPhase.unavailable =>
         LibrarySynchronizationPhase.unavailable,
+      rust_sync.LibrarySynchronizationPhase.backgroundVerification =>
+        LibrarySynchronizationPhase.backgroundVerification,
     };
     final previous = _current.roots[root.rootId];
     final phaseStartedAt =

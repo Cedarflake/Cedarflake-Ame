@@ -2969,6 +2969,7 @@ impl SseDecode for crate::domain::library_synchronization::LibrarySynchronizatio
 7 => crate::domain::library_synchronization::LibrarySynchronizationPhase::Blocked,
 8 => crate::domain::library_synchronization::LibrarySynchronizationPhase::Synchronized,
 9 => crate::domain::library_synchronization::LibrarySynchronizationPhase::Unavailable,
+10 => crate::domain::library_synchronization::LibrarySynchronizationPhase::BackgroundVerification,
             _ => unreachable!("Invalid variant for LibrarySynchronizationPhase: {}", inner),
         };
     }
@@ -5600,6 +5601,7 @@ impl flutter_rust_bridge::IntoDart
             Self::Blocked => 7.into_dart(),
             Self::Synchronized => 8.into_dart(),
             Self::Unavailable => 9.into_dart(),
+            Self::BackgroundVerification => 10.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -7071,6 +7073,7 @@ crate::domain::library_synchronization::LibrarySynchronizationPhase::FullScan =>
 crate::domain::library_synchronization::LibrarySynchronizationPhase::Blocked => { 7 }
 crate::domain::library_synchronization::LibrarySynchronizationPhase::Synchronized => { 8 }
 crate::domain::library_synchronization::LibrarySynchronizationPhase::Unavailable => { 9 }
+crate::domain::library_synchronization::LibrarySynchronizationPhase::BackgroundVerification => { 10 }
  _ => { unimplemented!(""); }}, serializer);
     }
 }

@@ -87,12 +87,15 @@ fn metadata_inventory_catalog_validation_failure_preserves_retained_change_owner
 
     let error = production
         .start_automatic_recovery(
-            "root-a".to_owned(),
-            LibraryRootGeneration::initial(),
-            1,
+            RecoveryWorkRoot {
+                root_id: "root-a".to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                continuity_revision: 1,
+            },
             metadata_inventory_lease(change_id),
             1,
             directory.path().join("different-catalog.sqlite3"),
+            indexed_startup::RecoveryPreparation::Verification,
         )
         .expect_err("catalog switch must fail before source handoff");
 
@@ -125,12 +128,15 @@ fn metadata_inventory_worker_spawn_failure_restores_retained_change_owner() {
 
     let error = production
         .start_automatic_recovery(
-            "root-a".to_owned(),
-            LibraryRootGeneration::initial(),
-            1,
+            RecoveryWorkRoot {
+                root_id: "root-a".to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                continuity_revision: 1,
+            },
             metadata_inventory_lease(change_id),
             1,
             catalog_path,
+            indexed_startup::RecoveryPreparation::Verification,
         )
         .expect_err("injected spawn failure must restore source ownership");
 
@@ -164,12 +170,15 @@ fn metadata_inventory_new_change_does_not_take_another_retained_owner() {
 
     production
         .start_automatic_recovery(
-            "root-a".to_owned(),
-            LibraryRootGeneration::initial(),
-            1,
+            RecoveryWorkRoot {
+                root_id: "root-a".to_owned(),
+                root_generation: LibraryRootGeneration::initial(),
+                continuity_revision: 1,
+            },
             metadata_inventory_lease(active_change_id),
             1,
             catalog_path,
+            indexed_startup::RecoveryPreparation::Verification,
         )
         .expect("start independent recovery owner");
     let deadline = Instant::now() + Duration::from_secs(5);

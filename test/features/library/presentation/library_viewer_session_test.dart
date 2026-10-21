@@ -4,6 +4,7 @@ import "package:cedarflake_ame/features/library/application/library_catalog.dart
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_viewer_session.dart";
+import "package:cedarflake_ame/features/library/presentation/library_viewer_source_state.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/retained_scan_fixture.dart";
@@ -256,27 +257,109 @@ void main() {
         await old;
         expect(fixture.viewer.locationId, fixture.assets[1].locationId);
         expect(fixture.demands.last, same(fixture.assets[1]));
+        expect(fixture.viewer.sourceNotice, isNull);
       },
     );
   }
 
   test(
-    "retired post-frame catalog selection cannot replace reopened source demand",
-    () {
+    "a failed lookup cannot claim that the open image disappeared",
+    () async {
       final fixture = _ViewerFixture();
       fixture.viewer.open(fixture.assets[1]);
-      final old = fixture.viewer.selection!;
-      fixture.viewer.close();
-      fixture.viewer.open(fixture.assets[1]);
-      final count = fixture.demands.length;
-      fixture.viewer.retainCatalogAsset(old, fixture.assets[1]);
-      expect(fixture.demands, hasLength(count));
+      final pending = fixture.viewer.reconcile();
+      fixture.catalog.lookup.completeError(StateError("catalog unavailable"));
+      await pending;
+      expect(fixture.viewer.retainedAsset, same(fixture.assets[1]));
+      expect(fixture.viewer.sourceNotice, isNull);
     },
   );
+
+  test(
+    "confirmed removal preserves the viewer until the user leaves",
+    () async {
+      final fixture = _ViewerFixture();
+      fixture.viewer.open(fixture.assets[1]);
+      final navigation = fixture.viewer.navigate(LibraryViewerDirection.next);
+      fixture.state = fixture.state.copyWith(assets: [fixture.assets[0]]);
+      final pending = fixture.viewer.reconcile();
+      fixture.catalog.lookup.complete(null);
+      await pending;
+      expect(fixture.viewer.retainedAsset, same(fixture.assets[1]));
+      expect(fixture.viewer.sourceNotice, LibraryViewerSourceNotice.missing);
+      expect(fixture.demands.last, isNull);
+      expect(fixture.viewer.navigation(1), (
+        position: null,
+        canPrevious: false,
+        canNext: false,
+      ));
+      expect(
+        await fixture.viewer.navigate(LibraryViewerDirection.previous),
+        isFalse,
+      );
+      fixture.pages.single.complete();
+      expect(await navigation, isFalse);
+      expect(fixture.errors, isEmpty);
+      fixture.viewer.reloadSource();
+      expect(fixture.viewer.retainedAsset, same(fixture.assets[1]));
+      fixture.viewer.close();
+      expect(fixture.viewer.retainedAsset, isNull);
+      expect(fixture.viewer.sourceNotice, isNull);
+    },
+  );
+
+  test("later catalog lookup owns the source change notice", () async {
+    final fixture = _ViewerFixture();
+    final selected = fixture.assets[1];
+    fixture.viewer.open(selected);
+    final oldLookup = fixture.catalog.lookup;
+    final old = fixture.viewer.reconcile();
+    fixture.catalog.lookup = Completer<LibraryAsset?>();
+    final current = fixture.viewer.reconcile();
+    fixture.catalog.lookup.complete(_alias(selected, "renamed"));
+    await current;
+    oldLookup.complete(null);
+    await old;
+    expect(fixture.viewer.locationId, "renamed");
+    expect(fixture.viewer.sourceNotice, isNull);
+  });
+
+  for (final replacesIdentity in [false, true]) {
+    test(
+      "reload accepts the latest version; replaced=$replacesIdentity",
+      () async {
+        final fixture = _ViewerFixture();
+        final selected = fixture.assets[1];
+        fixture.viewer.open(selected);
+        final changed = _alias(
+          selected,
+          selected.locationId,
+          generation: BigInt.two,
+          assetId: replacesIdentity ? "replacement" : selected.assetId,
+        );
+        fixture.state = fixture.state.copyWith(assets: [changed]);
+        final pending = fixture.viewer.reconcile();
+        fixture.catalog.lookup.complete(replacesIdentity ? null : changed);
+        await pending;
+        expect(fixture.viewer.retainedAsset, same(selected));
+        expect(fixture.viewer.sourceNotice, LibraryViewerSourceNotice.changed);
+        fixture.viewer.reloadSource();
+        expect(fixture.viewer.retainedAsset, same(changed));
+        expect(fixture.viewer.assetId, changed.assetId);
+        expect(fixture.viewer.sourceNotice, isNull);
+        expect(fixture.demands.last, same(changed));
+      },
+    );
+  }
 }
 
-LibraryAsset _alias(LibraryAsset asset, String locationId) => LibraryAsset(
-  assetId: asset.assetId,
+LibraryAsset _alias(
+  LibraryAsset asset,
+  String locationId, {
+  BigInt? generation,
+  String? assetId,
+}) => LibraryAsset(
+  assetId: assetId ?? asset.assetId,
   locationId: locationId,
   rootId: asset.rootId,
   activeScanId: asset.activeScanId,
@@ -287,7 +370,7 @@ LibraryAsset _alias(LibraryAsset asset, String locationId) => LibraryAsset(
   fileSize: asset.fileSize,
   modifiedUnixMs: asset.modifiedUnixMs,
   sourceRevision: asset.sourceRevision,
-  sourceGeneration: asset.sourceGeneration,
+  sourceGeneration: generation ?? asset.sourceGeneration,
   width: asset.width,
   height: asset.height,
 );
@@ -361,7 +444,7 @@ class _ViewerFixture {
 class _LookupCatalog extends RetainedScanCatalog
     implements LibraryStableAssetCatalog {
   _LookupCatalog(super.scanner);
-  final Completer<LibraryAsset?> lookup = Completer();
+  Completer<LibraryAsset?> lookup = Completer();
   Completer<LibraryQuerySnapshot>? neighbor;
   int? neighborLimit;
   LibraryQueryAnchor? neighborAnchor;

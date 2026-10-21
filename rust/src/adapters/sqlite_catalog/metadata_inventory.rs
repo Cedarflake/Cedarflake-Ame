@@ -35,6 +35,8 @@ mod candidate_cleanup;
 mod cleanup_transaction;
 mod completion;
 mod directory_snapshot;
+#[cfg(windows)]
+mod indexed_candidates;
 mod lifecycle;
 mod recovery_completion;
 mod spool_cleanup;
