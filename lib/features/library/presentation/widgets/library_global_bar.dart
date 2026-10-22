@@ -4,10 +4,13 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_brand_mark.dart";
 import "../../../../app/presentation/ame_notifications.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../../../app/window/ame_window_chrome.dart";
 import "../library_strings.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryGlobalBar extends StatelessWidget {
   const LibraryGlobalBar({
@@ -38,7 +41,9 @@ class LibraryGlobalBar extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 980;
-            final leadingWidth = isCompact ? 72.0 : 244.0;
+            final leadingWidth = isCompact
+                ? LibraryWorkbenchMetrics.railWidth
+                : 244.0;
             const captionWidth = 48.0 * 3 + 8;
             const notificationWidth = 48.0;
             const notificationGap = 8.0;
@@ -61,13 +66,33 @@ class LibraryGlobalBar extends StatelessWidget {
                     child: SizedBox(
                       width: leadingWidth,
                       child: Padding(
-                        padding: const EdgeInsets.only(left: 18),
+                        padding: const EdgeInsets.only(
+                          left: LibraryWorkbenchMetrics.railIconInset,
+                        ),
                         child: Row(
                           children: [
-                            const Icon(Symbols.photo_library_rounded),
+                            Semantics(
+                              label: isCompact ? LibraryStrings.appName : null,
+                              image: isCompact,
+                              child: const AmeBrandMark(
+                                size: LibraryWorkbenchMetrics.iconSize,
+                              ),
+                            ),
                             if (!isCompact) ...[
                               const SizedBox(width: 12),
-                              const Text(LibraryStrings.appName),
+                              Flexible(
+                                child: Text(
+                                  LibraryStrings.appName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.primary,
+                                    fontWeight: ameFontWeightSemibold,
+                                  ),
+                                ),
+                              ),
                             ],
                           ],
                         ),

@@ -13,6 +13,7 @@ import "../library_workbench_strings.dart";
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
 import "library_sidebar_transition.dart";
+import "library_workbench_metrics.dart";
 
 class LibraryWorkbench extends ConsumerStatefulWidget {
   const LibraryWorkbench({
@@ -37,7 +38,6 @@ class LibraryWorkbench extends ConsumerStatefulWidget {
 }
 
 class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
-  static const railWidth = 64.0;
   final Set<LibraryWorkspace> _visited = {LibraryWorkspace.gallery};
   late double _sidebarWidth;
 
@@ -101,6 +101,7 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
               expanded
                   ? Symbols.left_panel_close_rounded
                   : Symbols.left_panel_open_rounded,
+              size: LibraryWorkbenchMetrics.iconSize,
             ),
           ),
         );
@@ -181,7 +182,7 @@ class _FunctionRail extends ConsumerWidget {
     final controller = ref.read(libraryWorkbenchControllerProvider.notifier);
     return NavigationRail(
       key: const Key("library-function-rail"),
-      minWidth: _LibraryWorkbenchState.railWidth,
+      minWidth: LibraryWorkbenchMetrics.railWidth,
       backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
       labelType: NavigationRailLabelType.all,
       selectedIndex: switch (workspace) {
@@ -196,12 +197,17 @@ class _FunctionRail extends ConsumerWidget {
         NavigationRailDestination(
           icon: Icon(
             Symbols.photo_library_rounded,
+            size: LibraryWorkbenchMetrics.iconSize,
             key: Key("workbench-gallery"),
           ),
           label: Text(LibraryStrings.library),
         ),
         NavigationRailDestination(
-          icon: Icon(Symbols.stacks_rounded, key: Key("workbench-duplicates")),
+          icon: Icon(
+            Symbols.stacks_rounded,
+            size: LibraryWorkbenchMetrics.iconSize,
+            key: Key("workbench-duplicates"),
+          ),
           label: Text(LibraryWorkbenchStrings.duplicates),
         ),
       ],
@@ -218,7 +224,10 @@ class _FunctionRail extends ConsumerWidget {
                 key: const Key("library-sidebar-settings"),
                 isSelected: workspace == LibraryWorkspace.settings,
                 onPressed: () => controller.select(LibraryWorkspace.settings),
-                icon: const Icon(Symbols.settings_rounded),
+                icon: const Icon(
+                  Symbols.settings_rounded,
+                  size: LibraryWorkbenchMetrics.iconSize,
+                ),
               ),
             ),
           ],

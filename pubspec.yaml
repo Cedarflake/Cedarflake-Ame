@@ -35,3 +35,6 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+  assets:
+    - assets/branding/ame_light.png
+    - assets/branding/ame_outline.png

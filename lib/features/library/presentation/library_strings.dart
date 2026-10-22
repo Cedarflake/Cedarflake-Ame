@@ -15,7 +15,7 @@ abstract final class LibraryStrings {
   static const exitViewerFullscreen = "退出全屏（Esc / F11）";
 
   // 顶部栏｜应用名称、搜索框占位文字和清除搜索按钮。
-  static const appName = "Ame";
+  static const appName = "Cedarflake Ame";
   static const searchHint = "在图库中搜索";
   static const clearSearch = "清除搜索";
 

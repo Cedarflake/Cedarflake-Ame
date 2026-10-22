@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
-import "package:material_symbols_icons/symbols.dart";
 
+import "../presentation/ame_brand_mark.dart";
+import "../presentation/ame_typography.dart";
 import "ame_window_chrome.dart";
 
 class AmeWindowFrame extends StatelessWidget {
@@ -25,15 +26,25 @@ class AmeWindowFrame extends StatelessWidget {
               height: 40,
               child: Row(
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: AmeWindowDragRegion(
                       child: Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
                         child: Row(
                           children: [
-                            Icon(Symbols.photo_library_rounded, size: 18),
-                            SizedBox(width: 9),
-                            Text("Cedarflake Ame"),
+                            const AmeBrandMark(size: 18),
+                            const SizedBox(width: 9),
+                            Flexible(
+                              child: Text(
+                                "Cedarflake Ame",
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: colorScheme.primary,
+                                  fontWeight: ameFontWeightSemibold,
+                                ),
+                              ),
+                            ),
                           ],
                         ),
                       ),

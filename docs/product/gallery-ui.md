@@ -239,6 +239,12 @@ control, and app-drawn window controls; library import and settings do not appea
 notification control is immediately before the caption controls. It uses the ordinary notification
 icon when read and the notification-with-dot icon when unread, without a text label or count.
 
+The application mark in the global bar uses a tonal fill and a two-logical-pixel contour in the
+theme's primary color. It shares a 28-logical-pixel size and horizontal center with the primary
+navigation rail. The Windows application icon uses the colored artwork; the title-bar mark retains
+the same vector shape. The adjacent "Cedarflake Ame" label uses semibold text in the theme's primary
+color and follows the existing compact-window rule that keeps only the mark visible.
+
 There is no permanent Task button or task-center navigation entry. While an import or library update
 is active, a temporary bottom progress surface uses the concrete action name, reports progress and
 offers cancellation. After completion, the same surface changes to an explicit completed result,

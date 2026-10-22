@@ -1,3 +1,4 @@
+import "package:cedarflake_ame/app/presentation/ame_brand_mark.dart";
 import "package:cedarflake_ame/app/window/ame_window_frame.dart";
 import "package:cedarflake_ame/app/window/ame_window_actions.dart";
 import "package:flutter/foundation.dart";
@@ -18,6 +19,7 @@ void main() {
       ),
     );
 
+    expect(find.byType(AmeBrandMark), findsOneWidget);
     expect(find.text("Cedarflake Ame"), findsOneWidget);
     expect(find.byType(DragToMoveArea), findsOneWidget);
     expect(find.byKey(const Key("window-minimize")), findsOneWidget);
