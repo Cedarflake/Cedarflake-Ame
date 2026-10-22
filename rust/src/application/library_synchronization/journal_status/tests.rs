@@ -161,3 +161,55 @@ fn startup_check_preserves_unavailable_failed_and_active_work_feedback() {
         assert_eq!(status, before);
     }
 }
+
+#[test]
+fn retained_failure_with_an_empty_queue_exposes_recovery_instead_of_completion() {
+    for (code, expected, blocked) in [
+        (
+            "persistent_journal_request_invalid",
+            LibrarySynchronizationPhase::Reconciliation,
+            false,
+        ),
+        (
+            "persistent_journal_protocol_mismatch",
+            LibrarySynchronizationPhase::Blocked,
+            true,
+        ),
+    ] {
+        let mut status = retained_current("root-a", 1);
+        status.continuity = PersistentJournalContinuityState::RecoveryRequired;
+        project_retained_failure(
+            &mut status,
+            &PersistentJournalFailure {
+                code: code.into(),
+                message: "Retained checkpoint failure".into(),
+            },
+        );
+        assert_ne!(status.freshness, CatalogFreshnessState::Synchronized);
+        assert_eq!(status.phase, expected);
+        assert_eq!(status.recovery_blocked, blocked);
+        assert_eq!(status.last_issue_code.as_deref(), Some(code));
+        assert_eq!(status.pending_change_count, 0);
+    }
+}
+
+#[test]
+fn retained_failure_does_not_replace_active_or_blocked_recovery_feedback() {
+    let failure = PersistentJournalFailure {
+        code: "persistent_journal_request_invalid".into(),
+        message: "Retained registration failure".into(),
+    };
+    for phase in [
+        LibrarySynchronizationPhase::FullScan,
+        LibrarySynchronizationPhase::InventoryEnumeration,
+        LibrarySynchronizationPhase::RetryWait,
+        LibrarySynchronizationPhase::Blocked,
+        LibrarySynchronizationPhase::Unavailable,
+    ] {
+        let mut status = paused_between_pages();
+        status.phase = phase;
+        let before = status.clone();
+        project_retained_failure(&mut status, &failure);
+        assert_eq!(status, before);
+    }
+}

@@ -288,6 +288,12 @@ impl SessionBackedPersistentJournalVolumeReader {
                             )),
                         ));
                     } else {
+                        if let Some(failure) =
+                            super::recovery_probe::reprobed_failure(checkpoint, &opening)
+                        {
+                            outcomes.push((key, Err(failure)));
+                            continue;
+                        }
                         openings.insert(key.clone(), opening.clone());
                         let read_end = match self.read_windows.end(checkpoint, next_usn) {
                             Ok(end) => end,

@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
 use crate::adapters::SqliteCatalog;
+use crate::application::persistent_journal_continuity::can_reprobe_journal_failure;
 use crate::domain::{
     LibraryChangeSourceHealth, LibraryRootAvailability, LibrarySynchronizationPhase,
     LibrarySynchronizationSnapshot, PersistentJournalCapabilityState,
@@ -38,12 +39,7 @@ pub(super) fn select(
         else {
             continue;
         };
-        if checkpoint.continuity != PersistentJournalContinuityState::RecoveryRequired
-            || checkpoint
-                .failure
-                .as_ref()
-                .is_none_or(|failure| failure.code != "identity_journal_hardlinks_not_supported")
-        {
+        if !can_reprobe_journal_failure(&checkpoint) {
             continue;
         }
         let Some(root) = catalog.load_incremental_catalog_root(&capability.root_id)? else {
@@ -52,9 +48,8 @@ pub(super) fn select(
         if root.root_generation != capability.root_generation || root.has_running_scan {
             continue;
         }
-        // Older versions retained the failed checkpoint without enrolling recovery. Probe one
-        // root in the existing journal worker; its fresh boundary and durable recovery task
-        // precede inventory, and pending recovery excludes subsequent probes.
+        // A fresh root/boundary probe must create durable recovery before inventory.
+        // Pending recovery excludes subsequent probes of the retained failure.
         return Ok(Some(JournalVolumeWork {
             key: format!("recovery|{}", capability.root_id),
             roots: vec![JournalRootWork {

@@ -2,11 +2,13 @@ use std::collections::BTreeMap;
 
 use crate::adapters::SqliteCatalog;
 use crate::application::JournalCaptureWindowReport;
+use crate::application::persistent_journal_continuity::can_reprobe_failure;
 use crate::domain::{
     CatalogFreshnessCause, CatalogFreshnessState, LibraryChangeSourceHealth,
     LibraryRootAvailability, LibraryRootGeneration, LibraryRootSynchronizationStatus,
     LibrarySynchronizationPhase, LibrarySynchronizationSnapshot, MetadataInventoryRunStatus,
-    PersistentJournalBaselinePhase, PersistentJournalContinuityState, ScanError,
+    PersistentJournalBaselinePhase, PersistentJournalContinuityState, PersistentJournalFailure,
+    ScanError,
 };
 use crate::journal_broker::PersistentChangeJournalConnection;
 use crate::ports::{MetadataInventoryRepository, PersistentJournalRepository};
@@ -62,6 +64,14 @@ impl JournalStatusOwner {
                 }
             }
             self.apply_session_progress(status);
+            if status.continuity == PersistentJournalContinuityState::RecoveryRequired
+                && let Some(generation) = LibraryRootGeneration::new(status.root_generation)
+                && let Some(checkpoint) =
+                    catalog.load_persistent_journal_checkpoint(&status.root_id, generation)?
+                && let Some(failure) = checkpoint.failure.as_ref()
+            {
+                project_retained_failure(status, failure);
+            }
             let Some(baseline) = baselines.iter().find(|baseline| {
                 baseline.root_id == status.root_id
                     && baseline.root_generation.value() == status.root_generation
@@ -106,6 +116,31 @@ impl JournalStatusOwner {
                 LibrarySynchronizationPhase::Reconciliation,
             );
         }
+    }
+}
+
+fn project_retained_failure(
+    status: &mut LibraryRootSynchronizationStatus,
+    failure: &PersistentJournalFailure,
+) {
+    if status.freshness != CatalogFreshnessState::Synchronized
+        || status.phase != LibrarySynchronizationPhase::Synchronized
+        || status.source_health != LibraryChangeSourceHealth::Healthy
+        || status.recovery_blocked
+        || status.last_issue_code.is_some()
+    {
+        return;
+    }
+    status.last_issue_code = Some(failure.code.clone());
+    if can_reprobe_failure(failure) {
+        status.freshness = CatalogFreshnessState::Updating;
+        status.freshness_cause = CatalogFreshnessCause::EvidenceGap;
+        status.phase = LibrarySynchronizationPhase::Reconciliation;
+    } else {
+        status.freshness = CatalogFreshnessState::NeedsReconciliation;
+        status.freshness_cause = CatalogFreshnessCause::EvidenceGap;
+        status.phase = LibrarySynchronizationPhase::Blocked;
+        status.recovery_blocked = true;
     }
 }
 

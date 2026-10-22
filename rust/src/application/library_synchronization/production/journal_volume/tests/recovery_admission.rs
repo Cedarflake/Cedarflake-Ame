@@ -29,14 +29,19 @@ fn interrupt(fixture: &mut Fixture, root_id: &str, code: &str) {
 
 #[test]
 fn retained_alias_failure_selects_one_fresh_probe_and_preserves_the_checkpoint() {
+    assert_retained_failure_admission("identity_journal_hardlinks_not_supported");
+}
+
+#[test]
+fn retained_registration_failure_selects_one_probe_without_clearing_evidence() {
+    assert_retained_failure_admission("persistent_journal_request_invalid");
+}
+
+fn assert_retained_failure_admission(code: &str) {
     let mut fixture = Fixture::new();
     for index in 0..10 {
         let root = fixture.add_root(index, ("volume-a", 7, 44));
-        interrupt(
-            &mut fixture,
-            &root,
-            "identity_journal_hardlinks_not_supported",
-        );
+        interrupt(&mut fixture, &root, code);
     }
     let before = fixture
         .catalog

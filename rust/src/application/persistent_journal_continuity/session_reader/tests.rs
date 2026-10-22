@@ -1033,6 +1033,33 @@ fn caller() -> CallerClaim {
 }
 
 #[test]
+fn retained_registration_failure_captures_recovery_without_advancing_a_read() {
+    let state = Arc::new(SessionState::default());
+    let reader = reader(Arc::clone(&state));
+    let mut previous = checkpoint("root-a", 1, 20);
+    previous.continuity = PersistentJournalContinuityState::RecoveryRequired;
+    previous.failure = Some(PersistentJournalFailure {
+        code: "persistent_journal_request_invalid".into(),
+        message: "Retained registration failure".into(),
+    });
+    let outcomes = reader
+        .read_volume(&[previous.clone()], &[], 500, &AtomicBool::new(false))
+        .expect("fresh root and journal probe");
+    let failure = outcomes[0].page.as_ref().expect_err("recovery is required");
+    assert_eq!(
+        failure.kind,
+        PersistentJournalRootFailureKind::JournalReconstructionFailure
+    );
+    let opening = failure.opening_boundary.as_ref().expect("verified opening");
+    assert_eq!(opening.next_usn, previous.next_unread_usn);
+    assert_eq!(opening.volume, previous.volume);
+    assert_eq!(opening.root_file_reference, previous.root_file_reference);
+    assert_eq!(state.register_count.load(Ordering::Acquire), 1);
+    assert_eq!(state.query_count.load(Ordering::Acquire), 1);
+    assert_eq!(state.shared_read_count.load(Ordering::Acquire), 0);
+}
+
+#[test]
 fn empty_replay_validates_coverage_without_enrolling_a_zero_length_source_range() {
     let checkpoint = checkpoint("root-a", 1, 20);
     let outcome = SharedJournalRootOutcome {

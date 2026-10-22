@@ -163,17 +163,8 @@ impl IdentityPersistentJournalVolumeReader {
                 Some(&opening),
             ));
         }
-        if checkpoint.continuity
-            == crate::domain::PersistentJournalContinuityState::RecoveryRequired
-            && let Some(failure) = checkpoint
-                .failure
-                .as_ref()
-                .filter(|failure| failure.code == "identity_journal_hardlinks_not_supported")
-        {
-            return Err(from_error(
-                ScanError::new(&failure.code, &failure.message),
-                Some(&opening),
-            ));
+        if let Some(failure) = super::recovery_probe::reprobed_failure(checkpoint, &opening) {
+            return Err(failure);
         }
         if !self
             .namespace

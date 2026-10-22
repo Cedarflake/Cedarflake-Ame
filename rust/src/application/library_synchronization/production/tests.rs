@@ -21,6 +21,8 @@ mod recovery_fairness;
 #[cfg(windows)]
 mod recovery_status;
 #[cfg(windows)]
+mod registration_recovery;
+#[cfg(windows)]
 mod startup;
 
 #[cfg(windows)]

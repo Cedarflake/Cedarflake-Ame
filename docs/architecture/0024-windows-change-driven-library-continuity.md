@@ -1281,6 +1281,15 @@ First import, explicit `更新图库`, and resumption of their exact foreground 
 only full media-scan authorities. They are not automatic P2 work. Ordinary startup, elapsed time, an
 empty journal range, queue size, slow media, and a healthy watcher do not authorize inventory.
 
+Retained local registration and formerly unsupported hardlink failures may leave a failed checkpoint
+without a recovery consumer. For those known failure codes, production may probe one available,
+current-generation root with no pending recovery work. The shared admission policy requires fresh
+root registration and a verified journal opening before enrolling reconstruction. It retains the
+failed checkpoint through inventory until the closing boundary is admitted; closing replay and
+atomic publication must still establish freshness.
+An empty queue or successful probe alone cannot restore `Current`. Status projection exposes that
+pending recovery; unrelated nonrecoverable failures remain blocked with their structured issue.
+
 When a continuous journal range can cover a live gap, one SQLite transaction first persists the P1
 source-range ownership and exact P0 lineage, then supersedes the P0 row. Publishing the covering
 range may complete that transfer in the same transaction; a claimed but not yet published range

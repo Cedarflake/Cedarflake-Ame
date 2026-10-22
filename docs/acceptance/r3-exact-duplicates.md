@@ -1406,6 +1406,47 @@ the source branch was removed locally and remotely after verifying an identical 
 integrates the first-import candidate, return-to-top lifetime repair and compact source status above.
 Automatic main-branch runs retain their own results; these results cover the exact pre-merge head.
 
+### Retained registration failure and source status
+
+On 2026-10-22, the established `local-primary` client rendered `尚未核对` while its queue was
+empty. Its status combined synchronized freshness with `RecoveryRequired`. Read-only catalog
+inspection found a retained `persistent_journal_request_invalid` checkpoint, a completed older
+first-import baseline, and no active recovery authority. The local root-description failure had
+been classified as nonrecoverable, so ordinary startup had no consumer for the missing evidence.
+The earlier native registration failure preceded an abnormal client exit; its native cause remains
+unresolved and is not required to reproduce this persisted-state defect.
+
+The existing bounded recovery admission now shares a known-failure policy with both journal readers
+and status projection. It admits one idle, available, current-generation root, revalidates physical
+registration and the journal opening, and enrolls the existing indexed-startup and materialized
+inventory workflow. The failed checkpoint is retained through inventory. Closing replay and atomic
+completion establish current continuity; neither an empty queue nor the probe does so. Unrelated
+nonrecoverable errors project blocked status with their issue. Active, unavailable, retry and failed
+recovery states retain their existing precedence. No schema, bridge, source-write, dependency or
+presentation wording change is involved.
+
+Fourteen distinct focused Rust regressions pass, including a controlled actual-file workflow that
+starts with a retained registration failure, publishes an offline addition, completes recovery,
+reopens the catalog and starts another runtime without another baseline. Source bytes are unchanged
+and the fixture records no automatic full media scan. The status cases cover an empty queue,
+unknown errors and existing work; admission retains root isolation, generation, availability and
+pending-work guards. Initial test failures were incorrect history-query assertions, corrected against
+the adapter's active-baseline filter and the actual schema; the product recovery already completed.
+
+The Windows Debug client was rebuilt and restarted with the established catalog. It automatically
+completed a reconstruction authority in 78.573 seconds, cleared the checkpoint failure and reached
+`Current` with zero pending, retry or gap counts. This is the one-time recovery interval for the
+retained failure, not a startup latency benchmark. Inspection of the mounted source tile confirmed
+`已同步` after normal gallery-result refresh. A second normal close and launch performed ordinary
+journal catch-up, retained the same completed recovery baseline and again rendered `已同步`.
+The existing gallery was preserved; no catalog reset, source mutation or hydration was requested.
+
+The shared recovery policy has 32 production lines. Admission/status have 62/192, and the existing
+identity/session readers have 434/1,151. These owners contain no inline tests; their dedicated
+admission/status/reader tests have 127/215/753/1,112 lines. The new production recovery regression
+has 135 lines. Recovery eligibility is owned by the shared policy; existing reader and publication
+boundaries remain intact. Applicable hosted checks remain specific to the published commit.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

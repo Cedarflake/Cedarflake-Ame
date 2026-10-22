@@ -68,4 +68,7 @@ continues through the existing guarded provider; the test used two already-local
 images and preserved the existing catalog. These six samples establish the scoped
 Debug improvement, not a universal latency guarantee.
 
-Exact-commit hosted checks are pending publication.
+Commit `a8cbc845383619e37ea71236bec34eda30cc1a25` passed
+[Actions run 39774050631](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39774050631):
+all Daily components, five synthetic workloads, unsigned Windows Release and the aggregate gate.
+The three signing-only jobs were skipped by the existing daily-mode conditions.

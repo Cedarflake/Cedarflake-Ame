@@ -70,13 +70,21 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
+The source-status maintenance repairs retained local journal registration failures that left an
+empty queue without a recovery consumer. Known failures now revalidate the root and journal opening
+before entering the existing background verification. Focused regressions and the retained-library
+client pass, including a second startup with ordinary catch-up and `已同步`. The
+[scoped evidence](acceptance/r3-exact-duplicates.md#retained-registration-failure-and-source-status)
+records recovery, status precedence and source preservation. Hosted verification follows publication;
+this maintenance does not reopen R2c/R3 or start R4.
+
 The requested foreground-image maintenance adjusts the Windows engine's image I/O
 thread to normal priority at startup. Its scope is the reproducible upload wait on
 a two-core device; the separate five-minute Release observation is deferred by user
 direction. Preserve source leases, cancellation, catalog state and other worker
 priorities. The [scoped evidence](acceptance/viewer-scheduling.md) owns the measured
 diagnosis and verification. The actual-engine checks and cloud Debug comparison
-pass; publication and hosted verification remain pending. This maintenance does
+pass, and commit `a8cbc84` passed its applicable hosted checks. This maintenance does
 not start R4.
 
 The requested [first-import performance maintenance](plans/first-import-performance.md) stops at

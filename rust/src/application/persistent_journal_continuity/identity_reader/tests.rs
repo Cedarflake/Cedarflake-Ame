@@ -706,6 +706,15 @@ fn failed_alias_page_enters_recovery_without_publishing_partial_locations() {
 
 #[test]
 fn retained_alias_failure_captures_a_new_opening_without_replaying_the_failed_page() {
+    assert_retained_failure_recovery("identity_journal_hardlinks_not_supported");
+}
+
+#[test]
+fn retained_registration_failure_requires_verified_recovery_before_current() {
+    assert_retained_failure_recovery("persistent_journal_request_invalid");
+}
+
+fn assert_retained_failure_recovery(code: &str) {
     let source = Arc::new(Source {
         reads: AtomicUsize::new(0),
         resolutions: AtomicUsize::new(0),
@@ -721,8 +730,8 @@ fn retained_alias_failure_captures_a_new_opening_without_replaying_the_failed_pa
     previous.continuity = PersistentJournalContinuityState::RecoveryRequired;
     previous.captured_exclusive_end = JournalUsn::new(20).unwrap();
     previous.failure = Some(PersistentJournalFailure {
-        code: "identity_journal_hardlinks_not_supported".to_owned(),
-        message: "Retained alias lookup failure".to_owned(),
+        code: code.to_owned(),
+        message: "Retained native lookup failure".to_owned(),
     });
     let outcomes = reader
         .read_volume(&[previous], &[], 2, &AtomicBool::new(false))
