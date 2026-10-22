@@ -229,10 +229,33 @@ void main() {
 
     expect(find.text("25%"), findsOneWidget);
 
+    final originalPixels = tester.widget<RawImage>(find.byType(RawImage)).image;
+    expect(
+      tester.widget<RawImage>(find.byType(RawImage)).filterQuality,
+      FilterQuality.medium,
+    );
+
     await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text("100%"), findsOneWidget);
+
+    expect(
+      tester.widget<RawImage>(find.byType(RawImage)).filterQuality,
+      FilterQuality.low,
+    );
+    await tester.tap(find.byKey(const Key("viewer-zoom-in")));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<RawImage>(find.byType(RawImage)).filterQuality,
+      FilterQuality.high,
+    );
+    expect(
+      tester.widget<RawImage>(find.byType(RawImage)).image,
+      same(originalPixels),
+    );
+    await tester.tap(find.byKey(const Key("viewer-zoom-out")));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
     await tester.pump();

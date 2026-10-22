@@ -457,8 +457,18 @@ Initial defaults are `等高 + 中等`.
 - `等高` uses an aspect-preserving justified photo wall.
 - `方形` uses a uniform square grid and may crop thumbnails for presentation only; source media is
   never changed.
-- `小`, `中等`, and `大` adjust the target visual density without changing the bounded lazy-loading
-  and decoding rules.
+- `小`, `中等`, and `大` target 128, 192, and 256 logical pixels in both layouts. Equal-height rows
+  keep that height; square tiles divide the available width into the corresponding column count.
+  Lazy loading and decoding remain bounded.
+
+Equal-height packing compares ending a row before or after the next image. It may reduce wider
+cells to keep neighboring images together, while retaining the 128-pixel action width floor and
+item order. Completed rows fill the wall even when they contain a single image; a sparse final row
+keeps its natural width.
+
+Preview demand includes the scale needed to fill the card before cropping and the display's pixel
+density. Narrow and panoramic images use the existing size buckets up to 1024 pixels; generation
+and decoded-image sizing must both retain the requested detail without changing the card's crop.
 
 Both choices apply to the same unified gallery canvas and preserve stable item identity and scroll
 position when possible. Consecutive density or shape choices retain the same image and fractional
@@ -601,6 +611,10 @@ Other anchors clamp to the available scroll extent.
 - Opening an image and returning restores its prior gallery item and scroll position.
 
 ## Single-image loading and zoom
+
+Original-image sampling follows the rendered physical-pixel scale, including viewport fitting,
+zoom and display density: mipmapped filtering for reduction, bilinear at one-to-one pixels, and
+bicubic for enlargement. Zoom geometry and source resolution remain independent of this choice.
 
 While an original image is loading, its progress indicator stays at the center of the image
 viewport. Zoom, pan and wheel input transform the image or retained preview, never the indicator.

@@ -5,6 +5,28 @@ import "package:cedarflake_ame/features/settings/application/ame_preferences.dar
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test("sampling follows physical pixels rather than the zoom label", () {
+    const geometry = LibraryViewerZoomGeometry(
+      imageSize: Size(4000, 2000),
+      viewportSize: Size(1000, 600),
+    );
+    for (final density in [1.0, 1.5, 2.0]) {
+      final oneToOne = geometry.actualSizeScale / density;
+      expect(
+        geometry.filterQualityForScale(oneToOne / 8, density),
+        FilterQuality.medium,
+      );
+      expect(
+        geometry.filterQualityForScale(oneToOne, density),
+        FilterQuality.low,
+      );
+      expect(
+        geometry.filterQualityForScale(oneToOne * 2, density),
+        FilterQuality.high,
+      );
+    }
+  });
+
   test(
     "automatic opening shrinks oversized images and never enlarges fitting images",
     () {

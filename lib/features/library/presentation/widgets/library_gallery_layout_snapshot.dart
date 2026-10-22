@@ -5,6 +5,7 @@ import "../../domain/gallery_layout_manifest.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
+import "justified_gallery_layout.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
 
@@ -58,8 +59,6 @@ class LibraryGalleryLayoutSnapshot {
     final itemEndOffsets = Float64List(manifest.itemCount);
     final dateAnchors = <LibraryGalleryDateAnchor>[];
     final targetRowHeight = thumbnailSize.targetExtent;
-    final minimumAspectRatio =
-        math.min(minimumCellWidth, availableWidth) / targetRowHeight;
     var entryExtent = 0.0;
     var groupStart = 0;
     var activeDateKey = _normalizedDateKey(manifest.dateKeyAt(0));
@@ -136,78 +135,37 @@ class LibraryGalleryLayoutSnapshot {
         return;
       }
 
-      var rowStart = start;
-      final rowRatios = <double>[];
-      var naturalRowWidth = 0.0;
-
-      void appendRow({required bool shouldFillWidth}) {
-        if (rowRatios.isEmpty) {
-          return;
-        }
-        final availableImageWidth =
-            availableWidth -
-            LibraryGalleryLayoutEntry.spacing * (rowRatios.length - 1);
-        final naturalImageWidth = rowRatios.fold<double>(
-          0,
-          (sum, ratio) => sum + targetRowHeight * ratio,
-        );
-        final widthScale = shouldFillWidth && naturalImageWidth > 0
-            ? availableImageWidth / naturalImageWidth
-            : 1.0;
-        final widths = Float32List(rowRatios.length);
-        var occupiedWidth = 0.0;
-        for (var index = 0; index < rowRatios.length; index++) {
-          final isLast = index == rowRatios.length - 1;
-          final naturalWidth = targetRowHeight * rowRatios[index];
-          final width = shouldFillWidth && isLast
-              ? availableImageWidth - occupiedWidth
-              : (naturalWidth * widthScale).clamp(0.0, availableImageWidth);
-          widths[index] = width;
-          occupiedWidth += width;
-        }
+      final rows =
+          JustifiedGalleryLayout(
+            targetRowHeight: targetRowHeight,
+            spacing: LibraryGalleryLayoutEntry.spacing,
+            minimumCellWidth: minimumCellWidth,
+          ).computeRows(
+            itemCount: end - start,
+            aspectRatioAt: (index) => manifest.aspectRatioAt(start + index),
+            availableWidth: availableWidth,
+          );
+      for (final row in rows) {
+        final rowStart = start + row.cells.first.itemIndex;
         final rowOffset = _topPadding + entryExtent;
         final rowEndOffset =
-            rowOffset + targetRowHeight + LibraryGalleryLayoutEntry.spacing;
-        for (var index = 0; index < rowRatios.length; index++) {
+            rowOffset + row.height + LibraryGalleryLayoutEntry.spacing;
+        for (var index = 0; index < row.cells.length; index++) {
           itemOffsets[rowStart + index] = rowOffset;
           itemEndOffsets[rowStart + index] = rowEndOffset;
         }
         appendEntry(
           LibraryGalleryLayoutSnapshotEntry.row(
             startItemIndex: rowStart,
-            itemCount: rowRatios.length,
+            itemCount: row.cells.length,
             monthKey: monthKey,
-            rowHeight: targetRowHeight,
-            cellWidths: widths,
+            rowHeight: row.height,
+            cellWidths: Float32List.fromList([
+              for (final cell in row.cells) cell.width,
+            ]),
           ),
         );
-        rowStart += rowRatios.length;
-        rowRatios.clear();
-        naturalRowWidth = 0;
       }
-
-      for (var itemIndex = start; itemIndex < end; itemIndex++) {
-        final ratio = math.max(
-          _normalizeAspectRatio(manifest.aspectRatioAt(itemIndex)),
-          minimumAspectRatio,
-        );
-        final naturalWidth = targetRowHeight * ratio;
-        final nextWidth = naturalRowWidth == 0
-            ? naturalWidth
-            : naturalRowWidth +
-                  LibraryGalleryLayoutEntry.spacing +
-                  naturalWidth;
-        if (naturalRowWidth > 0 && nextWidth > availableWidth) {
-          appendRow(shouldFillWidth: true);
-        }
-        rowRatios.add(ratio);
-        naturalRowWidth = naturalRowWidth == 0
-            ? naturalWidth
-            : naturalRowWidth +
-                  LibraryGalleryLayoutEntry.spacing +
-                  naturalWidth;
-      }
-      appendRow(shouldFillWidth: false);
       appendEntry(
         LibraryGalleryLayoutSnapshotEntry.gap(
           itemIndex: end - 1,
@@ -338,22 +296,26 @@ class LibraryGalleryLayoutSnapshot {
     return (lower - 1).clamp(0, entries.length - 1).toInt();
   }
 
-  double displayExtentForItemIndex(int itemIndex) {
+  ({double width, double height}) displaySizeForItemIndex(int itemIndex) {
+    final fallback = (
+      width: thumbnailSize.targetExtent,
+      height: thumbnailSize.targetExtent,
+    );
     if (itemIndex < 0 || itemIndex >= manifest.itemCount) {
-      return thumbnailSize.targetExtent;
+      return fallback;
     }
     final entryIndex = entryIndexForScrollOffset(
       metrics.itemOffsets[itemIndex],
     );
     if (entryIndex < 0) {
-      return thumbnailSize.targetExtent;
+      return fallback;
     }
     final entry = entries[entryIndex];
     final cellIndex = itemIndex - entry.startItemIndex;
     if (cellIndex < 0 || cellIndex >= entry.cellWidths.length) {
-      return thumbnailSize.targetExtent;
+      return fallback;
     }
-    return math.max(entry.rowHeight, entry.cellWidths[cellIndex]);
+    return (width: entry.cellWidths[cellIndex], height: entry.rowHeight);
   }
 
   ({double leading, double content, double trailing}) loadedWindowGeometry({
@@ -374,13 +336,6 @@ class LibraryGalleryLayoutSnapshot {
       content: math.max(0, loadedEnd - leading),
       trailing: math.max(0, metrics.contentExtent - loadedEnd),
     );
-  }
-
-  static double _normalizeAspectRatio(double value) {
-    if (!value.isFinite || value <= 0) {
-      return 1;
-    }
-    return value.clamp(0.2, 5.0).toDouble();
   }
 
   static String? _monthKey(String? dateKey) {

@@ -149,7 +149,7 @@ void main() {
         .where((entry) => entry.cells.isNotEmpty)
         .toList(growable: false);
     final tileSize = photoRows.first.rowHeight;
-    expect(tileSize, closeTo(161.66666666666666, 0.0001));
+    expect(tileSize, closeTo(195.2, 0.0001));
     expect(
       photoRows.every(
         (entry) =>
@@ -162,7 +162,7 @@ void main() {
     final sparseRows = photoRows
         .where((entry) => entry.cells.length < photoRows.first.cells.length)
         .toList(growable: false);
-    expect(sparseRows.map((entry) => entry.cells.length), [3, 3, 1]);
+    expect(sparseRows.map((entry) => entry.cells.length), [4, 3, 1]);
     expect(
       sparseRows.every(
         (entry) =>

@@ -5,8 +5,8 @@ export "../application/library_view_preferences.dart"
 
 extension GalleryThumbnailSizeValue on GalleryThumbnailSize {
   double get targetExtent => switch (this) {
-    GalleryThumbnailSize.small => 96,
-    GalleryThumbnailSize.medium => 138,
-    GalleryThumbnailSize.large => 190,
+    GalleryThumbnailSize.small => 128,
+    GalleryThumbnailSize.medium => 192,
+    GalleryThumbnailSize.large => 256,
   };
 }

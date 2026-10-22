@@ -183,7 +183,12 @@ class RecordingGalleryController extends LibraryController {
   final visibleRangeRequests = <({int start, int end})>[];
   final previewDemandRequests =
       <
-        ({List<String> visible, List<String> nearDirection, List<String> guard})
+        ({
+          List<String> visible,
+          List<String> nearDirection,
+          List<String> guard,
+          Map<String, int> edges,
+        })
       >[];
 
   @override
@@ -198,6 +203,7 @@ class RecordingGalleryController extends LibraryController {
       visible: [for (final asset in visible) asset.locationId],
       nearDirection: [for (final asset in nearDirection) asset.locationId],
       guard: [for (final asset in guard) asset.locationId],
+      edges: Map.of(previewEdges),
     ));
   }
 

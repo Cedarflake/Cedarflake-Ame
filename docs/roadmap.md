@@ -70,6 +70,12 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
+The requested image-rendering maintenance covers adaptive original-image sampling, sharper cropped
+previews, larger card densities in both gallery layouts and neighboring-image row packing. Its
+[scoped evidence](acceptance/image-rendering.md) owns the focused regressions, Windows client checks
+and retained resource limits. Hosted verification follows publication; this maintenance does not
+start R4.
+
 The source-status maintenance repairs retained local journal registration failures that left an
 empty queue without a recovery consumer. Known failures now revalidate the root and journal opening
 before entering the existing background verification. Focused regressions and the retained-library

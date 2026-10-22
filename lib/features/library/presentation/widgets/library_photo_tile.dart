@@ -13,6 +13,7 @@ import "../../application/library_preview_queue.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
+import "library_cover_preview_size.dart";
 import "library_image_reveal.dart";
 import "library_photo_tile_actions.dart";
 import "library_preview_feedback.dart";
@@ -217,11 +218,9 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   }
 
   Widget _buildReadyPreview(BuildContext context, LibraryAsset asset) {
-    final cacheWidth = libraryPreviewDecodeWidth(
-      widget.width,
-      MediaQuery.devicePixelRatioOf(context),
-    );
-    final previewEdge = _requestedPreviewEdge(context);
+    final size = _previewSize(context, asset);
+    final cacheWidth = size.decodeWidth;
+    final previewEdge = size.previewEdge;
     if (_isPreviewUpdateRequired) {
       return LibraryPreviewFeedback.failed(
         locationId: asset.locationId,
@@ -261,13 +260,21 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
     );
   }
 
-  int _requestedPreviewEdge(BuildContext context) {
-    final displayExtent = widget.width > widget.height
-        ? widget.width
-        : widget.height;
-    return libraryPreviewDecodeWidth(
-      displayExtent,
-      MediaQuery.devicePixelRatioOf(context),
+  int _requestedPreviewEdge(BuildContext context) => _previewSize(
+    context,
+    _controller.resolvePreview(widget.asset),
+  ).previewEdge;
+
+  LibraryCoverPreviewSize _previewSize(
+    BuildContext context,
+    LibraryAsset asset,
+  ) {
+    return libraryCoverPreviewSize(
+      imageWidth: asset.width,
+      imageHeight: asset.height,
+      width: widget.width,
+      height: widget.height,
+      devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
     );
   }
 

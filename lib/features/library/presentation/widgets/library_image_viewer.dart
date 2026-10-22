@@ -229,6 +229,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
       children: [
         LibraryViewerImage(
           asset: widget.asset,
+          zoomScale: _zoom.transform.value.getMaxScaleOnAxis(),
           imageBuilder: _buildTransformedImage,
           notice: switch (widget.sourceNotice) {
             null => null,

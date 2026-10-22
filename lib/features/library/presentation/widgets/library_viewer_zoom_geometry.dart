@@ -52,6 +52,13 @@ class LibraryViewerZoomGeometry {
 
   double percentageForScale(double scale) => scale * fitImageScale * 100;
 
+  FilterQuality filterQualityForScale(double scale, double devicePixelRatio) {
+    if (!hasImageDimensions) return FilterQuality.medium;
+    final physicalScale = scale * fitImageScale * devicePixelRatio;
+    if ((physicalScale - 1).abs() < 0.000001) return FilterQuality.low;
+    return physicalScale < 1 ? FilterQuality.medium : FilterQuality.high;
+  }
+
   double openingScale(ImageViewerOpenBehavior behavior) {
     return switch (behavior) {
       ImageViewerOpenBehavior.automatic => math.min(1, actualSizeScale),

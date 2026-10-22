@@ -9,6 +9,7 @@ import "../../domain/library_state.dart";
 import "../gallery_selection.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
+import "library_cover_preview_size.dart";
 import "library_exact_extent_sliver.dart";
 import "library_gallery_interaction.dart";
 import "library_gallery_viewport_feedback.dart";
@@ -169,10 +170,13 @@ class LibraryGalleryWall extends StatelessWidget {
         final previewEdgesByLocation = <String, int>{
           for (final entry in entries)
             for (final cell in entry.cells)
-              cell.asset.locationId: libraryPreviewDecodeWidth(
-                cell.width > entry.rowHeight ? cell.width : entry.rowHeight,
-                devicePixelRatio,
-              ),
+              cell.asset.locationId: libraryCoverPreviewSize(
+                imageWidth: cell.asset.width,
+                imageHeight: cell.asset.height,
+                width: cell.width,
+                height: entry.rowHeight,
+                devicePixelRatio: devicePixelRatio,
+              ).previewEdge,
         };
         final estimatedGeometry = LibraryVirtualGalleryGeometry.calculate(
           timeline: state.timeline,
@@ -1210,10 +1214,16 @@ class _ManifestLibraryGalleryWallState
       direction: direction,
       anchorGlobalItemIndex:
           centerPosition?.globalItemIndex ?? visibleRange.startGlobalItemIndex,
-      previewEdgeFor: (_, itemIndex) => libraryPreviewDecodeWidth(
-        snapshot.displayExtentForItemIndex(itemIndex),
-        MediaQuery.devicePixelRatioOf(context),
-      ),
+      previewEdgeFor: (asset, itemIndex) {
+        final size = snapshot.displaySizeForItemIndex(itemIndex);
+        return libraryCoverPreviewSize(
+          imageWidth: asset.width,
+          imageHeight: asset.height,
+          width: size.width,
+          height: size.height,
+          devicePixelRatio: MediaQuery.devicePixelRatioOf(context),
+        ).previewEdge;
+      },
     );
     widget.controller.ensureVisibleRange(
       startItemOffset: visibleRange.startGlobalItemIndex,

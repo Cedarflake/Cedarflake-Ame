@@ -13,6 +13,7 @@ import "library_source_image.dart";
 import "library_viewer_notice.dart";
 import "library_viewer_source_scope.dart";
 import "library_viewer_transition.dart";
+import "library_viewer_zoom_geometry.dart";
 
 typedef LibraryViewerImageBuilder =
     Widget Function(BuildContext context, Widget image);
@@ -23,6 +24,7 @@ class LibraryViewerImage extends StatefulWidget {
     this.sourceReadScheduler,
     this.sourceBufferLoader,
     this.imageBuilder,
+    this.zoomScale = 1,
     this.notice,
     super.key,
   });
@@ -31,6 +33,7 @@ class LibraryViewerImage extends StatefulWidget {
   final LibrarySourceReadScheduler? sourceReadScheduler;
   final LibrarySourceBufferLoader? sourceBufferLoader;
   final LibraryViewerImageBuilder? imageBuilder;
+  final double zoomScale;
   final Widget? notice;
 
   @override
@@ -91,40 +94,56 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      fit: StackFit.expand,
-      children: [_buildSource(context), ?widget.notice],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final geometry = LibraryViewerZoomGeometry(
+          imageSize: Size(
+            widget.asset.width.toDouble(),
+            widget.asset.height.toDouble(),
+          ),
+          viewportSize: constraints.biggest,
+        );
+        final quality = geometry.filterQualityForScale(
+          widget.zoomScale,
+          MediaQuery.devicePixelRatioOf(context),
+        );
+        return Stack(
+          fit: StackFit.expand,
+          children: [_buildSource(context, quality), ?widget.notice],
+        );
+      },
     );
   }
 
-  Widget _buildSource(BuildContext context) => LibraryImageReveal(
-    key: ValueKey(_sourceImage),
-    image: _sourceImage,
-    revealIdentity: _sourceImage,
-    duration: const Duration(milliseconds: 100),
-    placeholder: _hasPreview ? _buildPreview() : null,
-    semanticLabel: widget.asset.relativePath,
-    fit: BoxFit.contain,
-    filterQuality: FilterQuality.high,
-    frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          _buildImage(context, child),
-          if (frame == null && !wasSynchronouslyLoaded)
-            const IgnorePointer(
-              child: LibraryLoadingIndicator(
-                key: Key("viewer-image-loading"),
-                maximumDimension: 36,
-                minimumInset: 0,
-                strokeWidth: 4,
-              ),
-            ),
-        ],
+  Widget _buildSource(BuildContext context, FilterQuality quality) =>
+      LibraryImageReveal(
+        key: ValueKey(_sourceImage),
+        image: _sourceImage,
+        revealIdentity: _sourceImage,
+        duration: const Duration(milliseconds: 100),
+        placeholder: _hasPreview ? _buildPreview() : null,
+        semanticLabel: widget.asset.relativePath,
+        fit: BoxFit.contain,
+        filterQuality: quality,
+        frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+          return Stack(
+            fit: StackFit.expand,
+            children: [
+              _buildImage(context, child),
+              if (frame == null && !wasSynchronouslyLoaded)
+                const IgnorePointer(
+                  child: LibraryLoadingIndicator(
+                    key: Key("viewer-image-loading"),
+                    maximumDimension: 36,
+                    minimumInset: 0,
+                    strokeWidth: 4,
+                  ),
+                ),
+            ],
+          );
+        },
+        errorBuilder: (context, error, stackTrace) => _buildFailure(context),
       );
-    },
-    errorBuilder: (context, error, stackTrace) => _buildFailure(context),
-  );
 
   Widget _buildImage(BuildContext context, Widget image) =>
       widget.imageBuilder?.call(context, image) ?? image;

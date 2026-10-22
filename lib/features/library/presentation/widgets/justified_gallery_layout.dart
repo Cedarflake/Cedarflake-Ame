@@ -16,64 +16,83 @@ class JustifiedGalleryLayout {
   List<JustifiedGalleryRow> compute({
     required List<double> aspectRatios,
     required double availableWidth,
-  }) {
-    if (aspectRatios.isEmpty || availableWidth <= 0) {
-      return const [];
-    }
+  }) => computeRows(
+    itemCount: aspectRatios.length,
+    aspectRatioAt: (index) => aspectRatios[index],
+    availableWidth: availableWidth,
+  ).toList();
+
+  Iterable<JustifiedGalleryRow> computeRows({
+    required int itemCount,
+    required double Function(int) aspectRatioAt,
+    required double availableWidth,
+  }) sync* {
+    if (itemCount == 0 || availableWidth <= 0) return;
 
     final minimumAspectRatio =
         math.min(minimumCellWidth, availableWidth) / targetRowHeight;
-    final ratios = aspectRatios
-        .map(
-          (value) => math.max(_normalizeAspectRatio(value), minimumAspectRatio),
-        )
-        .toList();
-    final rows = <JustifiedGalleryRow>[];
+    var ratios = <double>[];
     var rowStart = 0;
     var naturalRowWidth = 0.0;
 
-    for (var itemIndex = 0; itemIndex < ratios.length; itemIndex++) {
-      final naturalWidth = targetRowHeight * ratios[itemIndex];
+    for (var itemIndex = 0; itemIndex < itemCount; itemIndex++) {
+      final ratio = math.max(
+        _normalizeAspectRatio(aspectRatioAt(itemIndex)),
+        minimumAspectRatio,
+      );
+      final naturalWidth = targetRowHeight * ratio;
       final nextWidth = naturalRowWidth == 0
           ? naturalWidth
           : naturalRowWidth + spacing + naturalWidth;
       if (naturalRowWidth > 0 && nextWidth > availableWidth) {
-        rows.add(
-          _buildRow(
+        final minimumOccupiedWidth =
+            minimumCellWidth * (ratios.length + 1) + spacing * ratios.length;
+        final fitsBetter =
+            nextWidth - availableWidth < availableWidth - naturalRowWidth;
+        if (minimumOccupiedWidth <= availableWidth && fitsBetter) {
+          ratios.add(ratio);
+          yield _buildRow(
             ratios: ratios,
             start: rowStart,
-            end: itemIndex,
             availableWidth: availableWidth,
             shouldFillWidth: true,
-          ),
+          );
+          ratios = [];
+          rowStart = itemIndex + 1;
+          naturalRowWidth = 0;
+          continue;
+        }
+        yield _buildRow(
+          ratios: ratios,
+          start: rowStart,
+          availableWidth: availableWidth,
+          shouldFillWidth: true,
         );
+        ratios = [];
         rowStart = itemIndex;
-        naturalRowWidth = naturalWidth;
-      } else {
-        naturalRowWidth = nextWidth;
+        naturalRowWidth = 0;
       }
+      ratios.add(ratio);
+      naturalRowWidth += (ratios.length > 1 ? spacing : 0) + naturalWidth;
     }
 
-    rows.add(
-      _buildRow(
+    if (ratios.isNotEmpty) {
+      yield _buildRow(
         ratios: ratios,
         start: rowStart,
-        end: ratios.length,
         availableWidth: availableWidth,
         shouldFillWidth: false,
-      ),
-    );
-    return rows;
+      );
+    }
   }
 
   JustifiedGalleryRow _buildRow({
     required List<double> ratios,
     required int start,
-    required int end,
     required double availableWidth,
     required bool shouldFillWidth,
   }) {
-    final rowRatios = ratios.sublist(start, end);
+    final rowRatios = ratios;
     final availableImageWidth =
         availableWidth - spacing * (rowRatios.length - 1);
     final naturalImageWidth = rowRatios.fold<double>(
@@ -83,15 +102,23 @@ class JustifiedGalleryLayout {
     final widthScale = shouldFillWidth && naturalImageWidth > 0
         ? availableImageWidth / naturalImageWidth
         : 1.0;
+    final floor = math.min(minimumCellWidth, availableWidth);
+    final flexibleWidth = naturalImageWidth - floor * rowRatios.length;
+    final availableFlexibleWidth =
+        availableImageWidth - floor * rowRatios.length;
     final cells = <JustifiedGalleryCell>[];
     var occupiedWidth = 0.0;
 
     for (var cellIndex = 0; cellIndex < rowRatios.length; cellIndex++) {
       final isLastCell = cellIndex == rowRatios.length - 1;
       final naturalWidth = targetRowHeight * rowRatios[cellIndex];
+      final scaledWidth = widthScale < 1 && flexibleWidth > 0
+          ? floor +
+                (naturalWidth - floor) * availableFlexibleWidth / flexibleWidth
+          : naturalWidth * widthScale;
       final width = shouldFillWidth && isLastCell
           ? availableImageWidth - occupiedWidth
-          : (naturalWidth * widthScale).clamp(0.0, availableImageWidth);
+          : scaledWidth.clamp(0.0, availableImageWidth);
       cells.add(
         JustifiedGalleryCell(itemIndex: start + cellIndex, width: width),
       );
