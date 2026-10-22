@@ -7,27 +7,14 @@ class AmeBrandMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
     return SizedBox.square(
       dimension: size,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          Image.asset(
-            "assets/branding/ame_light.png",
-            color: colors.primaryContainer,
-            colorBlendMode: BlendMode.srcIn,
-            filterQuality: FilterQuality.medium,
-            excludeFromSemantics: true,
-          ),
-          Image.asset(
-            "assets/branding/ame_outline.png",
-            color: colors.primary,
-            colorBlendMode: BlendMode.srcIn,
-            filterQuality: FilterQuality.medium,
-            excludeFromSemantics: true,
-          ),
-        ],
+      child: Image.asset(
+        "assets/branding/ame_outline.png",
+        color: Theme.of(context).colorScheme.primary,
+        colorBlendMode: BlendMode.srcIn,
+        filterQuality: FilterQuality.medium,
+        excludeFromSemantics: true,
       ),
     );
   }
