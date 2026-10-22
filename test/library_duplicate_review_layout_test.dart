@@ -285,6 +285,23 @@ void main() {
 
 class _PagedReview extends ReviewFixtureService {
   final groupCursors = <LibraryDuplicateGroupCursor?>[];
+
+  @override
+  Future<LibraryDuplicateReviewRange> seekGroups(
+    int index, {
+    required bool ignored,
+  }) async {
+    groupSeeks.add(index);
+    final start = index < 64 ? 0 : 64;
+    return LibraryDuplicateReviewRange(
+      startIndex: start,
+      page: await loadGroups(
+        start == 0 ? null : const LibraryDuplicateGroupCursor("page-one", 1024),
+        ignored: ignored,
+      ),
+    );
+  }
+
   @override
   Future<LibraryDuplicateReviewPage> loadGroups(
     LibraryDuplicateGroupCursor? after, {

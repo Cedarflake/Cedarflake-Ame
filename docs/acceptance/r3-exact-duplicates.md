@@ -1384,6 +1384,13 @@ That attempt also timed out in the external `application-ready` UIA probe after 
 with 5.162 seconds recorded loading UIAutomationClient and no reported element mismatch.
 The new head reruns the unchanged native assertions and deadline through normal CI.
 
+On `7252205`, static checks and Windows accessibility passed. The Flutter layout matrix exposed
+an outdated paged fixture: it inherited a seek response that always returned page zero, even
+when the viewport requested the final page. The fixture now returns the matching bounded range
+through its existing page data. All nine layout cases pass, preserving the four window widths,
+both text scales, group-count assertions, paging, member actions and preview-demand checks.
+The product implementation is unchanged by this fixture correction.
+
 The window, controller and service have 226, 183 and 170 production lines respectively; the
 SQLite group query has 148 and its repository owner has 199. None has inline tests. Dedicated
 window/seek/controller tests have 193, 159 and 310 lines; the new SQLite paging tests have 139.
