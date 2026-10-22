@@ -74,8 +74,8 @@ The requested [first-import performance maintenance](plans/first-import-performa
 the current candidate by user direction on 2026-10-22. Retain the measured catalog improvements and
 the subsequent coalesced progress commit; do not schedule further optimization or client imports.
 The measured 80.381-second cloud-primary import exceeds the earlier 60-second limit, and the latest
-progress-commit change has no new client timing. PR #44 retains this candidate alongside the scoped
-browsing follow-ups; its merge is authorized after current-head hosted verification. This disposition does not
+progress-commit change has no new client timing. PR #44 integrated this candidate alongside the scoped
+browsing follow-ups as `664da6a` after current-head hosted verification. This disposition does not
 claim the one-minute outcome or start R4. Its timings, source preservation, cache limitations and
 verification belong in the [acceptance record](acceptance/first-import-performance.md).
 
@@ -108,15 +108,15 @@ threshold for this maintenance scope.
 
 The time-rail return-to-top follow-up retires superseded queued and active navigation even when
 the new target is already loaded. Focused regressions and the corrected near-top-to-top client
-sequence pass; hosted verification and integration continue through the existing PR #44 on
-`codex/faster-first-import`. The [scoped evidence](acceptance/r3-exact-duplicates.md#returning-the-time-rail-to-the-loaded-top)
+sequence pass. Hosted verification passed and PR #44 integrated the change into `main`; its branch
+was removed locally and remotely. The [scoped evidence](acceptance/r3-exact-duplicates.md#returning-the-time-rail-to-the-loaded-top)
 retains the two request-lifetime boundaries. This does not reopen a completed stage.
 
 The duplicate-review follow-up uses a bounded direct-position read for distant group navigation
 and retained-position revalidation, with ordinary adjacent keyset paging and preserved user choices.
 Focused regressions and the rebuilt real-library client interaction pass; the user confirmed the
 loading issue resolved. Its [scoped evidence](acceptance/r3-exact-duplicates.md#direct-positioning-in-duplicate-review)
-and implementation remain on the existing PR #44 pending hosted verification and the authorized merge.
+and implementation were integrated through PR #44 after hosted verification.
 
 The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
 retains its delivered behavior. Time-rail input,

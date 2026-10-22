@@ -49,8 +49,8 @@ improve this result. Its extra scheduling machinery is removed; serial source in
 measured catalog improvements remain. The latest candidate also joins a full staging batch to its
 progress transaction, with 33 focused regressions passing. Its diagnostic has retired, temporary
 source instrumentation is restored, and the cloud checkout is clean. The original client catalog
-is restored with its recorded hashes. PR #44 retains this candidate together with the subsequent
-scoped browsing changes. Its merge is authorized after current-head hosted verification;
+is restored with its recorded hashes. PR #44 integrated this candidate together with the subsequent
+scoped browsing changes as `664da6a` after current-head hosted verification;
 no one-minute import result is established.
 
 [First-import measurements](../acceptance/first-import-performance.md) owns timings, source safety,

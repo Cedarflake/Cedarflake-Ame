@@ -1397,6 +1397,15 @@ window/seek/controller tests have 193, 159 and 310 lines; the new SQLite paging 
 The existing typed owners retain their responsibilities, and no larger decomposition is required
 for this bounded paging change. Hosted results remain specific to the pushed commit.
 
+[Actions run 39739270413](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39739270413)
+passed for `1d66b175d2cbbeff09aeb45a5e35e2e10b7a9b37`, including all Daily components, the five
+synthetic workloads, unsigned Windows Release and the aggregate gate. The three signing-only jobs
+were skipped by the existing daily-mode conditions. PR #44 merged on 2026-10-22 as
+`664da6a53bbdcd1e1a8c7f55c77ce2a6260c9b3f`. The local checkout fast-forwarded to that commit, and
+the source branch was removed locally and remotely after verifying an identical tree. This also
+integrates the first-import candidate, return-to-top lifetime repair and compact source status above.
+Automatic main-branch runs retain their own results; these results cover the exact pre-merge head.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head
