@@ -193,3 +193,38 @@ The 21 source-reconciliation, two row-write and one connected pause/resume regre
 The first sandboxed source-reconciliation invocation rejected preview fixtures at the existing
 namespace ACL boundary; the same 21 cases pass in the ordinary Windows user context without any
 permission or policy change. Hosted verification and the production-client comparison remain open.
+
+### Continued production-client comparison
+
+The cloud-primary Release backend at `d313d88210cdd5f21ca016fa5b73c3f9b7157754` completes the
+same full import in **80.381 seconds**, measured from scan admission to completed publication.
+The backend SHA-256 is `AA74E19DDCC9C6F7AB2744E848628AA9B1DC7D30C18F59AF8FD6EF8B18483FBA`.
+It accepts and publishes 19,028 locations from 19,142 visited entries, with the same 16 invalid
+capture-time and 21 metadata-parse issues. The actual gallery shows the complete catalog and
+thumbnails. A read-only bidirectional SQL comparison across the same ten source/metadata fields
+finds zero differences. The original catalog is restored with its recorded SHA-256 values;
+the comparison catalog remains preserved separately. The client uses the same frontend and SDK
+resolution described above. Its observed working set after completion is 248,496,128 bytes and
+peak working set 330,448,896 bytes. This sequential warm-library observation still exceeds 60 seconds.
+
+The next candidate overlaps source discovery/inspection with catalog writes through one scoped
+reader and an eight-result queue. Checkpoint frequency, issue handling, final validation and atomic
+publication remain intact. Resumes and scans with active locations retain serial prior-driven
+inspection. Operation diagnostics separately report consumer `InspectionWait`; worker time overlaps
+catalog work and is not added to the thread-local serial operation sum. Actual client timing remains
+pending for this candidate.
+
+The 50 focused local regressions cover the new bounded reader and failure protocol, entry metadata,
+retained hard links and repeated resumption, pause/cancel, finalization windows, live file changes
+and both serial/prefetched operation accounting. The diagnostic expectation was updated to charge
+prefetch waiting separately while preserving exact membership and source-directory assertions.
+The prefetch owner has 140 production lines and 148 dedicated test lines; traversal has 421
+production lines, and the scan facade has 754 source lines with its unchanged 5,521-line test owner.
+Entry processing has 212 production lines and 619 dedicated test lines across its existing files.
+File preparation has 191 production lines. Operation accounting has 175 test-support lines and
+348 dedicated test lines. None of these owners adds inline tests.
+
+The prior candidate's [CI run 39720418839](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39720418839)
+passed thirteen applicable component jobs but failed the ordinary-user real-journal restart test
+with repeated `identity_journal_file_attributes` failures. Its 402 other synchronization/scan tests
+passed. This failure remains under diagnosis; no rerun or reduced assertion establishes a pass.

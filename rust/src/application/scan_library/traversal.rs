@@ -6,7 +6,11 @@ use crate::ports::{CatalogRepository, MediaInspector};
 
 use super::entry_processing::{ScanEntryContext, ScanEntryOutcome, apply_scan_entry};
 use super::finalization::FinalizationPlan;
+use super::inspection_prefetch::{
+    InspectedVisit, InspectionMode, InspectionPrefetch, ScanInspection,
+};
 use super::{CHECKPOINT_INTERVAL, finish_if_controlled, retain_detached_scan, user_visible_issue};
+use super::{CONTROL_CANCEL, CONTROL_PAUSE, CONTROL_SUSPEND};
 
 const DIRECTORY_ENTRY_BATCH: usize = 256;
 const DIRECTORY_ENTRY_WINDOW: u32 = 256;
@@ -19,6 +23,7 @@ pub(super) struct ScanTraversalContext<'a, I> {
     pub root_id: &'a str,
     pub had_published_root: bool,
     pub has_active_locations: bool,
+    pub inspection_mode: InspectionMode,
 }
 
 pub(super) enum ScanTraversalOutcome {
@@ -33,7 +38,29 @@ pub(super) enum ScanTraversalOutcome {
 pub(super) fn traverse_scan(
     catalog: &mut SqliteCatalog,
     finalization: &mut FinalizationPlan,
-    context: ScanTraversalContext<'_, impl MediaInspector>,
+    context: ScanTraversalContext<'_, impl MediaInspector + Sync>,
+    checkpoint: &mut ScanCheckpoint,
+    issue_count: &mut u64,
+    publish: &mut impl FnMut(ScanEvent) -> bool,
+) -> Result<ScanTraversalOutcome, ScanError> {
+    std::thread::scope(|scope| {
+        traverse_with_scope(
+            scope,
+            catalog,
+            finalization,
+            context,
+            checkpoint,
+            issue_count,
+            publish,
+        )
+    })
+}
+
+fn traverse_with_scope<'scope, 'env>(
+    scope: &'scope std::thread::Scope<'scope, 'env>,
+    catalog: &mut SqliteCatalog,
+    finalization: &mut FinalizationPlan,
+    context: ScanTraversalContext<'scope, impl MediaInspector + Sync>,
     checkpoint: &mut ScanCheckpoint,
     issue_count: &mut u64,
     publish: &mut impl FnMut(ScanEvent) -> bool,
@@ -46,6 +73,7 @@ pub(super) fn traverse_scan(
         root_id,
         had_published_root,
         has_active_locations,
+        inspection_mode,
     } = context;
     let mut visited_entries = checkpoint.visited_entries;
     let mut accepted_items = checkpoint.accepted_items;
@@ -211,23 +239,45 @@ pub(super) fn traverse_scan(
                 break;
             }
 
-            for relative_path in relative_paths {
-                if finish_if_controlled(
-                    control.load(Ordering::Relaxed),
-                    catalog,
-                    request,
-                    checkpoint,
-                    *issue_count,
-                    publish,
-                    had_published_root,
-                )? {
+            let mut visits: Box<dyn Iterator<Item = Result<InspectedVisit, ScanError>> + '_> =
+                if inspection_mode == InspectionMode::Prefetch {
+                    Box::new(InspectionPrefetch::start(
+                        scope,
+                        discovery,
+                        inspector,
+                        relative_paths,
+                        control,
+                    )?)
+                } else {
+                    Box::new(relative_paths.into_iter().map(|relative_path| {
+                        Ok(InspectedVisit {
+                            visit: measure_scan_operation!(
+                                SourceDiscovery,
+                                discovery.visit_relative_path(&relative_path)
+                            ),
+                            inspection: ScanInspection::Deferred,
+                        })
+                    }))
+                };
+            loop {
+                let command = control.load(Ordering::Relaxed);
+                if matches!(command, CONTROL_PAUSE | CONTROL_CANCEL | CONTROL_SUSPEND) {
+                    drop(visits);
+                    finish_if_controlled(
+                        command,
+                        catalog,
+                        request,
+                        checkpoint,
+                        *issue_count,
+                        publish,
+                        had_published_root,
+                    )?;
                     return Ok(ScanTraversalOutcome::Stopped);
                 }
-
-                let visit = measure_scan_operation!(
-                    SourceDiscovery,
-                    discovery.visit_relative_path(&relative_path)
-                );
+                let Some(entry) = visits.next() else {
+                    break;
+                };
+                let InspectedVisit { visit, inspection } = entry?;
 
                 visited_entries = visited_entries.checked_add(1).ok_or_else(|| {
                     ScanError::new(
@@ -255,6 +305,7 @@ pub(super) fn traverse_scan(
                         has_active_locations,
                         accepted_items,
                         outcome: visit.outcome,
+                        inspection,
                     },
                     checkpoint,
                     issue_count,
@@ -268,6 +319,7 @@ pub(super) fn traverse_scan(
                         event
                     }
                     ScanEntryOutcome::Detached => {
+                        drop(visits);
                         retain_detached_scan(
                             catalog,
                             control.load(Ordering::Relaxed),
@@ -294,6 +346,7 @@ pub(super) fn traverse_scan(
                 let did_accept_asset =
                     matches!(&discovered_event, Some(ScanEvent::AssetDiscovered { .. }));
                 if discovered_event.is_some_and(|event| !publish(event)) {
+                    drop(visits);
                     retain_detached_scan(
                         catalog,
                         control.load(Ordering::Relaxed),
@@ -315,6 +368,7 @@ pub(super) fn traverse_scan(
                         issue_count: *issue_count,
                     })
                 {
+                    drop(visits);
                     retain_detached_scan(
                         catalog,
                         control.load(Ordering::Relaxed),
@@ -332,6 +386,17 @@ pub(super) fn traverse_scan(
                     was_limited = true;
                     break 'traversal;
                 }
+            }
+            if finish_if_controlled(
+                control.load(Ordering::Relaxed),
+                catalog,
+                request,
+                checkpoint,
+                *issue_count,
+                publish,
+                had_published_root,
+            )? {
+                return Ok(ScanTraversalOutcome::Stopped);
             }
         }
 

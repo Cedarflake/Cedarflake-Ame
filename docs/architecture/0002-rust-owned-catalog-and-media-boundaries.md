@@ -85,6 +85,23 @@ per-batch issue, and the task resumes according to an explicit retry policy.
   covered. Without that proof, explicit continuation rebuilds the first inventory behind the
   observer-first boundary; it cannot publish partial membership from the old frontier.
 
+### First-import inspection scheduling
+
+An unlimited explicit fresh import without active locations may overlap source discovery and metadata reads
+with ordered catalog writes. `scan_library/inspection_prefetch.rs` owns one scoped reader and an
+eight-result bounded queue per existing directory window. Only that reader opens source content;
+the importing thread retains prior selection, asset identity, issue delivery, progress checkpoints
+and persistence. Results remain paired with the observed file state and keep the existing metadata
+engine and final publication validation. Resume and published-library scans retain prior-driven
+serial inspection so reusable metadata does not cause unnecessary reads. Requests with explicit
+item or entry limits also remain serial and cannot prefetch beyond their requested bound.
+
+Pause, cancel, detachment, limits and failure close the queue and join the reader before retiring
+its scan scope. A full queue cannot prevent retirement. A reader panic is an explicit scan error,
+never the end of a complete inventory. An in-flight source read retains the existing synchronous
+read limitation; stopping prevents subsequent admission rather than interrupting that OS read.
+No schema, source authority, dependency, engine result or publication policy changes.
+
 ### Catalog connection and checkpoint policy
 
 `sqlite_catalog/connection_policy.rs` owns writable and read-only connection configuration.

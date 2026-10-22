@@ -200,6 +200,9 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   and each writable transaction applies the current threshold without changing writer priority or
   durability. Retained connections cannot keep a retired import policy.
 - `scan_resume_inventory.rs` owns retained first-import membership and current-run reuse lookup.
+  `scan_library/inspection_prefetch.rs` owns fresh-import prefetch admission, the bounded ordered
+  result queue, source-reader lifetime and joined retirement. Traversal retains checkpoints and
+  result application; the reader owns no catalog connection or publication authority.
   Its roster is independent of published membership. `scan_staging.rs` owns buffered location
   persistence and transactional acceptance of retained locations. Its `scan_staging/retirement.rs`
   owner retires affected rows and unreferenced assets in the caller's transaction. Foreground

@@ -30,7 +30,7 @@ pub(crate) use local_files::open_viewer_source_guard;
 #[cfg(test)]
 pub(crate) use local_files::read_catalog_identity;
 pub use local_files::{
-    FileDiscovery, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
+    FileDiscovery, FileVisit, FileVisitOutcome, inspect_root_availability, revalidate_file_state,
 };
 #[cfg(windows)]
 pub(crate) use local_files::{LocatedLibraryRoot, locate_library_root};

@@ -71,7 +71,7 @@ R3's selected workflow are handled at their owning layer under the repository co
 ## Current execution queue
 
 The requested [first-import performance maintenance](plans/first-import-performance.md) remains active:
-the measured 145.448-second cloud-primary import exceeds the selected 60-second acceptance limit.
+the measured 80.381-second cloud-primary import exceeds the selected 60-second acceptance limit.
 The catalog scopes a larger automatic-checkpoint window to an initial foreground import and reuses
 compiled prior queries. The complete real-library comparison preserves original media, catalog
 membership, metadata and publication correctness, including pause/resume and gallery browsing.

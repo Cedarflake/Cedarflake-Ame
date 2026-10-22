@@ -44,6 +44,7 @@ mod execution_registry;
 mod file_preparation;
 mod finalization;
 mod inspection_failure;
+mod inspection_prefetch;
 #[cfg(all(test, windows))]
 mod media_input_tests;
 #[cfg(test)]
@@ -444,6 +445,10 @@ fn run_scan_with_storage_selection(
                 root_id: &root_id,
                 had_published_root,
                 has_active_locations,
+                inspection_mode: inspection_prefetch::InspectionMode::for_scan(
+                    &request,
+                    reason, has_active_locations, checkpoint.visited_entries,
+                ),
             },
             &mut checkpoint,
             &mut issue_count,

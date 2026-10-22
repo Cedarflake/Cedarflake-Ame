@@ -10,15 +10,17 @@ pub(super) enum Operation {
     LocationStaging,
     DirectoryPersistence,
     CheckpointPersistence,
+    InspectionWait,
 }
 
-const OPERATIONS: [Operation; 6] = [
+const OPERATIONS: [Operation; 7] = [
     Operation::SourceDiscovery,
     Operation::PriorSelection,
     Operation::MediaInspection,
     Operation::LocationStaging,
     Operation::DirectoryPersistence,
     Operation::CheckpointPersistence,
+    Operation::InspectionWait,
 ];
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
