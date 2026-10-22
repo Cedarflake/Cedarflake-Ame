@@ -95,6 +95,21 @@ committing writer performs, at the cost of more frequent checkpoints. Existing F
 foreign-key enforcement and write admission remain intact; the checkpoint threshold grants no
 additional publication or source authority.
 
+An admitted foreground first import into a catalog with no published roots temporarily uses
+32,768 pages, approximately 128 MiB. Complete-library measurements on constrained storage found
+that the smaller window repeatedly rewrote database pages during this write-heavy phase.
+`connection_policy/initial_import.rs` owns the scoped window, shared through that catalog's writer
+admission. Every writer applies the current threshold before beginning a transaction, including
+retained synchronization connections. Returning, failing, pausing or cancelling the scan retires
+the window; subsequent writes restore 256 pages. Imports alongside an already published root
+retain the ordinary policy. FULL synchronization and the existing scan checkpoints remain intact.
+The importing connection also borrows a 32 MiB page-cache budget for this scope; other connections
+keep their own cache settings. The typed connection scope restores the previous setting on normal
+return, failure and unwinding. Cache allocation remains demand-driven; this is a connection budget,
+not a reservation or a process-wide memory ceiling.
+The larger window trades less repeated database I/O for a longer individual passive checkpoint;
+real-client import and interruption measurements remain required for this path.
+
 The threshold is a scheduling trigger, not a hard WAL size limit or a wall-clock guarantee.
 A transaction may cross it, and an active reader may prevent checkpoint progress. Preserve those
 read snapshots and retry checkpointing on subsequent commits. Read-only connections retain their

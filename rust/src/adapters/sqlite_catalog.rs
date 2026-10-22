@@ -22,7 +22,7 @@ use crate::domain::{
 };
 use crate::ports::CatalogRepository;
 
-use super::{revalidate_file_state, user_visible_path};
+use super::user_visible_path;
 
 mod catalog_namespace;
 use catalog_namespace::{
@@ -721,6 +721,9 @@ impl SqliteCatalog {
         lane: LibraryChangeLane,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire(lane);
+        self.write_admission
+            .checkpoint_policy
+            .apply(&self.connection)?;
         #[cfg(test)]
         let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
@@ -740,6 +743,9 @@ impl SqliteCatalog {
         preempt: SqliteWritePreemptCallback,
     ) -> Result<PriorityTransaction<'_>, ScanError> {
         let permit = self.write_admission.acquire_preemptible(lane, preempt);
+        self.write_admission
+            .checkpoint_policy
+            .apply(&self.connection)?;
         #[cfg(test)]
         let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
@@ -763,6 +769,9 @@ impl SqliteCatalog {
                     "The catalog did not release the current writer in time; retry the operation",
                 )
             })?;
+        self.write_admission
+            .checkpoint_policy
+            .apply(&self.connection)?;
         #[cfg(test)]
         let _timer = operation_diagnostics::OperationTimer::start("writer_transaction_begin");
         let transaction = self
@@ -1697,51 +1706,7 @@ impl CatalogRepository for SqliteCatalog {
         root_id: &str,
         location: &AssetLocationView,
     ) -> Result<(), ScanError> {
-        if location.root_id != root_id {
-            return Err(ScanError::new(
-                "catalog_root_mismatch",
-                "The staged location does not belong to the scan root",
-            ));
-        }
-        let location_file_size = sqlite_integer(location.file_size, "file size")?;
-        let location_revision_token = location
-            .source_revision
-            .as_ref()
-            .map(source_revision_token)
-            .transpose()?;
-        let identity_group_baseline = location
-            .file_identity
-            .as_ref()
-            .map(|identity| load_staging_identity_group_state(&self.connection, identity, scan_id))
-            .transpose()?
-            .flatten();
-        if identity_group_baseline.as_ref().is_some_and(|state| {
-            state.file_size != location_file_size
-                || state.modified_unix_ms != location.modified_unix_ms
-                || revisions_conflict(
-                    state.source_revision_token.as_deref(),
-                    location_revision_token.as_deref(),
-                )
-        }) {
-            revalidate_file_state(&ExpectedFileState {
-                absolute_path: location.absolute_path.clone(),
-                file_size: location.file_size,
-                modified_unix_ms: location.modified_unix_ms,
-                file_identity: location.file_identity.clone(),
-                source_revision: location.source_revision.clone(),
-            })
-            .map_err(|issue| ScanError::new(issue.code, issue.message))?;
-        }
-        self.pending_locations.push(PendingLocation {
-            scan_id: scan_id.to_owned(),
-            root_id: root_id.to_owned(),
-            location: location.clone(),
-            identity_group_baseline,
-        });
-        if self.pending_locations.len() >= LOCATION_STAGE_BATCH {
-            self.flush_pending_locations()?;
-        }
-        Ok(())
+        scan_staging::stage_location(self, scan_id, root_id, location)
     }
 
     #[cfg(test)]

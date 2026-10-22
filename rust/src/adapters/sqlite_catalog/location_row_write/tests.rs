@@ -88,6 +88,9 @@ fn staging_compiles_one_location_insert_across_multiple_committed_batches() {
             .stage_location("scan", "root", &location(index))
             .expect("stage location");
     }
+    catalog
+        .flush_pending_locations()
+        .expect("commit the final full batch");
     assert!(catalog.pending_locations.is_empty());
     assert_eq!(commits.load(Ordering::Relaxed), 2);
     let counts: (i64, i64) = catalog.connection.query_row(

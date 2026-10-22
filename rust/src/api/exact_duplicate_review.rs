@@ -1,6 +1,6 @@
 use crate::domain::exact_duplicate_review::{
     ExactDuplicateDecision, ExactDuplicatePreference, ExactDuplicateReviewKey,
-    ExactDuplicateReviewLocations, ExactDuplicateReviewPage,
+    ExactDuplicateReviewLocations, ExactDuplicateReviewPage, ExactDuplicateReviewRange,
 };
 use crate::domain::{ExactDuplicateGroupCursor, ScanError};
 
@@ -9,6 +9,13 @@ pub fn load_exact_duplicate_review_groups(
     ignored: bool,
 ) -> Result<ExactDuplicateReviewPage, ScanError> {
     crate::application::exact_duplicate_review::load_groups(after, ignored)
+}
+
+pub fn seek_exact_duplicate_review_groups(
+    index: u64,
+    ignored: bool,
+) -> Result<ExactDuplicateReviewRange, ScanError> {
+    crate::application::exact_duplicate_review::seek_groups(index, ignored)
 }
 
 pub fn load_exact_duplicate_review_locations(

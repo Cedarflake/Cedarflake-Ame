@@ -17,10 +17,20 @@ class LibraryDuplicateReviewSlice<T, C> {
   final LibraryDuplicateDecision? decision;
 }
 
+class LibraryDuplicateReviewSeek<T, C> {
+  const LibraryDuplicateReviewSeek({
+    required this.startIndex,
+    required this.slice,
+  });
+  final int startIndex;
+  final LibraryDuplicateReviewSlice<T, C> slice;
+}
+
 /// Keeps bounded payloads and keyset checkpoints behind a continuous viewport.
 class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
-  LibraryDuplicateReviewWindow(this._load, {this.onAdmitted});
+  LibraryDuplicateReviewWindow(this._load, {this._seek, this.onAdmitted});
   final Future<LibraryDuplicateReviewSlice<T, C>> Function(C?) _load;
+  final Future<LibraryDuplicateReviewSeek<T, C>> Function(int)? _seek;
   final void Function(LibraryDuplicateReviewSlice<T, C>)? onAdmitted;
   static const maxCachedPages = 6;
   static const maxCheckpoints = 64;
@@ -88,7 +98,9 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
     _first = math.max(0, first);
     _end = math.max(_first + 1, math.min(end, _first + 128));
     if (failed) return Future.value();
-    if (_pending == null) loading = _missing(_data) != null;
+    final wasLoading = loading;
+    loading = _missing(_data) != null;
+    if (_pending != null && loading != wasLoading) notifyListeners();
     return _pending ??= _drain(_generation, _data);
   }
 
@@ -120,10 +132,26 @@ class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
       while (!_disposed && generation == _generation) {
         final missing = _missing(data);
         if (missing == null) break;
-        final start = data.checkpoints.keys
+        var start = data.checkpoints.keys
             .where((offset) => offset <= missing)
             .reduce(math.max);
-        final slice = await _load(data.checkpoints[start]);
+        final seek = _seek;
+        final LibraryDuplicateReviewSlice<T, C> slice;
+        if (seek != null && start < missing) {
+          final range = await seek(missing);
+          start = range.startIndex;
+          slice = range.slice;
+          if (start < 0 ||
+              start > missing ||
+              (start + slice.items.length <= missing &&
+                  slice.total > missing)) {
+            throw StateError(
+              "Duplicate review seek missed its requested range",
+            );
+          }
+        } else {
+          slice = await _load(data.checkpoints[start]);
+        }
         if (_disposed || generation != _generation) return;
         if (slice.items.isEmpty && slice.next != null) {
           throw StateError("Duplicate review cursor did not advance");

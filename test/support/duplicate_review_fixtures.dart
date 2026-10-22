@@ -42,9 +42,11 @@ class ReviewFixtureService implements LibraryDuplicateReview {
   LibraryDuplicateAvailability secondAvailability =
       LibraryDuplicateAvailability.offline;
   Completer<LibraryDuplicateReviewPage>? pendingGroups;
+  LibraryDuplicateReviewRange? seekResult;
   Completer<LibraryDuplicateReviewLocations>? pendingMembers;
   Completer<LibraryDuplicateDecision>? pendingSave;
   int loads = 0;
+  final List<int> groupSeeks = [];
   String? nextLocationId;
   final List<String?> memberCursors = [];
 
@@ -83,6 +85,19 @@ class ReviewFixtureService implements LibraryDuplicateReview {
       groups: (showResults?.call() ?? true) && ignored == decision.ignored
           ? [entry]
           : [],
+    );
+  }
+
+  @override
+  Future<LibraryDuplicateReviewRange> seekGroups(
+    int index, {
+    required bool ignored,
+  }) async {
+    groupSeeks.add(index);
+    if (seekResult case final result?) return result;
+    return LibraryDuplicateReviewRange(
+      startIndex: 0,
+      page: await loadGroups(null, ignored: ignored),
     );
   }
 

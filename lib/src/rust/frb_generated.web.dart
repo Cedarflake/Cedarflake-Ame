@@ -276,6 +276,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ExactDuplicateReviewPage dco_decode_exact_duplicate_review_page(dynamic raw);
 
   @protected
+  ExactDuplicateReviewRange dco_decode_exact_duplicate_review_range(
+    dynamic raw,
+  );
+
+  @protected
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
 
   @protected
@@ -892,6 +897,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ExactDuplicateReviewPage sse_decode_exact_duplicate_review_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ExactDuplicateReviewRange sse_decode_exact_duplicate_review_range(
     SseDeserializer deserializer,
   );
 
@@ -1646,6 +1656,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_exact_duplicate_review_page(
     ExactDuplicateReviewPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_exact_duplicate_review_range(
+    ExactDuplicateReviewRange self,
     SseSerializer serializer,
   );
 

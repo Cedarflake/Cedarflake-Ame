@@ -1227,7 +1227,9 @@ where
     );
     catalog
         .connection
-        .query_row(&query, parameters, read_stored_asset)
+        .prepare_cached(&query)
+        .map_err(database_error)?
+        .query_row(parameters, read_stored_asset)
         .optional()
         .map_err(database_error)?
         .map(stored_asset_view)
@@ -1249,7 +1251,7 @@ pub(super) fn load_scan_location_by_file_identity(
     }
     let normalized = catalog
         .connection
-        .query_row(
+        .prepare_cached(
             "SELECT items.asset_id, items.source_location_id, items.root_id, ?1 AS scan_id,
                     items.absolute_path, items.relative_path, items.preview_path,
                     items.file_size, items.created_unix_ms, items.modified_unix_ms,
@@ -1274,6 +1276,9 @@ pub(super) fn load_scan_location_by_file_identity(
              ORDER BY current_lineage.enrolled_unix_ms DESC,
                       batches.updated_unix_ms DESC, batches.id
              LIMIT 1",
+        )
+        .map_err(database_error)?
+        .query_row(
             params![scan_id, identity.scheme, identity.value],
             read_stored_asset,
         )
@@ -1286,7 +1291,7 @@ pub(super) fn load_scan_location_by_file_identity(
     }
     catalog
         .connection
-        .query_row(
+        .prepare_cached(
             "SELECT handoffs.asset_id, handoffs.source_location_id, handoffs.root_id,
                     ?1 AS scan_id,
                     handoffs.absolute_path, handoffs.relative_path, handoffs.preview_path,
@@ -1309,6 +1314,9 @@ pub(super) fn load_scan_location_by_file_identity(
              ORDER BY lineage.enrolled_unix_ms DESC, handoffs.updated_unix_ms DESC,
                       lineage.catch_up_source, lineage.catch_up_watermark
              LIMIT 1",
+        )
+        .map_err(database_error)?
+        .query_row(
             params![scan_id, identity.scheme, identity.value],
             read_stored_asset,
         )

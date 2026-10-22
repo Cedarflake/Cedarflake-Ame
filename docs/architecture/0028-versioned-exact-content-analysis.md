@@ -151,7 +151,13 @@ it does not rescan sources or force a database rewrite. Freed pages remain avail
 and the existing bounded reclamation policy. Earlier migrations retain their original index
 contract so malformed legacy catalogs cannot silently acquire the new version.
 
-Review pages filter ignored state before keyset pagination and return at most 64 groups or members.
+Review pages filter ignored state before pagination and return at most 64 groups or members.
+Adjacent pages use keyset cursors. A group viewport without a checkpoint at its missing range uses
+one ordinal seek, so distant scrolling and retained-position revalidation do not replay preceding
+pages. SQLite clamps and aligns the requested ordinal to a 64-group page in the current filtered
+snapshot and returns its actual start with the page; the next cursor resumes ordinary keyset reads.
+The application retains at most six payload pages and 64 cursor checkpoints. Member pages retain
+their keyset contract and availability checks.
 Each group page includes the total group count for its ignored-state filter, independent of the
 page cursor. The count and bounded page share one SQLite read snapshot; only the count scalar
 crosses the bridge alongside the page. Counting reads current catalog evidence and never opens

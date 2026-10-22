@@ -1,6 +1,6 @@
 use crate::domain::exact_duplicate_review::{
     ExactDuplicateDecision, ExactDuplicatePreference, ExactDuplicateReviewKey,
-    ExactDuplicateReviewPage,
+    ExactDuplicateReviewPage, ExactDuplicateReviewRange,
 };
 use crate::domain::exact_duplicates::FingerprintCandidate;
 use crate::domain::{ExactDuplicateGroupCursor, ScanError};
@@ -22,6 +22,12 @@ pub(crate) trait ExactDuplicateReviewRepository {
         after: Option<&ExactDuplicateGroupCursor>,
         ignored: bool,
     ) -> Result<ExactDuplicateReviewPage, ScanError>;
+
+    fn seek_review_groups(
+        &self,
+        index: u64,
+        ignored: bool,
+    ) -> Result<ExactDuplicateReviewRange, ScanError>;
 
     fn set_duplicate_preference(
         &mut self,

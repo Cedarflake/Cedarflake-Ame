@@ -24,6 +24,7 @@ pub(super) struct SqliteWriteAdmissionState {
 
 pub(super) struct SqliteWriteAdmission {
     pub(super) state: Mutex<SqliteWriteAdmissionState>,
+    pub(super) checkpoint_policy: Arc<super::connection_policy::ImportCheckpointPolicy>,
     ready: Condvar,
 }
 
@@ -31,6 +32,7 @@ impl SqliteWriteAdmission {
     pub(super) fn new() -> Self {
         Self {
             state: Mutex::new(SqliteWriteAdmissionState::default()),
+            checkpoint_policy: Arc::default(),
             ready: Condvar::new(),
         }
     }

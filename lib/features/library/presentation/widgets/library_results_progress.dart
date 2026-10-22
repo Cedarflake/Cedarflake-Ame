@@ -66,6 +66,11 @@ enum LibraryResultsProgress {
     analysisFailed => LibraryDuplicateStrings.failed,
     publicationFailed => LibraryStrings.synchronizationRefreshFailureTitle,
   };
+
+  String? get sourceLabel => switch (this) {
+    analyzing || waiting || publishing => LibraryStrings.synchronizing,
+    ready || paused || analysisFailed || publicationFailed => label,
+  };
 }
 
 /// Directory synchronization and gallery result publication finish independently.

@@ -1299,6 +1299,104 @@ ancestry. Both main refs matched and the working tree was clean before this docu
 Automatic main-branch verification retains its own result; this record cites the exact pre-merge
 implementation gate.
 
+### Returning the time rail to the loaded top
+
+On 2026-10-22, the ordinary Debug client could retain gray placeholders after dragging near
+the top and then back to the endpoint. A subsequent wheel event restored the images. Read-only
+runtime inspection found the viewport at the top while the detail window and explicit navigation
+owner remained at item 690, with no pending read or loading flag. Existing terminal output showed
+completed previews and idle synchronization, without a continuing decoder failure.
+
+Returning to an already loaded target skipped a new catalog request, leaving two older intents
+eligible: a read already in flight and a target still waiting in the presentation throttle timer.
+The input owner now clears its pending timer and calls the existing application cancellation
+boundary before admitting each new rail value. Query generations, publication checks, the
+120 ms request interval and bounded detail windows retain their existing ownership.
+
+The held-read regression failed before the repair with a detail-window start of 1,545 instead of
+zero. The scheduled-target regression separately reproduced an obsolete second request after
+returning to the loaded endpoint. All 36 focused pending-navigation, time-navigation, publication
+and linear-layout cases pass with the complete fix. Existing programmatic correction, wheel
+cancellation, query replacement, late completion and retained-position coverage also passes.
+
+The complete repair was hot-reloaded into the existing ordinary Debug client on `local-primary`,
+showing 63,079 locations and 47,835 folded items. Two native pointer sequences moved the rail
+3 and 11 logical pixels below its top position, then dragged back to the endpoint and released.
+In both cases thumbnails recovered without a wheel event. Read-only inspection after the first
+sequence confirmed detail-window start zero, owner zero, no pending or active request, no remaining
+presentation target and cleared loading flags. This is a functional client check, not a latency
+benchmark or a replay of synchronization acceptance. No source writes, catalog reset or placeholder
+hydration were introduced.
+
+The affected presentation owner has 818 production lines and no inline tests. Dedicated navigation
+tests have 1,197 lines and pending-navigation tests have 447; unchanged publication and linear-layout
+coverage has 528 and 128 lines respectively. The repair reuses existing cancellation owners and adds
+no state field, bridge, schema or dependency. Hosted verification retains its separate result for
+the pushed commit.
+
+### Compact source update wording
+
+The 2026-10-22 source-row follow-up maps automatic analysis waiting, active analysis and result
+publication to the existing `正在更新` label. The detailed Duplicates labels remain available in
+their owning workspace. Explicit pause, failed analysis, blocked or unavailable sources and
+background verification retain their existing text and precedence. Completion has no added timer
+or dependency on notification dismissal.
+
+All 39 focused navigation-semantics and synchronization-feedback cases pass. The phase-sequence
+case covers waiting, analysis, foreground yielding, publication and immediate completion, followed
+by pause and failure. The current Debug client accepted the hot reload; expanding and collapsing
+the source preserved its completed label and adjacent controls. Transient-phase consistency is
+established by the controlled widget sequence. The source tile remains 513 production lines and
+the result-progress owner has 99; neither contains inline tests. Dedicated navigation verification
+has 1,019 lines, with 746 unchanged synchronization-feedback test lines. No scheduling, catalog,
+source access or persistence policy changed.
+
+### Direct positioning in duplicate review
+
+On 2026-10-22, the ordinary Debug client showed 12,571 duplicate groups on `local-primary`.
+The visible range was 12,561–12,570 while the retained payload still covered groups around 2,816–3,199.
+The pending replacement advanced from its origin through keyset pages and repeated the filtered
+count for each page. Analysis had already completed. The placeholders eventually cleared after
+the replay reached the requested range; no before-change timing benchmark was recorded.
+
+Group windows now seek directly when no cursor checkpoint starts at the missing position.
+The catalog returns the actual aligned start, filtered total, at most 64 groups and the next
+keyset cursor from one read snapshot. Adjacent navigation retains keyset reads; replacements keep
+the published rows until the requested range is ready. Moving outside those retained rows exposes
+loading immediately. Source inspection, fingerprints, saved choices, schema and dependencies are
+unchanged; the typed bridge was regenerated through its canonical entrypoint.
+
+Ten focused Rust cases and twenty Flutter cases pass. They cover page boundaries, ignored-state
+filtering, preferred representatives, an empty or reduced result set, controller forwarding,
+distant seeks, adjacent reads, bounded caches, retry, disposal and superseded replacement reads.
+The Windows Debug client was rebuilt and restarted against the established catalog. Runtime
+inspection observed the final page at 12,544 with 27 groups, then navigation back through earlier
+positions, with no more than six cached pages (347 items in the observed sequence). The user
+completed the interaction and confirmed that the loading problem was resolved. These observations
+are functional large-library verification, not a controlled cold-cache latency benchmark.
+The retained client reports healthy synchronized sources with no pending work, retry or gap.
+No source mutation, hydration or catalog reset was introduced.
+
+The first hosted attempt on `a635f7f` rejected an explicit constructor-field assignment under
+`prefer_initializing_formals`. The constructor now uses the supported initializing formal;
+focused analysis and all five direct-seek lifecycle cases pass without a behavioral change.
+That attempt also timed out in the external `application-ready` UIA probe after 8.023 seconds,
+with 5.162 seconds recorded loading UIAutomationClient and no reported element mismatch.
+The new head reruns the unchanged native assertions and deadline through normal CI.
+
+On `7252205`, static checks and Windows accessibility passed. The Flutter layout matrix exposed
+an outdated paged fixture: it inherited a seek response that always returned page zero, even
+when the viewport requested the final page. The fixture now returns the matching bounded range
+through its existing page data. All nine layout cases pass, preserving the four window widths,
+both text scales, group-count assertions, paging, member actions and preview-demand checks.
+The product implementation is unchanged by this fixture correction.
+
+The window, controller and service have 226, 183 and 170 production lines respectively; the
+SQLite group query has 148 and its repository owner has 199. None has inline tests. Dedicated
+window/seek/controller tests have 193, 159 and 310 lines; the new SQLite paging tests have 139.
+The existing typed owners retain their responsibilities, and no larger decomposition is required
+for this bounded paging change. Hosted results remain specific to the pushed commit.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

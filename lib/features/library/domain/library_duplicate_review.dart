@@ -38,6 +38,15 @@ class LibraryDuplicateReviewPage {
   final LibraryDuplicateGroupCursor? next;
 }
 
+class LibraryDuplicateReviewRange {
+  const LibraryDuplicateReviewRange({
+    required this.startIndex,
+    required this.page,
+  });
+  final int startIndex;
+  final LibraryDuplicateReviewPage page;
+}
+
 class LibraryDuplicateReviewLocation {
   const LibraryDuplicateReviewLocation({
     required this.asset,

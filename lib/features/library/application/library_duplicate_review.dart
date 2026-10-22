@@ -13,6 +13,10 @@ abstract interface class LibraryDuplicateReview {
     LibraryDuplicateGroupCursor? after, {
     required bool ignored,
   });
+  Future<LibraryDuplicateReviewRange> seekGroups(
+    int index, {
+    required bool ignored,
+  });
   Future<LibraryDuplicateReviewLocations> loadLocations(
     LibraryDuplicateGroup group,
     String? after,
@@ -57,6 +61,25 @@ class RustLibraryDuplicateReview implements LibraryDuplicateReview {
             ),
       ignored: ignored,
     );
+    return _groups(page);
+  }
+
+  @override
+  Future<LibraryDuplicateReviewRange> seekGroups(
+    int index, {
+    required bool ignored,
+  }) async {
+    final range = await api.seekExactDuplicateReviewGroups(
+      index: BigInt.from(index),
+      ignored: ignored,
+    );
+    return LibraryDuplicateReviewRange(
+      startIndex: range.startIndex.toInt(),
+      page: _groups(range.page),
+    );
+  }
+
+  LibraryDuplicateReviewPage _groups(dto.ExactDuplicateReviewPage page) {
     return LibraryDuplicateReviewPage(
       totalGroups: page.totalGroups.toInt(),
       groups: page.groups

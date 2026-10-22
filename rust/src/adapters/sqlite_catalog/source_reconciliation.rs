@@ -324,11 +324,9 @@ fn propagate_observation(
 
 pub(super) fn allocate_source_generation(transaction: &Transaction<'_>) -> Result<i64, ScanError> {
     let generation = transaction
-        .query_row(
-            "SELECT next_source_generation FROM catalog_state",
-            [],
-            |row| row.get::<_, i64>(0),
-        )
+        .prepare_cached("SELECT next_source_generation FROM catalog_state")
+        .map_err(database_error)?
+        .query_row([], |row| row.get::<_, i64>(0))
         .map_err(database_error)?;
     if generation <= 0 || generation == i64::MAX {
         return Err(ScanError::new(
@@ -337,10 +335,9 @@ pub(super) fn allocate_source_generation(transaction: &Transaction<'_>) -> Resul
         ));
     }
     transaction
-        .execute(
-            "UPDATE catalog_state SET next_source_generation = ?1",
-            [generation + 1],
-        )
+        .prepare_cached("UPDATE catalog_state SET next_source_generation = ?1")
+        .map_err(database_error)?
+        .execute([generation + 1])
         .map_err(database_error)?;
     Ok(generation)
 }

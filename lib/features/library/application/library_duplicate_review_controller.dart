@@ -16,7 +16,7 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
       LibraryDuplicateReviewWindow<
         LibraryDuplicateReviewGroup,
         LibraryDuplicateGroupCursor
-      >(_loadGroups);
+      >(_loadGroups, seek: _seekGroups);
   late final memberWindow =
       LibraryDuplicateReviewWindow<LibraryDuplicateReviewLocation, String>(
         _loadMembers,
@@ -60,12 +60,32 @@ class LibraryDuplicateReviewController extends ChangeNotifier {
   >
   _loadGroups(LibraryDuplicateGroupCursor? after) async {
     final page = await _service.loadGroups(after, ignored: ignored);
-    return LibraryDuplicateReviewSlice(
-      items: page.groups,
-      total: page.totalGroups,
-      next: page.next,
+    return _groupSlice(page);
+  }
+
+  Future<
+    LibraryDuplicateReviewSeek<
+      LibraryDuplicateReviewGroup,
+      LibraryDuplicateGroupCursor
+    >
+  >
+  _seekGroups(int index) async {
+    final range = await _service.seekGroups(index, ignored: ignored);
+    return LibraryDuplicateReviewSeek(
+      startIndex: range.startIndex,
+      slice: _groupSlice(range.page),
     );
   }
+
+  LibraryDuplicateReviewSlice<
+    LibraryDuplicateReviewGroup,
+    LibraryDuplicateGroupCursor
+  >
+  _groupSlice(LibraryDuplicateReviewPage page) => LibraryDuplicateReviewSlice(
+    items: page.groups,
+    total: page.totalGroups,
+    next: page.next,
+  );
 
   Future<LibraryDuplicateReviewSlice<LibraryDuplicateReviewLocation, String>>
   _loadMembers(String? after) async {
