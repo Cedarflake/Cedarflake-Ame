@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/domain/library_folder_models.dar
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
+import "package:cedarflake_ame/features/library/presentation/library_duplicate_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_navigation_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
@@ -27,9 +28,23 @@ void main() {
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
 
   testWidgets(
-    "source completion waits for analysis and visible gallery results",
+    "source uses one update label until analysis and visible results settle",
     (tester) async {
-      for (final progress in LibraryResultsProgress.values) {
+      const phases = [
+        (LibraryResultsProgress.ready, LibraryStrings.synchronized),
+        (LibraryResultsProgress.waiting, LibraryStrings.synchronizing),
+        (LibraryResultsProgress.analyzing, LibraryStrings.synchronizing),
+        (LibraryResultsProgress.waiting, LibraryStrings.synchronizing),
+        (LibraryResultsProgress.publishing, LibraryStrings.synchronizing),
+        (LibraryResultsProgress.ready, LibraryStrings.synchronized),
+        (LibraryResultsProgress.paused, LibraryDuplicateStrings.paused),
+        (LibraryResultsProgress.analysisFailed, LibraryDuplicateStrings.failed),
+        (
+          LibraryResultsProgress.publicationFailed,
+          LibraryStrings.synchronizationRefreshFailureTitle,
+        ),
+      ];
+      for (final (progress, label) in phases) {
         await tester.pumpWidget(
           MaterialApp(
             theme: buildAmeTheme(),
@@ -42,10 +57,7 @@ void main() {
             ),
           ),
         );
-        expect(
-          find.text(progress.label ?? LibraryStrings.synchronized),
-          findsOneWidget,
-        );
+        expect(find.text(label), findsOneWidget);
         if (progress != LibraryResultsProgress.ready) {
           expect(find.text(LibraryStrings.synchronized), findsNothing);
         }
@@ -82,10 +94,7 @@ void main() {
           ),
           findsOneWidget,
         );
-        expect(
-          find.text(LibraryResultsProgress.analyzing.label!),
-          findsNothing,
-        );
+        expect(find.text(LibraryStrings.synchronizing), findsNothing);
       }
     },
   );

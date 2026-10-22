@@ -347,7 +347,7 @@ class _LibrarySourceNavigationTileState
     if (synchronizationStatus == null) {
       return LibraryStrings.synchronizationUnconfirmed;
     }
-    if (resultsProgress.label case final label?
+    if (resultsProgress.sourceLabel case final label?
         when LibrarySynchronizationFeedbackState.fromStatus(
               synchronizationStatus,
             ) ==

@@ -1334,6 +1334,23 @@ coverage has 528 and 128 lines respectively. The repair reuses existing cancella
 no state field, bridge, schema or dependency. Hosted verification retains its separate result for
 the pushed commit.
 
+### Compact source update wording
+
+The 2026-10-22 source-row follow-up maps automatic analysis waiting, active analysis and result
+publication to the existing `正在更新` label. The detailed Duplicates labels remain available in
+their owning workspace. Explicit pause, failed analysis, blocked or unavailable sources and
+background verification retain their existing text and precedence. Completion has no added timer
+or dependency on notification dismissal.
+
+All 39 focused navigation-semantics and synchronization-feedback cases pass. The phase-sequence
+case covers waiting, analysis, foreground yielding, publication and immediate completion, followed
+by pause and failure. The current Debug client accepted the hot reload; expanding and collapsing
+the source preserved its completed label and adjacent controls. Transient-phase consistency is
+established by the controlled widget sequence. The source tile remains 513 production lines and
+the result-progress owner has 99; neither contains inline tests. Dedicated navigation verification
+has 1,019 lines, with 746 unchanged synchronization-feedback test lines. No scheduling, catalog,
+source access or persistence policy changed.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head
