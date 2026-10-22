@@ -10,6 +10,51 @@ import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "returning to a loaded endpoint cancels a scheduled drag target",
+    (tester) async {
+      final scrollController = ScrollController();
+      addTearDown(scrollController.dispose);
+      final requests = _ControlledSeekRequests();
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _LatestSeekHarness(
+              scrollController: scrollController,
+              requests: requests,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      var slider = tester.widget<Slider>(
+        find.byKey(const Key("timeline-slider")),
+      );
+      slider.onChangeStart?.call(slider.value);
+      slider.onChanged?.call(0.8);
+      await tester.pump();
+      expect(requests.offsets, hasLength(1));
+
+      slider = tester.widget<Slider>(find.byKey(const Key("timeline-slider")));
+      slider.onChanged?.call(0.79);
+      await tester.pump();
+      final targetsBeforeReturn = requests.offsets.length;
+      slider = tester.widget<Slider>(find.byKey(const Key("timeline-slider")));
+      slider.onChanged?.call(1);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 150));
+      slider = tester.widget<Slider>(find.byKey(const Key("timeline-slider")));
+      slider.onChangeEnd?.call(1);
+      final issuedTargets = List.of(requests.offsets);
+      for (final completion in requests.completers) {
+        completion.complete(false);
+      }
+      await tester.pumpAndSettle();
+      expect(issuedTargets, hasLength(targetsBeforeReturn));
+      expect(scrollController.offset, 0);
+    },
+  );
+
   testWidgets("maps rail input directly to the gallery controller", (
     tester,
   ) async {
@@ -632,10 +677,11 @@ void main() {
 
       expect(requests.offsets, hasLength(1));
       expect(scrollController.offset, greaterThan(7000));
+      final cancellations = requests.cancellations;
 
       scrollController.jumpTo(3000);
       await tester.pump();
-      expect(requests.cancellations, 0);
+      expect(requests.cancellations, cancellations);
       expect(
         tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
         closeTo(0.2, 0.001),
@@ -687,11 +733,12 @@ void main() {
       tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
       closeTo(0.2, 0.001),
     );
+    final cancellations = requests.cancellations;
 
     await tester.drag(find.byType(ListView), const Offset(0, 1000));
     await tester.pump();
 
-    expect(requests.cancellations, 1);
+    expect(requests.cancellations, cancellations + 1);
     expect(
       tester.widget<Slider>(find.byKey(const Key("timeline-slider"))).value,
       isNot(closeTo(0.2, 0.001)),

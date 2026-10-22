@@ -104,6 +104,13 @@ and remotely. The owning
 [verification](acceptance/r3-exact-duplicates.md#fast-recovery-after-journal-loss) separates indexed
 refresh, complete verification and the earlier interrupted timings. There is no fixed startup-time
 threshold for this maintenance scope.
+
+The time-rail return-to-top follow-up retires superseded queued and active navigation even when
+the new target is already loaded. Focused regressions and the corrected near-top-to-top client
+sequence pass; hosted verification and integration remain pending on
+`codex/fix-timeline-top-loading`. The [scoped evidence](acceptance/r3-exact-duplicates.md#returning-the-time-rail-to-the-loaded-top)
+retains the two request-lifetime boundaries. This does not reopen a completed stage.
+
 The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
 retains its delivered behavior. Time-rail input,
 progressive duplicate folding and post-sync gallery convergence are implemented and client-verified

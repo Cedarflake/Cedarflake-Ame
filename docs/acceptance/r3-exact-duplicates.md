@@ -1299,6 +1299,41 @@ ancestry. Both main refs matched and the working tree was clean before this docu
 Automatic main-branch verification retains its own result; this record cites the exact pre-merge
 implementation gate.
 
+### Returning the time rail to the loaded top
+
+On 2026-10-22, the ordinary Debug client could retain gray placeholders after dragging near
+the top and then back to the endpoint. A subsequent wheel event restored the images. Read-only
+runtime inspection found the viewport at the top while the detail window and explicit navigation
+owner remained at item 690, with no pending read or loading flag. Existing terminal output showed
+completed previews and idle synchronization, without a continuing decoder failure.
+
+Returning to an already loaded target skipped a new catalog request, leaving two older intents
+eligible: a read already in flight and a target still waiting in the presentation throttle timer.
+The input owner now clears its pending timer and calls the existing application cancellation
+boundary before admitting each new rail value. Query generations, publication checks, the
+120 ms request interval and bounded detail windows retain their existing ownership.
+
+The held-read regression failed before the repair with a detail-window start of 1,545 instead of
+zero. The scheduled-target regression separately reproduced an obsolete second request after
+returning to the loaded endpoint. All 36 focused pending-navigation, time-navigation, publication
+and linear-layout cases pass with the complete fix. Existing programmatic correction, wheel
+cancellation, query replacement, late completion and retained-position coverage also passes.
+
+The complete repair was hot-reloaded into the existing ordinary Debug client on `local-primary`,
+showing 63,079 locations and 47,835 folded items. Two native pointer sequences moved the rail
+3 and 11 logical pixels below its top position, then dragged back to the endpoint and released.
+In both cases thumbnails recovered without a wheel event. Read-only inspection after the first
+sequence confirmed detail-window start zero, owner zero, no pending or active request, no remaining
+presentation target and cleared loading flags. This is a functional client check, not a latency
+benchmark or a replay of synchronization acceptance. No source writes, catalog reset or placeholder
+hydration were introduced.
+
+The affected presentation owner has 818 production lines and no inline tests. Dedicated navigation
+tests have 1,197 lines and pending-navigation tests have 447; unchanged publication and linear-layout
+coverage has 528 and 128 lines respectively. The repair reuses existing cancellation owners and adds
+no state field, bridge, schema or dependency. Hosted verification retains its separate result for
+the pushed commit.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

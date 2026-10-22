@@ -286,6 +286,9 @@ class _LibraryTimeNavigationState extends State<LibraryTimeNavigation> {
     LibraryTimelineProjection globalProjection,
     double value,
   ) {
+    // A loaded target must also retire the previous catalog navigation intent.
+    _clearPendingSeek();
+    widget.onCancelSeek?.call();
     widget.onBeginNavigation?.call();
     _seekIntentGeneration += 1;
     _pendingFrameValue = value;

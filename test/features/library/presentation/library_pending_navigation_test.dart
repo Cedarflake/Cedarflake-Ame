@@ -18,6 +18,31 @@ import "../support/library_query_snapshot_fixture.dart";
 
 void main() {
   testWidgets(
+    "returning to the loaded top retires a pending distant date read",
+    (tester) async {
+      final fixture = await _mount(tester);
+      fixture.catalog.holdTime = true;
+      await _seek(tester, 0.35);
+      expect(fixture.catalog.pendingTime, isNotNull);
+      expect(fixture.state.windowStartItemOffset, 0);
+
+      await _seek(tester, 1);
+      await _frames(tester);
+      expect(_position(tester).pixels, 0);
+      fixture.catalog.completeTime();
+      await _frames(tester);
+
+      expect(fixture.state.windowStartItemOffset, 0);
+      expect(find.byKey(const ValueKey("location-0")), findsOneWidget);
+      expect(fixture.state.isLoadingTimeAnchor, isFalse);
+      expect(fixture.state.isLoadingVisibleRange, isFalse);
+      expect(_position(tester).pixels, 0);
+      expect(tester.takeException(), isNull);
+      await fixture.dispose(tester);
+    },
+  );
+
+  testWidgets(
     "a newer overlapping date target retires prepend after page publication before its frame",
     (tester) async {
       final fixture = await _mount(tester, delayedManifest: true);
