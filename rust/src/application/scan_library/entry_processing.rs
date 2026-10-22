@@ -5,7 +5,6 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository, MediaInspect
 use super::file_preparation::PreparedScanFile;
 use super::finalization::FinalizationPlan;
 use super::inspection_failure::{FailedFileContext, record_failed_file};
-use super::inspection_prefetch::ScanInspection;
 use super::user_visible_issue;
 
 #[cfg(test)]
@@ -19,7 +18,6 @@ pub(super) struct ScanEntryContext<'a> {
     pub has_active_locations: bool,
     pub accepted_items: u64,
     pub outcome: FileVisitOutcome,
-    pub inspection: ScanInspection,
 }
 
 pub(super) enum ScanEntryOutcome {
@@ -47,7 +45,6 @@ pub(super) fn apply_scan_entry(
         has_active_locations,
         mut accepted_items,
         outcome,
-        inspection,
     } = context;
     let mut discovered_event = None;
     match outcome {
@@ -157,8 +154,7 @@ pub(super) fn apply_scan_entry(
                     has_active_locations,
                 )
             )?;
-            let inspection =
-                measure_scan_operation!(MediaInspection, prepared.inspect(inspector, inspection));
+            let inspection = measure_scan_operation!(MediaInspection, prepared.inspect(inspector));
             match inspection {
                 Ok(mut inspection) => {
                     for issue in std::mem::take(&mut inspection.metadata.issues) {

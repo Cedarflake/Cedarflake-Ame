@@ -40,8 +40,9 @@ interactions passed. This candidate exceeds the subsequently selected 60-second 
 measuring and repairing the remaining import costs; keep PR #44 in draft until the requested
 performance and applicable verification are satisfied. The subsequent production candidate finishes
 in 80.381 seconds with the same 19,028 locations and zero bidirectional member/metadata differences.
-The next candidate overlaps one bounded source-inspection reader with ordered catalog writes;
-the actual full-library client result remains the deciding performance check.
+The bounded source-inspection reader candidate took 80.605 seconds in the same client and did not
+improve this result. Its extra scheduling machinery is removed; serial source inspection and the
+measured catalog improvements remain. Continue with the remaining persistence and validation costs.
 
 [First-import measurements](../acceptance/first-import-performance.md) owns timings, source safety,
 diagnostic limitations, and verification. The roadmap owns the active maintenance queue.

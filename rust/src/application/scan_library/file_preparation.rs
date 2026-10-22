@@ -9,7 +9,6 @@ use crate::ports::{
     CatalogRepository, IncrementalCatalogRepository, MediaInspectionFailure, MediaInspector,
 };
 
-use super::inspection_prefetch::ScanInspection;
 use super::{stable_id, stable_location_id};
 
 pub(super) struct PreparedScanFile<'a> {
@@ -114,7 +113,6 @@ impl<'a> PreparedScanFile<'a> {
     pub fn inspect(
         &self,
         inspector: &impl MediaInspector,
-        inspection: ScanInspection,
     ) -> Result<MediaInspection, MediaInspectionFailure> {
         if let Some(prior) = self
             .reusable_prior
@@ -132,10 +130,7 @@ impl<'a> PreparedScanFile<'a> {
                 },
             });
         }
-        match inspection {
-            ScanInspection::Deferred => inspector.inspect(&self.file),
-            ScanInspection::Complete(result) => result,
-        }
+        inspector.inspect(&self.file)
     }
 
     pub fn into_asset(self, inspection: MediaInspection) -> AssetLocationView {

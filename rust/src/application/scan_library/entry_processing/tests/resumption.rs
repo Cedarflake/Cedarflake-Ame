@@ -92,9 +92,7 @@ fn changed_or_missing_file_evidence_requires_fresh_inspection() {
             false,
         )
         .expect("prepare retained input");
-        prepared
-            .inspect(&inspector, ScanInspection::Deferred)
-            .expect("fresh inspection");
+        prepared.inspect(&inspector).expect("fresh inspection");
         assert_eq!(inspector.calls.get(), 2, "boundary {boundary}");
     }
 }

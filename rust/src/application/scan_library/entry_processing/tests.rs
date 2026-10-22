@@ -11,54 +11,6 @@ use crate::ports::{MediaInspectionFailure, MediaInspectionFailureKind};
 use super::super::finalization::FinalizationMode;
 use super::*;
 
-#[test]
-fn prefetched_metadata_is_staged_once_without_reopening_the_source() {
-    let mut fixture = EntryFixture::new();
-    let inspector = RecordingInspector::success(vec![issue("metadata-warning")]);
-    let mut events = Vec::new();
-    let outcome = fixture.apply_inspected(
-        fixture.file("image.png"),
-        &inspector,
-        ScanInspection::Complete(inspector.result.clone()),
-        &mut |event| {
-            events.push(event);
-            true
-        },
-    );
-    assert_eq!(inspector.calls.get(), 0);
-    assert!(matches!(
-        outcome,
-        ScanEntryOutcome::Applied {
-            accepted_items: 1,
-            ..
-        }
-    ));
-    assert_eq!(fixture.staged_count(), 1);
-    assert_eq!(fixture.issue_count, 1);
-    assert_eq!(events.len(), 1);
-}
-
-#[test]
-fn prefetched_inspection_failure_retains_the_original_issue_and_no_asset() {
-    let mut fixture = EntryFixture::new();
-    let inspector = RecordingInspector::success(Vec::new());
-    let outcome = fixture.apply_inspected(
-        fixture.file("image.png"),
-        &inspector,
-        ScanInspection::Complete(Err(MediaInspectionFailure {
-            kind: MediaInspectionFailureKind::Retryable,
-            issue: issue("source-locked"),
-        })),
-        &mut |_| true,
-    );
-    assert_eq!(inspector.calls.get(), 0);
-    assert!(
-        matches!(outcome, ScanEntryOutcome::Applied { accepted_items: 0, event: Some(ScanEvent::Issue { issue, .. }) } if issue.code == "source-locked")
-    );
-    assert_eq!(fixture.staged_count(), 0);
-    assert_eq!(fixture.issue_count, 1);
-}
-
 mod resumption;
 
 #[test]
@@ -159,9 +111,7 @@ fn same_identity_at_another_path_reuses_metadata_and_source_generation() {
     )
     .expect("prepare same identity");
     assert_eq!(prepared.preservation_prior(), Some(&prior));
-    let inspection = prepared
-        .inspect(&inspector, ScanInspection::Deferred)
-        .expect("reuse metadata");
+    let inspection = prepared.inspect(&inspector).expect("reuse metadata");
     assert_eq!(inspector.calls.get(), 1);
     let asset = prepared.into_asset(inspection);
     assert_eq!(asset.asset_id, prior.asset_id);
@@ -192,7 +142,7 @@ fn changed_source_preserves_identity_for_failure_without_reusing_metadata() {
     .expect("prepare changed source");
     assert_eq!(prepared.preservation_prior(), Some(&prior));
     let inspection = prepared
-        .inspect(&inspector, ScanInspection::Deferred)
+        .inspect(&inspector)
         .expect("inspect changed source");
     assert_eq!(inspector.calls.get(), 2);
     let asset = prepared.into_asset(inspection);
@@ -263,16 +213,6 @@ impl EntryFixture {
         inspector: &RecordingInspector,
         publish: &mut impl FnMut(ScanEvent) -> bool,
     ) -> ScanEntryOutcome {
-        self.apply_inspected(file, inspector, ScanInspection::Deferred, publish)
-    }
-
-    fn apply_inspected(
-        &mut self,
-        file: DiscoveredFile,
-        inspector: &RecordingInspector,
-        inspection: ScanInspection,
-        publish: &mut impl FnMut(ScanEvent) -> bool,
-    ) -> ScanEntryOutcome {
         let relative_path = file.relative_path.clone();
         apply_scan_entry(
             &mut self.catalog,
@@ -286,7 +226,6 @@ impl EntryFixture {
                 has_active_locations: false,
                 accepted_items: 0,
                 outcome: FileVisitOutcome::File(file),
-                inspection,
             },
             &mut self.checkpoint,
             &mut self.issue_count,

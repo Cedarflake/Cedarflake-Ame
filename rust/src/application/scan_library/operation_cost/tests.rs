@@ -183,12 +183,6 @@ fn expression_instrumentation_preserves_single_evaluation_and_error_return() {
 
 #[test]
 fn generated_scan_reaches_each_owning_operation_without_altering_membership() {
-    for prefetch in [false, true] {
-        assert_generated_scan_operation_costs(prefetch);
-    }
-}
-
-fn assert_generated_scan_operation_costs(prefetch: bool) {
     use super::super::{StoragePaths, run_scan_with_storage};
     use crate::domain::{ScanEvent, ScanRequest};
     use image::{ImageFormat, Rgba, RgbaImage};
@@ -207,7 +201,7 @@ fn assert_generated_scan_operation_costs(prefetch: bool) {
         ScanRequest {
             scan_id: "operation-cost-fixture".to_owned(),
             root_path: source.path().to_string_lossy().into_owned(),
-            max_items: (!prefetch).then_some(10),
+            max_items: None,
             max_entries: None,
             preview_edge: 128,
         },
@@ -236,11 +230,7 @@ fn assert_generated_scan_operation_costs(prefetch: bool) {
     let report = scope.finish(elapsed.elapsed()).unwrap();
     assert_eq!(
         report.measurements[Operation::SourceDiscovery as usize].calls,
-        if prefetch { 5 } else { 7 }
-    );
-    assert_eq!(
-        report.measurements[Operation::InspectionWait as usize].calls,
-        if prefetch { 3 } else { 0 }
+        7
     );
     for operation in [
         Operation::PriorSelection,

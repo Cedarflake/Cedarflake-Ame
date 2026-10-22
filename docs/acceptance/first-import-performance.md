@@ -207,12 +207,14 @@ the comparison catalog remains preserved separately. The client uses the same fr
 resolution described above. Its observed working set after completion is 248,496,128 bytes and
 peak working set 330,448,896 bytes. This sequential warm-library observation still exceeds 60 seconds.
 
-The next candidate overlaps source discovery/inspection with catalog writes through one scoped
-reader and an eight-result queue. Checkpoint frequency, issue handling, final validation and atomic
-publication remain intact. Resumes and scans with active locations retain serial prior-driven
-inspection. Operation diagnostics separately report consumer `InspectionWait`; worker time overlaps
-catalog work and is not added to the thread-local serial operation sum. Actual client timing remains
-pending for this candidate.
+The source-inspection candidate at `b414384c86b7f33bff7e611650300f7534cd12a3` overlaps one scoped
+reader with catalog writes through an eight-result queue. Its actual cloud-primary client import
+takes **80.605 seconds**, with 19,028 published locations, 19,142 visited entries and the same
+37 issues. The backend SHA-256 is
+`28521AEB42B7C6A829935E874858A5434EA6459226C663D8F18C07AFBC82C37C`.
+The complete gallery and thumbnails are visible after publication. Observed post-import working
+set is 247,468,032 bytes and peak working set is 338,358,272 bytes. This sequential observation
+provides no improvement over 80.381 seconds and still exceeds the one-minute limit.
 
 The 50 focused local regressions cover the new bounded reader and failure protocol, entry metadata,
 retained hard links and repeated resumption, pause/cancel, finalization windows, live file changes
@@ -223,6 +225,11 @@ production lines, and the scan facade has 754 source lines with its unchanged 5,
 Entry processing has 212 production lines and 619 dedicated test lines across its existing files.
 File preparation has 191 production lines. Operation accounting has 175 test-support lines and
 348 dedicated test lines. None of these owners adds inline tests.
+
+The ineffective prefetch machinery is removed after this comparison, preserving the earlier
+catalog improvements. Fourteen serial operation-accounting regressions and the connected pause
+and cancellation regressions pass after removal. Product Rust source returns to the measured
+`d313d88210cdd5f21ca016fa5b73c3f9b7157754` implementation.
 
 The prior candidate's [CI run 39720418839](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39720418839)
 passed thirteen applicable component jobs but failed the ordinary-user real-journal restart test
