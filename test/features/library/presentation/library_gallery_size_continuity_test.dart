@@ -127,6 +127,7 @@ void main() {
               shape: shape,
               queryWide: queryWide,
               itemCount: itemCount,
+              thumbnailSize: GalleryThumbnailSize.small,
             );
             expect(scroll.maxScrollExtent, 0);
             for (final size in [
@@ -190,6 +191,7 @@ Future<ScrollPosition> _openGallery(
   required GalleryLayoutShape shape,
   required bool queryWide,
   int itemCount = 180,
+  GalleryThumbnailSize thumbnailSize = GalleryThumbnailSize.medium,
 }) async {
   tester.view.physicalSize = const Size(1280, 800);
   tester.view.devicePixelRatio = 1;
@@ -203,7 +205,10 @@ Future<ScrollPosition> _openGallery(
           LibraryState.fromSnapshot(snapshot),
         ),
         initialLibraryViewPreferencesProvider.overrideWithValue(
-          LibraryViewPreferences(layoutShape: shape),
+          LibraryViewPreferences(
+            layoutShape: shape,
+            thumbnailSize: thumbnailSize,
+          ),
         ),
         if (queryWide)
           libraryGalleryLayoutManifestLoaderProvider.overrideWithValue(

@@ -222,8 +222,9 @@ Future<void> _waitForImage(WidgetTester tester) async {
     final images = tester.widgetList<RawImage>(find.byType(RawImage)).toList();
     if (images.length == 1 &&
         images.single.image != null &&
-        (images.single.opacity?.value ?? 1) == 1)
+        (images.single.opacity?.value ?? 1) == 1) {
       return;
+    }
   }
   fail(
     "The image did not finish decoding and revealing within the frame budget",

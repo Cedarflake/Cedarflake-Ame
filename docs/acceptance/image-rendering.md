@@ -8,7 +8,7 @@ source-read authority, dependency or licensing boundary changes.
 
 ## Focused regression evidence
 
-The canonical Flutter test entrypoint passes 101 cases across the following files. Tests ran
+The canonical Flutter test entrypoint passes 121 cases across the following files. Tests ran
 serially using the installed Flutter 3.44.9 SDK. The final row-filling correction reran the affected
 packing, manifest and resize cases; unchanged viewer and preview evidence was retained.
 
@@ -18,6 +18,7 @@ packing, manifest and resize cases; unchanged viewer and preview evidence was re
 | `library_gallery_layout_snapshot_test` | 8 | Manifest/loaded geometry agreement, dimensions and anchor gaps |
 | `library_gallery_layout_test` | 6 | Item ordinals, grouping and uniform square sizes |
 | `library_gallery_resize_test` | 20 | Reflow, shape/density changes and retained logical positions |
+| `library_gallery_size_continuity_test` | 20 | Size round trips, edge intent and transitions between scrollable and short galleries |
 | `library_image_scaling_test` | 6 | Actual reduced-image pixels, cropped portrait pixels and bounded size requests in both layouts |
 | `library_image_viewer_test` | 11 | Zoom input, sampling changes and reuse of the decoded original |
 | `library_viewer_image_test` | 7 | Original/preview loading and source lifetime |
@@ -29,6 +30,10 @@ The reduction fixture renders alternating three-pixel black and four-pixel white
 size. Fixed bicubic sampling produced black/white aliasing; mipmapped reduction passes the bounded
 gray-pixel assertion. Cropped portrait checks retain the central image region and request the
 1024-pixel bucket rather than exposing the image's top and bottom.
+
+The short-gallery fixtures start with small cards so that the ten-item gallery fits before enlarging
+it. Both layouts and manifest modes retain the original assertions for top position, end intent and
+zero scroll extent after shrinking. These 20 cases pass after adapting to the larger card sizes.
 
 ## Windows client evidence
 
@@ -48,9 +53,10 @@ Disposable derived storage was removed after process retirement and preference r
 
 Production line counts: row packing 160, manifest layout 441, gallery wall 1520, photo tile 460,
 cover-size policy 32, viewer image 236, viewer 393, and zoom geometry 84. These owners contain no
-inline tests. Changed dedicated test files contain 131, 266, 230, 272, 814 and 137 lines for packing,
-manifest layout, loaded layout, image scaling, viewer and zoom geometry respectively. Preview-size
-policy and shared row packing own the new decisions; the gallery/viewer facades retain their lifetimes.
+inline tests. Changed dedicated test files contain 131, 266, 230, 273, 814, 137 and 306 lines for packing,
+manifest layout, loaded layout, image scaling, viewer, zoom geometry and size continuity respectively.
+Preview-size policy and shared row packing own the new decisions; the gallery/viewer facades retain
+their lifetimes.
 
 Preview requests retain the existing 1024-pixel maximum and bounded scheduling/cache rules. Extreme
 aspect ratios or high-density displays can still exceed the detail available in that bucket. This
