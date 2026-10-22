@@ -447,9 +447,10 @@ void main() {
       final slider = tester.widget<Slider>(
         find.byKey(const Key("timeline-slider")),
       );
-      slider.onChangeStart?.call(0.8);
-      slider.onChanged?.call(0.8);
-      slider.onChangeEnd?.call(0.8);
+      // The rotated slider's value decreases toward the end of the gallery.
+      slider.onChangeStart?.call(slider.value);
+      slider.onChanged?.call(0.2);
+      slider.onChangeEnd?.call(0.2);
       for (var attempt = 0; attempt < 12; attempt += 1) {
         await tester.pump(const Duration(milliseconds: 16));
         if (scrollPosition.pixels > initialPixels + 100) {
