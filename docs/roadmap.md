@@ -107,8 +107,8 @@ threshold for this maintenance scope.
 
 The time-rail return-to-top follow-up retires superseded queued and active navigation even when
 the new target is already loaded. Focused regressions and the corrected near-top-to-top client
-sequence pass; hosted verification and integration remain pending on
-`codex/fix-timeline-top-loading`. The [scoped evidence](acceptance/r3-exact-duplicates.md#returning-the-time-rail-to-the-loaded-top)
+sequence pass; hosted verification and integration continue through the existing PR #44 on
+`codex/faster-first-import`. The [scoped evidence](acceptance/r3-exact-duplicates.md#returning-the-time-rail-to-the-loaded-top)
 retains the two request-lifetime boundaries. This does not reopen a completed stage.
 
 The earlier [startup-update repair](plans/r3-exact-duplicates.md#startup-update-maintenance)
