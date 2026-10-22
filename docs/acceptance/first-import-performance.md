@@ -273,4 +273,16 @@ The staging owner has 120 production/source lines and no inline tests. The catal
 3,500 source lines and no inline test cases. The dedicated checkpoint tests have 528 lines;
 the 172-line row-write test owner retains its compiled-statement assertions with an explicit final
 flush. Eight checkpoint, 21 source-reconciliation, two row-write, one connected pause/resume and
-one cancellation regression pass. The complete cloud comparison is in progress.
+one cancellation regression pass.
+
+### End of the optimization round
+
+Further optimization stops at user direction on 2026-10-22 with candidate
+`87180419a8a7e1f2946f1c3a1b8c92ebe175fa36` retained. Its isolated cloud diagnostic completed before
+cleanup; the original media-inspector source is restored and the cloud checkout is clean. The
+client's original catalog was already restored and verified against its recorded hashes after the
+last client comparison. No additional client import is scheduled.
+
+The latest progress-commit candidate has 33 passing focused regressions but no new actual-client
+timing. The retained measured implementation's 80.381 seconds remains the applicable observation;
+the earlier one-minute request has no passing client result. PR #44 remains draft.

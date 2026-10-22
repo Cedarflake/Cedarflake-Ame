@@ -70,14 +70,13 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-The requested [first-import performance maintenance](plans/first-import-performance.md) remains active:
-the measured 80.381-second cloud-primary import exceeds the selected 60-second acceptance limit.
-The catalog scopes a larger automatic-checkpoint window to an initial foreground import and reuses
-compiled prior queries. The complete real-library comparison preserves original media, catalog
-membership, metadata and publication correctness, including pause/resume and gallery browsing.
-Continue optimizing and measuring the complete import through validated publication in the actual
-client. This work does not start R4. Its timings, cache limitations
-and verification belong in the [acceptance record](acceptance/first-import-performance.md).
+The requested [first-import performance maintenance](plans/first-import-performance.md) stops at
+the current candidate by user direction on 2026-10-22. Retain the measured catalog improvements and
+the subsequent coalesced progress commit; do not schedule further optimization or client imports.
+The measured 80.381-second cloud-primary import exceeds the earlier 60-second limit, and the latest
+progress-commit change has no new client timing. PR #44 remains draft. This disposition does not
+claim the one-minute outcome or start R4. Its timings, source preservation, cache limitations and
+verification belong in the [acceptance record](acceptance/first-import-performance.md).
 
 R3 is closed after exact identification, physical-location inspection, both gallery modes,
 duplicate review, incremental maintenance and durable choices passed their affected verification.
