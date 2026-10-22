@@ -215,6 +215,9 @@ takes **80.605 seconds**, with 19,028 published locations, 19,142 visited entrie
 The complete gallery and thumbnails are visible after publication. Observed post-import working
 set is 247,468,032 bytes and peak working set is 338,358,272 bytes. This sequential observation
 provides no improvement over 80.381 seconds and still exceeds the one-minute limit.
+The read-only bidirectional comparison finds zero differences in the same ten membership/metadata
+fields. The original catalog is restored and verified against its pre-run hashes; the candidate
+catalog is preserved separately.
 
 The 50 focused local regressions cover the new bounded reader and failure protocol, entry metadata,
 retained hard links and repeated resumption, pause/cancel, finalization windows, live file changes
@@ -235,3 +238,39 @@ The prior candidate's [CI run 39720418839](https://github.com/Cedarflake/Cedarfl
 passed thirteen applicable component jobs but failed the ordinary-user real-journal restart test
 with repeated `identity_journal_file_attributes` failures. Its 402 other synchronization/scan tests
 passed. This failure remains under diagnosis; no rerun or reduced assertion establishes a pass.
+The subsequent changed-head [CI run 39723215869](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39723215869)
+passes all fourteen applicable component jobs and the aggregate gate, including the same journal
+restart case. A focused ordinary-user local run also passes; the earlier failure has not reproduced.
+
+### Serial import cost and progress commit boundary
+
+The full cloud-primary read-only diagnostic on `257e02511c770e0fec9d3e79631e1f47b478240a`
+takes 75.890 seconds with the same 19,028 published locations and 37 issues. The application crate
+uses test-profile optimization level zero and dependencies remain optimized; this is a diagnostic,
+not the Windows client acceptance result. The 15 sampled source hashes remain unchanged.
+
+| Operation | Elapsed |
+| --- | ---: |
+| Source discovery | 4.830 s |
+| Prior selection | 1.664 s |
+| Media inspection | 33.154 s |
+| Location staging | 9.336 s |
+| Directory persistence | 8.958 s |
+| Progress persistence | 4.860 s |
+| Final validation | 4.856 s |
+| Publication | 4.288 s |
+
+The remaining 3.944 seconds include admission, events and scope retirement. Four observed slow
+automatic checkpoints total 7.404 seconds, already included in the enclosing operations rather
+than added to this table. The longest checkpoint takes 3.248 seconds.
+
+A full 128-location batch previously committed immediately before its progress checkpoint. A new
+regression observes that premature commit on the previous implementation. Staging now leaves the
+full batch for the atomic progress transaction; an incoming 129th item flushes it before admission.
+Root/size/source-state checks remain in `scan_staging.rs`, with the catalog facade delegating there.
+No transaction spans source reads, and rejected commits retain the bounded batch for retry.
+The staging owner has 120 production/source lines and no inline tests. The catalog facade has
+3,500 source lines and no inline test cases. The dedicated checkpoint tests have 528 lines;
+the 172-line row-write test owner retains its compiled-statement assertions with an explicit final
+flush. Eight checkpoint, 21 source-reconciliation, two row-write, one connected pause/resume and
+one cancellation regression pass. The complete cloud comparison is in progress.

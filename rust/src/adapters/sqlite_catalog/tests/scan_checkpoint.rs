@@ -13,10 +13,14 @@ enum ProgressBoundary {
 
 impl ProgressBoundary {
     fn persist(&self, catalog: &mut SqliteCatalog) -> Result<(), ScanError> {
+        self.persist_count(catalog, 1)
+    }
+
+    fn persist_count(&self, catalog: &mut SqliteCatalog, count: u64) -> Result<(), ScanError> {
         let checkpoint = ScanCheckpoint {
             last_visited_relative_path: Some("image.png".to_owned()),
-            visited_entries: 1,
-            accepted_items: 1,
+            visited_entries: count,
+            accepted_items: count,
             issue_count: 0,
             requires_previous_snapshot: false,
         };
@@ -120,6 +124,115 @@ fn scan_progress_and_buffered_locations_share_one_durable_commit() {
             .expect("durable progress and location count");
         assert_eq!((accepted, staged), (1, 1));
     }
+}
+
+fn numbered_location(index: usize) -> AssetLocationView {
+    let mut item = location(10);
+    item.asset_id = format!("asset-{index}");
+    item.location_id = format!("location-{index}");
+    item.relative_path = format!("image-{index}.png");
+    item.absolute_path = format!("C:\\Pictures\\image-{index}.png");
+    item.display_path = item.absolute_path.clone();
+    item
+}
+
+#[test]
+fn full_staging_batch_and_progress_share_one_durable_commit() {
+    for boundary in [
+        ProgressBoundary::Checkpoint,
+        ProgressBoundary::DirectoryCompletion,
+    ] {
+        let directory = tempdir().expect("isolated storage");
+        let path = directory.path().join("catalog.sqlite3");
+        let mut catalog = prepared_catalog(path.clone());
+        let commits = Arc::new(AtomicUsize::new(0));
+        let observed = Arc::clone(&commits);
+        catalog
+            .connection
+            .commit_hook(Some(move || {
+                observed.fetch_add(1, Ordering::SeqCst);
+                false
+            }))
+            .expect("observe commits");
+        for index in 0..LOCATION_STAGE_BATCH {
+            catalog
+                .stage_location("scan", "root", &numbered_location(index))
+                .expect("buffer location");
+        }
+        assert_eq!(commits.load(Ordering::SeqCst), 0);
+        boundary
+            .persist_count(&mut catalog, LOCATION_STAGE_BATCH as u64)
+            .expect("persist full checkpoint");
+        assert_eq!(commits.load(Ordering::SeqCst), 1);
+        assert!(catalog.pending_locations.is_empty());
+        drop(catalog);
+        let reader = Connection::open_with_flags(path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+            .expect("reopen checkpoint");
+        let (accepted, staged): (i64, i64) = reader
+            .query_row(
+                "SELECT accepted_items, (SELECT COUNT(*) FROM asset_locations WHERE scan_id='scan')
+             FROM scan_runs WHERE id='scan'",
+                [],
+                |row| Ok((row.get(0)?, row.get(1)?)),
+            )
+            .expect("durable membership");
+        assert_eq!(
+            (accepted, staged),
+            (LOCATION_STAGE_BATCH as i64, LOCATION_STAGE_BATCH as i64)
+        );
+    }
+}
+
+#[test]
+fn staging_overflow_keeps_the_full_batch_for_retry_before_admitting_another_item() {
+    let directory = tempdir().expect("isolated storage");
+    let mut catalog = prepared_catalog(directory.path().join("catalog.sqlite3"));
+    for index in 0..LOCATION_STAGE_BATCH {
+        catalog
+            .stage_location("scan", "root", &numbered_location(index))
+            .expect("buffer location");
+    }
+    catalog
+        .connection
+        .commit_hook(Some(|| true))
+        .expect("reject overflow commit");
+    let next = numbered_location(LOCATION_STAGE_BATCH);
+    assert!(catalog.stage_location("scan", "root", &next).is_err());
+    assert_eq!(catalog.pending_locations.len(), LOCATION_STAGE_BATCH);
+    assert!(
+        catalog
+            .pending_locations
+            .iter()
+            .all(|pending| pending.location.location_id != next.location_id)
+    );
+    let staged: i64 = catalog
+        .connection
+        .query_row("SELECT COUNT(*) FROM asset_locations", [], |row| row.get(0))
+        .expect("rolled-back batch");
+    assert_eq!(staged, 0);
+    catalog
+        .connection
+        .commit_hook(None::<fn() -> bool>)
+        .expect("allow retry");
+    catalog
+        .stage_location("scan", "root", &next)
+        .expect("retry overflow");
+    assert_eq!(catalog.pending_locations.len(), 1);
+    let staged: i64 = catalog
+        .connection
+        .query_row("SELECT COUNT(*) FROM asset_locations", [], |row| row.get(0))
+        .expect("committed batch");
+    assert_eq!(staged, LOCATION_STAGE_BATCH as i64);
+    catalog
+        .checkpoint_scan(
+            "scan",
+            &ScanCheckpoint {
+                accepted_items: (LOCATION_STAGE_BATCH + 1) as u64,
+                ..ScanCheckpoint::default()
+            },
+        )
+        .expect("persist remaining location");
+    assert!(catalog.pending_locations.is_empty());
 }
 
 #[test]

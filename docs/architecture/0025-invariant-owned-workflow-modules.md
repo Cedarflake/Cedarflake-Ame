@@ -201,7 +201,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   durability. Retained connections cannot keep a retired import policy.
 - `scan_resume_inventory.rs` owns retained first-import membership and current-run reuse lookup.
   Its roster is independent of published membership. `scan_staging.rs` owns buffered location
-  persistence and transactional acceptance of retained locations. Its `scan_staging/retirement.rs`
+  admission, source-state capture, persistence and transactional acceptance of retained locations.
+  A full 128-location buffer remains available to the next atomic progress checkpoint; admitting
+  another location first flushes that full buffer, preserving its bound and retry ownership.
+  Its `scan_staging/retirement.rs`
   owner retires affected rows and unreferenced assets in the caller's transaction. Foreground
   cancellation atomically retires task authority and removes at most 128 staged locations; terminal
   scan rows retain the remaining cleanup identity across restart. The reclamation application owner
