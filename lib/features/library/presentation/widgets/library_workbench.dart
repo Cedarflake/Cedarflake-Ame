@@ -105,54 +105,62 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
             ),
           ),
         );
-        final gallery = LibrarySidebarTransition(
-          expanded: expanded,
-          sidebarWidth: sidebarWidth,
-          sidebar: widget.navigationBuilder(sidebarWidth),
-          gallery: LibraryMainSurface(child: widget.galleryBuilder(context)),
-          resizeHandle: LibraryNavigationResizeHandle(
-            width: sidebarWidth,
-            minimumWidth: ameMinimumSidebarWidth,
-            maximumWidth: ameMaximumSidebarWidth,
-            defaultWidth: ameDefaultSidebarWidth,
-            onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
-            onWidthChanged: (width) => setState(() => _sidebarWidth = width),
-            onWidthChangeEnd: _finishResize,
-            onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
+        final gallery = Material(
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
+          borderRadius: LibraryMainSurface.borderRadius,
+          clipBehavior: Clip.antiAlias,
+          child: LibrarySidebarTransition(
+            expanded: expanded,
+            sidebarWidth: sidebarWidth,
+            sidebar: widget.navigationBuilder(sidebarWidth),
+            gallery: LibraryMainSurface(child: widget.galleryBuilder(context)),
+            resizeHandle: LibraryNavigationResizeHandle(
+              width: sidebarWidth,
+              minimumWidth: ameMinimumSidebarWidth,
+              maximumWidth: ameMaximumSidebarWidth,
+              defaultWidth: ameDefaultSidebarWidth,
+              onWidthChangeStart: () => widget.onSidebarResizeChanged(true),
+              onWidthChanged: (width) => setState(() => _sidebarWidth = width),
+              onWidthChangeEnd: _finishResize,
+              onWidthChangeCancel: () => widget.onSidebarResizeChanged(false),
+            ),
           ),
         );
-        return Row(
-          children: [
-            _FunctionRail(workspace: workspace, sidebarToggle: toggle),
-            Expanded(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _retainedWorkspace(
-                    workspace: LibraryWorkspace.gallery,
-                    visible: workspace == LibraryWorkspace.gallery,
-                    child: gallery,
-                  ),
-                  if (_visited.contains(LibraryWorkspace.duplicates))
+        return ColoredBox(
+          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          child: Row(
+            children: [
+              _FunctionRail(workspace: workspace, sidebarToggle: toggle),
+              Expanded(
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
                     _retainedWorkspace(
-                      workspace: LibraryWorkspace.duplicates,
-                      visible: workspace == LibraryWorkspace.duplicates,
-                      child: LibraryMainSurface(
-                        child: widget.duplicatesBuilder(context),
-                      ),
+                      workspace: LibraryWorkspace.gallery,
+                      visible: workspace == LibraryWorkspace.gallery,
+                      child: gallery,
                     ),
-                  if (_visited.contains(LibraryWorkspace.settings))
-                    _retainedWorkspace(
-                      workspace: LibraryWorkspace.settings,
-                      visible: workspace == LibraryWorkspace.settings,
-                      child: LibraryMainSurface(
-                        child: widget.settingsBuilder(context),
+                    if (_visited.contains(LibraryWorkspace.duplicates))
+                      _retainedWorkspace(
+                        workspace: LibraryWorkspace.duplicates,
+                        visible: workspace == LibraryWorkspace.duplicates,
+                        child: LibraryMainSurface(
+                          child: widget.duplicatesBuilder(context),
+                        ),
                       ),
-                    ),
-                ],
+                    if (_visited.contains(LibraryWorkspace.settings))
+                      _retainedWorkspace(
+                        workspace: LibraryWorkspace.settings,
+                        visible: workspace == LibraryWorkspace.settings,
+                        child: LibraryMainSurface(
+                          child: widget.settingsBuilder(context),
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
@@ -183,7 +191,7 @@ class _FunctionRail extends ConsumerWidget {
     return NavigationRail(
       key: const Key("library-function-rail"),
       minWidth: LibraryWorkbenchMetrics.railWidth,
-      backgroundColor: Theme.of(context).colorScheme.surfaceContainerLow,
+      backgroundColor: Theme.of(context).colorScheme.surfaceContainerHigh,
       labelType: NavigationRailLabelType.all,
       selectedIndex: switch (workspace) {
         LibraryWorkspace.gallery => 0,

@@ -252,6 +252,11 @@ retains the final counts, removes cancellation, and remains until the user ackno
 
 ## Left sidebar
 
+The global bar and function rail share `surfaceContainerHigh`. The source/folder sidebar uses
+`surfaceContainerLow`, and the main workspace retains `surfaceContainerLowest`. The sidebar and
+main workspace have matching 18-logical-pixel top-left corners, with the enclosing surface visible
+behind each corner. Theme-derived tonal surfaces distinguish these levels without divider lines.
+
 The sidebar contains only navigation and source scope:
 
 - `图库` with a trailing folder-plus add-source action;

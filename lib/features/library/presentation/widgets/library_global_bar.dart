@@ -34,7 +34,7 @@ class LibraryGlobalBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       key: const Key("library-global-surface"),
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      color: Theme.of(context).colorScheme.surfaceContainerHigh,
       child: SizedBox(
         key: const Key("library-global-bar"),
         height: 64,
