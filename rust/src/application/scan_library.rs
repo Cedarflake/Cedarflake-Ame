@@ -267,8 +267,7 @@ fn run_scan_with_storage_selection(
         }
     };
     let mut issue_count = checkpoint.issue_count;
-    let result = (|| -> Result<(), ScanError> {
-        let _initial_import_writes = catalog.initial_import_write_window(&request.scan_id)?;
+    let result = catalog.with_initial_import_writes(&request.scan_id, |catalog| {
         let root_generation = catalog
             .load_incremental_catalog_root(&root_id)?
             .map(|root| root.root_generation)
@@ -288,7 +287,7 @@ fn run_scan_with_storage_selection(
         }
         if finish_if_controlled(
             control.load(Ordering::Relaxed),
-            &mut catalog,
+            catalog,
             &request,
             &checkpoint,
             issue_count,
@@ -305,7 +304,7 @@ fn run_scan_with_storage_selection(
         let mut finalization = FinalizationPlan::new(finalization_mode);
         if is_authoritative_recovery {
             let evidence_allows_publication = finalization.restore_retained_scan_issues(
-                &mut catalog,
+                catalog,
                 &request.scan_id,
                 &canonical_root,
                 Path::new(&request.root_path),
@@ -316,7 +315,7 @@ fn run_scan_with_storage_selection(
             }
         } else if reason == FullScanReason::ResumeForegroundCheckpoint {
             finalization.restore_retained_scan_issues(
-                &mut catalog,
+                catalog,
                 &request.scan_id,
                 &canonical_root,
                 Path::new(&request.root_path),
@@ -331,7 +330,7 @@ fn run_scan_with_storage_selection(
             entry_limit: request.max_entries,
         }) {
             retain_detached_scan(
-                &mut catalog,
+                catalog,
                 control.load(Ordering::Relaxed),
                 &request,
                 &checkpoint,
@@ -350,7 +349,7 @@ fn run_scan_with_storage_selection(
             })
         {
             retain_detached_scan(
-                &mut catalog,
+                catalog,
                 control.load(Ordering::Relaxed),
                 &request,
                 &checkpoint,
@@ -398,7 +397,7 @@ fn run_scan_with_storage_selection(
                 loop {
                     if finish_if_controlled(
                         control.load(Ordering::Relaxed),
-                        &mut catalog,
+                        catalog,
                         &request,
                         &checkpoint,
                         issue_count,
@@ -435,7 +434,7 @@ fn run_scan_with_storage_selection(
             mut accepted_items,
             was_limited,
         } = traverse_scan(
-            &mut catalog,
+            catalog,
             &mut finalization,
             ScanTraversalContext {
                 request: &request,
@@ -476,7 +475,7 @@ fn run_scan_with_storage_selection(
 
         if finish_if_controlled(
             control.load(Ordering::Relaxed),
-            &mut catalog,
+            catalog,
             &request,
             &checkpoint,
             issue_count,
@@ -487,7 +486,7 @@ fn run_scan_with_storage_selection(
         }
 
         let Some(validated) = finalization::validate_staged_locations(
-            &mut catalog,
+            catalog,
             &mut finalization,
             FinalizationContext {
                 control: &control,
@@ -529,7 +528,7 @@ fn run_scan_with_storage_selection(
                 })
             {
                 retain_detached_scan(
-                    &mut catalog,
+                    catalog,
                     control.load(Ordering::Relaxed),
                     &request,
                     &checkpoint,
@@ -550,14 +549,14 @@ fn run_scan_with_storage_selection(
                 .publication_guard
                 .require_metadata_inventory_root_identity(&publication_root_identity)?;
             let consolidation = root_consolidation::PreparedRootConsolidation::capture(
-                &catalog,
+                catalog,
                 &request.scan_id,
                 &root_id,
                 &validated.publication_guard,
                 was_limited,
             )?;
             let outcome = publish_foreground_scan(
-                &mut catalog,
+                catalog,
                 &finalization,
                 ForegroundPublicationContext {
                     control: &control,
@@ -602,7 +601,7 @@ fn run_scan_with_storage_selection(
             consolidated_roots,
         });
         Ok(())
-    })();
+    });
     terminal_retirement::finish(catalog, &request.scan_id, issue_count, result)
 }
 

@@ -7,7 +7,7 @@ pub(super) use initial_import::ImportCheckpointPolicy;
 
 // Smaller checkpoints limit the accumulated work performed by the committing writer.
 pub(super) const AUTOMATIC_CHECKPOINT_PAGES: i32 = 256;
-pub(super) const INITIAL_IMPORT_CHECKPOINT_PAGES: i32 = 4_096;
+pub(super) const INITIAL_IMPORT_CHECKPOINT_PAGES: i32 = 32_768;
 
 pub(super) fn configure_catalog_connection(connection: &Connection) -> Result<(), ScanError> {
     connection

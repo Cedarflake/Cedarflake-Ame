@@ -24,6 +24,87 @@ fn checkpoint_pages() -> i32 {
         .expect("native threshold observed before the diagnostic hook")
 }
 
+fn cache_size(catalog: &SqliteCatalog) -> i64 {
+    catalog
+        .connection
+        .pragma_query_value(None, "cache_size", |row| row.get(0))
+        .unwrap()
+}
+
+#[test]
+fn initial_import_cache_is_connection_local_and_restored_after_success_or_error() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("catalog.sqlite3");
+    let mut catalog = SqliteCatalog::open(path.clone()).unwrap();
+    let peer = SqliteCatalog::open(path).unwrap();
+    let peer_cache_size = cache_size(&peer);
+    begin_import(&mut catalog, "scan", "root");
+
+    for previous in [-1024, 256] {
+        catalog
+            .connection
+            .pragma_update(None, "cache_size", previous)
+            .unwrap();
+        catalog
+            .with_initial_import_writes("scan", |catalog| {
+                assert_eq!(cache_size(catalog), -INITIAL_IMPORT_CACHE_KIB);
+                assert_eq!(cache_size(&peer), peer_cache_size);
+                let transaction = catalog.begin_write()?;
+                transaction
+                    .execute("INSERT INTO assets VALUES (?1, 1)", [previous.to_string()])
+                    .unwrap();
+                transaction.commit().unwrap();
+                Ok(())
+            })
+            .unwrap();
+        assert_eq!(cache_size(&catalog), previous);
+        catalog.begin_write().unwrap().commit().unwrap();
+        assert_eq!(checkpoint_pages(), AUTOMATIC_CHECKPOINT_PAGES);
+
+        let error = catalog
+            .with_initial_import_writes("scan", |catalog| {
+                assert_eq!(cache_size(catalog), -INITIAL_IMPORT_CACHE_KIB);
+                let transaction = catalog.begin_write()?;
+                transaction.execute("DELETE FROM assets", []).unwrap();
+                Err::<(), _>(ScanError::new("fixture_failure", "rollback fixture"))
+            })
+            .unwrap_err();
+        assert_eq!(error.code, "fixture_failure");
+        assert_eq!(cache_size(&catalog), previous);
+        catalog.begin_write().unwrap().commit().unwrap();
+        assert_eq!(checkpoint_pages(), AUTOMATIC_CHECKPOINT_PAGES);
+    }
+    let committed: i64 = peer
+        .connection
+        .query_row("SELECT COUNT(*) FROM assets", [], |row| row.get(0))
+        .unwrap();
+    assert_eq!(committed, 2);
+}
+
+#[test]
+fn initial_import_cache_restores_during_unwinding_and_skips_unadmitted_scans() {
+    let directory = tempfile::tempdir().unwrap();
+    let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    begin_import(&mut catalog, "scan", "root");
+    let previous = cache_size(&catalog);
+    catalog
+        .with_initial_import_writes("missing", |catalog| {
+            assert_eq!(cache_size(catalog), previous);
+            Ok(())
+        })
+        .unwrap();
+    let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+        let _ = catalog.with_initial_import_writes::<()>("scan", |catalog| {
+            assert_eq!(cache_size(catalog), -INITIAL_IMPORT_CACHE_KIB);
+            panic!("fixture unwind")
+        });
+    }));
+    assert!(result.is_err());
+    assert_eq!(cache_size(&catalog), previous);
+    catalog.begin_write().unwrap().commit().unwrap();
+    assert_eq!(checkpoint_pages(), AUTOMATIC_CHECKPOINT_PAGES);
+}
+
 #[test]
 fn initial_import_window_follows_catalog_writers_and_retires_with_its_last_owner() {
     let directory = tempfile::tempdir().expect("isolated catalogs");
@@ -139,7 +220,8 @@ fn initial_import_window_keeps_full_durability_rollback_and_a_bounded_wal() {
             .unwrap(),
         1,
     );
-    for id in 0..1_800 {
+    let entry_count = i64::from(INITIAL_IMPORT_CHECKPOINT_PAGES) / 2;
+    for id in 0..entry_count {
         connection
             .execute("INSERT INTO entries VALUES (?1, zeroblob(8192))", [id])
             .unwrap();
@@ -169,7 +251,7 @@ fn initial_import_window_keeps_full_durability_rollback_and_a_bounded_wal() {
             .query_row("SELECT COUNT(*) FROM entries", [], |row| row
                 .get::<_, i64>(0))
             .unwrap(),
-        1_800,
+        entry_count,
     );
     drop(reader);
     drop(window);
@@ -182,6 +264,6 @@ fn initial_import_window_keeps_full_durability_rollback_and_a_bounded_wal() {
             .query_row("SELECT COUNT(*) FROM entries", [], |row| row
                 .get::<_, i64>(0))
             .unwrap(),
-        1_800,
+        entry_count,
     );
 }

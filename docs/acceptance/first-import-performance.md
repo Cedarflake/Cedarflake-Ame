@@ -153,3 +153,43 @@ two prior-query regressions and complete source-safe diagnostics described above
 follow-up is `db6c109`; current-head hosted results remain a delivery gate. Production source `7c880e5`
 passed all fourteen applicable jobs in [Quality / CI run 39680852729](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/39680852729);
 the three signing-dependent jobs were skipped by their existing conditions.
+
+## One-minute target and continued diagnosis
+
+The subsequent acceptance limit is 60 seconds for the complete cloud-primary first import in the
+actual client, through validated publication. The 145.448-second candidate above does not satisfy
+that limit. PR #44 remains draft while the remaining import costs are reduced and measured.
+
+The next complete read-only diagnostic repeats production source `7c880e5` with the existing test
+profile and isolated catalogs. A diagnostic-only inspection timer reports reads taking at least
+20 ms without changing their behavior. Each experiment restores its modified source after retirement.
+
+| Diagnostic | Total | Media inspection | Staging | Directory persistence | Checkpoint persistence | Slow automatic checkpoints |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| Current 4,096-page window | 131.079 s | 41.739 s | 45.727 s | 15.245 s | 7.610 s | 45.664 s / 28 |
+| Same window, 32 MiB page cache | 97.605 s | 26.522 s | 37.343 s | 13.637 s | 7.397 s | 44.023 s / 28 |
+| 16,384-page window, same cache | 74.603 s | 27.269 s | 16.616 s | 6.606 s | 5.644 s | 15.264 s / 8 |
+
+Automatic checkpoint time is included in the other operation columns, not additional time.
+All three completed with 19,028 accepted locations and clean source restoration. Sequential source
+cache warming affects the comparison: the cache-only run's 15-second media decrease is not
+attributed to a database setting. The larger-window comparison retains similar media time and
+directly observes substantially less checkpoint work; its longest measured checkpoint is 3.238 s.
+
+The next production candidate scopes the 32 MiB cache to the importing connection, increases the
+temporary window to 32,768 pages, and reuses the asset-insert and source-generation SQL statements.
+It keeps the 128-entry durable traversal checkpoint, FULL synchronization, file validation and
+atomic publication. The new window and actual client timing still require measurement; these
+diagnostics do not establish the one-minute outcome.
+
+The connection-policy regression passes all ten cases locally, including the two new cache-scope
+cases. Its durable fixture now crosses the 32,768-page threshold twice with 16,384 transactions,
+then verifies rollback, independent reads, bounded WAL reuse, policy retirement and reopen. The
+initial-import owner contains 129 production/source lines and 269 dedicated test lines, without
+inline tests. The scan facade remains 749 source lines, with no inline tests and its existing
+5,521-line dedicated test owner. Location row writes have 137 source and 169 dedicated test lines;
+source reconciliation has 343 source lines and 382 dedicated regression lines, without inline tests.
+The 21 source-reconciliation, two row-write and one connected pause/resume regressions also pass.
+The first sandboxed source-reconciliation invocation rejected preview fixtures at the existing
+namespace ACL boundary; the same 21 cases pass in the ordinary Windows user context without any
+permission or policy change. Hosted verification and the production-client comparison remain open.

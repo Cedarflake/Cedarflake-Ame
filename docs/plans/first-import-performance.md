@@ -1,13 +1,15 @@
 # First-import performance
 
-Status: implementation and cloud-client verification complete; hosted verification pending
+Status: active; the measured candidate exceeds the one-minute acceptance limit
 
 ## Outcome and boundary
 
 Reduce the time needed to finish the first import of a real image collection on a constrained
 Windows computer. Preserve source read-only access, placeholder exclusion, bounded memory,
 pause/cancel/resume, metadata interpretation, and validation before atomic catalog publication.
-There is no fixed five-second target. This maintenance does not reopen R2c/R3 or start R4.
+The complete cloud-primary library must finish first import within 60 seconds in the actual
+Windows client, through validated atomic publication. This maintenance does not reopen R2c/R3 or
+start R4.
 
 ## Execution
 
@@ -28,10 +30,15 @@ implied by reducing scan cost.
 ## Evidence
 
 The production candidate amortizes automatic SQLite checkpoints only during a foreground import
-into an empty catalog and reuses compiled prior-query statements. The complete cloud-primary client
+into an empty catalog and reuses compiled prior-query statements. The continued candidate borrows
+a 32 MiB page cache for the importing connection, uses a 32,768-page writeback trigger, and reuses
+asset-insert and generation statements while preserving the 128-entry durable progress checkpoint.
+The complete cloud-primary client
 comparison accepted the same 19,028 locations in 145.448 seconds, including pause/resume, compared
 with the original 794.052-second observation. Full member/metadata comparison and affected gallery
-interactions passed. Current-head hosted checks remain before engineering closeout.
+interactions passed. This candidate exceeds the subsequently selected 60-second limit. Continue
+measuring and repairing the remaining import costs; keep PR #44 in draft until the requested
+performance and applicable verification are satisfied.
 
 [First-import measurements](../acceptance/first-import-performance.md) owns timings, source safety,
 diagnostic limitations, and verification. The roadmap owns the active maintenance queue.

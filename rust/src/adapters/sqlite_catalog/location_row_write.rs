@@ -27,10 +27,9 @@ impl LocationRowWrite<'_> {
             source_generation,
         } = self;
         transaction
-            .execute(
-                "INSERT OR IGNORE INTO assets(id, created_unix_ms) VALUES (?1, ?2)",
-                params![location.asset_id, unix_time_ms()],
-            )
+            .prepare_cached("INSERT OR IGNORE INTO assets(id, created_unix_ms) VALUES (?1, ?2)")
+            .map_err(database_error)?
+            .execute(params![location.asset_id, unix_time_ms()])
             .map_err(database_error)?;
         transaction
             .prepare_cached(
