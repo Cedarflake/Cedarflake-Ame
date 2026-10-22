@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::domain::exact_duplicate_review::{
     ExactDuplicateDecision, ExactDuplicatePreference, ExactDuplicateReviewKey,
-    ExactDuplicateReviewPage,
+    ExactDuplicateReviewPage, ExactDuplicateReviewRange,
 };
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::{ExactDuplicateGroupCursor, ScanError};
@@ -59,6 +59,14 @@ impl ExactDuplicateReviewRepository for SqliteCatalog {
         ignored: bool,
     ) -> Result<ExactDuplicateReviewPage, ScanError> {
         groups::load(&self.connection, after, ignored)
+    }
+
+    fn seek_review_groups(
+        &self,
+        index: u64,
+        ignored: bool,
+    ) -> Result<ExactDuplicateReviewRange, ScanError> {
+        groups::seek(&self.connection, index, ignored)
     }
 
     fn set_duplicate_preference(

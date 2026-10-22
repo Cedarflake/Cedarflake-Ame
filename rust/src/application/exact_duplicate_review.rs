@@ -1,6 +1,7 @@
 use crate::domain::exact_duplicate_review::{
     ExactDuplicateDecision, ExactDuplicatePreference, ExactDuplicateReviewKey,
     ExactDuplicateReviewLocation, ExactDuplicateReviewLocations, ExactDuplicateReviewPage,
+    ExactDuplicateReviewRange,
 };
 use crate::domain::exact_duplicates::EXACT_DUPLICATE_PAGE_SIZE;
 use crate::domain::{ExactDuplicateGroupCursor, LibraryChangeLane, ScanError};
@@ -34,6 +35,13 @@ pub(crate) fn load_groups(
         validate_digest(&cursor.digest)?;
     }
     open_catalog()?.load_review_groups(after.as_ref(), ignored)
+}
+
+pub(crate) fn seek_groups(
+    index: u64,
+    ignored: bool,
+) -> Result<ExactDuplicateReviewRange, ScanError> {
+    open_catalog()?.seek_review_groups(index, ignored)
 }
 
 pub(crate) fn load_locations(

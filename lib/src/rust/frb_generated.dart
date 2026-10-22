@@ -82,7 +82,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -1551588412;
+  int get rustContentHash => -909473688;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -272,6 +272,12 @@ abstract class RustLibApi extends BaseApi {
   });
 
   Stream<ScanEvent> crateApiCatalogScanLibrary({required ScanRequest request});
+
+  Future<ExactDuplicateReviewRange>
+  crateApiExactDuplicateReviewSeekExactDuplicateReviewGroups({
+    required BigInt index,
+    required bool ignored,
+  });
 
   Future<ExactDuplicateDecision>
   crateApiExactDuplicateReviewSetExactDuplicateIgnored({
@@ -1755,6 +1761,44 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   );
 
   @override
+  Future<ExactDuplicateReviewRange>
+  crateApiExactDuplicateReviewSeekExactDuplicateReviewGroups({
+    required BigInt index,
+    required bool ignored,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_u_64(index, serializer);
+          sse_encode_bool(ignored, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 42,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_exact_duplicate_review_range,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta:
+            kCrateApiExactDuplicateReviewSeekExactDuplicateReviewGroupsConstMeta,
+        argValues: [index, ignored],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiExactDuplicateReviewSeekExactDuplicateReviewGroupsConstMeta =>
+      const TaskConstMeta(
+        debugName: "seek_exact_duplicate_review_groups",
+        argNames: ["index", "ignored"],
+      );
+
+  @override
   Future<ExactDuplicateDecision>
   crateApiExactDuplicateReviewSetExactDuplicateIgnored({
     required ExactDuplicateReviewKey key,
@@ -1769,7 +1813,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1810,7 +1854,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1846,7 +1890,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1880,7 +1924,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 46,
             port: port_,
           );
         },
@@ -1914,7 +1958,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1943,7 +1987,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 47)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 48)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1974,7 +2018,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2618,6 +2662,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       groups: dco_decode_list_exact_duplicate_review_group(arr[0]),
       totalGroups: dco_decode_u_64(arr[1]),
       next: dco_decode_opt_box_autoadd_exact_duplicate_group_cursor(arr[2]),
+    );
+  }
+
+  @protected
+  ExactDuplicateReviewRange dco_decode_exact_duplicate_review_range(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return ExactDuplicateReviewRange(
+      startIndex: dco_decode_u_64(arr[0]),
+      page: dco_decode_exact_duplicate_review_page(arr[1]),
     );
   }
 
@@ -4413,6 +4471,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       groups: var_groups,
       totalGroups: var_totalGroups,
       next: var_next,
+    );
+  }
+
+  @protected
+  ExactDuplicateReviewRange sse_decode_exact_duplicate_review_range(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_startIndex = sse_decode_u_64(deserializer);
+    var var_page = sse_decode_exact_duplicate_review_page(deserializer);
+    return ExactDuplicateReviewRange(
+      startIndex: var_startIndex,
+      page: var_page,
     );
   }
 
@@ -6497,6 +6568,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       self.next,
       serializer,
     );
+  }
+
+  @protected
+  void sse_encode_exact_duplicate_review_range(
+    ExactDuplicateReviewRange self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.startIndex, serializer);
+    sse_encode_exact_duplicate_review_page(self.page, serializer);
   }
 
   @protected

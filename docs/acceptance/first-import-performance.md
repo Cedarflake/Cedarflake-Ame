@@ -285,4 +285,6 @@ last client comparison. No additional client import is scheduled.
 
 The latest progress-commit candidate has 33 passing focused regressions but no new actual-client
 timing. The retained measured implementation's 80.381 seconds remains the applicable observation;
-the earlier one-minute request has no passing client result. PR #44 remains draft.
+the earlier one-minute request has no passing client result. PR #44 remained draft at this stopping
+point. Its later merge authorization includes the retained candidate and subsequent scoped browsing
+changes; it does not change these import measurements or schedule another optimization round.

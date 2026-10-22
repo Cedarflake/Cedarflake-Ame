@@ -31,6 +31,12 @@ pub struct ExactDuplicateReviewPage {
 }
 
 #[derive(Clone, Debug)]
+pub struct ExactDuplicateReviewRange {
+    pub start_index: u64,
+    pub page: ExactDuplicateReviewPage,
+}
+
+#[derive(Clone, Debug)]
 pub struct ExactDuplicatePreference {
     pub location_id: String,
     pub asset_id: String,

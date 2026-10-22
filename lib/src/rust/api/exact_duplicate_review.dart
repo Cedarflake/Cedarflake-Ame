@@ -18,6 +18,15 @@ Future<ExactDuplicateReviewPage> loadExactDuplicateReviewGroups({
       ignored: ignored,
     );
 
+Future<ExactDuplicateReviewRange> seekExactDuplicateReviewGroups({
+  required BigInt index,
+  required bool ignored,
+}) => RustLib.instance.api
+    .crateApiExactDuplicateReviewSeekExactDuplicateReviewGroups(
+      index: index,
+      ignored: ignored,
+    );
+
 Future<ExactDuplicateReviewLocations> loadExactDuplicateReviewLocations({
   required ExactDuplicateReviewKey key,
   String? after,

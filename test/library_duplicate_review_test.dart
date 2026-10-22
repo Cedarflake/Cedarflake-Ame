@@ -19,6 +19,40 @@ import "support/duplicate_review_fixtures.dart";
 
 void main() {
   test(
+    "group viewport forwards a distant position to the review service",
+    () async {
+      final service = ReviewFixtureService();
+      service.pendingGroups = Completer<LibraryDuplicateReviewPage>()
+        ..complete(
+          LibraryDuplicateReviewPage(
+            groups: List.filled(64, service.entry),
+            totalGroups: 12571,
+            next: LibraryDuplicateGroupCursor(
+              reviewGroup.digest,
+              reviewGroup.byteLength,
+            ),
+          ),
+        );
+      service.seekResult = LibraryDuplicateReviewRange(
+        startIndex: 12544,
+        page: LibraryDuplicateReviewPage(
+          groups: List.filled(27, service.entry),
+          totalGroups: 12571,
+        ),
+      );
+      final controller = LibraryDuplicateReviewController(service);
+      addTearDown(controller.dispose);
+      await controller.refresh();
+      await controller.ensureRange(12561, 12571);
+      expect(service.loads, 1);
+      expect(service.groupSeeks, [12561]);
+      expect(controller.itemCount, 12571);
+      expect(controller.groupWindow.itemAt(12570)?.group, reviewGroup);
+      expect(controller.loading, isFalse);
+    },
+  );
+
+  test(
     "late list response cannot replace selected group or clear its loading owner",
     () async {
       final service = ReviewFixtureService()

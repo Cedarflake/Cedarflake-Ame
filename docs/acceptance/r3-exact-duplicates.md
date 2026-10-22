@@ -1351,6 +1351,38 @@ the result-progress owner has 99; neither contains inline tests. Dedicated navig
 has 1,019 lines, with 746 unchanged synchronization-feedback test lines. No scheduling, catalog,
 source access or persistence policy changed.
 
+### Direct positioning in duplicate review
+
+On 2026-10-22, the ordinary Debug client showed 12,571 duplicate groups on `local-primary`.
+The visible range was 12,561–12,570 while the retained payload still covered groups around 2,816–3,199.
+The pending replacement advanced from its origin through keyset pages and repeated the filtered
+count for each page. Analysis had already completed. The placeholders eventually cleared after
+the replay reached the requested range; no before-change timing benchmark was recorded.
+
+Group windows now seek directly when no cursor checkpoint starts at the missing position.
+The catalog returns the actual aligned start, filtered total, at most 64 groups and the next
+keyset cursor from one read snapshot. Adjacent navigation retains keyset reads; replacements keep
+the published rows until the requested range is ready. Moving outside those retained rows exposes
+loading immediately. Source inspection, fingerprints, saved choices, schema and dependencies are
+unchanged; the typed bridge was regenerated through its canonical entrypoint.
+
+Ten focused Rust cases and twenty Flutter cases pass. They cover page boundaries, ignored-state
+filtering, preferred representatives, an empty or reduced result set, controller forwarding,
+distant seeks, adjacent reads, bounded caches, retry, disposal and superseded replacement reads.
+The Windows Debug client was rebuilt and restarted against the established catalog. Runtime
+inspection observed the final page at 12,544 with 27 groups, then navigation back through earlier
+positions, with no more than six cached pages (347 items in the observed sequence). The user
+completed the interaction and confirmed that the loading problem was resolved. These observations
+are functional large-library verification, not a controlled cold-cache latency benchmark.
+The retained client reports healthy synchronized sources with no pending work, retry or gap.
+No source mutation, hydration or catalog reset was introduced.
+
+The window, controller and service have 230, 183 and 170 production lines respectively; the
+SQLite group query has 148 and its repository owner has 199. None has inline tests. Dedicated
+window/seek/controller tests have 193, 159 and 310 lines; the new SQLite paging tests have 139.
+The existing typed owners retain their responsibilities, and no larger decomposition is required
+for this bounded paging change. Hosted results remain specific to the pushed commit.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

@@ -2,6 +2,7 @@ use rusqlite::{Connection, params};
 
 use crate::domain::exact_duplicate_review::{
     ExactDuplicateDecision, ExactDuplicateReviewGroup, ExactDuplicateReviewPage,
+    ExactDuplicateReviewRange,
 };
 use crate::domain::exact_duplicates::{EXACT_DUPLICATE_PAGE_SIZE, EXACT_FINGERPRINT_SCHEME};
 use crate::domain::{ExactDuplicateGroup, ExactDuplicateGroupCursor, ScanError};
@@ -21,6 +22,33 @@ pub(super) fn load(
     // Count and page must describe the same catalog snapshot, including on an empty last page.
     let transaction = connection.unchecked_transaction().map_err(database_error)?;
     let total_groups = count(&transaction, ignored)?;
+    let page = load_page(&transaction, after, ignored, total_groups, 0)?;
+    transaction.commit().map_err(database_error)?;
+    Ok(page)
+}
+
+pub(super) fn seek(
+    connection: &Connection,
+    index: u64,
+    ignored: bool,
+) -> Result<ExactDuplicateReviewRange, ScanError> {
+    let transaction = connection.unchecked_transaction().map_err(database_error)?;
+    let total_groups = count(&transaction, ignored)?;
+    // Clamp and align against this snapshot, including a library that shrank since the request.
+    let page_size = EXACT_DUPLICATE_PAGE_SIZE as u64;
+    let start_index = index.min(total_groups.saturating_sub(1)) / page_size * page_size;
+    let page = load_page(&transaction, None, ignored, total_groups, start_index)?;
+    transaction.commit().map_err(database_error)?;
+    Ok(ExactDuplicateReviewRange { start_index, page })
+}
+
+fn load_page(
+    connection: &Connection,
+    after: Option<&ExactDuplicateGroupCursor>,
+    ignored: bool,
+    total_groups: u64,
+    offset: u64,
+) -> Result<ExactDuplicateReviewPage, ScanError> {
     let representative = representative_expression("l");
     let sql = format!("WITH grouped AS (
         SELECT f.digest, f.byte_length, COUNT(*) AS locations,
@@ -32,7 +60,7 @@ pub(super) fn load(
         WHERE (f.digest, f.byte_length) > (?2, ?3)
           AND COALESCE(decision.ignored, 0) = ?4
         GROUP BY f.digest, f.byte_length HAVING COUNT(*) > 1
-        ORDER BY f.digest, f.byte_length LIMIT ?5
+        ORDER BY f.digest, f.byte_length LIMIT ?5 OFFSET ?6
     )
     SELECT {CANDIDATE_COLUMNS}, g.digest, g.byte_length, g.locations, g.physical_files,
            decision.preferred_location_id, decision.preferred_asset_id, COALESCE(decision.ignored, 0)
@@ -40,7 +68,7 @@ pub(super) fn load(
     LEFT JOIN exact_duplicate_decisions AS decision
       ON decision.scheme = ?1 AND decision.digest = g.digest AND decision.byte_length = g.byte_length
     ORDER BY g.digest, g.byte_length");
-    let mut statement = transaction.prepare(&sql).map_err(database_error)?;
+    let mut statement = connection.prepare(&sql).map_err(database_error)?;
     let rows = statement
         .query_map(
             params![
@@ -51,7 +79,8 @@ pub(super) fn load(
                     "content length"
                 )?,
                 ignored,
-                (EXACT_DUPLICATE_PAGE_SIZE + 1) as i64
+                (EXACT_DUPLICATE_PAGE_SIZE + 1) as i64,
+                sqlite_integer(offset, "duplicate group offset")?
             ],
             |row| {
                 let candidate = read_candidate(row)?;
@@ -91,8 +120,6 @@ pub(super) fn load(
     } else {
         None
     };
-    drop(statement);
-    transaction.commit().map_err(database_error)?;
     Ok(ExactDuplicateReviewPage {
         groups,
         total_groups,

@@ -175,3 +175,24 @@ class ExactDuplicateReviewPage {
           totalGroups == other.totalGroups &&
           next == other.next;
 }
+
+class ExactDuplicateReviewRange {
+  final BigInt startIndex;
+  final ExactDuplicateReviewPage page;
+
+  const ExactDuplicateReviewRange({
+    required this.startIndex,
+    required this.page,
+  });
+
+  @override
+  int get hashCode => startIndex.hashCode ^ page.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is ExactDuplicateReviewRange &&
+          runtimeType == other.runtimeType &&
+          startIndex == other.startIndex &&
+          page == other.page;
+}

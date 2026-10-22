@@ -8,6 +8,7 @@ mod gallery_batches;
 mod gallery_queries;
 mod retained_membership;
 mod review;
+mod review_paging;
 
 fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
     let directory = tempfile::tempdir().unwrap();
