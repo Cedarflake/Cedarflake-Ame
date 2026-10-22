@@ -1377,7 +1377,14 @@ are functional large-library verification, not a controlled cold-cache latency b
 The retained client reports healthy synchronized sources with no pending work, retry or gap.
 No source mutation, hydration or catalog reset was introduced.
 
-The window, controller and service have 230, 183 and 170 production lines respectively; the
+The first hosted attempt on `a635f7f` rejected an explicit constructor-field assignment under
+`prefer_initializing_formals`. The constructor now uses the supported initializing formal;
+focused analysis and all five direct-seek lifecycle cases pass without a behavioral change.
+That attempt also timed out in the external `application-ready` UIA probe after 8.023 seconds,
+with 5.162 seconds recorded loading UIAutomationClient and no reported element mismatch.
+The new head reruns the unchanged native assertions and deadline through normal CI.
+
+The window, controller and service have 226, 183 and 170 production lines respectively; the
 SQLite group query has 148 and its repository owner has 199. None has inline tests. Dedicated
 window/seek/controller tests have 193, 159 and 310 lines; the new SQLite paging tests have 139.
 The existing typed owners retain their responsibilities, and no larger decomposition is required

@@ -28,11 +28,7 @@ class LibraryDuplicateReviewSeek<T, C> {
 
 /// Keeps bounded payloads and keyset checkpoints behind a continuous viewport.
 class LibraryDuplicateReviewWindow<T, C> extends ChangeNotifier {
-  LibraryDuplicateReviewWindow(
-    this._load, {
-    Future<LibraryDuplicateReviewSeek<T, C>> Function(int)? seek,
-    this.onAdmitted,
-  }) : _seek = seek;
+  LibraryDuplicateReviewWindow(this._load, {this._seek, this.onAdmitted});
   final Future<LibraryDuplicateReviewSlice<T, C>> Function(C?) _load;
   final Future<LibraryDuplicateReviewSeek<T, C>> Function(int)? _seek;
   final void Function(LibraryDuplicateReviewSlice<T, C>)? onAdmitted;
