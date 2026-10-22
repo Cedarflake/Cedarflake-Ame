@@ -3,6 +3,7 @@
 #include <dwmapi.h>
 
 #include <cstdint>
+#include <cstdio>
 #include <memory>
 #include <optional>
 #include <string>
@@ -10,6 +11,7 @@
 #include <flutter/standard_method_codec.h>
 
 #include "flutter/generated_plugin_registrant.h"
+#include "flutter_io_thread_priority.h"
 
 namespace {
 
@@ -46,11 +48,21 @@ bool FlutterWindow::OnCreate() {
 
   // The size here must match the window dimensions to avoid unnecessary surface
   // creation / destruction in the startup path.
+  const FlutterIoThreadPriority io_priority;
   flutter_controller_ = std::make_unique<flutter::FlutterViewController>(
       frame.right - frame.left, frame.bottom - frame.top, project_);
   // Ensure that basic setup of the controller was successful.
   if (!flutter_controller_->engine() || !flutter_controller_->view()) {
     return false;
+  }
+  const auto priority_result = io_priority.Apply();
+  if (priority_result.status == FlutterIoPriorityStatus::kAdjusted) {
+    std::fprintf(stderr, "[Ame runtime] image_io_priority=normal thread=%lu\n",
+                 priority_result.thread_id);
+  } else {
+    std::fprintf(stderr,
+                 "[Ame runtime] image_io_priority=unchanged status=%d error=%lu\n",
+                 static_cast<int>(priority_result.status), priority_result.error);
   }
   RegisterPlugins(flutter_controller_->engine());
   InitializeSystemThemeChannel();

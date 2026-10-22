@@ -46,5 +46,13 @@ function Assert-AmeWindowsEngineResults {
             [regex]::Matches($outputs[0].InnerText, '(?m)^' + [regex]::Escape($marker) + '\r?$').Count -ne 1) {
             throw "Engine lifecycle case lacks exact native completion evidence: $name"
         }
+        $adjustment = [regex]::Matches($outputs[0].InnerText,
+            '(?m)^\[Ame runtime\] image_io_priority=normal thread=([1-9][0-9]*)\r?$')
+        $identity = [regex]::Matches($outputs[0].InnerText,
+            '(?m)^ENGINE_IO_PRIORITY thread=([1-9][0-9]*) priority=0\r?$')
+        if ($adjustment.Count -ne 1 -or $identity.Count -ne 1 -or
+            $adjustment[0].Groups[1].Value -cne $identity[0].Groups[1].Value) {
+            throw "Image I/O adjustment must match the independently identified engine thread: $name"
+        }
     }
 }

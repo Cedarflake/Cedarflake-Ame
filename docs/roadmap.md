@@ -70,6 +70,15 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
+The requested foreground-image maintenance adjusts the Windows engine's image I/O
+thread to normal priority at startup. Its scope is the reproducible upload wait on
+a two-core device; the separate five-minute Release observation is deferred by user
+direction. Preserve source leases, cancellation, catalog state and other worker
+priorities. The [scoped evidence](acceptance/viewer-scheduling.md) owns the measured
+diagnosis and verification. The actual-engine checks and cloud Debug comparison
+pass; publication and hosted verification remain pending. This maintenance does
+not start R4.
+
 The requested [first-import performance maintenance](plans/first-import-performance.md) stops at
 the current candidate by user direction on 2026-10-22. Retain the measured catalog improvements and
 the subsequent coalesced progress commit; do not schedule further optimization or client imports.

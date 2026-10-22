@@ -12,6 +12,7 @@ function Assert-EngineRejection {
 
 $caseXml = @(foreach ($phase in @("explicit_destroy", "scope_exit")) {
     '<testcase name="engine_lifecycle_' + $phase + '" classname="engine_lifecycle_' + $phase + '" status="run"><system-out>' +
+        "[Ame runtime] image_io_priority=normal thread=1234`nENGINE_IO_PRIORITY thread=1234 priority=0`n" +
         "PASS: engine_lifecycle_$phase engine_started=1 child_destroy_notifications=1 scope_completed=1 " +
         'hwnd_retired=1 access_violations=0 plugins_registered=0 com_released_after_scope=1' +
         '</system-out></testcase>'
@@ -33,6 +34,9 @@ foreach ($invalid in @(
     $validXml.Replace('<system-out>', '<failure/><system-out>'),
     $validXml.Replace('<system-out>', '<error/><system-out>'),
     $validXml.Replace('PASS: ', "PASS: duplicate`nPASS: "),
+    $validXml.Replace('ENGINE_IO_PRIORITY thread=1234', 'ENGINE_IO_PRIORITY thread=5678'),
+    $validXml.Replace('image_io_priority=normal', 'image_io_priority=unchanged'),
+    $validXml.Replace('priority=0', 'priority=-1'),
     ('<!DOCTYPE testsuite [<!ENTITY x "data">]>' + $validXml)
 ) + @(foreach ($field in @('engine_started', 'child_destroy_notifications', 'scope_completed',
     'hwnd_retired', 'com_released_after_scope')) { $validXml.Replace("$field=1", "$field=0") }

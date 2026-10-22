@@ -94,6 +94,27 @@ This decision becomes Accepted only after R0 demonstrates:
 - The Windows Release runner builds and launches with `flutter run --release --no-resident` without
   exiting early.
 
+## Windows image I/O scheduling
+
+The Windows runner raises Flutter's image I/O thread from `BELOW_NORMAL` to
+`NORMAL` once, immediately after synchronous engine construction and before plugin
+registration. This prevents foreground image uploads from waiting behind ordinary
+CPU work on a two-core device. The process priority and existing worker priorities
+are unchanged.
+
+The pinned Flutter Windows interface does not expose the engine's thread-priority
+callback. The runner therefore observes its own thread IDs before construction,
+then admits exactly one newly created, still-live `BELOW_NORMAL` thread. It holds
+the admitted handle through revalidation and adjustment. Missing, ambiguous or
+failed observations leave priorities unchanged and emit a startup diagnostic;
+there is no polling, thread suspension, engine binary patch or global OS setting.
+
+This adapter depends on the pinned engine's startup contract. The native engine
+fixture independently observes the engine's `io.flutter.io` naming event and
+requires that exact thread to have normal priority. SDK upgrades must retain this
+check. Replace the snapshot adapter with a public priority callback if Flutter
+provides one; removing the adapter restores Flutter's scheduling defaults.
+
 ## Consequences
 
 - The project uses Dart and Rust and must maintain a generated boundary.

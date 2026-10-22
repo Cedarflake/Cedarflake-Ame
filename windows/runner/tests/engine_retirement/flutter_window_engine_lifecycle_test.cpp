@@ -4,8 +4,11 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <cstring>
 #include <cwchar>
 #include <filesystem>
+
+void VerifyFlutterIoThreadPriorityPolicy();
 
 namespace {
 
@@ -15,6 +18,7 @@ unsigned int child_destroy_notifications = 0;
 unsigned int plugin_link_calls = 0;
 bool retiring_window = false;
 volatile LONG access_violation_observed = 0;
+volatile LONG image_io_thread_id = 0;
 
 void Require(bool condition, const char* message) {
   if (!condition) {
@@ -28,6 +32,24 @@ LONG CALLBACK ObserveAccessViolation(EXCEPTION_POINTERS* exception) {
   if (exception && exception->ExceptionRecord &&
       exception->ExceptionRecord->ExceptionCode == EXCEPTION_ACCESS_VIOLATION) {
     InterlockedExchange(&access_violation_observed, 1);
+  }
+  // The pinned engine's native thread-name event supplies an independent identity
+  // check for the production startup snapshot policy. Never consume the event.
+  if (exception && exception->ExceptionRecord) {
+    const auto& record = *exception->ExceptionRecord;
+    if (record.ExceptionCode == 0x406D1388 && record.NumberParameters >= 3 &&
+        record.ExceptionInformation[0] == 0x1000 &&
+        record.ExceptionInformation[2] == GetCurrentThreadId()) {
+      constexpr char expected[] = "io.flutter.io";
+      char name[sizeof(expected)]{};
+      SIZE_T read = 0;
+      if (ReadProcessMemory(GetCurrentProcess(),
+                            reinterpret_cast<const void*>(record.ExceptionInformation[1]),
+                            name, sizeof(name), &read) &&
+          read == sizeof(name) && std::memcmp(name, expected, sizeof(name)) == 0) {
+        InterlockedExchange(&image_io_thread_id, static_cast<LONG>(GetCurrentThreadId()));
+      }
+    }
   }
   // A window callback exception may be swallowed by the platform. Record it,
   // but never handle it or convert an abnormal exit into success.
@@ -99,6 +121,7 @@ int wmain(int argc, wchar_t** argv) {
           "Unknown engine lifecycle case");
   RequireInputFile(std::filesystem::path(argv[2]) / L"kernel_blob.bin");
   RequireInputFile(std::filesystem::path(argv[3]));
+  VerifyFlutterIoThreadPriorityPolicy();
 
   const HRESULT com_status = CoInitializeEx(nullptr, COINIT_APARTMENTTHREADED);
   Require(SUCCEEDED(com_status), "COM initialization must succeed");
@@ -114,6 +137,16 @@ int wmain(int argc, wchar_t** argv) {
                           Win32Window::Size(100, 100)),
             "The production window must create its real Flutter engine");
     Require(plugin_link_calls == 1, "The production registration boundary must execute once");
+    const DWORD io_id = static_cast<DWORD>(
+        InterlockedCompareExchange(&image_io_thread_id, 0, 0));
+    const HANDLE io_thread = OpenThread(THREAD_QUERY_LIMITED_INFORMATION, FALSE, io_id);
+    Require(io_id != 0 && io_thread != nullptr,
+            "The actual engine must announce its image I/O thread");
+    const int io_priority = GetThreadPriority(io_thread);
+    CloseHandle(io_thread);
+    Require(io_priority == THREAD_PRIORITY_NORMAL,
+            "The actual Flutter image I/O thread must have normal priority");
+    std::printf("ENGINE_IO_PRIORITY thread=%lu priority=%d\n", io_id, io_priority);
     BindActualChild(window.GetHandle());
     retiring_window = true;
     if (explicit_destroy) {
