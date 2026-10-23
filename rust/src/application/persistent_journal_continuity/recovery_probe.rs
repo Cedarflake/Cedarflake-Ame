@@ -11,7 +11,9 @@ pub(crate) fn can_reprobe_journal_failure(checkpoint: &PersistentJournalCheckpoi
 pub(crate) fn can_reprobe_failure(failure: &PersistentJournalFailure) -> bool {
     matches!(
         failure.code.as_str(),
-        "identity_journal_hardlinks_not_supported" | "persistent_journal_request_invalid"
+        "identity_journal_hardlinks_not_supported"
+            | "persistent_journal_request_invalid"
+            | "persistent_journal_read_stalled"
     )
 }
 

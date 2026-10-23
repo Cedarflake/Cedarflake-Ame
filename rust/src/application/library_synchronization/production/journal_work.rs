@@ -16,6 +16,7 @@ use super::super::{journal_baseline, journal_drain};
 use super::finish_runtime_task_until;
 use super::journal_volume::JournalVolumeWork;
 
+pub(super) mod fallback;
 mod page;
 
 pub(super) enum JournalWork {
@@ -25,12 +26,14 @@ pub(super) enum JournalWork {
         caller: CallerClaim,
     },
     Closing {
+        failures: Arc<fallback::JournalReadFailures>,
         work: journal_baseline::JournalBaselineClosingWork,
         session: Arc<dyn PersistentChangeJournalSession>,
         caller: CallerClaim,
     },
     Page {
         work: JournalVolumeWork,
+        failures: Arc<fallback::JournalReadFailures>,
         session: Arc<dyn PersistentChangeJournalSession>,
         caller: CallerClaim,
     },
@@ -74,6 +77,7 @@ impl JournalTask {
                 queue_policy,
             ),
             JournalWork::Closing {
+                failures,
                 work,
                 session,
                 caller,
@@ -83,13 +87,16 @@ impl JournalTask {
                 caller,
                 observed_unix_ms,
                 catalog_session,
+                (failures, queue_policy),
             ),
             JournalWork::Page {
                 work,
+                failures,
                 session,
                 caller,
             } => Self::start_journal_page(
                 work,
+                failures,
                 session,
                 caller,
                 observed_unix_ms,
@@ -208,6 +215,7 @@ impl JournalTask {
         caller: crate::journal_broker::CallerClaim,
         observed_unix_ms: i64,
         catalog_session: Arc<SqliteCatalogSession>,
+        fallback: (Arc<fallback::JournalReadFailures>, LibraryChangeQueuePolicy),
     ) -> Result<Self, ScanError> {
         let cancelled = Arc::new(AtomicBool::new(false));
         let worker_cancelled = Arc::clone(&cancelled);
@@ -215,6 +223,7 @@ impl JournalTask {
         let worker = thread::Builder::new()
             .name("ame-p1-baseline-closing".to_owned())
             .spawn(move || {
+                let root = (work.root_id().to_owned(), work.root_generation());
                 let result = journal_baseline::capture_closing_boundary(
                     work,
                     session.as_ref(),
@@ -223,6 +232,16 @@ impl JournalTask {
                     catalog_session.as_ref(),
                     worker_cancelled.as_ref(),
                 )
+                .or_else(|error| {
+                    fallback.0.handle_closing_failure(
+                        error,
+                        &root,
+                        catalog_session.as_ref(),
+                        observed_unix_ms,
+                        fallback.1,
+                        worker_cancelled.as_ref(),
+                    )
+                })
                 .map(|()| JournalTaskOutcome::BaselineBoundary);
                 let _ = sender.send(result);
             })
@@ -241,6 +260,7 @@ impl JournalTask {
 
     fn start_journal_page(
         work: JournalVolumeWork,
+        failures: Arc<fallback::JournalReadFailures>,
         session: Arc<dyn crate::journal_broker::PersistentChangeJournalSession>,
         caller: crate::journal_broker::CallerClaim,
         observed_unix_ms: i64,
@@ -260,7 +280,10 @@ impl JournalTask {
                     observed_unix_ms,
                     catalog_session,
                     policy,
-                    worker_cancelled,
+                    page::JournalPageControl {
+                        cancelled: worker_cancelled,
+                        failures,
+                    },
                 );
                 let _ = sender.send(result);
             })

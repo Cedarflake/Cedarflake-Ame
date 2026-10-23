@@ -112,6 +112,7 @@ class LibrarySynchronizationNotifications {
         (status) =>
             status.availability == LibraryRootAvailability.available &&
             status.continuity == LibraryContinuityState.liveOnly &&
+            !status.usesAutomaticMetadataFallback &&
             status.freshness == LibraryCatalogFreshness.synchronized &&
             status.freshnessCause ==
                 LibraryCatalogFreshnessCause.noPendingChanges &&

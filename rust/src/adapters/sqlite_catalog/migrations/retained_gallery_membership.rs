@@ -72,6 +72,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v44_for_test(connection: &Connection) {
+    super::metadata_fallback::downgrade_to_v45_for_test(connection);
     if super::schema_shape::schema_version(connection).unwrap() == 45 {
         connection
             .execute_batch(

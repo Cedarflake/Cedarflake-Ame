@@ -44,8 +44,13 @@ pub(super) fn record(
         .optional()
         .map_err(database_error)?;
     let Some(stored_id) = stored_id else {
+        let completed = super::metadata_fallback::complete_empty_retry(
+            &transaction,
+            expected,
+            observed_unix_ms,
+        )?;
         transaction.commit().map_err(database_error)?;
-        return Ok(false);
+        return Ok(completed);
     };
     let change_id = LibraryChangeId::new(sqlite_unsigned(stored_id, "baseline change ID")?)
         .ok_or_else(|| invalid_batch("The empty replay baseline identity is invalid"))?;

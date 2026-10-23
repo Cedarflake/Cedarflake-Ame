@@ -289,8 +289,8 @@ at page boundaries; an individual native call is not interrupted by that deadlin
 
 Background verification retains the materialized directory inventory and bounded comparison path.
 Child-directory queries use the existing parent index and materialized SQL intermediates, avoiding
-repeated whole-inventory walks. Original catalog schema 45 remains unchanged. The direct streaming
-capture experiment is not part of this product path.
+repeated whole-inventory walks. Schema 46 adds independent recovery admission without changing this
+materialized spool. The direct streaming capture experiment is not part of this product path.
 
 ### Indexed startup with background verification
 
@@ -1285,14 +1285,38 @@ First import, explicit `更新图库`, and resumption of their exact foreground 
 only full media-scan authorities. They are not automatic P2 work. Ordinary startup, elapsed time, an
 empty journal range, queue size, slow media, and a healthy watcher do not authorize inventory.
 
-Retained local registration and formerly unsupported hardlink failures may leave a failed checkpoint
-without a recovery consumer. For those known failure codes, production may probe one available,
-current-generation root with no pending recovery work. The shared admission policy requires fresh
-root registration and a verified journal opening before enrolling reconstruction. It retains the
-failed checkpoint through inventory until the closing boundary is admitted; closing replay and
-atomic publication must still establish freshness.
-An empty queue or successful probe alone cannot restore `Current`. Status projection exposes that
-pending recovery; unrelated nonrecoverable failures remain blocked with their structured issue.
+Production recovery follows **USN, Windows Search, then materialized metadata verification**.
+An unavailable broker for a retained checkpoint, a permanent journal failure, or three completed
+transient failures at the same root generation,
+identity and cursor, transfers the round to independent recovery. Successful reads, cursor movement,
+generation changes and cancellation reset the transient retry budget. Scheduling delay and healthy
+empty reads do not count; native deadlines still own in-flight I/O. A retained inventory whose
+closing query fails follows the same bounded transfer and keeps its completed comparison work.
+
+The transfer persists a whole-root recovery consumer and an independent fallback receipt atomically.
+Windows Search runs once per recovery change and applies hints through actual-file checks. An
+unavailable index proceeds to verification. The original materialized inventory then covers the
+whole source, including missing catalog paths; it does not wait for a new USN opening, closing query
+or replay. The watcher stays active, P0 keeps its reserved lane, and publication retains current root,
+file, lease and generation checks. Interrupted, unavailable or partial inventories cannot publish
+complete scope or successful recovery. A run resumed after process shutdown receives one fresh pass
+to cover the interval without a watcher.
+
+An independent receipt supersedes the execution requirements of older journal windows for that root
+generation. Their boundaries and canonical history remain stored; they are not successful USN
+coverage. The checkpoint cursor is unchanged, and the root uses LiveOnly continuity for this round.
+Complete inventory, candidate publication and absence checks retire the recovery authority atomically.
+This can finish the current catalog update without claiming recovered journal continuity. Subsequent
+watcher changes remain normal P0 work, and the failed journal is not retried again in that session.
+At the next startup, a completed fallback permits a fresh attempt from the retained journal cursor;
+if the broker is absent, it admits the index-and-verification round directly;
+only a valid journal read restores Current. A still-unreadable closed interval can require another
+index-and-verification round. It never becomes trusted by advancing a failed cursor.
+
+Retained registration failures without a consumer may still probe the current root once to admit
+recovery. Ordinary migration/first-import journal baselines and explicit LiveOnly subtree recovery
+retain their original authority. No new source writes, hydration or full media-scan authority is
+introduced by the independent fallback.
 
 When a continuous journal range can cover a live gap, one SQLite transaction first persists the P1
 source-range ownership and exact P0 lineage, then supersedes the P0 row. Publishing the covering
@@ -1313,7 +1337,8 @@ the same scope and `WatcherUncoveredGap` authority without inventing a journal b
 namespace revalidation and complete scoped inventory still precede absence publication; partial,
 cancelled or unavailable work preserves the prior catalog. This does not establish closed-process
 continuity or permit startup enumeration without persisted live-gap evidence. Supported roots with
-missing journal proof retain their fail-closed boundary.
+missing journal proof require either journal coverage or the independently admitted whole-root
+fallback above.
 
 An exhausted, unclaimed LiveOnly subtree gap carrying `metadata_inventory_required` may transfer
 to that same consumer through the P0 scheduler, at most one per turn. Readiness and transactional
@@ -1321,15 +1346,17 @@ admission use the same current-generation, published-namespace, capability and c
 The atomic transfer preserves original retry evidence; it does not revive general exhausted work.
 Absent evidence or unavailable lower-lane capacity creates no new consumer or busy retry loop.
 
-For a baseline or continuity gap, production starts or keeps the watcher first, captures a journal
+For a journal-backed baseline or continuity gap, production starts or keeps the watcher first, captures a journal
 boundary, performs one metadata-only inventory, and then replays journal changes that occurred
 during the inventory. P0 remains reserved and publishes throughout recovery. Positive candidates
 may publish after final-state revalidation; in journal-supported mode, removals require complete
-scope authority plus the closing journal boundary. The explicit LiveOnly live-gap exception above
-retains complete scope and current source proof without claiming journal continuity.
+scope authority plus the closing journal boundary. Independent whole-root fallback and the explicit
+LiveOnly live-gap exception above retain complete scope and current source proof without claiming
+journal continuity.
 A cancelled, partial, failed, raced, or unavailable inventory preserves
-the last trustworthy catalog and cannot publish mass absence. Successful completion atomically
-establishes the new checkpoint and retires the recovery authority.
+the last trustworthy catalog and cannot publish mass absence. Journal-backed completion atomically
+establishes the new checkpoint and retires the recovery authority; independent completion retires
+the authority while retaining the failed cursor.
 
 Existing catalogs receive this baseline once during migration because no new implementation can
 prove changes before its first checkpoint. This cost is explicit migration work, not a startup

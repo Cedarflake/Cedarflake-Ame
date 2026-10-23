@@ -2,15 +2,14 @@ use rusqlite::{Connection, OptionalExtension, Transaction, params};
 
 use crate::domain::{
     JournalFileReference, JournalIdentifier, JournalUsn, LibraryChangeFailure, LibraryChangeId,
-    LibraryChangeIntent, LibraryChangeIntentKind, LibraryChangeOrigin, LibraryChangeQueuePolicy,
-    LibraryChangeScope, LibraryRecoveryAuthority, LibraryRecoveryOpeningBoundary,
-    LibraryRootGeneration, PersistentJournalBaseline, PersistentJournalBaselineClosingBoundary,
+    LibraryChangeQueuePolicy, LibraryRecoveryOpeningBoundary, LibraryRootGeneration,
+    PersistentJournalBaseline, PersistentJournalBaselineClosingBoundary,
     PersistentJournalBaselineStartRequest, PersistentJournalCapability,
     PersistentJournalCapabilityState, PersistentJournalCheckpoint,
     PersistentJournalContinuityState, PersistentJournalEnrollmentReport, PersistentJournalFailure,
     PersistentJournalLineageState, PersistentJournalPendingRename, PersistentJournalRangeState,
-    PersistentJournalRootFailure, PersistentJournalRootFailureKind, PersistentJournalVolumeBatch,
-    PersistentJournalVolumeIdentity, ScanError,
+    PersistentJournalRootFailure, PersistentJournalVolumeBatch, PersistentJournalVolumeIdentity,
+    ScanError,
 };
 #[cfg(test)]
 use crate::domain::{LibraryChangeCatchUpEvidence, PersistentJournalEnrollmentBatch};
@@ -21,11 +20,7 @@ use super::change_queue::{
     PERSISTENT_JOURNAL_CATCH_UP_SOURCE, cleanup_for_enqueue, enqueue_intents_in_transaction,
     normalize_persistent_journal_intents, validate_catch_up_evidence, validate_enqueue_batch,
 };
-use super::change_queue::{
-    insert_persistent_journal_recovery_control, transfer_pending_live_gap_claims_to_recovery,
-};
-use super::metadata_inventory::insert_metadata_inventory_recovery_authority;
-use super::{SqliteCatalog, database_error, sqlite_integer, sqlite_unsigned};
+use super::{SqliteCatalog, database_error, sqlite_integer};
 
 mod baseline_capability;
 mod baseline_lifecycle;
@@ -36,8 +31,10 @@ mod capture_priority;
 mod completed_history;
 mod empty_replay;
 mod first_import_completion;
+pub(super) mod metadata_fallback;
 mod publication_admission;
 mod recovery_checkpoint;
+mod recovery_failure;
 mod recovery_opening;
 mod root_unregister;
 mod volume_publication;
@@ -188,155 +185,7 @@ impl PersistentJournalRepository for SqliteCatalog {
         failed_unix_ms: i64,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Option<LibraryChangeId>, ScanError> {
-        failure.validate()?;
-        if failed_unix_ms < 0 || !policy.is_valid() {
-            return Err(invalid_batch(
-                "The persistent journal root failure admission input is invalid",
-            ));
-        }
-        if failure.kind == PersistentJournalRootFailureKind::Cancelled {
-            return Ok(None);
-        }
-        let transaction = self.begin_write_in_lane(crate::domain::LibraryChangeLane::Journal)?;
-        require_active_root_generation(&transaction, &failure.root_id, failure.root_generation)?;
-        let root =
-            load_root_authority_for_key(&transaction, &failure.root_id, failure.root_generation)?;
-        if root.capability_state != "supported" {
-            transaction.commit().map_err(database_error)?;
-            return Ok(None);
-        }
-        let checkpoint = load_checkpoint(&transaction, &failure.root_id, failure.root_generation)?
-            .ok_or_else(|| {
-                ScanError::new(
-                    "persistent_journal_failure_checkpoint_missing",
-                    "A current persistent journal root failure has no durable checkpoint",
-                )
-            })?;
-        if checkpoint.protocol_version != root.protocol_version
-            || checkpoint.contract_version != root.contract_version
-        {
-            return Err(ScanError::new(
-                "persistent_journal_failure_authority_mismatch",
-                "The root and checkpoint disagree before failure admission",
-            ));
-        }
-        if failure.kind == PersistentJournalRootFailureKind::Transient {
-            transaction.commit().map_err(database_error)?;
-            return Ok(None);
-        }
-
-        mark_persistent_journal_recovery_required(
-            &transaction,
-            &failure.root_id,
-            failure.root_generation,
-            &failure.failure.code,
-            &failure.failure.message,
-            failed_unix_ms,
-        )?;
-        let Some(reason) = failure.kind.recovery_reason() else {
-            transaction.commit().map_err(database_error)?;
-            return Ok(None);
-        };
-
-        let existing = transaction
-            .query_row(
-                "SELECT authority.change_id
-                 FROM library_recovery_authorities AS authority
-                 JOIN library_change_queue AS queue ON queue.id = authority.change_id
-                 JOIN library_change_queue_lanes AS lane ON lane.change_id = queue.id
-                 WHERE authority.root_id = ?1 AND authority.root_generation = ?2
-                   AND authority.retired_unix_ms IS NULL
-                   AND authority.reason IN (
-                     'journal_gap', 'journal_reset', 'journal_trim',
-                     'journal_reconstruction_failure', 'containment_failure',
-                     'broker_after_current_failure', 'watcher_uncovered_gap'
-                   )
-                   AND queue.status IN ('pending', 'leased', 'retry_wait')
-                   AND lane.lane = 'p2_recovery'
-                 ORDER BY authority.change_id LIMIT 1",
-                params![
-                    failure.root_id,
-                    sqlite_integer(failure.root_generation.value(), "root generation")?,
-                ],
-                |row| row.get::<_, i64>(0),
-            )
-            .optional()
-            .map_err(database_error)?;
-        if let Some(change_id) = existing {
-            let change_id = LibraryChangeId::new(sqlite_unsigned(change_id, "recovery change ID")?)
-                .ok_or_else(|| invalid_batch("The recovery change ID is invalid"))?;
-            attach_recovery_window_if_available(
-                &transaction,
-                change_id,
-                &failure.root_id,
-                failure.root_generation,
-                failure.opening_boundary.as_ref(),
-                failed_unix_ms,
-            )?;
-            transfer_pending_live_gap_claims_to_recovery(
-                &transaction,
-                &failure.root_id,
-                failure.root_generation,
-                change_id,
-                failed_unix_ms,
-            )?;
-            transaction.commit().map_err(database_error)?;
-            return Ok(Some(change_id));
-        }
-
-        let sequence = u64::try_from(checkpoint.next_unread_usn.value())
-            .unwrap_or_default()
-            .max(1);
-        let intent = LibraryChangeIntent {
-            root_id: failure.root_id.clone(),
-            root_generation: failure.root_generation,
-            kind: LibraryChangeIntentKind::FreshnessUnknown,
-            scope: LibraryChangeScope::Root,
-            relative_path: String::new(),
-            previous_relative_path: None,
-            origin: LibraryChangeOrigin::MetadataInventory,
-            first_observed_unix_ms: failed_unix_ms,
-            most_recent_observed_unix_ms: failed_unix_ms,
-            first_sequence: sequence,
-            most_recent_sequence: sequence,
-            coalesced_observation_count: 1,
-        };
-        let change_id = insert_persistent_journal_recovery_control(
-            &transaction,
-            &intent,
-            failed_unix_ms,
-            policy,
-        )?;
-        insert_metadata_inventory_recovery_authority(
-            &transaction,
-            &LibraryRecoveryAuthority {
-                change_id,
-                run_id: format!("journal-failure-{}", change_id.value()),
-                root_id: failure.root_id.clone(),
-                root_generation: failure.root_generation,
-                reason,
-                opening_boundary: failure.opening_boundary.clone(),
-                authorized_unix_ms: failed_unix_ms,
-                retired_unix_ms: None,
-            },
-        )?;
-        attach_recovery_window_if_available(
-            &transaction,
-            change_id,
-            &failure.root_id,
-            failure.root_generation,
-            failure.opening_boundary.as_ref(),
-            failed_unix_ms,
-        )?;
-        transfer_pending_live_gap_claims_to_recovery(
-            &transaction,
-            &failure.root_id,
-            failure.root_generation,
-            change_id,
-            failed_unix_ms,
-        )?;
-        transaction.commit().map_err(database_error)?;
-        Ok(Some(change_id))
+        recovery_failure::persist(self, failure, failed_unix_ms, policy)
     }
 
     fn attach_persistent_journal_recovery_opening_boundary(
@@ -931,9 +780,9 @@ fn attach_recovery_window_if_available(
             "SELECT change_id = ?3
                     AND volume_guid = ?4 AND volume_serial = ?5
                     AND root_reference_version = ?6 AND root_file_reference = ?7
-                    AND journal_id = ?8 AND opening_next_usn = ?9
+                    AND journal_id = ?8 AND CAST(opening_next_usn AS INTEGER) <= ?9
                     AND protocol_version = ?10 AND contract_version = ?11
-                    AND phase = 'inventory'
+                    AND phase <> 'completed'
              FROM library_persistent_journal_baselines
              WHERE root_id = ?1 AND root_generation = ?2 AND phase <> 'completed'",
             params![
@@ -945,7 +794,7 @@ fn attach_recovery_window_if_available(
                 i64::from(boundary.root_file_reference.record_version()),
                 boundary.root_file_reference.as_bytes(),
                 boundary.journal_id.to_canonical_text(),
-                boundary.next_usn.to_canonical_text(),
+                boundary.next_usn.value(),
                 i64::from(boundary.protocol_version),
                 i64::from(boundary.contract_version),
             ],
@@ -959,6 +808,9 @@ fn attach_recovery_window_if_available(
             "The root already owns a different unfinished recovery window",
         ));
     }
+    if existing == Some(true) {
+        return Ok(());
+    }
     validate_recovery_checkpoint_against_opening_boundary(
         transaction,
         change_id,
@@ -966,9 +818,6 @@ fn attach_recovery_window_if_available(
         root_generation,
         boundary,
     )?;
-    if existing == Some(true) {
-        return Ok(());
-    }
     transaction
         .execute(
             "INSERT INTO library_persistent_journal_baselines(

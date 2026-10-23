@@ -1,7 +1,8 @@
 use super::*;
 use crate::domain::{
-    JournalFileReference, JournalIdentifier, JournalUsn, PERSISTENT_JOURNAL_CONTRACT_VERSION,
-    PersistentJournalCapability, PersistentJournalCapabilityState, PersistentJournalCheckpoint,
+    JournalFileReference, JournalIdentifier, JournalUsn, LibraryRootGeneration,
+    PERSISTENT_JOURNAL_CONTRACT_VERSION, PersistentJournalCapability,
+    PersistentJournalCapabilityState, PersistentJournalCheckpoint,
     PersistentJournalContinuityState, PersistentJournalVolumeIdentity, ScanRequest,
 };
 use crate::ports::{CatalogRepository, LibraryChangeQueue};
@@ -70,10 +71,14 @@ fn local_p1_registration_failure_is_durable_and_root_isolated() {
             .expect("seed current checkpoint");
     }
 
+    let checkpoint = catalog
+        .load_persistent_journal_checkpoint("bad-root", generation)
+        .unwrap()
+        .unwrap();
     let failure = persist_journal_registration_failure(
         &mut catalog,
-        "bad-root",
-        generation,
+        &checkpoint,
+        &JournalReadFailures::default(),
         PersistentChangeJournalOperationError::InvalidRequest,
         1_000,
         policy,

@@ -23,6 +23,8 @@ pub(super) fn load_active_baselines(
              JOIN library_recovery_authorities AS authority
                ON authority.change_id = baseline.change_id
              WHERE baseline.phase <> 'completed' AND authority.retired_unix_ms IS NULL
+               AND NOT EXISTS (SELECT 1 FROM library_metadata_fallbacks AS fallback
+                 WHERE fallback.change_id = baseline.change_id)
              ORDER BY baseline.root_id, baseline.root_generation",
         )
         .map_err(database_error)?;
@@ -48,8 +50,10 @@ pub(in crate::adapters::sqlite_catalog) fn load_baseline_for_root(
 ) -> Result<Option<PersistentJournalBaseline>, ScanError> {
     let change_id = connection
         .query_row(
-            "SELECT change_id FROM library_persistent_journal_baselines
-             WHERE root_id = ?1 AND root_generation = ?2",
+            "SELECT change_id FROM library_persistent_journal_baselines AS baseline
+             WHERE root_id = ?1 AND root_generation = ?2
+               AND NOT EXISTS (SELECT 1 FROM library_metadata_fallbacks AS fallback
+                 WHERE fallback.change_id = baseline.change_id)",
             params![
                 root_id,
                 sqlite_integer(root_generation.value(), "root generation")?,

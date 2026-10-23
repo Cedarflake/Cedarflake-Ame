@@ -373,6 +373,7 @@ class _LibrarySourceNavigationTileState
         synchronizationStatus?.freshnessCause ==
             LibraryCatalogFreshnessCause.noPendingChanges &&
         synchronizationStatus?.continuity == LibraryContinuityState.liveOnly &&
+        synchronizationStatus?.usesAutomaticMetadataFallback == false &&
         synchronizationStatus?.phase ==
             LibrarySynchronizationPhase.synchronized &&
         synchronizationStatus?.sourceStatus ==

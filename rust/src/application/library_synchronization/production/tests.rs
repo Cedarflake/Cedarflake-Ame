@@ -7,6 +7,8 @@ mod inventory_pages;
 #[cfg(windows)]
 mod journal_baseline;
 #[cfg(windows)]
+mod journal_fallback;
+#[cfg(windows)]
 mod legacy_recovery_debt;
 #[cfg(windows)]
 mod live_gap;

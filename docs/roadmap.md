@@ -84,6 +84,13 @@ client pass, including a second startup with ordinary catch-up and `已同步`. 
 records recovery, status precedence and source preservation. Hosted verification follows publication;
 this maintenance does not reopen R2c/R3 or start R4.
 
+The requested recovery-order maintenance adds bounded failed-read admission into Windows Search
+preparation followed by materialized background verification. Once fallback is admitted, complete
+verification owns this round without waiting for USN to recover. Preserve completed inventory work,
+source revalidation and truthful continuity state. Its
+[scoped evidence](acceptance/r3-exact-duplicates.md#journal-fallback-order) owns the regressions and
+client verification. This is maintenance of the accepted synchronization path.
+
 The requested foreground-image maintenance adjusts the Windows engine's image I/O
 thread to normal priority at startup. Its scope is the reproducible upload wait on
 a two-core device; the separate five-minute Release observation is deferred by user

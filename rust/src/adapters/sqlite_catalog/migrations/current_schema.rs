@@ -72,6 +72,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     if schema_version >= 38 {
         super::media_admission_rechecks::validate_rows(connection)?;
     }
+    if schema_version >= 46 {
+        super::metadata_fallback::validate_rows(connection)?;
+    }
     source_revision_contract::validate_rows(connection)
 }
 
@@ -91,6 +94,9 @@ pub(super) fn validate_schema_structure(
         ContractValidationDepth::StructureOnly,
     )?;
     live_gap_contract::validate_with_depth(connection, ContractValidationDepth::StructureOnly)?;
+    if schema_version >= 46 {
+        super::metadata_fallback::validate(connection)?;
+    }
     source_revision_contract::validate_structure(connection)?;
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_structure(connection)?;

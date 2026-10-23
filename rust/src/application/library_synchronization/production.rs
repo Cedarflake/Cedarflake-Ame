@@ -91,6 +91,7 @@ mod catalog_scheduling;
 #[cfg(windows)]
 mod journal_volume;
 
+mod journal_fallback_session;
 #[cfg(windows)]
 mod journal_lane;
 #[cfg(windows)]

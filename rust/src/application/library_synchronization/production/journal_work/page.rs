@@ -7,7 +7,7 @@ use crate::application::{
     catch_up_persistent_journal_window, classify_persistent_journal_operation_failure,
 };
 use crate::domain::{
-    LibraryChangeLane, LibraryChangeQueuePolicy, LibraryRootGeneration,
+    LibraryChangeLane, LibraryChangeQueuePolicy, PersistentJournalCheckpoint,
     PersistentJournalEnrollmentReport, PersistentJournalRootFailure,
     PersistentJournalRootFailureKind, ScanError,
 };
@@ -17,7 +17,13 @@ use crate::journal_broker::{
 };
 use crate::ports::PersistentJournalRepository;
 
+use super::fallback::{FallbackReader, JournalReadFailures};
 use super::{JournalTaskOutcome, JournalVolumeWork};
+
+pub(super) struct JournalPageControl {
+    pub(super) failures: Arc<JournalReadFailures>,
+    pub(super) cancelled: Arc<AtomicBool>,
+}
 
 pub(super) fn run(
     work: JournalVolumeWork,
@@ -26,7 +32,7 @@ pub(super) fn run(
     observed_unix_ms: i64,
     catalog_session: Arc<SqliteCatalogSession>,
     policy: LibraryChangeQueuePolicy,
-    worker_cancelled: Arc<AtomicBool>,
+    control: JournalPageControl,
 ) -> Result<JournalTaskOutcome, ScanError> {
     let mut catalog = catalog_session.open_in_lane(LibraryChangeLane::Journal)?;
     let mut report = PersistentJournalEnrollmentReport::default();
@@ -44,8 +50,8 @@ pub(super) fn run(
             Err(error) => {
                 let failure = persist_journal_registration_failure(
                     &mut catalog,
-                    &checkpoint.root_id,
-                    checkpoint.root_generation,
+                    &checkpoint,
+                    &control.failures,
                     error,
                     observed_unix_ms,
                     policy,
@@ -75,13 +81,17 @@ pub(super) fn run(
         ))),
         catalog.load_persistent_journal_baselines()?,
     )?;
+    let reader = FallbackReader {
+        reader,
+        failures: control.failures,
+    };
     let window = catch_up_persistent_journal_window(
         &mut catalog,
         &reader,
         &checkpoints,
         observed_unix_ms,
         policy,
-        &worker_cancelled,
+        &control.cancelled,
     )?;
     drop(registrations);
     Ok(JournalTaskOutcome::Page(window.with_registration(report)))
@@ -89,16 +99,17 @@ pub(super) fn run(
 
 fn persist_journal_registration_failure(
     catalog: &mut SqliteCatalog,
-    root_id: &str,
-    root_generation: LibraryRootGeneration,
+    checkpoint: &PersistentJournalCheckpoint,
+    failures: &JournalReadFailures,
     error: PersistentChangeJournalOperationError,
     failed_unix_ms: i64,
     policy: crate::domain::LibraryChangeQueuePolicy,
 ) -> Result<PersistentJournalRootFailure, ScanError> {
-    let classified = classify_persistent_journal_operation_failure(error);
+    let mut classified = classify_persistent_journal_operation_failure(error);
+    failures.classify(checkpoint, &mut classified);
     let failure = PersistentJournalRootFailure {
-        root_id: root_id.to_owned(),
-        root_generation,
+        root_id: checkpoint.root_id.clone(),
+        root_generation: checkpoint.root_generation,
         kind: classified.kind,
         failure: classified.failure,
         opening_boundary: classified.opening_boundary.map(|boundary| *boundary),

@@ -39,6 +39,7 @@ mod directory_snapshot;
 mod indexed_candidates;
 mod lifecycle;
 mod recovery_completion;
+mod recovery_journal;
 mod spool_cleanup;
 mod spool_execution;
 mod spool_initialization;
@@ -335,24 +336,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
         &self,
         change_id: LibraryChangeId,
     ) -> Result<bool, ScanError> {
-        let is_baseline = self
-            .connection
-            .query_row(
-                "SELECT EXISTS(
-                   SELECT 1 FROM library_persistent_journal_baselines
-                   WHERE change_id = ?1 AND phase <> 'completed'
-                 )",
-                [sqlite_integer(
-                    change_id.value(),
-                    "recovery authority change id",
-                )?],
-                |row| row.get::<_, bool>(0),
-            )
-            .map_err(database_error)?;
-        if !is_baseline {
-            return Ok(true);
-        }
-        super::persistent_journal::baseline_closing_is_covered(&self.connection, change_id)
+        recovery_journal::allows_absence(&self.connection, change_id)
     }
 
     fn finish_metadata_inventory_recovery(
@@ -477,45 +461,7 @@ impl MetadataInventoryRepository for SqliteCatalog {
             ));
         }
         validate_active_root(&transaction, &run.request)?;
-        let baseline_change_id = transaction
-            .query_row(
-                "SELECT authority.change_id
-                 FROM library_recovery_authorities AS authority
-                 JOIN library_persistent_journal_baselines AS baseline
-                   ON baseline.change_id = authority.change_id
-                 WHERE authority.run_id = ?1 AND authority.retired_unix_ms IS NULL
-                   AND baseline.phase IN ('replay', 'absence')",
-                [run_id],
-                |row| row.get::<_, i64>(0),
-            )
-            .optional()
-            .map_err(database_error)?;
-        if let Some(change_id) = baseline_change_id {
-            let change_id = LibraryChangeId::new(sqlite_unsigned(change_id, "baseline change ID")?)
-                .ok_or_else(|| {
-                    ScanError::new(
-                        "persistent_journal_baseline_corrupt",
-                        "The baseline change ID is invalid",
-                    )
-                })?;
-            if !super::persistent_journal::baseline_closing_is_covered(&transaction, change_id)? {
-                return Err(ScanError::new(
-                    "persistent_journal_baseline_closing_incomplete",
-                    "Absence cannot become authoritative before closing replay completes",
-                ));
-            }
-            transaction
-                .execute(
-                    "UPDATE library_persistent_journal_baselines
-                     SET phase = 'absence', updated_unix_ms = ?2
-                     WHERE change_id = ?1 AND phase = 'replay'",
-                    params![
-                        sqlite_integer(change_id.value(), "baseline change ID")?,
-                        updated_unix_ms,
-                    ],
-                )
-                .map_err(database_error)?;
-        }
+        recovery_journal::authorize_absence(&transaction, run_id, updated_unix_ms)?;
         transaction
             .execute(
                 "UPDATE library_metadata_inventory_runs
@@ -1874,27 +1820,11 @@ fn begin_metadata_inventory_transaction(
         &request.root_id,
         request.root_generation,
     )?;
-    let unfinished_baseline_change_id = transaction
-        .query_row(
-            "SELECT change_id
-             FROM library_persistent_journal_baselines
-             WHERE root_id = ?1 AND root_generation = ?2
-               AND phase <> 'completed'",
-            params![
-                request.root_id,
-                sqlite_integer(
-                    request.root_generation.value(),
-                    "metadata inventory root generation",
-                )?,
-            ],
-            |row| row.get::<_, i64>(0),
-        )
-        .optional()
-        .map_err(database_error)?
-        .map(|change_id| {
-            sqlite_unsigned(change_id, "metadata inventory baseline change ID").map(|_| change_id)
-        })
-        .transpose()?;
+    let unfinished_baseline_change_id = recovery_journal::unfinished_baseline_change_id(
+        transaction,
+        &request.root_id,
+        request.root_generation,
+    )?;
     if unfinished_baseline_change_id.is_some()
         && unfinished_baseline_change_id != request_authority_change_id
     {

@@ -235,6 +235,15 @@ void main() {
     expect(state(), same(unrelatedState));
   });
 
+  test("automatic verification clears the manual-update capability notice", () {
+    accept([_healthyStatus()]);
+    expect(state().history.single.isResolvedCondition, isFalse);
+    accept([_healthyStatus(issueCode: "persistent_journal_metadata_fallback")]);
+    expect(state().history.single.isResolvedCondition, isTrue);
+    accept([_healthyStatus(issueCode: "persistent_journal_metadata_fallback")]);
+    expect(state().history, hasLength(1));
+  });
+
   test("live-only notice follows healthy capability, not each snapshot", () {
     accept([_healthyStatus()]);
     final firstState = state();
@@ -320,6 +329,7 @@ LibraryRootSynchronizationStatus _blockedStatus({
 LibraryRootSynchronizationStatus _healthyStatus({
   LibraryContinuityState continuity = LibraryContinuityState.liveOnly,
   int pendingCount = 0,
+  String? issueCode,
 }) => LibraryRootSynchronizationStatus(
   rootId: "root",
   rootGeneration: BigInt.one,
@@ -333,4 +343,5 @@ LibraryRootSynchronizationStatus _healthyStatus({
   pendingChangeCount: BigInt.from(pendingCount),
   retryWaitCount: BigInt.zero,
   freshnessUnknownCount: BigInt.zero,
+  lastIssueCode: issueCode,
 );

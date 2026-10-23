@@ -45,22 +45,32 @@ impl JournalStatusOwner {
                 status.continuity = PersistentJournalContinuityState::Unavailable;
                 continue;
             }
+            let capability = capabilities.iter().find(|capability| {
+                capability.root_id == status.root_id
+                    && capability.root_generation.value() == status.root_generation
+            });
+            if status.freshness == CatalogFreshnessState::Synchronized
+                && status.phase == LibrarySynchronizationPhase::Synchronized
+                && status.last_issue_code.is_none()
+                && capability.is_some_and(|capability| {
+                    capability.failure.as_ref().is_some_and(|failure| {
+                        failure.code == crate::domain::persistent_journal::METADATA_FALLBACK_CODE
+                    })
+                })
+            {
+                status.last_issue_code =
+                    Some(crate::domain::persistent_journal::METADATA_FALLBACK_CODE.into());
+            }
             match connection {
                 PersistentChangeJournalConnection::LiveOnly(_) => {
                     status.continuity = PersistentJournalContinuityState::LiveOnly;
                     continue;
                 }
                 PersistentChangeJournalConnection::Connected(_) => {
-                    status.continuity = capabilities
-                        .iter()
-                        .find(|capability| {
-                            capability.root_id == status.root_id
-                                && capability.root_generation.value() == status.root_generation
-                        })
-                        .map_or(
-                            PersistentJournalContinuityState::BaselineRequired,
-                            |capability| capability.continuity,
-                        );
+                    status.continuity = capability.map_or(
+                        PersistentJournalContinuityState::BaselineRequired,
+                        |capability| capability.continuity,
+                    );
                 }
             }
             self.apply_session_progress(status);

@@ -108,6 +108,8 @@ fn ready_admission_lane(
                              AND authority.run_id <> ''
                              AND (
                                authority.reason = 'watcher_uncovered_gap'
+                               OR EXISTS (SELECT 1 FROM library_metadata_fallbacks AS fallback
+                                 WHERE fallback.change_id = authority.change_id)
                                OR (authority.reason = 'journal_reconstruction_failure' AND EXISTS(
                                  SELECT 1 FROM library_journal_scope_recoveries AS recovery
                                  WHERE recovery.current_change_id = authority.change_id
@@ -306,6 +308,8 @@ fn lease_matching_transaction(
                        AND authority.run_id <> ''
                        AND (
                          authority.reason = 'watcher_uncovered_gap'
+                               OR EXISTS (SELECT 1 FROM library_metadata_fallbacks AS fallback
+                                 WHERE fallback.change_id = authority.change_id)
                          OR (authority.reason = 'journal_reconstruction_failure' AND EXISTS(
                            SELECT 1 FROM library_journal_scope_recoveries AS recovery
                            WHERE recovery.current_change_id = authority.change_id

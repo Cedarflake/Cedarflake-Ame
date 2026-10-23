@@ -81,6 +81,10 @@ class LibraryRootSynchronizationStatus {
   final bool recoveryBlocked;
   final String? lastIssueCode;
 
+  bool get usesAutomaticMetadataFallback =>
+      continuity == LibraryContinuityState.liveOnly &&
+      lastIssueCode == "persistent_journal_metadata_fallback";
+
   bool get isAwaitingFirstImport =>
       lastIssueCode == "library_first_import_required" &&
       continuity == LibraryContinuityState.baselineRequired &&

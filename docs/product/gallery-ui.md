@@ -771,6 +771,9 @@ source row; the historical error remains in current-session history. The last is
 as historical context during healthy, unblocked processing, retry or confirmed convergence; it
 does not alone establish a current fault. Blocked recovery and unhealthy monitoring retain their
 priority over progress. `已同步` requires a synchronized source snapshot and settled gallery results.
+Completed automatic metadata fallback also displays `已同步`, while journal continuity remains
+LiveOnly internally. Its source row stays visible and does not publish the manual-update capability
+notice; that notice remains applicable to roots without an automatic offline recovery path.
 Automatic analysis admission, active analysis and committed-result publication share `正在更新`
 in the source row, so foreground yielding and short internal phases do not repeatedly change its text.
 Explicit pause and analysis failure retain their duplicate-analysis wording. The Duplicates workspace

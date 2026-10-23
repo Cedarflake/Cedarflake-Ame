@@ -12,17 +12,21 @@ use super::journal_work::JournalWork;
 use super::{journal_recovery_admission, journal_volume, select_rotated_key};
 
 pub(super) struct JournalLane {
+    fallback_session: super::journal_fallback_session::JournalFallbackSession,
     volume_cursor: Option<String>,
     root_cursor: Option<String>,
     next_action_is_read: bool,
+    failures: Arc<super::journal_work::fallback::JournalReadFailures>,
 }
 
 impl Default for JournalLane {
     fn default() -> Self {
         Self {
+            fallback_session: Default::default(),
             volume_cursor: None,
             root_cursor: None,
             next_action_is_read: true,
+            failures: Arc::default(),
         }
     }
 }
@@ -45,6 +49,10 @@ impl JournalLane {
         caller: Option<&CallerClaim>,
         policy: LibraryChangeQueuePolicy,
     ) -> Result<Option<JournalWork>, ScanError> {
+        self.fallback_session
+            .prepare(catalog, now_unix_ms, policy, connection)?;
+        self.failures
+            .retain_roots(|id| snapshot.roots.iter().any(|root| root.root_id == id));
         if let Some((root_id, root_generation)) =
             self.next_root(catalog, snapshot, now_unix_ms, policy)?
         {
@@ -73,9 +81,17 @@ impl JournalLane {
             _ => return Ok(None),
         };
 
-        if let Some(work) = journal_recovery_admission::select(catalog, snapshot)? {
+        if self.next_action_is_read
+            && let Some(work) = journal_recovery_admission::select(catalog, snapshot)?
+        {
+            self.root_cursor = work
+                .roots
+                .first()
+                .map(|root| root.checkpoint.root_id.clone());
+            self.next_action_is_read = false;
             return Ok(Some(JournalWork::Page {
                 work,
+                failures: Arc::clone(&self.failures),
                 session,
                 caller,
             }));
@@ -86,6 +102,7 @@ impl JournalLane {
         {
             self.root_cursor = Some(work.root_id().to_owned());
             return Ok(Some(JournalWork::Closing {
+                failures: Arc::clone(&self.failures),
                 work,
                 session,
                 caller,
@@ -121,6 +138,7 @@ impl JournalLane {
             self.next_action_is_read = false;
             return Ok(Some(JournalWork::Page {
                 work,
+                failures: Arc::clone(&self.failures),
                 session,
                 caller,
             }));

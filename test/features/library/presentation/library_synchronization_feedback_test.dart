@@ -300,6 +300,26 @@ void main() {
     expect(unresolved.sourceLabel, LibraryStrings.synchronizationUnconfirmed);
   });
 
+  test(
+    "completed automatic verification remains synchronized without journal continuity",
+    () {
+      final feedback = LibrarySynchronizationFeedback.fromStatus(
+        _status(
+          issueCode: "persistent_journal_metadata_fallback",
+          recoveryBlocked: false,
+          freshness: LibraryCatalogFreshness.synchronized,
+          phase: LibrarySynchronizationPhase.synchronized,
+          continuity: LibraryContinuityState.liveOnly,
+          retryCount: 0,
+          unknownCount: 0,
+        ),
+      );
+      expect(feedback.sourceLabel, LibraryStrings.synchronized);
+      expect(feedback.message, LibraryStrings.synchronizationCompleted);
+      expect(feedback.shouldNotify, isFalse);
+    },
+  );
+
   test("blocked phase alone does not invent exhausted recovery authority", () {
     final feedback = LibrarySynchronizationFeedback.fromStatus(
       _status(recoveryBlocked: false, issueCode: "catalog_database_busy"),

@@ -127,6 +127,13 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   owns worker creation, cancellation, result retirement and the shared shutdown deadline; its page
   owner retains registration guards through the existing bounded capture operation. Status projection
   and cross-lane priority remain in their existing owners.
+  `journal_work/fallback` owns the failed-read budget and root-boundary isolation across workers;
+  successful reads and superseding checkpoints retire that evidence. `persistent_journal/recovery_failure`
+  owns atomic failure admission. `persistent_journal/metadata_fallback` owns the independent receipt
+  and retains the journal cursor; `journal_fallback_session` owns one retry at the next process startup
+  and a fresh pass after interrupted verification. `metadata_inventory/recovery_journal` selects the
+  journal or independently admitted inventory completion proof. The schema-46 owner validates that
+  receipt separately from retained historical journal windows.
   `recovery_lane` owns per-root retry timing and fair root rotation. Its typed selection preserves
   candidate-drain, legacy-capacity-debt and recovery-control precedence after the coordinator's
   higher-lane gate. Journal capacity debt restricts the eligible roots without admitting a new control

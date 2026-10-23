@@ -1137,8 +1137,9 @@ is historical evidence, not verification of subsequent changes.
 The later direct-streaming Release experiment began from a completed 63,138-location baseline.
 A fresh recovery captured 68,748 entries and reached an empty queue/current continuity at 62.992
 seconds. It retained all source generations and 29,846 fingerprints, but was slower than the earlier
-continuation. That schema-46 experiment was withdrawn. Product recovery retains schema 45 and the
-materialized source spool, with its child-directory query bounded by the existing parent index.
+continuation. That streaming schema-46 experiment was withdrawn. At that point, product recovery
+retained schema 45 and the materialized source spool, with its child-directory query bounded by the
+existing parent index. The later independent-fallback migration below retains this spool.
 
 ### Indexed startup and quiet background verification
 
@@ -1473,6 +1474,71 @@ This small retained-state check is not a large-library performance measurement.
 The hardlink owner has 93 production lines, no inline tests and 54 dedicated test lines; the native
 lookup fixture module has 136 test lines. Applicable hosted checks remain specific to the published
 commit.
+
+## Journal fallback order
+
+The 2026-10-23 maintenance changes the automatic failure route to USN, Windows Search hints,
+then the existing materialized metadata verification. A known unavailable broker or permanent
+journal failure transfers directly; transient reads transfer after three completed failures at
+the same identity and cursor. Healthy empty reads, capacity yields and elapsed time cannot create
+fallback authority. The failed session is not retried during that round.
+
+Schema 46 stores independent fallback admission against an existing whole-root recovery authority.
+It preserves catalog revisions, source versions, decisions, the failed USN cursor and historical
+windows. Inventory completion and actual-source absence checks finish the round without opening or
+closing USN replay. Root continuity remains LiveOnly; successful replay at a later startup alone
+can restore Current. Interrupted verification receives one current-session pass to cover shutdown.
+The materialized source spool is unchanged; this is separate from the withdrawn streaming experiment.
+
+Four production-runtime regressions use SQLite and isolated native filesystem fixtures. They cover
+permanent journal failure with offline add/change/delete, a retained inventory failing at its closing
+boundary, an interrupted inventory followed by a newly created file, and a missing broker across
+two startups. Recovery finishes without journal reads after fallback; the healthy-restart case
+restores Current without another inventory. Existing-source bytes remain unchanged. The interrupted
+case initially exposed a retired journal window still blocking new inventory; completion ownership
+now excludes independently admitted windows while retaining their history.
+
+The failed-read boundary regressions cover consecutive transient errors, successful empty reads,
+cancellation, changed cursors/generations and per-root opening identity. Index preparation is exercised
+before verification. Existing journal-only opening guards remain strict. Focused migration checks
+cover 45-to-46 preservation, rejected unowned receipts, missing guards, legacy version-23 migration
+fixtures and terminal repair shape through schema 46. Clippy passes with warnings denied.
+
+The 18-image native Debug client was built and launched against an isolated copy of the retained
+landscape catalog. A seeded registration failure produced indexed startup, background verification,
+and synchronized freshness with LiveOnly continuity. One new inventory completed all 18 entries,
+with zero active recovery authorities, pending changes, retry entries or gaps. The original USN
+cursor remained unchanged, and all 18 source SHA-256 hashes matched. A first client pass exposed the
+old LiveOnly capability message; the corrected client displayed `已同步` in the source row and no
+manual-update notice. The client exited normally. Both ordinary catalog data and source media were
+preserved; this fixture run does not measure large-library timing or establish a new startup target.
+
+The three focused Flutter files pass 52 tests, including sidebar completion, notification resolution,
+blocked/unavailable precedence and unfinished-progress wording. No generated bridge, dependency or
+source-write contract changes are included. Full hosted gates belong to the published commit.
+
+Physical owner counts include blank/comment lines; inline counts include cfg(test) declarations and
+support. Dedicated counts include descendant test modules and fixture files.
+
+| Owner | Production lines | Inline test/support lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Production synchronization facade | 1,588 | 71 | 15,663 |
+| Journal status projection | 200 | 2 | 215 |
+| SQLite journal facade | 993 | 3,452 | 2,869 |
+| SQLite inventory facade | 2,773 | 21 | 1,243 |
+| SQLite change queue facade | 1,693 | 81 | 9,410 |
+| SQLite migration facade | 4,035 | 2,347 | 5,531 |
+| Journal-window schema validation | 468 | 2 | 1,140 |
+| Failed journal read owner | 219 | 2 | 162 |
+| Fallback session lifecycle | 121 | 0 | 0 |
+| Journal failure admission | 190 | 0 | 0 |
+| Independent fallback persistence | 199 | 0 | 0 |
+| Inventory journal boundary | 108 | 0 | 0 |
+| Independent fallback migration | 107 | 48 | 0 |
+
+Fallback runtime regressions live in the production test module; its counts include those tests.
+The facade extractions keep failure admission and journal/independent completion proof in their
+respective owners. They do not add unrelated behavior to the remaining facade responsibilities.
 
 ## R3 closeout
 

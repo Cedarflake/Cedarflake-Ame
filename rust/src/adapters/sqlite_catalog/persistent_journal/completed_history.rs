@@ -91,6 +91,8 @@ pub(in crate::adapters::sqlite_catalog) fn finalize_persistent_journal_ranges(
                      WHERE baseline.root_id = checkpoints.root_id
                        AND baseline.root_generation = checkpoints.root_generation
                        AND baseline.phase <> 'completed'
+                       AND NOT EXISTS (SELECT 1 FROM library_metadata_fallbacks AS fallback
+                         WHERE fallback.change_id = baseline.change_id)
                        AND authority.retired_unix_ms IS NULL
                    )
                    AND NOT EXISTS (

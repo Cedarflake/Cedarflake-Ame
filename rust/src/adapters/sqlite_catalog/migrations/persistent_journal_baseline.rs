@@ -113,14 +113,32 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
     // Each historical window proves its immediate successor; only the last window
     // binds the mutable checkpoint. The row audit below also validates every successor.
     // Nullable legacy failure fields cannot establish a completed window's proof.
+    let fallback_filter = if connection
+        .query_row(
+            "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE name = 'library_metadata_fallbacks')",
+            [],
+            |row| row.get::<_, bool>(0),
+        )
+        .map_err(database_error)?
+    {
+        "WHERE NOT EXISTS (
+           SELECT 1 FROM library_metadata_fallbacks AS fallback
+           JOIN library_recovery_authorities AS recovery ON recovery.change_id = fallback.change_id
+           WHERE recovery.root_id = library_persistent_journal_baselines.root_id
+             AND recovery.root_generation = library_persistent_journal_baselines.root_generation
+             AND fallback.admitted_unix_ms >= library_persistent_journal_baselines.authorized_unix_ms
+         )"
+    } else {
+        ""
+    };
     let invalid_rows = connection
         .query_row(
-            "WITH ordered_baselines AS (
+            &format!("WITH ordered_baselines AS (
                SELECT *, LEAD(change_id) OVER (
                  PARTITION BY root_id, root_generation
                  ORDER BY authorized_unix_ms, change_id
                ) AS successor_change_id
-               FROM library_persistent_journal_baselines
+               FROM library_persistent_journal_baselines {fallback_filter}
              )
              SELECT EXISTS(
                SELECT 1 FROM ordered_baselines AS baseline
@@ -341,7 +359,7 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                SELECT 1 FROM pragma_foreign_key_check('library_persistent_journal_baselines')
              ) OR EXISTS(
                SELECT 1
-               FROM library_persistent_journal_baselines AS baseline
+               FROM ordered_baselines AS baseline
                JOIN library_metadata_inventory_runs AS run
                  ON run.root_id = baseline.root_id
                 AND run.root_generation = baseline.root_generation
@@ -354,14 +372,14 @@ pub(super) fn validate_persistent_journal_baseline_contract_with_depth(
                    OR authority.change_id <> baseline.change_id)
              ) OR EXISTS(
                SELECT 1
-               FROM library_persistent_journal_baselines AS baseline
+               FROM ordered_baselines AS baseline
                JOIN library_recovery_authorities AS authority
                  ON authority.change_id = baseline.change_id
                JOIN library_metadata_inventory_runs AS run
                  ON run.id = authority.run_id
                WHERE baseline.phase <> 'completed'
                  AND run.status NOT IN ('running', 'comparing')
-             )",
+             )"),
             [],
             |row| row.get::<_, bool>(0),
         )

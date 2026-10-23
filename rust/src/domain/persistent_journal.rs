@@ -3,6 +3,8 @@ use super::{
     LibraryRootGeneration, ScanError,
 };
 
+pub(crate) const METADATA_FALLBACK_CODE: &str = "persistent_journal_metadata_fallback";
+
 pub const PERSISTENT_JOURNAL_CONTRACT_VERSION: u16 = 1;
 pub const MAX_PERSISTENT_JOURNAL_BATCH_INTENTS: usize = 1_024;
 pub const MAX_PERSISTENT_JOURNAL_HANDOFFS: usize = 1_024;
@@ -187,6 +189,7 @@ pub enum PersistentJournalRootFailureKind {
     JournalReconstructionFailure,
     ContainmentFailure,
     BrokerAfterCurrentFailure,
+    AutomaticMetadataFallback(LibraryRecoveryAuthorityReason),
     Transient,
     NonRecoverable,
     Cancelled,
@@ -204,6 +207,7 @@ impl PersistentJournalRootFailureKind {
             Self::BrokerAfterCurrentFailure => {
                 Some(LibraryRecoveryAuthorityReason::BrokerAfterCurrentFailure)
             }
+            Self::AutomaticMetadataFallback(reason) => Some(reason),
             Self::Transient | Self::NonRecoverable | Self::Cancelled => None,
         }
     }

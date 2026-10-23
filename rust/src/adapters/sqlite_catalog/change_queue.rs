@@ -81,6 +81,8 @@ fn metadata_inventory_recovery_affinity_change_id(
                    ON authority.change_id = baseline.change_id
                  WHERE baseline.root_id = ?1 AND baseline.root_generation = ?2
                    AND baseline.phase <> 'completed'
+                   AND NOT EXISTS (SELECT 1 FROM library_metadata_fallbacks AS fallback
+                     WHERE fallback.change_id = baseline.change_id)
                    AND authority.reason <> 'first_import_boundary'
                  ORDER BY baseline.change_id",
             )

@@ -88,6 +88,10 @@ pub(super) struct JournalBaselineClosingWork {
 }
 
 impl JournalBaselineClosingWork {
+    pub(super) fn root_generation(&self) -> LibraryRootGeneration {
+        self.root_generation
+    }
+
     pub(super) fn root_id(&self) -> &str {
         &self.root_id
     }

@@ -9,7 +9,13 @@ use crate::ports::MetadataInventoryRepository;
 
 #[derive(Default)]
 pub(super) struct IndexedStartupOwner {
-    attempts: BTreeMap<String, (u64, bool)>,
+    attempts: BTreeMap<String, IndexedAttempt>,
+}
+
+struct IndexedAttempt {
+    generation: u64,
+    change_id: crate::domain::LibraryChangeId,
+    finished: bool,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -26,10 +32,10 @@ impl IndexedStartupOwner {
     ) -> Result<RecoveryPreparation, ScanError> {
         let intent = &lease.change.intent;
         if intent.scope == LibraryChangeScope::Root
-            && !self
-                .attempts
-                .get(&intent.root_id)
-                .is_some_and(|(generation, _)| *generation == intent.root_generation.value())
+            && !self.attempts.get(&intent.root_id).is_some_and(|attempt| {
+                attempt.generation == intent.root_generation.value()
+                    && attempt.change_id == lease.change.id
+            })
             && catalog
                 .load_metadata_inventory_recovery_authority(lease.change.id)?
                 .is_some_and(|authority| {
@@ -54,21 +60,26 @@ impl IndexedStartupOwner {
         if matches!(preparation, RecoveryPreparation::IndexedStartup) {
             self.attempts.insert(
                 lease.change.intent.root_id.clone(),
-                (lease.change.intent.root_generation.value(), false),
+                IndexedAttempt {
+                    generation: lease.change.intent.root_generation.value(),
+                    change_id: lease.change.id,
+                    finished: false,
+                },
             );
         }
     }
 
     pub(super) fn finished(&mut self, root_id: &str) {
-        if let Some((_, finished)) = self.attempts.get_mut(root_id) {
-            *finished = true;
+        if let Some(attempt) = self.attempts.get_mut(root_id) {
+            attempt.finished = true;
         }
     }
 
     pub(super) fn project(&self, snapshot: &mut LibrarySynchronizationSnapshot) {
         for status in &mut snapshot.roots {
-            if self.attempts.get(&status.root_id) == Some(&(status.root_generation, true))
-                && status.availability == LibraryRootAvailability::Available
+            if self.attempts.get(&status.root_id).is_some_and(|attempt| {
+                attempt.generation == status.root_generation && attempt.finished
+            }) && status.availability == LibraryRootAvailability::Available
                 && status.source_health == LibraryChangeSourceHealth::Healthy
                 && !status.recovery_blocked
                 && status.freshness != CatalogFreshnessState::Synchronized
@@ -123,7 +134,14 @@ mod tests {
     #[test]
     fn background_projection_preserves_incomplete_evidence_and_error_precedence() {
         let owner = IndexedStartupOwner {
-            attempts: BTreeMap::from([("root-a".into(), (1, true))]),
+            attempts: BTreeMap::from([(
+                "root-a".into(),
+                IndexedAttempt {
+                    generation: 1,
+                    change_id: crate::domain::LibraryChangeId::new(1).unwrap(),
+                    finished: true,
+                },
+            )]),
         };
         let mut healthy = snapshot();
         owner.project(&mut healthy);
@@ -154,7 +172,14 @@ mod tests {
     fn stale_or_unfinished_startup_cannot_quiet_a_new_root_binding() {
         for attempt in [(1, false), (2, true)] {
             let owner = IndexedStartupOwner {
-                attempts: BTreeMap::from([("root-a".into(), attempt)]),
+                attempts: BTreeMap::from([(
+                    "root-a".into(),
+                    IndexedAttempt {
+                        generation: attempt.0,
+                        change_id: crate::domain::LibraryChangeId::new(1).unwrap(),
+                        finished: attempt.1,
+                    },
+                )]),
             };
             let mut state = snapshot();
             let original = state.clone();

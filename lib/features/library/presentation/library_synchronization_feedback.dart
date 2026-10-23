@@ -102,7 +102,8 @@ String _synchronizationNotificationMessage(
     return "";
   }
   if (state == LibrarySynchronizationFeedbackState.synchronized) {
-    if (status.continuity == LibraryContinuityState.liveOnly) {
+    if (status.continuity == LibraryContinuityState.liveOnly &&
+        !status.usesAutomaticMetadataFallback) {
       return LibraryStrings.continuityLiveOnlyDetail;
     }
     return LibraryStrings.synchronizationCompleted;
@@ -267,7 +268,8 @@ String _synchronizationSourceLabel(
   LibrarySynchronizationFeedbackState.unconfirmed =>
     LibraryStrings.synchronizationUnconfirmed,
   LibrarySynchronizationFeedbackState.synchronized =>
-    status.continuity == LibraryContinuityState.liveOnly
+    status.continuity == LibraryContinuityState.liveOnly &&
+            !status.usesAutomaticMetadataFallback
         ? LibraryStrings.continuityLiveOnly
         : LibraryStrings.synchronized,
 };

@@ -609,6 +609,24 @@ void main() {
     expect(find.text(LibraryStrings.continuityBaselineRequired), findsNothing);
   });
 
+  testWidgets(
+    "completed automatic verification keeps the sidebar status visible",
+    (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: _buildNavigation(
+              continuity: LibraryContinuityState.liveOnly,
+              issueCode: "persistent_journal_metadata_fallback",
+            ),
+          ),
+        ),
+      );
+      expect(find.text(LibraryStrings.synchronized), findsOneWidget);
+      expect(find.text(LibraryStrings.continuityLiveOnly), findsNothing);
+    },
+  );
+
   testWidgets("keeps healthy live-only capability out of expanded rows", (
     tester,
   ) async {
@@ -933,6 +951,7 @@ Widget _buildNavigation({
   LibraryCatalogFreshness freshness = LibraryCatalogFreshness.synchronized,
   LibrarySynchronizationPhase phase = LibrarySynchronizationPhase.synchronized,
   bool recoveryBlocked = false,
+  String? issueCode,
   Set<String> updatingRootIds = const {},
 }) {
   const folderPath = "Long album name that needs a path tooltip";
@@ -972,6 +991,7 @@ Widget _buildNavigation({
                     retryWaitCount: BigInt.zero,
                     freshnessUnknownCount: BigInt.zero,
                     recoveryBlocked: recoveryBlocked,
+                    lastIssueCode: issueCode,
                   ),
             }
           : const {},

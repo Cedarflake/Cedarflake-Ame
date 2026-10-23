@@ -107,6 +107,12 @@ pub(super) fn finish(
             ));
         }
     }
+    if !super::recovery_journal::allows_absence(&transaction, change_id)? {
+        return Err(ScanError::new(
+            "persistent_journal_baseline_closing_incomplete",
+            "Recovery cannot complete before journal coverage is restored",
+        ));
+    }
     let is_baseline = transaction
         .query_row(
             "SELECT EXISTS(
@@ -120,6 +126,8 @@ pub(super) fn finish(
             |row| row.get::<_, bool>(0),
         )
         .map_err(database_error)?;
+    let is_baseline = is_baseline
+        && !super::super::persistent_journal::metadata_fallback::owns(&transaction, change_id)?;
     if is_baseline {
         let phase = transaction
             .query_row(
