@@ -1447,6 +1447,33 @@ admission/status/reader tests have 127/215/753/1,112 lines. The new production r
 has 135 lines. Recovery eligibility is owned by the shared policy; existing reader and publication
 boundaries remain intact. Applicable hosted checks remain specific to the published commit.
 
+### High-link-count journal replay
+
+On 2026-10-23, an isolated 18-image client retained a completed metadata enumeration and comparison
+while its recovery window remained in journal replay. Native diagnostics found 330 links for one
+identity; the adapter rejected the 65th name against its 64-link bound. Repeated admission then met
+the existing unfinished recovery window, leaving the original checkpoint unchanged.
+
+The native hardlink owner now admits the NTFS maximum of 1,024 names. Enumeration remains bounded,
+and file identity, root containment and publication checks are unchanged. Journal ranges are not
+skipped, and no schema, recovery-authority or source-write policy changes are involved.
+
+The 128-link regression reproduces the original identity failure. After the repair, all nine focused
+native lookup tests pass, including 128 and 1,024 links, contained aliases with the primary name
+outside the root, an unrelated root, moving out and exclusive content locks. Initial runs under the
+sandbox package's temporary directory returned Win32 error 50 before reaching the bound; the same
+test under workspace temporary storage reproduced the intended failure and passed after repair.
+
+The rebuilt Debug client resumed the existing catalog and completed the same recovery record with
+18 staged entries, zero candidates and zero mutations. Its checkpoint reached `Current` with zero
+pending, retry and gap counts. A normal close and relaunch retained that completed record, created
+no new inventory and rendered `已同步`. No catalog reset, source edit or hydration was performed.
+This small retained-state check is not a large-library performance measurement.
+
+The hardlink owner has 93 production lines, no inline tests and 54 dedicated test lines; the native
+lookup fixture module has 136 test lines. Applicable hosted checks remain specific to the published
+commit.
+
 ## R3 closeout
 
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head

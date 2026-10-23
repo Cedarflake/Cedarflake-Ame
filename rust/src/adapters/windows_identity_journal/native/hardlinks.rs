@@ -10,7 +10,8 @@ use crate::domain::{FileIdentityEvidence, ScanError};
 
 use super::{MAX_PATH_UNITS, invalid, metadata_error, terminated};
 
-const MAX_LINKS: usize = 64;
+// NTFS permits the original directory entry plus 1,023 additional hard links.
+const MAX_LINKS: usize = 1_024;
 
 pub(super) struct HardlinkLookup {
     pub(super) identity: FileIdentityEvidence,

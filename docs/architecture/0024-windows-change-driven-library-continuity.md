@@ -150,6 +150,10 @@ resolves one current link under ordinary caller access. It cannot establish a de
 hardlink aliases. Resolve current file names through bounded
 [`FindFirstFileNameW`](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-findfirstfilenamew)
 enumeration; combine them with the matching catalog/namespace identities and revalidate containment.
+The per-file enumeration bound covers all 1,024 NTFS directory entries: the original name plus the
+1,023 additional links allowed by
+[`CreateHardLinkW`](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createhardlinkw).
+Valid high-link-count files outside a configured root must not block that root's journal replay.
 A failure to open an identity is not proof of absence or authority to remove a catalog location. Renamed
 directories require the old directory binding; unchanged descendants need no separate USN record.
 A directory entering a root requires bounded enumeration of that affected subtree. No-change startup
