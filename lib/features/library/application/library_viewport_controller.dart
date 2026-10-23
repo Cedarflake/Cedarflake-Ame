@@ -1111,7 +1111,8 @@ class LibraryViewportController {
   }
 
   Future<void> loadInitialTimeline() async {
-    if (_state.roots.isEmpty ||
+    if (_cannotPublish ||
+        _state.roots.isEmpty ||
         _state.timeline != null ||
         !LibraryBrowseAdmission(_state).canBrowse) {
       return;

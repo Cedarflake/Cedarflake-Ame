@@ -107,6 +107,7 @@ $expandFolderName = -join [char[]](
     0x5F55
 )
 $sourceButtonSuffix = "$unconfirmedName. $expandFolderName"
+$leafSourceButtonSuffix = "$unconfirmedName. " + (-join [char[]](0x66F4, 0x591A))
 
 function ConvertTo-AmeWindowsUiaDiagnosticName {
     param(
@@ -311,15 +312,18 @@ function Get-AmeWindowsUiaPhaseFailure {
                         ControlType = "ControlType.Button"
                     },
                     @{
-                        Name = "Documents`n$sourceButtonSuffix"
+                        Name = "Documents`n$leafSourceButtonSuffix"
                         ControlType = "ControlType.Button"
                     },
                     @{
-                        Name = "Archive`n$sourceButtonSuffix"
+                        Name = "Archive`n$leafSourceButtonSuffix"
                         ControlType = "ControlType.Button"
                     }
                 )
-                Forbidden = @()
+                Forbidden = @(
+                    "Documents`n$sourceButtonSuffix",
+                    "Archive`n$sourceButtonSuffix"
+                )
             }
             break
         }

@@ -49,3 +49,12 @@ Affected production owners contain 78 source-activity, 151 analysis-activity and
 lines, with no inline tests. Dedicated activity and publication regressions contain 301 and 199
 lines. No database, bridge, source-access or analysis-scheduling contract changed. Hosted checks
 follow normal main publication and remain separate from these client and focused results.
+
+## Folder discovery lifecycle follow-up
+
+Hosted checks exposed an initial timeline microtask reading disposed controller state after the
+folder controller first created that dependency. The existing publication guard now runs before
+that read. The five focused folder-retirement cases and analysis of the native fixture passed.
+The Windows accessibility fixture now supplies one real child-folder branch and two leaf sources,
+checking both the retained expansion action and its absence for leaves. Native execution remains
+owned by the normal Windows accessibility check.

@@ -11,6 +11,7 @@ import "package:cedarflake_ame/features/library/application/library_previewer.da
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
+import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
@@ -274,6 +275,9 @@ void main() {
               ),
             ),
             libraryCatalogProvider.overrideWithValue(catalog),
+            libraryFolderCatalogProvider.overrideWithValue(
+              const _FolderCatalog(),
+            ),
             libraryScannerProvider.overrideWithValue(const _NoopScanner()),
             libraryPreviewerProvider.overrideWithValue(
               _StaticPreviewer(allAssets),
@@ -318,6 +322,10 @@ void main() {
       for (final rootId in const ["root-1", "root-2", "root-3"]) {
         for (final controlName in const ["title", "expand", "more"]) {
           final control = find.byKey(ValueKey("source-$controlName-$rootId"));
+          if (controlName == "expand" && rootId != "root-1") {
+            expect(control, findsNothing);
+            continue;
+          }
           expect(control, findsOneWidget);
           if (controlName != "title") {
             expect(control.hitTestable(), findsOneWidget);
@@ -827,6 +835,32 @@ LibraryGalleryLayoutManifest _manifest(int itemCount) {
     ),
   );
   return builder.build();
+}
+
+class _FolderCatalog implements LibraryFolderCatalog {
+  const _FolderCatalog();
+
+  @override
+  Future<LibraryFolderPage> loadFolderPage({
+    required String rootId,
+    required String parentRelativePath,
+    required int maxItems,
+    LibraryFolderCursor? after,
+  }) async => LibraryFolderPage(
+    revision: BigInt.one,
+    rootId: rootId,
+    parentRelativePath: parentRelativePath,
+    folders: [
+      if (rootId == "root-1" && parentRelativePath.isEmpty)
+        const LibraryFolder(
+          rootId: "root-1",
+          relativePath: "Album",
+          name: "Album",
+          directAssetCount: 1,
+          descendantAssetCount: 1,
+        ),
+    ],
+  );
 }
 
 class _StaticCatalog
