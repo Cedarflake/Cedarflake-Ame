@@ -1551,6 +1551,12 @@ respective owners. They do not add unrelated behavior to the remaining facade re
 
 ## R3 closeout
 
+The duplicate-category selected icon explicitly uses the same Material Symbols Rounded family as
+the surrounding actions. The framework default used MaterialIcons instead. A fresh Windows Debug
+client rendered the check correctly in both categories, and all nine existing review-layout cases
+passed across the retained widths and text scales. The correction changes only the header icon;
+category behavior, catalog state and source access remain unchanged.
+
 The final review compared base `aeaec3d960c61a410cd81ca9ee41559a639e5c3e` with implementation head
 `3392548c572d6c24115a676e03e09bd058f042cd`. It covered analysis admission and retirement, guarded source
 reads, fingerprint/version publication, schema preservation, duplicate query and decision semantics,

@@ -55,6 +55,7 @@ class LibraryDuplicateReviewHeader extends StatelessWidget {
     );
     final category = SegmentedButton<bool>(
       key: const Key("duplicate-review-category"),
+      selectedIcon: const Icon(Symbols.check_rounded),
       segments: const [
         ButtonSegment(
           value: false,
