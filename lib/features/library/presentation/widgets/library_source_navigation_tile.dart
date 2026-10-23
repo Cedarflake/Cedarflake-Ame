@@ -48,7 +48,7 @@ class LibrarySourceNavigationTile extends StatefulWidget {
   final bool isUpdateDisabled;
   final bool isUpdating;
   final VoidCallback onSelect;
-  final VoidCallback onToggleExpansion;
+  final VoidCallback? onToggleExpansion;
   final VoidCallback onUpdate;
   final VoidCallback? onRelocate;
   final VoidCallback onOpen;
@@ -150,20 +150,21 @@ class _LibrarySourceNavigationTileState
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  AmeTooltip(
-                    message: widget.isExpanded
-                        ? LibraryStrings.collapseFolder
-                        : LibraryStrings.expandFolder,
-                    child: IconButton(
-                      key: ValueKey("source-expand-${widget.root.id}"),
-                      onPressed: widget.onToggleExpansion,
-                      icon: Icon(
-                        widget.isExpanded
-                            ? Symbols.keyboard_arrow_up_rounded
-                            : Symbols.keyboard_arrow_down_rounded,
+                  if (widget.onToggleExpansion != null)
+                    AmeTooltip(
+                      message: widget.isExpanded
+                          ? LibraryStrings.collapseFolder
+                          : LibraryStrings.expandFolder,
+                      child: IconButton(
+                        key: ValueKey("source-expand-${widget.root.id}"),
+                        onPressed: widget.onToggleExpansion,
+                        icon: Icon(
+                          widget.isExpanded
+                              ? Symbols.keyboard_arrow_up_rounded
+                              : Symbols.keyboard_arrow_down_rounded,
+                        ),
                       ),
                     ),
-                  ),
                   AmeTooltip(
                     message: LibraryStrings.more,
                     child: SizedBox(

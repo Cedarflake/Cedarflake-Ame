@@ -302,7 +302,10 @@ descendant scope. An unresolved completion or failed display refresh retains its
 blocks a new import until the result is confirmed and displayed; Retry does not repeat the scan.
 
 Clicking a source or child folder scopes the same gallery. Clicking its expansion control only
-changes the tree. A source-row overflow action, secondary click, or keyboard context-menu request
+changes the tree. Show expansion controls only for folders with cataloged child folders. Root
+windows load in bounded, serial catalog reads before expansion and refresh when the catalog changes;
+empty roots keep their selection and overflow actions, and failed reads retain a retry action.
+A source-row overflow action, secondary click, or keyboard context-menu request
 opens the same Material menu containing:
 
 - `更新图库`;

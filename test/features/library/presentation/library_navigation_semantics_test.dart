@@ -27,6 +27,67 @@ void main() {
 
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
 
+  testWidgets("leaf sources omit expansion while retaining their actions", (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: buildAmeTheme(),
+        home: Scaffold(
+          body: _buildNavigation(
+            folderTree: LibraryFolderTreeState(
+              branches: {
+                const LibraryFolderBranchKey(
+                  rootId: "root-1",
+                  parentRelativePath: "",
+                ): const LibraryFolderBranch(
+                  hasLoaded: true,
+                ),
+              },
+            ),
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey("source-expand-root-1")), findsNothing);
+    expect(find.byKey(const ValueKey("source-title-root-1")), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey("source-more-root-1")));
+    await tester.pumpAndSettle();
+    expect(find.text(LibraryStrings.openInExplorer), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("failed root discovery keeps retry available without expansion", (
+    tester,
+  ) async {
+    final requests = <(String, String)>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: _buildNavigation(
+            folderTree: LibraryFolderTreeState(
+              branches: {
+                const LibraryFolderBranchKey(
+                  rootId: "root-1",
+                  parentRelativePath: "",
+                ): const LibraryFolderBranch(
+                  errorMessage: "read failed",
+                ),
+              },
+            ),
+            onExpandFolder: (rootId, relativePath) async {
+              requests.add((rootId, relativePath));
+            },
+          ),
+        ),
+      ),
+    );
+    expect(find.byKey(const ValueKey("source-expand-root-1")), findsNothing);
+    await tester.tap(find.byKey(const Key("folder-tree-retry")));
+    expect(requests, [("root-1", "")]);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets(
     "source uses one update label until analysis and visible results settle",
     (tester) async {
@@ -944,6 +1005,8 @@ LibraryState _populatedLibraryState() {
 }
 
 Widget _buildNavigation({
+  LibraryFolderTreeState? folderTree,
+  Future<void> Function(String, String)? onExpandFolder,
   LibraryRootSynchronizationStatus? statusOverride,
   bool hasSynchronizationFailure = false,
   bool includeRootStatus = true,
@@ -999,33 +1062,35 @@ Widget _buildNavigation({
       selectedRootId: "root-1",
       selectedFolderRelativePath: null,
       transientSource: null,
-      folderTree: LibraryFolderTreeState(
-        revision: BigInt.one,
-        branches: {
-          const LibraryFolderBranchKey(
-            rootId: "root-1",
-            parentRelativePath: "",
-          ): const LibraryFolderBranch(
-            folders: [
-              LibraryFolder(
+      folderTree:
+          folderTree ??
+          LibraryFolderTreeState(
+            revision: BigInt.one,
+            branches: {
+              const LibraryFolderBranchKey(
                 rootId: "root-1",
-                relativePath: folderPath,
-                name: folderPath,
-                directAssetCount: 1,
-                descendantAssetCount: 2,
+                parentRelativePath: "",
+              ): const LibraryFolderBranch(
+                folders: [
+                  LibraryFolder(
+                    rootId: "root-1",
+                    relativePath: folderPath,
+                    name: folderPath,
+                    directAssetCount: 1,
+                    descendantAssetCount: 2,
+                  ),
+                ],
+                hasLoaded: true,
               ),
-            ],
-            hasLoaded: true,
+            },
           ),
-        },
-      ),
       isBusy: false,
       isBrowseDisabled: false,
       updatingRootIds: updatingRootIds,
       onSelectLibrary: _noop,
       onSelectRoot: (_) {},
       onSelectFolder: (_, _) {},
-      onExpandFolder: (_, _) async {},
+      onExpandFolder: onExpandFolder ?? (_, _) async {},
       onLoadMoreFolders: (_, _) async {},
       onAddSource: _noop,
       onUpdateRoot: (_) {},

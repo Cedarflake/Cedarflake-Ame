@@ -4,6 +4,7 @@ import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 import "library_catalog.dart";
 import "library_controller.dart";
+import "library_folder_root_loader.dart";
 import "library_folder_tree.dart";
 
 export "library_folder_tree.dart";
@@ -17,10 +18,35 @@ final libraryFolderConfiguredRootsProvider = Provider<List<LibraryRoot>>((ref) {
 class LibraryFolderController extends Notifier<LibraryFolderTreeState> {
   @override
   LibraryFolderTreeState build() {
+    final rootLoader = LibraryFolderRootLoader(
+      (revision, rootId) => loadBranch(
+        catalogRevision: revision,
+        rootId: rootId,
+        parentRelativePath: "",
+      ),
+    );
+    ref.onDispose(rootLoader.dispose);
     ref.listen(libraryFolderConfiguredRootsProvider, (_, roots) {
       state = state.retainRoots(roots.map((root) => root.id).toSet());
+      _refreshRoots(rootLoader);
     });
+    ref.listen(
+      libraryControllerProvider.select((library) => library.catalogRevision),
+      (_, _) => _refreshRoots(rootLoader),
+    );
+    _refreshRoots(rootLoader);
     return const LibraryFolderTreeState();
+  }
+
+  void _refreshRoots(LibraryFolderRootLoader loader) {
+    final revision = ref.read(libraryControllerProvider).catalogRevision;
+    if (revision == null) {
+      return;
+    }
+    loader.refresh(
+      revision,
+      ref.read(libraryFolderConfiguredRootsProvider).map((root) => root.id),
+    );
   }
 
   Future<void> loadBranch({

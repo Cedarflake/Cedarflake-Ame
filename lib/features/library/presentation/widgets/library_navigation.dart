@@ -282,7 +282,13 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         isUpdateDisabled: widget.retainedScanRootId == root.id,
                         focusNode: _focusNodeForRoot(root.id),
                         onSelect: () => widget.onSelectRoot(root),
-                        onToggleExpansion: () => _toggleBranch(root.id, ""),
+                        onToggleExpansion:
+                            widget.folderTree
+                                .branch(root.id, "")
+                                .folders
+                                .isNotEmpty
+                            ? () => _toggleBranch(root.id, "")
+                            : null,
                         onUpdate: () => widget.onUpdateRoot(root),
                         onRelocate:
                             widget.isAddingSourceDisabled ||
@@ -294,6 +300,15 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       ),
                       if (!widget.isCompact && _isExpanded(root.id, ""))
                         ..._buildFolderBranch(root, "", 1),
+                      if (!widget.isCompact &&
+                          !_isExpanded(root.id, "") &&
+                          widget.folderTree.branch(root.id, "").errorMessage !=
+                              null)
+                        LibraryFolderErrorTile(
+                          depth: 1,
+                          onRetry: () =>
+                              unawaited(widget.onExpandFolder(root.id, "")),
+                        ),
                     ],
                     if (widget.transientSource case final source?)
                       PendingLibrarySourceTile(

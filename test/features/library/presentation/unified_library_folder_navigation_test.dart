@@ -51,6 +51,13 @@ void main() {
       );
       await tester.pump();
 
+      expect(folderCatalog.requests, [
+        (rootId: "root-1", parentRelativePath: ""),
+      ]);
+      expect(
+        find.byKey(const ValueKey("folder-title-root-1-Album")),
+        findsNothing,
+      );
       await tester.tap(find.byKey(const ValueKey("source-expand-root-1")));
       await tester.pumpAndSettle();
       expect(
@@ -76,6 +83,10 @@ void main() {
       expect(
         find.byKey(const ValueKey("folder-title-root-1-Album/Sub")),
         findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey("folder-expand-root-1-Album/Sub")),
+        findsNothing,
       );
 
       await tester.tap(

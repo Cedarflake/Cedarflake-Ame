@@ -642,6 +642,8 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   newer child window. Configured-root removal retires all of that root's branches. The folder read
   controller checks root membership, revision, scope, cursor and the exact pending branch slot;
   superseded, retired or disposed reads cannot republish or clear a newer loading state.
+  `library_folder_root_loader.dart` serializes initial root-window discovery and coalesces queued
+  catalog revisions; it uses that same controller authority without reading source directories.
 - `library_preview_feedback.dart` owns constrained preview-failure and retry-progress layout. It
   measures labels with the current text scale and composes Material buttons/progress with the shared
   tooltip and semantics boundary. Source identity, retry admission, cache eviction and result
