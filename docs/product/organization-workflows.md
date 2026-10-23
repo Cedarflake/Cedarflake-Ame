@@ -46,26 +46,20 @@ source-entry preservation, and bounded memory, database, and bridge behavior on 
 
 User outcome:
 
-The user can place assets in Favorites and user-created virtual albums without changing source
-files, record durable decisions, and resume an interrupted organization or review session at the
-exact logical item and progress position.
+The user can organize each exact-duplicate group into one flat virtual album, keep Favorites
+independently, and resume organization in the existing gallery and viewer without changing source
+files. [R4 requirements](r4-organization.md) own the detailed rules and acceptance boundary.
 
 Scope:
 
-- durable user-owned data separated from rebuildable catalog, preview, and model evidence;
-- one album-membership model containing the built-in Favorites group and user-created albums rather
-  than parallel favorite and album authorities;
-- virtual many-to-many membership that survives compatible reindexing and never implies a physical
-  destination;
-- an expandable `相册` sidebar section and the selection-owned `加入相册` workflow defined in section
-  4 without creating another gallery application;
-- durable `UserOverride` infrastructure that later analysis stages can consume without overwriting
-  human intent;
-- persistent `ReviewSession` identity, owning query, logical asset anchor, progress, decisions,
-  keyboard mapping, undo boundary, deferred items, issue state, and cross-restart continuation;
-- one lightweight `继续整理` entry in the existing gallery when resumable work exists;
-- migrations, backup or export, restoration, and tests proving that catalog rebuilds do not erase
-  albums, review progress, or user decisions.
+- whole-group album actions, late duplicate folding, single-album assignment, and independent
+  favorites;
+- shared pending, deferred, organized, and ignored progress, including deferred album conflicts and
+  content-change reconciliation;
+- organization mode entered from the existing gallery, stable continuation, new groups at the queue
+  front, and the [accepted desktop controls](gallery-ui.md#review-workflow);
+- durable decisions and `UserOverride` infrastructure, transactional progress, undo, migrations,
+  export/restoration, explicit source-removal cleanup, and manual unresolved-record cleanup.
 
 R4 does not yet invent model predictions. It establishes the durable authority and review mechanics
 that prevent later automation from being mistaken for human confirmation.
@@ -170,8 +164,9 @@ Scope:
   user choices;
 - target-root and path-template preview with invalid-name, reserved-name, path-length, unsupported
   target, and source-overlap validation;
-- explicit handling when one asset belongs to multiple albums selected for physical materialization:
-  choose a primary album, keep the current location, use effective category, or exclude the item;
+- explicit handling of unresolved album-assignment conflicts before physical materialization;
+  Favorites remain independent, and neither a favorite nor an unresolved album candidate implies a
+  physical destination;
 - deterministic target-collision, existing-file, unavailable-source, cloud-placeholder, permission,
   cross-volume, and insufficient-space analysis;
 - an immutable, non-executable `OperationPlan` containing source and target, action kind, reason,

@@ -78,8 +78,10 @@ file count or gallery feature breadth. Each applicable stage records:
 - Review is a resumable productivity workflow with a stable query, cursor, progress, keyboard
   actions, undo, and cross-restart continuation. It is not a temporary selection mode or a generic
   background task entry.
-- User albums and Favorites are virtual, many-to-many organization. They never imply one physical
-  destination and never move or copy source files.
+- User albums are flat virtual collections with one confirmed assignment per exact-duplicate group.
+  Album actions apply to the whole group across folders. Favorites are an independent preference
+  and can coexist with an album assignment; neither changes source files. The
+  [R4 requirements](r4-organization.md) own conflicts, progress, regrouping, and recovery.
 - Person recognition, face clustering, identity naming, pixel editing, RAW development, cloud sync,
   and a Lightroom-style editor are outside the product scope.
 - Delete, move, copy, rename, quarantine, and recycle-bin execution remain unavailable until R9 and
@@ -109,8 +111,13 @@ must preserve their authority boundaries:
   any applicable user override.
 - `ReviewStatus`: whether a result is unreviewed, selected for sampling, confirmed, deferred, or
   otherwise requires attention; it is independent of prediction confidence.
-- `Album` and `AlbumMembership`: user-owned virtual many-to-many organization, including the
-  built-in Favorites group, without source-file mutation.
+- `Album` and `AlbumMembership`: flat, user-owned virtual organization with at most one confirmed
+  album per current image group. Unresolved conflicting assignments remain review evidence rather
+  than simultaneous confirmed memberships.
+- Favorite state: an independent durable preference that can coexist with an album assignment and
+  does not change organization progress.
+- Organization progress: R4's pending, deferred, organized, or ignored state for a current group,
+  distinct from later classification review status and R3's duplicate-review ignore choice.
 - `ReviewSession`: a persistent review query, position, progress, shortcuts, decisions, and undo
   boundary that can be resumed after restart.
 - `OperationPlan`: an immutable dry-run proposal describing intended filesystem actions, expected

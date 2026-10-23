@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-18
+Last planning update: 2026-10-24
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Favorites, virtual albums, durable decisions, and resumable review sessions | Next planned stage; not started |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Next planned stage; not started |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -119,8 +119,11 @@ Preserve its source-read boundaries, deterministic representatives, bounded wind
 navigation and accepted workbench behavior. The execution and acceptance records retain the completed
 R3-01 through R3-05 deliveries; they are no longer an active repair queue.
 
-The next stage is [R4 virtual organization and review](product/organization-workflows.md#r4---virtual-organization-and-review-foundation).
-Its scope remains Favorites and virtual albums, durable decisions and resumable review sessions.
+The next stage is [R4 virtual organization and review](product/r4-organization.md).
+Its requirements cover whole-group single-album assignment, independent Favorites, continuous
+organization progress, conflict handling, and recovery/cleanup. The
+[gallery contract](product/gallery-ui.md#review-workflow) owns the accepted desktop interaction.
+Requirements are defined; implementation has not started and no R4 execution plan is selected.
 Select its execution plan when that work is requested. Do not restart completed R2c/R3 acceptance or
 advance physical file operations, perceptual similarity or release signing through this closeout.
 

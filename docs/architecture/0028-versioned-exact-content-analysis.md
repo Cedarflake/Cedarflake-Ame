@@ -131,6 +131,12 @@ sort/date keys come from that representative. A group spanning folders does not 
 selection outside the active folder. `查看重复位置` deliberately lists all known current locations,
 including those outside the gallery scope. Pending and unreadable items remain ordinary items.
 
+These selection rules own R3 browsing, physical-location selection, and duplicate preferences.
+The planned [R4 virtual-organization commands](../product/r4-organization.md#albums-favorites-and-duplicate-groups)
+resolve a selected item to its complete current group across folders. That is an explicit command
+target, not an expansion of the visible gallery selection or permission to mutate source files.
+R4 group normalization does not change the existing R3 selection and representative rules.
+
 Schema 42 stores preferred-copy and ignore decisions under the versioned content key, with an
 explicit location/asset pair for the preferred copy. These rows have no cascading relationship to
 rebuildable fingerprints or locations. Compatible reanalysis and added copies retain the decision.

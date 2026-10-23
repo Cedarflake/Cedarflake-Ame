@@ -262,16 +262,18 @@ behind each corner. Theme-derived tonal surfaces distinguish these levels withou
 The sidebar contains only navigation and source scope:
 
 - `图库` with a trailing folder-plus add-source action;
-- an expandable `相册` section when R4 is functional, containing the system-provided `收藏夹` and
-  user-created album groups;
+- an independent `收藏夹` entry when R4 is functional;
+- an expandable `相册` section containing flat user-created albums when R4 is functional;
 - imported folders in one aligned source list, without separating OneDrive and local folders into
   different navigation hierarchies;
 - expandable folder trees when functional.
 
-`收藏夹` is not a separate data model or a peer outside the album system. It is the built-in album
-group for the default collection workflow. User-created groups use the same durable membership
-contract. Activating any album entry only scopes the unified gallery to that group and never moves,
-copies, renames, or deletes source files.
+`收藏夹` scopes the gallery by favorite state independently of album membership. Albums do not nest,
+and each current image group has at most one confirmed album assignment. A group can appear in
+Favorites and its album at the same time. Activating either navigation entry scopes the unified
+gallery without moving, copying, renaming, or deleting source files. The
+[R4 requirements](r4-organization.md#albums-favorites-and-duplicate-groups) own group normalization,
+late folding, independent favorites, and assignment rules.
 
 When R5 is functional, the same `相册` navigation area also contains a distinct `智能相册` subsection.
 Its result groups are derived from `EffectiveCategory`, not ordinary album membership. Users cannot
@@ -312,9 +314,11 @@ opens the same Material menu containing:
 - `在资源管理器中打开`;
 - `从 Ame 中移除`.
 
-Removing a source unregisters it from Ame only. A confirmation must state that files on disk are not
-deleted or modified. The source-removal business use case is not implied complete by drawing this
-menu.
+Removing a source unregisters it from Ame without deleting or modifying files on disk. Once R4 is
+connected, its confirmation also explains the affected organization-record cleanup under the
+[removal and recovery rules](r4-organization.md#persistence-removal-and-recovery). Temporary source
+unavailability does not trigger that cleanup, and groups still present in other sources retain
+their valid records. Drawing this menu does not complete the source-removal use case.
 
 Do not place Timeline, Categories, Search, Sort, Filter, Settings, Task Activity, or Duplicate Review
 in the sidebar.
@@ -341,29 +345,40 @@ upper-right selection-specific area, while entries under the sidebar's `相册` 
 scopes. The action and entries share durable membership data but never share interaction
 responsibility.
 
-When the album prompt is enabled, activating `加入相册` opens one Material dialog before membership
-changes are applied:
+When the album prompt is enabled, activating `加入相册` opens one Material dialog with a single
+destination before group assignments are changed:
 
 ```text
-选择要加入的相册
+选择相册
 
-☑ 收藏夹
-☐ 用户分组 A
-☐ 用户分组 B
+( ) 用户相册 A
+( ) 用户相册 B
 
-[新建相册]                                      [取消] [确定]
+[新建相册]                                  [取消] [加入相册]
 ```
 
-- `收藏夹` is the initial default selection, but the user may clear it and select one or more other
-  groups;
-- the dialog supports membership in multiple groups rather than forcing one exclusive destination;
-- reopening it reflects actual membership; multi-item selection uses checked, mixed, and unchecked
-  states so existing membership is not misrepresented;
-- confirmation updates only Ame-owned album membership and never changes source files;
-- when prompting is disabled, `加入相册` immediately adds the selected assets to the configured
-  default group and reports the result with a reversible confirmation surface;
+- only user albums are destinations; Favorites have a separate action and never appear here;
+- use single-choice controls; selecting a different album moves the complete selected groups there
+  instead of adding another membership;
+- reopening reflects the current confirmed assignment. A mixed batch or unresolved conflict must
+  not appear to have one shared assignment; show the existing album information and let the user
+  choose one destination for the selected groups;
+- the primary action is `移至相册` when it replaces an existing assignment, otherwise `加入相册`;
+  make the affected groups and destination clear before saving;
+- a new unassigned selection may use a valid configured default. Initially no default is selected;
+  an empty album list offers `新建相册`, and cancellation leaves assignments and progress unchanged;
+- confirmation commits album and organization-state changes together and never changes source
+  files. Favorites remain unchanged, and successful assignment counts as organized;
+- when prompting is disabled and a valid default exists, the same operation targets that album and
+  reports the result with undo. Missing/deleted defaults and unresolved assignment conflicts open
+  the picker instead of silently guessing a destination;
 - the production control remains absent until membership persistence, settings, errors, undo, and
   the complete user path are connected.
+
+`收藏` and `取消收藏` are separate contextual commands using the shared selection/viewer action
+surfaces. They change favorite state for the selected groups without changing album assignments or
+organization progress. Album removal, album movement, and favorite changes retain distinct labels
+and results.
 
 In normal browsing, a gallery tile reveals its upper-right selection checkbox on pointer hover or
 keyboard focus. Selection mode shows checkboxes on every visible tile, and selected tiles always
@@ -846,7 +861,12 @@ Initial settings are limited to behavior that is understandable and connected en
 
 相册（R4 接通后）
   加入相册前询问           开 / 关
-  默认加入的相册           收藏夹 / 用户创建的相册组
+  默认加入的相册           未设置 / 用户创建的相册
+
+整理记录（R4 接通后）
+  导出整理记录             导出
+  恢复整理记录             选择文件
+  清理未关联记录           查看并清理
 
 存储
   图库数据位置             当前路径 | 更改
@@ -875,11 +895,19 @@ Changing a storage location must show whether restart or migration is required b
 Clearing thumbnails must name the rebuild cost and confirm that source files are untouched. Theme,
 viewer, preview loading speed, album, and storage choices persist across restarts. Preview loading
 speed defaults to `中`; changing it applies to subsequent queue starts without cancelling active
-decodes. `加入相册前询问` initially defaults to on, and `默认加入的相册` initially defaults to
-`收藏夹`. When prompting is on, the configured group
-is preselected in the dialog and may be changed for that operation. When prompting is off, the same
-setting is the direct destination. These rows remain absent until R4 connects album membership end
-to end.
+decodes. `加入相册前询问` initially defaults to on, and `默认加入的相册` initially displays `未设置`.
+Favorites are not a possible default. A valid configured album can be preselected for unassigned
+groups; existing assignments and conflicts remain visible. Turning the prompt off requires a valid
+default. If that album is later deleted, reopen the picker on the next operation. These rows remain
+absent until R4 connects the complete album workflow.
+
+The R4 record controls use the [persistence and recovery contract](r4-organization.md#persistence-removal-and-recovery).
+Export and restore describe that they carry favorites, album decisions, and progress rather than
+original images. `清理未关联记录` shows the number and age of records whose images cannot be reliably
+associated, explains which saved decisions will be removed, and requires confirmation of the
+chosen cleanup. Matching again before confirmation preserves the recovered record. This is not
+thumbnail cleanup or an automatic age-based purge. Keep the controls absent until their workflows
+are functional; their inclusion here does not claim current availability.
 
 Clearing previews removes only rebuildable artifact files and resets compatible preview-index
 entries to pending. It retains catalog width and height, orientation evidence, capture metadata,
@@ -920,13 +948,39 @@ directly editing derived smart-album membership.
 
 ## Review workflow
 
-When R4 introduces persistent `ReviewSession` state, Ame may show one lightweight contextual
-`继续整理` surface above the existing gallery. It appears only when review work exists and may
-summarize classification items, similarity groups, or other accepted queues. It is not a home
-dashboard, AI center, task center, or new sidebar destination.
+R4 uses the existing desktop gallery and image viewer. Ordinary browsing is the default; the
+gallery's upper-right `更多` menu contains `整理模式` once its workflow is functional. Entering it
+reveals organization controls, and the same menu offers `退出整理模式`. Do not add a separate review
+workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 
-Activating it reuses the unified gallery with a session-owned query and visible progress. The
-review surface must support keyboard-first decisions, multi-selection where the decision is safe,
-undo, defer, issue states, and cross-restart continuation. Closing the application preserves the
-session's durable progress; reopening does not guess completion from model confidence or gallery
-scroll position.
+The existing count row contains the total, `已整理`, and `待整理` counts on one line. A floating toolbar
+attached to the bottom of the gallery content area contains `待整理`, `稍后整理`, and `已忽略` selectors.
+`继续整理` is a separate button beside that toolbar, on the same row and with the same height. Reserve
+content space so the dock does not obscure the last images or their actions, and keep it reachable
+by keyboard at supported desktop widths and text scales.
+
+Hide `继续整理` and any saved-position marker before organization has begun or when no resumable
+position exists. Pending images alone do not create that entry. After a position has been recorded,
+continuation returns to the logical anchor under the [queue rules](r4-organization.md#queue-and-continuation).
+There is no separate `新增` selector or button; newly admitted groups go to the pending queue's front
+without moving the currently viewed image or overwriting the saved anchor.
+
+During selection and in the organization-mode viewer, `稍后整理` shares the action row with
+`加入相册`. Successful album assignment completes organization automatically; omit separate
+`标为已整理`, `保存并完成`, and `完成并下一张` controls. The organization-mode viewer can advance after
+the save commits, while the ordinary-mode viewer stays on the current image. Shared progress is
+updated in either mode. The contextual actions also provide `忽略` and, for ignored groups,
+`恢复待整理`; organization ignore remains separate from Duplicates' review ignore.
+
+Album conflicts are visible in `稍后整理` with the label `相册归属冲突`, the involved albums, and an
+action to choose the destination. Use the shared notification surface to point to deferred conflicts
+without interrupting current browsing. Coalesce background notifications; the conflict remains on
+the group after a notice disappears and clears only when resolution is committed. Do not create
+another conflict tab, generic task center, or transient-only error state.
+
+The review surface supports keyboard-first decisions, safe multi-selection, undo, deferred work,
+empty and failed states, and cross-restart continuation. Counts, assignment transitions, regrouping,
+and durable decisions are owned by [R4 requirements](r4-organization.md), not widget-local state.
+Closing the application preserves committed progress; reopening does not infer completion from
+scroll position or later model confidence. Later classification and similarity review reuse these
+foundations through their own product contracts without adding model controls to R4.
