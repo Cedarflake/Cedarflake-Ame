@@ -123,8 +123,10 @@ The next stage is [R4 virtual organization and review](product/r4-organization.m
 Its requirements cover whole-group single-album assignment, independent Favorites, continuous
 organization progress, conflict handling, and recovery/cleanup. The
 [gallery contract](product/gallery-ui.md#review-workflow) owns the accepted desktop interaction.
-Requirements are defined; implementation has not started and no R4 execution plan is selected.
-Select its execution plan when that work is requested. Do not restart completed R2c/R3 acceptance or
+Requirements are defined.
+The [R4 execution plan](plans/r4-organization.md) is now prepared in the
+[implementation sequence below](#r4-implementation-sequence); product implementation has not started.
+Start R4-01 when implementation is requested. Do not restart completed R2c/R3 acceptance or
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
 The requested maintenance scope
@@ -185,6 +187,27 @@ The same plan records the completed card-size position correction, continuous-fi
 timeline stability during updates and journal catch-up correction as separate behavior changes after
 the six refactor boundaries. Hosted mixed-load diagnostics and the catalog-proof correction retain
 their evidence in the linked acceptance record.
+
+## R4 implementation sequence
+
+R4 remains planned. The [execution plan](plans/r4-organization.md) defines the dependencies, work and
+exit conditions below; this roadmap owns their order and subsequent status. Planning does not start
+product implementation or claim that an R4 workflow is already available.
+
+| Order | Slice | Required result |
+| --- | --- | --- |
+| R4-01 | [Durable group decisions and command targets](plans/r4-organization.md#r4-01-durable-group-decisions-and-command-targets) | Stable organization identity, whole-group commands, transactional records and recoverable migration foundation |
+| R4-02 | [Organization transitions and group reconciliation](plans/r4-organization.md#r4-02-organization-transitions-and-group-reconciliation) | Single-album/Favorite decisions, shared progress, undo, merges/splits and safe source lifecycle handling |
+| R4-03 | [Bounded album and Favorite queries](plans/r4-organization.md#r4-03-bounded-album-and-favorite-queries) | Consistent, bounded gallery scopes, pages, counts, layout and viewer navigation |
+| R4-04 | [Continuous queues and durable continuation](plans/r4-organization.md#r4-04-continuous-queues-and-durable-continuation) | New groups at the front, stable logical continuation and shared counts across ordinary and organization modes |
+| R4-05 | [Connected albums, Favorites and organization mode](plans/r4-organization.md#r4-05-connected-albums-favorites-and-organization-mode) | Ordinary album/Favorite workflows and accepted organization controls, continuation and persistent conflict resolution |
+| R4-06 | [Export, restoration and unresolved-record cleanup](plans/r4-organization.md#r4-06-export-restoration-and-unresolved-record-cleanup) | Versioned portable recovery, preserved rebuilds and explicit cleanup without resurrection on reimport |
+| R4-07 | [Integrated verification and stage closure](plans/r4-organization.md#r4-07-integrated-verification-and-stage-closure) | Verified complete desktop flow, retained-library resource bounds, recovery and source preservation |
+
+R4-01 is the first implementation slice. Establish group evolution and explicit source-removal
+safety before exposing album writes. Migration backup belongs to R4-01; the later recovery settings
+do not postpone protection of existing user data. Requirements and accepted control placement remain
+with their product owners rather than being re-decided during implementation.
 
 ## Frozen R2c ownership
 

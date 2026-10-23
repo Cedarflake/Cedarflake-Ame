@@ -8,6 +8,7 @@ only the contracts, execution details, and evidence that own the task.
 | What stage is active, what blocks it, and what comes next? | [Roadmap](roadmap.md), the sole active stage and priority index |
 | What is the product and which concepts or capabilities are in scope? | [Workbench contract](product/workbench.md) and [organization workflows](product/organization-workflows.md) |
 | What are R4's album, favorite, organization-progress, and recovery rules? | [R4 requirements](product/r4-organization.md); control placement remains in the [gallery UI contract](product/gallery-ui.md#review-workflow) |
+| In what order should R4 be implemented, and what must each slice deliver? | [R4 implementation plan](plans/r4-organization.md), ordered by the [roadmap](roadmap.md#r4-implementation-sequence) |
 | How should the accepted gallery and controls behave, and why? | [Gallery UI contract and rationale](product/gallery-ui.md#design-principles-and-rationale), under the accepted UI ADRs |
 | Which shared UI owner, regression and client path apply to a change? | [UI verification map](acceptance/quality-gates.md#ui-workflow-verification) |
 | Where does the current maintenance work resume? | [Maintainability refactor execution](plans/maintainability-refactor.md), selected by the roadmap |
