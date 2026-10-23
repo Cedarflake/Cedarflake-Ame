@@ -44,3 +44,4 @@ Recorded decisions:
 - [ADR 0027: Version the application and broker through Windows Installer](0027-windows-installer-lifecycle.md)
 - [ADR 0028: Version exact-content evidence behind a guarded reader](0028-versioned-exact-content-analysis.md)
 - [ADR 0029: Functional workbench navigation](0029-functional-workbench-navigation.md)
+- [ADR 0030: Bind durable organization decisions to content lineages](0030-durable-organization-decisions.md)

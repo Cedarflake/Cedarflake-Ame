@@ -1,12 +1,13 @@
 # R4 - Virtual organization implementation plan
 
-Status: prepared for implementation; product implementation has not started.
+Status: active execution plan; current slice and acceptance status are owned by the roadmap.
 
 The [roadmap](../roadmap.md#r4-implementation-sequence) selects this sequence and owns stage status,
 priority, blockers and closure. This plan defines the work and exit conditions for each slice.
 [R4 requirements](../product/r4-organization.md) own behavior;
 [the gallery contract](../product/gallery-ui.md#review-workflow) owns the accepted desktop controls.
-Completing this plan document does not complete a product slice.
+Implementation runs on `codex/r4-organization`. Completing an internal slice does not expose or
+complete the later desktop workflow.
 
 ## Outcome and scope
 
@@ -266,10 +267,11 @@ Work:
 
 ## Implementation handoff
 
-Start with R4-01 when implementation is requested. Recover current user decisions and Git state,
-read the roadmap and relevant ADRs, and inspect the actual owners before edits. Apply the repository's
-branch and commit rules to the implementation scope; this documentation change does not create an
-implementation branch or start schema work.
+Resume the slice selected by the roadmap. Recover current user decisions and Git state, read the
+relevant ADRs, and inspect the actual owners before edits. Use the R4 development branch and apply
+the repository's commit rules to each independently reversible outcome. The
+[organization ADR](../architecture/0030-durable-organization-decisions.md) owns the admitted identity,
+transaction and upgrade-backup boundaries.
 
 Keep implementation, focused regressions and necessary documentation together for each reversible
 outcome. Use the [required engineering workflow](../acceptance/quality-gates.md#required-engineering-workflow),

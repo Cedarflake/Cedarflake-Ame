@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Next planned stage; not started |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-01 foundation in progress |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -48,7 +48,7 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**R2c is frozen and R3 is completed. R4 is the next planned stage; implementation has not started.**
+**R2c is frozen and R3 is completed. R4 is active on `codex/r4-organization`, starting with R4-01.**
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -119,14 +119,16 @@ Preserve its source-read boundaries, deterministic representatives, bounded wind
 navigation and accepted workbench behavior. The execution and acceptance records retain the completed
 R3-01 through R3-05 deliveries; they are no longer an active repair queue.
 
-The next stage is [R4 virtual organization and review](product/r4-organization.md).
+The active stage is [R4 virtual organization and review](product/r4-organization.md).
 Its requirements cover whole-group single-album assignment, independent Favorites, continuous
 organization progress, conflict handling, and recovery/cleanup. The
 [gallery contract](product/gallery-ui.md#review-workflow) owns the accepted desktop interaction.
 Requirements are defined.
-The [R4 execution plan](plans/r4-organization.md) is now prepared in the
-[implementation sequence below](#r4-implementation-sequence); product implementation has not started.
-Start R4-01 when implementation is requested. Do not restart completed R2c/R3 acceptance or
+The [R4 execution plan](plans/r4-organization.md) follows the
+[implementation sequence below](#r4-implementation-sequence). R4-01 establishes durable identity,
+guarded group commands and migration recovery before exposing organization controls.
+Preserve the existing visual language; use the approved sketch for placement and workflow.
+Do not restart completed R2c/R3 acceptance or
 advance physical file operations, perceptual similarity or release signing through this closeout.
 
 The requested maintenance scope
@@ -190,9 +192,9 @@ their evidence in the linked acceptance record.
 
 ## R4 implementation sequence
 
-R4 remains planned. The [execution plan](plans/r4-organization.md) defines the dependencies, work and
-exit conditions below; this roadmap owns their order and subsequent status. Planning does not start
-product implementation or claim that an R4 workflow is already available.
+R4-01 is in progress. R4-02 through R4-07 remain pending. The
+[execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
+this roadmap owns their order and status. No R4 user workflow has passed acceptance yet.
 
 | Order | Slice | Required result |
 | --- | --- | --- |

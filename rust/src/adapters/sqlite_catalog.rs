@@ -41,6 +41,7 @@ mod journal_namespace;
 mod location_row_write;
 mod media_admission_rechecks;
 mod metadata_inventory;
+mod migration_backup;
 mod migrations;
 mod operation_diagnostics;
 #[cfg_attr(
@@ -369,6 +370,7 @@ impl SqliteCatalogSession {
             let count = counts.entry(admission_path.clone()).or_default();
             *count = count.saturating_add(1);
         }
+        migration_backup::prepare(&connection, &path, SCHEMA_VERSION)?;
         migrate_schema(&mut connection)?;
         let application_id = catalog_pragma_integer(&connection, "application_id")?;
         let user_version = catalog_pragma_integer(&connection, "user_version")?;
