@@ -62,6 +62,12 @@ owned by the normal Windows accessibility check.
 Affected owners contain 1,292 viewport production lines, 1,053 native fixture lines, 568 probe
 lines and 255 dedicated folder-retirement test lines; the production owner has no inline tests.
 
+The scroll-continuity fixture now supplies a published initial catalog revision and waits for
+automatic root discovery before expanding. All four cases reproduced the missing expansion control
+without that setup and pass with it. They also verify that expansion reuses the discovered window;
+the existing leaf recovery, scroll retention, refresh failure and empty-result assertions remain.
+This follow-up changes only test setup and assertions, with hosted verification following publication.
+
 ## Import completion and independent analysis
 
 The subsequent correction removes analysis feedback from source rows entirely. A completed import

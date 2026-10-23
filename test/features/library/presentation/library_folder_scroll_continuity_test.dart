@@ -1,9 +1,11 @@
 import "dart:async";
 
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
+import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_folder_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_folder_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
+import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -20,9 +22,9 @@ void main() {
         ProviderScope(
           overrides: [
             libraryFolderCatalogProvider.overrideWithValue(catalog),
-            libraryFolderConfiguredRootsProvider.overrideWithValue(const [
-              _root,
-            ]),
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
+            ),
           ],
           child: MaterialApp(
             home: Scaffold(
@@ -34,8 +36,11 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      expect(catalog.parentReads, 1);
       await tester.tap(find.byKey(const ValueKey("source-expand-root-1")));
       await tester.pumpAndSettle();
+      expect(catalog.parentReads, 1);
       final expand = find.byKey(const ValueKey("folder-expand-root-1-Album"));
       await tester.tap(expand);
       await tester.pumpAndSettle();
@@ -72,9 +77,9 @@ void main() {
         ProviderScope(
           overrides: [
             libraryFolderCatalogProvider.overrideWithValue(catalog),
-            libraryFolderConfiguredRootsProvider.overrideWithValue(const [
-              _root,
-            ]),
+            initialLibraryStateProvider.overrideWithValue(
+              LibraryState(catalogRevision: BigInt.one, roots: const [_root]),
+            ),
           ],
           child: MaterialApp(
             home: Scaffold(
@@ -87,8 +92,11 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
+      expect(catalog.requests, [null]);
       await tester.tap(find.byKey(const ValueKey("source-expand-root-1")));
       await tester.pumpAndSettle();
+      expect(catalog.requests, [null]);
       final more = find.byKey(const Key("folder-tree-load-more"));
       await tester.scrollUntilVisible(more, 400, maxScrolls: 60);
       await tester.pumpAndSettle();
