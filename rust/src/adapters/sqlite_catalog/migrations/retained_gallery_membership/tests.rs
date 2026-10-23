@@ -62,7 +62,7 @@ fn conflicting_retained_membership_rolls_back_without_advancing_schema() {
 #[test]
 fn altered_display_projection_is_rejected_before_current_queries() {
     let mut connection = prior_catalog();
-    migrate(&mut connection).unwrap();
+    super::super::migrate_schema(&mut connection).unwrap();
     connection
         .execute_batch(
             "DROP VIEW gallery_display_fingerprints;

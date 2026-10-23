@@ -90,6 +90,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "exact_duplicate_decisions",
                 "gallery_content_fingerprints",
                 "gallery_retained_fingerprints",
+                "library_metadata_fallbacks",
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }

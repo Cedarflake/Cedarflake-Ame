@@ -1517,6 +1517,15 @@ The three focused Flutter files pass 52 tests, including sidebar completion, not
 blocked/unavailable precedence and unfinished-progress wording. No generated bridge, dependency or
 source-write contract changes are included. Full hosted gates belong to the published commit.
 
+The subsequent hosted run exposed eight retained-fixture expectations from schema 45 and the prior
+journal-recovery sequence. The repaired tests validate current-schema migration before deliberately
+damaging the display projection, require the new fallback table to start empty, and preserve all
+retained-row comparisons. Registration recovery now proves a completed inventory receipt and an
+unchanged failed cursor before a restart restores journal continuity. The same-volume case holds
+failed-root enumeration while proving exactly one shared journal read, healthy-peer advancement,
+independent fallback admission and unchanged sources. All eight focused cases passed locally;
+production behavior and deadlines are unchanged. Full hosted execution follows publication.
+
 Physical owner counts include blank/comment lines; inline counts include cfg(test) declarations and
 support. Dedicated counts include descendant test modules and fixture files.
 

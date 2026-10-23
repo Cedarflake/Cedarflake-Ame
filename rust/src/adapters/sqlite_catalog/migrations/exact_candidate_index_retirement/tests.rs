@@ -47,7 +47,8 @@ fn upgrade_retires_only_redundant_index_and_preserves_catalog_evidence_and_choic
             },
         )
         .unwrap();
-    assert_eq!(state, (45, 45, 9, 1, 1, 0));
+    let current_version = super::super::SCHEMA_VERSION;
+    assert_eq!(state, (current_version, current_version, 9, 1, 1, 0));
     let decision: (String, String, i64, i64) = connection
         .query_row(
             "SELECT preferred_location_id, preferred_asset_id, ignored, updated_unix_ms

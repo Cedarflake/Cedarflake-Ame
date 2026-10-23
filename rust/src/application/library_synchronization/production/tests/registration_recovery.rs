@@ -38,7 +38,7 @@ fn recovery_history(fixture: &ProductionGapFixture) -> Vec<(i64, String)> {
 }
 
 #[test]
-fn retained_registration_failure_recovers_and_stays_current_after_restart() {
+fn retained_registration_failure_verifies_then_retries_journal_after_restart() {
     let fixture = ProductionGapFixture::new("registration-recovery", 0);
     seed_current_gap_journal(&fixture);
     let path = fixture.source_root.join("added.png");
@@ -79,13 +79,16 @@ fn retained_registration_failure_recovers_and_stays_current_after_restart() {
     let completed = drive_gap_to_synchronized(&mut production, &fixture);
     assert_eq!(
         completed.roots[0].continuity,
-        PersistentJournalContinuityState::Current
+        PersistentJournalContinuityState::LiveOnly
     );
     assert_eq!(
         completed.roots[0].phase,
         LibrarySynchronizationPhase::Synchronized
     );
-    assert!(completed.roots[0].last_issue_code.is_none());
+    assert_eq!(
+        completed.roots[0].last_issue_code.as_deref(),
+        Some(crate::domain::persistent_journal::METADATA_FALLBACK_CODE)
+    );
     production.stop().expect("retire recovery runtime");
 
     let catalog = SqliteCatalog::open(fixture.storage.catalog_path.clone()).unwrap();
@@ -100,9 +103,10 @@ fn retained_registration_failure_recovers_and_stays_current_after_restart() {
         .unwrap();
     assert_eq!(
         checkpoint.continuity,
-        PersistentJournalContinuityState::Current
+        PersistentJournalContinuityState::LiveOnly
     );
-    assert!(checkpoint.failure.is_none());
+    assert_eq!(checkpoint.next_unread_usn.value(), 20);
+    assert!(checkpoint.failure.is_some());
     assert!(
         catalog
             .load_persistent_journal_baselines()
@@ -110,8 +114,23 @@ fn retained_registration_failure_recovers_and_stays_current_after_restart() {
             .is_empty()
     );
     let baselines = recovery_history(&fixture);
-    assert_eq!(baselines.len(), 1);
-    assert_eq!(baselines[0].1, "completed");
+    assert!(baselines.is_empty());
+    let connection = rusqlite::Connection::open(&fixture.storage.catalog_path).unwrap();
+    let verified: (i64, i64) = connection
+        .query_row(
+            "SELECT COUNT(*), SUM(inventory.staged_entry_count)
+             FROM library_metadata_fallbacks AS fallback
+             JOIN library_recovery_authorities AS authority
+               ON authority.change_id = fallback.change_id
+             JOIN library_metadata_inventory_runs AS inventory ON inventory.id = authority.run_id
+             WHERE authority.root_id = ?1 AND authority.retired_unix_ms IS NOT NULL
+               AND inventory.status = 'completed' AND inventory.enumeration_complete = 1",
+            [&fixture.root_id],
+            |row| Ok((row.get(0)?, row.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(verified, (1, 1));
+    drop(connection);
     drop(catalog);
 
     let mut restarted = runtime();

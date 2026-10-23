@@ -728,10 +728,15 @@ fn r2c_r_same_volume_roots_share_one_retained_session_read_and_isolate_failure()
                 && checkpoint.failure.is_none()
         }) && failed.is_some_and(|checkpoint| {
             checkpoint.next_unread_usn.value() == INITIAL_USN
-                && checkpoint.continuity == PersistentJournalContinuityState::RecoveryRequired
-                && checkpoint.failure.is_some()
+                && checkpoint.continuity == PersistentJournalContinuityState::LiveOnly
+                && checkpoint
+                    .failure
+                    .is_some_and(|failure| failure.code == "persistent_journal_root_unauthorized")
         }) && failed_capability.is_some_and(|capability| {
-            capability.continuity == PersistentJournalContinuityState::RecoveryRequired
+            capability.continuity == PersistentJournalContinuityState::LiveOnly
+                && capability.failure.is_some_and(|failure| {
+                    failure.code == crate::domain::persistent_journal::METADATA_FALLBACK_CODE
+                })
         })
     });
     failed_recovery_gate.release();
