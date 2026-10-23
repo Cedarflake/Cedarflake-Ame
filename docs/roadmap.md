@@ -70,8 +70,8 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-The requested sidebar maintenance hides expansion for leaf roots and scopes update feedback to
-the affected source. Its [scoped evidence](acceptance/library-sidebar.md) records the focused
+The requested sidebar maintenance hides expansion for leaf roots and reserves source status for
+import and directory synchronization, independently of duplicate analysis. Its [scoped evidence](acceptance/library-sidebar.md) records the focused
 regressions and client checks; it does not start a new stage.
 
 The requested image-rendering maintenance covers adaptive original-image sampling, sharper cropped

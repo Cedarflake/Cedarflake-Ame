@@ -7,13 +7,11 @@ import "package:cedarflake_ame/features/library/domain/library_folder_models.dar
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/domain/library_synchronization_models.dart";
-import "package:cedarflake_ame/features/library/presentation/library_duplicate_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/library_strings.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_folder_navigation_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_navigation.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_photo_tile.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_source_navigation_tile.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_results_progress.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -89,37 +87,31 @@ void main() {
   });
 
   testWidgets(
-    "source uses one update label until analysis and visible results settle",
+    "source status follows directory synchronization through completion",
     (tester) async {
       const phases = [
-        (LibraryResultsProgress.ready, LibraryStrings.synchronized),
-        (LibraryResultsProgress.waiting, LibraryStrings.synchronizing),
-        (LibraryResultsProgress.analyzing, LibraryStrings.synchronizing),
-        (LibraryResultsProgress.waiting, LibraryStrings.synchronizing),
-        (LibraryResultsProgress.publishing, LibraryStrings.synchronizing),
-        (LibraryResultsProgress.ready, LibraryStrings.synchronized),
-        (LibraryResultsProgress.paused, LibraryDuplicateStrings.paused),
-        (LibraryResultsProgress.analysisFailed, LibraryDuplicateStrings.failed),
         (
-          LibraryResultsProgress.publicationFailed,
-          LibraryStrings.synchronizationRefreshFailureTitle,
+          LibraryCatalogFreshness.updating,
+          LibrarySynchronizationPhase.queuePublication,
+          LibraryStrings.synchronizing,
+        ),
+        (
+          LibraryCatalogFreshness.synchronized,
+          LibrarySynchronizationPhase.synchronized,
+          LibraryStrings.synchronized,
         ),
       ];
-      for (final (progress, label) in phases) {
+      for (final (freshness, phase, label) in phases) {
         await tester.pumpWidget(
           MaterialApp(
             theme: buildAmeTheme(),
             home: Scaffold(
-              body: LibraryResultsProgressScope(
-                progress: progress,
-                rootIds: const {"root-1"},
-                child: _buildNavigation(),
-              ),
+              body: _buildNavigation(freshness: freshness, phase: phase),
             ),
           ),
         );
         expect(find.text(label), findsOneWidget);
-        if (progress != LibraryResultsProgress.ready) {
+        if (freshness != LibraryCatalogFreshness.synchronized) {
           expect(find.text(LibraryStrings.synchronized), findsNothing);
         }
       }
@@ -127,38 +119,33 @@ void main() {
     },
   );
 
-  testWidgets(
-    "result progress preserves unavailable and unconfirmed source states",
-    (tester) async {
-      for (final includeStatus in [true, false]) {
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: buildAmeTheme(),
-            home: Scaffold(
-              body: LibraryResultsProgressScope(
-                progress: LibraryResultsProgress.analyzing,
-                rootIds: const {"root-1"},
-                child: _buildNavigation(
-                  includeRootStatus: includeStatus,
-                  freshness: LibraryCatalogFreshness.unavailable,
-                  phase: LibrarySynchronizationPhase.unavailable,
-                ),
-              ),
+  testWidgets("source preserves unavailable and unconfirmed states", (
+    tester,
+  ) async {
+    for (final includeStatus in [true, false]) {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildAmeTheme(),
+          home: Scaffold(
+            body: _buildNavigation(
+              includeRootStatus: includeStatus,
+              freshness: LibraryCatalogFreshness.unavailable,
+              phase: LibrarySynchronizationPhase.unavailable,
             ),
           ),
-        );
-        expect(
-          find.text(
-            includeStatus
-                ? LibraryStrings.sourceUnavailable
-                : LibraryStrings.synchronizationUnconfirmed,
-          ),
-          findsOneWidget,
-        );
-        expect(find.text(LibraryStrings.synchronizing), findsNothing);
-      }
-    },
-  );
+        ),
+      );
+      expect(
+        find.text(
+          includeStatus
+              ? LibraryStrings.sourceUnavailable
+              : LibraryStrings.synchronizationUnconfirmed,
+        ),
+        findsOneWidget,
+      );
+      expect(find.text(LibraryStrings.synchronizing), findsNothing);
+    }
+  });
 
   testWidgets("source without a snapshot does not invent update progress", (
     tester,

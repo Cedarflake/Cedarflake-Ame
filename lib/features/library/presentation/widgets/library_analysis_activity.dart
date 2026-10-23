@@ -12,8 +12,6 @@ import "../../application/library_exact_analysis_scheduler.dart";
 import "../../application/library_synchronization.dart";
 import "../../application/library_update_controller.dart";
 import "../../domain/library_synchronization_models.dart";
-import "../library_results_source_activity.dart";
-import "library_results_progress.dart";
 
 /// Bridges catalog publication and foreground input to the analysis scheduler.
 class LibraryAnalysisActivity extends ConsumerStatefulWidget {
@@ -30,8 +28,6 @@ class _LibraryAnalysisActivityState
   LibraryExactAnalysisScheduler? _scheduler;
   late final LibraryExactAnalysisPublication _publication;
   late final LibraryExactAnalysisController _analysis;
-  late final Listenable _progress;
-  final _sources = LibraryResultsSourceActivity();
   StreamSubscription<LibrarySynchronizationSnapshot>? _synchronization;
   late LibrarySynchronizationSnapshot _snapshot;
 
@@ -45,10 +41,8 @@ class _LibraryAnalysisActivityState
           ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
     );
     _scheduler = ref.read(libraryExactAnalysisSchedulerProvider);
-    _progress = Listenable.merge([_analysis, _publication, _scheduler]);
     final synchronization = ref.read(librarySynchronizationProvider);
     _snapshot = synchronization.current;
-    _progress.addListener(_updateProgress);
     _updateCatalog();
     if (_scheduler == null) {
       return;
@@ -92,27 +86,6 @@ class _LibraryAnalysisActivityState
     if (!state.isBusy && state.errorMessage == null) {
       _publication.retry();
     }
-    _updateProgress();
-  }
-
-  void _updateProgress() {
-    final state = ref.read(libraryControllerProvider);
-    _sources.update(
-      roots: state.roots,
-      synchronization: _snapshot,
-      updatingRootIds: {
-        ...ref.read(libraryUpdateControllerProvider).activeRootIds,
-        if (state.isTaskProcessing && state.retainedScanRootId != null)
-          state.retainedScanRootId!,
-      },
-      progress: LibraryResultsProgress.resolve(
-        analysis: _analysis,
-        publication: _publication,
-        scheduler: _scheduler,
-        displayedRevision: state.catalogRevision,
-        expectedRevision: _snapshot.catalogRevision,
-      ),
-    );
   }
 
   bool _onKey(KeyEvent event) {
@@ -124,8 +97,6 @@ class _LibraryAnalysisActivityState
 
   @override
   void dispose() {
-    _progress.removeListener(_updateProgress);
-    _sources.dispose();
     _publication.dispose();
     if (_scheduler != null) {
       HardwareKeyboard.instance.removeHandler(_onKey);
@@ -135,17 +106,10 @@ class _LibraryAnalysisActivityState
   }
 
   @override
-  Widget build(BuildContext context) => AnimatedBuilder(
-    animation: _sources,
-    builder: (context, _) => LibraryResultsProgressScope(
-      progress: _sources.progress,
-      rootIds: _sources.rootIds,
-      child: Listener(
-        onPointerDown: (_) => _scheduler?.browsingActivity(),
-        onPointerMove: (_) => _scheduler?.browsingActivity(),
-        onPointerSignal: (_) => _scheduler?.browsingActivity(),
-        child: widget.child,
-      ),
-    ),
+  Widget build(BuildContext context) => Listener(
+    onPointerDown: (_) => _scheduler?.browsingActivity(),
+    onPointerMove: (_) => _scheduler?.browsingActivity(),
+    onPointerSignal: (_) => _scheduler?.browsingActivity(),
+    child: widget.child,
   );
 }

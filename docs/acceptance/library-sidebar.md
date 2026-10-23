@@ -30,7 +30,7 @@ unchanged. This is a sidebar behavior correction, with no schema, bridge or depe
 
 ## Per-source result activity
 
-The next repair replaces the all-root analysis feedback set with a source-owned set. Catalog source
+The intermediate repair replaced the all-root analysis feedback set with a source-owned set. Catalog source
 versions, synchronization work and explicit updates identify affected roots. Their feedback survives
 waiting, analysis, failure and query publication; completion and root removal retire it. Analysis
 publication also reports a retired, unconsumed run as pending before its listener executes, closing
@@ -58,3 +58,26 @@ that read. The five focused folder-retirement cases and analysis of the native f
 The Windows accessibility fixture now supplies one real child-folder branch and two leaf sources,
 checking both the retained expansion action and its absence for leaves. Native execution remains
 owned by the normal Windows accessibility check.
+
+Affected owners contain 1,292 viewport production lines, 1,053 native fixture lines, 568 probe
+lines and 255 dedicated folder-retirement test lines; the production owner has no inline tests.
+
+## Import completion and independent analysis
+
+The subsequent correction removes analysis feedback from source rows entirely. A completed import
+with synchronized catalog state stays `已同步` while duplicate analysis waits, runs, pauses, fails or
+publishes results. The duplicate workspace retains its feedback, and analysis still refreshes the
+gallery on retirement. Directory updates, unavailable sources and offline verification continue
+to use their own existing states. This supersedes the intermediate source-owned analysis feedback
+above and removes its now-unused tracking owner.
+
+All 22 focused source-status and navigation cases passed. The two real-controller widget scenarios
+retain completed import feedback, drive scheduler waiting/pause/running and successful or failed
+analysis retirement, and hold the resulting gallery refresh open while checking both source rows.
+Focused analysis reported no issues. A fresh native interaction was not completed: the computer-use
+helper could not restore the minimized preview window, reporting user input before activation and
+requiring activation before capture. The previously opened preview process and catalog remain intact.
+
+Changed production owners contain 115 analysis-activity, 34 result-progress and 499 source-tile
+lines, with no inline tests. Dedicated source-status and navigation regressions contain 239 and
+1,091 lines. This change has no source-media, schema, bridge, dependency or scheduling changes.

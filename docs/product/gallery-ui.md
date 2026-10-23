@@ -773,22 +773,19 @@ processing or eligible-retry snapshot withdraws that error surface and displays 
 source row; the historical error remains in current-session history. The last issue code can remain
 as historical context during healthy, unblocked processing, retry or confirmed convergence; it
 does not alone establish a current fault. Blocked recovery and unhealthy monitoring retain their
-priority over progress. `已同步` requires a synchronized source snapshot and settled gallery results.
+priority over progress. `已同步` requires a synchronized source snapshot and published catalog changes.
 Completed automatic metadata fallback also displays `已同步`, while journal continuity remains
 LiveOnly internally. Its source row stays visible and does not publish the manual-update capability
 notice; that notice remains applicable to roots without an automatic offline recovery path.
-Automatic analysis admission, active analysis and committed-result publication share `正在更新`
-in the source row, so foreground yielding and short internal phases do not repeatedly change its text.
-These phases belong only to sources with a changed catalog version, active synchronization or an
-explicit update. Adding or updating one source does not change a settled source's label. Retain
-the affected source set through analysis and query publication, then retire it on completion or
-source removal; a global catalog revision alone cannot mark every source as updating.
-Explicit pause and analysis failure retain their duplicate-analysis wording. The Duplicates workspace
-keeps its detailed progress. Once synchronization and visible results settle, the source row returns
-immediately to its completed state, independently of notification dismissal. Terminal analysis still
-waits for the committed query refresh; a failed refresh retains the existing failure and reload
-workflow. These result phases affect only a healthy
-source that has finished directory synchronization, and never hide unavailable or blocked states.
+Source rows describe import, explicit folder updates and directory synchronization. Once an import
+has published its catalog and the source snapshot is synchronized, the row immediately displays
+`已同步`, independently of notification dismissal and duplicate analysis. Automatic analysis waiting,
+running, pausing, failure and result publication belong to the Duplicates workspace and do not
+extend or restart a source's update label. Adding or updating one source leaves settled peers
+unchanged. Background verification after lost offline history retains `正在核对` until its own
+guarded changes are published; this recovery path is distinct from first import. Analysis results
+still refresh the gallery through the existing anchored query lifecycle, including its failure and
+reload workflow.
 Short SQLite writer contention during another Ame publication keeps the prior snapshot
 and retries silently for a bounded interval; only contention beyond that interval becomes a
 persistent catalog error.
