@@ -8,6 +8,35 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
+    "earlier listeners see pending publication at stream retirement",
+    () async {
+      final service = _Service();
+      final analysis = LibraryExactAnalysisController(service);
+      addTearDown(analysis.dispose);
+      late LibraryExactAnalysisPublication publication;
+      final observed = <bool>[];
+      analysis.addListener(() {
+        if (!analysis.isRunning) {
+          observed.add(publication.isPublishing);
+        }
+      });
+      final completion = Completer<bool>();
+      publication = LibraryExactAnalysisPublication(
+        analysis,
+        refresh: () => completion.future,
+      );
+      addTearDown(publication.dispose);
+      analysis.start();
+      service.emit(LibraryExactAnalysisPhase.completed);
+      await service.finish();
+      expect(observed, [true]);
+      completion.complete(true);
+      await Future<void>.delayed(Duration.zero);
+      expect(publication.isPublishing, isFalse);
+    },
+  );
+
+  test(
     "completion waits for gallery publication and retains retryable failure",
     () async {
       final service = _Service();

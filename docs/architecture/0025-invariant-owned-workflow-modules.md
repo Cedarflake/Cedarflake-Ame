@@ -592,6 +592,12 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   navigation, and directly requested visible ranges. Root removal distinguishes the one database
   unregister command from display-only refresh retries. Gallery widgets consume immutable state
   and may not compensate for an unresolved catalog or task-lifecycle invariant.
+- `library_results_source_activity.dart` owns the source set affected by analysis/publication
+  feedback. Source catalog versions, synchronization work and explicit updates retain that set
+  until completion or removal; a global revision does not assign activity to unrelated roots.
+  The analysis activity widget supplies existing typed state and owns listener disposal. Analysis
+  publication exposes an unconsumed retired run as pending even before its listener queues refresh,
+  so listener order cannot create an observable completion before publication.
 - `library_page_operation.dart` owns cursor-read completion independently of viewer selection.
   Same-direction requests share the current read; opposite directions wait only for predecessors
   registered earlier in the same query generation. A new generation does not wait for old reads,

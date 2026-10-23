@@ -27,3 +27,25 @@ Affected production owners contain 41 root-loader, 169 folder-controller, 436 na
 515 source-tile lines, with no inline tests. Dedicated regression owners contain 62 root-loader,
 1,104 navigation-semantics and 287 unified-navigation lines; existing controller regressions remain
 unchanged. This is a sidebar behavior correction, with no schema, bridge or dependency change.
+
+## Per-source result activity
+
+The next repair replaces the all-root analysis feedback set with a source-owned set. Catalog source
+versions, synchronization work and explicit updates identify affected roots. Their feedback survives
+waiting, analysis, failure and query publication; completion and root removal retire it. Analysis
+publication also reports a retired, unconsumed run as pending before its listener executes, closing
+the listener-order gap that otherwise cleared the affected set too early.
+
+All 20 focused activity, publication and existing duplicate-workflow cases passed, including the
+two-source row regression through delayed publication. The Windows Debug client at `c88c9a7` plus
+this repair imported the existing 600-image synthetic subdirectory into a disposable copy of the
+18-image landscape catalog. At 125 discovered files the landscape row remained `已同步`; after
+import and analysis both rows displayed `已同步`, with 618 physical images and 24 folded items.
+SHA-256 checks confirmed all 618 source files unchanged. The copied storage initially retained the
+old configured path and correctly rejected import; recreating only its disposable settings resolved
+that fixture setup issue. The screenshot catalog was not used for the added registration.
+
+Affected production owners contain 78 source-activity, 151 analysis-activity and 87 publication
+lines, with no inline tests. Dedicated activity and publication regressions contain 301 and 199
+lines. No database, bridge, source-access or analysis-scheduling contract changed. Hosted checks
+follow normal main publication and remain separate from these client and focused results.

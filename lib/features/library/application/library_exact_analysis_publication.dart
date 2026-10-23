@@ -18,7 +18,16 @@ class LibraryExactAnalysisPublication extends ChangeNotifier {
   bool _isDisposed = false;
   bool _hasFailure = false;
 
-  bool get isPublishing => _pending || _refreshing;
+  bool get isPublishing {
+    final progress = _analysis.progress;
+    // Other listeners can observe retirement before this listener queues the refresh.
+    final awaitingRetirement =
+        !_analysis.isRunning &&
+        progress != null &&
+        progress.runId != _lastRunId;
+    return _pending || _refreshing || awaitingRetirement;
+  }
+
   bool get hasFailure => _hasFailure;
 
   void retry() {

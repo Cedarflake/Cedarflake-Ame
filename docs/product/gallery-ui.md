@@ -779,6 +779,10 @@ LiveOnly internally. Its source row stays visible and does not publish the manua
 notice; that notice remains applicable to roots without an automatic offline recovery path.
 Automatic analysis admission, active analysis and committed-result publication share `正在更新`
 in the source row, so foreground yielding and short internal phases do not repeatedly change its text.
+These phases belong only to sources with a changed catalog version, active synchronization or an
+explicit update. Adding or updating one source does not change a settled source's label. Retain
+the affected source set through analysis and query publication, then retire it on completion or
+source removal; a global catalog revision alone cannot mark every source as updating.
 Explicit pause and analysis failure retain their duplicate-analysis wording. The Duplicates workspace
 keeps its detailed progress. Once synchronization and visible results settle, the source row returns
 immediately to its completed state, independently of notification dismissal. Terminal analysis still
