@@ -31,8 +31,8 @@ void main() {
     expect(find.byKey(const Key("library-import-button")), findsNothing);
     expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
     expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
-    expect(find.text("Cedarflake Ame"), findsNothing);
-    expect(find.text("Ame"), findsOneWidget);
+    expect(find.text("Cedarflake Ame"), findsOneWidget);
+    expect(find.text("Ame"), findsNothing);
     expect(
       find.ancestor(
         of: find.byKey(const Key("window-close")),
@@ -136,7 +136,7 @@ void main() {
     );
 
     expect(scaffold.backgroundColor, colorScheme.surfaceContainerLow);
-    expect(globalSurface.color, colorScheme.surfaceContainerLow);
+    expect(globalSurface.color, colorScheme.surfaceContainerHigh);
     expect(navigationSurface.color, colorScheme.surfaceContainerLow);
     expect(mainSurface.color, colorScheme.surfaceContainerLowest);
     expect(mainSurface.clipBehavior, Clip.antiAlias);
