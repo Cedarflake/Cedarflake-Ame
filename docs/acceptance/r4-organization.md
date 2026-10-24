@@ -1448,3 +1448,8 @@ baseline reads 236 and inventory recovery-journal checks 110. The dedicated hand
 lines. The existing persistent-journal facade retains 1,315 production/support lines and 3,131
 inline-test lines; this change adds only the dedicated test-module declaration there. The native
 lookup-error owner has 72 lines, including the five-line test-only diagnostic.
+
+The settings-page fixture now includes the cleanup age control in its exact six-choice inventory,
+covering shared popup menus and arrow icons as well as the cleanup row's presence. Its unchanged
+storage, cancellation, keyboard, disabled-state and feedback assertions remain in place. All 15 cases
+in `ame_settings_page_test.dart` pass locally. This correction changes no product behavior.
