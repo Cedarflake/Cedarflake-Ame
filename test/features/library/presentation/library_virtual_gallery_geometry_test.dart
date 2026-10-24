@@ -1,6 +1,7 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_virtual_gallery_geometry.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_grouping.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -21,6 +22,39 @@ void main() {
       ),
     ],
   );
+
+  for (final shape in GalleryLayoutShape.values) {
+    test("$shape queue estimates omit date-header space", () {
+      LibraryVirtualGalleryGeometry geometry(
+        LibraryGallerySortKey sortKey,
+        LibraryGalleryGrouping? grouping,
+      ) => LibraryVirtualGalleryGeometry.calculate(
+        timeline: timeline,
+        availableWidth: 1200,
+        viewportExtent: 800,
+        layoutShape: shape,
+        thumbnailSize: GalleryThumbnailSize.medium,
+        sortKey: sortKey,
+        grouping: grouping,
+        loadedContentExtent: 5000,
+        windowStartItemOffset: 5000,
+        loadedItemCount: 160,
+        queryId: "query-1",
+      );
+      final continuous = geometry(LibraryGallerySortKey.fileName, null);
+      final queue = geometry(
+        LibraryGallerySortKey.captureTime,
+        LibraryGalleryGrouping.continuous,
+      );
+      expect(queue.hasSameGeometry(continuous), isTrue);
+      expect(
+        queue.totalContentExtent,
+        lessThan(
+          geometry(LibraryGallerySortKey.captureTime, null).totalContentExtent,
+        ),
+      );
+    });
+  }
 
   test("keeps the complete scroll range stable when the window moves", () {
     final first = LibraryVirtualGalleryGeometry.calculate(

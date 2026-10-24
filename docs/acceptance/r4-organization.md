@@ -758,3 +758,59 @@ or modified. Window operation remains paused. Native keyboard/focus, top-notice 
 restart, retained-library latency/resource bounds and two-core behavior remain pending, as do
 persistent involved-album conflict discovery and the later recovery settings. R4 remains active
 under the canonical roadmap.
+
+## Controlled desktop continuation and queue layout - 2026-10-24
+
+Desktop interaction was explicitly resumed after the earlier pause. The Debug client at
+`0fc9199dec10cba9039e3626fbcfd0ca8037cc26` built in 81.1 seconds and used the retained isolated
+`build/test/derived/r4-favorites` profile with 700 fixture files representing six exact groups.
+Favorite and unfavorite displayed the shared viewer notice with undo and no close icon. Returning
+to notification history after both operations showed no entries or unread marker.
+
+The actual gallery overflow opened organization mode with six pending groups and no resume button
+on first use. Deferring one group committed pending/deferred counts of five/one and advanced to the
+next image. Creating album `r4` inside the shared picker and assigning that next group committed one
+organized group and advanced again. Favoriting the following group retained the current image and
+pending count. Ignoring it committed one ignored group and advanced to `04973-640x480-0497.jpg`.
+
+After closing and restarting only this isolated client, the Favorite collection retained its
+210-copy group and album `r4` retained its 23-copy group. Entering organization mode from that album
+showed its empty pending scope; resume restored the saved global scope and the exact previously
+viewed image. The ignored group retained its Favorite state. Restoring it to pending closed the
+exhausted viewer, displayed an empty ignored queue, and changed the coherent counts to four pending,
+one deferred, zero ignored and one organized. The exhausted continuation no longer offered resume.
+Exiting mode restored the original ordinary `r4` album scope, its date heading and equal-height layout.
+
+Native inspection found an unwanted unknown-capture-date heading in organization queues. Both
+loaded and manifest layout builders still derived grouping from the retained ordinary sort key.
+A typed grouping policy now uses the query's chronological eligibility, participates in snapshot
+reuse/replacement, and supplies the virtual extent calculation. All three queues form continuous
+rows independently of asset or manifest dates. Ordinary date grouping, row gaps, admission ordering
+and source-read behavior remain unchanged. The corrected Debug client built in 30.1 seconds; native
+equal-height and square layouts both omit the date heading and retain the bottom queue controls.
+
+Nineteen focused Flutter checks pass across layout snapshots (14), virtual geometry (4), and the
+composed review screen (1). The six queue/layout combinations cover mixed known/unknown dates,
+loaded item order, continuous packing and rejection of a previously grouped snapshot. The first
+new assertion incorrectly treated the existing trailing row gap as a header; the final assertion
+checks headers specifically and retains that gap. Scoped Dart analysis with fatal infos and owned
+format checks pass. There is no schema, Rust, generated bridge or dependency change.
+
+The grouping policy has 12 production lines, loaded layout 431, snapshot layout 462 and virtual
+geometry 203. The 1,532-line gallery wall receives only 12 composition lines passing the policy;
+its lifecycle ownership is unchanged. These owners contain no inline tests. Dedicated snapshot,
+geometry and composed-screen tests have 347, 130 and 120 lines respectively.
+
+All 700 fixture names, sizes, UTC modification ticks and SHA-256 hashes match the retained pre-run
+baseline. The first comparison accidentally wrapped the PowerShell JSON array as one item; the
+corrected comparison reads its 700 entries and reports zero differences. Original libraries,
+original catalogs and placeholders were outside this client profile. The client remains open on
+the isolated ordinary album. Native undo is still unverified: the two earlier interaction attempts
+reached the transient control after it expired, so they establish neither a pass nor an application
+failure. Other outstanding native paths, persistent conflict resolution and retained-scale evidence
+remain under the roadmap.
+
+Hosted run [40068207427](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40068207427)
+covers `0fc9199dec10cba9039e3626fbcfd0ca8037cc26` and is still running at this checkpoint. The queue
+layout correction requires hosted verification for its own published commit. These controlled
+results do not close R4 or establish retained-library performance.

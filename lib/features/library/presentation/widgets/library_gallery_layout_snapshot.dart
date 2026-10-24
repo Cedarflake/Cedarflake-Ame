@@ -8,6 +8,7 @@ import "../library_strings.dart";
 import "justified_gallery_layout.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
+import "library_gallery_grouping.dart";
 
 class LibraryGalleryLayoutSnapshot {
   LibraryGalleryLayoutSnapshot._({
@@ -20,6 +21,7 @@ class LibraryGalleryLayoutSnapshot {
     required this.thumbnailSize,
     required this.layoutShape,
     required this.sortKey,
+    required this.grouping,
     required this.minimumCellWidth,
   });
 
@@ -29,8 +31,15 @@ class LibraryGalleryLayoutSnapshot {
     required GalleryThumbnailSize thumbnailSize,
     GalleryLayoutShape layoutShape = GalleryLayoutShape.equalHeight,
     required LibraryGallerySortKey sortKey,
+    LibraryGalleryGrouping? grouping,
     double minimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
   }) {
+    final effectiveGrouping =
+        grouping ?? LibraryGalleryGrouping.forSortKey(sortKey);
+    String? dateKeyAt(int index) =>
+        effectiveGrouping == LibraryGalleryGrouping.date
+        ? _normalizedDateKey(manifest.dateKeyAt(index))
+        : null;
     if (manifest.itemCount == 0 || availableWidth <= 0) {
       return LibraryGalleryLayoutSnapshot._(
         manifest: manifest,
@@ -50,6 +59,7 @@ class LibraryGalleryLayoutSnapshot {
         thumbnailSize: thumbnailSize,
         layoutShape: layoutShape,
         sortKey: sortKey,
+        grouping: effectiveGrouping,
         minimumCellWidth: minimumCellWidth,
       );
     }
@@ -61,7 +71,7 @@ class LibraryGalleryLayoutSnapshot {
     final targetRowHeight = thumbnailSize.targetExtent;
     var entryExtent = 0.0;
     var groupStart = 0;
-    var activeDateKey = _normalizedDateKey(manifest.dateKeyAt(0));
+    var activeDateKey = dateKeyAt(0);
 
     void appendEntry(LibraryGalleryLayoutSnapshotEntry entry) {
       entries.add(entry);
@@ -70,7 +80,7 @@ class LibraryGalleryLayoutSnapshot {
 
     void appendGroup(int start, int end, String? dateKey) {
       final monthKey = _monthKey(dateKey);
-      if (sortKey != LibraryGallerySortKey.fileName) {
+      if (effectiveGrouping == LibraryGalleryGrouping.date) {
         final label = _dateLabel(dateKey);
         dateAnchors.add(
           LibraryGalleryDateAnchor(
@@ -175,7 +185,7 @@ class LibraryGalleryLayoutSnapshot {
     }
 
     for (var index = 1; index < manifest.itemCount; index++) {
-      final dateKey = _normalizedDateKey(manifest.dateKeyAt(index));
+      final dateKey = dateKeyAt(index);
       if (dateKey == activeDateKey) {
         continue;
       }
@@ -217,6 +227,7 @@ class LibraryGalleryLayoutSnapshot {
       thumbnailSize: thumbnailSize,
       layoutShape: layoutShape,
       sortKey: sortKey,
+      grouping: effectiveGrouping,
       minimumCellWidth: minimumCellWidth,
     );
   }
@@ -233,6 +244,7 @@ class LibraryGalleryLayoutSnapshot {
   final GalleryThumbnailSize thumbnailSize;
   final GalleryLayoutShape layoutShape;
   final LibraryGallerySortKey sortKey;
+  final LibraryGalleryGrouping grouping;
   final double minimumCellWidth;
 
   bool matches({
@@ -242,13 +254,16 @@ class LibraryGalleryLayoutSnapshot {
     required GalleryThumbnailSize otherThumbnailSize,
     required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
+    LibraryGalleryGrouping? otherGrouping,
   }) {
     return identical(manifest, otherManifest) &&
         (availableWidth - otherAvailableWidth).abs() < 0.01 &&
         (minimumCellWidth - otherMinimumCellWidth).abs() < 0.01 &&
         thumbnailSize == otherThumbnailSize &&
         layoutShape == otherLayoutShape &&
-        sortKey == otherSortKey;
+        sortKey == otherSortKey &&
+        grouping ==
+            (otherGrouping ?? LibraryGalleryGrouping.forSortKey(otherSortKey));
   }
 
   bool matchesInputs({
@@ -256,13 +271,16 @@ class LibraryGalleryLayoutSnapshot {
     required GalleryThumbnailSize otherThumbnailSize,
     required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
+    LibraryGalleryGrouping? otherGrouping,
     double otherMinimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
   }) {
     return identical(manifest, otherManifest) &&
         (minimumCellWidth - otherMinimumCellWidth).abs() < 0.01 &&
         thumbnailSize == otherThumbnailSize &&
         layoutShape == otherLayoutShape &&
-        sortKey == otherSortKey;
+        sortKey == otherSortKey &&
+        grouping ==
+            (otherGrouping ?? LibraryGalleryGrouping.forSortKey(otherSortKey));
   }
 
   bool canReplaceGeometry({
@@ -270,13 +288,16 @@ class LibraryGalleryLayoutSnapshot {
     required GalleryThumbnailSize otherThumbnailSize,
     required GalleryLayoutShape otherLayoutShape,
     required LibraryGallerySortKey otherSortKey,
+    LibraryGalleryGrouping? otherGrouping,
   }) {
     return manifest.queryId == otherManifest.queryId &&
         manifest.revision == otherManifest.revision &&
         manifest.itemCount == otherManifest.itemCount &&
         thumbnailSize == otherThumbnailSize &&
         layoutShape == otherLayoutShape &&
-        sortKey == otherSortKey;
+        sortKey == otherSortKey &&
+        grouping ==
+            (otherGrouping ?? LibraryGalleryGrouping.forSortKey(otherSortKey));
   }
 
   int entryIndexForScrollOffset(double scrollOffset) {

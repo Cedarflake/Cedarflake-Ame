@@ -5,6 +5,7 @@ import "../gallery_view_options.dart";
 import "../library_strings.dart";
 import "justified_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
+import "library_gallery_grouping.dart";
 
 class LibraryGalleryLayoutEntry {
   const LibraryGalleryLayoutEntry({
@@ -59,17 +60,22 @@ class LibraryGalleryLayoutEntry {
     required GalleryLayoutShape layoutShape,
     required GalleryThumbnailSize thumbnailSize,
     required LibraryGallerySortKey sortKey,
+    LibraryGalleryGrouping? grouping,
     double minimumCellWidth = LibraryGalleryCardMetrics.minimumWidth,
   }) {
     if (assets.isEmpty || availableWidth <= 0) {
       return const [];
     }
+    final effectiveGrouping =
+        grouping ?? LibraryGalleryGrouping.forSortKey(sortKey);
     final groups = <_LibraryGalleryDateGroup>[];
     String? activeDateKey;
     var activeAssets = <LibraryAsset>[];
     var hasGroup = false;
     for (final asset in assets) {
-      final dateKey = _dateKey(asset, sortKey);
+      final dateKey = effectiveGrouping == LibraryGalleryGrouping.date
+          ? _dateKey(asset, sortKey)
+          : null;
       if (hasGroup && dateKey != activeDateKey) {
         groups.add(_LibraryGalleryDateGroup(activeDateKey, activeAssets));
         activeAssets = [];
@@ -98,7 +104,7 @@ class LibraryGalleryLayoutEntry {
     var groupStartItemIndex = 0;
     for (final group in groups) {
       final monthKey = group.dateKey?.substring(0, 7);
-      if (sortKey != LibraryGallerySortKey.fileName) {
+      if (effectiveGrouping == LibraryGalleryGrouping.date) {
         entries.add(
           LibraryGalleryLayoutEntry(
             extent: headerExtent,

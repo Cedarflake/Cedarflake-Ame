@@ -58,6 +58,7 @@ void main() {
       expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
       expect(find.byKey(const Key("library-review-resume")), findsNothing);
       expect(find.text("12 张图片 · 已整理 4 · 待整理 6"), findsOneWidget);
+      expect(find.text("拍摄日期未知"), findsNothing);
       expect(review.starts, isEmpty);
       await tester.tap(find.text("稍后整理 1"));
       await tester.pumpAndSettle();

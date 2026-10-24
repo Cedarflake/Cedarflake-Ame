@@ -3,6 +3,7 @@ import "dart:math" as math;
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "library_gallery_layout.dart";
+import "library_gallery_grouping.dart";
 import "library_timeline_projection.dart";
 
 class LibraryVirtualGalleryGeometry {
@@ -25,6 +26,7 @@ class LibraryVirtualGalleryGeometry {
     required GalleryLayoutShape layoutShape,
     required GalleryThumbnailSize thumbnailSize,
     required LibraryGallerySortKey sortKey,
+    LibraryGalleryGrouping? grouping,
     required double loadedContentExtent,
     required int windowStartItemOffset,
     required int loadedItemCount,
@@ -52,7 +54,7 @@ class LibraryVirtualGalleryGeometry {
       availableWidth: availableWidth,
       layoutShape: layoutShape,
       thumbnailSize: thumbnailSize,
-      sortKey: sortKey,
+      grouping: grouping ?? LibraryGalleryGrouping.forSortKey(sortKey),
     );
     final totalContentExtent = math.max(estimatedExtent, viewportExtent * 3);
     final maximumScrollExtent = math.max(
@@ -145,11 +147,11 @@ class LibraryVirtualGalleryGeometry {
     required double availableWidth,
     required GalleryLayoutShape layoutShape,
     required GalleryThumbnailSize thumbnailSize,
-    required LibraryGallerySortKey sortKey,
+    required LibraryGalleryGrouping grouping,
   }) {
     final spacing = LibraryGalleryLayoutEntry.spacing;
     final targetExtent = thumbnailSize.targetExtent;
-    final maximumDateGroups = sortKey == LibraryGallerySortKey.fileName
+    final maximumDateGroups = grouping == LibraryGalleryGrouping.continuous
         ? 0
         : timeline.buckets.fold(
             0,
@@ -163,7 +165,7 @@ class LibraryVirtualGalleryGeometry {
                 .clamp(1, math.max(1, timeline.totalItems));
         final tileExtent =
             (availableWidth - spacing * (columnCount - 1)) / columnCount;
-        final rowCount = sortKey == LibraryGallerySortKey.fileName
+        final rowCount = grouping == LibraryGalleryGrouping.continuous
             ? (timeline.totalItems / columnCount).ceil()
             : timeline.buckets.fold(0, (sum, bucket) {
                 final groupCount = math.min(bucket.itemCount, 31);

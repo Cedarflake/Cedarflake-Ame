@@ -15,6 +15,7 @@ import "library_gallery_interaction.dart";
 import "library_gallery_viewport_feedback.dart";
 import "library_gallery_layout.dart";
 import "library_gallery_card_metrics.dart";
+import "library_gallery_grouping.dart";
 import "library_gallery_layout_snapshot.dart";
 import "library_gallery_layout_motion.dart";
 import "library_gallery_motion_entries.dart";
@@ -158,6 +159,7 @@ class LibraryGalleryWall extends StatelessWidget {
           layoutShape: layoutShape,
           thumbnailSize: thumbnailSize,
           sortKey: state.query.sortKey,
+          grouping: LibraryGalleryGrouping.forQuery(state.query),
         );
         final layoutMetrics = LibraryGalleryLayoutMetrics.fromEntries(
           entries,
@@ -185,6 +187,7 @@ class LibraryGalleryWall extends StatelessWidget {
           layoutShape: layoutShape,
           thumbnailSize: thumbnailSize,
           sortKey: state.query.sortKey,
+          grouping: LibraryGalleryGrouping.forQuery(state.query),
           loadedContentExtent: layoutMetrics.contentExtent,
           windowStartItemOffset: state.windowStartItemOffset,
           loadedItemCount: state.assets.length,
@@ -1057,6 +1060,7 @@ class _ManifestLibraryGalleryWallState
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
+          otherGrouping: LibraryGalleryGrouping.forQuery(widget.state.query),
         ) &&
         publishedViewportExtent != null &&
         (publishedViewportExtent - viewportExtent).abs() < 0.01) {
@@ -1069,6 +1073,7 @@ class _ManifestLibraryGalleryWallState
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
+          otherGrouping: LibraryGalleryGrouping.forQuery(widget.state.query),
         )) {
       _scheduleResizeSnapshot(availableWidth, viewportExtent);
       return current;
@@ -1083,6 +1088,7 @@ class _ManifestLibraryGalleryWallState
       thumbnailSize: widget.thumbnailSize,
       layoutShape: widget.layoutShape,
       sortKey: widget.state.query.sortKey,
+      grouping: LibraryGalleryGrouping.forQuery(widget.state.query),
     );
   }
 
@@ -1247,6 +1253,7 @@ class _ManifestLibraryGalleryWallState
           otherThumbnailSize: widget.thumbnailSize,
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
+          otherGrouping: LibraryGalleryGrouping.forQuery(widget.state.query),
         ) &&
         (current.availableWidth - availableWidth).abs() >= 0.01 &&
         publishedViewportExtent != null &&
@@ -1308,6 +1315,9 @@ class _ManifestLibraryGalleryWallState
                 otherThumbnailSize: widget.thumbnailSize,
                 otherLayoutShape: widget.layoutShape,
                 otherSortKey: widget.state.query.sortKey,
+                otherGrouping: LibraryGalleryGrouping.forQuery(
+                  widget.state.query,
+                ),
               ) &&
               publishedViewportExtent != null &&
               (publishedViewportExtent - pendingViewportExtent).abs() < 0.01)) {
@@ -1321,6 +1331,7 @@ class _ManifestLibraryGalleryWallState
             otherThumbnailSize: widget.thumbnailSize,
             otherLayoutShape: widget.layoutShape,
             otherSortKey: widget.state.query.sortKey,
+            otherGrouping: LibraryGalleryGrouping.forQuery(widget.state.query),
           )
           ? current
           : LibraryGalleryLayoutSnapshot.build(
@@ -1330,6 +1341,7 @@ class _ManifestLibraryGalleryWallState
               thumbnailSize: widget.thumbnailSize,
               layoutShape: widget.layoutShape,
               sortKey: widget.state.query.sortKey,
+              grouping: LibraryGalleryGrouping.forQuery(widget.state.query),
             );
       final position = widget.scrollController.hasClients
           ? widget.scrollController.position
