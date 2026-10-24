@@ -5375,7 +5375,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("schema version");
     assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(version, 46);
+    assert_eq!(version, 47);
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.assets.len(), 1);
     assert_eq!(retained.location_id, "legacy-v17-location");

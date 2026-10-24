@@ -14,6 +14,7 @@ mod library_change_queue;
 mod library_synchronization;
 mod load_catalog;
 mod metadata_inventory;
+pub(crate) mod organization;
 mod persistent_journal_continuity;
 mod preview;
 mod preview_cleanup;

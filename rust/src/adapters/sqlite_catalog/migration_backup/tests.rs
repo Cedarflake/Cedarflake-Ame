@@ -107,6 +107,7 @@ fn catalog_upgrade_retains_a_recoverable_snapshot_of_durable_duplicate_choices()
     let directory = tempfile::tempdir().unwrap();
     let path = directory.path().join("catalog.sqlite3");
     let catalog = super::super::SqliteCatalog::open(path.clone()).unwrap();
+    super::super::migrations::downgrade_to_v46_for_test(&catalog.connection);
     catalog
         .connection
         .execute_batch(
@@ -127,7 +128,8 @@ fn catalog_upgrade_retains_a_recoverable_snapshot_of_durable_duplicate_choices()
         .map(|entry| entry.unwrap().path())
         .find(|entry| {
             let name = entry.file_name().unwrap().to_string_lossy();
-            name.contains("before-v45-to-v46") && name.ends_with(".sqlite3")
+            name.contains(&format!("before-v45-to-v{}", super::super::SCHEMA_VERSION))
+                && name.ends_with(".sqlite3")
         })
         .unwrap();
     let snapshot = Connection::open_with_flags(backup, OpenFlags::SQLITE_OPEN_READ_ONLY).unwrap();

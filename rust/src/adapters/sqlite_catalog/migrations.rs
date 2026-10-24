@@ -51,6 +51,9 @@ mod media_admission_rechecks;
 mod metadata_fallback;
 mod metadata_inventory_contract;
 mod metadata_recheck_index;
+mod organization;
+#[cfg(test)]
+pub(super) use organization::downgrade_to_v46_for_test;
 mod persistent_journal_baseline;
 mod persistent_journal_range_history;
 mod preview_expectation_repair;
@@ -126,6 +129,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         metadata_recheck_index::migrate_transaction(&transaction)?;
         retained_gallery_membership::migrate_transaction(&transaction)?;
         metadata_fallback::migrate_transaction(&transaction)?;
+        organization::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -211,6 +215,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             43 => metadata_recheck_index::migrate(connection)?,
             44 => retained_gallery_membership::migrate(connection)?,
             45 => metadata_fallback::migrate(connection)?,
+            46 => organization::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

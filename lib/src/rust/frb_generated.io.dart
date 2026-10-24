@@ -6,6 +6,7 @@
 import 'api/catalog.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
+import 'api/organization.dart';
 import 'api/preview.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
@@ -22,6 +23,7 @@ import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
+import 'domain/organization.dart';
 import 'domain/persistent_journal.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
@@ -144,6 +146,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LibraryFolderCursor dco_decode_box_autoadd_library_folder_cursor(dynamic raw);
+
+  @protected
+  OrganizationPreparedSelection
+  dco_decode_box_autoadd_organization_prepared_selection(dynamic raw);
 
   @protected
   PreviewRequest dco_decode_box_autoadd_preview_request(dynamic raw);
@@ -448,6 +454,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LibraryRootView> dco_decode_list_library_root_view(dynamic raw);
 
   @protected
+  List<OrganizationGroupTarget> dco_decode_list_organization_group_target(
+    dynamic raw,
+  );
+
+  @protected
+  List<OrganizationSelection> dco_decode_list_organization_selection(
+    dynamic raw,
+  );
+
+  @protected
   Uint16List dco_decode_list_prim_u_16_strict(dynamic raw);
 
   @protected
@@ -533,6 +549,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  OrganizationGroupKey dco_decode_organization_group_key(dynamic raw);
+
+  @protected
+  OrganizationGroupTarget dco_decode_organization_group_target(dynamic raw);
+
+  @protected
+  OrganizationPreparedSelection dco_decode_organization_prepared_selection(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationSelection dco_decode_organization_selection(dynamic raw);
+
+  @protected
+  OrganizationWriteReceipt dco_decode_organization_write_receipt(dynamic raw);
 
   @protected
   PersistentJournalContinuityState
@@ -727,6 +760,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LibraryFolderCursor sse_decode_box_autoadd_library_folder_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationPreparedSelection
+  sse_decode_box_autoadd_organization_prepared_selection(
     SseDeserializer deserializer,
   );
 
@@ -1117,6 +1156,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<OrganizationGroupTarget> sse_decode_list_organization_group_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<OrganizationSelection> sse_decode_list_organization_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer);
 
   @protected
@@ -1216,6 +1265,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  OrganizationGroupKey sse_decode_organization_group_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationGroupTarget sse_decode_organization_group_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationPreparedSelection sse_decode_organization_prepared_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationSelection sse_decode_organization_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationWriteReceipt sse_decode_organization_write_receipt(
+    SseDeserializer deserializer,
+  );
 
   @protected
   PersistentJournalContinuityState
@@ -1447,6 +1521,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_library_folder_cursor(
     LibraryFolderCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_prepared_selection(
+    OrganizationPreparedSelection self,
     SseSerializer serializer,
   );
 
@@ -1925,6 +2005,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_organization_group_target(
+    List<OrganizationGroupTarget> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_organization_selection(
+    List<OrganizationSelection> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_prim_u_16_strict(
     Uint16List self,
     SseSerializer serializer,
@@ -2043,6 +2135,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_organization_group_key(
+    OrganizationGroupKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_group_target(
+    OrganizationGroupTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_prepared_selection(
+    OrganizationPreparedSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_selection(
+    OrganizationSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_write_receipt(
+    OrganizationWriteReceipt self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_persistent_journal_continuity_state(

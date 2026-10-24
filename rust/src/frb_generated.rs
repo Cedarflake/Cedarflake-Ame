@@ -39,7 +39,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -909473688;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 767745427;
 
 // Section: executor
 
@@ -1359,6 +1359,43 @@ fn wire__crate__api__synchronization__poll_library_synchronization_impl(
         },
     )
 }
+fn wire__crate__api__organization__prepare_organization_selection_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "prepare_organization_selection",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_selections =
+                <Vec<crate::domain::organization::OrganizationSelection>>::sse_decode(
+                    &mut deserializer,
+                );
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::organization::prepare_organization_selection(api_selections)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
 fn wire__crate__api__catalog__relocate_library_root_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -1687,6 +1724,48 @@ fn wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl
                             api_key,
                             api_preferred,
                         )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__organization__set_organization_favorite_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "set_organization_favorite",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_operation_id = <String>::sse_decode(&mut deserializer);
+            let api_prepared =
+                <crate::domain::organization::OrganizationPreparedSelection>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_favorite = <bool>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::organization::set_organization_favorite(
+                        api_operation_id,
+                        api_prepared,
+                        api_favorite,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -3222,6 +3301,34 @@ impl SseDecode for Vec<crate::domain::LibraryRootView> {
     }
 }
 
+impl SseDecode for Vec<crate::domain::organization::OrganizationGroupTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::domain::organization::OrganizationGroupTarget>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::domain::organization::OrganizationSelection> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::domain::organization::OrganizationSelection>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<u16> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3492,6 +3599,98 @@ impl SseDecode for Option<u64> {
         } else {
             return None;
         }
+    }
+}
+
+impl SseDecode for crate::domain::organization::OrganizationGroupKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                let mut var_digest = <String>::sse_decode(deserializer);
+                let mut var_byteLength = <u64>::sse_decode(deserializer);
+                return crate::domain::organization::OrganizationGroupKey::Confirmed {
+                    digest: var_digest,
+                    byte_length: var_byteLength,
+                };
+            }
+            1 => {
+                let mut var_assetId = <String>::sse_decode(deserializer);
+                let mut var_sourceGeneration = <u64>::sse_decode(deserializer);
+                return crate::domain::organization::OrganizationGroupKey::Provisional {
+                    asset_id: var_assetId,
+                    source_generation: var_sourceGeneration,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseDecode for crate::domain::organization::OrganizationGroupTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_key =
+            <crate::domain::organization::OrganizationGroupKey>::sse_decode(deserializer);
+        let mut var_representative =
+            <crate::domain::organization::OrganizationSelection>::sse_decode(deserializer);
+        let mut var_locationCount = <u64>::sse_decode(deserializer);
+        let mut var_membershipAuthority = <String>::sse_decode(deserializer);
+        return crate::domain::organization::OrganizationGroupTarget {
+            key: var_key,
+            representative: var_representative,
+            location_count: var_locationCount,
+            membership_authority: var_membershipAuthority,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization::OrganizationPreparedSelection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_catalogRevision = <u64>::sse_decode(deserializer);
+        let mut var_organizationRevision = <u64>::sse_decode(deserializer);
+        let mut var_selections =
+            <Vec<crate::domain::organization::OrganizationSelection>>::sse_decode(deserializer);
+        let mut var_groups =
+            <Vec<crate::domain::organization::OrganizationGroupTarget>>::sse_decode(deserializer);
+        return crate::domain::organization::OrganizationPreparedSelection {
+            catalog_revision: var_catalogRevision,
+            organization_revision: var_organizationRevision,
+            selections: var_selections,
+            groups: var_groups,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization::OrganizationSelection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_assetId = <String>::sse_decode(deserializer);
+        let mut var_locationId = <String>::sse_decode(deserializer);
+        let mut var_sourceGeneration = <u64>::sse_decode(deserializer);
+        return crate::domain::organization::OrganizationSelection {
+            asset_id: var_assetId,
+            location_id: var_locationId,
+            source_generation: var_sourceGeneration,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization::OrganizationWriteReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_operationId = <String>::sse_decode(deserializer);
+        let mut var_organizationRevision = <u64>::sse_decode(deserializer);
+        let mut var_changedGroups = <u64>::sse_decode(deserializer);
+        return crate::domain::organization::OrganizationWriteReceipt {
+            operation_id: var_operationId,
+            organization_revision: var_organizationRevision,
+            changed_groups: var_changedGroups,
+        };
     }
 }
 
@@ -4168,53 +4367,65 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        36 => {
+        36 => wire__crate__api__organization__prepare_organization_selection_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        37 => {
             wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        37 => {
+        38 => {
             wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        40 => {
+        41 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        41 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        42 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
+        42 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        43 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
+        44 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
+        45 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        46 => wire__crate__api__organization__set_organization_favorite_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        47 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        48 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__storage__update_storage_settings_impl(
+        49 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        51 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -4239,17 +4450,17 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         34 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        38 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        39 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        40 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        50 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -5729,6 +5940,135 @@ impl
     fn into_into_dart(
         self,
     ) -> crate::domain::library_synchronization::LibrarySynchronizationSnapshot {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationGroupKey {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::domain::organization::OrganizationGroupKey::Confirmed {
+                digest,
+                byte_length,
+            } => [
+                0.into_dart(),
+                digest.into_into_dart().into_dart(),
+                byte_length.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            crate::domain::organization::OrganizationGroupKey::Provisional {
+                asset_id,
+                source_generation,
+            } => [
+                1.into_dart(),
+                asset_id.into_into_dart().into_dart(),
+                source_generation.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization::OrganizationGroupKey
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::OrganizationGroupKey>
+    for crate::domain::organization::OrganizationGroupKey
+{
+    fn into_into_dart(self) -> crate::domain::organization::OrganizationGroupKey {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationGroupTarget {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.key.into_into_dart().into_dart(),
+            self.representative.into_into_dart().into_dart(),
+            self.location_count.into_into_dart().into_dart(),
+            self.membership_authority.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization::OrganizationGroupTarget
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::OrganizationGroupTarget>
+    for crate::domain::organization::OrganizationGroupTarget
+{
+    fn into_into_dart(self) -> crate::domain::organization::OrganizationGroupTarget {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationPreparedSelection {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.catalog_revision.into_into_dart().into_dart(),
+            self.organization_revision.into_into_dart().into_dart(),
+            self.selections.into_into_dart().into_dart(),
+            self.groups.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization::OrganizationPreparedSelection
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::OrganizationPreparedSelection>
+    for crate::domain::organization::OrganizationPreparedSelection
+{
+    fn into_into_dart(self) -> crate::domain::organization::OrganizationPreparedSelection {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationSelection {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.asset_id.into_into_dart().into_dart(),
+            self.location_id.into_into_dart().into_dart(),
+            self.source_generation.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization::OrganizationSelection
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::OrganizationSelection>
+    for crate::domain::organization::OrganizationSelection
+{
+    fn into_into_dart(self) -> crate::domain::organization::OrganizationSelection {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationWriteReceipt {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.operation_id.into_into_dart().into_dart(),
+            self.organization_revision.into_into_dart().into_dart(),
+            self.changed_groups.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization::OrganizationWriteReceipt
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::OrganizationWriteReceipt>
+    for crate::domain::organization::OrganizationWriteReceipt
+{
+    fn into_into_dart(self) -> crate::domain::organization::OrganizationWriteReceipt {
         self
     }
 }
@@ -7322,6 +7662,26 @@ impl SseEncode for Vec<crate::domain::LibraryRootView> {
     }
 }
 
+impl SseEncode for Vec<crate::domain::organization::OrganizationGroupTarget> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::organization::OrganizationGroupTarget>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::domain::organization::OrganizationSelection> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::organization::OrganizationSelection>::sse_encode(item, serializer);
+        }
+    }
+}
+
 impl SseEncode for Vec<u16> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -7545,6 +7905,80 @@ impl SseEncode for Option<u64> {
         if let Some(value) = self {
             <u64>::sse_encode(value, serializer);
         }
+    }
+}
+
+impl SseEncode for crate::domain::organization::OrganizationGroupKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::domain::organization::OrganizationGroupKey::Confirmed {
+                digest,
+                byte_length,
+            } => {
+                <i32>::sse_encode(0, serializer);
+                <String>::sse_encode(digest, serializer);
+                <u64>::sse_encode(byte_length, serializer);
+            }
+            crate::domain::organization::OrganizationGroupKey::Provisional {
+                asset_id,
+                source_generation,
+            } => {
+                <i32>::sse_encode(1, serializer);
+                <String>::sse_encode(asset_id, serializer);
+                <u64>::sse_encode(source_generation, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
+impl SseEncode for crate::domain::organization::OrganizationGroupTarget {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::organization::OrganizationGroupKey>::sse_encode(self.key, serializer);
+        <crate::domain::organization::OrganizationSelection>::sse_encode(
+            self.representative,
+            serializer,
+        );
+        <u64>::sse_encode(self.location_count, serializer);
+        <String>::sse_encode(self.membership_authority, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::organization::OrganizationPreparedSelection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.catalog_revision, serializer);
+        <u64>::sse_encode(self.organization_revision, serializer);
+        <Vec<crate::domain::organization::OrganizationSelection>>::sse_encode(
+            self.selections,
+            serializer,
+        );
+        <Vec<crate::domain::organization::OrganizationGroupTarget>>::sse_encode(
+            self.groups,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::organization::OrganizationSelection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.asset_id, serializer);
+        <String>::sse_encode(self.location_id, serializer);
+        <u64>::sse_encode(self.source_generation, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::organization::OrganizationWriteReceipt {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.operation_id, serializer);
+        <u64>::sse_encode(self.organization_revision, serializer);
+        <u64>::sse_encode(self.changed_groups, serializer);
     }
 }
 

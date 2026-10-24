@@ -6,6 +6,7 @@
 import 'api/catalog.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
+import 'api/organization.dart';
 import 'api/preview.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
@@ -21,6 +22,7 @@ import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
+import 'domain/organization.dart';
 import 'domain/persistent_journal.dart';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
@@ -82,7 +84,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => -909473688;
+  int get rustContentHash => 767745427;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -255,6 +257,11 @@ abstract class RustLibApi extends BaseApi {
     required BigInt ownerTicket,
   });
 
+  Future<OrganizationPreparedSelection>
+  crateApiOrganizationPrepareOrganizationSelection({
+    required List<OrganizationSelection> selections,
+  });
+
   Stream<ScanEvent> crateApiCatalogRelocateLibraryRoot({
     required String rootId,
     required String expectedRootPath,
@@ -289,6 +296,12 @@ abstract class RustLibApi extends BaseApi {
   crateApiExactDuplicateReviewSetExactDuplicatePreference({
     required ExactDuplicateReviewKey key,
     ExactDuplicatePreference? preferred,
+  });
+
+  Future<OrganizationWriteReceipt> crateApiOrganizationSetOrganizationFavorite({
+    required String operationId,
+    required OrganizationPreparedSelection prepared,
+    required bool favorite,
   });
 
   Future<CatalogReclamationSnapshot>
@@ -1561,6 +1574,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<OrganizationPreparedSelection>
+  crateApiOrganizationPrepareOrganizationSelection({
+    required List<OrganizationSelection> selections,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_list_organization_selection(selections, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 36,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_organization_prepared_selection,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiOrganizationPrepareOrganizationSelectionConstMeta,
+        argValues: [selections],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOrganizationPrepareOrganizationSelectionConstMeta =>
+      const TaskConstMeta(
+        debugName: "prepare_organization_selection",
+        argNames: ["selections"],
+      );
+
+  @override
   Stream<ScanEvent> crateApiCatalogRelocateLibraryRoot({
     required String rootId,
     required String expectedRootPath,
@@ -1579,7 +1627,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 36,
+              funcId: 37,
               port: port_,
             );
           },
@@ -1612,7 +1660,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1639,7 +1687,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 38)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -1666,7 +1714,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -1702,7 +1750,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 40,
+              funcId: 41,
               port: port_,
             );
           },
@@ -1738,7 +1786,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 41,
+              funcId: 42,
               port: port_,
             );
           },
@@ -1775,7 +1823,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1813,7 +1861,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 44,
             port: port_,
           );
         },
@@ -1854,7 +1902,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 45,
             port: port_,
           );
         },
@@ -1878,6 +1926,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<OrganizationWriteReceipt> crateApiOrganizationSetOrganizationFavorite({
+    required String operationId,
+    required OrganizationPreparedSelection prepared,
+    required bool favorite,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(operationId, serializer);
+          sse_encode_box_autoadd_organization_prepared_selection(
+            prepared,
+            serializer,
+          );
+          sse_encode_bool(favorite, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 46,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_organization_write_receipt,
+          decodeErrorData: sse_decode_scan_error,
+        ),
+        constMeta: kCrateApiOrganizationSetOrganizationFavoriteConstMeta,
+        argValues: [operationId, prepared, favorite],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOrganizationSetOrganizationFavoriteConstMeta =>
+      const TaskConstMeta(
+        debugName: "set_organization_favorite",
+        argNames: ["operationId", "prepared", "favorite"],
+      );
+
+  @override
   Future<CatalogReclamationSnapshot>
   crateApiStorageStartCatalogDatabaseReclamation({
     required String operationId,
@@ -1890,7 +1978,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 47,
             port: port_,
           );
         },
@@ -1924,7 +2012,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 48,
             port: port_,
           );
         },
@@ -1958,7 +2046,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 49,
             port: port_,
           );
         },
@@ -1987,7 +2075,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 48)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 50)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -2018,7 +2106,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 51,
             port: port_,
           );
         },
@@ -2268,6 +2356,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_library_folder_cursor(raw);
+  }
+
+  @protected
+  OrganizationPreparedSelection
+  dco_decode_box_autoadd_organization_prepared_selection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_organization_prepared_selection(raw);
   }
 
   @protected
@@ -3194,6 +3289,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<OrganizationGroupTarget> dco_decode_list_organization_group_target(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_organization_group_target)
+        .toList();
+  }
+
+  @protected
+  List<OrganizationSelection> dco_decode_list_organization_selection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_organization_selection)
+        .toList();
+  }
+
+  @protected
   Uint16List dco_decode_list_prim_u_16_strict(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as Uint16List;
@@ -3366,6 +3481,81 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_u_64(raw);
+  }
+
+  @protected
+  OrganizationGroupKey dco_decode_organization_group_key(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return OrganizationGroupKey_Confirmed(
+          digest: dco_decode_String(raw[1]),
+          byteLength: dco_decode_u_64(raw[2]),
+        );
+      case 1:
+        return OrganizationGroupKey_Provisional(
+          assetId: dco_decode_String(raw[1]),
+          sourceGeneration: dco_decode_u_64(raw[2]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  OrganizationGroupTarget dco_decode_organization_group_target(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return OrganizationGroupTarget(
+      key: dco_decode_organization_group_key(arr[0]),
+      representative: dco_decode_organization_selection(arr[1]),
+      locationCount: dco_decode_u_64(arr[2]),
+      membershipAuthority: dco_decode_String(arr[3]),
+    );
+  }
+
+  @protected
+  OrganizationPreparedSelection dco_decode_organization_prepared_selection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return OrganizationPreparedSelection(
+      catalogRevision: dco_decode_u_64(arr[0]),
+      organizationRevision: dco_decode_u_64(arr[1]),
+      selections: dco_decode_list_organization_selection(arr[2]),
+      groups: dco_decode_list_organization_group_target(arr[3]),
+    );
+  }
+
+  @protected
+  OrganizationSelection dco_decode_organization_selection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return OrganizationSelection(
+      assetId: dco_decode_String(arr[0]),
+      locationId: dco_decode_String(arr[1]),
+      sourceGeneration: dco_decode_u_64(arr[2]),
+    );
+  }
+
+  @protected
+  OrganizationWriteReceipt dco_decode_organization_write_receipt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return OrganizationWriteReceipt(
+      operationId: dco_decode_String(arr[0]),
+      organizationRevision: dco_decode_u_64(arr[1]),
+      changedGroups: dco_decode_u_64(arr[2]),
+    );
   }
 
   @protected
@@ -3989,6 +4179,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_library_folder_cursor(deserializer));
+  }
+
+  @protected
+  OrganizationPreparedSelection
+  sse_decode_box_autoadd_organization_prepared_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_organization_prepared_selection(deserializer));
   }
 
   @protected
@@ -5164,6 +5363,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<OrganizationGroupTarget> sse_decode_list_organization_group_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <OrganizationGroupTarget>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_organization_group_target(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<OrganizationSelection> sse_decode_list_organization_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <OrganizationSelection>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_organization_selection(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   Uint16List sse_decode_list_prim_u_16_strict(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var len_ = sse_decode_i_32(deserializer);
@@ -5437,6 +5664,97 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     } else {
       return null;
     }
+  }
+
+  @protected
+  OrganizationGroupKey sse_decode_organization_group_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_digest = sse_decode_String(deserializer);
+        var var_byteLength = sse_decode_u_64(deserializer);
+        return OrganizationGroupKey_Confirmed(
+          digest: var_digest,
+          byteLength: var_byteLength,
+        );
+      case 1:
+        var var_assetId = sse_decode_String(deserializer);
+        var var_sourceGeneration = sse_decode_u_64(deserializer);
+        return OrganizationGroupKey_Provisional(
+          assetId: var_assetId,
+          sourceGeneration: var_sourceGeneration,
+        );
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  OrganizationGroupTarget sse_decode_organization_group_target(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_key = sse_decode_organization_group_key(deserializer);
+    var var_representative = sse_decode_organization_selection(deserializer);
+    var var_locationCount = sse_decode_u_64(deserializer);
+    var var_membershipAuthority = sse_decode_String(deserializer);
+    return OrganizationGroupTarget(
+      key: var_key,
+      representative: var_representative,
+      locationCount: var_locationCount,
+      membershipAuthority: var_membershipAuthority,
+    );
+  }
+
+  @protected
+  OrganizationPreparedSelection sse_decode_organization_prepared_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_catalogRevision = sse_decode_u_64(deserializer);
+    var var_organizationRevision = sse_decode_u_64(deserializer);
+    var var_selections = sse_decode_list_organization_selection(deserializer);
+    var var_groups = sse_decode_list_organization_group_target(deserializer);
+    return OrganizationPreparedSelection(
+      catalogRevision: var_catalogRevision,
+      organizationRevision: var_organizationRevision,
+      selections: var_selections,
+      groups: var_groups,
+    );
+  }
+
+  @protected
+  OrganizationSelection sse_decode_organization_selection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_assetId = sse_decode_String(deserializer);
+    var var_locationId = sse_decode_String(deserializer);
+    var var_sourceGeneration = sse_decode_u_64(deserializer);
+    return OrganizationSelection(
+      assetId: var_assetId,
+      locationId: var_locationId,
+      sourceGeneration: var_sourceGeneration,
+    );
+  }
+
+  @protected
+  OrganizationWriteReceipt sse_decode_organization_write_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_operationId = sse_decode_String(deserializer);
+    var var_organizationRevision = sse_decode_u_64(deserializer);
+    var var_changedGroups = sse_decode_u_64(deserializer);
+    return OrganizationWriteReceipt(
+      operationId: var_operationId,
+      organizationRevision: var_organizationRevision,
+      changedGroups: var_changedGroups,
+    );
   }
 
   @protected
@@ -6183,6 +6501,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_library_folder_cursor(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_organization_prepared_selection(
+    OrganizationPreparedSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_prepared_selection(self, serializer);
   }
 
   @protected
@@ -7106,6 +7433,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_organization_group_target(
+    List<OrganizationGroupTarget> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_organization_group_target(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_organization_selection(
+    List<OrganizationSelection> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_organization_selection(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_prim_u_16_strict(
     Uint16List self,
     SseSerializer serializer,
@@ -7373,6 +7724,76 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     if (self != null) {
       sse_encode_box_autoadd_u_64(self, serializer);
     }
+  }
+
+  @protected
+  void sse_encode_organization_group_key(
+    OrganizationGroupKey self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case OrganizationGroupKey_Confirmed(
+        digest: final digest,
+        byteLength: final byteLength,
+      ):
+        sse_encode_i_32(0, serializer);
+        sse_encode_String(digest, serializer);
+        sse_encode_u_64(byteLength, serializer);
+      case OrganizationGroupKey_Provisional(
+        assetId: final assetId,
+        sourceGeneration: final sourceGeneration,
+      ):
+        sse_encode_i_32(1, serializer);
+        sse_encode_String(assetId, serializer);
+        sse_encode_u_64(sourceGeneration, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_organization_group_target(
+    OrganizationGroupTarget self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_group_key(self.key, serializer);
+    sse_encode_organization_selection(self.representative, serializer);
+    sse_encode_u_64(self.locationCount, serializer);
+    sse_encode_String(self.membershipAuthority, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_prepared_selection(
+    OrganizationPreparedSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.catalogRevision, serializer);
+    sse_encode_u_64(self.organizationRevision, serializer);
+    sse_encode_list_organization_selection(self.selections, serializer);
+    sse_encode_list_organization_group_target(self.groups, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_selection(
+    OrganizationSelection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.assetId, serializer);
+    sse_encode_String(self.locationId, serializer);
+    sse_encode_u_64(self.sourceGeneration, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_write_receipt(
+    OrganizationWriteReceipt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.operationId, serializer);
+    sse_encode_u_64(self.organizationRevision, serializer);
+    sse_encode_u_64(self.changedGroups, serializer);
   }
 
   @protected

@@ -92,16 +92,21 @@ fn v32_header_identity_full_reopen_rejects_corrupt_rows_without_mutation() {
             "catalog_metadata_inventory_spool_contract_unverifiable",
         );
         let before = raw_evidence(&connection);
+        let integrity: String = connection
+            .query_row("PRAGMA quick_check", [], |row| row.get(0))
+            .expect("read the backup integrity boundary");
         drop(connection);
 
         let error = match SqliteCatalog::open(path.clone()) {
             Ok(_) => panic!("corrupt retired identity must fail full catalog reopen: {identity:?}"),
             Err(error) => error,
         };
-        assert_eq!(
-            error.code, "catalog_metadata_inventory_spool_contract_unverifiable",
-            "{identity:?}: {error:?}",
-        );
+        let expected = if integrity == "ok" {
+            "catalog_metadata_inventory_spool_contract_unverifiable"
+        } else {
+            "catalog_upgrade_backup_failed"
+        };
+        assert_eq!(error.code, expected, "{identity:?}: {error:?}",);
         let connection = Connection::open(&path).expect("read rejected fixture evidence");
         assert_eq!(raw_evidence(&connection), before);
         let versions: (i64, i64) = connection
