@@ -312,6 +312,10 @@ remaining read/write waits and constrained-device performance acceptance are sti
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
 47,833-group write, with all durable records unchanged after reopen. Native response timings and
 the remaining recovery confirmation still require client verification.
+The optimized client timing entrypoint has passed static checks and its Profile build, including
+saved continuation and browsing during an organization batch write; it has not run. Native timing
+and cleanup await the existing window/cleanup confirmations. Constrained-device work also awaits
+confirmation of cloud-primary's changed saved device identity.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

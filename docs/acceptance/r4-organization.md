@@ -2044,9 +2044,12 @@ The worker exits successfully after 213.707 seconds, using 201.797 CPU seconds. 
 500 ms across 408 samples records peak working set/private memory of 94.453/83.039 MiB.
 Compilation is excluded. The input SHA-256 is unchanged, source-media reads are zero, and the
 workload's result assertions pass. This measures catalog ports, not native-client response time;
-the earlier full-client Debug observation remains separate. Hosted verification for this source
-change is running for commit `dcf79c9d` in
-[CI run 40135559945](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40135559945).
+the earlier full-client Debug observation remains separate. Hosted run
+[40135559945](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40135559945) for `dcf79c9d`
+passes its completed jobs but is superseded while Catalog is still running. Current verification
+includes this source change and the retained cancellation case at `c69f7adb` in
+[CI run 40137916874](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40137916874), which is
+still running. The superseded run is cancelled rather than recorded as a complete pass.
 
 ## Retained-catalog batch cancellation - 2026-10-25
 
