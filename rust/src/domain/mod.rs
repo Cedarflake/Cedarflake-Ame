@@ -4,6 +4,7 @@ pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub mod organization;
 pub mod organization_queue;
+pub mod organization_review;
 pub use exact_duplicates::{
     DuplicateLocationAvailability, ExactAnalysisPhase, ExactAnalysisProgress, ExactDuplicateGroup,
     ExactDuplicateGroupCursor, ExactDuplicateGroupPage, ExactDuplicateLocation,

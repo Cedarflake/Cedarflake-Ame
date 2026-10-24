@@ -6,6 +6,7 @@ mod ordering;
 pub(super) mod organization;
 pub(super) mod organization_queue;
 pub(super) mod retained_membership;
+pub(super) mod review;
 mod time_anchor;
 mod timeline;
 

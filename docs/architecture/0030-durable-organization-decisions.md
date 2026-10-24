@@ -22,9 +22,9 @@ asset/location identifiers have separate meanings. Do not merge assets or use a 
 identifier. Foreign keys between organization tables enforce their relationships; no cascading
 foreign key to a derived location, fingerprint or asset may erase user data during rebuilding.
 
-An organization record represents a handled content lineage. Its bindings retain the asset identity,
-source generation, physical identity/revision evidence and, when available, the versioned exact
-content fingerprint. Root associations are retained separately so deliberate source removal can
+An organization record represents a handled or explicitly bookmarked content lineage. Its bindings
+retain the asset identity, source generation, physical identity/revision evidence and, when available,
+the versioned exact content fingerprint. Root associations are retained separately so deliberate source removal can
 retire only its associations and the records with no surviving owners. A rebuilt catalog can
 reassociate a record through compatible identity and content evidence; a filename is insufficient.
 Unresolved associations retain their first-unassociated time for explicit cleanup.
@@ -136,9 +136,27 @@ once within the retained collection, folder and search scope, independently of t
 Only the bounded page and scalar counts cross the desktop bridge. Read-only retained evidence may
 preserve a visible group during verification; it still cannot authorize a durable command.
 
-Durable continuation remains separate from
-handled state, with logical group authority and a retained ordering boundary rather than an ordinal
-into the current page. Ordinary album/Favorite operations retain the organization-mode anchor.
+Durable continuation remains separate from handled state. Keep one active review session and one
+last committed bookmark, each with its own retained collection, source, folder, search and queue
+scope. Entering a session replaces active save authority without replacing the bookmark or creating
+activity. An explicit image-position checkpoint establishes activity; opening the mode alone does
+not. A checkpoint may materialize the current pending lineage without completing it.
+
+The bookmark stores a stable lineage reference and the admission/root/location ordering boundary,
+not an ordinal into the current page. Resolve a still-eligible lineage through its current canonical
+group and scoped representative. If already handled, continue after the retained boundary, excluding
+new arrivals ahead of it. An unassociated anchor stays recorded and returns a distinct issue with an
+optional next eligible target. Empty scopes and exhausted suffixes have distinct results. Catalog
+association does not establish filesystem availability; the existing viewer source checks retain
+their authority and a failed open does not complete or discard work.
+
+Session identifiers and monotonically increasing position sequences reject obsolete checkpoints.
+Changing the current group in review mode requires its saved session/position authority and commits
+the decision, after-current bookmark and operation receipt in one transaction. Retrying a committed
+review operation returns its original receipt without rewriting a later bookmark. Ordinary
+album/Favorite operations retain the review anchor. Explicit source removal retires scoped bookmarks
+and orphaned lineage anchors; parent consolidation transfers the retained physical scope. Reopening
+starts a new session authority while retaining the last committed work.
 
 ### Command admission and transactions
 

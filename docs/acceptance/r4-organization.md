@@ -343,7 +343,9 @@ source fixtures; no retained library, original catalog or cloud placeholder was 
 no dependency, bridge or UI change. Commit `6c67ac3` passes the unchanged hosted 10,000-image storage
 workload, 50,000-identity publication workload, static checks and unsigned Release build in
 [its own run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40054906425). The Remaining Rust
-shard also passes, including the corrected terminal-trigger assertion; other jobs are still running.
+shard also passes, including the corrected terminal-trigger assertion. Its unfinished Flutter,
+Catalog, Schema/Queue and Synchronization/Scan jobs were cancelled when the next branch checkpoint
+started under the configured superseding-run policy; the complete run therefore is not passing.
 These results do not cover the later queue queries or establish retained-library performance.
 
 The admission owner has 160 production lines and no inline tests, with 266 dedicated test lines.
@@ -385,9 +387,16 @@ Rust Release library build pass. An earlier test compilation found a fully speci
 query fixture missing the new optional selector; the fixture now explicitly selects ordinary mode.
 
 No dependency or schema change is introduced by this query slice. All diagnostics use controlled
-derived catalogs; no retained library, original catalog or cloud placeholder was accessed. Durable
-continuation, state publication to actual desktop controls, real interaction and retained-library
-measurements remain outstanding. Hosted verification must cover the committed query implementation.
+derived catalogs; no retained library, original catalog or cloud placeholder was accessed. Desktop
+state publication, real interaction and retained-library measurements remain outstanding. Durable
+continuation is recorded in the next section. Commit `395e395` has a
+[hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40056219158): static, Flutter,
+Windows Scan, accessibility, unsigned Release and three synthetic jobs pass at this checkpoint.
+Remaining Rust reports 886 passing tests and two failures because the exact source-module guard
+does not yet register the new queue module. Other shards and synthetic jobs are still running.
+The continuation change adds exact declarations for both queue and review domain modules; all nine
+focused availability checks pass, retaining rejection of alternate paths, duplicate declarations,
+generated modules and source enumeration. The correction requires hosted coverage on its own head.
 
 The queue SQL owner has 106 production lines, the extracted ordering owner 75 and the collection
 owner 177, with no inline tests. Dedicated queue/history tests have 325 and 81 lines. The gallery
@@ -397,3 +406,56 @@ optional selector and folding/order policy, while the new queue domain owner has
 The Dart queue owner has 23 lines; the 540-line model, 587-line catalog mapper and 1,295-line viewport
 controller receive typed fields, mapping and scope-preserving composition. Changed dedicated Dart
 test owners have 89, 516 and 3,670 lines. Generated bridge output is excluded from handwritten counts.
+
+## Durable organization continuation - 2026-10-24
+
+Schema 52 adds a singleton active review session, a separate durable bookmark and operation receipts.
+Entering mode establishes save authority without creating activity or replacing prior work. A
+position checkpoint records the current lineage, retained scope and admission boundary. Ordinary
+album or Favorite changes leave this bookmark intact. Continuation follows the current group and
+representative, or finds the next eligible item after the retained boundary; new arrivals ahead of
+it do not replace the saved work.
+
+Session identity and monotonic position sequences reject old checkpoints. A current-item action
+commits its organization decision, after-current bookmark and receipt atomically. Retrying a committed
+operation returns its original receipt without rewinding newer work. Unassociated anchors remain
+recorded and can supply another eligible target. No prior activity, unavailable scope, unavailable
+anchor, empty scope and exhausted queue suffix have distinct typed results. Source availability
+still belongs to the existing viewer checks; catalog association does not assert that a file opens.
+
+Explicit source removal clears its scoped review data and orphaned anchors while preserving a
+globally scoped group with another surviving source. Parent consolidation transfers the physical
+scope before retiring the child. Upgrade creates no activity, preserves decisions and revisions,
+and uses the existing pre-upgrade backup boundary. No dependency or source-media mutation is added.
+
+Twenty-seven focused Rust checks pass: 13 continuation cases, three schema-52 migration cases,
+three existing admission-migration cases, three recovery-compatibility cases and five organization
+source-lifecycle cases. They cover reopen, ordinary work, new arrivals, old/closed session responses,
+out-of-order positions, atomic failure/retry, stale group commands, late grouping, preferred-copy
+changes, derived-evidence cleanup, independent changed content, unavailable anchors, empty versus
+exhausted queues, scoped rejection, identity-preserving location changes, shared-source removal and
+parent consolidation. Migration checks retain rollback, missing-schema and orphaned-record rejection.
+
+The parent-consolidation fixture initially changed the relative path without its corresponding
+parent-folder field. After matching the production row contract, the unchanged target and scope
+assertions pass. This checks the production organization-transfer boundary with controlled catalog
+rows; it is not a complete desktop parent-import acceptance run. The additional nine source-read
+guard checks described above pass, giving 36 focused checks for this checkpoint.
+
+The canonical bridge generator succeeds with matching Rust/Dart content hash `-719090103`; its
+optimized Rust library build finishes in 112 seconds. Final Rust formatting and whitespace checks
+pass. SQL and row construction are expanded for reviewability without changing their decisions.
+Diagnostics use isolated derived catalogs and controlled fixtures, without accessing a retained
+library, original catalog or placeholder. Hosted verification must cover the committed implementation.
+Actual desktop session lifetime, source-open failure, save-to-viewer advancement and restart flows
+remain R4-05 work. Retained-library latency and large-group lineage costs remain unmeasured.
+
+The review adapter has 99 production lines; scope, position, operation and continuation owners have
+183, 142, 105 and 72 lines, respectively. The gallery candidate reader has 102 production lines.
+None contains inline tests. Dedicated review and lifecycle tests have 418 and 102 lines. The
+migration owner has 113 production lines, a 14-line test helper and a two-line test declaration,
+with 102 dedicated test lines. The catalog facade changes only its version constant; the migration
+facade gains registration/dispatch calls and retains its historical helpers and 2,290-line inline
+test section. The source-read guard change adds 12 exact-contract lines inside the existing
+3,356-line inline test module; its 2,629-line production/support section is unchanged. The dedicated
+topology test owner has 436 lines. Generated bridge output is excluded from handwritten counts.

@@ -6,7 +6,7 @@ use crate::domain::organization::{
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::organization::OrganizationRepository;
 
-fn open_catalog() -> Result<crate::adapters::SqliteCatalog, ScanError> {
+pub(super) fn open_catalog() -> Result<crate::adapters::SqliteCatalog, ScanError> {
     let storage = super::storage_paths()?;
     super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Live)
 }

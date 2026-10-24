@@ -9,7 +9,7 @@ use crate::ports::exact_duplicates::GalleryDuplicateRepository;
 
 use super::*;
 
-pub(super) fn invalidate(catalog: &mut SqliteCatalog, id: &str) {
+pub(in super::super) fn invalidate(catalog: &mut SqliteCatalog, id: &str) {
     let mut location = catalog.load_active_location(id).unwrap().unwrap();
     location.source_generation = 0;
     let transaction = catalog.connection.transaction().unwrap();

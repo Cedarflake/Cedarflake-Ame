@@ -19,6 +19,7 @@ mod operations;
 pub(super) mod publication;
 pub(super) mod reconciliation;
 pub(super) mod records;
+mod review;
 mod selection;
 mod undo;
 

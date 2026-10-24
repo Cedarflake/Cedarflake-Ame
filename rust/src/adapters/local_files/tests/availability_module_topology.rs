@@ -50,6 +50,8 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert!(!location[0].is_inline);
     for module_name in [
         "exact_duplicate_review",
+        "organization_queue",
+        "organization_review",
         "gallery_query_snapshot",
         "gallery_time_snapshot",
     ] {
@@ -339,6 +341,18 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             DOMAIN_SOURCE,
             "pub mod organization;",
             "pub(crate) mod organization;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod organization_queue;",
+            "pub(crate) mod organization_queue;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod organization_review;",
+            "pub(crate) mod organization_review;",
         ),
     ] {
         assert!(

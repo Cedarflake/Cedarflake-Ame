@@ -7,7 +7,7 @@ use crate::ports::GalleryQueryRepository;
 use super::transitions::{change, create_album};
 use super::*;
 
-mod evolution;
+pub(super) mod evolution;
 mod queues;
 
 fn album_query(album_id: &str) -> GalleryQuery {
@@ -32,7 +32,7 @@ fn assign(catalog: &mut SqliteCatalog, operation: &str, ids: &[&str], album: &st
     );
 }
 
-fn publish_batch(catalog: &mut SqliteCatalog, ids: &[&str], digest: char) {
+pub(super) fn publish_batch(catalog: &mut SqliteCatalog, ids: &[&str], digest: char) {
     for id in ids {
         publish(catalog, id, digest);
     }

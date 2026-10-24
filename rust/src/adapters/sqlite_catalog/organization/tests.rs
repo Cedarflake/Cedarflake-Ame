@@ -15,6 +15,7 @@ mod lifecycle;
 mod publication;
 mod queries;
 mod reconciliation;
+mod review;
 mod transitions;
 mod undo;
 
