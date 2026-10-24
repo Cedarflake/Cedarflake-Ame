@@ -24,6 +24,7 @@ import "package:integration_test/integration_test.dart";
 import "support/covered_folder_workflow.dart";
 import "support/library_management_workflow.dart";
 import "support/native_directory_picker.dart";
+import "support/organization_unavailable_workflow.dart";
 import "support/organization_workflow.dart";
 import "support/parent_folder_workflow.dart";
 import "support/retained_import_workflow.dart";
@@ -443,6 +444,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await verifyViewerSourceWorkflow(tester);
+    await verifyOrganizationUnavailableWorkflow(tester);
     await verifyOrganizationWorkflow(
       tester,
       ProviderScope.containerOf(

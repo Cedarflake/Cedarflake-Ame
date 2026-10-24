@@ -88,9 +88,9 @@ Controlled desktop checks cover discovery after notice expiry, cancellation, com
 and restart retention; focused checks cover retired albums, pagination, failed saves and undo.
 Committed album retirement now leaves affected active and saved browsing scopes before refreshing;
 controlled Windows integration verifies deletion and undo, with focused publication and lifecycle
-regressions. Native unavailable-item integration remains before R4-05 closure.
-Retain the real-interaction and retained-library
-performance obligations.
+regressions. Native unavailable-item integration also preserves pending decisions while navigating
+and retrying a blocked original. Current-head hosted verification remains before R4-05 closure;
+retained-library performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -247,9 +247,9 @@ Favorite history behavior, whole-query album assignment and restored ordinary co
 Favorite commands, durable default-album settings, management, undo and stale-save retry now have
 controlled client evidence. Gallery selection and the core
 organization-mode workflows and persistent conflict inspection/resolution are connected. Controlled
-desktop checks cover conflict discovery, cancellation, resolution and restart. Complete the
-unavailable-item interaction and verify the corrected availability source inventory in CI before
-advancing to R4-06. Keep the product
+desktop checks cover conflict discovery, cancellation, resolution, restart and unavailable-image
+navigation/retry without completing pending work. Verify the corrected availability source inventory
+and the completed native workflows in CI before advancing to R4-06. Keep the product
 checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
 R4-07 remain pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

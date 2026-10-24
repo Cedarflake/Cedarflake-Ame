@@ -987,3 +987,41 @@ admission, loading-environment and metadata-only contracts. The suite took 30.75
 has 2,629 lines before its inline test module and 3,368 inline test lines; this change adds only six
 inventory lines within that test module. Its dedicated topology fixture has 450 test lines.
 The published repair and album-retirement change require current-head hosted verification.
+
+## Unavailable-image organization continuity - 2026-10-24
+
+The controlled Windows scan workflow now enters organization mode with two pending groups, blocks
+one original through a read-only exclusive native handle and verifies the existing preview fallback.
+Moving to the next image decodes that original; returning retains the blocked image and its issue.
+Both groups remain pending with unchanged album and Favorite state. Releasing the handle and using
+the visible Retry action decodes the same original. Leaving the viewer still shows two pending
+groups, and exiting organization mode returns to ordinary browsing.
+
+The fixture uses [CreateFileW](https://learn.microsoft.com/en-us/windows/win32/api/fileapi/nf-fileapi-createfilew)
+with `GENERIC_READ`, `OPEN_EXISTING` and no sharing, followed by
+[CloseHandle](https://learn.microsoft.com/en-us/windows/win32/api/handleapi/nf-handleapi-closehandle).
+It admits only canonical paths in the owned native fixture directories, rejects reparse aliases and
+an out-of-corpus README path, and releases the handle idempotently in `finally`. It performs no source
+write or deletion and introduces no dependency. The existing source-byte and directory-entry checks
+remain after the organization and source-management workflows.
+
+Initial runs 2280cf0891fa43b590336b7cb99e667f and 84c4e59c5db540e6872522204b8523d9 found fixture
+problems: extended Windows paths were rejected, then the PowerShell helper did not receive its
+release signal from Dart. The latter reproduced in a standalone Dart process, while the same helper
+released normally with Python. Explicit flushing and a single-byte protocol did not resolve that
+transport failure. The final fixture owns the native handle in process; the obsolete helper was
+removed. Its isolated probe confirmed denied reads while held and unchanged readable bytes after
+release, including a second idempotent release through the native workflow.
+
+Final run 28e4a4d08a8940e59acc57c41a7006e2 passed all four integration cases, including
+`AME_ORGANIZATION_UNAVAILABLE_WORKFLOW_PASSED` and `AME_ORGANIZATION_NATIVE_WORKFLOW_PASSED`.
+The runner completed in 97.288 seconds with a 37.5-second Debug build, exit code zero and no cleanup
+failure. Scoped analysis with fatal infos, owned formatting and diff checks pass. The unavailable
+workflow has 95 test lines and its source-handle fixture has 106; the existing 148-line source-viewer
+helper only exposes its original-decoding assertion for reuse. No production behavior, schema or
+bridge is changed by this checkpoint.
+
+The inventory repair is published as 5cc6525a8f14315e9cebe86262d920a9cb19e00f. Its run
+[40074028181](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40074028181) remains in
+progress at this checkpoint. The subsequent native-check commit also needs hosted verification;
+retained-library measurements and R4 export, restoration and cleanup remain outstanding.

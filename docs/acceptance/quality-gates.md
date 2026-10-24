@@ -247,6 +247,10 @@ Virtual organization uses the
 [native organization workflow](../../integration_test/support/organization_workflow.dart) inside the
 controlled Windows scan entrypoint: verify committed album/Favorite state and undo through the
 real adapter, active album retirement before refresh, form failure/retry, and keyboard focus.
+The [unavailable-image workflow](../../integration_test/support/organization_unavailable_workflow.dart)
+holds a read-only exclusive handle to a controlled source: verify fallback feedback, navigation to
+another image, retained pending decisions and successful retry after releasing the handle. Its
+fixture rejects paths outside the owned native corpus and reparse traversal.
 The [publication regression](../../test/features/library/application/library_organization_publication_test.dart)
 owns serial refresh, retry and projection lifetimes; the
 [mode regression](../../test/features/library/presentation/library_organization_mode_test.dart)

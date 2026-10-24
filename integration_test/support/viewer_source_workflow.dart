@@ -38,14 +38,14 @@ Future<void> verifyViewerSourceWorkflow(WidgetTester tester) async {
       matching: find.byKey(const Key("viewer-original-retry")),
     ),
   );
-  await _waitForOriginal(tester);
+  await waitForViewerOriginal(tester);
   final first = tester
       .widget<LibraryViewerImage>(find.byType(LibraryViewerImage))
       .asset;
 
   await tester.tap(find.byKey(const Key("viewer-next")));
   await tester.pump();
-  await _waitForOriginal(tester, differentFrom: first.locationId);
+  await waitForViewerOriginal(tester, differentFrom: first.locationId);
   final second = tester
       .widget<LibraryViewerImage>(find.byType(LibraryViewerImage))
       .asset;
@@ -53,7 +53,7 @@ Future<void> verifyViewerSourceWorkflow(WidgetTester tester) async {
 
   await tester.tap(find.byKey(const Key("viewer-previous")));
   await tester.pump();
-  await _waitForOriginal(tester, differentFrom: second.locationId);
+  await waitForViewerOriginal(tester, differentFrom: second.locationId);
   expect(
     tester
         .widget<LibraryViewerImage>(find.byType(LibraryViewerImage))
@@ -97,7 +97,7 @@ Future<void> _withSourceLeases(
   }
 }
 
-Future<void> _waitForOriginal(
+Future<void> waitForViewerOriginal(
   WidgetTester tester, {
   String? differentFrom,
 }) async {
