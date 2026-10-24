@@ -67,8 +67,14 @@ pub(in super::super) fn load_counts(
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     push_source_filters(&scope, &mut clauses, &mut parameters);
-    organization::push_group_filter(&scope, &mut clauses, &mut parameters);
+    let scope = if clauses.is_empty() {
+        "1".to_owned()
+    } else {
+        clauses.join(" AND ")
+    };
+    let group = organization::group_expression("locations");
     let disposition = disposition_expression("locations");
+    // A canonical group has one disposition; counts do not need a preferred representative.
     let counts: [i64; 5] = transaction
         .query_row(
             &format!(
@@ -80,9 +86,8 @@ pub(in super::super) fn load_counts(
                  FROM (
                    SELECT {disposition} AS disposition FROM library_roots AS roots
                    JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
-                   WHERE {}
-                 )",
-                clauses.join(" AND ")
+                   WHERE {scope} GROUP BY {group}
+                 )"
             ),
             params_from_iter(parameters),
             |row| {

@@ -73,10 +73,6 @@ pub(super) fn push_duplicate_filter(
     if !query.folds_duplicates() {
         return;
     }
-    if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
-        super::organization::push_group_filter(query, clauses, parameters);
-        return;
-    }
     let mut scope = Vec::new();
     push_source_filters(query, &mut scope, parameters);
     let scope = if scope.is_empty() {

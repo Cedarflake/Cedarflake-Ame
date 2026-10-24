@@ -55,7 +55,7 @@ pub(in super::super) fn record_expression(location: &str) -> String {
     )
 }
 
-fn group_expression(location: &str) -> String {
+pub(super) fn group_expression(location: &str) -> String {
     let record = record_expression(location);
     let compatible = compatible_fingerprint(location);
     format!(

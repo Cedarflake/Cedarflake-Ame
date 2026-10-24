@@ -150,6 +150,11 @@ honor the existing preferred copy within the physical query scope, then its smal
 Representative selection resolves the compatible display evidence generation before joining its
 stored fingerprint, avoiding materialization of unrelated historical evidence. Current and retained
 display authority continue to use the same compatibility predicate.
+The gallery filter owner applies source, folder, search, collection and queue constraints before
+organization-group representatives are selected. Page, layout and continuation reads reuse that
+scoped result without repeating the same membership predicates outside it. Shared progress counts
+aggregate canonical groups directly: every member of a group has the same disposition, so counting
+does not depend on preferred-copy selection or its decision table.
 These reads use catalog data only and never load the membership graph into presentation.
 
 ### Queue admission and continuation

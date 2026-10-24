@@ -294,9 +294,10 @@ restore remain open. Manual unresolved-record cleanup passes its focused boundar
 Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.
-Indexed representative evidence and a bounded connection page-cache budget reduce retained album
-and Favorite reads from over twelve seconds to about four, with unchanged query results and measured
-resource use. Empty queues and continuation remain slow; client and constrained-device performance
+Indexed representative evidence, bounded connection caches and non-repeated group scope reduce
+retained album and Favorite reads from over twelve seconds to about 3.3 seconds, with unchanged
+query results and measured resource use. Continuation reads take about 1.6 seconds; empty queues
+still take 3.4–4.0 seconds. Client and constrained-device performance
 acceptance is still open.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the

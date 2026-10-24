@@ -1829,3 +1829,45 @@ No schema, bridge, dependency, licensing or source-authority changes are introdu
 and owned whitespace checks pass. The whole-tree format check reports an unrelated, uncommitted
 gallery-state file; that file is preserved and excluded from this delivery. Hosted checks for the
 published implementation remain required.
+
+## Organization scope and progress-count query cost
+
+Organization reads now apply their complete source, folder, search and collection scope before
+choosing group representatives, without repeating those predicates on the resulting locations.
+Progress counts aggregate canonical groups directly instead of resolving preferred copies. The
+regression denies access to the preferred-copy table while checking shared counts across all-source,
+root, Favorite and empty-search scopes. Twenty organization-query, thirteen continuation and
+twenty-four ordinary gallery-query checks pass. The focused Debug and Release builds emit no warnings.
+
+The unchanged retained-profile diagnostic uses the same schema-45 input and real command path,
+63,077 physical files and 47,833 groups. It runs serially with fresh connections and no OS-cache
+flush. The first snapshot and three immediate repetitions are reported together:
+
+| Catalog operation | Measured elapsed time |
+| --- | --- |
+| One-time upgrade and open | 20.853 s |
+| Pending snapshot, including shared counts | 3.578–3.761 s |
+| Pending layout / following page | 2.825 s / 2.497 s |
+| Save continuation / repeat continuation reads | 1.623 s / 1.597–1.618 s |
+| Prepare / commit assignment of all 47,833 groups | 12.152 s / 55.634 s |
+| Prepare / commit Favorite for the same groups | 15.739 s / 34.174 s |
+| Reopen the populated copy | 2.075 s |
+| Populated album snapshot | 3.316–3.442 s |
+| Populated Favorite snapshot | 3.301–3.325 s |
+| Empty pending queue snapshot after assignment | 3.352–4.014 s |
+| Single-group unfavorite commit / resulting Favorite snapshot | 3.928 ms / 3.558 s |
+
+The diagnostic passes in 232.96 seconds. The worker measurement records 236.596 seconds wall time,
+223.234 seconds lifetime CPU, a 94.910 MiB peak working set and a 99.727 MiB sampled peak private
+allocation. Its 453 samples use a 500 ms interval and exclude compilation. All result, count,
+continuation and bounded-page assertions pass; input SHA-256 remains unchanged and source-media
+reads remain zero. The full reports remain in ignored derived storage. Empty-queue waits, large
+batch writes, client feedback, concurrent connection costs and constrained-device acceptance remain
+open; these catalog measurements do not establish desktop response times.
+
+The affected gallery facade contains 397 production lines; filter, duplicate, organization,
+progress-count and continuation owners contain 64/152/183/111/101 production lines, with no inline
+tests. The new aggregation regression contains 99 dedicated test lines. No schema, bridge,
+dependency, licensing or source-authority changes are introduced. Owned Rust formatting and
+whitespace checks pass. The whole-tree format check still reports only the preserved, unrelated
+gallery-state edit. Exact-commit hosted verification remains required.

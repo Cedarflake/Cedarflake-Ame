@@ -2,6 +2,7 @@ use crate::domain::organization_queue::{OrganizationCounts, OrganizationQueue};
 
 use super::*;
 
+mod aggregation;
 mod history;
 
 fn queue(kind: OrganizationQueue) -> GalleryQuery {

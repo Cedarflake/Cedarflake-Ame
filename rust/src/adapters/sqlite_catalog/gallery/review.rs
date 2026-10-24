@@ -4,7 +4,7 @@ use crate::domain::organization::OrganizationSelection;
 use crate::domain::{CatalogCursor, GalleryQuery, ScanError};
 
 use super::super::{database_error, exact_duplicates::read_unsigned};
-use super::{gallery_order_expressions, organization, push_cursor_filter, push_source_filters};
+use super::{gallery_order_expressions, organization, push_cursor_filter};
 
 pub(in super::super) struct ReviewBoundary {
     pub admission_id: i64,
@@ -33,7 +33,6 @@ pub(in super::super) fn candidate(
 ) -> Result<Option<ReviewCandidate>, ScanError> {
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
-    push_source_filters(query, &mut clauses, &mut parameters);
     organization::push_group_filter(query, &mut clauses, &mut parameters);
     if let ReviewRead::Current(record_id) = request {
         clauses.push(format!(
