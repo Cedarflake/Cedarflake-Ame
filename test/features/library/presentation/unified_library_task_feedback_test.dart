@@ -77,7 +77,10 @@ void main() {
     expect(find.text("正在检查“Pictures”的图片…"), findsOneWidget);
     expect(find.text("已检查 128 / 48384 张图片 · 已检查 50304 个文件"), findsOneWidget);
     final progress = tester.widget<LinearProgressIndicator>(
-      find.byType(LinearProgressIndicator),
+      find.descendant(
+        of: find.byKey(const Key("library-task-surface")),
+        matching: find.byType(LinearProgressIndicator),
+      ),
     );
     expect(progress.value, closeTo(128 / 48384, 0.000001));
   });

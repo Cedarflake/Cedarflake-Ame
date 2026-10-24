@@ -525,9 +525,9 @@ still compares every retained row and prior sequence. All four foreground-queue-
 pass locally, including conflicting-object rollback and invalid-authority rejection. This result does
 not establish hosted verification for the current changes. The follow-up run
 [40060729462](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40060729462) for
-`c1059eb513ec9c6a6bdf25264bf102e28f8398c2` passes Schema and Queue, Flutter, static checks, unsigned
-packaging, synchronization/scan, native accessibility and the applicable synthetic workloads.
-Its Catalog job is still running at the album checkpoint; no job has reported a failure.
+`c1059eb513ec9c6a6bdf25264bf102e28f8398c2` completed successfully, including Catalog, Schema and Queue,
+Flutter, static checks, unsigned packaging, synchronization/scan, native accessibility and the
+applicable synthetic workloads.
 
 ## Album management, viewer membership and settings - 2026-10-24
 
@@ -583,3 +583,11 @@ opened, restarted or operated for this slice. Actual album controls, keyboard/fo
 retained-library latency and low-core measurements remain unverified. Gallery bulk selection,
 organization mode, involved-album conflict inspection and recovery settings remain subsequent
 R4 work. Hosted verification must cover the published album implementation commit.
+
+The album checkpoint `09b2cdcc7c7ce2b924b6a51c61ff7c4d5d0c4231` has a
+[hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40062430535). Flutter reports
+one failure in the existing import-feedback test: its global `LinearProgressIndicator` finder now
+matches both the import progress and the album-list loading indicator. The repair scopes the finder
+to the existing import task surface while retaining the exact validated/total ratio assertion.
+All seven focused import-feedback checks pass after the repair. Product progress behavior is
+unchanged; follow-up hosted verification remains required for the published correction.
