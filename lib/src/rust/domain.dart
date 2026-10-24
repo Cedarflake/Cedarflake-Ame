@@ -3,6 +3,7 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'domain/organization_queue.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
@@ -541,6 +542,7 @@ class GalleryLocationAnchorResolution {
 
 class GalleryQuery {
   final GalleryCollection collection;
+  final OrganizationQueue? organizationQueue;
   final String? rootId;
   final String? folderRelativePath;
   final bool includeDescendants;
@@ -551,6 +553,7 @@ class GalleryQuery {
 
   const GalleryQuery({
     required this.collection,
+    this.organizationQueue,
     this.rootId,
     this.folderRelativePath,
     required this.includeDescendants,
@@ -563,6 +566,7 @@ class GalleryQuery {
   @override
   int get hashCode =>
       collection.hashCode ^
+      organizationQueue.hashCode ^
       rootId.hashCode ^
       folderRelativePath.hashCode ^
       includeDescendants.hashCode ^
@@ -577,6 +581,7 @@ class GalleryQuery {
       other is GalleryQuery &&
           runtimeType == other.runtimeType &&
           collection == other.collection &&
+          organizationQueue == other.organizationQueue &&
           rootId == other.rootId &&
           folderRelativePath == other.folderRelativePath &&
           includeDescendants == other.includeDescendants &&

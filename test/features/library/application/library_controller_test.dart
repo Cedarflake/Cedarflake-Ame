@@ -316,7 +316,7 @@ void main() {
   );
 
   test(
-    "active visible range is superseded by sort source search and collection queries",
+    "active visible range is superseded by sort source search collection and queue queries",
     () async {
       const queries = [
         LibraryGalleryQuery(sortKey: LibraryGallerySortKey.fileName),
@@ -326,6 +326,15 @@ void main() {
           collection: LibraryGalleryCollection.album("album"),
         ),
         LibraryGalleryQuery(collection: LibraryGalleryCollection.favorites()),
+        LibraryGalleryQuery(
+          organizationQueue: LibraryOrganizationQueue.pending,
+        ),
+        LibraryGalleryQuery(
+          organizationQueue: LibraryOrganizationQueue.deferred,
+        ),
+        LibraryGalleryQuery(
+          organizationQueue: LibraryOrganizationQueue.ignored,
+        ),
       ];
 
       for (var index = 0; index < queries.length; index++) {
@@ -2483,6 +2492,7 @@ void main() {
               query: const LibraryGalleryQuery(
                 rootId: "root-remove-committed",
                 collection: LibraryGalleryCollection.album("retained-album"),
+                organizationQueue: LibraryOrganizationQueue.pending,
               ),
             ).copyWith(
               timeline: LibraryTimeline(
@@ -2507,6 +2517,7 @@ void main() {
       expect(failed.roots, const [keptRoot]);
       expect(failed.assets.single.locationId, "location-kept-local-committed");
       expect(failed.query.rootId, isNull);
+      expect(failed.query.organizationQueue, LibraryOrganizationQueue.pending);
       expect(
         failed.query.collection,
         const LibraryGalleryCollection.album("retained-album"),
@@ -2529,6 +2540,10 @@ void main() {
       expect(completed.isRemovalCommitted, isFalse);
       expect(completed.completedRemovalRootId, removedRoot.id);
       expect(completed.rootRemovalCompletionSequence, 1);
+      expect(
+        completed.query.organizationQueue,
+        LibraryOrganizationQueue.pending,
+      );
       expect(
         completed.query.collection,
         const LibraryGalleryCollection.album("retained-album"),

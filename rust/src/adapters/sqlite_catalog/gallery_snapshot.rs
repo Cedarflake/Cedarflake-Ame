@@ -280,8 +280,16 @@ impl GalleryQueryRepository for SqliteCatalog {
             }
         });
         let timeline = read.load_timeline()?;
+        let organization_counts = query
+            .organization_queue
+            .map(|_| super::gallery::organization_queue::load_counts(&read.transaction, query))
+            .transpose()?;
         read.commit()?;
-        Ok(GalleryQuerySnapshot { snapshot, timeline })
+        Ok(GalleryQuerySnapshot {
+            snapshot,
+            timeline,
+            organization_counts,
+        })
     }
 }
 

@@ -2,7 +2,9 @@ mod annotations;
 pub(super) mod duplicates;
 mod location_anchor;
 mod member_locations;
+mod ordering;
 pub(super) mod organization;
+pub(super) mod organization_queue;
 pub(super) mod retained_membership;
 mod time_anchor;
 mod timeline;
@@ -18,6 +20,8 @@ pub(super) use time_anchor::resolve_gallery_anchor_cursor;
 use rusqlite::types::Value;
 use rusqlite::{OptionalExtension, Transaction, params};
 
+use ordering::{GalleryOrderExpressions, gallery_order_expressions};
+
 use crate::domain::{
     AssetLocationView, CatalogCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
     GalleryTimeAnchor, ScanError,
@@ -30,14 +34,6 @@ use super::{
 pub(super) struct BuiltGalleryQuery {
     pub(super) sql: String,
     pub(super) parameters: Vec<Value>,
-}
-
-struct GalleryOrderExpressions {
-    missing: &'static str,
-    text: &'static str,
-    number: &'static str,
-    date: Option<&'static str>,
-    month: Option<&'static str>,
 }
 
 pub(super) fn validate_gallery_query(query: &GalleryQuery) -> Result<(), ScanError> {
@@ -75,9 +71,9 @@ pub(super) fn build_gallery_asset_query(
     anchor: Option<&GalleryTimeAnchor>,
     sql_limit: i64,
 ) -> Result<BuiltGalleryQuery, ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
+    let order = gallery_order_expressions(query);
     let is_backward = before.is_some();
-    let primary_direction = gallery_window_direction_sql(&query.sort_direction, is_backward);
+    let primary_direction = gallery_window_direction_sql(query.order_direction(), is_backward);
     let missing_direction = if is_backward { "DESC" } else { "ASC" };
     let tie_direction = if is_backward { "DESC" } else { "ASC" };
     let mut clauses = Vec::new();
@@ -90,7 +86,7 @@ pub(super) fn build_gallery_asset_query(
         push_cursor_filter(
             cursor,
             &order,
-            &query.sort_direction,
+            query.order_direction(),
             false,
             &mut clauses,
             &mut parameters,
@@ -100,7 +96,7 @@ pub(super) fn build_gallery_asset_query(
         push_cursor_filter(
             cursor,
             &order,
-            &query.sort_direction,
+            query.order_direction(),
             true,
             &mut clauses,
             &mut parameters,
@@ -152,7 +148,7 @@ pub(super) fn build_gallery_layout_manifest_query(
     after: Option<&CatalogCursor>,
     sql_limit: i64,
 ) -> Result<BuiltGalleryQuery, ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
+    let order = gallery_order_expressions(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     push_gallery_filters(query, &mut clauses, &mut parameters);
@@ -160,7 +156,7 @@ pub(super) fn build_gallery_layout_manifest_query(
         push_cursor_filter(
             cursor,
             &order,
-            &query.sort_direction,
+            query.order_direction(),
             false,
             &mut clauses,
             &mut parameters,
@@ -172,7 +168,7 @@ pub(super) fn build_gallery_layout_manifest_query(
         format!("WHERE {}", clauses.join(" AND "))
     };
     parameters.push(Value::Integer(sql_limit));
-    let primary_direction = gallery_direction_sql(&query.sort_direction);
+    let primary_direction = gallery_direction_sql(query.order_direction());
     let date = order.date.unwrap_or("NULL");
     Ok(BuiltGalleryQuery {
         sql: format!(
@@ -226,7 +222,7 @@ pub(super) fn gallery_cursor_for_asset(
     query: &GalleryQuery,
     asset: &AssetLocationView,
 ) -> Result<CatalogCursor, ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
+    let order = gallery_order_expressions(query);
     let sql = format!(
         "SELECT {missing}, {text}, {number}
          FROM library_roots AS roots
@@ -263,61 +259,6 @@ pub(super) fn gallery_cursor_for_asset(
         root_id: asset.root_id.clone(),
         location_id: asset.location_id.clone(),
     })
-}
-
-fn gallery_order_expressions(sort_key: &GallerySortKey) -> GalleryOrderExpressions {
-    match sort_key {
-        GallerySortKey::CaptureTime => GalleryOrderExpressions {
-            missing: "(COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL)",
-            text: "IFNULL(COALESCE(locations.capture_local_time, locations.file_local_time), '')",
-            number: "locations.modified_unix_ms",
-            date: Some(
-                "CASE \
-                   WHEN COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL \
-                   THEN NULL \
-                   ELSE substr(COALESCE(locations.capture_local_time, locations.file_local_time), 1, 10) \
-                 END",
-            ),
-            month: Some(
-                "CASE \
-                   WHEN COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL \
-                   THEN NULL \
-                   ELSE substr(COALESCE(locations.capture_local_time, locations.file_local_time), 1, 7) \
-                 END",
-            ),
-        },
-        GallerySortKey::CreatedTime => GalleryOrderExpressions {
-            missing: "(locations.file_local_time IS NULL)",
-            text: "IFNULL(locations.file_local_time, '')",
-            number: "locations.modified_unix_ms",
-            date: Some(
-                "CASE WHEN locations.file_local_time IS NULL THEN NULL \
-                 ELSE substr(locations.file_local_time, 1, 10) END",
-            ),
-            month: Some(
-                "CASE WHEN locations.file_local_time IS NULL THEN NULL \
-                 ELSE substr(locations.file_local_time, 1, 7) END",
-            ),
-        },
-        GallerySortKey::ModifiedTime => GalleryOrderExpressions {
-            missing: "CAST(0 AS INTEGER)",
-            text: "CAST('' AS TEXT)",
-            number: "locations.modified_unix_ms",
-            date: Some(
-                "strftime('%Y-%m-%d', locations.modified_unix_ms / 1000, 'unixepoch', 'localtime')",
-            ),
-            month: Some(
-                "strftime('%Y-%m', locations.modified_unix_ms / 1000, 'unixepoch', 'localtime')",
-            ),
-        },
-        GallerySortKey::FileName => GalleryOrderExpressions {
-            missing: "CAST(0 AS INTEGER)",
-            text: "locations.natural_name_key",
-            number: "CAST(0 AS INTEGER)",
-            date: None,
-            month: None,
-        },
-    }
 }
 
 fn gallery_direction_sql(direction: &GallerySortDirection) -> &'static str {
@@ -363,6 +304,7 @@ fn push_source_filters(
     parameters: &mut Vec<Value>,
 ) {
     organization::push_collection_filter(query, clauses, parameters);
+    organization_queue::push_filter(query, clauses, parameters);
     if let Some(root_id) = &query.root_id {
         clauses.push("locations.root_id = ?".to_owned());
         parameters.push(Value::Text(root_id.clone()));
@@ -409,13 +351,13 @@ fn push_time_anchor_filter(
     let Some(month_expression) = order.month else {
         return Err(ScanError::new(
             "catalog_time_anchor_unavailable",
-            "Name-sorted gallery results do not have a chronological time anchor",
+            "The selected gallery ordering does not have a chronological time anchor",
         ));
     };
     match &anchor.month_key {
         Some(month_key) => {
             validate_month_key_text(month_key)?;
-            let comparison = gallery_cursor_comparison(&query.sort_direction, false);
+            let comparison = gallery_cursor_comparison(query.order_direction(), false);
             clauses.push(format!(
                 "({month_expression} IS NULL OR {month_expression} {comparison}= ?)"
             ));

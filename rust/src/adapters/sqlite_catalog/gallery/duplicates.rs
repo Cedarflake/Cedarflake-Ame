@@ -56,7 +56,7 @@ pub(super) fn push_duplicate_filter(
     if !query.folds_duplicates() {
         return;
     }
-    if query.collection != GalleryCollection::Library {
+    if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
         super::organization::push_group_filter(query, clauses, parameters);
         return;
     }
@@ -92,7 +92,7 @@ pub(super) fn representative_for_anchor(
     if !query.folds_duplicates() {
         return Ok(None);
     }
-    if query.collection != GalleryCollection::Library {
+    if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
         return super::organization::representative_for_anchor(
             transaction,
             query,

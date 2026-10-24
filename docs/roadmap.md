@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-04 admission ordering implemented, queue queries and continuation next |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-04 queue queries and counts implemented, durable continuation next |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -57,8 +57,11 @@ for these boundaries. R4-03's album/Favorite scopes now cover bounded pages, cou
 viewer anchors, with focused Rust and Flutter checks. The catalog-storage correction passes the
 unchanged local and hosted 10,000-image workloads. The remaining stale terminal-trigger version
 assertion is corrected with its focused regression. R4-04 now records publication-order admissions
-transactionally, including source transfer/removal and migration. Queue queries and durable
-continuation remain next; the new product checkpoint still requires hosted verification.
+transactionally, including source transfer/removal and migration. Pending, deferred and ignored
+queries share bounded pages, group counts and logical anchors; focused Rust and Flutter regressions
+pass. Durable continuation remains next. The admission checkpoint passes hosted storage, static and
+Release checks, with other jobs still running; the queue-query checkpoint requires its own hosted
+verification.
 No R4 controls are exposed yet.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
@@ -206,8 +209,9 @@ their evidence in the linked acceptance record.
 R4-01's internal foundation passed its hosted checks. R4-02's transitions, source lifecycle and
 group reconciliation and R4-03's bounded collection queries are implemented. The storage correction
 passes the unchanged local and hosted 10,000-image workloads. R4-04's transactional admission ordering
-passes focused publication, source-lifecycle and migration checks. Continue with bounded queue queries
-and durable continuation while retaining the current product checkpoint's hosted verification.
+passes focused publication, source-lifecycle and migration checks. Its bounded queue queries and
+coherent progress counts pass focused regressions. Continue with durable continuation while retaining
+the product checkpoints' hosted verification obligations.
 R4-05 through R4-07 are pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
 this roadmap owns their order and status. No R4 user workflow has passed acceptance yet.

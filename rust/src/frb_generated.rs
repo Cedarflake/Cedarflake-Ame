@@ -2985,6 +2985,9 @@ impl SseDecode for crate::domain::GalleryQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_collection = <crate::domain::GalleryCollection>::sse_decode(deserializer);
+        let mut var_organizationQueue = <Option<
+            crate::domain::organization_queue::OrganizationQueue,
+        >>::sse_decode(deserializer);
         let mut var_rootId = <Option<String>>::sse_decode(deserializer);
         let mut var_folderRelativePath = <Option<String>>::sse_decode(deserializer);
         let mut var_includeDescendants = <bool>::sse_decode(deserializer);
@@ -2994,6 +2997,7 @@ impl SseDecode for crate::domain::GalleryQuery {
         let mut var_duplicateMode = <crate::domain::GalleryDuplicateMode>::sse_decode(deserializer);
         return crate::domain::GalleryQuery {
             collection: var_collection,
+            organization_queue: var_organizationQueue,
             root_id: var_rootId,
             folder_relative_path: var_folderRelativePath,
             include_descendants: var_includeDescendants,
@@ -3024,9 +3028,13 @@ impl SseDecode for crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_snapshot = <crate::domain::CatalogSnapshot>::sse_decode(deserializer);
         let mut var_timeline = <crate::domain::GalleryTimeline>::sse_decode(deserializer);
+        let mut var_organizationCounts = <Option<
+            crate::domain::organization_queue::OrganizationCounts,
+        >>::sse_decode(deserializer);
         return crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
             snapshot: var_snapshot,
             timeline: var_timeline,
+            organization_counts: var_organizationCounts,
         };
     }
 }
@@ -3828,6 +3836,32 @@ impl SseDecode for Option<crate::domain::LibraryFolderCursor> {
     }
 }
 
+impl SseDecode for Option<crate::domain::organization_queue::OrganizationCounts> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::organization_queue::OrganizationCounts>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::domain::organization_queue::OrganizationQueue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::domain::organization_queue::OrganizationQueue>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::domain::RecoverableScan> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -3948,6 +3982,24 @@ impl SseDecode for crate::domain::organization::OrganizationAlbumReceipt {
     }
 }
 
+impl SseDecode for crate::domain::organization_queue::OrganizationCounts {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_total = <u64>::sse_decode(deserializer);
+        let mut var_pending = <u64>::sse_decode(deserializer);
+        let mut var_deferred_ = <u64>::sse_decode(deserializer);
+        let mut var_organized = <u64>::sse_decode(deserializer);
+        let mut var_ignored = <u64>::sse_decode(deserializer);
+        return crate::domain::organization_queue::OrganizationCounts {
+            total: var_total,
+            pending: var_pending,
+            deferred: var_deferred_,
+            organized: var_organized,
+            ignored: var_ignored,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::organization::OrganizationGroupKey {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4008,6 +4060,19 @@ impl SseDecode for crate::domain::organization::OrganizationPreparedSelection {
             organization_revision: var_organizationRevision,
             selections: var_selections,
             groups: var_groups,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization_queue::OrganizationQueue {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::organization_queue::OrganizationQueue::Pending,
+            1 => crate::domain::organization_queue::OrganizationQueue::Deferred,
+            2 => crate::domain::organization_queue::OrganizationQueue::Ignored,
+            _ => unreachable!("Invalid variant for OrganizationQueue: {}", inner),
         };
     }
 }
@@ -5838,6 +5903,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::GalleryQuery {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.collection.into_into_dart().into_dart(),
+            self.organization_queue.into_into_dart().into_dart(),
             self.root_id.into_into_dart().into_dart(),
             self.folder_relative_path.into_into_dart().into_dart(),
             self.include_descendants.into_into_dart().into_dart(),
@@ -5885,6 +5951,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::gallery_query_snapshot::Ga
         [
             self.snapshot.into_into_dart().into_dart(),
             self.timeline.into_into_dart().into_dart(),
+            self.organization_counts.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -6451,6 +6518,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::Organization
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization_queue::OrganizationCounts {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.total.into_into_dart().into_dart(),
+            self.pending.into_into_dart().into_dart(),
+            self.deferred.into_into_dart().into_dart(),
+            self.organized.into_into_dart().into_dart(),
+            self.ignored.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_queue::OrganizationCounts
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization_queue::OrganizationCounts>
+    for crate::domain::organization_queue::OrganizationCounts
+{
+    fn into_into_dart(self) -> crate::domain::organization_queue::OrganizationCounts {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::organization::OrganizationGroupKey {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -6532,6 +6623,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::Organization
     for crate::domain::organization::OrganizationPreparedSelection
 {
     fn into_into_dart(self) -> crate::domain::organization::OrganizationPreparedSelection {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::organization_queue::OrganizationQueue {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Pending => 0.into_dart(),
+            Self::Deferred => 1.into_dart(),
+            Self::Ignored => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_queue::OrganizationQueue
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization_queue::OrganizationQueue>
+    for crate::domain::organization_queue::OrganizationQueue
+{
+    fn into_into_dart(self) -> crate::domain::organization_queue::OrganizationQueue {
         self
     }
 }
@@ -7735,6 +7848,10 @@ impl SseEncode for crate::domain::GalleryQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::domain::GalleryCollection>::sse_encode(self.collection, serializer);
+        <Option<crate::domain::organization_queue::OrganizationQueue>>::sse_encode(
+            self.organization_queue,
+            serializer,
+        );
         <Option<String>>::sse_encode(self.root_id, serializer);
         <Option<String>>::sse_encode(self.folder_relative_path, serializer);
         <bool>::sse_encode(self.include_descendants, serializer);
@@ -7759,6 +7876,10 @@ impl SseEncode for crate::domain::gallery_query_snapshot::GalleryQuerySnapshot {
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::domain::CatalogSnapshot>::sse_encode(self.snapshot, serializer);
         <crate::domain::GalleryTimeline>::sse_encode(self.timeline, serializer);
+        <Option<crate::domain::organization_queue::OrganizationCounts>>::sse_encode(
+            self.organization_counts,
+            serializer,
+        );
     }
 }
 
@@ -8407,6 +8528,26 @@ impl SseEncode for Option<crate::domain::LibraryFolderCursor> {
     }
 }
 
+impl SseEncode for Option<crate::domain::organization_queue::OrganizationCounts> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::organization_queue::OrganizationCounts>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::domain::organization_queue::OrganizationQueue> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::domain::organization_queue::OrganizationQueue>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::domain::RecoverableScan> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -8504,6 +8645,17 @@ impl SseEncode for crate::domain::organization::OrganizationAlbumReceipt {
     }
 }
 
+impl SseEncode for crate::domain::organization_queue::OrganizationCounts {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.total, serializer);
+        <u64>::sse_encode(self.pending, serializer);
+        <u64>::sse_encode(self.deferred, serializer);
+        <u64>::sse_encode(self.organized, serializer);
+        <u64>::sse_encode(self.ignored, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::organization::OrganizationGroupKey {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -8555,6 +8707,23 @@ impl SseEncode for crate::domain::organization::OrganizationPreparedSelection {
         );
         <Vec<crate::domain::organization::OrganizationGroupTarget>>::sse_encode(
             self.groups,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::organization_queue::OrganizationQueue {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::organization_queue::OrganizationQueue::Pending => 0,
+                crate::domain::organization_queue::OrganizationQueue::Deferred => 1,
+                crate::domain::organization_queue::OrganizationQueue::Ignored => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
             serializer,
         );
     }

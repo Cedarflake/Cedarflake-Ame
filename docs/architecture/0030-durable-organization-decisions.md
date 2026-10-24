@@ -120,7 +120,23 @@ that history before retiring covered registrations. Ordinary source unavailabili
 Publication and source-lifecycle transactions own these writes, with no startup source scan.
 
 The queue projection uses current group evidence and these admissions; an identical copy does not
-become a new independent task after identification. Durable continuation remains separate from
+become a new independent task after identification. Resolve the group's earliest surviving
+admission through its current version, durable lineage bindings and published exact-content history.
+Unpublished fingerprints and staged versions cannot supply an earlier position. The selected
+physical representative and source-folder scope do not replace the global group's admission order.
+
+Keep the queue selector alongside the existing collection and physical scope in the typed gallery
+query. Queues always fold logical groups, including provisional asset versions, and order admissions
+descending with the existing deterministic tie breaker. Ordinary gallery sort preferences remain
+separate. Queue results have no chronological date buckets. Pages, layout and anchor resolution use
+the same ordering expressions; query identity distinguishes each queue from ordinary browsing.
+
+Read all four progress counts within the page/timeline snapshot. Counts cover each logical group
+once within the retained collection, folder and search scope, independently of the selected queue.
+Only the bounded page and scalar counts cross the desktop bridge. Read-only retained evidence may
+preserve a visible group during verification; it still cannot authorize a durable command.
+
+Durable continuation remains separate from
 handled state, with logical group authority and a retained ordering boundary rather than an ordinal
 into the current page. Ordinary album/Favorite operations retain the organization-mode anchor.
 

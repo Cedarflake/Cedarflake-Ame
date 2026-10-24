@@ -340,9 +340,11 @@ preservation, rejected execution, retirement, cleanup and repeated-reopen assert
 
 Rust formatting and diff checks pass. These diagnostics use isolated derived catalogs and controlled
 source fixtures; no retained library, original catalog or cloud placeholder was accessed. There is
-no dependency, bridge or UI change. The schema-50 workload result above does not cover this additional
-storage: current-head hosted size and regression checks remain required. Bounded queue queries,
-group counts and durable continuation are still pending within R4-04.
+no dependency, bridge or UI change. Commit `6c67ac3` passes the unchanged hosted 10,000-image storage
+workload, 50,000-identity publication workload, static checks and unsigned Release build in
+[its own run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40054906425). The Remaining Rust
+shard also passes, including the corrected terminal-trigger assertion; other jobs are still running.
+These results do not cover the later queue queries or establish retained-library performance.
 
 The admission owner has 160 production lines and no inline tests, with 266 dedicated test lines.
 The migration owner has 106 production lines, a 14-line test helper and a two-line test declaration,
@@ -352,3 +354,46 @@ composition calls. The delta regression has 111 lines and the terminal-spool tes
 The 3,504-line catalog facade changes only its version constant. The migration facade gains three
 registration/dispatch lines; its 844-line historical helper section and 2,290-line inline test section
 remain unchanged. The current-schema owner gains only version-selected validation calls.
+
+## Organization queue queries and coherent progress - 2026-10-24
+
+Pending, deferred and ignored selectors now share the existing gallery query boundary. Pages,
+layout and logical asset anchors fold each current group and use its first surviving admission,
+independently of the selected representative. New independent versions enter the front. Collection,
+source, folder and search filters remain active, while ordinary browsing retains its own sorting
+preferences. Queue pages have no chronological buckets.
+
+The page, timeline and all four progress counts use one SQLite read transaction. A concurrent save
+therefore cannot mix old entries with new counts. Only a bounded page and five scalar counts cross
+the generated bridge. Existing client query generations reject superseded responses, including
+their progress counts. Source-removal projection retains the queue selector after clearing the
+retired physical scope. Display-only retained evidence continues to reject organization writes.
+
+Thirty-seven focused Rust checks pass: 17 collection/queue cases, five query-identity cases, seven
+ordinary page cases, seven ordinary anchor cases and one additional history-cost case. The queue
+cases cover provisional groups, forward/backward pages, scoped representatives, new arrivals,
+ordinary-mode decisions, independent Favorites, late conflicts, content splits, preferred-copy
+replacement, cache cleanup, empty scopes and concurrent publication. With 50,000 unrelated admission
+and decision records, both one-page pending and ignored snapshots remain below 20,000 SQLite VM
+instructions and return the expected complete counts. This bounds unrelated-history lookup; it
+does not measure a very large single group's lineage or retained-library queue-opening latency.
+
+Seventy-one focused Flutter checks pass: three queue model/bridge cases, two retained collection
+cases, 56 controller cases and ten coherent-snapshot reader cases. These verify typed counts,
+scope retention, supersession and committed-source removal. The canonical generator and matching
+Rust Release library build pass. An earlier test compilation found a fully specified historical
+query fixture missing the new optional selector; the fixture now explicitly selects ordinary mode.
+
+No dependency or schema change is introduced by this query slice. All diagnostics use controlled
+derived catalogs; no retained library, original catalog or cloud placeholder was accessed. Durable
+continuation, state publication to actual desktop controls, real interaction and retained-library
+measurements remain outstanding. Hosted verification must cover the committed query implementation.
+
+The queue SQL owner has 106 production lines, the extracted ordering owner 75 and the collection
+owner 177, with no inline tests. Dedicated queue/history tests have 325 and 81 lines. The gallery
+builder shrinks to 444 lines; its snapshot facade adds transaction composition only. Query identity
+has 74 production lines and 124 inline-test lines. The 815-line Rust domain type file gains the
+optional selector and folding/order policy, while the new queue domain owner has 27 lines.
+The Dart queue owner has 23 lines; the 540-line model, 587-line catalog mapper and 1,295-line viewport
+controller receive typed fields, mapping and scope-preserving composition. Changed dedicated Dart
+test owners have 89, 516 and 3,670 lines. Generated bridge output is excluded from handwritten counts.

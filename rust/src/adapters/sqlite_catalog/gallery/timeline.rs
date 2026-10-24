@@ -38,7 +38,8 @@ pub(crate) fn load_gallery_timeline(
                 "The gallery timeline item count exceeds the supported range",
             )
         })?;
-        if !matches!(query.sort_key, GallerySortKey::FileName) {
+        if query.organization_queue.is_none() && !matches!(query.sort_key, GallerySortKey::FileName)
+        {
             buckets.push(GalleryTimeBucket {
                 month_key,
                 item_count,
@@ -90,7 +91,7 @@ fn load_source_count(
 }
 
 fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
-    let order = gallery_order_expressions(&query.sort_key);
+    let order = gallery_order_expressions(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     push_gallery_filters(query, &mut clauses, &mut parameters);
@@ -100,7 +101,7 @@ fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
         format!("WHERE {}", clauses.join(" AND "))
     };
     let month = order.month.unwrap_or("NULL");
-    let direction = gallery_direction_sql(&query.sort_direction);
+    let direction = gallery_direction_sql(query.order_direction());
     BuiltGalleryQuery {
         sql: format!(
             "SELECT {month} AS month_key,

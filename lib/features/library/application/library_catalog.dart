@@ -4,6 +4,7 @@ import "../../../src/rust/api/catalog.dart" as rust_api;
 import "../../../src/rust/domain.dart" as rust_domain;
 import "../../../src/rust/domain/gallery_query_snapshot.dart" as rust_query;
 import "../../../src/rust/domain/gallery_time_snapshot.dart" as rust_time;
+import "../../../src/rust/domain/organization_queue.dart" as rust_organization;
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 import "../domain/library_query_snapshot.dart";
@@ -142,9 +143,13 @@ class RustLibraryCatalog
                 fallbackOrdinal: BigInt.from(anchor.fallbackGlobalItemIndex),
               ),
       );
+      final counts = result.organizationCounts;
       return LibraryQuerySnapshot(
         snapshot: _mapSnapshot(result.snapshot),
         timeline: _mapTimeline(result.timeline),
+        organizationCounts: counts == null
+            ? null
+            : mapRustOrganizationCounts(counts),
       );
     } on Object catch (error) {
       throw _mapFailure(error, "bridge_query_snapshot_load_failed");
@@ -459,6 +464,15 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
       LibraryAlbumCollection(:final albumId) =>
         rust_domain.GalleryCollection.album(albumId: albumId),
     },
+    organizationQueue: switch (query.organizationQueue) {
+      null => null,
+      LibraryOrganizationQueue.pending =>
+        rust_organization.OrganizationQueue.pending,
+      LibraryOrganizationQueue.deferred =>
+        rust_organization.OrganizationQueue.deferred_,
+      LibraryOrganizationQueue.ignored =>
+        rust_organization.OrganizationQueue.ignored,
+    },
     rootId: query.rootId,
     folderRelativePath: query.folderRelativePath,
     includeDescendants: query.includeDescendants,
@@ -485,6 +499,16 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
     },
   );
 }
+
+LibraryOrganizationCounts mapRustOrganizationCounts(
+  rust_organization.OrganizationCounts counts,
+) => LibraryOrganizationCounts(
+  total: counts.total.toInt(),
+  pending: counts.pending.toInt(),
+  deferred: counts.deferred_.toInt(),
+  organized: counts.organized.toInt(),
+  ignored: counts.ignored.toInt(),
+);
 
 LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
   final captureTime = asset.captureTime;

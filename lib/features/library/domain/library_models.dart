@@ -1,7 +1,9 @@
 import "library_gallery_collection.dart";
+import "library_organization_queue.dart";
 import "library_root_consolidation.dart";
 
 export "library_gallery_collection.dart";
+export "library_organization_queue.dart";
 export "library_root_consolidation.dart";
 
 class LibraryAsset {
@@ -239,6 +241,7 @@ enum LibraryGalleryDuplicateMode { all, merged }
 class LibraryGalleryQuery {
   const LibraryGalleryQuery({
     this.collection = const LibraryGalleryCollection.library(),
+    this.organizationQueue,
     this.rootId,
     this.folderRelativePath,
     this.includeDescendants = true,
@@ -251,6 +254,7 @@ class LibraryGalleryQuery {
   static const Object _unchanged = Object();
 
   final LibraryGalleryCollection collection;
+  final LibraryOrganizationQueue? organizationQueue;
   final String? rootId;
   final String? folderRelativePath;
   final bool includeDescendants;
@@ -259,14 +263,17 @@ class LibraryGalleryQuery {
   final LibraryGallerySortDirection sortDirection;
   final LibraryGalleryDuplicateMode duplicateMode;
 
-  bool get isChronological => sortKey != LibraryGallerySortKey.fileName;
+  bool get isChronological =>
+      organizationQueue == null && sortKey != LibraryGallerySortKey.fileName;
 
   bool get foldsDuplicates =>
+      organizationQueue != null ||
       collection is LibraryAlbumCollection ||
       duplicateMode == LibraryGalleryDuplicateMode.merged;
 
   LibraryGalleryQuery copyWith({
     LibraryGalleryCollection? collection,
+    Object? organizationQueue = _unchanged,
     Object? rootId = _unchanged,
     Object? folderRelativePath = _unchanged,
     bool? includeDescendants,
@@ -277,6 +284,9 @@ class LibraryGalleryQuery {
   }) {
     return LibraryGalleryQuery(
       collection: collection ?? this.collection,
+      organizationQueue: organizationQueue == _unchanged
+          ? this.organizationQueue
+          : organizationQueue as LibraryOrganizationQueue?,
       rootId: rootId == _unchanged ? this.rootId : rootId as String?,
       folderRelativePath: folderRelativePath == _unchanged
           ? this.folderRelativePath
@@ -292,6 +302,7 @@ class LibraryGalleryQuery {
   @override
   int get hashCode => Object.hash(
     collection,
+    organizationQueue,
     rootId,
     folderRelativePath,
     includeDescendants,
@@ -306,6 +317,7 @@ class LibraryGalleryQuery {
     return identical(this, other) ||
         other is LibraryGalleryQuery &&
             collection == other.collection &&
+            organizationQueue == other.organizationQueue &&
             rootId == other.rootId &&
             folderRelativePath == other.folderRelativePath &&
             includeDescendants == other.includeDescendants &&

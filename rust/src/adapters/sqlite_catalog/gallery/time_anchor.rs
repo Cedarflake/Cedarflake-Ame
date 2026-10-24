@@ -16,11 +16,11 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
     query_id: &str,
     anchor: &GalleryTimeAnchor,
 ) -> Result<CatalogCursor, ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
+    let order = gallery_order_expressions(query);
     let Some(month_expression) = order.month else {
         return Err(ScanError::new(
             "catalog_time_anchor_unavailable",
-            "Name-sorted gallery results do not have a chronological time anchor",
+            "The selected gallery ordering does not have a chronological time anchor",
         ));
     };
     let mut clauses = Vec::new();
@@ -61,7 +61,7 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
         "gallery time-anchor item offset",
     )?;
     parameters.push(Value::Integer(preceding_offset));
-    let direction = gallery_direction_sql(&query.sort_direction);
+    let direction = gallery_direction_sql(query.order_direction());
     let sql = format!(
         "SELECT locations.asset_id, locations.location_id, locations.root_id,
                 locations.scan_id,

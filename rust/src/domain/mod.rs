@@ -3,6 +3,7 @@ use std::fmt::{Display, Formatter};
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub mod organization;
+pub mod organization_queue;
 pub use exact_duplicates::{
     DuplicateLocationAvailability, ExactAnalysisPhase, ExactAnalysisProgress, ExactDuplicateGroup,
     ExactDuplicateGroupCursor, ExactDuplicateGroupPage, ExactDuplicateLocation,
@@ -454,6 +455,7 @@ pub enum GalleryCollection {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GalleryQuery {
     pub collection: GalleryCollection,
+    pub organization_queue: Option<organization_queue::OrganizationQueue>,
     pub root_id: Option<String>,
     pub folder_relative_path: Option<String>,
     pub include_descendants: bool,
@@ -467,6 +469,7 @@ impl Default for GalleryQuery {
     fn default() -> Self {
         Self {
             collection: GalleryCollection::Library,
+            organization_queue: None,
             root_id: None,
             folder_relative_path: None,
             include_descendants: true,
@@ -480,8 +483,17 @@ impl Default for GalleryQuery {
 
 impl GalleryQuery {
     pub fn folds_duplicates(&self) -> bool {
-        matches!(self.collection, GalleryCollection::Album { .. })
+        self.organization_queue.is_some()
+            || matches!(self.collection, GalleryCollection::Album { .. })
             || self.duplicate_mode == GalleryDuplicateMode::Merged
+    }
+
+    pub(crate) fn order_direction(&self) -> &GallerySortDirection {
+        if self.organization_queue.is_some() {
+            &GallerySortDirection::Descending
+        } else {
+            &self.sort_direction
+        }
     }
 }
 

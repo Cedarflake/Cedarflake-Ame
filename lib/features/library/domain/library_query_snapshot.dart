@@ -13,8 +13,13 @@ class LibraryQueryAnchor {
 }
 
 class LibraryQuerySnapshot {
-  const LibraryQuerySnapshot({required this.snapshot, required this.timeline});
+  const LibraryQuerySnapshot({
+    required this.snapshot,
+    required this.timeline,
+    this.organizationCounts,
+  });
 
   final LibrarySnapshot snapshot;
   final LibraryTimeline timeline;
+  final LibraryOrganizationCounts? organizationCounts;
 }

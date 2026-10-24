@@ -98,7 +98,7 @@ fn resolve_gallery_anchor(
     query_id: &str,
     request: GalleryAnchorRequest<'_>,
 ) -> Result<(GalleryLocationAnchorResolution, Option<CatalogCursor>), ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
+    let order = gallery_order_expressions(query);
     let representative = if request.anchor_column == "locations.location_id" {
         super::duplicates::representative_for_anchor(
             transaction,
@@ -177,12 +177,13 @@ fn resolve_gallery_anchor(
     push_cursor_filter(
         &anchor,
         &order,
-        &query.sort_direction,
+        query.order_direction(),
         true,
         &mut preceding_clauses,
         &mut preceding_parameters,
     );
-    if !anchor.primary_missing
+    if query.organization_queue.is_none()
+        && !anchor.primary_missing
         && matches!(
             query.sort_key,
             GallerySortKey::CaptureTime | GallerySortKey::CreatedTime
@@ -190,7 +191,7 @@ fn resolve_gallery_anchor(
     {
         // The exact cursor predicate keeps ties; these equivalent bounds let the
         // ordered index exclude dates outside the preceding range.
-        let comparison = gallery_cursor_comparison(&query.sort_direction, true);
+        let comparison = gallery_cursor_comparison(query.order_direction(), true);
         preceding_clauses.push(format!(
             "{} = 0 AND {} {comparison}= ?",
             order.missing, order.text
@@ -222,7 +223,7 @@ fn resolve_gallery_anchor(
         None
     } else {
         let reverse_offset = ordinal.saturating_sub(window_start_ordinal);
-        let reverse_direction = gallery_window_direction_sql(&query.sort_direction, true);
+        let reverse_direction = gallery_window_direction_sql(query.order_direction(), true);
         let reverse_offset = sqlite_integer(reverse_offset, "gallery location anchor offset")?;
         let predecessor_sql = format!(
             "SELECT locations.root_id, locations.location_id,
@@ -279,7 +280,7 @@ fn gallery_cursor_at_ordinal(
     query_id: &str,
     requested_ordinal: u64,
 ) -> Result<Option<CatalogCursor>, ScanError> {
-    let order = gallery_order_expressions(&query.sort_key);
+    let order = gallery_order_expressions(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     push_gallery_filters(query, &mut clauses, &mut parameters);
@@ -314,7 +315,7 @@ fn gallery_cursor_at_ordinal(
         ordinal,
         "gallery asset fallback ordinal",
     )?));
-    let direction = gallery_direction_sql(&query.sort_direction);
+    let direction = gallery_direction_sql(query.order_direction());
     let sql = format!(
         "SELECT locations.root_id, locations.location_id,
                 {missing}, {text}, {number}

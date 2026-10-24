@@ -1002,7 +1002,10 @@ class LibraryViewportController {
       _state.assets.where((asset) => asset.rootId != removedRoot.id),
     );
     final query = _state.query.rootId == removedRoot.id
-        ? LibraryGalleryQuery(collection: _state.query.collection)
+        ? LibraryGalleryQuery(
+            collection: _state.query.collection,
+            organizationQueue: _state.query.organizationQueue,
+          )
         : _state.query;
     _retainedWindow.reset(
       assets: assets,

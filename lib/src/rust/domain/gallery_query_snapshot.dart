@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
+import 'organization_queue.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class GalleryQueryAnchor {
@@ -37,11 +38,17 @@ class GalleryQueryAnchor {
 class GalleryQuerySnapshot {
   final CatalogSnapshot snapshot;
   final GalleryTimeline timeline;
+  final OrganizationCounts? organizationCounts;
 
-  const GalleryQuerySnapshot({required this.snapshot, required this.timeline});
+  const GalleryQuerySnapshot({
+    required this.snapshot,
+    required this.timeline,
+    this.organizationCounts,
+  });
 
   @override
-  int get hashCode => snapshot.hashCode ^ timeline.hashCode;
+  int get hashCode =>
+      snapshot.hashCode ^ timeline.hashCode ^ organizationCounts.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -49,5 +56,6 @@ class GalleryQuerySnapshot {
       other is GalleryQuerySnapshot &&
           runtimeType == other.runtimeType &&
           snapshot == other.snapshot &&
-          timeline == other.timeline;
+          timeline == other.timeline &&
+          organizationCounts == other.organizationCounts;
 }

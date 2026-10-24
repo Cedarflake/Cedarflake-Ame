@@ -8,6 +8,7 @@ use super::transitions::{change, create_album};
 use super::*;
 
 mod evolution;
+mod queues;
 
 fn album_query(album_id: &str) -> GalleryQuery {
     GalleryQuery {

@@ -11,6 +11,66 @@ import "../support/fixed_query_projection.dart";
 
 void main() {
   test(
+    "a superseded queue read cannot publish its older organization counts",
+    () async {
+      const olderCounts = LibraryOrganizationCounts(
+        total: 1,
+        pending: 0,
+        deferred: 1,
+        organized: 0,
+        ignored: 0,
+      );
+      const currentCounts = LibraryOrganizationCounts(
+        total: 1,
+        pending: 0,
+        deferred: 0,
+        organized: 0,
+        ignored: 1,
+      );
+      final pending = Completer<LibraryQuerySnapshot>();
+      final current = _querySnapshot(8, queryId: "deferred");
+      final reader = LibraryQuerySnapshotReader(
+        _AtomicCatalog([
+          pending.future,
+          Future.value(
+            LibraryQuerySnapshot(
+              snapshot: current.snapshot,
+              timeline: current.timeline,
+              organizationCounts: currentCounts,
+            ),
+          ),
+        ]),
+      );
+      var generation = 1;
+      final oldRead = reader.loadCurrent(
+        query: const LibraryGalleryQuery(
+          organizationQueue: LibraryOrganizationQueue.pending,
+        ),
+        anchor: null,
+        canPublish: () => generation == 1,
+      );
+      generation = 2;
+      final newRead = await reader.loadCurrent(
+        query: const LibraryGalleryQuery(
+          organizationQueue: LibraryOrganizationQueue.deferred,
+        ),
+        anchor: null,
+        canPublish: () => generation == 2,
+      );
+      final previous = _querySnapshot(7, queryId: "pending");
+      pending.complete(
+        LibraryQuerySnapshot(
+          snapshot: previous.snapshot,
+          timeline: previous.timeline,
+          organizationCounts: olderCounts,
+        ),
+      );
+      expect(newRead?.organizationCounts, same(currentCounts));
+      expect(await oldRead, isNull);
+    },
+  );
+
+  test(
     "later input rejects the obsolete anchored page before publication",
     () async {
       final pending = Completer<LibraryQuerySnapshot>();

@@ -1,3 +1,4 @@
+use crate::domain::organization_queue::OrganizationQueue;
 use crate::domain::{GalleryCollection, GalleryQuery, GallerySortDirection, GallerySortKey};
 
 pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
@@ -5,7 +6,13 @@ pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
     query.folder_relative_path = query
         .folder_relative_path
         .map(|folder| normalize_relative_folder(&folder));
-    if matches!(query.collection, GalleryCollection::Album { .. }) {
+    if query.organization_queue.is_some() {
+        query.sort_key = GallerySortKey::ModifiedTime;
+        query.sort_direction = GallerySortDirection::Descending;
+    }
+    if query.organization_queue.is_some()
+        || matches!(query.collection, GalleryCollection::Album { .. })
+    {
         query.duplicate_mode = crate::domain::GalleryDuplicateMode::Merged;
     }
     query
@@ -17,7 +24,13 @@ pub(super) fn normalize_relative_folder(folder: &str) -> String {
 
 pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
     let mut hasher = blake3::Hasher::new();
-    hasher.update(b"ame-gallery-query-v3\0");
+    hasher.update(b"ame-gallery-query-v4\0");
+    hasher.update(&[match query.organization_queue {
+        None => 0,
+        Some(OrganizationQueue::Pending) => 1,
+        Some(OrganizationQueue::Deferred) => 2,
+        Some(OrganizationQueue::Ignored) => 3,
+    }]);
     match &query.collection {
         GalleryCollection::Library => {
             hasher.update(&[0]);
@@ -62,6 +75,36 @@ fn update_query_identity(hasher: &mut blake3::Hasher, value: &str) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn queue_identity_separates_progress_scopes_and_normalizes_only_queue_ordering() {
+        let ordinary = GalleryQuery {
+            sort_key: GallerySortKey::FileName,
+            sort_direction: GallerySortDirection::Ascending,
+            ..GalleryQuery::default()
+        };
+        let mut identities = std::collections::HashSet::new();
+        identities.insert(gallery_query_identity(&ordinary));
+        for queue in [
+            OrganizationQueue::Pending,
+            OrganizationQueue::Deferred,
+            OrganizationQueue::Ignored,
+        ] {
+            let first = normalize_gallery_query(GalleryQuery {
+                organization_queue: Some(queue),
+                ..ordinary.clone()
+            });
+            let second = normalize_gallery_query(GalleryQuery {
+                organization_queue: Some(queue),
+                ..GalleryQuery::default()
+            });
+            assert_eq!(first, second);
+            assert!(first.folds_duplicates());
+            identities.insert(gallery_query_identity(&first));
+        }
+        assert_eq!(identities.len(), 4);
+        assert_eq!(normalize_gallery_query(ordinary.clone()), ordinary);
+    }
 
     #[test]
     fn collection_identity_separates_albums_favorites_and_library_cursors() {

@@ -37,7 +37,7 @@ pub(in super::super) fn validate_collection(
 
 // Retained display evidence preserves browsing during verification, but cannot
 // admit commands. The organization command owner still requires current evidence.
-fn group_expression(location: &str) -> String {
+pub(super) fn record_expression(location: &str) -> String {
     let compatible = compatible_fingerprint(location);
     let bound = compatible_binding(location);
     format!(
@@ -51,6 +51,18 @@ fn group_expression(location: &str) -> String {
                AND binding.byte_length = f.byte_length
            CROSS JOIN organization_record_groups AS mapping ON mapping.record_id = binding.record_id
            WHERE {compatible} AND binding.digest IS NOT NULL LIMIT 1))"
+    )
+}
+
+fn group_expression(location: &str) -> String {
+    let record = record_expression(location);
+    let compatible = compatible_fingerprint(location);
+    format!(
+        "COALESCE(
+           'record:' || {record},
+           (SELECT printf('content:%s:%s:%lld', f.scheme, f.digest, f.byte_length)
+            FROM {DISPLAY_FINGERPRINTS} WHERE {compatible}),
+           printf('version:%s:%lld', {location}.asset_id, {location}.source_generation))"
     )
 }
 
@@ -91,7 +103,7 @@ pub(super) fn push_collection_filter(
             "record.album_id = ? AND record.disposition = 'organized'"
         }
     };
-    let group = group_expression("locations");
+    let group = record_expression("locations");
     clauses.push(format!(
         "EXISTS(SELECT 1 FROM organization_records AS record
          WHERE record.record_id = {group} AND {condition})"
@@ -105,6 +117,9 @@ pub(super) fn push_group_filter(
 ) {
     let mut scope = Vec::new();
     push_source_filters(query, &mut scope, parameters);
+    if scope.is_empty() {
+        scope.push("1".to_owned());
+    }
     let joins = representative_joins();
     let representative = representative_expression("locations");
     let group = group_expression("locations");

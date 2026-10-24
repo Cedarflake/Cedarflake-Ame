@@ -6,6 +6,7 @@
 import '../domain.dart';
 import '../domain/gallery_query_snapshot.dart';
 import '../domain/gallery_time_snapshot.dart';
+import '../domain/organization_queue.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 

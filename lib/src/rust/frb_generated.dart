@@ -23,6 +23,7 @@ import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
 import 'domain/organization.dart';
+import 'domain/organization_queue.dart';
 import 'domain/persistent_journal.dart';
 import 'frb_generated.dart';
 import 'frb_generated.io.dart'
@@ -2625,10 +2626,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCounts dco_decode_box_autoadd_organization_counts(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_organization_counts(raw);
+  }
+
+  @protected
   OrganizationPreparedSelection
   dco_decode_box_autoadd_organization_prepared_selection(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_organization_prepared_selection(raw);
+  }
+
+  @protected
+  OrganizationQueue dco_decode_box_autoadd_organization_queue(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_organization_queue(raw);
   }
 
   @protected
@@ -3186,17 +3199,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryQuery dco_decode_gallery_query(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 8)
-      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
     return GalleryQuery(
       collection: dco_decode_gallery_collection(arr[0]),
-      rootId: dco_decode_opt_String(arr[1]),
-      folderRelativePath: dco_decode_opt_String(arr[2]),
-      includeDescendants: dco_decode_bool(arr[3]),
-      searchText: dco_decode_String(arr[4]),
-      sortKey: dco_decode_gallery_sort_key(arr[5]),
-      sortDirection: dco_decode_gallery_sort_direction(arr[6]),
-      duplicateMode: dco_decode_gallery_duplicate_mode(arr[7]),
+      organizationQueue: dco_decode_opt_box_autoadd_organization_queue(arr[1]),
+      rootId: dco_decode_opt_String(arr[2]),
+      folderRelativePath: dco_decode_opt_String(arr[3]),
+      includeDescendants: dco_decode_bool(arr[4]),
+      searchText: dco_decode_String(arr[5]),
+      sortKey: dco_decode_gallery_sort_key(arr[6]),
+      sortDirection: dco_decode_gallery_sort_direction(arr[7]),
+      duplicateMode: dco_decode_gallery_duplicate_mode(arr[8]),
     );
   }
 
@@ -3217,11 +3231,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryQuerySnapshot dco_decode_gallery_query_snapshot(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 2)
-      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
     return GalleryQuerySnapshot(
       snapshot: dco_decode_catalog_snapshot(arr[0]),
       timeline: dco_decode_gallery_timeline(arr[1]),
+      organizationCounts: dco_decode_opt_box_autoadd_organization_counts(
+        arr[2],
+      ),
     );
   }
 
@@ -3744,6 +3761,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCounts? dco_decode_opt_box_autoadd_organization_counts(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_organization_counts(raw);
+  }
+
+  @protected
+  OrganizationQueue? dco_decode_opt_box_autoadd_organization_queue(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_organization_queue(raw);
+  }
+
+  @protected
   RecoverableScan? dco_decode_opt_box_autoadd_recoverable_scan(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw == null ? null : dco_decode_box_autoadd_recoverable_scan(raw);
@@ -3832,6 +3865,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCounts dco_decode_organization_counts(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return OrganizationCounts(
+      total: dco_decode_u_64(arr[0]),
+      pending: dco_decode_u_64(arr[1]),
+      deferred_: dco_decode_u_64(arr[2]),
+      organized: dco_decode_u_64(arr[3]),
+      ignored: dco_decode_u_64(arr[4]),
+    );
+  }
+
+  @protected
   OrganizationGroupKey dco_decode_organization_group_key(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
@@ -3878,6 +3926,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       selections: dco_decode_list_organization_selection(arr[2]),
       groups: dco_decode_list_organization_group_target(arr[3]),
     );
+  }
+
+  @protected
+  OrganizationQueue dco_decode_organization_queue(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return OrganizationQueue.values[raw as int];
   }
 
   @protected
@@ -4538,12 +4592,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCounts sse_decode_box_autoadd_organization_counts(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_organization_counts(deserializer));
+  }
+
+  @protected
   OrganizationPreparedSelection
   sse_decode_box_autoadd_organization_prepared_selection(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_organization_prepared_selection(deserializer));
+  }
+
+  @protected
+  OrganizationQueue sse_decode_box_autoadd_organization_queue(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_organization_queue(deserializer));
   }
 
   @protected
@@ -5209,6 +5279,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryQuery sse_decode_gallery_query(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_collection = sse_decode_gallery_collection(deserializer);
+    var var_organizationQueue = sse_decode_opt_box_autoadd_organization_queue(
+      deserializer,
+    );
     var var_rootId = sse_decode_opt_String(deserializer);
     var var_folderRelativePath = sse_decode_opt_String(deserializer);
     var var_includeDescendants = sse_decode_bool(deserializer);
@@ -5218,6 +5291,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_duplicateMode = sse_decode_gallery_duplicate_mode(deserializer);
     return GalleryQuery(
       collection: var_collection,
+      organizationQueue: var_organizationQueue,
       rootId: var_rootId,
       folderRelativePath: var_folderRelativePath,
       includeDescendants: var_includeDescendants,
@@ -5250,7 +5324,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_snapshot = sse_decode_catalog_snapshot(deserializer);
     var var_timeline = sse_decode_gallery_timeline(deserializer);
-    return GalleryQuerySnapshot(snapshot: var_snapshot, timeline: var_timeline);
+    var var_organizationCounts = sse_decode_opt_box_autoadd_organization_counts(
+      deserializer,
+    );
+    return GalleryQuerySnapshot(
+      snapshot: var_snapshot,
+      timeline: var_timeline,
+      organizationCounts: var_organizationCounts,
+    );
   }
 
   @protected
@@ -6011,6 +6092,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCounts? sse_decode_opt_box_autoadd_organization_counts(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_organization_counts(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  OrganizationQueue? sse_decode_opt_box_autoadd_organization_queue(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_organization_queue(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   RecoverableScan? sse_decode_opt_box_autoadd_recoverable_scan(
     SseDeserializer deserializer,
   ) {
@@ -6128,6 +6235,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCounts sse_decode_organization_counts(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_total = sse_decode_u_64(deserializer);
+    var var_pending = sse_decode_u_64(deserializer);
+    var var_deferred_ = sse_decode_u_64(deserializer);
+    var var_organized = sse_decode_u_64(deserializer);
+    var var_ignored = sse_decode_u_64(deserializer);
+    return OrganizationCounts(
+      total: var_total,
+      pending: var_pending,
+      deferred_: var_deferred_,
+      organized: var_organized,
+      ignored: var_ignored,
+    );
+  }
+
+  @protected
   OrganizationGroupKey sse_decode_organization_group_key(
     SseDeserializer deserializer,
   ) {
@@ -6186,6 +6312,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       selections: var_selections,
       groups: var_groups,
     );
+  }
+
+  @protected
+  OrganizationQueue sse_decode_organization_queue(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return OrganizationQueue.values[inner];
   }
 
   @protected
@@ -6974,12 +7109,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_organization_counts(
+    OrganizationCounts self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_counts(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_organization_prepared_selection(
     OrganizationPreparedSelection self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_organization_prepared_selection(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_organization_queue(
+    OrganizationQueue self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_queue(self, serializer);
   }
 
   @protected
@@ -7505,6 +7658,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_gallery_query(GalleryQuery self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_gallery_collection(self.collection, serializer);
+    sse_encode_opt_box_autoadd_organization_queue(
+      self.organizationQueue,
+      serializer,
+    );
     sse_encode_opt_String(self.rootId, serializer);
     sse_encode_opt_String(self.folderRelativePath, serializer);
     sse_encode_bool(self.includeDescendants, serializer);
@@ -7533,6 +7690,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_catalog_snapshot(self.snapshot, serializer);
     sse_encode_gallery_timeline(self.timeline, serializer);
+    sse_encode_opt_box_autoadd_organization_counts(
+      self.organizationCounts,
+      serializer,
+    );
   }
 
   @protected
@@ -8181,6 +8342,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_organization_counts(
+    OrganizationCounts? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_organization_counts(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_organization_queue(
+    OrganizationQueue? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_organization_queue(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_recoverable_scan(
     RecoverableScan? self,
     SseSerializer serializer,
@@ -8281,6 +8468,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_organization_counts(
+    OrganizationCounts self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.total, serializer);
+    sse_encode_u_64(self.pending, serializer);
+    sse_encode_u_64(self.deferred_, serializer);
+    sse_encode_u_64(self.organized, serializer);
+    sse_encode_u_64(self.ignored, serializer);
+  }
+
+  @protected
   void sse_encode_organization_group_key(
     OrganizationGroupKey self,
     SseSerializer serializer,
@@ -8326,6 +8526,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.organizationRevision, serializer);
     sse_encode_list_organization_selection(self.selections, serializer);
     sse_encode_list_organization_group_target(self.groups, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_queue(
+    OrganizationQueue self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
   }
 
   @protected

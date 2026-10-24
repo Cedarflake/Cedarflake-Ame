@@ -24,6 +24,7 @@ import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
 import 'domain/organization.dart';
+import 'domain/organization_queue.dart';
 import 'domain/persistent_journal.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_io.dart';
@@ -151,8 +152,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationAction dco_decode_box_autoadd_organization_action(dynamic raw);
 
   @protected
+  OrganizationCounts dco_decode_box_autoadd_organization_counts(dynamic raw);
+
+  @protected
   OrganizationPreparedSelection
   dco_decode_box_autoadd_organization_prepared_selection(dynamic raw);
+
+  @protected
+  OrganizationQueue dco_decode_box_autoadd_organization_queue(dynamic raw);
 
   @protected
   PreviewRequest dco_decode_box_autoadd_preview_request(dynamic raw);
@@ -546,6 +553,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCounts? dco_decode_opt_box_autoadd_organization_counts(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationQueue? dco_decode_opt_box_autoadd_organization_queue(dynamic raw);
+
+  @protected
   RecoverableScan? dco_decode_opt_box_autoadd_recoverable_scan(dynamic raw);
 
   @protected
@@ -572,6 +587,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationAlbumReceipt dco_decode_organization_album_receipt(dynamic raw);
 
   @protected
+  OrganizationCounts dco_decode_organization_counts(dynamic raw);
+
+  @protected
   OrganizationGroupKey dco_decode_organization_group_key(dynamic raw);
 
   @protected
@@ -581,6 +599,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationPreparedSelection dco_decode_organization_prepared_selection(
     dynamic raw,
   );
+
+  @protected
+  OrganizationQueue dco_decode_organization_queue(dynamic raw);
 
   @protected
   OrganizationSelection dco_decode_organization_selection(dynamic raw);
@@ -790,8 +811,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCounts sse_decode_box_autoadd_organization_counts(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationPreparedSelection
   sse_decode_box_autoadd_organization_prepared_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationQueue sse_decode_box_autoadd_organization_queue(
     SseDeserializer deserializer,
   );
 
@@ -1285,6 +1316,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCounts? sse_decode_opt_box_autoadd_organization_counts(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationQueue? sse_decode_opt_box_autoadd_organization_queue(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RecoverableScan? sse_decode_opt_box_autoadd_recoverable_scan(
     SseDeserializer deserializer,
   );
@@ -1319,6 +1360,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCounts sse_decode_organization_counts(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationGroupKey sse_decode_organization_group_key(
     SseDeserializer deserializer,
   );
@@ -1332,6 +1378,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationPreparedSelection sse_decode_organization_prepared_selection(
     SseDeserializer deserializer,
   );
+
+  @protected
+  OrganizationQueue sse_decode_organization_queue(SseDeserializer deserializer);
 
   @protected
   OrganizationSelection sse_decode_organization_selection(
@@ -1583,8 +1632,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_organization_counts(
+    OrganizationCounts self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_organization_prepared_selection(
     OrganizationPreparedSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_queue(
+    OrganizationQueue self,
     SseSerializer serializer,
   );
 
@@ -2189,6 +2250,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_organization_counts(
+    OrganizationCounts? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_organization_queue(
+    OrganizationQueue? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_recoverable_scan(
     RecoverableScan? self,
     SseSerializer serializer,
@@ -2231,6 +2304,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_organization_counts(
+    OrganizationCounts self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_organization_group_key(
     OrganizationGroupKey self,
     SseSerializer serializer,
@@ -2245,6 +2324,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_prepared_selection(
     OrganizationPreparedSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_queue(
+    OrganizationQueue self,
     SseSerializer serializer,
   );
 

@@ -11,4 +11,5 @@ pub struct GalleryQueryAnchor {
 pub struct GalleryQuerySnapshot {
     pub snapshot: CatalogSnapshot,
     pub timeline: GalleryTimeline,
+    pub organization_counts: Option<super::organization_queue::OrganizationCounts>,
 }
