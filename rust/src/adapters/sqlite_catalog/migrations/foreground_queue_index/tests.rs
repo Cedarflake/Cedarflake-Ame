@@ -91,9 +91,25 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "gallery_content_fingerprints",
                 "gallery_retained_fingerprints",
                 "library_metadata_fallbacks",
+                "organization_albums",
+                "organization_bindings",
+                "organization_conflicts",
+                "organization_operation_changes",
+                "organization_operations",
+                "organization_records",
+                "organization_sources",
+                "organization_record_groups",
+                "organization_album_retirements",
+                "organization_album_operation_changes",
+                "organization_operation_conflicts",
+                "organization_operation_targets",
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }
+            assert_eq!(
+                after.remove("organization_state"),
+                Some(vec![vec![Value::Integer(1), Value::Integer(0)]]),
+            );
             assert_eq!(after, before);
         }
     }

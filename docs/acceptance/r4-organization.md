@@ -92,4 +92,58 @@ tests contain 148 lines. The 3,503-line catalog facade gains only module registr
 version. The existing migration facade has 6,387 lines: 3,253 before its historical fixture helper,
 844 helper lines and 2,290 inline-test lines. It gains only registration and migration calls.
 Existing dedicated scan/change tests contain 5,521 and 3,804 lines; each changes only its expected
-current schema version. Hosted checks for the new implementation remain pending publication.
+current schema version.
+
+The [hosted run for `975f6a9`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40045644971)
+passed 12 workload jobs and failed Schema and Queue and Rust Remaining. The failures were the
+source-topology contract missing the new domain module, a current-schema assertion retaining 46,
+and a historical upgrade snapshot not accounting for the new empty organization tables and initial
+state row. The repairs retain exact module declarations, rejecting alternate loaders, full retained
+row comparison and terminal-spool behavior. The subsequent implementation needs its own hosted run.
+
+## Album transitions and undo foundation - 2026-10-24
+
+Schema 48 adds direct lineage-to-group mappings, retired album metadata, prior album/conflict state
+and complete operation-target receipts. The forward migration retains existing records and field
+revisions, backfills self mappings and undo targets, and rejects incomplete or cyclic relationships.
+Deleting a record retains only the opaque undo-target reference needed to reject a partial undo.
+
+Album create, rename, retirement and whole-group assignment share revision-checked operation
+receipts. Assignment commits organized state; deliberate removal and album retirement commit ignored
+state. Defer and restore-to-pending use the same transaction owner. Favorites retain their independent
+revision. Album reads use 64-entry keyset pages with a coherent total and organization revision.
+
+Undo validates every affected field and current compatible content binding before restoring its
+previous value. Later favorites survive organization undo. Later organization decisions, replaced
+content, removed targets, retired destinations and conflicting album names reject restoration.
+Album retirement can be undone atomically with its assignments; undoing album creation cannot
+discard later members. Exact retries return the original receipt and mismatched payloads fail.
+
+Focused serial diagnostics passed 25 organization cases, including six undo cases, followed by four
+schema-48 migration and integrity cases. These cover cross-root whole-group assignment, all four
+states, album paging, failures and rollback, independent favorites, name collisions, retirement,
+reopen/retry and missing-target rejection. Fixtures contain derived catalogs only; no real-library
+media or original catalog was opened. Group evolution, source lifecycle, query integration and the
+desktop workflow are still unverified and remain required by the execution plan.
+
+The nine source-availability contract cases, terminal-spool regression and historical schema-33
+upgrade/reopen case also passed after the CI repairs. The upgrade comparison explicitly requires
+every added organization table to be empty and the state row to start at zero while comparing all
+retained tables unchanged. The module contract includes the public organization declaration and
+rejects missing, duplicate, conditional, inline and redirected alternatives.
+
+The adapter facade has 144 production lines and a two-line test-module declaration. Its album,
+transition, receipt, undo and undo-album owners have 227, 91, 100, 143 and 71 production lines, with
+no inline tests. Dedicated transition/undo modules have 263 and 233 lines. The schema-48 owner has
+128 production lines, 13 test-helper lines and a test-module declaration; its dedicated tests have
+177 lines. The existing migration facade has 3,256 lines before test helpers, 844 helper lines and
+2,290 inline-test lines; its production change is registration and migration dispatch only.
+The source-availability facade has 2,629 lines before its test module and 3,344 inline-test lines;
+only its exact test contract changes. Dedicated topology, historical-upgrade and spool-retirement
+tests have 422, 229 and 314 lines respectively.
+
+Canonical bridge generation and the accompanying Release library build passed (38.62 seconds for
+the Rust Release build). Rust and Dart both advertise content hash `-529801428`. The generated
+changes are limited to organization types/endpoints and the corresponding bridge dispatch code.
+The new implementation's hosted checks remain pending publication; no desktop interaction has
+been accepted by these internal diagnostics.

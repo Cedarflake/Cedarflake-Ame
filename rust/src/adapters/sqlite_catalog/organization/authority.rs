@@ -41,45 +41,58 @@ pub(super) fn favorite_request(prepared: &OrganizationPreparedSelection, favorit
     let mut hasher = blake3::Hasher::new();
     field(&mut hasher, b"ame-organization-favorite-v1");
     field(&mut hasher, &[u8::from(favorite)]);
-    field(&mut hasher, &prepared.catalog_revision.to_le_bytes());
-    field(&mut hasher, &prepared.organization_revision.to_le_bytes());
-    field(
-        &mut hasher,
-        &(prepared.selections.len() as u64).to_le_bytes(),
-    );
+    prepared_fields(&mut hasher, prepared);
+    hasher.finalize().to_hex().to_string()
+}
+
+pub(super) fn change_request(
+    prepared: &OrganizationPreparedSelection,
+    action: &crate::domain::organization::OrganizationAction,
+) -> String {
+    let mut hasher = blake3::Hasher::new();
+    field(&mut hasher, b"ame-organization-change-v1");
+    field(&mut hasher, action.request_name().as_bytes());
+    field(&mut hasher, action.decision().1.unwrap_or("").as_bytes());
+    prepared_fields(&mut hasher, prepared);
+    hasher.finalize().to_hex().to_string()
+}
+
+fn prepared_fields(hasher: &mut blake3::Hasher, prepared: &OrganizationPreparedSelection) {
+    field(hasher, &prepared.catalog_revision.to_le_bytes());
+    field(hasher, &prepared.organization_revision.to_le_bytes());
+    field(hasher, &(prepared.selections.len() as u64).to_le_bytes());
     for selection in &prepared.selections {
-        field(&mut hasher, selection.asset_id.as_bytes());
-        field(&mut hasher, selection.location_id.as_bytes());
-        field(&mut hasher, &selection.source_generation.to_le_bytes());
+        field(hasher, selection.asset_id.as_bytes());
+        field(hasher, selection.location_id.as_bytes());
+        field(hasher, &selection.source_generation.to_le_bytes());
     }
-    field(&mut hasher, &(prepared.groups.len() as u64).to_le_bytes());
+    field(hasher, &(prepared.groups.len() as u64).to_le_bytes());
     for group in &prepared.groups {
         match &group.key {
             OrganizationGroupKey::Confirmed {
                 digest,
                 byte_length,
             } => {
-                field(&mut hasher, b"confirmed");
-                field(&mut hasher, digest.as_bytes());
-                field(&mut hasher, &byte_length.to_le_bytes());
+                field(hasher, b"confirmed");
+                field(hasher, digest.as_bytes());
+                field(hasher, &byte_length.to_le_bytes());
             }
             OrganizationGroupKey::Provisional {
                 asset_id,
                 source_generation,
             } => {
-                field(&mut hasher, b"provisional");
-                field(&mut hasher, asset_id.as_bytes());
-                field(&mut hasher, &source_generation.to_le_bytes());
+                field(hasher, b"provisional");
+                field(hasher, asset_id.as_bytes());
+                field(hasher, &source_generation.to_le_bytes());
             }
         }
-        field(&mut hasher, group.representative.asset_id.as_bytes());
-        field(&mut hasher, group.representative.location_id.as_bytes());
+        field(hasher, group.representative.asset_id.as_bytes());
+        field(hasher, group.representative.location_id.as_bytes());
         field(
-            &mut hasher,
+            hasher,
             &group.representative.source_generation.to_le_bytes(),
         );
-        field(&mut hasher, &group.location_count.to_le_bytes());
-        field(&mut hasher, group.membership_authority.as_bytes());
+        field(hasher, &group.location_count.to_le_bytes());
+        field(hasher, group.membership_authority.as_bytes());
     }
-    hasher.finalize().to_hex().to_string()
 }

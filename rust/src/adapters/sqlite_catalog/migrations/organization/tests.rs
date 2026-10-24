@@ -107,7 +107,7 @@ fn derived_asset_removal_cannot_cascade_to_durable_decisions() {
 #[test]
 fn altered_organization_schema_is_rejected_before_current_queries() {
     let mut connection = prior_catalog();
-    migrate(&mut connection).unwrap();
+    super::super::migrate_schema(&mut connection).unwrap();
     connection
         .execute_batch("DROP INDEX organization_bindings_content")
         .unwrap();

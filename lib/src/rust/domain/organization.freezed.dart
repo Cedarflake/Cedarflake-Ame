@@ -12,6 +12,378 @@ part of 'organization.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$OrganizationAction {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'OrganizationAction()';
+}
+
+
+}
+
+/// @nodoc
+class $OrganizationActionCopyWith<$Res>  {
+$OrganizationActionCopyWith(OrganizationAction _, $Res Function(OrganizationAction) __);
+}
+
+
+/// Adds pattern-matching-related methods to [OrganizationAction].
+extension OrganizationActionPatterns on OrganizationAction {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( OrganizationAction_AssignAlbum value)?  assignAlbum,TResult Function( OrganizationAction_RemoveAlbum value)?  removeAlbum,TResult Function( OrganizationAction_Defer value)?  defer,TResult Function( OrganizationAction_Ignore value)?  ignore,TResult Function( OrganizationAction_RestorePending value)?  restorePending,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case OrganizationAction_AssignAlbum() when assignAlbum != null:
+return assignAlbum(_that);case OrganizationAction_RemoveAlbum() when removeAlbum != null:
+return removeAlbum(_that);case OrganizationAction_Defer() when defer != null:
+return defer(_that);case OrganizationAction_Ignore() when ignore != null:
+return ignore(_that);case OrganizationAction_RestorePending() when restorePending != null:
+return restorePending(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( OrganizationAction_AssignAlbum value)  assignAlbum,required TResult Function( OrganizationAction_RemoveAlbum value)  removeAlbum,required TResult Function( OrganizationAction_Defer value)  defer,required TResult Function( OrganizationAction_Ignore value)  ignore,required TResult Function( OrganizationAction_RestorePending value)  restorePending,}){
+final _that = this;
+switch (_that) {
+case OrganizationAction_AssignAlbum():
+return assignAlbum(_that);case OrganizationAction_RemoveAlbum():
+return removeAlbum(_that);case OrganizationAction_Defer():
+return defer(_that);case OrganizationAction_Ignore():
+return ignore(_that);case OrganizationAction_RestorePending():
+return restorePending(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( OrganizationAction_AssignAlbum value)?  assignAlbum,TResult? Function( OrganizationAction_RemoveAlbum value)?  removeAlbum,TResult? Function( OrganizationAction_Defer value)?  defer,TResult? Function( OrganizationAction_Ignore value)?  ignore,TResult? Function( OrganizationAction_RestorePending value)?  restorePending,}){
+final _that = this;
+switch (_that) {
+case OrganizationAction_AssignAlbum() when assignAlbum != null:
+return assignAlbum(_that);case OrganizationAction_RemoveAlbum() when removeAlbum != null:
+return removeAlbum(_that);case OrganizationAction_Defer() when defer != null:
+return defer(_that);case OrganizationAction_Ignore() when ignore != null:
+return ignore(_that);case OrganizationAction_RestorePending() when restorePending != null:
+return restorePending(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( String albumId)?  assignAlbum,TResult Function()?  removeAlbum,TResult Function()?  defer,TResult Function()?  ignore,TResult Function()?  restorePending,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case OrganizationAction_AssignAlbum() when assignAlbum != null:
+return assignAlbum(_that.albumId);case OrganizationAction_RemoveAlbum() when removeAlbum != null:
+return removeAlbum();case OrganizationAction_Defer() when defer != null:
+return defer();case OrganizationAction_Ignore() when ignore != null:
+return ignore();case OrganizationAction_RestorePending() when restorePending != null:
+return restorePending();case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( String albumId)  assignAlbum,required TResult Function()  removeAlbum,required TResult Function()  defer,required TResult Function()  ignore,required TResult Function()  restorePending,}) {final _that = this;
+switch (_that) {
+case OrganizationAction_AssignAlbum():
+return assignAlbum(_that.albumId);case OrganizationAction_RemoveAlbum():
+return removeAlbum();case OrganizationAction_Defer():
+return defer();case OrganizationAction_Ignore():
+return ignore();case OrganizationAction_RestorePending():
+return restorePending();}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( String albumId)?  assignAlbum,TResult? Function()?  removeAlbum,TResult? Function()?  defer,TResult? Function()?  ignore,TResult? Function()?  restorePending,}) {final _that = this;
+switch (_that) {
+case OrganizationAction_AssignAlbum() when assignAlbum != null:
+return assignAlbum(_that.albumId);case OrganizationAction_RemoveAlbum() when removeAlbum != null:
+return removeAlbum();case OrganizationAction_Defer() when defer != null:
+return defer();case OrganizationAction_Ignore() when ignore != null:
+return ignore();case OrganizationAction_RestorePending() when restorePending != null:
+return restorePending();case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class OrganizationAction_AssignAlbum extends OrganizationAction {
+  const OrganizationAction_AssignAlbum({required this.albumId}): super._();
+
+
+ final  String albumId;
+
+/// Create a copy of OrganizationAction
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OrganizationAction_AssignAlbumCopyWith<OrganizationAction_AssignAlbum> get copyWith => _$OrganizationAction_AssignAlbumCopyWithImpl<OrganizationAction_AssignAlbum>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_AssignAlbum&&(identical(other.albumId, albumId) || other.albumId == albumId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,albumId);
+
+@override
+String toString() {
+  return 'OrganizationAction.assignAlbum(albumId: $albumId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OrganizationAction_AssignAlbumCopyWith<$Res> implements $OrganizationActionCopyWith<$Res> {
+  factory $OrganizationAction_AssignAlbumCopyWith(OrganizationAction_AssignAlbum value, $Res Function(OrganizationAction_AssignAlbum) _then) = _$OrganizationAction_AssignAlbumCopyWithImpl;
+@useResult
+$Res call({
+ String albumId
+});
+
+
+
+
+}
+/// @nodoc
+class _$OrganizationAction_AssignAlbumCopyWithImpl<$Res>
+    implements $OrganizationAction_AssignAlbumCopyWith<$Res> {
+  _$OrganizationAction_AssignAlbumCopyWithImpl(this._self, this._then);
+
+  final OrganizationAction_AssignAlbum _self;
+  final $Res Function(OrganizationAction_AssignAlbum) _then;
+
+/// Create a copy of OrganizationAction
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? albumId = null,}) {
+  return _then(OrganizationAction_AssignAlbum(
+albumId: null == albumId ? _self.albumId : albumId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class OrganizationAction_RemoveAlbum extends OrganizationAction {
+  const OrganizationAction_RemoveAlbum(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_RemoveAlbum);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'OrganizationAction.removeAlbum()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class OrganizationAction_Defer extends OrganizationAction {
+  const OrganizationAction_Defer(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_Defer);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'OrganizationAction.defer()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class OrganizationAction_Ignore extends OrganizationAction {
+  const OrganizationAction_Ignore(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_Ignore);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'OrganizationAction.ignore()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class OrganizationAction_RestorePending extends OrganizationAction {
+  const OrganizationAction_RestorePending(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationAction_RestorePending);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'OrganizationAction.restorePending()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
 mixin _$OrganizationGroupKey {
 
 

@@ -99,6 +99,7 @@ pub(super) fn validate_rows(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(in crate::adapters::sqlite_catalog) fn downgrade_to_v46_for_test(connection: &Connection) {
+    super::organization_transitions::downgrade_to_v47_for_test(connection);
     if super::schema_shape::schema_version(connection).unwrap() == 47 {
         for (kind, name, _) in schema::OBJECTS.iter().rev() {
             connection

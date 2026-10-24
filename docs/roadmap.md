@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-01 implementation in place, hosted verification pending |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-02 transitions and undo implemented, group lifecycle next |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -50,8 +50,10 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 **R2c is frozen and R3 is completed. R4 is active on `codex/r4-organization`.**
 R4-01's durable records, guarded whole-group commands, first favorite transaction and migration
-recovery are implemented. Focused diagnostics and bridge generation pass; its exact-commit hosted
-checks remain pending. R4-02 is the next implementation slice.
+recovery are implemented. R4-02 now adds album transitions and version-checked undo; group
+reconciliation and source lifecycle handling remain next within that slice. Focused diagnostics
+pass for the implemented boundaries. Hosted verification still requires the repaired historical
+fixtures and module contracts; no R4 controls are exposed yet.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -195,8 +197,8 @@ their evidence in the linked acceptance record.
 
 ## R4 implementation sequence
 
-R4-01 awaits hosted verification after its internal implementation and focused checks. R4-02
-through R4-07 remain pending. The
+R4-01 awaits the corrected hosted checks. R4-02 is in progress; its group reconciliation and source
+lifecycle boundaries remain open. R4-03 through R4-07 are pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
 this roadmap owns their order and status. No R4 user workflow has passed acceptance yet.
 

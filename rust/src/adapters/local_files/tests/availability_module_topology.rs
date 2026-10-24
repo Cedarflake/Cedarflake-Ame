@@ -334,6 +334,12 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             "pub mod exact_duplicate_review;",
             "pub(crate) mod exact_duplicate_review;",
         ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod organization;",
+            "pub(crate) mod organization;",
+        ),
     ] {
         assert!(
             source.contains(declaration),

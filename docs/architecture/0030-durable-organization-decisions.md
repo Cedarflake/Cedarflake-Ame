@@ -42,6 +42,13 @@ choices while the group has no confirmed album and remains deferred. Continuatio
 record/member anchor, owning scope, queue ordering and fallback position, separately from handling
 state. An ordinary album command does not replace the organization-mode anchor.
 
+Separate stable lineage records from their current group mapping. Each record maps directly to a
+canonical record; chains and cycles are invalid. Keeping lineage references allows later group
+reconciliation to retain operation provenance without exposing several memberships for one group.
+Album deletion retires its definition and moves assigned records to ignored in the same transaction.
+The retired definition remains outside ordinary album queries so version-checked undo can restore
+its name and assignments without inventing another album identity.
+
 ### Command admission and transactions
 
 Application commands validate typed selection identities and bounded inputs before entering the
@@ -62,6 +69,12 @@ and cannot change album/progress. Undo checks the affected field revisions and c
 bindings, restoring only the receipt's changes. Repeated operation identifiers have idempotent
 results; they must not authorize a different payload. Queries return bounded pages and scalar
 counts, never the entire membership graph to Flutter.
+
+Record album metadata changes and previous conflict choices with the operation. Keep an opaque
+target receipt even when explicit record removal cascades its field history; a missing target
+rejects the entire undo instead of restoring only surviving groups. Undo cannot restore an album
+that another operation retired, discard later members when undoing album creation, or overwrite a
+later name or field revision. Failure rolls back the undo receipt and every related write together.
 
 ### Upgrade protection
 

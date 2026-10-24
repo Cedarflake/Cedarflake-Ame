@@ -6,9 +6,11 @@ use crate::domain::organization::{OrganizationGroupKey, stale_selection};
 use super::super::{database_error, unix_time_ms};
 use super::selection::member_query;
 
-pub(super) const CURRENT_RECORDS: &str = "SELECT DISTINCT binding.record_id
+pub(super) const CURRENT_RECORDS: &str = "SELECT DISTINCT related.record_id
     FROM organization_bindings AS binding JOIN temp.organization_command_members AS member
-      ON member.asset_id = binding.asset_id AND member.source_generation = binding.source_generation";
+      ON member.asset_id = binding.asset_id AND member.source_generation = binding.source_generation
+    JOIN organization_record_groups AS own ON own.record_id = binding.record_id
+    JOIN organization_record_groups AS related ON related.group_id = own.group_id";
 
 pub(super) fn materialize(
     connection: &Connection,
@@ -83,6 +85,12 @@ pub(super) fn materialize(
                 record_id
             }
         };
+    connection
+        .execute(
+            "INSERT OR IGNORE INTO organization_record_groups(record_id, group_id) VALUES (?1, ?1)",
+            [&record_id],
+        )
+        .map_err(database_error)?;
     connection.execute(
         "INSERT INTO organization_bindings(record_id, asset_id, source_generation, byte_length,
            file_identity_scheme, file_identity_value, source_revision_token, fingerprint_scheme, digest)

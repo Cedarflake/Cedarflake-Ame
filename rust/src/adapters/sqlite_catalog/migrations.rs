@@ -52,6 +52,7 @@ mod metadata_fallback;
 mod metadata_inventory_contract;
 mod metadata_recheck_index;
 mod organization;
+mod organization_transitions;
 #[cfg(test)]
 pub(super) use organization::downgrade_to_v46_for_test;
 mod persistent_journal_baseline;
@@ -130,6 +131,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         retained_gallery_membership::migrate_transaction(&transaction)?;
         metadata_fallback::migrate_transaction(&transaction)?;
         organization::migrate_transaction(&transaction)?;
+        organization_transitions::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -216,6 +218,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             44 => retained_gallery_membership::migrate(connection)?,
             45 => metadata_fallback::migrate(connection)?,
             46 => organization::migrate(connection)?,
+            47 => organization_transitions::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

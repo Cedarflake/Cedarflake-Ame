@@ -150,6 +150,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   LibraryFolderCursor dco_decode_box_autoadd_library_folder_cursor(dynamic raw);
 
   @protected
+  OrganizationAction dco_decode_box_autoadd_organization_action(dynamic raw);
+
+  @protected
   OrganizationPreparedSelection
   dco_decode_box_autoadd_organization_prepared_selection(dynamic raw);
 
@@ -456,6 +459,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<LibraryRootView> dco_decode_list_library_root_view(dynamic raw);
 
   @protected
+  List<OrganizationAlbum> dco_decode_list_organization_album(dynamic raw);
+
+  @protected
   List<OrganizationGroupTarget> dco_decode_list_organization_group_target(
     dynamic raw,
   );
@@ -551,6 +557,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
+  OrganizationAction dco_decode_organization_action(dynamic raw);
+
+  @protected
+  OrganizationAlbum dco_decode_organization_album(dynamic raw);
+
+  @protected
+  OrganizationAlbumPage dco_decode_organization_album_page(dynamic raw);
+
+  @protected
+  OrganizationAlbumReceipt dco_decode_organization_album_receipt(dynamic raw);
 
   @protected
   OrganizationGroupKey dco_decode_organization_group_key(dynamic raw);
@@ -762,6 +780,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   LibraryFolderCursor sse_decode_box_autoadd_library_folder_cursor(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationAction sse_decode_box_autoadd_organization_action(
     SseDeserializer deserializer,
   );
 
@@ -1158,6 +1181,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<OrganizationAlbum> sse_decode_list_organization_album(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<OrganizationGroupTarget> sse_decode_list_organization_group_target(
     SseDeserializer deserializer,
   );
@@ -1267,6 +1295,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
+  OrganizationAction sse_decode_organization_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationAlbum sse_decode_organization_album(SseDeserializer deserializer);
+
+  @protected
+  OrganizationAlbumPage sse_decode_organization_album_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationAlbumReceipt sse_decode_organization_album_receipt(
+    SseDeserializer deserializer,
+  );
 
   @protected
   OrganizationGroupKey sse_decode_organization_group_key(
@@ -1523,6 +1569,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_library_folder_cursor(
     LibraryFolderCursor self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_action(
+    OrganizationAction self,
     SseSerializer serializer,
   );
 
@@ -2007,6 +2059,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_organization_album(
+    List<OrganizationAlbum> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_organization_group_target(
     List<OrganizationGroupTarget> self,
     SseSerializer serializer,
@@ -2137,6 +2195,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_organization_action(
+    OrganizationAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_album(
+    OrganizationAlbum self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_album_page(
+    OrganizationAlbumPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_album_receipt(
+    OrganizationAlbumReceipt self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_organization_group_key(

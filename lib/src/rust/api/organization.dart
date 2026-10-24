@@ -8,6 +8,16 @@ import '../domain/organization.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+Future<OrganizationWriteReceipt> undoOrganizationOperation({
+  required String operationId,
+  required String originalId,
+  required BigInt expectedRevision,
+}) => RustLib.instance.api.crateApiOrganizationUndoOrganizationOperation(
+  operationId: operationId,
+  originalId: originalId,
+  expectedRevision: expectedRevision,
+);
+
 Future<OrganizationPreparedSelection> prepareOrganizationSelection({
   required List<OrganizationSelection> selections,
 }) => RustLib.instance.api.crateApiOrganizationPrepareOrganizationSelection(
@@ -22,4 +32,51 @@ Future<OrganizationWriteReceipt> setOrganizationFavorite({
   operationId: operationId,
   prepared: prepared,
   favorite: favorite,
+);
+
+Future<OrganizationWriteReceipt> changeOrganization({
+  required String operationId,
+  required OrganizationPreparedSelection prepared,
+  required OrganizationAction action,
+}) => RustLib.instance.api.crateApiOrganizationChangeOrganization(
+  operationId: operationId,
+  prepared: prepared,
+  action: action,
+);
+
+Future<OrganizationAlbumPage> loadOrganizationAlbums({String? after}) => RustLib
+    .instance
+    .api
+    .crateApiOrganizationLoadOrganizationAlbums(after: after);
+
+Future<OrganizationAlbumReceipt> createOrganizationAlbum({
+  required String operationId,
+  required BigInt expectedRevision,
+  required String name,
+}) => RustLib.instance.api.crateApiOrganizationCreateOrganizationAlbum(
+  operationId: operationId,
+  expectedRevision: expectedRevision,
+  name: name,
+);
+
+Future<OrganizationAlbumReceipt> renameOrganizationAlbum({
+  required String operationId,
+  required BigInt expectedRevision,
+  required String albumId,
+  required String name,
+}) => RustLib.instance.api.crateApiOrganizationRenameOrganizationAlbum(
+  operationId: operationId,
+  expectedRevision: expectedRevision,
+  albumId: albumId,
+  name: name,
+);
+
+Future<OrganizationWriteReceipt> deleteOrganizationAlbum({
+  required String operationId,
+  required BigInt expectedRevision,
+  required String albumId,
+}) => RustLib.instance.api.crateApiOrganizationDeleteOrganizationAlbum(
+  operationId: operationId,
+  expectedRevision: expectedRevision,
+  albumId: albumId,
 );

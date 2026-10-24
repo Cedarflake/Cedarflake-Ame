@@ -9,6 +9,96 @@ import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'organization.freezed.dart';
 
 @freezed
+sealed class OrganizationAction with _$OrganizationAction {
+  const OrganizationAction._();
+
+  const factory OrganizationAction.assignAlbum({required String albumId}) =
+      OrganizationAction_AssignAlbum;
+  const factory OrganizationAction.removeAlbum() =
+      OrganizationAction_RemoveAlbum;
+  const factory OrganizationAction.defer() = OrganizationAction_Defer;
+  const factory OrganizationAction.ignore() = OrganizationAction_Ignore;
+  const factory OrganizationAction.restorePending() =
+      OrganizationAction_RestorePending;
+}
+
+class OrganizationAlbum {
+  final String albumId;
+  final String name;
+  final BigInt revision;
+
+  const OrganizationAlbum({
+    required this.albumId,
+    required this.name,
+    required this.revision,
+  });
+
+  @override
+  int get hashCode => albumId.hashCode ^ name.hashCode ^ revision.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationAlbum &&
+          runtimeType == other.runtimeType &&
+          albumId == other.albumId &&
+          name == other.name &&
+          revision == other.revision;
+}
+
+class OrganizationAlbumPage {
+  final List<OrganizationAlbum> albums;
+  final BigInt totalAlbums;
+  final BigInt organizationRevision;
+  final String? nextAlbumId;
+
+  const OrganizationAlbumPage({
+    required this.albums,
+    required this.totalAlbums,
+    required this.organizationRevision,
+    this.nextAlbumId,
+  });
+
+  @override
+  int get hashCode =>
+      albums.hashCode ^
+      totalAlbums.hashCode ^
+      organizationRevision.hashCode ^
+      nextAlbumId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationAlbumPage &&
+          runtimeType == other.runtimeType &&
+          albums == other.albums &&
+          totalAlbums == other.totalAlbums &&
+          organizationRevision == other.organizationRevision &&
+          nextAlbumId == other.nextAlbumId;
+}
+
+class OrganizationAlbumReceipt {
+  final String albumId;
+  final OrganizationWriteReceipt operation;
+
+  const OrganizationAlbumReceipt({
+    required this.albumId,
+    required this.operation,
+  });
+
+  @override
+  int get hashCode => albumId.hashCode ^ operation.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationAlbumReceipt &&
+          runtimeType == other.runtimeType &&
+          albumId == other.albumId &&
+          operation == other.operation;
+}
+
+@freezed
 sealed class OrganizationGroupKey with _$OrganizationGroupKey {
   const OrganizationGroupKey._();
 

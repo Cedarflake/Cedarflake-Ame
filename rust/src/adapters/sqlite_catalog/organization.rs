@@ -1,18 +1,37 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
+    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt,
     OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
-    validate_identifier, validate_selections,
+    normalize_album_name, validate_identifier, validate_selections,
 };
 use crate::ports::organization::OrganizationRepository;
 
 use super::{SqliteCatalog, database_error};
 
+mod albums;
 mod authority;
+mod changes;
 mod favorites;
+mod operations;
 mod records;
 mod selection;
+mod undo;
 
 impl OrganizationRepository for SqliteCatalog {
+    fn undo_organization_operation(
+        &mut self,
+        operation_id: &str,
+        original_id: &str,
+        expected_revision: u64,
+    ) -> Result<OrganizationWriteReceipt, ScanError> {
+        validate_identifier(operation_id)?;
+        validate_identifier(original_id)?;
+        let transaction = self.begin_user_interactive_write()?;
+        let receipt = undo::apply(&transaction, operation_id, original_id, expected_revision)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(receipt)
+    }
+
     fn prepare_organization_selection(
         &self,
         selections: &[OrganizationSelection],
@@ -37,6 +56,87 @@ impl OrganizationRepository for SqliteCatalog {
         authority::validate_prepared(prepared)?;
         let transaction = self.begin_user_interactive_write()?;
         let receipt = favorites::save(&transaction, operation_id, prepared, favorite)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(receipt)
+    }
+
+    fn change_organization(
+        &mut self,
+        operation_id: &str,
+        prepared: &OrganizationPreparedSelection,
+        action: &OrganizationAction,
+    ) -> Result<OrganizationWriteReceipt, ScanError> {
+        validate_identifier(operation_id)?;
+        authority::validate_prepared(prepared)?;
+        action.validate()?;
+        let transaction = self.begin_user_interactive_write()?;
+        let receipt = changes::save(&transaction, operation_id, prepared, action)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(receipt)
+    }
+
+    fn load_organization_albums(
+        &self,
+        after: Option<&str>,
+    ) -> Result<OrganizationAlbumPage, ScanError> {
+        if let Some(after) = after {
+            validate_identifier(after)?;
+        }
+        let transaction = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
+        let page = albums::load(&transaction, after)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(page)
+    }
+
+    fn create_organization_album(
+        &mut self,
+        operation_id: &str,
+        expected_revision: u64,
+        name: &str,
+    ) -> Result<OrganizationAlbumReceipt, ScanError> {
+        validate_identifier(operation_id)?;
+        let name = normalize_album_name(name)?;
+        let transaction = self.begin_user_interactive_write()?;
+        let receipt = albums::create(&transaction, operation_id, expected_revision, &name)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(receipt)
+    }
+
+    fn rename_organization_album(
+        &mut self,
+        operation_id: &str,
+        expected_revision: u64,
+        album_id: &str,
+        name: &str,
+    ) -> Result<OrganizationAlbumReceipt, ScanError> {
+        validate_identifier(operation_id)?;
+        validate_identifier(album_id)?;
+        let name = normalize_album_name(name)?;
+        let transaction = self.begin_user_interactive_write()?;
+        let receipt = albums::rename(
+            &transaction,
+            operation_id,
+            expected_revision,
+            album_id,
+            &name,
+        )?;
+        transaction.commit().map_err(database_error)?;
+        Ok(receipt)
+    }
+
+    fn delete_organization_album(
+        &mut self,
+        operation_id: &str,
+        expected_revision: u64,
+        album_id: &str,
+    ) -> Result<OrganizationWriteReceipt, ScanError> {
+        validate_identifier(operation_id)?;
+        validate_identifier(album_id)?;
+        let transaction = self.begin_user_interactive_write()?;
+        let receipt = albums::retire(&transaction, operation_id, expected_revision, album_id)?;
         transaction.commit().map_err(database_error)?;
         Ok(receipt)
     }
