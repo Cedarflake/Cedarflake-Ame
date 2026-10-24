@@ -84,6 +84,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     if schema_version >= 49 {
         super::organization_reconciliation::validate_rows(connection)?;
     }
+    if schema_version >= 51 {
+        super::organization_admission::validate_rows(connection)?;
+    }
     source_revision_contract::validate_rows(connection)
 }
 
@@ -157,6 +160,9 @@ pub(super) fn validate_schema_structure(
     }
     if schema_version >= 50 {
         super::organization_index_retirement::validate(connection)?;
+    }
+    if schema_version >= 51 {
+        super::organization_admission::validate(connection)?;
     }
     validate_existing_source_metadata_marker(connection)
 }

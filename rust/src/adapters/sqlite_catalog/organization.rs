@@ -8,6 +8,7 @@ use crate::ports::organization::OrganizationRepository;
 
 use super::{SqliteCatalog, database_error};
 
+pub(super) mod admission;
 mod album_membership;
 mod albums;
 mod authority;

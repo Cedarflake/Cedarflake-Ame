@@ -23,6 +23,20 @@ fn album_for(catalog: &SqliteCatalog, location_id: &str) -> Option<String> {
         .flatten()
 }
 
+fn admission_for(catalog: &SqliteCatalog, location_id: &str) -> i64 {
+    catalog
+        .connection
+        .query_row(
+            "SELECT admitted.admission_id FROM asset_locations AS location
+             JOIN organization_admissions AS admitted
+               ON admitted.source_generation = location.source_generation
+             WHERE location.location_id = ?1",
+            [location_id],
+            |row| row.get(0),
+        )
+        .unwrap()
+}
+
 #[test]
 fn journal_rename_preserves_organization_and_content_change_requires_new_proof() {
     let (directory, mut catalog) = fixture();
@@ -33,6 +47,7 @@ fn journal_rename_preserves_organization_and_content_change_requires_new_proof()
         .unwrap()
         .album_id;
     let before = candidate(&catalog, "location-b");
+    let original_admission = admission_for(&catalog, "location-b");
     let selection = catalog
         .prepare_organization_selection(&[OrganizationSelection {
             asset_id: before.location.asset_id.clone(),
@@ -61,6 +76,7 @@ fn journal_rename_preserves_organization_and_content_change_requires_new_proof()
         IncrementalReconciliationOutcome::RenamedOrMoved,
     );
     assert_eq!(album_for(&catalog, "moved"), Some(album.clone()));
+    assert_eq!(admission_for(&catalog, "moved"), original_admission);
     let old = candidate(&catalog, "moved");
     let mut changed = old.location.clone();
     changed.modified_unix_ms += 1;
@@ -73,6 +89,8 @@ fn journal_rename_preserves_organization_and_content_change_requires_new_proof()
         IncrementalReconciliationOutcome::Modified,
     );
     assert_eq!(album_for(&catalog, "moved"), None);
+    let changed_admission = admission_for(&catalog, "moved");
+    assert!(changed_admission > original_admission);
     assert_eq!(album_for(&catalog, "location-a"), Some(album.clone()));
     assert!(
         !catalog
@@ -85,6 +103,7 @@ fn journal_rename_preserves_organization_and_content_change_requires_new_proof()
         .publish_exact_analysis_batch("run", &[generation])
         .unwrap();
     assert_eq!(album_for(&catalog, "moved"), None);
+    assert_eq!(admission_for(&catalog, "moved"), changed_admission);
     drop(catalog);
     let catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(album_for(&catalog, "location-a"), Some(album));

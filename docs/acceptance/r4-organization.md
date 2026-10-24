@@ -299,7 +299,8 @@ The monitored test process peaks at 67,018,752 working-set bytes and completes i
 The preceding Release test build takes 899,470 ms and is excluded from those scan timings.
 These local timings are not a comparison with the previous hosted runner or retained-library
 throughput evidence. The exact product commit's [hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40053197189)
-remains pending.
+passes the 10,000-image workload and the other four synthetic workloads. Its Remaining Rust shard
+finds a separate terminal-trigger test that still expects schema 49; the correction is recorded below.
 
 The schema-50 owner has 52 production lines, a 12-line test helper and a two-line test declaration,
 with 173 dedicated test lines. The schema-49 owner retains its historical DDL and exposes the two
@@ -307,3 +308,47 @@ index definitions for validation and test fixtures. The 3,504-line catalog facad
 version constant. The 6,396-line migration facade gains module registration and dispatch; its
 historical helpers and inline tests are unchanged. The current-schema validator selects the
 version-specific index contract, and recovery admission retains explicit known-version bounds.
+
+## Publication-order queue admissions - 2026-10-24
+
+Schema 51 adds compact version admissions and configured-source ownership. The complete scan and
+incremental catalog transactions allocate ordinals only for visible versions. Concurrent imports
+therefore follow publication order even when their source generations were allocated in the reverse
+order. Unchanged versions retain their ordinals without consuming sequence values. Content changes
+receive new admissions; identity-proven renames retain the existing one.
+
+Explicit source removal forgets unshared admission history while retaining shared versions. Parent
+consolidation transfers historical ownership before covered registrations retire. Failed publication
+or removal rolls these writes back with the catalog. Upgrade seeds a deterministic baseline from
+already visible versions without changing catalog revisions or organization decisions; it cannot
+recover historical publication times that were never recorded.
+
+Twenty-four focused serial checks pass: six admission cases, three schema-51 cases, the actual
+incremental rename/content-change case, the terminal-trigger regression, five existing organization
+source-lifecycle cases, five schema-50 cases and three recovery-compatibility cases. Coverage includes
+unpublished staging, reverse-order concurrent publication, injected failure and retry, unchanged
+sequence reuse, shared-source removal, parent transfer, reopen, migration preservation and rollback,
+and rejection of missing indexes or orphaned ownership. The one-version update remains below
+20,000 SQLite VM instructions with 50,000 historical admissions. This bounds that history lookup;
+it does not establish queue-opening or retained-library performance.
+
+The first concurrent-import test queried rows before the staging buffer had been flushed. Its
+fixture now flushes staged rows without publishing them and verifies both source generations before
+reversing publication order. The terminal-trigger test now checks agreement between the opened
+catalog's two version markers instead of pinning an unrelated historical schema number. Its source
+preservation, rejected execution, retirement, cleanup and repeated-reopen assertions remain intact.
+
+Rust formatting and diff checks pass. These diagnostics use isolated derived catalogs and controlled
+source fixtures; no retained library, original catalog or cloud placeholder was accessed. There is
+no dependency, bridge or UI change. The schema-50 workload result above does not cover this additional
+storage: current-head hosted size and regression checks remain required. Bounded queue queries,
+group counts and durable continuation are still pending within R4-04.
+
+The admission owner has 160 production lines and no inline tests, with 266 dedicated test lines.
+The migration owner has 106 production lines, a 14-line test helper and a two-line test declaration,
+with 122 dedicated test lines. Existing source-lifecycle, scan-publication and delta-location owners
+have 94, 244 and 117 production lines, respectively, with no inline test bodies; they gain only
+composition calls. The delta regression has 111 lines and the terminal-spool test owner has 317.
+The 3,504-line catalog facade changes only its version constant. The migration facade gains three
+registration/dispatch lines; its 844-line historical helper section and 2,290-line inline test section
+remain unchanged. The current-schema owner gains only version-selected validation calls.

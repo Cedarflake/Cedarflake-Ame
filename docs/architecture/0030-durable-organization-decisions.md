@@ -104,6 +104,26 @@ derived-fingerprint cleanup, and their canonical mapping still folds the collect
 honor the existing preferred copy within the physical query scope, then its smallest location ID.
 These reads use catalog data only and never load the membership graph into presentation.
 
+### Queue admission and continuation
+
+Allocate a monotonic queue-admission ordinal when a source version becomes part of a published
+catalog transaction. Source generations identify versions but are allocated before publication;
+they cannot by themselves order concurrently staged imports. Reusing a published version retains
+its ordinal. An upgrade establishes a deterministic baseline for already visible generations;
+it does not invent an unavailable historical publication sequence.
+
+Keep version admissions and their configured-source ownership in compact catalog tables. Source
+associations use catalog-local integer root keys behind the adapter, with foreign keys to the
+configured root identifiers. These keys are neither domain identities nor export identities.
+Explicit source removal forgets its unshared admission history; parent consolidation transfers
+that history before retiring covered registrations. Ordinary source unavailability retains it.
+Publication and source-lifecycle transactions own these writes, with no startup source scan.
+
+The queue projection uses current group evidence and these admissions; an identical copy does not
+become a new independent task after identification. Durable continuation remains separate from
+handled state, with logical group authority and a retained ordering boundary rather than an ordinal
+into the current page. Ordinary album/Favorite operations retain the organization-mode anchor.
+
 ### Command admission and transactions
 
 Application commands validate typed selection identities and bounded inputs before entering the

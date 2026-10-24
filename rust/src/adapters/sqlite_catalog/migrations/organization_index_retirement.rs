@@ -52,6 +52,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v49_for_test(connection: &Connection) {
+    super::organization_admission::downgrade_to_v50_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 50 {
         let transaction = connection.unchecked_transaction().unwrap();
         transaction.execute_batch(GENERATION_INDEX.1).unwrap();

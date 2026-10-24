@@ -8,6 +8,7 @@ pub(in crate::adapters::sqlite_catalog) fn forget_source(
     connection: &Connection,
     root_id: &str,
 ) -> Result<(), ScanError> {
+    super::admission::forget_source(connection, root_id)?;
     connection
         .execute_batch(
             "CREATE TEMP TABLE IF NOT EXISTS organization_removed_source_groups (
@@ -81,6 +82,7 @@ pub(in crate::adapters::sqlite_catalog) fn transfer_source(
             "The replacement library source is no longer available",
         ));
     }
+    super::admission::transfer_source(connection, previous_root, destination_root)?;
     connection
         .execute(
             "INSERT OR IGNORE INTO organization_sources(root_id, record_id)

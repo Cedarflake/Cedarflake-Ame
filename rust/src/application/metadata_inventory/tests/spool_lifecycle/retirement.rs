@@ -27,11 +27,14 @@ fn current_terminal_trigger_retires_initial_observation_before_reopen() {
     let catalog_path = fixture.catalog.catalog_path().to_path_buf();
     let connection =
         rusqlite::Connection::open(&catalog_path).expect("current trigger fixture connection");
+    let current_version: i64 = connection
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("opened catalog schema version");
     assert_eq!(
         connection
             .query_row("PRAGMA user_version", [], |row| row.get::<_, i64>(0))
             .expect("current schema version"),
-        49
+        current_version
     );
     connection
         .execute(
