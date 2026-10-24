@@ -21,6 +21,7 @@ abstract class LibraryOrganizationRequest {
   bool _cancelled = false;
   bool get isCancelled => _cancelled;
   String get successMessage;
+  String get failureTitle => "未能保存更改";
   LibraryOrganizationChange get change =>
       const LibraryOrganizationChange.records();
   bool canUndo(LibraryOrganizationReceipt receipt) => receipt.changedGroups > 0;
@@ -68,6 +69,8 @@ class LibraryOrganizationUndoRequest extends LibraryOrganizationRequest {
   BigInt? _revision;
   @override
   String get successMessage => "已撤销";
+  @override
+  String get failureTitle => "无法撤销";
   @override
   bool canUndo(LibraryOrganizationReceipt receipt) => false;
 

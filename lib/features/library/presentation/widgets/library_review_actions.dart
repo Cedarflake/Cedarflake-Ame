@@ -4,7 +4,6 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_review_requests.dart";
@@ -14,6 +13,7 @@ import "../../domain/library_review.dart";
 import "../library_organization_mode.dart";
 import "../library_organization_messages.dart";
 import "library_album_viewer_action.dart";
+import "library_organization_menu.dart";
 
 class LibraryReviewActions extends ConsumerStatefulWidget {
   const LibraryReviewActions({
@@ -87,7 +87,8 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
     final busy =
         widget.mode.busy ||
         ref.watch(libraryOrganizationActionsProvider).saving;
-    final target = widget.entry.target;
+    final entry = widget.entry;
+    final target = entry.target;
     final decision = ref
         .watch(libraryOrganizationInspectionProvider(target))
         .value
@@ -99,9 +100,13 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
         LibraryAlbumViewerAction(
           target: target,
           enabled: !busy,
-          membershipFactory: () =>
-              LibraryReviewAlbumMembership(session, widget.entry),
-          onSaved: () => unawaited(widget.mode.afterSave(widget.entry)),
+          membershipFactory: () => LibraryReviewAlbumMembership(session, entry),
+          progressRequestFactory: (action) => LibraryReviewRequest(
+            session,
+            entry,
+            LibraryReviewProgress(action),
+          ),
+          onSaved: () => unawaited(widget.mode.afterSave(entry)),
         ),
         AmeTooltip(
           message: "稍后整理",
@@ -115,54 +120,15 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
             ),
           ),
         ),
-        LibraryProgressMenu(
+        LibraryOrganizationMenu(
+          key: ValueKey(target),
           enabled: !busy,
-          ignored:
-              decision?.disposition == LibraryOrganizationDisposition.ignored,
-          onSelected: _save,
+          onIgnore:
+              decision?.disposition == LibraryOrganizationDisposition.ignored
+              ? null
+              : () => _save(LibraryProgressAction.ignore),
         ),
       ],
-    );
-  }
-}
-
-class LibraryProgressMenu extends StatelessWidget {
-  const LibraryProgressMenu({
-    required this.enabled,
-    required this.ignored,
-    required this.onSelected,
-    super.key,
-  });
-  final bool enabled;
-  final bool ignored;
-  final ValueChanged<LibraryProgressAction> onSelected;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = ignored ? "恢复待整理" : "忽略";
-    final action = ignored
-        ? LibraryProgressAction.restore
-        : LibraryProgressAction.ignore;
-    return AmePopupMenuButton<LibraryProgressAction>(
-      labels: [label],
-      items: [
-        PopupMenuItem(
-          value: action,
-          child: AmeMenuItemContent(
-            label: label,
-            icon: ignored ? Symbols.undo_rounded : Symbols.hide_image_rounded,
-          ),
-        ),
-      ],
-      onSelected: (action) {
-        if (enabled) onSelected(action);
-      },
-      builder: (context, openMenu) => IconButton(
-        key: const Key("library-review-actions-menu"),
-        tooltip: "整理选项",
-        onPressed: enabled ? openMenu : null,
-        icon: const Icon(Symbols.more_horiz_rounded, size: 20),
-      ),
     );
   }
 }

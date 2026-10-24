@@ -14,7 +14,7 @@ class LibraryGalleryHeader extends StatelessWidget {
     required this.galleryTitle,
     this.leading,
     this.filter,
-    this.selectionActions,
+    this.selectionToolbar,
     this.reviewCounts,
     this.isReviewing = false,
     this.onToggleReview,
@@ -39,7 +39,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   final String galleryTitle;
   final Widget? leading;
   final Widget? filter;
-  final Widget? selectionActions;
+  final Widget? selectionToolbar;
   final LibraryOrganizationCounts? reviewCounts;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
@@ -85,10 +85,24 @@ class LibraryGalleryHeader extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
-                    title,
-                    key: const Key("library-gallery-title"),
-                    style: Theme.of(context).textTheme.headlineSmall,
+                  Wrap(
+                    spacing: 12,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        key: const Key("library-gallery-title"),
+                        style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      if (isReviewing)
+                        Text(
+                          "整理中",
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                        ),
+                    ],
                   ),
                   const SizedBox(height: 4),
                   Text(
@@ -113,10 +127,8 @@ class LibraryGalleryHeader extends StatelessWidget {
                 ),
               );
               final toolbar = isSelecting
-                  ? _SelectionToolbar(
-                      onCancel: onCancelSelection,
-                      actions: selectionActions,
-                    )
+                  ? selectionToolbar ??
+                        _SelectionToolbar(onCancel: onCancelSelection)
                   : _BrowsingToolbar(
                       filter: filter,
                       isReviewing: isReviewing,
@@ -252,10 +264,9 @@ class _BrowsingToolbar extends StatelessWidget {
 }
 
 class _SelectionToolbar extends StatelessWidget {
-  const _SelectionToolbar({required this.onCancel, this.actions});
+  const _SelectionToolbar({required this.onCancel});
 
   final VoidCallback onCancel;
-  final Widget? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -263,7 +274,6 @@ class _SelectionToolbar extends StatelessWidget {
       key: const Key("library-selection-toolbar"),
       mainAxisSize: MainAxisSize.min,
       children: [
-        ?actions,
         TextButton.icon(
           key: const Key("library-cancel-selection"),
           onPressed: onCancel,

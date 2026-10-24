@@ -114,9 +114,25 @@ void main() {
     },
   );
 
+  testWidgets("a retained album tray cannot defer a replacement review entry", (
+    tester,
+  ) async {
+    await host(tester, viewer: true);
+    final original = mode.current;
+    await tester.tap(find.byKey(const Key("viewer-album-action")));
+    await tester.pumpAndSettle();
+    mode.open(surface.library.assets.single);
+    await tester.pumpAndSettle();
+    expect(mode.current, isNot(same(original)));
+    await tester.tap(find.byKey(const Key("library-album-defer")));
+    await tester.pumpAndSettle();
+    expect(review.writes, isEmpty);
+    expect(mode.current?.committed, isFalse);
+  });
+
   for (final ignored in [false, true]) {
     testWidgets(
-      "review menu commits ${ignored ? 'restore' : 'ignore'} without a favorite change",
+      "review menu ${ignored ? 'keeps ignored state without history' : 'commits ignore'} without a favorite change",
       (tester) async {
         organization.inspectTarget = (_) async => LibraryOrganizationInspection(
           revision: BigInt.one,
@@ -135,16 +151,23 @@ void main() {
         await host(tester, viewer: true);
         await tester.tap(find.byKey(const Key("library-review-actions-menu")));
         await tester.pumpAndSettle();
-        await tester.tap(find.text(ignored ? "恢复待整理" : "忽略"));
-        await tester.pumpAndSettle();
-        expect(
-          (review.writes.single.action as LibraryReviewProgress).action,
-          ignored
-              ? LibraryProgressAction.restore
-              : LibraryProgressAction.ignore,
-        );
+        expect(find.text("恢复待整理"), findsNothing);
+        expect(find.text("撤销操作"), findsOneWidget);
+        expect(find.text("重做操作"), findsOneWidget);
+        if (ignored) {
+          expect(find.text("忽略此图"), findsNothing);
+          expect(review.writes, isEmpty);
+          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        } else {
+          await tester.tap(find.text("忽略此图"));
+          await tester.pumpAndSettle();
+          expect(
+            (review.writes.single.action as LibraryReviewProgress).action,
+            LibraryProgressAction.ignore,
+          );
+        }
         expect(organization.writes, isEmpty);
-        expect(surface.closes, 1);
+        expect(surface.closes, ignored ? 0 : 1);
         await tester.pump(const Duration(seconds: 6));
         await tester.pumpAndSettle();
       },
@@ -170,13 +193,23 @@ void main() {
         await mode.refreshContinuation();
         await tester.pumpAndSettle();
         final queue = tester.getRect(
-          find.byType(SegmentedButton<LibraryOrganizationQueue>),
+          find.byKey(const Key("library-review-queues")),
         );
         final resume = tester.getRect(
           find.byKey(const Key("library-review-resume")),
         );
         expect(queue.center.dy, closeTo(resume.center.dy, .1));
         expect(queue.height, closeTo(resume.height, .1));
+        await tester.ensureVisible(find.text("稍后整理"));
+        await tester.tap(find.text("稍后整理"));
+        await tester.pumpAndSettle();
+        expect(mode.queue, LibraryOrganizationQueue.deferred);
+        expect(
+          tester
+              .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, "稍后整理"))
+              .selected,
+          isTrue,
+        );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         expect(FocusManager.instance.primaryFocus?.context, isNotNull);
         expect(tester.takeException(), isNull);

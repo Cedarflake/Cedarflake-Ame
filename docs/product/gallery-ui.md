@@ -344,7 +344,7 @@ Normal browsing state:
 Selection state:
 
 ```text
-已选择 N 个项目                    取消 | 加入相册 | 比较 | 重复信息 | 更多
+已选择 N 个项目                         收藏 | 相册 | 稍后整理 | 取消 | 更多
 ```
 
 The normal toolbar is replaced rather than nested when selection begins. Selection is keyed by
@@ -355,26 +355,33 @@ upper-right selection-specific area, while entries under the sidebar's `相册` 
 scopes. The action and entries share durable membership data but never share interaction
 responsibility.
 
-When the album prompt is enabled, activating `加入相册` opens one Material dialog with a single
-destination before group assignments are changed:
+When the album prompt is enabled, the album action opens a Material bottom sheet with one
+destination before group assignments are changed. The selection toolbar keeps Favorite first and
+More last; defer appears in organization mode.
 
 ```text
 选择相册
 
-( ) 用户相册 A
-( ) 用户相册 B
+[ ] 用户相册 A
+[ ] 用户相册 B
 
-[新建相册]                                  [取消] [加入相册]
+[忽略此图] [稍后整理] [新建相册]                         [加入相册]
 ```
 
 - only user albums are destinations; Favorites have a separate action and never appear here;
-- use single-choice controls; selecting a different album moves the complete selected groups there
-  instead of adding another membership;
+- use checkboxes that allow the selected destination to be unchecked. At most one destination is
+  selected; checking a different album replaces the previous choice for the complete image group;
 - reopening reflects the current confirmed assignment. A mixed batch or unresolved conflict must
   not appear to have one shared assignment; show the existing album information and let the user
   choose one destination for the selected groups;
-- the primary action is `移至相册` when it replaces an existing assignment, otherwise `加入相册`;
-  make the affected groups and destination clear before saving;
+- the primary action is `移至其他相册` when all selected groups are assigned, `加入相册` when none
+  are assigned, and `加入或移至相册` for a mixed batch. `移出相册` is available when there are confirmed
+  assignments and no unresolved conflict. Selecting the shared current album cannot confirm a
+  redundant move. Removal leaves already-unassigned groups unchanged;
+- the sheet has no Cancel button. Escape or the backdrop dismisses without changing decisions;
+  an admitted write retains the existing commit/cancellation boundary. The sheet offers ignore and
+  defer through the same whole-group commands, with plural wording for a batch. More also offers
+  ignore. Review-mode actions advance only after the committed receipt;
 - a new unassigned selection may use a valid configured default. Initially no default is selected;
   an empty album list offers `新建相册`, and cancellation leaves assignments and progress unchanged;
 - confirmation commits album and organization-state changes together and never changes source
@@ -385,9 +392,11 @@ destination before group assignments are changed:
 - the production control remains absent until membership persistence, settings, errors, undo, and
   the complete user path are connected.
 
-`收藏` and `取消收藏` are separate contextual commands using the shared selection/viewer action
-surfaces. They change favorite state for the selected groups without changing album assignments or
-organization progress. Album removal, album movement, and favorite changes retain distinct labels
+Favorite actions reflect the current selected groups: all unfavorited offers only `加入收藏夹`, all
+favorited offers only `取消收藏`, and a mixed selection offers both. The menu reads the prepared
+selection once and reuses its guarded command target; a cancelled or changed selection cannot apply
+the old menu to new images. Unfavorite uses the heart-minus icon. Favorite changes leave album
+assignments and organization progress intact. Album removal and movement retain distinct labels
 and results.
 
 In normal browsing, a gallery tile reveals its upper-right selection checkbox on pointer hover or
@@ -973,14 +982,21 @@ directly editing derived smart-album membership.
 
 R4 uses the existing desktop gallery and image viewer. Ordinary browsing is the default; the
 gallery's upper-right `更多` menu contains `整理模式` once its workflow is functional. Entering it
-reveals organization controls, and the same menu offers `退出整理模式`. Do not add a separate review
+reveals organization controls and `整理中` beside the gallery title; the same menu offers
+`退出整理模式`. The title status disappears on exit. Do not add a separate review
 workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 
 The existing count row contains the total, `已整理`, and `待整理` counts on one line. A floating toolbar
-attached to the bottom of the gallery content area contains `待整理`, `稍后整理`, and `已忽略` selectors.
+attached to the bottom of the gallery content area contains `待整理`, `稍后整理`, and `已忽略` selectors,
+each with its corresponding inbox, clock, or hidden-image icon beside the text.
 `继续整理` is a separate button beside that toolbar, on the same row and with the same height. Reserve
 content space so the dock does not obscure the last images or their actions, and keep it reachable
 by keyboard at supported desktop widths and text scales.
+
+Match the accepted sketch's padded, rounded floating surface: each queue has its own rounded
+selection background, with space between choices and no joined outline or dividers. Use the theme's
+tonal selected color. The separate continuation button has a leading forward arrow and a tonal
+background, with the same height and elevation as the queue container.
 
 Hide `继续整理` and any saved-position marker before organization has begun or when no resumable
 position exists. Pending images alone do not create that entry. After a position has been recorded,
@@ -992,8 +1008,10 @@ During selection and in the organization-mode viewer, `稍后整理` shares the 
 `加入相册`. Successful album assignment completes organization automatically; omit separate
 `标为已整理`, `保存并完成`, and `完成并下一张` controls. The organization-mode viewer can advance after
 the save commits, while the ordinary-mode viewer stays on the current image. Shared progress is
-updated in either mode. The contextual actions also provide `忽略` and, for ignored groups,
-`恢复待整理`; organization ignore remains separate from Duplicates' review ignore.
+updated in either mode. The contextual actions provide `忽略` where applicable, plus `撤销操作` and
+`重做操作` following committed operation order across groups. The history commands also appear in
+the ordinary viewer's upper-right menu, with unavailable directions disabled. They replace the
+current-group `恢复待整理` shortcut. Organization ignore remains separate from Duplicates' review ignore.
 
 Album conflicts are visible in `稍后整理` with the label `相册归属冲突`, the involved albums, and an
 action to choose the destination. Use the shared notification surface to point to deferred conflicts

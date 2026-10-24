@@ -1573,4 +1573,66 @@ existing command behavior. The bottom queue-dock experiment remains outside this
 Handwritten owners contain 420 production lines in the image viewer, 109 in top/navigation controls,
 247 in the bottom toolbar, 168 in review actions and 157 in the album action. They contain no inline
 tests. The existing dedicated viewer test owner contains 843 lines. Hosted verification for this
-placement change remains pending.
+placement change passed hosted run `40111403224` at `c4b8187e8dd67abfc0e8e70dd9245792aae649a5`.
+
+## Contextual organization controls and chronological history
+
+The selection row places Favorite first and More last. Favorite preparation reads whole-group
+counts and reuses the same guarded batch for the chosen write: all-favorited and all-unfavorited
+selections expose only their applicable action, while a mixed batch exposes both. Unfavorite uses
+the installed Material Symbols heart-minus icon. Album assignment distinguishes unassigned, fully
+assigned and mixed batches, with removal of confirmed assignments and no redundant same-album move.
+
+The album picker uses Flutter's `showModalBottomSheet` and `CheckboxListTile`, retaining a single
+destination while allowing it to be unchecked. It exposes ignore/defer and omits Cancel; Escape and
+the backdrop use the existing cancellation boundary. This follows the requested bottom-tray
+placement without replacing framework routing, focus or accessibility. The installed SDK's
+`bottom_sheet.dart` exposes scroll control, safe area, drag handle and drag-dismissal parameters;
+the [official Flutter API](https://api.flutter.dev/flutter/material/showModalBottomSheet.html)
+confirms these capabilities. The [Material component page](https://m3.material.io/components/bottom-sheets/overview)
+requires JavaScript in the available reader. The previous dialog lacks the requested bottom anchor;
+a custom overlay is unnecessary. Album pages remain bounded and use existing scroll owners.
+
+Schema 56 adds a history cursor and indexed field/album authority without changing historical
+archive payloads. The native window upgrades its retained schema-55 fixture to schema 56 with all
+six group decisions unchanged. Thirty-eight focused Rust checks pass across history (8), existing
+undo (6), migration (3), archive restoration (7), cleanup (10) and historical inventory (4). They
+cover repeated same-field inversions, cross-group batches, reopen, unknown acknowledgements,
+stale heads, new branches, rollback, album lifecycle, content/group guards and archive epoch reset.
+
+Fifty-four focused Flutter checks pass across organization actions (10), album viewer actions (5),
+album widgets (5), conflict workflows (7), history menu (4), review widgets (8) and selection actions
+(15). They cover contextual commands, unchecked/current destinations, form retry, cancellation,
+disposed selection, commit-winning-cancellation and stable history intent during background changes.
+A retained review tray rejects a replacement entry rather than applying its progress action to the
+new image. Preview and selection menus retire with their captured targets.
+The initial mixed-batch assertion expected the old move wording; it now checks the explicit mixed
+assignment label. Bridge verification passes all 17 asynchronous contracts and matching hashes.
+The Debug build completes in 64.0 seconds; the final target-lifetime revision rebuilds in 28.7 seconds.
+
+Controlled Windows interaction on the reusable 700-file corpus verifies:
+
+- Favorite at the left and More at the right; a selected favorited group offers only Unfavorite
+  with the heart-minus glyph;
+- bottom-tray placement, unchecked destination, replacement selection and committed whole-group
+  movement, while Favorite remains unchanged;
+- undo from a different viewed group without moving the current preview, followed by process
+  restart, redo and another undo;
+- organization-mode title marking and the three bottom queue icons, with the separate continuation
+  action retained on the same row;
+- removal from an album, preserved Favorite and ignored progress, then an unassigned picker with
+  Add only and no Remove/Move action. Undo restores the complete previous group decision.
+
+All six group decisions match the pre-test baseline after the native actions are undone. All 700
+source fixtures retain SHA-256, sizes and modification times. No source media is modified. Existing
+unrelated edits to gallery empty-state and duplicate copy remain outside this delivery; the full
+read-only format check flags the former, while all owned Dart files are formatted. Exact-head hosted
+verification follows publication; retained-library performance and recovery/cleanup acceptance remain
+with the active roadmap.
+
+Handwritten production owners contain 357 selection-action lines, 415 album-picker lines, 355
+organization-adapter lines and 197 action-controller lines. Their dedicated selection/picker tests
+contain 436/287 lines. History owns 189 production lines plus 120 authority lines, with 407 dedicated
+test lines; migration owns 92 production lines, 16 test-support/declaration lines and 64 schema lines,
+with 110 dedicated test lines. The history menu has 166 dedicated test lines. These owners have no
+inline test bodies. No new dependency or license boundary is introduced.

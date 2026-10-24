@@ -90,7 +90,7 @@ void main() {
         await tester.tap(destination);
         await tester.pumpAndSettle();
         expect(find.text("已选择：Destination 0"), findsOneWidget);
-        await tester.tap(find.text("取消"));
+        await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         expect(find.byKey(const Key("library-album-picker")), findsNothing);
         expect(service.memberships, isEmpty);
@@ -281,7 +281,7 @@ void main() {
       expect(find.text("风景（已删除）"), findsOneWidget);
       expect(find.text("Archive"), findsOneWidget);
       expect(service.memberships, isEmpty);
-      await tester.tap(find.text("取消"));
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("viewer-album-conflict")), findsOneWidget);
       expect(service.memberships, isEmpty);

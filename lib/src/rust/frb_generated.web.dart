@@ -861,6 +861,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationGroupTarget dco_decode_organization_group_target(dynamic raw);
 
   @protected
+  OrganizationHistory dco_decode_organization_history(dynamic raw);
+
+  @protected
+  OrganizationHistoryDirection dco_decode_organization_history_direction(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationHistoryReceipt dco_decode_organization_history_receipt(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationInspection dco_decode_organization_inspection(dynamic raw);
 
   @protected
@@ -1940,6 +1953,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationGroupTarget sse_decode_organization_group_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationHistory sse_decode_organization_history(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationHistoryDirection sse_decode_organization_history_direction(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationHistoryReceipt sse_decode_organization_history_receipt(
     SseDeserializer deserializer,
   );
 
@@ -3241,6 +3269,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_group_target(
     OrganizationGroupTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_history(
+    OrganizationHistory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_history_direction(
+    OrganizationHistoryDirection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_history_receipt(
+    OrganizationHistoryReceipt self,
     SseSerializer serializer,
   );
 

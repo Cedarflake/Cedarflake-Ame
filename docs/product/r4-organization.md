@@ -123,6 +123,14 @@ without undoing unrelated favorites, overwriting newer decisions, or applying to
 content. A failed save leaves the previous committed state available and exposes retry; only a
 successful commit may advance an organization-mode viewer or publish updated completion counts.
 
+Expose `撤销操作` and `重做操作` in chronological operation order, including operations on a
+previously viewed group. They reverse actual committed Favorite, album and organization changes;
+they do not merely reset the current group to pending. Successive reversals retain compatible
+field-version evidence. A new committed edit after undo starts a new branch and clears redo.
+Persist the history position with the operation so restart or an uncertain response cannot apply
+the same step twice. Empty history disables the corresponding action. Source removal, cleanup,
+backup restoration and incompatible content retain their existing authority boundaries.
+
 ## Queue and continuation
 
 Organization is continuous work, not a frozen batch that excludes later imports. Newly discovered

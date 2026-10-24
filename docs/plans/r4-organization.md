@@ -197,7 +197,9 @@ Work in this order within the slice:
    the same row and height, and hide it until prior activity and a resumable position both exist.
 5. Put defer and album actions on the same contextual action row. Successful album assignment
    completes work; the organization-mode viewer advances only after commit. Add the accepted ignore
-   and restore-to-pending actions without adding manual completion or a separate new-items tab.
+   actions without adding manual completion or a separate new-items tab. Keep chronological undo and
+   redo in More, including operations on previously viewed groups. Use the bottom album tray with
+   a deselectable single destination, ignore/defer actions and state-aware Favorite/album commands.
 6. Make album conflicts persistently discoverable in `稍后整理`, with the involved albums and a
    destination choice. Coalesce background notices, retain conflicts after notice dismissal and
    clear them only after a valid resolution commits.

@@ -80,6 +80,7 @@ pub(in super::super) fn write(
             [revisions.catalog],
         )
         .map_err(database_error)?;
+    super::super::super::organization::history::reset(&transaction)?;
     transaction.commit().map_err(database_error)?;
     Ok(OrganizationArchiveRestoreReceipt {
         operation_id: request.operation_id.clone(),

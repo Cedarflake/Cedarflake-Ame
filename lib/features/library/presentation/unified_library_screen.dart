@@ -788,12 +788,13 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                 _review.busy || !LibraryBrowseAdmission(state).canBrowse
                 ? null
                 : () => unawaited(_review.toggle()),
-            selectionActions: state.catalogRevision == null
+            selectionToolbar: state.catalogRevision == null
                 ? null
                 : LibrarySelectionActions(
                     selection: _selection,
                     query: state.query,
                     catalogRevision: state.catalogRevision!,
+                    onCancel: _clearSelection,
                     enabled:
                         _selection.selectedCount(_totalItems(state)) > 0 &&
                         LibraryBrowseAdmission(state).canBrowse &&

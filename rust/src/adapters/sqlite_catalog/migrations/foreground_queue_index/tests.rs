@@ -98,6 +98,9 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_operations",
                 "organization_records",
                 "organization_unassociated_records",
+                "organization_history_entries",
+                "organization_field_authority",
+                "organization_album_authority",
                 "organization_sources",
                 "organization_record_groups",
                 "organization_album_retirements",
@@ -127,6 +130,14 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             assert_eq!(
                 after.remove("organization_state"),
                 Some(vec![vec![Value::Integer(1), Value::Integer(0)]]),
+            );
+            assert_eq!(
+                after.remove("organization_history_state"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Integer(0),
+                    Value::Integer(0)
+                ]]),
             );
             let sequences = after
                 .get_mut("sqlite_sequence")

@@ -60,6 +60,25 @@ pub struct OrganizationWriteReceipt {
     pub changed_groups: u64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OrganizationHistory {
+    pub organization_revision: u64,
+    pub undo_operation_id: Option<String>,
+    pub redo_operation_id: Option<String>,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum OrganizationHistoryDirection {
+    Undo,
+    Redo,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OrganizationHistoryReceipt {
+    pub operation: OrganizationWriteReceipt,
+    pub retired_album_id: Option<String>,
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum OrganizationDisposition {
     Pending,

@@ -1,5 +1,6 @@
 use crate::domain::organization::{
     OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
     OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
     OrganizationWriteReceipt, normalize_album_name, validate_identifier, validate_selections,
 };
@@ -16,6 +17,26 @@ pub(crate) fn inspect_selection(
 ) -> Result<OrganizationInspection, ScanError> {
     validate_selections(&selections)?;
     open_catalog()?.inspect_organization_selection(&selections)
+}
+
+pub(crate) fn load_history() -> Result<OrganizationHistory, ScanError> {
+    open_catalog()?.load_organization_history()
+}
+
+pub(crate) fn step_history(
+    operation_id: String,
+    direction: OrganizationHistoryDirection,
+    original_id: String,
+    expected_revision: u64,
+) -> Result<OrganizationHistoryReceipt, ScanError> {
+    validate_identifier(&operation_id)?;
+    validate_identifier(&original_id)?;
+    open_catalog()?.step_organization_history(
+        &operation_id,
+        direction,
+        &original_id,
+        expected_revision,
+    )
 }
 
 pub(crate) fn undo(

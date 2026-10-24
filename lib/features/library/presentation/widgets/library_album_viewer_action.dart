@@ -8,7 +8,10 @@ import "../../application/library_album_proposal.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
+import "../../application/library_organization_requests.dart";
+import "../../application/library_progress_request.dart";
 import "../../domain/library_organization.dart";
+import "../../domain/library_review.dart";
 import "../library_organization_messages.dart";
 import "library_album_picker.dart";
 
@@ -16,12 +19,15 @@ class LibraryAlbumViewerAction extends ConsumerStatefulWidget {
   const LibraryAlbumViewerAction({
     required this.target,
     this.membershipFactory,
+    this.progressRequestFactory,
     this.onSaved,
     this.enabled = true,
     super.key,
   });
   final LibraryOrganizationTarget target;
   final LibraryAlbumMembership Function()? membershipFactory;
+  final LibraryOrganizationRequest Function(LibraryProgressAction)?
+  progressRequestFactory;
   final VoidCallback? onSaved;
   final bool enabled;
 
@@ -94,13 +100,21 @@ class _LibraryAlbumViewerActionState
       if (!mounted || !owns()) return;
       final choice = await showLibraryAlbumPicker(
         context: context,
-        actionLabel: proposal.current == null ? "加入相册" : "移至相册",
+        actionLabel: proposal.current == null ? "加入相册" : "移至其他相册",
         initialAlbum: proposal.destination,
+        currentAlbum: proposal.current,
         clearLabel: proposal.current == null ? null : "移出相册",
         explanation: proposal.hasConflict ? "这组图片的相册归属有冲突，请选择一个相册。" : null,
         conflictTarget: proposal.hasConflict ? target : null,
         initialError: initialError,
         membership: membership,
+        progressRequestFactory:
+            widget.progressRequestFactory ??
+            (action) => LibraryProgressRequest(
+              target,
+              action,
+              errorSurface: LibraryOrganizationErrorSurface.form,
+            ),
       );
       if (choice != null && owns()) widget.onSaved?.call();
     } on Object catch (error) {
@@ -133,7 +147,7 @@ class _LibraryAlbumViewerActionState
         switch (decision) {
           LibraryOrganizationDecision(hasConflict: true) => "相册归属冲突",
           LibraryOrganizationDecision(album: LibraryOrganizationAlbum()) =>
-            "移至相册",
+            "移至其他相册",
           _ => "加入相册",
         };
     final onPressed = busy || _opening != null || !widget.enabled

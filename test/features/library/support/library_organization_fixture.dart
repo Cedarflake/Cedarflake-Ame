@@ -3,6 +3,8 @@ import "dart:async";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
+import "package:cedarflake_ame/features/library/domain/library_organization_history.dart";
+import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 
 LibraryOrganizationTarget organizationTarget(String id) =>
@@ -28,6 +30,62 @@ class OrganizationPreparedFixture extends LibraryOrganizationPrepared {
 }
 
 class OrganizationServiceFixture implements LibraryOrganization {
+  final progressWrites =
+      <
+        ({
+          String id,
+          LibraryOrganizationPrepared prepared,
+          LibraryProgressAction action,
+        })
+      >[];
+  Future<LibraryOrganizationReceipt> Function(String)? saveProgress;
+
+  @override
+  Future<LibraryOrganizationReceipt> progress(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+    LibraryProgressAction action,
+  ) async {
+    progressWrites.add((id: operationId, prepared: prepared, action: action));
+    return saveProgress?.call(operationId) ?? receipt(operationId);
+  }
+
+  LibraryOrganizationHistory storedHistory = LibraryOrganizationHistory(
+    revision: BigInt.two,
+  );
+  Future<LibraryOrganizationHistory> Function()? readHistory;
+  final historySteps =
+      <
+        ({
+          String id,
+          LibraryOrganizationHistoryDirection direction,
+          String originalId,
+          BigInt revision,
+        })
+      >[];
+  Future<LibraryOrganizationHistoryReceipt> Function(String)? saveHistory;
+
+  @override
+  Future<LibraryOrganizationHistory> history() async =>
+      readHistory?.call() ?? storedHistory;
+
+  @override
+  Future<LibraryOrganizationHistoryReceipt> stepHistory(
+    String operationId,
+    LibraryOrganizationHistoryDirection direction,
+    String originalId,
+    BigInt revision,
+  ) async {
+    historySteps.add((
+      id: operationId,
+      direction: direction,
+      originalId: originalId,
+      revision: revision,
+    ));
+    return saveHistory?.call(operationId) ??
+        LibraryOrganizationHistoryReceipt(operation: receipt(operationId));
+  }
+
   final writes =
       <({String id, LibraryOrganizationPrepared prepared, bool favorite})>[];
   final undos = <({String id, String originalId, BigInt revision})>[];

@@ -4,8 +4,17 @@ import "../../../src/rust/api/organization.dart" as api;
 import "../../../src/rust/domain.dart" as rust;
 import "../../../src/rust/domain/organization.dart" as dto;
 import "../domain/library_organization.dart";
+import "../domain/library_organization_history.dart";
+import "../domain/library_review.dart";
 
 abstract interface class LibraryOrganization {
+  Future<LibraryOrganizationHistory> history();
+  Future<LibraryOrganizationHistoryReceipt> stepHistory(
+    String operationId,
+    LibraryOrganizationHistoryDirection direction,
+    String originalId,
+    BigInt revision,
+  );
   Future<LibraryOrganizationInspection> inspect(
     List<LibraryOrganizationTarget> targets,
   );
@@ -18,6 +27,11 @@ abstract interface class LibraryOrganization {
     bool favorite,
   );
   Future<BigInt> revision();
+  Future<LibraryOrganizationReceipt> progress(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+    LibraryProgressAction action,
+  );
   Future<LibraryOrganizationAlbumPage> albums({String? after});
   Future<LibraryOrganizationAlbum?> findAlbum(String id);
   Future<LibraryOrganizationReceipt> createAlbum(
@@ -54,6 +68,40 @@ abstract interface class LibraryOrganization {
 
 class RustLibraryOrganization implements LibraryOrganization {
   const RustLibraryOrganization();
+
+  @override
+  Future<LibraryOrganizationHistory> history() => _call(() async {
+    final value = await api.loadOrganizationHistory();
+    return LibraryOrganizationHistory(
+      revision: value.organizationRevision,
+      undoOperationId: value.undoOperationId,
+      redoOperationId: value.redoOperationId,
+    );
+  });
+
+  @override
+  Future<LibraryOrganizationHistoryReceipt> stepHistory(
+    String operationId,
+    LibraryOrganizationHistoryDirection direction,
+    String originalId,
+    BigInt revision,
+  ) => _call(() async {
+    final value = await api.stepOrganizationHistory(
+      operationId: operationId,
+      direction: switch (direction) {
+        LibraryOrganizationHistoryDirection.undo =>
+          dto.OrganizationHistoryDirection.undo,
+        LibraryOrganizationHistoryDirection.redo =>
+          dto.OrganizationHistoryDirection.redo,
+      },
+      originalId: originalId,
+      expectedRevision: revision,
+    );
+    return LibraryOrganizationHistoryReceipt(
+      operation: _receipt(value.operation),
+      retiredAlbumId: value.retiredAlbumId,
+    );
+  });
 
   List<dto.OrganizationSelection> _selections(
     List<LibraryOrganizationTarget> targets,
@@ -144,6 +192,18 @@ class RustLibraryOrganization implements LibraryOrganization {
   Future<BigInt> revision() => _call(
     () async => (await api.loadOrganizationAlbums()).organizationRevision,
   );
+
+  @override
+  Future<LibraryOrganizationReceipt> progress(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+    LibraryProgressAction action,
+  ) => _change(operationId, prepared, switch (action) {
+    LibraryProgressAction.defer => const dto.OrganizationAction.defer(),
+    LibraryProgressAction.ignore => const dto.OrganizationAction.ignore(),
+    LibraryProgressAction.restore =>
+      const dto.OrganizationAction.restorePending(),
+  });
 
   @override
   Future<LibraryOrganizationAlbumPage> albums({String? after}) =>

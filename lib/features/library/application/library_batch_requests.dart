@@ -95,6 +95,20 @@ class LibraryBatchAlbumMembership implements LibraryAlbumMembership {
   }
 }
 
+class LibraryBatchPickerProgressRequest extends _BatchRequest {
+  LibraryBatchPickerProgressRequest(
+    LibrarySelectionSession session,
+    this.progress,
+  ) : super(session, LibraryBatchProgressChange(progress));
+
+  final LibraryProgressAction progress;
+  @override
+  LibraryOrganizationErrorSurface get errorSurface =>
+      LibraryOrganizationErrorSurface.form;
+  @override
+  String get successMessage => libraryProgressMessage(progress);
+}
+
 class _BatchAlbumRequest extends _BatchRequest {
   _BatchAlbumRequest(LibrarySelectionSession session, this.album)
     : super(session, LibraryBatchAlbum(album?.id));

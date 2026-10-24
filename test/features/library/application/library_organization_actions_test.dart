@@ -4,8 +4,10 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_actions.dart";
+import "package:cedarflake_ame/features/library/application/library_organization_history.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_outcome.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
+import "package:cedarflake_ame/features/library/domain/library_organization_history.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -207,4 +209,82 @@ void main() {
     expect(notifications.hasUnread, isFalse);
     expect(container.read(libraryOrganizationOutcomeProvider)?.title, "已撤销");
   });
+
+  test(
+    "an uncertain history result retries the same receipt and does not infer another head",
+    () async {
+      service.saveHistory = (_) async =>
+          throw StateError("Receipt unavailable");
+      await actions.submit(
+        LibraryOrganizationHistoryRequest(
+          direction: LibraryOrganizationHistoryDirection.redo,
+          originalId: "previous-image",
+          revision: BigInt.two,
+        ),
+      );
+      final first = service.historySteps.single;
+      service.saveHistory = null;
+      actions.handleNotification(notice("organization.retry"));
+      await settle();
+      expect(service.historySteps.last, first);
+      expect(container.read(libraryOrganizationOutcomeProvider)?.title, "已重做");
+      expect(library.refreshes, 1);
+    },
+  );
+
+  test(
+    "a stale history retry cannot silently undo a different operation",
+    () async {
+      service.saveHistory = (_) async => throw const LibraryOrganizationFailure(
+        "organization_selection_changed",
+        "Changed",
+      );
+      await actions.submit(
+        LibraryOrganizationHistoryRequest(
+          direction: LibraryOrganizationHistoryDirection.undo,
+          originalId: "observed-operation",
+          revision: BigInt.two,
+        ),
+      );
+      service.storedHistory = LibraryOrganizationHistory(
+        revision: BigInt.from(3),
+        undoOperationId: "newer-operation",
+      );
+      service.saveHistory = null;
+      actions.handleNotification(notice("organization.retry"));
+      await settle();
+      expect(service.historySteps, hasLength(1));
+      final current = container
+          .read(ameNotificationControllerProvider)
+          .history
+          .first;
+      expect(current.message, "操作记录已更新，请重新打开菜单。");
+      expect(current.actionId, isNull);
+      expect(library.refreshes, 0);
+    },
+  );
+
+  test(
+    "a content guard failure identifies redo and offers no impossible retry",
+    () async {
+      service.saveHistory = (_) async => throw const LibraryOrganizationFailure(
+        "organization_undo_unavailable",
+        "Content changed",
+      );
+      await actions.submit(
+        LibraryOrganizationHistoryRequest(
+          direction: LibraryOrganizationHistoryDirection.redo,
+          originalId: "previous-image",
+          revision: BigInt.two,
+        ),
+      );
+      final entry = container
+          .read(ameNotificationControllerProvider)
+          .history
+          .single;
+      expect(entry.title, "无法重做");
+      expect(entry.actionId, isNull);
+      expect(library.refreshes, 0);
+    },
+  );
 }

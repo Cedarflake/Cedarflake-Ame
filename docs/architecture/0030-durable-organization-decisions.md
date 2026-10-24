@@ -234,6 +234,24 @@ reject that undo as a whole. Newly identified unhandled copies reuse the existin
 follow a still-valid whole-group undo. Resolving and then undoing a conflict restores one deferred
 group and its competing choices, never several confirmed memberships.
 
+Chronological undo and redo retain a transactional history cursor and one current inverse receipt
+per history entry. New ordinary writes truncate the redo branch while retaining immutable operation
+receipts. Reversing a step updates its inverse receipt and cursor in the same transaction. Historical
+schema upgrades start a new cursor without inventing the causal order of older direct undo calls.
+
+Field and album before-images capture their effective revision through indexed authority records.
+Ordinary writes introduce a new authority; an inverse records the authority restored by its
+before-image. This allows consecutive undo/redo on one field while its physical revision continues
+to increase. Unrelated writes, content changes and independently handled group merges still fail
+the existing guards. Older receipts without before-version evidence retain strict single-step
+validation. The cursor read returns only the current undo and redo identifiers and revision.
+Cleanup and archive replacement retire the chronological branch without deleting retained receipts.
+Schema 56 captures authority only for newly admitted local before-images. Archive imports retain
+their historical snapshots without inventing missing before-version evidence and begin a new history
+epoch after their atomic application. Historical archive formats remain readable without a new
+portable cursor or authority format. A history step rechecks the requested direction, head and
+revision inside its transaction; unknown outcomes replay the same operation identity.
+
 Desktop publication retires a deleted album's active and retained browsing scopes before reading
 the committed catalog. A revocable presentation projection owns that navigation and organization
 session transition; the application owns serial publication and retry obligations. Failed or

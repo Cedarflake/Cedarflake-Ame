@@ -178,10 +178,8 @@ fn undo_album_metadata_checks_later_names_and_keeps_creation_idempotent() {
         catalog.load_organization_albums(None).unwrap().albums[0].name,
         "Original"
     );
-    assert_eq!(
-        undo(&mut catalog, "create-Original").unwrap_err().code,
-        "organization_undo_unavailable"
-    );
+    undo(&mut catalog, "create-Original").unwrap();
+    assert!(catalog.find_organization_album(&album).unwrap().is_none());
     let fresh = create_album(&mut catalog, "Fresh");
     undo(&mut catalog, "create-Fresh").unwrap();
     assert!(

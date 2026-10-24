@@ -1,11 +1,22 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
     OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
     OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
     OrganizationWriteReceipt,
 };
 
 pub(crate) trait OrganizationRepository {
+    fn load_organization_history(&self) -> Result<OrganizationHistory, ScanError>;
+
+    fn step_organization_history(
+        &mut self,
+        operation_id: &str,
+        direction: OrganizationHistoryDirection,
+        original_id: &str,
+        expected_revision: u64,
+    ) -> Result<OrganizationHistoryReceipt, ScanError>;
+
     fn find_organization_album(
         &self,
         album_id: &str,

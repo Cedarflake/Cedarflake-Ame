@@ -17,6 +17,7 @@ pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
     );
     catalog.connection.execute_batch(
         "UPDATE organization_state SET revision = 3;
+         UPDATE organization_history_state SET started_revision = 3;
          INSERT INTO organization_albums VALUES ('album-a', '风景🌲', 1, 1, 1);
          INSERT INTO organization_albums VALUES ('album-b', '旧相册', 2, 1, 2);
          INSERT INTO organization_records VALUES ('record-a', NULL, 'deferred', 1, 3, 2, 1, 3, NULL);

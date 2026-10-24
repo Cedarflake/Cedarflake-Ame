@@ -40,6 +40,9 @@ fn cleanup_retires_decisions_and_queue_authority_without_resurrection() {
         .apply_organization_cleanup(&request, &mut |_| true)
         .unwrap();
     assert_eq!(receipt.removed_records, 1);
+    let history = catalog.load_organization_history().unwrap();
+    assert_eq!(history.undo_operation_id, None);
+    assert_eq!(history.redo_operation_id, None);
     assert_eq!(
         scalar(&catalog, "SELECT COUNT(*) FROM organization_records"),
         0

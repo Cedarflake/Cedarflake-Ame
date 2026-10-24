@@ -1,6 +1,7 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
     OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
     OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
     OrganizationWriteReceipt, normalize_album_name, validate_identifier, validate_selections,
 };
@@ -19,6 +20,7 @@ mod changes;
 mod cleanup;
 mod conflicts;
 mod favorites;
+pub(super) mod history;
 mod inspection;
 pub(super) mod lifecycle;
 mod native_recovery;
@@ -33,6 +35,31 @@ mod selection;
 mod undo;
 
 impl OrganizationRepository for SqliteCatalog {
+    fn load_organization_history(&self) -> Result<OrganizationHistory, ScanError> {
+        history::load(&self.connection)
+    }
+
+    fn step_organization_history(
+        &mut self,
+        operation_id: &str,
+        direction: OrganizationHistoryDirection,
+        original_id: &str,
+        expected_revision: u64,
+    ) -> Result<OrganizationHistoryReceipt, ScanError> {
+        validate_identifier(operation_id)?;
+        validate_identifier(original_id)?;
+        let transaction = self.begin_user_interactive_write()?;
+        let receipt = history::step(
+            &transaction,
+            operation_id,
+            direction,
+            original_id,
+            expected_revision,
+        )?;
+        transaction.commit().map_err(database_error)?;
+        Ok(receipt)
+    }
+
     fn find_organization_album(
         &self,
         album_id: &str,

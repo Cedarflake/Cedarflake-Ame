@@ -4,6 +4,7 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
+import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_viewer_action.dart";
 import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -66,7 +67,7 @@ void main() {
       await tester.tap(find.byKey(const Key("viewer-album-action")));
       await tester.pumpAndSettle();
       expect(find.text("已选择：Current"), findsOneWidget);
-      expect(find.text("移至相册"), findsOneWidget);
+      expect(find.text("移至其他相册"), findsOneWidget);
       expect(service.memberships, isEmpty);
       await tester.tap(find.byKey(const ValueKey("album-choice-destination")));
       await tester.pump();
@@ -140,9 +141,32 @@ void main() {
     await tester.tap(find.byKey(const Key("viewer-album-action")));
     await tester.pumpAndSettle();
     expect(find.byKey(const Key("library-album-picker")), findsOneWidget);
-    await tester.tap(find.text("取消"));
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
     expect(service.memberships, isEmpty);
     expect(tester.takeException(), isNull);
   });
+
+  for (final action in [
+    LibraryProgressAction.ignore,
+    LibraryProgressAction.defer,
+  ]) {
+    testWidgets("ordinary viewer tray saves $action for its whole group", (
+      tester,
+    ) async {
+      await host(tester, "one");
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("viewer-album-action")));
+      await tester.pumpAndSettle();
+      final key = action == LibraryProgressAction.ignore
+          ? "library-album-ignore"
+          : "library-album-defer";
+      await tester.tap(find.byKey(Key(key)));
+      await tester.pumpAndSettle();
+      expect(service.progressWrites.single.action, action);
+      expect(service.preparedTargets.single, [organizationTarget("one")]);
+      expect(find.byKey(const Key("library-album-picker")), findsNothing);
+      expect(service.memberships, isEmpty);
+    });
+  }
 }

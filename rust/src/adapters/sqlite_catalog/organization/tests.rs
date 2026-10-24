@@ -15,6 +15,7 @@ mod association_lifetime;
 mod batch;
 mod cleanup;
 mod conflicts;
+mod history;
 mod inspection;
 mod lifecycle;
 mod native_recovery;

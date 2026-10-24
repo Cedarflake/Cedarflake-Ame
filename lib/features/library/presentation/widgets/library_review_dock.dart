@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_organization_queue.dart";
@@ -12,6 +13,7 @@ class LibraryReviewDock extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
     final continuation = mode.continuation;
     final status = switch (continuation?.status) {
       LibraryContinuationStatus.anchorUnavailable => "上次整理的图片暂时不可用",
@@ -20,10 +22,13 @@ class LibraryReviewDock extends StatelessWidget {
       _ => null,
     };
     const style = ButtonStyle(
-      minimumSize: WidgetStatePropertyAll(Size(0, 48)),
+      minimumSize: WidgetStatePropertyAll(Size(0, 52)),
       padding: WidgetStatePropertyAll(
-        EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        EdgeInsets.symmetric(horizontal: 18, vertical: 12),
       ),
+      elevation: WidgetStatePropertyAll(3),
+      shape: WidgetStatePropertyAll(StadiumBorder()),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
     );
     return Padding(
       key: const Key("library-review-dock"),
@@ -45,38 +50,76 @@ class LibraryReviewDock extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Material(
-                    elevation: 3,
-                    color: Theme.of(context).colorScheme.surfaceContainer,
-                    borderRadius: BorderRadius.circular(28),
-                    child: SegmentedButton<LibraryOrganizationQueue>(
-                      style: style,
-                      selected: {mode.queue},
-                      onSelectionChanged: mode.busy
-                          ? null
-                          : (selection) => mode.selectQueue(selection.single),
-                      segments: [
-                        for (final queue in LibraryOrganizationQueue.values)
-                          ButtonSegment(
-                            value: queue,
-                            label: Text(_label(queue)),
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: IntrinsicHeight(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Material(
+                      key: const Key("library-review-queues"),
+                      elevation: 3,
+                      color: colors.surfaceContainer,
+                      borderRadius: BorderRadius.circular(28),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 52),
+                        child: Padding(
+                          padding: const EdgeInsets.all(7),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            spacing: 4,
+                            children: [
+                              for (final queue
+                                  in LibraryOrganizationQueue.values)
+                                ChoiceChip(
+                                  avatar: Icon(switch (queue) {
+                                    LibraryOrganizationQueue.pending =>
+                                      Symbols.inbox_rounded,
+                                    LibraryOrganizationQueue.deferred =>
+                                      Symbols.schedule_rounded,
+                                    LibraryOrganizationQueue.ignored =>
+                                      Symbols.hide_image_rounded,
+                                  }, size: 20),
+                                  label: Text(_label(queue)),
+                                  selected: mode.queue == queue,
+                                  showCheckmark: false,
+                                  shape: const StadiumBorder(),
+                                  side: BorderSide.none,
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 15,
+                                    vertical: 7,
+                                  ),
+                                  labelPadding: EdgeInsets.zero,
+                                  materialTapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                  backgroundColor: colors.surfaceContainer,
+                                  selectedColor: colors.secondaryContainer,
+                                  onSelected: mode.busy
+                                      ? null
+                                      : (selected) {
+                                          if (selected) mode.selectQueue(queue);
+                                        },
+                                ),
+                            ],
                           ),
-                      ],
+                        ),
+                      ),
                     ),
-                  ),
-                  if (continuation?.canResume == true) ...[
-                    const SizedBox(width: 12),
-                    FilledButton(
-                      key: const Key("library-review-resume"),
-                      style: style,
-                      onPressed: mode.busy ? null : mode.resume,
-                      child: const Text("继续整理"),
-                    ),
+                    if (continuation?.canResume == true) ...[
+                      const SizedBox(width: 12),
+                      FilledButton.tonalIcon(
+                        key: const Key("library-review-resume"),
+                        style: style,
+                        onPressed: mode.busy ? null : mode.resume,
+                        icon: const Icon(
+                          Symbols.arrow_forward_rounded,
+                          size: 20,
+                        ),
+                        label: const Text("继续整理"),
+                      ),
+                    ],
                   ],
-                ],
+                ),
               ),
             ),
           ),

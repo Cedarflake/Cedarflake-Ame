@@ -7,6 +7,7 @@ import "../../../app/notifications/ame_notification_controller.dart";
 import "../domain/library_organization.dart";
 import "library_controller.dart";
 import "library_organization.dart";
+import "library_organization_failure_feedback.dart";
 import "library_organization_outcome.dart";
 import "library_organization_publication.dart";
 import "library_organization_requests.dart";
@@ -121,48 +122,34 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
       if (_disposed || request.isCancelled) {
         return const LibraryOrganizationRetired();
       }
-      final code = error is LibraryOrganizationFailure
-          ? error.code
-          : "unexpected_error";
+      final feedback = LibraryOrganizationFailureFeedback(error, request);
+      final failure = feedback.failure;
+      final code = failure.code;
       debugPrint("[Ame organization] outcome=failed code=$code");
-      final stale = error is LibraryOrganizationFailure && error.isStale;
-      final undoUnavailable =
-          error is LibraryOrganizationFailure &&
-          error.code == "organization_undo_unavailable";
-      final selectionExpired = code == "organization_selection_expired";
       final retryId = request.feedbackId;
-      if (stale) {
+      if (failure.isStale) {
         request.refreshAuthority();
       }
-      final failure = LibraryOrganizationFailure(code, error.toString());
       if (request.errorSurface == LibraryOrganizationErrorSurface.form) {
         return LibraryOrganizationRejected(failure);
       }
-      if (!undoUnavailable && !selectionExpired) {
+      if (feedback.canRetry) {
         _failed[retryId] = request;
+      } else {
+        _failed.remove(retryId);
       }
       while (_failed.length > ameNotificationHistoryLimit) {
         _failed.remove(_failed.keys.first)?.cancel();
       }
-      var message = "更改尚未确认保存，请重试。";
-      if (undoUnavailable) {
-        message = "图片或整理记录已更改，当前记录已保留。";
-      } else if (stale) {
-        message = "图片或整理信息已更新，请重试。";
-      } else if (selectionExpired) {
-        message = "图片或整理信息已更新，请重新选择图片。";
-      }
       notifications.publish(
         AmeNotificationDraft(
-          title: undoUnavailable ? "无法撤销" : "未能保存更改",
-          message: message,
+          title: feedback.title,
+          message: feedback.message,
           severity: AmeNotificationSeverity.error,
           dedupeKey: key,
-          actionId: undoUnavailable || selectionExpired
-              ? null
-              : "organization.retry",
-          actionLabel: undoUnavailable || selectionExpired ? null : "重试",
-          actionContext: undoUnavailable || selectionExpired ? null : retryId,
+          actionId: feedback.canRetry ? "organization.retry" : null,
+          actionLabel: feedback.canRetry ? "重试" : null,
+          actionContext: feedback.canRetry ? retryId : null,
           isPersistent: true,
         ),
       );

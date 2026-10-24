@@ -1,6 +1,7 @@
 use std::fs;
 
 use crate::domain::organization_archive::OrganizationArchivePhase;
+use crate::ports::organization::OrganizationRepository;
 use crate::ports::organization_archive::OrganizationArchiveRepository;
 
 use super::super::super::tests::{assert_no_scratch, fixture};
@@ -82,6 +83,31 @@ fn organization_archive_restore_commits_reopens_and_replays_without_reapplying_d
             ))
             .unwrap()
     );
+}
+
+#[test]
+fn organization_archive_restore_retires_cursor_without_importing_an_unproven_undo_chain() {
+    let (directory, path, mut target) = exported();
+    target
+        .create_organization_album("local-album", 0, "Local")
+        .unwrap();
+    assert!(
+        target
+            .load_organization_history()
+            .unwrap()
+            .undo_operation_id
+            .is_some()
+    );
+    let request = proposal(&target, &path, "restore-history");
+    target
+        .restore_organization_archive(&path, &request, &mut |_| true)
+        .unwrap();
+    drop(target);
+    let target = SqliteCatalog::open(directory.path().join("restored.sqlite3")).unwrap();
+    let history = target.load_organization_history().unwrap();
+    assert_eq!(history.undo_operation_id, None);
+    assert_eq!(history.redo_operation_id, None);
+    assert!(history.organization_revision > 1);
 }
 
 #[test]

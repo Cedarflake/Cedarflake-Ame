@@ -97,6 +97,9 @@ pub(super) fn finish(
     };
     connection.execute("UPDATE organization_operations SET revision = ?1, changed_groups = ?2 WHERE operation_id = ?3",
         params![committed_revision, sqlite_integer(changed_groups, "changed groups")?, operation_id]).map_err(database_error)?;
+    if changed_groups > 0 || metadata_changed {
+        super::history::record(connection, operation_id)?;
+    }
     Ok(OrganizationWriteReceipt {
         operation_id: operation_id.to_owned(),
         organization_revision: committed_revision as u64,

@@ -180,6 +180,56 @@ class OrganizationGroupTarget {
           membershipAuthority == other.membershipAuthority;
 }
 
+class OrganizationHistory {
+  final BigInt organizationRevision;
+  final String? undoOperationId;
+  final String? redoOperationId;
+
+  const OrganizationHistory({
+    required this.organizationRevision,
+    this.undoOperationId,
+    this.redoOperationId,
+  });
+
+  @override
+  int get hashCode =>
+      organizationRevision.hashCode ^
+      undoOperationId.hashCode ^
+      redoOperationId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationHistory &&
+          runtimeType == other.runtimeType &&
+          organizationRevision == other.organizationRevision &&
+          undoOperationId == other.undoOperationId &&
+          redoOperationId == other.redoOperationId;
+}
+
+enum OrganizationHistoryDirection { undo, redo }
+
+class OrganizationHistoryReceipt {
+  final OrganizationWriteReceipt operation;
+  final String? retiredAlbumId;
+
+  const OrganizationHistoryReceipt({
+    required this.operation,
+    this.retiredAlbumId,
+  });
+
+  @override
+  int get hashCode => operation.hashCode ^ retiredAlbumId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationHistoryReceipt &&
+          runtimeType == other.runtimeType &&
+          operation == other.operation &&
+          retiredAlbumId == other.retiredAlbumId;
+}
+
 class OrganizationInspection {
   final BigInt catalogRevision;
   final BigInt organizationRevision;

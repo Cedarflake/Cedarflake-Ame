@@ -124,12 +124,10 @@ void main() {
       await tester.pump();
       expect(find.text("正在保存"), findsOneWidget);
       expect(selected, isNull);
-      expect(
-        tester
-            .widget<TextButton>(find.widgetWithText(TextButton, "取消"))
-            .onPressed,
-        isNull,
-      );
+      expect(find.widgetWithText(TextButton, "取消"), findsNothing);
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.byKey(const Key("library-album-picker")), findsOneWidget);
       committed.completeError(StateError("lost acknowledgement"));
       await tester.pumpAndSettle();
       expect(find.text("尚未确认保存结果，请重试。"), findsOneWidget);
@@ -140,6 +138,65 @@ void main() {
       expect(find.byKey(const Key("library-album-picker")), findsNothing);
       expect(selected?.album?.id, "a");
       expect(service.memberships[1].id, service.memberships[0].id);
+    },
+  );
+
+  testWidgets(
+    "bottom tray allows unchecking while keeping a single destination",
+    (tester) async {
+      const first = LibraryOrganizationAlbum("a", "First");
+      const second = LibraryOrganizationAlbum("b", "Second");
+      service.albumItems = [first, second];
+      await host(
+        tester,
+        (context) =>
+            () => showLibraryAlbumPicker(
+              context: context,
+              actionLabel: "移至其他相册",
+              initialAlbum: first,
+              currentAlbum: first,
+              clearLabel: "移出相册",
+            ),
+      );
+      expect(find.byType(BottomSheet), findsOneWidget);
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(find.text("取消"), findsNothing);
+      final confirm = find.byKey(const Key("library-album-confirm"));
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      await tester.tap(find.byKey(const ValueKey("album-choice-a")));
+      await tester.pump();
+      expect(find.text("已选择：First"), findsNothing);
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
+      await tester.tap(find.byKey(const ValueKey("album-choice-b")));
+      await tester.pump();
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey("album-choice-b")),
+            )
+            .value,
+        isTrue,
+      );
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey("album-choice-a")),
+            )
+            .value,
+        isFalse,
+      );
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNotNull);
+      await tester.tap(find.byKey(const ValueKey("album-choice-a")));
+      await tester.pump();
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey("album-choice-b")),
+            )
+            .value,
+        isFalse,
+      );
+      expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
     },
   );
 
@@ -213,7 +270,7 @@ void main() {
             ),
       );
       await open();
-      await tester.tap(find.text("取消"));
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(service.memberships, isEmpty);
       await open();

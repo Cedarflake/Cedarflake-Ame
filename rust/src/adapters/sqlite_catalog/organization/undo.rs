@@ -23,6 +23,15 @@ pub(super) fn apply(
             Admission::Replayed(receipt) => return Ok(receipt),
             Admission::New { revision } => revision,
         };
+    restore(connection, operation_id, original_id, revision)
+}
+
+pub(super) fn restore(
+    connection: &Connection,
+    operation_id: &str,
+    original_id: &str,
+    revision: i64,
+) -> Result<OrganizationWriteReceipt, ScanError> {
     let original: Option<(String, u64)> = connection.query_row(
         "SELECT operation_kind, changed_groups FROM organization_operations WHERE operation_id = ?1 AND operation_id <> ?2",
         params![original_id, operation_id], |row| Ok((row.get(0)?, read_unsigned(row, 1)?))
@@ -30,7 +39,10 @@ pub(super) fn apply(
     let Some((kind, original_groups)) = original else {
         return Err(unavailable());
     };
-    if kind == "undo" {
+    if !matches!(
+        kind.as_str(),
+        "favorite" | "organization" | "album" | "undo"
+    ) {
         return Err(unavailable());
     }
     validate_fields(connection, original_id)?;
@@ -45,13 +57,17 @@ pub(super) fn apply(
     let metadata_changed = album::restore(connection, operation_id, original_id, revision)?;
     validate_album_targets(connection, original_id)?;
     restore_fields(connection, operation_id, original_id, revision)?;
-    operations::finish(
+    let receipt = operations::finish(
         connection,
         operation_id,
         revision,
         changed_groups,
         metadata_changed,
-    )
+    )?;
+    if changed_groups > 0 || metadata_changed {
+        super::history::inverted(connection, operation_id, original_id)?;
+    }
+    Ok(receipt)
 }
 
 fn validate_album_targets(connection: &Connection, original_id: &str) -> Result<(), ScanError> {
@@ -68,14 +84,13 @@ fn validate_album_targets(connection: &Connection, original_id: &str) -> Result<
 }
 
 fn validate_fields(connection: &Connection, original_id: &str) -> Result<(), ScanError> {
+    super::history::authority::require_current_fields(connection, original_id)?;
     let invalid: bool = connection.query_row(&format!(
         "SELECT EXISTS(SELECT 1 FROM organization_operation_targets AS target
          LEFT JOIN organization_operation_changes AS change ON change.operation_id = target.operation_id
            AND change.record_id = target.record_id AND change.field = target.field
          LEFT JOIN organization_records AS record ON record.record_id = target.record_id
          WHERE target.operation_id = ?2 AND (record.record_id IS NULL OR change.record_id IS NULL
-           OR (change.field = 'favorite' AND record.favorite_revision <> change.applied_revision)
-           OR (change.field = 'organization' AND record.organization_revision <> change.applied_revision)
            OR EXISTS(SELECT 1 FROM organization_record_groups AS affected
              JOIN organization_record_groups AS member ON member.group_id = affected.group_id
              WHERE affected.record_id = target.record_id AND NOT EXISTS(
@@ -113,6 +128,7 @@ fn restore_fields(
          FROM organization_operation_changes AS change JOIN organization_records AS record ON record.record_id = change.record_id
          WHERE change.operation_id = ?2", params![operation_id, original_id, revision]
     ).map_err(database_error)?;
+    super::history::authority::restore_fields(connection, operation_id, original_id)?;
     connection.execute(
         "INSERT INTO organization_operation_conflicts
          SELECT ?1, conflict.record_id, conflict.album_id, conflict.decision_revision FROM organization_conflicts AS conflict

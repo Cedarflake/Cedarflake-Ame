@@ -14,6 +14,21 @@ Future<OrganizationInspection> inspectOrganizationSelection({
   selections: selections,
 );
 
+Future<OrganizationHistory> loadOrganizationHistory() =>
+    RustLib.instance.api.crateApiOrganizationLoadOrganizationHistory();
+
+Future<OrganizationHistoryReceipt> stepOrganizationHistory({
+  required String operationId,
+  required OrganizationHistoryDirection direction,
+  required String originalId,
+  required BigInt expectedRevision,
+}) => RustLib.instance.api.crateApiOrganizationStepOrganizationHistory(
+  operationId: operationId,
+  direction: direction,
+  originalId: originalId,
+  expectedRevision: expectedRevision,
+);
+
 Future<OrganizationWriteReceipt> undoOrganizationOperation({
   required String operationId,
   required String originalId,

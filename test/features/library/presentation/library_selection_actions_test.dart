@@ -16,6 +16,7 @@ import "package:cedarflake_ame/features/settings/application/ame_preferences.dar
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../support/library_batch_fixture.dart";
 import "../support/library_organization_fixture.dart";
@@ -72,6 +73,7 @@ void main() {
                       catalogRevision: BigInt.from(42),
                       enabled: true,
                       onCommitted: () => committed++,
+                      onCancel: () => visible.value = false,
                     )
                   : const SizedBox.shrink(),
             ),
@@ -98,6 +100,71 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key("library-album-confirm")));
     await tester.pumpAndSettle();
+  }
+
+  for (final favorites in [0, 1, 3]) {
+    testWidgets("favorite menu reflects $favorites of three groups", (
+      tester,
+    ) async {
+      batches.create = () => OrganizationBatchFixture()
+        ..summary = LibraryBatchSummary(
+          groups: 3,
+          favorites: favorites,
+          assigned: 0,
+          conflicts: 0,
+        );
+      await host(tester);
+      await tester.tap(find.byKey(const Key("library-selection-favorite")));
+      await tester.pumpAndSettle();
+      expect(find.text("加入收藏夹"), favorites < 3 ? findsOneWidget : findsNothing);
+      expect(find.text("取消收藏"), favorites > 0 ? findsOneWidget : findsNothing);
+      if (favorites > 0)
+        expect(find.byIcon(Symbols.heart_minus_rounded), findsOneWidget);
+      await tester.tap(find.text(favorites == 3 ? "取消收藏" : "加入收藏夹"));
+      await tester.pumpAndSettle();
+      expect(batches.batches, hasLength(1));
+      expect(batches.batches.single.preparations, 1);
+      expect(
+        (batches.batches.single.writes.single.action as LibraryBatchFavorite)
+            .favorite,
+        favorites != 3,
+      );
+    });
+  }
+
+  for (final assigned in [0, 1, 3]) {
+    testWidgets("album tray reflects $assigned assigned groups", (
+      tester,
+    ) async {
+      batches.create = () =>
+          OrganizationBatchFixture()
+            ..summary = LibraryBatchSummary(
+              groups: 3,
+              favorites: 0,
+              assigned: assigned,
+              conflicts: 0,
+              commonAlbum: assigned == 3 ? destination : null,
+            );
+      await host(tester);
+      await albums(tester);
+      final label = switch (assigned) {
+        0 => "加入相册",
+        3 => "移至其他相册",
+        _ => "加入或移至相册",
+      };
+      expect(find.widgetWithText(FilledButton, label), findsOneWidget);
+      expect(find.text("移出相册"), assigned > 0 ? findsOneWidget : findsNothing);
+      if (assigned == 3) {
+        expect(
+          tester
+              .widget<FilledButton>(
+                find.byKey(const Key("library-album-confirm")),
+              )
+              .onPressed,
+          isNull,
+        );
+      }
+    });
   }
 
   testWidgets(
@@ -150,7 +217,7 @@ void main() {
     batch.preparing!.complete(batch.summary);
     await tester.pumpAndSettle();
     expect(find.textContaining("正在准备"), findsNothing);
-    expect(find.text("移至相册"), findsOneWidget);
+    expect(find.text("加入或移至相册"), findsOneWidget);
     expect(batches.batches.single.writes, isEmpty);
     await tester.tap(find.text("移出相册"));
     await tester.pumpAndSettle();
@@ -282,8 +349,6 @@ void main() {
       batches.create = () => batch;
       await host(tester);
       await tester.tap(find.byKey(const Key("library-selection-favorite")));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text("加入收藏夹"));
       await tester.pump();
       visible.value = false;
       await tester.pump();
@@ -318,7 +383,7 @@ void main() {
       await tester.tap(find.byKey(const Key("library-album-confirm")));
       await tester.pump();
       expect(find.text("正在保存"), findsOneWidget);
-      await tester.tap(find.text("取消"));
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("library-album-picker")), findsNothing);
       expect(batch.closes, 1);
@@ -344,7 +409,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.byKey(const Key("library-album-confirm")));
       await tester.pump();
-      await tester.tap(find.text("取消"));
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("library-album-picker")), findsNothing);
       expect(committed, 1);

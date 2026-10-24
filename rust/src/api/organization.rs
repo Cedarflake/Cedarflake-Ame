@@ -1,6 +1,7 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
     OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationHistory, OrganizationHistoryDirection, OrganizationHistoryReceipt,
     OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
     OrganizationWriteReceipt,
 };
@@ -9,6 +10,24 @@ pub fn inspect_organization_selection(
     selections: Vec<OrganizationSelection>,
 ) -> Result<OrganizationInspection, ScanError> {
     crate::application::organization::inspect_selection(selections)
+}
+
+pub fn load_organization_history() -> Result<OrganizationHistory, ScanError> {
+    crate::application::organization::load_history()
+}
+
+pub fn step_organization_history(
+    operation_id: String,
+    direction: OrganizationHistoryDirection,
+    original_id: String,
+    expected_revision: u64,
+) -> Result<OrganizationHistoryReceipt, ScanError> {
+    crate::application::organization::step_history(
+        operation_id,
+        direction,
+        original_id,
+        expected_revision,
+    )
 }
 
 pub fn undo_organization_operation(

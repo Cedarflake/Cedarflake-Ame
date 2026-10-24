@@ -112,6 +112,9 @@ handoff/restart/rollback checks passing. Subsequent hosted synchronization passe
 numeric native-read diagnostic for recurrence. The cleanup checkpoint also exposed a one-copy
 publication cost regression. Schema 55's maintained unresolved-association lookup restores bounded
 group updates, with migration, cleanup/restoration, query-growth and exact-head hosted checks passing.
+The R4-05 control follow-up adds a bottom album tray, state-aware Favorite/album commands and
+persistent chronological undo/redo across viewed groups. Focused regressions and the controlled
+desktop move/remove and restart paths pass; exact-head hosted verification remains pending.
 The retained-library database baseline exposes slow album, Favorite and organization-queue reads,
 including empty queues and continuation. Repair their owning queries before accepting large-library
 performance; retain the complete client/resource obligations with integrated verification.
