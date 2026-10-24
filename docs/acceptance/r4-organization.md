@@ -886,3 +886,34 @@ expired before the attempted native clicks, so native undo remains unverified; a
 undo evidence remains valid. Other native management/settings, batch and failure paths and retained
 library/two-core measurements remain in the roadmap. The previous queue-layout head's hosted run
 `40069517946` was still running when inspected; this slice requires its own published-head checks.
+
+## Whole-query album assignment and preparation handoff - 2026-10-24
+
+The controlled client selected all six logical groups across the 700-file query through the gallery
+menu. Cancelling the shared picker retained all six selections. Reopening it and choosing
+`R4 conflict` saved all groups, cleared selection after commit and showed 700 physical copies folded
+into six album entries. Favorites remained the original 210-copy group. After restarting the
+isolated client, the batch picker recognized `R4 conflict` as the common saved destination.
+
+Native inspection found that the toolbar continued to say `正在准备` while the ready picker was
+waiting for a destination. The selection owner now rebuilds when it transfers ownership and hides
+its preparation feedback while the dialog owns the operation. It retains the busy action guard,
+dialog cancellation and commit lifetime. The existing boundary regression holds preparation,
+observes its status, completes preparation and verifies that the status is gone before choosing a
+destination. All nine selection-action checks, scoped analysis and owned format checks pass.
+
+The rebuilt Debug client took 29.9 seconds. Its actual batch picker leaves no preparation text in
+the background toolbar, and Escape restores the six-item selection with enabled actions. The owner
+has 304 production lines, no inline tests and 371 dedicated test lines. The change adds no schema,
+bridge, dependency or new state flag. All 700 fixture filenames, sizes, UTC modification ticks and
+SHA-256 hashes still match the retained baseline; scoped client logs contain no exception, overflow
+or save failure.
+
+Run [40069517946](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40069517946) completed
+successfully for queue-layout commit `ad052b81b22fd664459aec5005d75e9c7f1f0698`.
+Conflict run [40071330712](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40071330712)
+for `60bddbcba35eb1b2c20e28c7039ec9cfc531f83a` is still in progress at this checkpoint, without a
+reported failure. This handoff correction needs checks for its own published head. Native transient
+undo remains unverified: the control expired between tool observations, and direct accessibility
+clicks rejected their returned indexes. Ctrl+A produced no observed selection in this client; its
+cause has not been isolated. Menu-driven whole-query selection is verified.

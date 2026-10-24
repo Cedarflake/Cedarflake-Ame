@@ -140,8 +140,16 @@ void main() {
   testWidgets("mixed albums use the shared picker and remove whole groups", (
     tester,
   ) async {
+    final batch = OrganizationBatchFixture()
+      ..preparing = Completer<LibraryBatchSummary>();
+    batches.create = () => batch;
     await host(tester);
-    await albums(tester);
+    await tester.tap(find.byKey(const Key("library-selection-album")));
+    await tester.pump();
+    expect(find.textContaining("正在准备"), findsOneWidget);
+    batch.preparing!.complete(batch.summary);
+    await tester.pumpAndSettle();
+    expect(find.textContaining("正在准备"), findsNothing);
     expect(find.text("移至相册"), findsOneWidget);
     expect(batches.batches.single.writes, isEmpty);
     await tester.tap(find.text("移出相册"));

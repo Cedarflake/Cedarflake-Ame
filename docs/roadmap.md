@@ -62,8 +62,8 @@ queries share bounded pages, group counts and logical anchors; focused Rust and 
 pass. Durable continuation now retains logical work across reopen, group changes and ordinary-mode
 edits, with atomic progress saves and stale-session rejection. Focused continuation, migration and
 source-lifecycle checks pass. The viewer-Favorite checkpoint passed hosted verification. The current
-product checkpoint still requires completed hosted verification after its cancelled-request
-fixture correction.
+queue-layout checkpoint passed hosted verification, including its cancelled-request fixture
+correction. The subsequent conflict and batch-status changes require their published-head checks.
 R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
 Controlled desktop checks cover transient Favorite feedback without notification history,
 create-in-picker assignment, defer/ignore/restore, saved continuation, collection persistence and
@@ -73,8 +73,11 @@ native undo, remaining management/settings paths and failure interactions remain
 query-wide selection foundation is
 implemented with bounded staging, atomic group writes and cancellation; its focused adapter and
 session checks pass. Gallery selection now connects whole-query album/Favorite commands, shared
-picker creation, cancellation and transient undo; focused Rust and Flutter checks pass. Organization
-mode now connects its menu entry, shared counts, bottom queues, contextual actions and durable
+picker creation, cancellation and transient undo; focused Rust and Flutter checks pass. The shared
+batch path has controlled desktop evidence for whole-query album assignment,
+picker cancellation, restart retention and independent Favorites. Preparation feedback ends when
+the picker takes ownership. Organization mode connects its menu entry, shared counts, bottom queues,
+contextual actions and durable
 continuation through the existing gallery and viewer. Both queue layouts use continuous rows;
 focused regressions and controlled desktop checks pass. Persistent conflict labels, involved-album
 inspection and resolution are connected through the shared notification, deferred queue and picker.
@@ -234,8 +237,9 @@ ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle
 the viewer Favorite path, album management, viewer membership commands, collection entries and
 album settings connected. The query-wide selection command boundary passes focused adapter and
 session checks. Controlled desktop checks cover the core organization-mode loop, restart,
-Favorite history behavior and restored ordinary context. Remaining native undo, batch,
-management/settings and failure paths still require verification. Gallery selection and the core
+Favorite history behavior, whole-query album assignment and restored ordinary context. Remaining
+native undo, batch Favorite commands, management/settings and failure paths still require
+verification. Gallery selection and the core
 organization-mode workflows and persistent conflict inspection/resolution are connected. Controlled
 desktop checks cover conflict discovery, cancellation, resolution and restart; native undo and the
 other remaining interactions still require verification. Keep the product

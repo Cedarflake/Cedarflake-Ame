@@ -190,7 +190,7 @@ class _LibrarySelectionActionsState
         }
       }
       if (!mounted || !_owns(session)) return;
-      _dialogOwnsSession = true;
+      setState(() => _dialogOwnsSession = true);
       _timer?.cancel();
       final choice = await showLibraryAlbumPicker(
         context: context,
@@ -291,7 +291,8 @@ class _LibrarySelectionActionsState
             label: const Text("收藏"),
           ),
         ),
-        if (_working) Text(progressText, semanticsLabel: progressText),
+        if (_working && !_dialogOwnsSession)
+          Text(progressText, semanticsLabel: progressText),
         if (_error case final error?)
           Text(
             error,
