@@ -291,9 +291,15 @@ index removal, malformed historical schema, required current indexes and indexed
 The existing 50,000-lineage publication and collection cases retain their fewer-than-20,000-VM-step
 bounds. Rust formatting and whitespace checks pass.
 
-The canonical 10,000-image scan diagnostic is running against this change. Its existing storage,
-timing, responsiveness, row-count and source-preservation assertions remain unchanged; current-head
-hosted verification is also pending.
+The canonical `performance_run_synthetic.ps1 -Case scan` diagnostic passes against the product code
+in `d22ba79`: 10,000 images, 65,785,856 catalog bytes (62.7 MiB) and 37,109,760 resumed-catalog bytes,
+both below the unchanged 64-MiB limit. Cold, warm and resumed scans take 53,450, 44,483 and 48,655 ms;
+pause and cancellation take 48 and 209 ms. Row-count and source-preservation assertions pass.
+The monitored test process peaks at 67,018,752 working-set bytes and completes in 209,049 ms.
+The preceding Release test build takes 899,470 ms and is excluded from those scan timings.
+These local timings are not a comparison with the previous hosted runner or retained-library
+throughput evidence. The exact product commit's [hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40053197189)
+remains pending.
 
 The schema-50 owner has 52 production lines, a 12-line test helper and a two-line test declaration,
 with 173 dedicated test lines. The schema-49 owner retains its historical DDL and exposes the two
