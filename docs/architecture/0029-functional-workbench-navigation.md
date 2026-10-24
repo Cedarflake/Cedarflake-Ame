@@ -13,7 +13,8 @@ Ame needs stable destinations for browsing and duplicate analysis as its organiz
 grow. A permanent narrow function rail selects Library, Albums and Duplicates in that order;
 Settings is pinned below.
 The Library workspace contains a collapsible source/folder sidebar and the existing photo wall.
-Favorites stays with Library. Albums owns a separate flat album sidebar and uses the same photo wall.
+Favorites is accessible from Library and Albums through one shared collection entry implementation.
+Albums owns a separate flat album sidebar and uses the same photo wall.
 The other workspaces own their contextual controls without duplicating the catalog or viewer.
 The accepted interaction blueprint is in [the gallery contract](../product/gallery-ui.md#workbench-blueprint).
 

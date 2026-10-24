@@ -1284,6 +1284,10 @@ application regression owners retain their assertions.
 
 The function rail orders Library, Albums and Duplicates. Albums owns the existing flat album list;
 Library retains Favorites and physical sources. Both reuse one gallery, viewer and sidebar transition.
+Favorites is also accessible above the Albums list through the same collection entry. Five focused
+query-navigation cases pass with that addition, including opening Favorites from Albums, retaining
+the selected primary destination, and restoring each destination's scope on return. Both entries
+share favorite state without changing album membership.
 The new navigation owner retains two browse snapshots, serializes rapid destination requests and
 replays failed navigation through the existing retry surface. Album retirement invalidates saved
 and in-flight restoration. Conflict notices open the visible Library deferred queue.

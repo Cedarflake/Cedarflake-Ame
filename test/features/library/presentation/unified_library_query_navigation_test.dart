@@ -59,6 +59,33 @@ void main() {
     await tester.pumpAndSettle();
     expect(catalog.loadQueries.last.collection, isA<LibraryAllCollection>());
     expect(catalog.loadQueries.last.rootId, isNull);
+    await tester.tap(find.byKey(const Key("workbench-albums")));
+    await tester.pumpAndSettle();
+    final favorites = find.byKey(const Key("library-sidebar-favorites"));
+    expect(favorites, findsOneWidget);
+    await tester.tap(favorites);
+    await tester.pumpAndSettle();
+    expect(
+      catalog.loadQueries.last.collection,
+      isA<LibraryFavoritesCollection>(),
+    );
+    expect(find.text("选择相册"), findsNothing);
+    expect(tester.widget<ListTile>(favorites).selected, isTrue);
+    expect(
+      tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
+      1,
+    );
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
+    await tester.pumpAndSettle();
+    expect(catalog.loadQueries.last.collection, isA<LibraryAllCollection>());
+    expect(favorites, findsOneWidget);
+    await tester.tap(find.byKey(const Key("workbench-albums")));
+    await tester.pumpAndSettle();
+    expect(
+      catalog.loadQueries.last.collection,
+      isA<LibraryFavoritesCollection>(),
+    );
+    expect(tester.widget<ListTile>(favorites).selected, isTrue);
     expect(tester.takeException(), isNull);
   });
 

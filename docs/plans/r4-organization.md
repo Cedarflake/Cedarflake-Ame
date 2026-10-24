@@ -182,7 +182,7 @@ mockup is a layout reference, not implementation or acceptance evidence.
 Work in this order within the slice:
 
 1. Connect the primary destinations in `图库`, `相册`, `去重` order. Put flat albums in the Albums
-   secondary sidebar and keep independent Favorites with Library sources. Preserve each browsing
+   secondary sidebar and expose independent Favorites in both browsing sidebars. Preserve each browsing
    destination's scope, selection and logical position through the shared gallery and viewer.
    Connect album management and the single-destination picker in ordinary selection/viewer controls.
    Include create-in-picker, mixed

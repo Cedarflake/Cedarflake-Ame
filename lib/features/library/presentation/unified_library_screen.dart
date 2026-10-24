@@ -454,7 +454,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           viewerCatalogAsset == null &&
               workspace.isBrowsing &&
               (workspace != LibraryWorkspace.albums ||
-                  state.query.collection is LibraryAlbumCollection)
+                  state.query.collection is! LibraryAllCollection)
           ? {
               const SingleActivator(
                 LogicalKeyboardKey.keyA,
@@ -486,7 +486,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                             workspace.isBrowsing &&
                             (workspace != LibraryWorkspace.albums ||
                                 state.query.collection
-                                    is LibraryAlbumCollection) &&
+                                    is! LibraryAllCollection) &&
                             canEditLibrarySearch(state),
                         searchController: _searchController,
                         onSearchChanged: _onSearchChanged,
@@ -680,6 +680,22 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     final selection = _selection;
     final folderController = ref.read(libraryFolderControllerProvider.notifier);
     final collection = state.query.collection;
+    final favorites = LibraryCollectionNavigation(
+      collection: collection,
+      isCompact: false,
+      onFavorites: !LibraryBrowseAdmission(state).canBrowse
+          ? null
+          : () => unawaited(
+              _applyQuery(
+                state.query.copyWith(
+                  collection: const LibraryGalleryCollection.favorites(),
+                  rootId: null,
+                  folderRelativePath: null,
+                ),
+                preserveGalleryPosition: false,
+              ),
+            ),
+    );
     final albumName = collection is LibraryAlbumCollection
         ? ref.watch(libraryAlbumProvider(collection.albumId)).value?.name
         : null;
@@ -688,24 +704,29 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         _searchDebounce?.cancel();
         unawaited(_browseWorkspaces.select(workspace));
       },
-      albumLanding: collection is LibraryAlbumCollection
-          ? null
-          : const LibraryAlbumsLanding(),
+      albumLanding: collection is LibraryAllCollection
+          ? const LibraryAlbumsLanding()
+          : null,
       albumsNavigationBuilder: (width) => LibraryAlbumsSidebar(
         width: width,
-        child: LibraryAlbumNavigation(
-          collection: collection,
-          enabled: LibraryBrowseAdmission(state).canBrowse,
-          onSelect: (album) => unawaited(
-            _applyQuery(
-              state.query.copyWith(
-                collection: LibraryGalleryCollection.album(album.id),
-                rootId: null,
-                folderRelativePath: null,
+        child: Column(
+          children: [
+            favorites,
+            LibraryAlbumNavigation(
+              collection: collection,
+              enabled: LibraryBrowseAdmission(state).canBrowse,
+              onSelect: (album) => unawaited(
+                _applyQuery(
+                  state.query.copyWith(
+                    collection: LibraryGalleryCollection.album(album.id),
+                    rootId: null,
+                    folderRelativePath: null,
+                  ),
+                  preserveGalleryPosition: false,
+                ),
               ),
-              preserveGalleryPosition: false,
             ),
-          ),
+          ],
         ),
       ),
       navigationBuilder: (width) => LibraryNavigation(
@@ -717,22 +738,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             _synchronizationSnapshot.lastErrorCode != null,
         selectedRootId: state.query.rootId,
         collection: state.query.collection,
-        collections: LibraryCollectionNavigation(
-          collection: state.query.collection,
-          isCompact: false,
-          onFavorites: !LibraryBrowseAdmission(state).canBrowse
-              ? null
-              : () => unawaited(
-                  _applyQuery(
-                    state.query.copyWith(
-                      collection: const LibraryGalleryCollection.favorites(),
-                      rootId: null,
-                      folderRelativePath: null,
-                    ),
-                    preserveGalleryPosition: false,
-                  ),
-                ),
-        ),
+        collections: favorites,
         selectedFolderRelativePath: state.query.folderRelativePath,
         transientSource: LibraryPendingSource.fromState(state),
         folderTree: folderTree,

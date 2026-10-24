@@ -121,7 +121,7 @@ and evidence; this product contract does not duplicate that inventory or record 
 ## Workbench blueprint
 
 The workbench has three regions in Library and Albums: a narrow function rail, a contextual sidebar,
-and the photo wall. Library shows sources and Favorites; Albums shows the album list. The rail
+and the photo wall. Library shows sources and Favorites; Albums shows Favorites and the album list. The rail
 remains visible while the secondary sidebar can collapse. Its toggle
 stays in the function rail immediately above Settings while either is active, with `收起侧栏` and
 `展开侧栏` tooltips. Animate the sidebar boundary and photo content's left edge together over a short
@@ -270,8 +270,9 @@ The Library sidebar contains only navigation and source scope:
 - expandable folder trees when functional.
 
 Albums is a separate primary destination between Library and Duplicates. Its secondary sidebar
-contains the flat album list, creation and management actions; it contains no source folders or
-Favorites entry. Until an album is selected, the content area invites selection or creation from
+contains an independent Favorites entry followed by the flat album list, creation and management
+actions; it contains no source folders. Both Favorites entries open the same collection and do not
+change album membership. Until a collection is selected, the content area invites selection or creation from
 the sidebar. Each browsing destination retains its own query, logical image position and selection.
 Switching between them exits organization mode through its existing ordinary-context restoration.
 Settings and Duplicates retain the current browsing context. The accepted narrow-window sidebar

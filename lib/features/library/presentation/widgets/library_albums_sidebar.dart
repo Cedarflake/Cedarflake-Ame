@@ -34,6 +34,6 @@ class LibraryAlbumsLanding extends StatelessWidget {
   Widget build(BuildContext context) => const LibraryGalleryMessage(
     icon: Symbols.photo_album_rounded,
     title: "选择相册",
-    detail: "在侧栏中选择或新建相册。",
+    detail: "在侧栏中选择收藏夹或相册，也可以新建相册。",
   );
 }

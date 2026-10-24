@@ -57,7 +57,7 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
       }
     }
     if (_browsing == LibraryWorkspace.gallery ||
-        surface.library.query.collection is LibraryAlbumCollection) {
+        surface.library.query.collection is! LibraryAllCollection) {
       _saved[_browsing] = surface.captureBrowse();
     }
     final saved = _saved[destination];
