@@ -1250,3 +1250,32 @@ hosted log, and the cause remains unresolved; these restore changes do not claim
 Settings integration, inspectable unresolved records and explicit cleanup remain outstanding.
 R4-07 still owns real desktop verification, retained-library throughput/memory and cancellation
 latency; phase checkpoints alone do not establish cancellation latency for large SQL operations.
+
+## Historical upgrades through archive-aware reconciliation
+
+Commit `7333bf319cefc2845b024bd36e31006ec305e4f9` failed
+[hosted run 40090754973](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40090754973):
+55 checks across four Rust partitions reached shared organization reconciliation before schema 54
+installed `organization_recovery_admissions` and `organization_restored_fields`. The failures include
+old scan/catalog upgrades and schema 49's existing conflict normalization. They have the same missing
+table cause. Static checks, Flutter tests, native scan/accessibility checks, unsigned Release and
+the five synthetic workloads passed. The unchanged ordinary-journal restart case also passed in
+this run; that observation does not identify the previous run's native-read failure cause.
+
+The repair resolves restoration capabilities from the transaction's schema version. Earlier schemas
+retain every existing decision's local authority and have no portable recovery history. Schema 54
+still requires its actual provenance and recovery tables; missing current tables remain errors.
+This preserves schema 49's merge/conflict rules without introducing archive objects early, accepting
+an incomplete current catalog, or changing source media.
+
+Twenty-seven focused checks pass: four reconciliation migrations, five restoration migrations,
+ten media-admission checks, three version-17 upgrades, two prerelease repair paths and three restored
+authority cases. Existing rollback, conflict provenance, Favorite and retained-location assertions
+remain unchanged. A new current-schema corruption case proves a missing recovery table cannot enter
+the legacy path. These checks use controlled temporary catalogs and fixtures; original libraries and
+catalogs are untouched. Hosted verification remains required for the repair commit.
+
+The schema capability owner has 27 production lines. Recovery dispatch and restored-field authority
+have 62 and 82 production lines, with no inline tests. Dedicated restoration migration tests have
+121 lines. The organization facade adds only module composition; the existing migration and
+application regression owners retain their assertions.

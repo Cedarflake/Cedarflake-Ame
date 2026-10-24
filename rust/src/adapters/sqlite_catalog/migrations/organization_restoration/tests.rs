@@ -76,6 +76,27 @@ fn organization_restoration_schema_rejects_changed_queue_projection() {
 }
 
 #[test]
+fn organization_restoration_missing_current_history_is_not_legacy_state() {
+    let (_directory, mut catalog) = prior();
+    migrate(&mut catalog.connection).unwrap();
+    catalog
+        .connection
+        .execute_batch("DROP TABLE organization_recovery_admissions;")
+        .unwrap();
+    assert!(
+        crate::adapters::sqlite_catalog::organization::publication::root(
+            &catalog.connection,
+            "unavailable-root"
+        )
+        .is_err()
+    );
+    assert_eq!(
+        validate(&catalog.connection).unwrap_err().code,
+        "catalog_organization_restoration_invalid"
+    );
+}
+
+#[test]
 fn organization_restoration_rows_reject_unowned_queue_history() {
     let (_directory, mut catalog) = prior();
     migrate(&mut catalog.connection).unwrap();

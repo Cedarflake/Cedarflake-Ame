@@ -97,8 +97,11 @@ evidence, with focused group, conflict, source-removal and migration checks. Ato
 application now connects the application and typed bridge, preserving current decisions, operation
 history, queue order, continuation and unmatched evidence. Focused restore, cancellation, migration
 and queue-cost checks pass. Settings integration and unresolved-record cleanup remain pending.
-The preceding native-version checkpoint has one unresolved hosted ordinary-journal test failure;
-its local reproduction passed. Retained-library
+The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
+read archive tables before their migration. Schema-aware local versus imported authority now passes
+focused upgrade, rollback and current-catalog rejection checks; hosted verification of this repair
+remains pending. The earlier ordinary-journal failure did not recur in this checkpoint, although its
+original native-read cause remains unresolved. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
@@ -264,8 +267,8 @@ bridge. Native-version reassociation is connected to the existing publication tr
 cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
 are implemented through the application and typed bridge. Restored queue order and continuation,
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
-settings integration and explicit unresolved-record cleanup, preserving the unresolved hosted
-ordinary-journal failure as a separate verification obligation.
+settings integration and explicit unresolved-record cleanup. Preserve the historical-upgrade repair's
+pending hosted verification and the earlier native-read observation in the evidence record.
 R4-07 retains the complete integrated flow and retained-library
 resource measurements. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

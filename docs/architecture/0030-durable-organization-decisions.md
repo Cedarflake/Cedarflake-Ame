@@ -104,7 +104,11 @@ The [portable archive decision](0031-portable-organization-archives.md) owns sta
 mapping, atomic application, repeated requests and re-export compatibility.
 
 Schema 49 normalizes previously stored content bindings and already available fingerprints once,
-without original-media reads. Generation lookups reuse the existing exact-source index; the
+without original-media reads. Shared reconciliation reads the transaction's schema version: before
+schema 54, every existing decision has local authority and portable archive provenance is unavailable.
+After schema 54, missing provenance or recovery tables are errors, not a legacy fallback. This keeps
+historical migration independent of tables installed by later migrations. Generation lookups reuse
+the existing exact-source index; the
 root/scan/generation index supports bounded keyset windows. Schema 50 retires the redundant
 generation index added in schema 49 without changing records or catalog revisions. Temporary
 member/group sets drive joins into durable history; their

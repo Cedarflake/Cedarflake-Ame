@@ -3,6 +3,7 @@ use rusqlite::{Connection, params};
 use crate::domain::ScanError;
 
 use super::super::database_error;
+use super::restoration_schema::RestorationSchema;
 
 mod duplicates;
 mod queue;
@@ -44,6 +45,12 @@ pub(super) fn batch(connection: &Connection, generations: &[i64]) -> Result<(), 
 }
 
 fn has_history(connection: &Connection) -> Result<bool, ScanError> {
+    if matches!(
+        RestorationSchema::read(connection)?,
+        RestorationSchema::LocalDecisionsOnly
+    ) {
+        return Ok(false);
+    }
     connection
         .query_row(
             "SELECT EXISTS(SELECT 1 FROM organization_recovery_admissions)
