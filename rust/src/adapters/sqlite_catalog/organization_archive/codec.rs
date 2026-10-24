@@ -7,7 +7,7 @@ use crate::domain::ScanError;
 use super::{error, io_error, records};
 
 pub(super) const FORMAT: &str = "ame-organization-archive";
-pub(super) const VERSION: u32 = 1;
+pub(super) const VERSION: u32 = 2;
 pub(super) const MAX_LINE_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -48,6 +48,7 @@ enum WrittenEntry<'a> {
 pub(super) struct ArchiveWriter<W> {
     writer: W,
     hash: blake3::Hasher,
+    version: u32,
 }
 
 impl<W: Write> ArchiveWriter<W> {
@@ -56,6 +57,7 @@ impl<W: Write> ArchiveWriter<W> {
         let mut archive = Self {
             writer,
             hash: blake3::Hasher::new(),
+            version: header.version,
         };
         archive.append(&WrittenEntry::Header { header }, true)?;
         Ok(archive)
@@ -63,7 +65,7 @@ impl<W: Write> ArchiveWriter<W> {
 
     pub fn row(&mut self, kind_index: usize, values: &[Cell]) -> Result<(), ScanError> {
         let kind = records::KINDS.get(kind_index).ok_or_else(invalid)?;
-        validate_values(kind, values)?;
+        validate_values(kind, values, self.version)?;
         self.append(
             &WrittenEntry::Row {
                 kind: kind.name,
@@ -156,7 +158,7 @@ pub(super) fn read_records(
         bytes = read_line(&mut input)?;
         match decode(&bytes)? {
             Entry::Header { .. } => return Err(invalid()),
-            Entry::Row { kind, values } => {
+            Entry::Row { kind, mut values } => {
                 let index = records::KINDS
                     .iter()
                     .position(|spec| spec.name == kind)
@@ -164,7 +166,10 @@ pub(super) fn read_records(
                 if index < last_kind {
                     return Err(invalid());
                 }
-                validate_values(&records::KINDS[index], &values)?;
+                validate_values(&records::KINDS[index], &values, header.version)?;
+                if header.version == 1 && kind == "version_evidence" {
+                    values.push(Cell::Integer(0));
+                }
                 accept(index, &values)?;
                 counts[index] = counts[index].checked_add(1).ok_or_else(invalid)?;
                 total = total.checked_add(1).ok_or_else(invalid)?;
@@ -211,7 +216,7 @@ fn decode(bytes: &[u8]) -> Result<Entry, ScanError> {
 }
 
 fn validate_header(header: &Header) -> Result<(), ScanError> {
-    if header.format != FORMAT || header.version != VERSION {
+    if header.format != FORMAT || !(1..=VERSION).contains(&header.version) {
         return Err(error(
             "version_unsupported",
             "This organization archive format is not supported",
@@ -230,13 +235,27 @@ fn validate_header(header: &Header) -> Result<(), ScanError> {
     Ok(())
 }
 
-fn validate_values(kind: &records::RecordKind, values: &[Cell]) -> Result<(), ScanError> {
-    if kind.fields.len() != values.len()
-        || !kind
-            .fields
+fn validate_values(
+    kind: &records::RecordKind,
+    values: &[Cell],
+    version: u32,
+) -> Result<(), ScanError> {
+    let fields = if version == 1 && kind.name == "version_evidence" {
+        &kind.fields[..kind.fields.len() - 1]
+    } else {
+        kind.fields
+    };
+    if fields.len() != values.len()
+        || !fields
             .iter()
             .zip(values)
             .all(|(field, value)| field.accepts(value))
+    {
+        return Err(invalid());
+    }
+    if version == 2
+        && kind.name == "version_evidence"
+        && !matches!(values.last(), Some(Cell::Integer(count)) if *count > 0)
     {
         return Err(invalid());
     }

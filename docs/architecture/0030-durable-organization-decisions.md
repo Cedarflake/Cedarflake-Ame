@@ -93,6 +93,16 @@ same generation; recover that complete generation across roots. Deduplicate nati
 groups before comparing current and historical bindings, including the already-associated fast path.
 Schema 53 adds the native-version lookup index without changing records or requiring a rescan.
 
+Schema 54 retains portable recovery evidence and foreign-to-local generation mappings separately
+from active locations. Imported field markers identify backup intent until a local command changes
+that field. During later merges, an explicit current local choice takes precedence over imported
+intent, independently for organization and Favorite state; conflicting imported album assignments
+retain the existing deferred-resolution behavior. Recovery admissions retain original queue order
+without treating foreign ordinals as live positions. Indexed links expose a proven earlier position
+to current queue queries. Pending R3 choices retain their physical-copy evidence and source ownership.
+The [portable archive decision](0031-portable-organization-archives.md) owns staging, revision
+mapping, atomic application, repeated requests and re-export compatibility.
+
 Schema 49 normalizes previously stored content bindings and already available fingerprints once,
 without original-media reads. Generation lookups reuse the existing exact-source index; the
 root/scan/generation index supports bounded keyset windows. Schema 50 retires the redundant

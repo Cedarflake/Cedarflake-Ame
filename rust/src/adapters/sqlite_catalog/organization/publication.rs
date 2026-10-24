@@ -12,9 +12,7 @@ pub(in crate::adapters::sqlite_catalog) fn batch(
     run_id: &str,
     generations: &[u64],
 ) -> Result<(), ScanError> {
-    if !has_records(connection)? {
-        return Ok(());
-    }
+    let mut published = Vec::with_capacity(generations.len());
     for generation in generations {
         let generation = sqlite_integer(*generation, "source generation")?;
         let accepted: bool = connection
@@ -26,37 +24,22 @@ pub(in crate::adapters::sqlite_catalog) fn batch(
             )
             .map_err(database_error)?;
         if accepted {
-            records::publish_generation(connection, generation)?;
+            published.push(generation);
         }
     }
-    Ok(())
+    published_generations(connection, &published)
 }
 
-pub(in crate::adapters::sqlite_catalog) fn pending_evidence(
+pub(in crate::adapters::sqlite_catalog) fn published_generations(
     connection: &Connection,
+    generations: &[i64],
 ) -> Result<(), ScanError> {
+    super::recovery::batch(connection, generations)?;
     if !has_records(connection)? {
         return Ok(());
     }
-    let mut after = 0;
-    loop {
-        let generations = connection.prepare(
-            "SELECT f.source_generation FROM content_fingerprints AS f
-             WHERE f.source_generation > ?1 AND f.scheme = ?2 AND NOT EXISTS(
-               SELECT 1 FROM gallery_content_fingerprints AS published
-               WHERE published.source_generation = f.source_generation AND published.scheme = f.scheme)
-             ORDER BY f.source_generation LIMIT ?3",
-        ).map_err(database_error)?.query_map(
-            params![after, EXACT_FINGERPRINT_SCHEME, EXACT_PUBLICATION_BATCH_SIZE as i64],
-            |row| row.get::<_, i64>(0),
-        ).map_err(database_error)?.collect::<rusqlite::Result<Vec<_>>>().map_err(database_error)?;
-        let Some(last) = generations.last() else {
-            break;
-        };
-        after = *last;
-        for generation in generations {
-            records::publish_generation(connection, generation)?;
-        }
+    for generation in generations {
+        records::publish_generation(connection, *generation)?;
     }
     Ok(())
 }
@@ -65,6 +48,7 @@ pub(in crate::adapters::sqlite_catalog) fn root(
     connection: &Connection,
     root_id: &str,
 ) -> Result<(), ScanError> {
+    super::recovery::root(connection, root_id)?;
     if !has_records(connection)? {
         return Ok(());
     }

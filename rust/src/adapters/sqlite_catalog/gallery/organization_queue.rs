@@ -34,13 +34,13 @@ pub(super) fn admission_expression(location: &str) -> String {
     // The current representative and a newly discovered copy cannot replace the group's first entry.
     format!(
         "(SELECT MIN(admission_id) FROM (
-           SELECT admitted.admission_id FROM organization_admissions AS admitted
+           SELECT admitted.admission_id FROM organization_queue_versions AS admitted
            WHERE admitted.source_generation = {location}.source_generation
            UNION ALL
            SELECT MIN(admitted.admission_id)
            FROM organization_record_groups AS lineage
            JOIN organization_bindings AS binding ON binding.record_id = lineage.record_id
-           JOIN organization_admissions AS admitted
+           JOIN organization_queue_versions AS admitted
              ON admitted.source_generation = binding.source_generation
            WHERE lineage.group_id = {record}
            UNION ALL
@@ -49,7 +49,7 @@ pub(super) fn admission_expression(location: &str) -> String {
            JOIN gallery_content_fingerprints AS published
              ON published.source_generation = history.source_generation
                AND published.scheme = history.scheme
-           JOIN organization_admissions AS admitted
+           JOIN organization_queue_versions AS admitted
              ON admitted.source_generation = history.source_generation
            WHERE (history.scheme, history.digest, history.byte_length) = (
              SELECT f.scheme, f.digest, f.byte_length

@@ -26,7 +26,7 @@ pub(super) struct RecordKind {
 
 use Field::{Integer as I, OptionalInteger as NI, OptionalText as NT, Text as T};
 
-// The SELECT order is the version-1 wire field order. Catalog schema discovery must not extend it.
+// Field order belongs to the versioned archive contract, never catalog schema discovery.
 pub(super) const KINDS: &[RecordKind] = &[
     RecordKind {
         name: "album", fields: &[T, T, I, I, I],
@@ -105,28 +105,38 @@ pub(super) const KINDS: &[RecordKind] = &[
     },
     RecordKind {
         name: "admission", fields: &[I, I],
-        query: "SELECT admission_id, source_generation FROM organization_admissions ORDER BY admission_id",
+        query: "SELECT admission_id, source_generation FROM organization_admissions
+                UNION ALL SELECT admission_id, source_generation FROM organization_recovery_admissions
+                ORDER BY admission_id",
     },
     RecordKind {
         name: "admission_source", fields: &[I, T],
         query: "SELECT source.admission_id, root.root_id FROM organization_admission_sources AS source
                 JOIN organization_admission_roots AS root ON root.root_key = source.root_key
-                ORDER BY source.admission_id, root.root_id",
+                UNION ALL SELECT history.admission_id, source.root_id
+                FROM organization_recovery_admissions AS history
+                JOIN organization_recovery_admission_sources AS source USING(source_generation)
+                ORDER BY admission_id, root_id",
     },
     RecordKind {
         name: "root_evidence", fields: &[T, T, NT, NT],
-        query: "SELECT root.id, root.path, namespace.identity_scheme, namespace.identity_value
+        query: "SELECT root.id AS root_id, root.path, namespace.identity_scheme, namespace.identity_value
                 FROM library_roots AS root
                 LEFT JOIN library_change_root_state AS state ON state.root_id = root.id
                 LEFT JOIN library_root_publication_namespaces AS namespace
                   ON namespace.root_id = root.id AND namespace.root_generation = state.generation
-                ORDER BY root.id",
+                UNION ALL
+                SELECT retained.root_id, retained.path, retained.identity_scheme, retained.identity_value
+                FROM organization_recovery_roots AS retained
+                WHERE NOT EXISTS(SELECT 1 FROM library_roots AS root WHERE root.id = retained.root_id)
+                ORDER BY root_id",
     },
     RecordKind {
-        name: "version_evidence", fields: &[T, T, T, I, I, NT, NT, NT, NT, NT],
-        query: "SELECT l.location_id, l.asset_id, l.root_id, l.source_generation, l.file_size,
+        name: "version_evidence", fields: &[T, T, T, I, I, NT, NT, NT, NT, NT, I],
+        query: "WITH current AS MATERIALIZED (
+                SELECT l.location_id, l.asset_id, l.root_id, l.source_generation, l.file_size AS byte_length,
                        l.file_identity_scheme, l.file_identity_value, l.source_revision_token,
-                       f.scheme, f.digest
+                       f.scheme AS fingerprint_scheme, f.digest
                 FROM asset_locations AS l
                 JOIN library_roots AS root ON root.id = l.root_id AND root.active_scan_id = l.scan_id
                 JOIN library_change_root_state AS state ON state.root_id = root.id AND state.is_active = 1
@@ -135,12 +145,29 @@ pub(super) const KINDS: &[RecordKind] = &[
                   AND f.file_identity_scheme IS l.file_identity_scheme
                   AND f.file_identity_value IS l.file_identity_value
                   AND f.source_revision_token IS l.source_revision_token
-                ORDER BY l.location_id",
+                ), copies AS MATERIALIZED (
+                  SELECT file_identity_scheme, file_identity_value, COUNT(*) AS native_copy_count
+                  FROM current WHERE file_identity_scheme = 'windows-file-id-128-v1'
+                  GROUP BY file_identity_scheme, file_identity_value
+                )
+                SELECT current.location_id, current.asset_id, current.root_id, current.source_generation, current.byte_length,
+                  current.file_identity_scheme, current.file_identity_value, current.source_revision_token,
+                  current.fingerprint_scheme, current.digest, COALESCE(copies.native_copy_count, 1) FROM current
+                LEFT JOIN copies USING(file_identity_scheme, file_identity_value)
+                UNION ALL SELECT location_id, asset_id, root_id, source_generation, byte_length,
+                  file_identity_scheme, file_identity_value, source_revision_token, fingerprint_scheme, digest,
+                  native_copy_count
+                FROM organization_recovery_versions
+                ORDER BY location_id",
     },
     RecordKind {
         name: "duplicate_decision", fields: &[T, T, I, NT, NT, I, I],
         query: "SELECT scheme, digest, byte_length, preferred_location_id, preferred_asset_id,
                        ignored, updated_unix_ms FROM exact_duplicate_decisions
+                UNION ALL SELECT scheme, digest, byte_length, preferred_location_id, preferred_asset_id,
+                       ignored, updated_unix_ms FROM organization_recovery_duplicate_decisions AS retained
+                WHERE NOT EXISTS(SELECT 1 FROM exact_duplicate_decisions AS current
+                  WHERE current.scheme = retained.scheme AND current.digest = retained.digest AND current.byte_length = retained.byte_length)
                 ORDER BY scheme, digest, byte_length",
     },
 ];

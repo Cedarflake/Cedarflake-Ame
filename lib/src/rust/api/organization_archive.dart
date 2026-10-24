@@ -20,3 +20,12 @@ Stream<OrganizationArchiveEvent> inspectOrganizationArchive({
   required String archive,
 }) => RustLib.instance.api
     .crateApiOrganizationArchiveInspectOrganizationArchive(archive: archive);
+
+Stream<OrganizationArchiveEvent> restoreOrganizationArchive({
+  required String archive,
+  required OrganizationArchiveRestoreRequest request,
+}) =>
+    RustLib.instance.api.crateApiOrganizationArchiveRestoreOrganizationArchive(
+      archive: archive,
+      request: request,
+    );

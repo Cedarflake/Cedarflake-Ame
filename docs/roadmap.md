@@ -94,7 +94,11 @@ and retrying a blocked original. These desktop workflows have passed their contr
 hosted checks. R4-06 now implements portable archive export, restoration admission and catalog-evidence
 association preview. Catalog publication now reattaches rebuilt versions through compatible native
 evidence, with focused group, conflict, source-removal and migration checks. Atomic archive
-application, settings integration and unresolved-record cleanup remain pending. Retained-library
+application now connects the application and typed bridge, preserving current decisions, operation
+history, queue order, continuation and unmatched evidence. Focused restore, cancellation, migration
+and queue-cost checks pass. Settings integration and unresolved-record cleanup remain pending.
+The preceding native-version checkpoint has one unresolved hosted ordinary-journal test failure;
+its local reproduction passed. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
@@ -257,8 +261,11 @@ navigation/retry without completing pending work. The corrected availability sou
 native workflows have passed hosted verification. R4-06 is active with the versioned archive codec,
 snapshot export, staged restoration validation and bounded association preview behind the typed
 bridge. Native-version reassociation is connected to the existing publication transaction, including
-cross-root aliases and contradictory-content rejection. Continue with atomic archive restore and
-repeat/conflict handling, then settings integration and explicit unresolved-record cleanup.
+cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
+are implemented through the application and typed bridge. Restored queue order and continuation,
+retained R3 choices and source-removal precedence have focused regression coverage. Continue with
+settings integration and explicit unresolved-record cleanup, preserving the unresolved hosted
+ordinary-journal failure as a separate verification obligation.
 R4-07 retains the complete integrated flow and retained-library
 resource measurements. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

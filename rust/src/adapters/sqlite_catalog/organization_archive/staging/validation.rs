@@ -1,8 +1,39 @@
 use rusqlite::Connection;
 
 use crate::domain::ScanError;
+use crate::domain::organization::{normalize_album_name, validate_identifier};
 
-use super::super::{database_error, error};
+use super::super::{codec::Cell, database_error, error};
+
+pub(super) fn record(kind: &str, values: &[Cell]) -> Result<(), ScanError> {
+    let identifiers: &[usize] = match kind {
+        "album" | "retired_album" | "operation" | "root_evidence" => &[0],
+        "record" | "binding" | "source_owner" | "group" | "conflict" | "album_change"
+        | "operation_target" | "review_operation" => &[0, 1],
+        "operation_change" => &[0, 1, 3],
+        "operation_conflict" | "version_evidence" => &[0, 1, 2],
+        "review_scope" => &[1, 2],
+        "bookmark" => &[0, 2, 3],
+        "admission_source" => &[1],
+        "duplicate_decision" => &[3, 4],
+        "admission" => &[],
+        _ => return Err(invalid()),
+    };
+    for index in identifiers {
+        if let Some(Cell::Text(value)) = values.get(*index) {
+            validate_identifier(value).map_err(|_| invalid())?;
+        }
+    }
+    let name = match kind {
+        "album" => values.get(1),
+        "album_change" => values.get(2),
+        _ => None,
+    };
+    if let Some(Cell::Text(name)) = name {
+        normalize_album_name(name).map_err(|_| invalid())?;
+    }
+    Ok(())
+}
 
 const RELATIONSHIPS: &[&str] = &[
     "SELECT EXISTS(SELECT 1 FROM pragma_foreign_key_check)",
@@ -28,6 +59,19 @@ const RELATIONSHIPS: &[&str] = &[
          OR member.record_id <> member.group_id)",
     "SELECT EXISTS(SELECT 1 FROM archive_bookmark)
        AND NOT EXISTS(SELECT 1 FROM archive_review_scope)",
+    "SELECT EXISTS(SELECT 1 FROM archive_bookmark AS bookmark
+       WHERE NOT EXISTS(SELECT 1 FROM archive_admission WHERE admission_id = bookmark.admission_id)
+         OR NOT EXISTS(SELECT 1 FROM archive_root_evidence WHERE root_id = bookmark.root_id))",
+    "SELECT EXISTS(SELECT 1 FROM archive_review_scope AS scope WHERE scope.root_id IS NOT NULL
+       AND NOT EXISTS(SELECT 1 FROM archive_root_evidence WHERE root_id = scope.root_id))",
+    "SELECT EXISTS(SELECT 1 FROM archive_admission AS admission
+       WHERE NOT EXISTS(SELECT 1 FROM archive_admission_source AS source WHERE source.admission_id = admission.admission_id))",
+    "SELECT EXISTS(SELECT 1 FROM archive_operation_change AS change
+       JOIN archive_operation AS operation USING(operation_id) WHERE change.applied_revision <> operation.revision)
+     OR EXISTS(SELECT 1 FROM archive_album_change AS change
+       JOIN archive_operation AS operation USING(operation_id) WHERE change.applied_revision <> operation.revision)
+     OR EXISTS(SELECT 1 FROM archive_operation_conflict AS conflict
+       JOIN archive_operation AS operation USING(operation_id) WHERE conflict.decision_revision > operation.revision)",
 ];
 
 const REVISION_CHECKS: &[&str] = &[

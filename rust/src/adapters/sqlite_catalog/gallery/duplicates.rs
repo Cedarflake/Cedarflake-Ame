@@ -1,8 +1,8 @@
 use rusqlite::Transaction;
-use rusqlite::params_from_iter;
 use rusqlite::types::Value;
+use rusqlite::{params, params_from_iter};
 
-use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
+use crate::domain::exact_duplicates::{EXACT_FINGERPRINT_SCHEME, EXACT_PUBLICATION_BATCH_SIZE};
 use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 
 use super::super::exact_duplicate_review::{DECISION_JOIN, representative_expression};
@@ -14,18 +14,35 @@ pub(in super::super) fn publish_completed_evidence(
     // Fingerprints are complete immutable records, including those retained by a
     // cancelled process. Admit them together so a gallery cursor never changes
     // membership while retaining its revision.
-    super::super::organization::publication::pending_evidence(transaction)?;
-    let changed = transaction
-        .execute(
-            "INSERT INTO gallery_content_fingerprints(source_generation, scheme)
+    let mut after = 0;
+    let mut changed = 0;
+    loop {
+        let generations = transaction.prepare(
+            "SELECT DISTINCT f.source_generation FROM content_fingerprints AS f
+             WHERE f.source_generation > ?1 AND NOT EXISTS(
+               SELECT 1 FROM gallery_content_fingerprints AS published
+               WHERE published.source_generation = f.source_generation AND published.scheme = f.scheme)
+             ORDER BY f.source_generation LIMIT ?2",
+        ).map_err(database_error)?.query_map(
+            params![after, EXACT_PUBLICATION_BATCH_SIZE as i64], |row| row.get::<_, i64>(0),
+        ).map_err(database_error)?.collect::<rusqlite::Result<Vec<_>>>().map_err(database_error)?;
+        let Some(last) = generations.last().copied() else {
+            break;
+        };
+        changed += transaction
+            .execute(
+                "INSERT INTO gallery_content_fingerprints(source_generation, scheme)
              SELECT source_generation, scheme FROM content_fingerprints AS f
-             WHERE NOT EXISTS (
+             WHERE source_generation > ?1 AND source_generation <= ?2 AND NOT EXISTS (
                SELECT 1 FROM gallery_content_fingerprints AS published
                WHERE published.source_generation = f.source_generation
                  AND published.scheme = f.scheme)",
-            [],
-        )
-        .map_err(database_error)?;
+                params![after, last],
+            )
+            .map_err(database_error)?;
+        super::super::organization::publication::published_generations(transaction, &generations)?;
+        after = last;
+    }
     if changed > 0 {
         transaction
             .execute("UPDATE catalog_state SET revision = revision + 1", [])

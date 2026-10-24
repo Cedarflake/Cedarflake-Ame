@@ -39,6 +39,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v52_for_test(connection: &Connection) {
+    super::organization_restoration::downgrade_to_v53_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 53 {
         connection
             .execute_batch(

@@ -75,10 +75,7 @@ pub(super) fn preferred_copies(
                  WHERE decision.rowid > ?2 AND decision.rowid <= ?3
                    AND decision.scheme = ?1 AND evidence.fingerprint_scheme = decision.scheme
                    AND evidence.digest = decision.digest AND evidence.byte_length = decision.byte_length
-                   AND (SELECT COUNT(*) FROM (
-                     SELECT 1 FROM recovery.archive_version_evidence AS alias
-                     WHERE alias.file_identity_scheme = evidence.file_identity_scheme
-                       AND alias.file_identity_value = evidence.file_identity_value LIMIT 2)) = 1
+                   AND evidence.native_copy_count = 1
                    AND (SELECT COALESCE(SUM(current.copies), 0)
                      FROM temp.organization_restore_native AS current
                      WHERE {NATIVE_MATCH}) = 1"

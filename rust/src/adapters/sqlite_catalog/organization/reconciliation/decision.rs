@@ -3,23 +3,28 @@ use rusqlite::{Connection, params};
 use crate::domain::ScanError;
 
 use super::super::super::{database_error, unix_time_ms};
+use super::restored_authority;
 
 struct OrganizationDecision {
     album_id: Option<String>,
     disposition: String,
     revision: i64,
     conflict: bool,
+    restored: bool,
 }
 
 pub(super) fn merge(connection: &Connection, canonical: &str) -> Result<(), ScanError> {
+    restored_authority::prepare(connection)?;
     let organization = organization_decision(connection)?;
-    let (favorite, favorite_revision): (bool, i64) = connection
+    let (favorite, favorite_revision, favorite_restored): (bool, i64, bool) = connection
         .query_row(
-        "SELECT record.favorite, record.favorite_revision FROM temp.organization_merge_groups AS selected
-         CROSS JOIN organization_records AS record ON selected.group_id = record.record_id
+            "SELECT record.favorite, record.favorite_revision, selected.restored
+         FROM temp.organization_merge_authority AS selected
+         CROSS JOIN organization_records AS record ON selected.record_id = record.record_id
+         WHERE selected.field = 'favorite'
          ORDER BY record.favorite_revision DESC, record.favorite DESC, record.record_id LIMIT 1",
             [],
-            |row| Ok((row.get(0)?, row.get(1)?)),
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
         )
         .map_err(database_error)?;
     connection.execute(
@@ -40,6 +45,12 @@ pub(super) fn merge(connection: &Connection, canonical: &str) -> Result<(), Scan
             )
             .map_err(database_error)?;
     }
+    restored_authority::retain(
+        connection,
+        canonical,
+        organization.restored.then_some(organization.revision),
+        favorite_restored.then_some(favorite_revision),
+    )?;
     Ok(())
 }
 
@@ -50,27 +61,33 @@ fn organization_decision(connection: &Connection) -> Result<OrganizationDecision
          ) WITHOUT ROWID;
          DELETE FROM temp.organization_merge_albums;
          INSERT INTO temp.organization_merge_albums
-         SELECT record.album_id, MAX(record.organization_revision) FROM temp.organization_merge_groups AS selected
-         CROSS JOIN organization_records AS record ON selected.group_id = record.record_id
-         WHERE record.album_id IS NOT NULL GROUP BY record.album_id;
+         SELECT record.album_id, MAX(record.organization_revision) FROM temp.organization_merge_authority AS selected
+         CROSS JOIN organization_records AS record ON selected.record_id = record.record_id
+         WHERE selected.field = 'organization' AND record.album_id IS NOT NULL GROUP BY record.album_id;
          INSERT INTO temp.organization_merge_albums
-         SELECT conflict.album_id, MAX(conflict.decision_revision) FROM temp.organization_merge_groups AS selected
-         CROSS JOIN organization_conflicts AS conflict ON selected.group_id = conflict.record_id
-         WHERE 1 GROUP BY conflict.album_id
+         SELECT conflict.album_id, MAX(conflict.decision_revision) FROM temp.organization_merge_authority AS selected
+         CROSS JOIN organization_conflicts AS conflict ON selected.record_id = conflict.record_id
+         WHERE selected.field = 'organization' GROUP BY conflict.album_id
          ON CONFLICT(album_id) DO UPDATE SET decision_revision = MAX(decision_revision, excluded.decision_revision);"
     ).map_err(database_error)?;
     let (album_count, retained_conflict): (i64, bool) = connection.query_row(
         "SELECT (SELECT COUNT(*) FROM temp.organization_merge_albums),
-           EXISTS(SELECT 1 FROM temp.organization_merge_groups AS selected
-             CROSS JOIN organization_conflicts AS conflict ON selected.group_id = conflict.record_id)",
+           EXISTS(SELECT 1 FROM temp.organization_merge_authority AS selected
+             CROSS JOIN organization_conflicts AS conflict ON selected.record_id = conflict.record_id
+             WHERE selected.field = 'organization')",
         [], |row| Ok((row.get(0)?, row.get(1)?)),
     ).map_err(database_error)?;
-    let (latest_disposition, revision): (String, i64) = connection.query_row(
-        "SELECT record.disposition, record.organization_revision FROM temp.organization_merge_groups AS selected
-         CROSS JOIN organization_records AS record ON selected.group_id = record.record_id
+    let (latest_disposition, revision, restored): (String, i64, bool) = connection
+        .query_row(
+            "SELECT record.disposition, record.organization_revision, selected.restored
+         FROM temp.organization_merge_authority AS selected
+         CROSS JOIN organization_records AS record ON selected.record_id = record.record_id
+         WHERE selected.field = 'organization'
          ORDER BY record.organization_revision DESC, record.record_id LIMIT 1",
-        [], |row| Ok((row.get(0)?, row.get(1)?)),
-    ).map_err(database_error)?;
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+        )
+        .map_err(database_error)?;
     let conflict = retained_conflict || album_count > 1;
     if conflict {
         return Ok(OrganizationDecision {
@@ -78,6 +95,7 @@ fn organization_decision(connection: &Connection) -> Result<OrganizationDecision
             disposition: "deferred".into(),
             revision,
             conflict,
+            restored,
         });
     }
     if album_count == 1 {
@@ -93,6 +111,7 @@ fn organization_decision(connection: &Connection) -> Result<OrganizationDecision
             disposition: "organized".into(),
             revision,
             conflict,
+            restored,
         });
     }
     Ok(OrganizationDecision {
@@ -100,5 +119,6 @@ fn organization_decision(connection: &Connection) -> Result<OrganizationDecision
         disposition: latest_disposition,
         revision,
         conflict,
+        restored,
     })
 }

@@ -1191,3 +1191,62 @@ cost, scan-publication and migration tests have 325, 108, 84 and 94 lines. The c
 facades add only the schema version and migration composition points. Full archive application,
 durable unmatched archive import, settings, explicit cleanup and R4-07's retained workload remain
 outstanding. Hosted verification must cover this implementation's own published commit.
+
+## Atomic portable restoration and retained ordering
+
+Schema 54 retains archive provenance, namespaced version/root evidence, per-field restored authority,
+queue positions and unresolved R3 choices. The application and generated bridge expose one guarded
+restore operation. Input is staged before writer admission; archive identity, checksum and both
+catalog revisions are rechecked before changes. Decisions, receipts, history, evidence, queue and
+bookmark changes commit together. Existing local choices win, identical requests return their
+committed receipt, and a different explicit restore can recover cleaned records without giving old
+undo receipts authority over the new values. Source media are neither opened nor changed.
+
+Archived admissions retain their relative order; later independent arrivals stay at the front.
+Association refreshes a saved logical group's position without replacing its scope or active session.
+Unmatched evidence survives export and later publication. Explicit source removal retires its
+unshared recovery authority before reimport. R3 choices are applied in the existing publication
+transaction, including terminal publication without any R4 records. A preferred physical copy needs
+unique compatible native evidence in both the archive and current catalog. Format 2 retains the
+original native-copy count; version 1 conversion derives it only after verifying the original input.
+
+The archive suite passed 49 checks in 237.93 seconds, followed by four migration checks in 9.41
+seconds. Two earlier preferred-copy fixture failures used a fictional asset identifier; the fixtures
+now obtain the published identifier. Following the final queue and staging-validation changes,
+40 affected checks passed: nine ordinary queue reads, six restored queue/continuation cases, one
+malformed-relationship matrix, six public restore transactions, four migrations, three publication
+cases, three restored-authority cases and eight existing duplicate-gallery queries. These cover
+reopen, lost-input replay, stale confirmation, changed payload, cancellation at every restore phase,
+injected failure with retry, revision overflow, explicit reapplication and retained old-undo limits.
+
+The first queue projection caused an ignored-queue read to execute at least 1,207,900 SQLite
+instructions with 50,000 unrelated admissions. Replacing the union projection with indexed
+current-version links fixes that regression. The final workload includes another 50,000 unrelated
+recovery admissions and still passes the unchanged 20,000-instruction ceiling for both pending and
+ignored reads. This establishes bounded lookup growth, not large-library restoration throughput.
+
+The canonical bridge generator and its native Release build completed before the final queue and
+staging-validation edits. The generated API includes restore request, progress and committed receipt.
+The final source's focused Rust compilation passed with incremental artifacts disabled for that
+process. The final format check reports 536 Dart files with no changes, and the bridge verifier
+passes all 17 asynchronous contracts with matching content hashes. The first format invocation
+completed formatting but failed to update the SDK telemetry timestamp inside the sandbox; the same
+scoped check passed with that access admitted. No full local Daily or retained-library run is claimed.
+
+The archive facade has 193 production lines plus a three-line test-module declaration; the restore
+composition and transaction owner have 38 and 89 production lines with the same declarations.
+Admission, ordering and bookmark owners have 136, 106 and 71 production lines. Recovery queue,
+source ownership and R3 choice owners have 92, 121 and 84 production lines, without inline tests.
+The schema declaration has 140 lines. Dedicated decision, transaction, queue, R3-choice and migration
+tests have 277, 237, 326, 261 and 100 lines respectively. These owners keep receipt admission,
+transaction lifetime, queue ordering, logical continuation and publication association distinct.
+
+The previous published head `b124e52b9442c6bd9df677f0df934eeb04d2bc1f` failed
+[hosted run 40082529906](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40082529906)
+in the existing ordinary-journal process-exit/restart case: catalog convergence completed through
+fallback after native attribute reads failed, but the required journal-current state did not.
+The same unchanged case passed locally in 3.54 seconds. The native error code was absent from the
+hosted log, and the cause remains unresolved; these restore changes do not claim to repair it.
+Settings integration, inspectable unresolved records and explicit cleanup remain outstanding.
+R4-07 still owns real desktop verification, retained-library throughput/memory and cancellation
+latency; phase checkpoints alone do not establish cancellation latency for large SQL operations.

@@ -19,6 +19,7 @@ mod native_recovery;
 mod publication;
 mod queries;
 mod reconciliation;
+mod restored_authority;
 mod review;
 mod transitions;
 mod undo;

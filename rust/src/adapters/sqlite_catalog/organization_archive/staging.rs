@@ -52,6 +52,21 @@ pub(super) fn read(
         &mut |index, values| insert(&connection, index, values),
         &mut |count| report(progress, OrganizationArchivePhase::Verifying, count),
     )?;
+    if verified.header.version == 1 {
+        connection
+            .execute_batch(
+                "WITH counts AS MATERIALIZED (
+               SELECT file_identity_scheme, file_identity_value, COUNT(*) AS copies
+               FROM archive_version_evidence WHERE file_identity_scheme = 'windows-file-id-128-v1'
+               GROUP BY file_identity_scheme, file_identity_value
+             )
+             UPDATE archive_version_evidence AS version SET native_copy_count = COALESCE((
+               SELECT copies FROM counts WHERE file_identity_scheme = version.file_identity_scheme
+                 AND file_identity_value = version.file_identity_value), 1)
+             WHERE native_copy_count = 0;",
+            )
+            .map_err(database_error)?;
+    }
     validation::validate(
         &connection,
         verified.header.organization_revision,
@@ -72,6 +87,7 @@ pub(super) fn read(
 
 fn insert(connection: &Connection, index: usize, values: &[codec::Cell]) -> Result<(), ScanError> {
     let kind = &records::KINDS[index];
+    validation::record(kind.name, values)?;
     let placeholders = vec!["?"; kind.fields.len()].join(", ");
     let sql = format!("INSERT INTO archive_{} VALUES ({placeholders})", kind.name);
     connection
@@ -102,6 +118,10 @@ impl ToSql for codec::Cell {
 }
 
 impl StagedArchive {
+    pub(super) fn verified(&self) -> &codec::VerifiedArchive {
+        &self.verified
+    }
+
     pub(super) fn path(&self) -> &Path {
         self._file.path()
     }

@@ -203,6 +203,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_organization_archive_receipt(dynamic raw);
 
   @protected
+  OrganizationArchiveRestoreReceipt
+  dco_decode_box_autoadd_organization_archive_restore_receipt(dynamic raw);
+
+  @protected
+  OrganizationArchiveRestoreRequest
+  dco_decode_box_autoadd_organization_archive_restore_request(dynamic raw);
+
+  @protected
   OrganizationBatchAction dco_decode_box_autoadd_organization_batch_action(
     dynamic raw,
   );
@@ -700,6 +708,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationArchiveRestoreReceipt
+  dco_decode_organization_archive_restore_receipt(dynamic raw);
+
+  @protected
+  OrganizationArchiveRestoreRequest
+  dco_decode_organization_archive_restore_request(dynamic raw);
+
+  @protected
   OrganizationBatchAction dco_decode_organization_batch_action(dynamic raw);
 
   @protected
@@ -1022,6 +1038,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   OrganizationArchiveReceipt
   sse_decode_box_autoadd_organization_archive_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveRestoreReceipt
+  sse_decode_box_autoadd_organization_archive_restore_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveRestoreRequest
+  sse_decode_box_autoadd_organization_archive_restore_request(
     SseDeserializer deserializer,
   );
 
@@ -1645,6 +1673,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationArchiveRestoreReceipt
+  sse_decode_organization_archive_restore_receipt(SseDeserializer deserializer);
+
+  @protected
+  OrganizationArchiveRestoreRequest
+  sse_decode_organization_archive_restore_request(SseDeserializer deserializer);
+
+  @protected
   OrganizationBatchAction sse_decode_organization_batch_action(
     SseDeserializer deserializer,
   );
@@ -2039,6 +2075,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_organization_archive_receipt(
     OrganizationArchiveReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_archive_restore_receipt(
+    OrganizationArchiveRestoreReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_archive_restore_request(
+    OrganizationArchiveRestoreRequest self,
     SseSerializer serializer,
   );
 
@@ -2795,6 +2843,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_archive_receipt(
     OrganizationArchiveReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_restore_receipt(
+    OrganizationArchiveRestoreReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_restore_request(
+    OrganizationArchiveRestoreRequest self,
     SseSerializer serializer,
   );
 

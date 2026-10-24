@@ -8,7 +8,8 @@ use rusqlite::types::ValueRef;
 use crate::domain::ScanError;
 use crate::domain::organization_archive::{
     OrganizationArchiveInspection, OrganizationArchivePhase, OrganizationArchiveProgress,
-    OrganizationArchiveReceipt,
+    OrganizationArchiveReceipt, OrganizationArchiveRestoreReceipt,
+    OrganizationArchiveRestoreRequest,
 };
 use crate::ports::organization_archive::OrganizationArchiveRepository;
 
@@ -17,10 +18,20 @@ use super::{SqliteCatalog, database_error};
 mod association;
 mod codec;
 mod records;
+mod restoration;
 mod snapshot;
 mod staging;
 
 impl OrganizationArchiveRepository for SqliteCatalog {
+    fn restore_organization_archive(
+        &mut self,
+        archive: &Path,
+        request: &OrganizationArchiveRestoreRequest,
+        progress: &mut dyn FnMut(OrganizationArchiveProgress) -> bool,
+    ) -> Result<OrganizationArchiveRestoreReceipt, ScanError> {
+        restoration::write(self, archive, request, progress)
+    }
+
     fn inspect_organization_archive(
         &self,
         archive: &Path,

@@ -4,6 +4,7 @@ pub enum OrganizationArchivePhase {
     Writing,
     Verifying,
     Matching,
+    Restoring,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -45,6 +46,45 @@ pub struct OrganizationArchiveAssociations {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OrganizationArchiveRestoreRequest {
+    pub operation_id: String,
+    pub archive_id: String,
+    pub checksum: String,
+    pub expected_catalog_revision: u64,
+    pub expected_organization_revision: u64,
+}
+
+impl OrganizationArchiveRestoreRequest {
+    pub(crate) fn validate(&self) -> Result<(), super::ScanError> {
+        super::organization::validate_identifier(&self.operation_id)?;
+        let is_hex = |value: &str, length| {
+            value.len() == length
+                && value
+                    .bytes()
+                    .all(|byte| byte.is_ascii_digit() || (b'a'..=b'f').contains(&byte))
+        };
+        if !is_hex(&self.archive_id, 32)
+            || !is_hex(&self.checksum, 64)
+            || self.expected_catalog_revision > i64::MAX as u64
+            || self.expected_organization_revision > i64::MAX as u64
+        {
+            return Err(super::ScanError::new(
+                "organization_archive_request_invalid",
+                "Inspect the backup before requesting restoration",
+            ));
+        }
+        Ok(())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OrganizationArchiveRestoreReceipt {
+    pub operation_id: String,
+    pub archive_id: String,
+    pub organization_revision: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum OrganizationArchiveEvent {
     Progress {
         progress: OrganizationArchiveProgress,
@@ -54,6 +94,9 @@ pub enum OrganizationArchiveEvent {
     },
     Inspected {
         inspection: OrganizationArchiveInspection,
+    },
+    Restored {
+        receipt: OrganizationArchiveRestoreReceipt,
     },
     Cancelled,
     Failed {

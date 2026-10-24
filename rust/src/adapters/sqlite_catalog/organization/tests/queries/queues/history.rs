@@ -35,7 +35,12 @@ fn queue_reads_do_not_scan_unrelated_admission_and_decision_history() {
              FROM organization_admissions, (
                SELECT fingerprint_scheme FROM organization_bindings LIMIT 1
              ) AS binding
-             WHERE source_generation >= 1000;",
+             WHERE source_generation >= 1000;
+             INSERT INTO organization_recovery_admissions
+             SELECT source_generation + 100000, admission_id + 100000
+             FROM organization_admissions WHERE source_generation >= 1000;
+             INSERT INTO organization_recovery_admission_sources
+             SELECT source_generation, 'root-a' FROM organization_recovery_admissions;",
         )
         .unwrap();
     for (kind, expected, total) in [

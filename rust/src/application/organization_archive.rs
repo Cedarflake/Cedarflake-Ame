@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::organization_archive::{
     OrganizationArchiveInspection, OrganizationArchiveProgress, OrganizationArchiveReceipt,
+    OrganizationArchiveRestoreReceipt, OrganizationArchiveRestoreRequest,
 };
 use crate::domain::{GalleryQuery, ScanError};
 use crate::ports::CatalogRepository;
@@ -94,6 +95,23 @@ pub(crate) fn inspect(
     }
     let _lease = ArchiveLease::acquire(&ARCHIVE_ACTIVE)?;
     super::organization::open_catalog()?.inspect_organization_archive(archive, progress)
+}
+
+pub(crate) fn restore(
+    archive: &str,
+    request: &OrganizationArchiveRestoreRequest,
+    progress: &mut dyn FnMut(OrganizationArchiveProgress) -> bool,
+) -> Result<OrganizationArchiveRestoreReceipt, ScanError> {
+    request.validate()?;
+    let archive = Path::new(archive);
+    if !archive.is_absolute() || archive.file_name().is_none() {
+        return Err(ScanError::new(
+            "organization_archive_input_invalid",
+            "Choose an absolute backup filename",
+        ));
+    }
+    let _lease = ArchiveLease::acquire(&ARCHIVE_ACTIVE)?;
+    super::organization::open_catalog()?.restore_organization_archive(archive, request, progress)
 }
 
 fn validate_destination<'a>(

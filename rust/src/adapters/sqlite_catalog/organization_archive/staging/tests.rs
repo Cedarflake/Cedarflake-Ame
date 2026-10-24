@@ -57,6 +57,95 @@ fn write_archive(path: &Path, entries: &[Value]) {
 }
 
 #[test]
+fn organization_archive_inspection_upgrades_v1_native_copy_evidence_without_changing_input() {
+    let (directory, catalog) = fixture();
+    let archive = directory.path().join("version-one.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let mut rows = entries(&archive);
+    rows[0]["header"]["version"] = json!(1);
+    let index = rows
+        .iter()
+        .position(|row| row["kind"] == "version_evidence")
+        .unwrap();
+    let values = rows[index]["values"].as_array_mut().unwrap();
+    values.truncate(10);
+    values[5] = json!("windows-file-id-128-v1");
+    values[6] = json!("0000000000000001:00000000000000000000000000000001");
+    let mut alias = rows[index].clone();
+    alias["values"][0] = json!("old-hardlink");
+    rows.insert(index + 1, alias);
+    write_archive(&archive, &rows);
+    let original = fs::read(&archive).unwrap();
+    let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
+    assert_eq!(
+        staged
+            .connection
+            .query_row(
+                "SELECT COUNT(*) FROM archive_version_evidence WHERE native_copy_count = 2",
+                [],
+                |row| row.get::<_, i64>(0),
+            )
+            .unwrap(),
+        2
+    );
+    assert_eq!(fs::read(&archive).unwrap(), original);
+    drop(staged);
+    assert_no_scratch(directory.path());
+}
+
+#[test]
+fn organization_archive_inspection_rejects_unproven_v2_native_copy_counts() {
+    let (directory, catalog) = fixture();
+    let archive = directory.path().join("version-two.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let original = entries(&archive);
+    assert_eq!(original[0]["header"]["version"], 2);
+    for copies in [json!(0), json!(-1), Value::Null] {
+        let mut rows = original.clone();
+        rows.iter_mut()
+            .find(|row| row["kind"] == "version_evidence")
+            .unwrap()["values"][10] = copies;
+        write_archive(&archive, &rows);
+        assert_eq!(
+            read(&archive, directory.path(), &mut |_| true)
+                .err()
+                .unwrap()
+                .code,
+            "organization_archive_invalid"
+        );
+        assert_no_scratch(directory.path());
+    }
+}
+
+#[test]
+fn organization_archive_inspection_rejects_identifiers_that_cannot_be_used_by_commands() {
+    let (directory, catalog) = fixture();
+    let archive = directory.path().join("identifiers.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let original = entries(&archive);
+    for identifier in [String::new(), "a".repeat(257), "album\nidentifier".into()] {
+        let mut rows = original.clone();
+        rows.iter_mut().find(|row| row["kind"] == "album").unwrap()["values"][0] =
+            json!(identifier);
+        write_archive(&archive, &rows);
+        assert_eq!(
+            read(&archive, directory.path(), &mut |_| true)
+                .err()
+                .unwrap()
+                .code,
+            "organization_archive_records_invalid"
+        );
+        assert_no_scratch(directory.path());
+    }
+}
+
+#[test]
 fn organization_archive_inspection_validates_and_counts_logical_groups_without_live_writes() {
     let (directory, catalog) = fixture();
     catalog
@@ -108,6 +197,8 @@ fn organization_archive_inspection_rejects_valid_checksums_with_broken_relations
         "duplicate_album",
         "non_deferred_conflict",
         "invalid_favorite",
+        "unowned_admission",
+        "history_revision",
     ] {
         let mut altered = original.clone();
         match scenario {
@@ -115,6 +206,13 @@ fn organization_archive_inspection_rejects_valid_checksums_with_broken_relations
                 .retain(|entry| !(entry["kind"] == "album" && entry["values"][0] == "album-a")),
             "missing_group" => altered.retain(|entry| entry["kind"] != "group"),
             "missing_target" => altered.retain(|entry| entry["kind"] != "operation_target"),
+            "unowned_admission" => altered.retain(|entry| entry["kind"] != "admission_source"),
+            "history_revision" => {
+                altered
+                    .iter_mut()
+                    .find(|entry| entry["kind"] == "operation_change")
+                    .unwrap()["values"][6] = json!(2)
+            }
             "future_revision" => {
                 altered
                     .iter_mut()

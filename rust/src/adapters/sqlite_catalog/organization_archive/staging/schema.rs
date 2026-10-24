@@ -119,6 +119,7 @@ CREATE TABLE archive_version_evidence (
   byte_length INTEGER NOT NULL CHECK(byte_length >= 0),
   file_identity_scheme TEXT, file_identity_value TEXT, source_revision_token TEXT,
   fingerprint_scheme TEXT, digest TEXT CHECK(length(digest) = 64 AND digest NOT GLOB '*[^0-9a-f]*'),
+  native_copy_count INTEGER NOT NULL CHECK(native_copy_count >= 0),
   CHECK((file_identity_scheme IS NULL) = (file_identity_value IS NULL)),
   CHECK((fingerprint_scheme IS NULL) = (digest IS NULL))
 ) STRICT;

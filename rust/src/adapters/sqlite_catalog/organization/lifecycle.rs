@@ -8,6 +8,7 @@ pub(in crate::adapters::sqlite_catalog) fn forget_source(
     connection: &Connection,
     root_id: &str,
 ) -> Result<(), ScanError> {
+    super::recovery::forget_source(connection, root_id)?;
     super::review::forget_source(connection, root_id)?;
     super::admission::forget_source(connection, root_id)?;
     connection
@@ -84,6 +85,7 @@ pub(in crate::adapters::sqlite_catalog) fn transfer_source(
         ));
     }
     super::admission::transfer_source(connection, previous_root, destination_root)?;
+    super::recovery::transfer_source(connection, previous_root, destination_root)?;
     super::review::transfer_source(connection, previous_root, destination_root)?;
     connection
         .execute(

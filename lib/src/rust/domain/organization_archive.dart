@@ -60,6 +60,9 @@ sealed class OrganizationArchiveEvent with _$OrganizationArchiveEvent {
   const factory OrganizationArchiveEvent.inspected({
     required OrganizationArchiveInspection inspection,
   }) = OrganizationArchiveEvent_Inspected;
+  const factory OrganizationArchiveEvent.restored({
+    required OrganizationArchiveRestoreReceipt receipt,
+  }) = OrganizationArchiveEvent_Restored;
   const factory OrganizationArchiveEvent.cancelled() =
       OrganizationArchiveEvent_Cancelled;
   const factory OrganizationArchiveEvent.failed({
@@ -127,7 +130,13 @@ class OrganizationArchiveInspection {
           associations == other.associations;
 }
 
-enum OrganizationArchivePhase { snapshot, writing, verifying, matching }
+enum OrganizationArchivePhase {
+  snapshot,
+  writing,
+  verifying,
+  matching,
+  restoring,
+}
 
 class OrganizationArchiveProgress {
   final OrganizationArchivePhase phase;
@@ -173,4 +182,64 @@ class OrganizationArchiveReceipt {
           archiveId == other.archiveId &&
           recordCount == other.recordCount &&
           byteLength == other.byteLength;
+}
+
+class OrganizationArchiveRestoreReceipt {
+  final String operationId;
+  final String archiveId;
+  final BigInt organizationRevision;
+
+  const OrganizationArchiveRestoreReceipt({
+    required this.operationId,
+    required this.archiveId,
+    required this.organizationRevision,
+  });
+
+  @override
+  int get hashCode =>
+      operationId.hashCode ^ archiveId.hashCode ^ organizationRevision.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationArchiveRestoreReceipt &&
+          runtimeType == other.runtimeType &&
+          operationId == other.operationId &&
+          archiveId == other.archiveId &&
+          organizationRevision == other.organizationRevision;
+}
+
+class OrganizationArchiveRestoreRequest {
+  final String operationId;
+  final String archiveId;
+  final String checksum;
+  final BigInt expectedCatalogRevision;
+  final BigInt expectedOrganizationRevision;
+
+  const OrganizationArchiveRestoreRequest({
+    required this.operationId,
+    required this.archiveId,
+    required this.checksum,
+    required this.expectedCatalogRevision,
+    required this.expectedOrganizationRevision,
+  });
+
+  @override
+  int get hashCode =>
+      operationId.hashCode ^
+      archiveId.hashCode ^
+      checksum.hashCode ^
+      expectedCatalogRevision.hashCode ^
+      expectedOrganizationRevision.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationArchiveRestoreRequest &&
+          runtimeType == other.runtimeType &&
+          operationId == other.operationId &&
+          archiveId == other.archiveId &&
+          checksum == other.checksum &&
+          expectedCatalogRevision == other.expectedCatalogRevision &&
+          expectedOrganizationRevision == other.expectedOrganizationRevision;
 }

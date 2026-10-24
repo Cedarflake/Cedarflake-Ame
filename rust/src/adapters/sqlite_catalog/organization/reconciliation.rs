@@ -7,6 +7,7 @@ use crate::domain::organization::OrganizationGroupKey;
 use super::super::{database_error, sqlite_integer};
 
 mod decision;
+mod restored_authority;
 
 pub(super) struct ResolvedRecord {
     pub(super) record_id: String,

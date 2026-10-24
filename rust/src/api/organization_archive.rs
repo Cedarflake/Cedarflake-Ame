@@ -1,5 +1,7 @@
 use crate::domain::ScanError;
-use crate::domain::organization_archive::OrganizationArchiveEvent;
+use crate::domain::organization_archive::{
+    OrganizationArchiveEvent, OrganizationArchiveRestoreRequest,
+};
 use crate::frb_generated::StreamSink;
 
 pub fn export_organization_archive(
@@ -27,6 +29,23 @@ pub fn inspect_organization_archive(
     });
     send_result(
         result.map(|inspection| OrganizationArchiveEvent::Inspected { inspection }),
+        &sink,
+    );
+    Ok(())
+}
+
+pub fn restore_organization_archive(
+    archive: String,
+    request: OrganizationArchiveRestoreRequest,
+    sink: StreamSink<OrganizationArchiveEvent>,
+) -> Result<(), ScanError> {
+    let result =
+        crate::application::organization_archive::restore(&archive, &request, &mut |progress| {
+            sink.add(OrganizationArchiveEvent::Progress { progress })
+                .is_ok()
+        });
+    send_result(
+        result.map(|receipt| OrganizationArchiveEvent::Restored { receipt }),
         &sink,
     );
     Ok(())
