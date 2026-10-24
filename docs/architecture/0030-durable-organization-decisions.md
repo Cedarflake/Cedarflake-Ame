@@ -49,6 +49,14 @@ Album deletion retires its definition and moves assigned records to ignored in t
 The retired definition remains outside ordinary album queries so version-checked undo can restore
 its name and assignments without inventing another album identity.
 
+Explicit source removal forgets that root's organization ownership in the catalog removal
+transaction. Retire all lineage records of groups with no surviving configured source, while
+preserving a shared group's records and choices. Ordinary loss of derived locations is not this
+authority. When a complete parent import replaces covered child registrations, transfer their
+ownership to the admitted parent before child retirement; cancellation or failed publication rolls
+back the transfer with the catalog. Album definitions remain available even when their last group
+is removed.
+
 ### Command admission and transactions
 
 Application commands validate typed selection identities and bounded inputs before entering the

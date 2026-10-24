@@ -10,6 +10,7 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 
 use super::*;
 
+mod lifecycle;
 mod transitions;
 mod undo;
 

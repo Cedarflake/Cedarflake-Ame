@@ -176,6 +176,11 @@ pub(super) fn retire(
     let mut consolidated = Vec::with_capacity(plan.candidates.len());
     for candidate in &plan.candidates {
         interruption.ensure_running()?;
+        super::super::organization::lifecycle::transfer_source(
+            transaction,
+            &candidate.expected.root_id,
+            &plan.destination_root_id,
+        )?;
         if !root_unregistration::unregister_root(transaction, &candidate.expected.root_id)? {
             return Err(changed());
         }

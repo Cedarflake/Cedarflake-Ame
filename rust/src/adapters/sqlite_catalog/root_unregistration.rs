@@ -21,6 +21,7 @@ pub(super) fn unregister_root(
     if !root_exists {
         return Ok(false);
     }
+    super::organization::lifecycle::forget_source(transaction, root_id)?;
     retire_root_change_queue(transaction, root_id, unix_time_ms())?;
     spool_retirement::retire_owned_spools(
         transaction,

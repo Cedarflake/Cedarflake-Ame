@@ -51,7 +51,8 @@ this overview does not reduce them to navigation shells or compilation milestone
 **R2c is frozen and R3 is completed. R4 is active on `codex/r4-organization`.**
 R4-01's durable records, guarded whole-group commands, first favorite transaction and migration
 recovery are implemented. R4-02 now adds album transitions and version-checked undo; group
-reconciliation and source lifecycle handling remain next within that slice. Focused diagnostics
+reconciliation remains next within that slice. Explicit source removal and parent consolidation
+now preserve or retire organization ownership transactionally. Focused diagnostics
 pass for the implemented boundaries. Hosted verification still requires the repaired historical
 fixtures and module contracts; no R4 controls are exposed yet.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
@@ -197,8 +198,8 @@ their evidence in the linked acceptance record.
 
 ## R4 implementation sequence
 
-R4-01 awaits the corrected hosted checks. R4-02 is in progress; its group reconciliation and source
-lifecycle boundaries remain open. R4-03 through R4-07 are pending. The
+R4-01 awaits the corrected hosted checks. R4-02 is in progress; group reconciliation and its
+interaction with undo and source lifecycle remain open. R4-03 through R4-07 are pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
 this roadmap owns their order and status. No R4 user workflow has passed acceptance yet.
 

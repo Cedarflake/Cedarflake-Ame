@@ -12,6 +12,7 @@ mod albums;
 mod authority;
 mod changes;
 mod favorites;
+pub(super) mod lifecycle;
 mod operations;
 mod records;
 mod selection;

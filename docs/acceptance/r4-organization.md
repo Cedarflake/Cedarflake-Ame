@@ -147,3 +147,27 @@ the Rust Release build). Rust and Dart both advertise content hash `-529801428`.
 changes are limited to organization types/endpoints and the corresponding bridge dispatch code.
 The new implementation's hosted checks remain pending publication; no desktop interaction has
 been accepted by these internal diagnostics.
+
+## Explicit source removal and parent consolidation - 2026-10-24
+
+Source removal now retires organization ownership inside the existing catalog removal transaction.
+Groups owned by another configured source retain their decisions; orphaned groups lose their
+lineage records, bindings, conflicts and field history. Opaque operation-target receipts prevent
+old undo from restoring a partially removed selection. Empty album definitions remain available.
+Losing derived locations alone does not grant this deletion authority.
+
+Complete parent import transfers the covered children's organization ownership before retiring
+their registrations. The publication transaction owns both changes, so cancellation and later
+write failures preserve the previous child ownership. The new lifecycle owner performs only
+catalog SQL and evaluates surviving ownership once per affected group.
+
+Five adapter cases and two application scan cases passed serially. They cover shared groups,
+orphaned aliases, remove/reopen/reimport, derived-location loss, failed removal, actual parent import
+and failed child retirement. The application fixtures create isolated images and compare their
+original bytes after each scan. No retained library or user catalog was used. Later fingerprint
+association and group evolution remain separate required boundaries before R4 controls are exposed.
+
+The lifecycle owner has 92 production lines and no inline tests; its dedicated tests have 206 lines.
+The 174-line root-removal owner and 203-line parent-consolidation owner gain only composition calls.
+The 491-line application scan test owner registers a 121-line dedicated organization test module.
+This change adds no schema or public bridge contract. Hosted checks still need to cover its commit.

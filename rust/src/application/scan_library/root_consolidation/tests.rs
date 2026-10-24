@@ -16,6 +16,8 @@ use crate::ports::CatalogRepository;
 
 use super::super::{cancel_scan, pause_scan, resume_scan_with_storage, run_scan_with_storage};
 
+mod organization;
+
 #[test]
 fn parent_pause_reopen_and_resume_keeps_child_until_complete() {
     let fixture = Fixture::new();
