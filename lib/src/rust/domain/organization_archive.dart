@@ -18,12 +18,70 @@ sealed class OrganizationArchiveEvent with _$OrganizationArchiveEvent {
   const factory OrganizationArchiveEvent.completed({
     required OrganizationArchiveReceipt receipt,
   }) = OrganizationArchiveEvent_Completed;
+  const factory OrganizationArchiveEvent.inspected({
+    required OrganizationArchiveInspection inspection,
+  }) = OrganizationArchiveEvent_Inspected;
   const factory OrganizationArchiveEvent.cancelled() =
       OrganizationArchiveEvent_Cancelled;
   const factory OrganizationArchiveEvent.failed({
     required String code,
     required String message,
   }) = OrganizationArchiveEvent_Failed;
+}
+
+class OrganizationArchiveInspection {
+  final String archiveId;
+  final String checksum;
+  final BigInt createdUnixMs;
+  final BigInt recordCount;
+  final BigInt activeAlbums;
+  final BigInt groups;
+  final BigInt favoriteGroups;
+  final BigInt conflictingGroups;
+  final BigInt duplicateChoices;
+  final bool hasContinuation;
+
+  const OrganizationArchiveInspection({
+    required this.archiveId,
+    required this.checksum,
+    required this.createdUnixMs,
+    required this.recordCount,
+    required this.activeAlbums,
+    required this.groups,
+    required this.favoriteGroups,
+    required this.conflictingGroups,
+    required this.duplicateChoices,
+    required this.hasContinuation,
+  });
+
+  @override
+  int get hashCode =>
+      archiveId.hashCode ^
+      checksum.hashCode ^
+      createdUnixMs.hashCode ^
+      recordCount.hashCode ^
+      activeAlbums.hashCode ^
+      groups.hashCode ^
+      favoriteGroups.hashCode ^
+      conflictingGroups.hashCode ^
+      duplicateChoices.hashCode ^
+      hasContinuation.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationArchiveInspection &&
+          runtimeType == other.runtimeType &&
+          archiveId == other.archiveId &&
+          checksum == other.checksum &&
+          createdUnixMs == other.createdUnixMs &&
+          recordCount == other.recordCount &&
+          activeAlbums == other.activeAlbums &&
+          groups == other.groups &&
+          favoriteGroups == other.favoriteGroups &&
+          conflictingGroups == other.conflictingGroups &&
+          duplicateChoices == other.duplicateChoices &&
+          hasContinuation == other.hasContinuation;
 }
 
 enum OrganizationArchivePhase { snapshot, writing, verifying }

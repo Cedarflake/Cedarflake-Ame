@@ -7,7 +7,8 @@ use rusqlite::types::ValueRef;
 
 use crate::domain::ScanError;
 use crate::domain::organization_archive::{
-    OrganizationArchivePhase, OrganizationArchiveProgress, OrganizationArchiveReceipt,
+    OrganizationArchiveInspection, OrganizationArchivePhase, OrganizationArchiveProgress,
+    OrganizationArchiveReceipt,
 };
 use crate::ports::organization_archive::OrganizationArchiveRepository;
 
@@ -16,8 +17,22 @@ use super::{SqliteCatalog, database_error};
 mod codec;
 mod records;
 mod snapshot;
+mod staging;
 
 impl OrganizationArchiveRepository for SqliteCatalog {
+    fn inspect_organization_archive(
+        &self,
+        archive: &Path,
+        progress: &mut dyn FnMut(OrganizationArchiveProgress) -> bool,
+    ) -> Result<OrganizationArchiveInspection, ScanError> {
+        let parent = self
+            .path
+            .parent()
+            .ok_or_else(|| error("staging", "Missing catalog directory"))?;
+        let stage = staging::read(archive, parent, progress)?;
+        stage.inspect()
+    }
+
     fn export_organization_archive(
         &self,
         destination: &Path,

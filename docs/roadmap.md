@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-05 desktop workflows in progress |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-06 recovery and cleanup in progress |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -65,8 +65,8 @@ source-lifecycle checks pass. The viewer-Favorite checkpoint passed hosted verif
 queue-layout checkpoint passed hosted verification, including its cancelled-request fixture
 correction. The subsequent conflict and batch-status head failed two availability-inventory assertions;
 the exact domain-module inventory is now corrected with passing focused admission and rejection
-checks. The published inventory repair passed hosted verification; the subsequent native-check
-commit is being verified separately.
+checks. The published inventory repair and subsequent native-check commit both passed hosted
+verification.
 R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
 Controlled desktop checks cover transient Favorite feedback without notification history,
 create-in-picker assignment, defer/ignore/restore, saved continuation, collection persistence and
@@ -90,8 +90,10 @@ and restart retention; focused checks cover retired albums, pagination, failed s
 Committed album retirement now leaves affected active and saved browsing scopes before refreshing;
 controlled Windows integration verifies deletion and undo, with focused publication and lifecycle
 regressions. Native unavailable-item integration also preserves pending decisions while navigating
-and retrying a blocked original. Current-head hosted verification remains before R4-05 closure;
-retained-library performance obligations stay with integrated verification.
+and retrying a blocked original. These desktop workflows have passed their controlled client and
+hosted checks. R4-06 now implements portable archive export and restoration admission; atomic
+application, settings integration and unresolved-record cleanup remain pending. Retained-library
+performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -240,7 +242,7 @@ group reconciliation and R4-03's bounded collection queries are implemented. The
 passes the unchanged local and hosted 10,000-image workloads. R4-04's transactional admission ordering
 passes focused publication, source-lifecycle and migration checks. Its bounded queue queries and
 coherent progress counts and durable continuation pass focused regressions, including reopen,
-ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle. R4-05 is active with
+ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle. R4-05 connects
 the viewer Favorite path, album management, viewer membership commands, collection entries and
 album settings connected. The query-wide selection command boundary passes focused adapter and
 session checks. Controlled desktop checks cover the core organization-mode loop, restart,
@@ -249,14 +251,14 @@ Favorite commands, durable default-album settings, management, undo and stale-sa
 controlled client evidence. Gallery selection and the core
 organization-mode workflows and persistent conflict inspection/resolution are connected. Controlled
 desktop checks cover conflict discovery, cancellation, resolution, restart and unavailable-image
-navigation/retry without completing pending work. Verify the corrected availability source inventory
-and the completed native workflows in CI before advancing to R4-06. Keep the product
-checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
-R4-07 remain pending. Independent R4-06 preparation now establishes the versioned archive codec,
-snapshot export and typed bridge; settings export, restoration and unresolved-record cleanup remain
-unconnected. This preparation does not close the pending R4-05 hosted check. The
+navigation/retry without completing pending work. The corrected availability source inventory and
+native workflows have passed hosted verification. R4-06 is active with the versioned archive codec,
+snapshot export and staged restoration validation behind the typed bridge. Continue with atomic
+restore, trustworthy reassociation and repeat/conflict handling, then settings integration and
+explicit unresolved-record cleanup. R4-07 retains the complete integrated flow and retained-library
+resource measurements. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
-this roadmap owns their order and status. No R4 user workflow has passed acceptance yet.
+this roadmap owns their order and status. The complete R4 stage remains unaccepted.
 
 | Order | Slice | Required result |
 | --- | --- | --- |

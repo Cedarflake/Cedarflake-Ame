@@ -55,12 +55,13 @@ extension OrganizationArchiveEventPatterns on OrganizationArchiveEvent {
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( OrganizationArchiveEvent_Progress value)?  progress,TResult Function( OrganizationArchiveEvent_Completed value)?  completed,TResult Function( OrganizationArchiveEvent_Cancelled value)?  cancelled,TResult Function( OrganizationArchiveEvent_Failed value)?  failed,required TResult orElse(),}){
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( OrganizationArchiveEvent_Progress value)?  progress,TResult Function( OrganizationArchiveEvent_Completed value)?  completed,TResult Function( OrganizationArchiveEvent_Inspected value)?  inspected,TResult Function( OrganizationArchiveEvent_Cancelled value)?  cancelled,TResult Function( OrganizationArchiveEvent_Failed value)?  failed,required TResult orElse(),}){
 final _that = this;
 switch (_that) {
 case OrganizationArchiveEvent_Progress() when progress != null:
 return progress(_that);case OrganizationArchiveEvent_Completed() when completed != null:
-return completed(_that);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
+return completed(_that);case OrganizationArchiveEvent_Inspected() when inspected != null:
+return inspected(_that);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
 return cancelled(_that);case OrganizationArchiveEvent_Failed() when failed != null:
 return failed(_that);case _:
   return orElse();
@@ -80,12 +81,13 @@ return failed(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( OrganizationArchiveEvent_Progress value)  progress,required TResult Function( OrganizationArchiveEvent_Completed value)  completed,required TResult Function( OrganizationArchiveEvent_Cancelled value)  cancelled,required TResult Function( OrganizationArchiveEvent_Failed value)  failed,}){
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( OrganizationArchiveEvent_Progress value)  progress,required TResult Function( OrganizationArchiveEvent_Completed value)  completed,required TResult Function( OrganizationArchiveEvent_Inspected value)  inspected,required TResult Function( OrganizationArchiveEvent_Cancelled value)  cancelled,required TResult Function( OrganizationArchiveEvent_Failed value)  failed,}){
 final _that = this;
 switch (_that) {
 case OrganizationArchiveEvent_Progress():
 return progress(_that);case OrganizationArchiveEvent_Completed():
-return completed(_that);case OrganizationArchiveEvent_Cancelled():
+return completed(_that);case OrganizationArchiveEvent_Inspected():
+return inspected(_that);case OrganizationArchiveEvent_Cancelled():
 return cancelled(_that);case OrganizationArchiveEvent_Failed():
 return failed(_that);}
 }
@@ -101,12 +103,13 @@ return failed(_that);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( OrganizationArchiveEvent_Progress value)?  progress,TResult? Function( OrganizationArchiveEvent_Completed value)?  completed,TResult? Function( OrganizationArchiveEvent_Cancelled value)?  cancelled,TResult? Function( OrganizationArchiveEvent_Failed value)?  failed,}){
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( OrganizationArchiveEvent_Progress value)?  progress,TResult? Function( OrganizationArchiveEvent_Completed value)?  completed,TResult? Function( OrganizationArchiveEvent_Inspected value)?  inspected,TResult? Function( OrganizationArchiveEvent_Cancelled value)?  cancelled,TResult? Function( OrganizationArchiveEvent_Failed value)?  failed,}){
 final _that = this;
 switch (_that) {
 case OrganizationArchiveEvent_Progress() when progress != null:
 return progress(_that);case OrganizationArchiveEvent_Completed() when completed != null:
-return completed(_that);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
+return completed(_that);case OrganizationArchiveEvent_Inspected() when inspected != null:
+return inspected(_that);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
 return cancelled(_that);case OrganizationArchiveEvent_Failed() when failed != null:
 return failed(_that);case _:
   return null;
@@ -125,11 +128,12 @@ return failed(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( OrganizationArchiveProgress progress)?  progress,TResult Function( OrganizationArchiveReceipt receipt)?  completed,TResult Function()?  cancelled,TResult Function( String code,  String message)?  failed,required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function( OrganizationArchiveProgress progress)?  progress,TResult Function( OrganizationArchiveReceipt receipt)?  completed,TResult Function( OrganizationArchiveInspection inspection)?  inspected,TResult Function()?  cancelled,TResult Function( String code,  String message)?  failed,required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case OrganizationArchiveEvent_Progress() when progress != null:
 return progress(_that.progress);case OrganizationArchiveEvent_Completed() when completed != null:
-return completed(_that.receipt);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
+return completed(_that.receipt);case OrganizationArchiveEvent_Inspected() when inspected != null:
+return inspected(_that.inspection);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
 return cancelled();case OrganizationArchiveEvent_Failed() when failed != null:
 return failed(_that.code,_that.message);case _:
   return orElse();
@@ -149,11 +153,12 @@ return failed(_that.code,_that.message);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( OrganizationArchiveProgress progress)  progress,required TResult Function( OrganizationArchiveReceipt receipt)  completed,required TResult Function()  cancelled,required TResult Function( String code,  String message)  failed,}) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function( OrganizationArchiveProgress progress)  progress,required TResult Function( OrganizationArchiveReceipt receipt)  completed,required TResult Function( OrganizationArchiveInspection inspection)  inspected,required TResult Function()  cancelled,required TResult Function( String code,  String message)  failed,}) {final _that = this;
 switch (_that) {
 case OrganizationArchiveEvent_Progress():
 return progress(_that.progress);case OrganizationArchiveEvent_Completed():
-return completed(_that.receipt);case OrganizationArchiveEvent_Cancelled():
+return completed(_that.receipt);case OrganizationArchiveEvent_Inspected():
+return inspected(_that.inspection);case OrganizationArchiveEvent_Cancelled():
 return cancelled();case OrganizationArchiveEvent_Failed():
 return failed(_that.code,_that.message);}
 }
@@ -169,11 +174,12 @@ return failed(_that.code,_that.message);}
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( OrganizationArchiveProgress progress)?  progress,TResult? Function( OrganizationArchiveReceipt receipt)?  completed,TResult? Function()?  cancelled,TResult? Function( String code,  String message)?  failed,}) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function( OrganizationArchiveProgress progress)?  progress,TResult? Function( OrganizationArchiveReceipt receipt)?  completed,TResult? Function( OrganizationArchiveInspection inspection)?  inspected,TResult? Function()?  cancelled,TResult? Function( String code,  String message)?  failed,}) {final _that = this;
 switch (_that) {
 case OrganizationArchiveEvent_Progress() when progress != null:
 return progress(_that.progress);case OrganizationArchiveEvent_Completed() when completed != null:
-return completed(_that.receipt);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
+return completed(_that.receipt);case OrganizationArchiveEvent_Inspected() when inspected != null:
+return inspected(_that.inspection);case OrganizationArchiveEvent_Cancelled() when cancelled != null:
 return cancelled();case OrganizationArchiveEvent_Failed() when failed != null:
 return failed(_that.code,_that.message);case _:
   return null;
@@ -309,6 +315,72 @@ class _$OrganizationArchiveEvent_CompletedCopyWithImpl<$Res>
   return _then(OrganizationArchiveEvent_Completed(
 receipt: null == receipt ? _self.receipt : receipt // ignore: cast_nullable_to_non_nullable
 as OrganizationArchiveReceipt,
+  ));
+}
+
+
+}
+
+/// @nodoc
+
+
+class OrganizationArchiveEvent_Inspected extends OrganizationArchiveEvent {
+  const OrganizationArchiveEvent_Inspected({required this.inspection}): super._();
+
+
+ final  OrganizationArchiveInspection inspection;
+
+/// Create a copy of OrganizationArchiveEvent
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$OrganizationArchiveEvent_InspectedCopyWith<OrganizationArchiveEvent_Inspected> get copyWith => _$OrganizationArchiveEvent_InspectedCopyWithImpl<OrganizationArchiveEvent_Inspected>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is OrganizationArchiveEvent_Inspected&&(identical(other.inspection, inspection) || other.inspection == inspection));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,inspection);
+
+@override
+String toString() {
+  return 'OrganizationArchiveEvent.inspected(inspection: $inspection)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $OrganizationArchiveEvent_InspectedCopyWith<$Res> implements $OrganizationArchiveEventCopyWith<$Res> {
+  factory $OrganizationArchiveEvent_InspectedCopyWith(OrganizationArchiveEvent_Inspected value, $Res Function(OrganizationArchiveEvent_Inspected) _then) = _$OrganizationArchiveEvent_InspectedCopyWithImpl;
+@useResult
+$Res call({
+ OrganizationArchiveInspection inspection
+});
+
+
+
+
+}
+/// @nodoc
+class _$OrganizationArchiveEvent_InspectedCopyWithImpl<$Res>
+    implements $OrganizationArchiveEvent_InspectedCopyWith<$Res> {
+  _$OrganizationArchiveEvent_InspectedCopyWithImpl(this._self, this._then);
+
+  final OrganizationArchiveEvent_Inspected _self;
+  final $Res Function(OrganizationArchiveEvent_Inspected) _then;
+
+/// Create a copy of OrganizationArchiveEvent
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? inspection = null,}) {
+  return _then(OrganizationArchiveEvent_Inspected(
+inspection: null == inspection ? _self.inspection : inspection // ignore: cast_nullable_to_non_nullable
+as OrganizationArchiveInspection,
   ));
 }
 

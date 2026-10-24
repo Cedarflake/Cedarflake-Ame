@@ -2,31 +2,31 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::organization_archive::{
-    OrganizationArchiveProgress, OrganizationArchiveReceipt,
+    OrganizationArchiveInspection, OrganizationArchiveProgress, OrganizationArchiveReceipt,
 };
 use crate::domain::{GalleryQuery, ScanError};
 use crate::ports::CatalogRepository;
 use crate::ports::organization_archive::OrganizationArchiveRepository;
 
-static EXPORT_ACTIVE: AtomicBool = AtomicBool::new(false);
+static ARCHIVE_ACTIVE: AtomicBool = AtomicBool::new(false);
 
-struct ExportLease<'a>(&'a AtomicBool);
+struct ArchiveLease<'a>(&'a AtomicBool);
 
-impl<'a> ExportLease<'a> {
+impl<'a> ArchiveLease<'a> {
     fn acquire(active: &'a AtomicBool) -> Result<Self, ScanError> {
         active
             .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
             .map_err(|_| {
                 ScanError::new(
                     "organization_archive_busy",
-                    "An organization export is already running",
+                    "An organization backup operation is already running",
                 )
             })?;
         Ok(Self(active))
     }
 }
 
-impl Drop for ExportLease<'_> {
+impl Drop for ArchiveLease<'_> {
     fn drop(&mut self) {
         self.0.store(false, Ordering::Release);
     }
@@ -43,7 +43,7 @@ pub(crate) fn export(
             "Choose an absolute destination filename",
         ));
     }
-    let _lease = ExportLease::acquire(&EXPORT_ACTIVE)?;
+    let _lease = ArchiveLease::acquire(&ARCHIVE_ACTIVE)?;
     let mut catalog = super::organization::open_catalog()?;
     let roots = catalog
         .load_snapshot(
@@ -81,6 +81,21 @@ pub(crate) fn export(
     catalog.export_organization_archive(destination, progress)
 }
 
+pub(crate) fn inspect(
+    archive: &str,
+    progress: &mut dyn FnMut(OrganizationArchiveProgress) -> bool,
+) -> Result<OrganizationArchiveInspection, ScanError> {
+    let archive = Path::new(archive);
+    if !archive.is_absolute() || archive.file_name().is_none() {
+        return Err(ScanError::new(
+            "organization_archive_input_invalid",
+            "Choose an absolute backup filename",
+        ));
+    }
+    let _lease = ArchiveLease::acquire(&ARCHIVE_ACTIVE)?;
+    super::organization::open_catalog()?.inspect_organization_archive(archive, progress)
+}
+
 fn validate_destination<'a>(
     destination: &Path,
     protected_paths: impl Iterator<Item = &'a Path>,
@@ -103,14 +118,14 @@ mod tests {
     #[test]
     fn organization_archive_bounds_concurrent_exports_and_releases_admission() {
         let active = AtomicBool::new(false);
-        let first = ExportLease::acquire(&active).unwrap();
+        let first = ArchiveLease::acquire(&active).unwrap();
         assert_eq!(
-            ExportLease::acquire(&active).err().unwrap().code,
+            ArchiveLease::acquire(&active).err().unwrap().code,
             "organization_archive_busy"
         );
         assert!(active.load(Ordering::Acquire));
         drop(first);
-        let second = ExportLease::acquire(&active).unwrap();
+        let second = ArchiveLease::acquire(&active).unwrap();
         drop(second);
         assert!(!active.load(Ordering::Acquire));
     }

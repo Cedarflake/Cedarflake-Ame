@@ -125,11 +125,21 @@ impl Write for LineBuffer {
 }
 
 pub(super) struct VerifiedArchive {
+    pub header: Header,
+    pub checksum: String,
     pub record_count: u64,
 }
 
 pub(super) fn validate(
+    input: impl BufRead,
+    progress: &mut dyn FnMut(u64) -> Result<(), ScanError>,
+) -> Result<VerifiedArchive, ScanError> {
+    read_records(input, &mut |_, _| Ok(()), progress)
+}
+
+pub(super) fn read_records(
     mut input: impl BufRead,
+    accept: &mut dyn FnMut(usize, &[Cell]) -> Result<(), ScanError>,
     progress: &mut dyn FnMut(u64) -> Result<(), ScanError>,
 ) -> Result<VerifiedArchive, ScanError> {
     let mut bytes = read_line(&mut input)?;
@@ -155,6 +165,7 @@ pub(super) fn validate(
                     return Err(invalid());
                 }
                 validate_values(&records::KINDS[index], &values)?;
+                accept(index, &values)?;
                 counts[index] = counts[index].checked_add(1).ok_or_else(invalid)?;
                 total = total.checked_add(1).ok_or_else(invalid)?;
                 last_kind = index;
@@ -174,6 +185,8 @@ pub(super) fn validate(
                     return Err(invalid());
                 }
                 return Ok(VerifiedArchive {
+                    header,
+                    checksum,
                     record_count: total,
                 });
             }

@@ -189,6 +189,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationAlbum dco_decode_box_autoadd_organization_album(dynamic raw);
 
   @protected
+  OrganizationArchiveInspection
+  dco_decode_box_autoadd_organization_archive_inspection(dynamic raw);
+
+  @protected
   OrganizationArchiveProgress
   dco_decode_box_autoadd_organization_archive_progress(dynamic raw);
 
@@ -671,6 +675,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationArchiveEvent dco_decode_organization_archive_event(dynamic raw);
 
   @protected
+  OrganizationArchiveInspection dco_decode_organization_archive_inspection(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationArchivePhase dco_decode_organization_archive_phase(dynamic raw);
 
   @protected
@@ -988,6 +997,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationAlbum sse_decode_box_autoadd_organization_album(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveInspection
+  sse_decode_box_autoadd_organization_archive_inspection(
     SseDeserializer deserializer,
   );
 
@@ -1598,6 +1613,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationArchiveInspection sse_decode_organization_archive_inspection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationArchivePhase sse_decode_organization_archive_phase(
     SseDeserializer deserializer,
   );
@@ -1989,6 +2009,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_organization_album(
     OrganizationAlbum self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_archive_inspection(
+    OrganizationArchiveInspection self,
     SseSerializer serializer,
   );
 
@@ -2727,6 +2753,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_archive_event(
     OrganizationArchiveEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_inspection(
+    OrganizationArchiveInspection self,
     SseSerializer serializer,
   );
 

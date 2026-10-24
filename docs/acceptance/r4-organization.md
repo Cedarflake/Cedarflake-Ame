@@ -1024,8 +1024,8 @@ bridge is changed by this checkpoint.
 The inventory repair is published as 5cc6525a8f14315e9cebe86262d920a9cb19e00f. Its run
 [40074028181](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40074028181) completed
 successfully. The subsequent native-check commit cb2fb80528bba6127be43ebd9189f8b9955ada35 is covered by
-[40075785832](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40075785832), still in progress
-when archive preparation began;
+[40075785832](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40075785832). It completed
+successfully with all 15 applicable jobs passing before restoration-admission publication;
 retained-library measurements and R4 export, restoration and cleanup remain outstanding.
 
 ## Portable organization archive export boundary
@@ -1065,3 +1065,39 @@ facades only declare the new responsibility; no migration or source-reading work
 Settings integration, restoration/merge policy, unresolved-record cleanup and large-library
 temporary-storage/resource measurements remain outstanding. No R4-06 user workflow is accepted by
 this backend checkpoint; previous native UI evidence is retained without replay.
+
+## Staged restoration admission
+
+The inspection API now streams a backup into an exclusively owned staging database, checks framing
+and completion, validates record relationships, and returns canonical-group/active-album counts and
+the verified archive identity/checksum. No archived rows are applied to the current catalog. The
+input is held read-only against concurrent writers on Windows, with no-recall opening and resident
+attribute admission. A shared operation lease bounds export and inspection concurrency.
+
+The focused `organization_archive` run passed all 21 tests in 21.95 seconds after a 64-second test
+build. The canonical bridge generator's Release build passed in 49.96 seconds. The unchanged export
+checks ran with the modified parser; the new cases cover alias counts, Unicode and SQL-like text,
+missing references, absent canonical mappings, group cycles, incomplete undo pairs, retired-album
+assignment, conflicting states, invalid booleans, duplicate keys, revision ceilings and missing
+bookmark scope. Malformed relational fixtures have recomputed valid counts and checksums, so their
+rejection establishes a separate boundary from byte-integrity checks. Legitimate deleted undo
+targets remain accepted and retained.
+
+Cancellation during 512-record staging preserves both input bytes and the live catalog and removes
+owned scratch. Windows tests prove an input read lease denies concurrent writes and that an existing
+writer prevents inspection until released. Attribute-level regressions reject offline/recall states
+while admitting resident reparse files; no cloud-placeholder fixture was hydrated. Storage-full and
+constraint errors retain distinct failure categories. Inspection does not establish whole-library
+recovery throughput or real-client settings behavior.
+
+The staging owner has 131 production lines, fixed stage schema 131 and relational validation 75.
+Input admission has 51 production lines and 26 inline-test lines; dedicated staging tests have 284
+lines. The codec now has 252 production lines and the catalog facade 178, with separate dedicated
+tests. Typed API/application owners remain narrow; the current catalog schema is unchanged. Owned
+formatting and diff checks pass. Hosted checks are required for the new implementation head.
+
+Atomic restoration, foreign-identity reassociation, retry/conflict policy, settings and unresolved
+cleanup remain outstanding. Archive-local generations and ordinals cannot enter live bindings or
+queue authority before trustworthy mapping; unmatched evidence must remain durable through that
+later publication boundary. The roadmap advances to R4-06 while retaining R4-07's integrated
+workflow, retained-library resource and source-preservation obligations.

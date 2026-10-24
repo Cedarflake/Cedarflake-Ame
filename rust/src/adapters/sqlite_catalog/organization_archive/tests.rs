@@ -5,7 +5,7 @@ use serde_json::Value;
 
 use super::*;
 
-fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
+pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
     let directory = tempfile::tempdir().unwrap();
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     super::super::tests::publish_gallery_fixture(
@@ -54,7 +54,7 @@ fn entries(path: &Path) -> Vec<Value> {
         .collect()
 }
 
-fn assert_no_scratch(directory: &Path) {
+pub(super) fn assert_no_scratch(directory: &Path) {
     for entry in fs::read_dir(directory).unwrap() {
         assert!(
             !entry

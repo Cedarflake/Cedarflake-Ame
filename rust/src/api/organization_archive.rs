@@ -10,8 +10,34 @@ pub fn export_organization_archive(
         sink.add(OrganizationArchiveEvent::Progress { progress })
             .is_ok()
     });
+    send_result(
+        result.map(|receipt| OrganizationArchiveEvent::Completed { receipt }),
+        &sink,
+    );
+    Ok(())
+}
+
+pub fn inspect_organization_archive(
+    archive: String,
+    sink: StreamSink<OrganizationArchiveEvent>,
+) -> Result<(), ScanError> {
+    let result = crate::application::organization_archive::inspect(&archive, &mut |progress| {
+        sink.add(OrganizationArchiveEvent::Progress { progress })
+            .is_ok()
+    });
+    send_result(
+        result.map(|inspection| OrganizationArchiveEvent::Inspected { inspection }),
+        &sink,
+    );
+    Ok(())
+}
+
+fn send_result(
+    result: Result<OrganizationArchiveEvent, ScanError>,
+    sink: &StreamSink<OrganizationArchiveEvent>,
+) {
     let event = match result {
-        Ok(receipt) => OrganizationArchiveEvent::Completed { receipt },
+        Ok(event) => event,
         Err(error) if error.code == "organization_archive_cancelled" => {
             OrganizationArchiveEvent::Cancelled
         }
@@ -21,5 +47,4 @@ pub fn export_organization_archive(
         },
     };
     let _ = sink.add(event);
-    Ok(())
 }

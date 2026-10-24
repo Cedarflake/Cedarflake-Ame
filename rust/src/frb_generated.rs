@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 982003576;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -762864689;
 
 // Section: executor
 
@@ -1172,6 +1172,46 @@ fn wire__crate__api__initialization__init_app_impl(
                     let output_ok = Result::<_, ()>::Ok({
                         crate::api::initialization::init_app();
                     })?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__organization_archive__inspect_organization_archive_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "inspect_organization_archive",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_archive = <String>::sse_decode(&mut deserializer);
+            let api_sink = <StreamSink<
+                crate::domain::organization_archive::OrganizationArchiveEvent,
+                flutter_rust_bridge::for_generated::SseCodec,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::organization_archive::inspect_organization_archive(
+                        api_archive,
+                        api_sink,
+                    )?;
                     Ok(output_ok)
                 })())
             }
@@ -4887,9 +4927,15 @@ impl SseDecode for crate::domain::organization_archive::OrganizationArchiveEvent
                 };
             }
             2 => {
-                return crate::domain::organization_archive::OrganizationArchiveEvent::Cancelled;
+                let mut var_inspection = <crate::domain::organization_archive::OrganizationArchiveInspection>::sse_decode(deserializer);
+                return crate::domain::organization_archive::OrganizationArchiveEvent::Inspected {
+                    inspection: var_inspection,
+                };
             }
             3 => {
+                return crate::domain::organization_archive::OrganizationArchiveEvent::Cancelled;
+            }
+            4 => {
                 let mut var_code = <String>::sse_decode(deserializer);
                 let mut var_message = <String>::sse_decode(deserializer);
                 return crate::domain::organization_archive::OrganizationArchiveEvent::Failed {
@@ -4901,6 +4947,34 @@ impl SseDecode for crate::domain::organization_archive::OrganizationArchiveEvent
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseDecode for crate::domain::organization_archive::OrganizationArchiveInspection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_archiveId = <String>::sse_decode(deserializer);
+        let mut var_checksum = <String>::sse_decode(deserializer);
+        let mut var_createdUnixMs = <u64>::sse_decode(deserializer);
+        let mut var_recordCount = <u64>::sse_decode(deserializer);
+        let mut var_activeAlbums = <u64>::sse_decode(deserializer);
+        let mut var_groups = <u64>::sse_decode(deserializer);
+        let mut var_favoriteGroups = <u64>::sse_decode(deserializer);
+        let mut var_conflictingGroups = <u64>::sse_decode(deserializer);
+        let mut var_duplicateChoices = <u64>::sse_decode(deserializer);
+        let mut var_hasContinuation = <bool>::sse_decode(deserializer);
+        return crate::domain::organization_archive::OrganizationArchiveInspection {
+            archive_id: var_archiveId,
+            checksum: var_checksum,
+            created_unix_ms: var_createdUnixMs,
+            record_count: var_recordCount,
+            active_albums: var_activeAlbums,
+            groups: var_groups,
+            favorite_groups: var_favoriteGroups,
+            conflicting_groups: var_conflictingGroups,
+            duplicate_choices: var_duplicateChoices,
+            has_continuation: var_hasContinuation,
+        };
     }
 }
 
@@ -5953,124 +6027,130 @@ fn pde_ffi_dispatcher_primary_impl(
             data_len,
         ),
         27 => wire__crate__api__initialization__init_app_impl(port, ptr, rust_vec_len, data_len),
-        28 => wire__crate__api__organization__inspect_organization_selection_impl(
+        28 => wire__crate__api__organization_archive__inspect_organization_archive_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__storage__load_catalog_database_reclamation_impl(
+        29 => wire__crate__api__organization__inspect_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(
+        30 => wire__crate__api__storage__load_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(
+        31 => wire__crate__api__exact_duplicates__load_exact_duplicate_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(
+        32 => wire__crate__api__exact_duplicates__load_exact_duplicate_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(
+        33 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(
+        34 => wire__crate__api__exact_duplicate_review__load_exact_duplicate_review_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
+        35 => wire__crate__api__exact_duplicates__load_gallery_duplicate_locations_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+        36 => wire__crate__api__exact_duplicates__load_gallery_duplicates_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => {
+        37 => wire__crate__api__catalog__load_library_asset_by_id_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        38 => {
             wire__crate__api__catalog__load_library_catalog_impl(port, ptr, rust_vec_len, data_len)
         }
-        38 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
+        39 => wire__crate__api__catalog__load_library_catalog_around_asset_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
+        40 => wire__crate__api__catalog__load_library_catalog_around_location_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
+        41 => wire__crate__api__catalog__load_library_catalog_at_time_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__catalog__load_library_folder_page_impl(
+        42 => wire__crate__api__catalog__load_library_folder_page_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
+        43 => wire__crate__api__catalog__load_library_gallery_layout_manifest_chunk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
+        44 => wire__crate__api__catalog__load_library_gallery_timeline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__catalog__load_library_query_snapshot_impl(
+        45 => wire__crate__api__catalog__load_library_query_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__catalog__load_library_time_snapshot_impl(
+        46 => wire__crate__api__catalog__load_library_time_snapshot_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__organization__load_organization_albums_impl(
+        47 => wire__crate__api__organization__load_organization_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(
+        48 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => {
+        49 => {
             wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(
                 port,
                 ptr,
@@ -6078,122 +6158,122 @@ fn pde_ffi_dispatcher_primary_impl(
                 data_len,
             )
         }
-        49 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(
+        50 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__organization_review__load_organization_continuation_impl(
+        51 => wire__crate__api__organization_review__load_organization_continuation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__catalog__load_paused_library_scan_impl(
+        52 => wire__crate__api__catalog__load_paused_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        53 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => {
+        54 => {
             wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len)
         }
-        54 => wire__crate__api__preview__materialize_library_preview_impl(
+        55 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(
+        56 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        58 => wire__crate__api__synchronization__poll_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => wire__crate__api__organization__prepare_organization_selection_impl(
+        59 => wire__crate__api__organization__prepare_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => {
+        60 => {
             wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        60 => {
+        61 => {
             wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        61 => wire__crate__api__organization__rename_organization_album_impl(
+        62 => wire__crate__api__organization__rename_organization_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => {
+        65 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        65 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        66 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
+        66 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        67 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        67 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
+        68 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        68 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
+        69 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        69 => wire__crate__api__organization__set_organization_favorite_impl(
+        70 => wire__crate__api__organization__set_organization_favorite_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        71 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        72 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        73 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => wire__crate__api__organization__undo_organization_operation_impl(
+        75 => wire__crate__api__organization__undo_organization_operation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        75 => wire__crate__api__storage__update_storage_settings_impl(
+        76 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -6217,18 +6297,18 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        62 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        57 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        63 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        63 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        64 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        73 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        74 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7870,14 +7950,17 @@ impl flutter_rust_bridge::IntoDart
             crate::domain::organization_archive::OrganizationArchiveEvent::Completed {
                 receipt,
             } => [1.into_dart(), receipt.into_into_dart().into_dart()].into_dart(),
+            crate::domain::organization_archive::OrganizationArchiveEvent::Inspected {
+                inspection,
+            } => [2.into_dart(), inspection.into_into_dart().into_dart()].into_dart(),
             crate::domain::organization_archive::OrganizationArchiveEvent::Cancelled => {
-                [2.into_dart()].into_dart()
+                [3.into_dart()].into_dart()
             }
             crate::domain::organization_archive::OrganizationArchiveEvent::Failed {
                 code,
                 message,
             } => [
-                3.into_dart(),
+                4.into_dart(),
                 code.into_into_dart().into_dart(),
                 message.into_into_dart().into_dart(),
             ]
@@ -7897,6 +7980,39 @@ impl
     for crate::domain::organization_archive::OrganizationArchiveEvent
 {
     fn into_into_dart(self) -> crate::domain::organization_archive::OrganizationArchiveEvent {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::organization_archive::OrganizationArchiveInspection
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.archive_id.into_into_dart().into_dart(),
+            self.checksum.into_into_dart().into_dart(),
+            self.created_unix_ms.into_into_dart().into_dart(),
+            self.record_count.into_into_dart().into_dart(),
+            self.active_albums.into_into_dart().into_dart(),
+            self.groups.into_into_dart().into_dart(),
+            self.favorite_groups.into_into_dart().into_dart(),
+            self.conflicting_groups.into_into_dart().into_dart(),
+            self.duplicate_choices.into_into_dart().into_dart(),
+            self.has_continuation.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_archive::OrganizationArchiveInspection
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::organization_archive::OrganizationArchiveInspection,
+    > for crate::domain::organization_archive::OrganizationArchiveInspection
+{
+    fn into_into_dart(self) -> crate::domain::organization_archive::OrganizationArchiveInspection {
         self
     }
 }
@@ -10591,14 +10707,22 @@ impl SseEncode for crate::domain::organization_archive::OrganizationArchiveEvent
                     receipt, serializer,
                 );
             }
-            crate::domain::organization_archive::OrganizationArchiveEvent::Cancelled => {
+            crate::domain::organization_archive::OrganizationArchiveEvent::Inspected {
+                inspection,
+            } => {
                 <i32>::sse_encode(2, serializer);
+                <crate::domain::organization_archive::OrganizationArchiveInspection>::sse_encode(
+                    inspection, serializer,
+                );
+            }
+            crate::domain::organization_archive::OrganizationArchiveEvent::Cancelled => {
+                <i32>::sse_encode(3, serializer);
             }
             crate::domain::organization_archive::OrganizationArchiveEvent::Failed {
                 code,
                 message,
             } => {
-                <i32>::sse_encode(3, serializer);
+                <i32>::sse_encode(4, serializer);
                 <String>::sse_encode(code, serializer);
                 <String>::sse_encode(message, serializer);
             }
@@ -10606,6 +10730,22 @@ impl SseEncode for crate::domain::organization_archive::OrganizationArchiveEvent
                 unimplemented!("");
             }
         }
+    }
+}
+
+impl SseEncode for crate::domain::organization_archive::OrganizationArchiveInspection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.archive_id, serializer);
+        <String>::sse_encode(self.checksum, serializer);
+        <u64>::sse_encode(self.created_unix_ms, serializer);
+        <u64>::sse_encode(self.record_count, serializer);
+        <u64>::sse_encode(self.active_albums, serializer);
+        <u64>::sse_encode(self.groups, serializer);
+        <u64>::sse_encode(self.favorite_groups, serializer);
+        <u64>::sse_encode(self.conflicting_groups, serializer);
+        <u64>::sse_encode(self.duplicate_choices, serializer);
+        <bool>::sse_encode(self.has_continuation, serializer);
     }
 }
 

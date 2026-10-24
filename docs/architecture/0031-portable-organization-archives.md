@@ -41,13 +41,35 @@ retain a bounded copy deadline. This cost occurs only for an explicit export, ne
 Write into an exclusively owned temporary file beside the selected destination, flush and validate
 it, then publish without replacing an existing file. Cancellation and failures retire owned scratch
 files and leave current decisions and existing destination files intact.
-One application export owns admission at a time; failure or cancellation releases that admission.
+One application archive operation owns admission at a time; failure or cancellation releases it.
 The destination must be outside configured source roots, catalog/settings directories and preview
 storage, including their resolved aliases.
 
 The application owns destination admission and use-case sequencing. A narrow repository port owns
 the export request and progress; the SQLite adapter owns snapshot extraction, while its archive
 codec owns framing and format validation. Only typed progress and a scalar receipt cross the bridge.
+
+### Restoration admission
+
+Inspection streams decoded records into a separate, exclusively owned SQLite staging file. Fixed
+version-1 tables enforce scalar, uniqueness and relationship contracts; archive text is bound as data,
+never executed as SQL. The staging connection uses a bounded page cache and disk temporary storage.
+Only this disposable, private database disables its journal and synchronous flushes. Live catalog
+transactions are not held while reading or validating the backup, and no inspected records are
+published to the current catalog.
+
+Completion requires both framing/digest verification and relational validation: referenced records,
+direct canonical groups, paired undo targets, retirement constraints, conflict state, bookmark scope
+and revision ceilings must agree. Deliberately retained undo targets may reference a removed lineage;
+they remain evidence for rejecting partial undo, not corruption to discard. Counts describe canonical
+groups and active albums, not provenance aliases or retired definitions.
+
+On Windows, hold the input read-only without write/delete sharing for the complete read, open with
+no-recall intent, and reject offline/recall attributes before reading bytes. A resident reparse file
+remains admissible. Stream cancellation retires staging; parsing and relationship checks provide
+checkpoints. Inspection returns the archive identifier and verified checksum with bounded scalar
+counts. Applying a backup requires a separately implemented reconciliation/transaction boundary;
+inspection does not grant foreign location identifiers, revisions or session identifiers live authority.
 
 ## Dependencies and alternatives
 
