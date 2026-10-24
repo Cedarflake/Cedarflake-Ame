@@ -5,6 +5,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_review_requests.dart";
 import "../../application/library_review_session.dart";
@@ -102,11 +103,17 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
               LibraryReviewAlbumMembership(session, widget.entry),
           onSaved: () => unawaited(widget.mode.afterSave(widget.entry)),
         ),
-        TextButton.icon(
-          key: const Key("viewer-review-defer"),
-          onPressed: busy ? null : () => _save(LibraryProgressAction.defer),
-          icon: const Icon(Symbols.schedule_rounded, size: 20),
-          label: const Text("稍后整理"),
+        AmeTooltip(
+          message: "稍后整理",
+          child: IconButton(
+            key: const Key("viewer-review-defer"),
+            onPressed: busy ? null : () => _save(LibraryProgressAction.defer),
+            icon: const Icon(
+              Symbols.schedule_rounded,
+              size: 20,
+              semanticLabel: "稍后整理",
+            ),
+          ),
         ),
         LibraryProgressMenu(
           enabled: !busy,
@@ -154,7 +161,7 @@ class LibraryProgressMenu extends StatelessWidget {
         key: const Key("library-review-actions-menu"),
         tooltip: "整理选项",
         onPressed: enabled ? openMenu : null,
-        icon: const Icon(Symbols.more_horiz_rounded),
+        icon: const Icon(Symbols.more_horiz_rounded, size: 20),
       ),
     );
   }

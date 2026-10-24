@@ -1552,3 +1552,25 @@ rust/Cargo.toml --lib profile_retained_organization_queries -- --ignored --nocap
 Its 180-second batch deadline is an operational cancellation guard, not a product acceptance target.
 The dedicated diagnostic contains 316 test/support lines and adds one module declaration to the
 existing organization test owner; it changes no production behavior. Canonical formatting passes.
+
+## Viewer organization action placement
+
+Favorite, album, defer and organization-menu actions now occupy the viewer's upper-right action
+group, before the window controls and outside the filename drag region. Every direct action uses
+the existing Material icon-button and tooltip components, including album-conflict and defer states.
+The bottom bar retains browsing, metadata and zoom. Fullscreen moves the same mounted action subtree
+into a themed upper-right surface, preserving pending action ownership during placement changes.
+
+The eleven focused viewer checks pass, including action placement outside the drag region,
+callback dispatch and identical element retention across fullscreen and return. All seven review
+widget checks and seven conflict-workflow checks also pass. The Windows Debug build succeeds in
+30.3 seconds. The controlled native client verifies ordinary and organization-mode icon placement,
+Favorite/unfavorite from the new controls, fullscreen action availability and return to the original
+window. The 700 reusable source fixtures retain their SHA-256, sizes and modification times.
+Sequential undo/redo remains a separate requested follow-up; this placement change preserves the
+existing command behavior. The bottom queue-dock experiment remains outside this delivery.
+
+Handwritten owners contain 420 production lines in the image viewer, 109 in top/navigation controls,
+247 in the bottom toolbar, 168 in review actions and 157 in the album action. They contain no inline
+tests. The existing dedicated viewer test owner contains 843 lines. Hosted verification for this
+placement change remains pending.

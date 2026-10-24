@@ -127,25 +127,27 @@ class _LibraryAlbumViewerActionState
         .value
         ?.decisions
         .singleOrNull;
-    final label = _error ?? (decision?.album == null ? "加入相册" : "移至相册");
+    final hasConflict = decision?.hasConflict == true;
+    final label =
+        _error ??
+        switch (decision) {
+          LibraryOrganizationDecision(hasConflict: true) => "相册归属冲突",
+          LibraryOrganizationDecision(album: LibraryOrganizationAlbum()) =>
+            "移至相册",
+          _ => "加入相册",
+        };
     final onPressed = busy || _opening != null || !widget.enabled
         ? null
         : _open;
-    if (decision?.hasConflict == true) {
-      return TextButton.icon(
-        key: const Key("viewer-album-conflict"),
-        onPressed: onPressed,
-        icon: const Icon(Symbols.error_rounded, size: 20),
-        label: Text(_error ?? "相册归属冲突"),
-      );
-    }
     return AmeTooltip(
       message: label,
       child: IconButton(
-        key: const Key("viewer-album-action"),
+        key: Key(hasConflict ? "viewer-album-conflict" : "viewer-album-action"),
         onPressed: onPressed,
         icon: Icon(
-          _error == null ? Symbols.photo_album_rounded : Symbols.error_rounded,
+          _error != null || hasConflict
+              ? Symbols.error_rounded
+              : Symbols.photo_album_rounded,
           size: 20,
           semanticLabel: label,
         ),

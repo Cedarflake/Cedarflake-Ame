@@ -63,6 +63,9 @@ class LibraryImageViewer extends ConsumerStatefulWidget {
 class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
     with SingleTickerProviderStateMixin {
   final _viewerFocusNode = FocusNode(debugLabel: "library-image-viewer");
+  final _organizationActionsKey = GlobalKey(
+    debugLabel: "viewer-organization-actions",
+  );
   late final LibraryViewerZoom _zoom;
   DateTime? _lastWheelNavigationAt;
   AmeWindowFullscreen? _fullscreen;
@@ -151,6 +154,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
               LibraryViewerTopBar(
                 displayPath: widget.asset.displayPath,
                 onBack: _back,
+                organizationActions: _organizationActions,
               ),
               const Divider(height: 1),
             ],
@@ -196,7 +200,6 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
                 ),
               LibraryViewerToolbar(
                 asset: widget.asset,
-                organizationActions: widget.organizationActions,
                 positionLabel: _positionLabel,
                 onCopyPath: widget.onCopyPath,
                 onRevealFile: widget.onRevealFile,
@@ -254,8 +257,26 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
         LibraryViewerNavigationButton.next(
           onPressed: widget.onNext == null ? null : _showNextFromKeyboard,
         ),
+        if ((_fullscreen?.isFullscreen ?? false) &&
+            widget.organizationActions != null)
+          Positioned(
+            top: 12,
+            right: 20,
+            child: Material(
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              shape: const StadiumBorder(),
+              child: _organizationActions,
+            ),
+          ),
       ],
     );
+  }
+
+  Widget? get _organizationActions {
+    final actions = widget.organizationActions;
+    if (actions == null) return null;
+    // Fullscreen changes placement without retiring an in-flight organization action.
+    return KeyedSubtree(key: _organizationActionsKey, child: actions);
   }
 
   Widget _buildTransformedImage(BuildContext context, Widget image) {

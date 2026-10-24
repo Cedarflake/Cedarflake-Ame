@@ -709,8 +709,13 @@ first on the left, followed by compact file type/dimensions/size and the current
 The count includes the image unit and is separated from file metadata by a thin vertical divider.
 The bottom More menu opens upward from its fixed lower edge above the button and closes toward
 that same edge. Its placement and animation leave the triggering button unobscured.
-The top bar retains the filename, back action and window controls. Both sides of the bottom
-toolbar use the same icon size and text style. Zoom mode, percentage, zoom slider and full-screen
+The top bar retains the filename, back action and window controls. Favorite, album and organization
+actions form one icon-only group on its right, before the window controls and outside the draggable
+filename region. Hover tooltips and accessible names describe each action and its current state;
+defer and album-conflict actions use icons as well. Full screen keeps these actions at the upper
+right while hiding the filename and window controls, preserving any in-flight action across the
+placement change. Both sides of the bottom toolbar use the same icon size and text style.
+Zoom mode, percentage, zoom slider and full-screen
 action are on the right; full screen is the last action. The strip starts hidden and remembers its
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
 that image in the current query order. Its ordinary mouse wheel moves horizontally through the native

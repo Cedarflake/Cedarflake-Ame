@@ -10,11 +10,13 @@ class LibraryViewerTopBar extends StatelessWidget {
   const LibraryViewerTopBar({
     required this.displayPath,
     required this.onBack,
+    this.organizationActions,
     super.key,
   });
 
   final String displayPath;
   final VoidCallback onBack;
+  final Widget? organizationActions;
 
   @override
   Widget build(BuildContext context) {
@@ -56,6 +58,10 @@ class LibraryViewerTopBar extends StatelessWidget {
                 ),
               ),
             ),
+            if (organizationActions case final actions?) ...[
+              actions,
+              const SizedBox(width: 16),
+            ],
             const AmeWindowCaptionControls(height: 64),
           ],
         ),

@@ -28,6 +28,7 @@ void main() {
       final asset = await _assetWithImage(tester, width: 600, height: 1000);
       var nativeFullscreen = false;
       var back = 0;
+      var organizationActions = 0;
       final fullscreen = AmeWindowFullscreen(
         capturePlacement: () async {},
         setFullscreen: (value) async => nativeFullscreen = value,
@@ -44,6 +45,12 @@ void main() {
               body: LibraryImageViewer(
                 asset: asset,
                 filmstrip: const SizedBox.expand(key: Key("test-filmstrip")),
+                organizationActions: IconButton(
+                  key: const Key("test-organization-action"),
+                  tooltip: "加入收藏夹",
+                  onPressed: () => organizationActions++,
+                  icon: const Icon(Icons.favorite_outline),
+                ),
                 onBack: () => back++,
                 onInformation: () {},
                 onCopyPath: () {},
@@ -55,6 +62,22 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("test-filmstrip")), findsNothing);
+      final organizationAction = find.byKey(
+        const Key("test-organization-action"),
+      );
+      final organizationElement = tester.element(organizationAction);
+      final actionRect = tester.getRect(organizationAction);
+      final minimizeRect = tester.getRect(
+        find.byKey(const Key("window-minimize")),
+      );
+      final dragRect = tester.getRect(
+        find.byKey(const Key("viewer-window-drag-region")),
+      );
+      expect(actionRect.center.dy, minimizeRect.center.dy);
+      expect(actionRect.right, lessThan(minimizeRect.left));
+      expect(actionRect.left, greaterThanOrEqualTo(dragRect.right));
+      await tester.tap(organizationAction);
+      expect(organizationActions, 1);
       await tester.tap(find.byKey(const Key("viewer-zoom-mode")));
       await tester.pumpAndSettle();
       expect(find.text("100%"), findsOneWidget);
@@ -74,12 +97,18 @@ void main() {
       expect(nativeFullscreen, isTrue);
       expect(find.byKey(const Key("viewer-window-bar")), findsNothing);
       expect(find.text("100%"), findsOneWidget);
+      expect(tester.element(organizationAction), same(organizationElement));
+      expect(tester.getRect(organizationAction).top, lessThan(64));
+      expect(tester.getRect(organizationAction).right, closeTo(980, .1));
+      await tester.tap(organizationAction);
+      expect(organizationActions, 2);
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       await tester.pumpAndSettle();
       expect(nativeFullscreen, isFalse);
       expect(back, 0);
       expect(find.byKey(const Key("viewer-window-bar")), findsOneWidget);
       expect(find.text("100%"), findsOneWidget);
+      expect(tester.element(organizationAction), same(organizationElement));
       await tester.sendKeyEvent(LogicalKeyboardKey.escape);
       expect(back, 1);
     },
