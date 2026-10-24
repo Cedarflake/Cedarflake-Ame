@@ -27,8 +27,9 @@ component details, and wording, but it must not silently reverse these accepted
 information-architecture choices:
 
 - one reusable gallery for folder, timeline, category and search scopes;
-- a permanent function rail selects the Library and Duplicates workspaces;
+- a permanent function rail selects `图库`, `相册`, and `去重`, in that order;
 - the Library workspace owns the collapsible source/folder sidebar and Add folder;
+- the Albums workspace owns its flat album list and shares the gallery and viewer;
 - Settings remains pinned to the bottom of the function rail;
 - the gallery filter changes duplicate display; the Duplicates workspace owns group review;
 - temporary action-specific import progress rather than permanent task navigation;
@@ -119,9 +120,10 @@ and evidence; this product contract does not duplicate that inventory or record 
 
 ## Workbench blueprint
 
-The workbench has three regions in Library: a narrow function rail, a source/folder sidebar,
-and the photo wall. The rail remains visible while the secondary sidebar can collapse. Its toggle
-stays in the function rail immediately above Settings while Library is active, with `收起侧栏` and
+The workbench has three regions in Library and Albums: a narrow function rail, a contextual sidebar,
+and the photo wall. Library shows sources and Favorites; Albums shows the album list. The rail
+remains visible while the secondary sidebar can collapse. Its toggle
+stays in the function rail immediately above Settings while either is active, with `收起侧栏` and
 `展开侧栏` tooltips. Animate the sidebar boundary and photo content's left edge together over a short
 transition. The gallery title and count follow that same left edge independently of the toolbar.
 Smoothly move and resize visible photos when sidebar or window dimensions change,
@@ -259,14 +261,21 @@ The global bar and function rail share `surfaceContainerHigh`. The source/folder
 main workspace have matching 18-logical-pixel top-left corners, with the enclosing surface visible
 behind each corner. Theme-derived tonal surfaces distinguish these levels without divider lines.
 
-The sidebar contains only navigation and source scope:
+The Library sidebar contains only navigation and source scope:
 
 - `图库` with a trailing folder-plus add-source action;
 - an independent `收藏夹` entry when R4 is functional;
-- an expandable `相册` section containing flat user-created albums when R4 is functional;
 - imported folders in one aligned source list, without separating OneDrive and local folders into
   different navigation hierarchies;
 - expandable folder trees when functional.
+
+Albums is a separate primary destination between Library and Duplicates. Its secondary sidebar
+contains the flat album list, creation and management actions; it contains no source folders or
+Favorites entry. Until an album is selected, the content area invites selection or creation from
+the sidebar. Each browsing destination retains its own query, logical image position and selection.
+Switching between them exits organization mode through its existing ordinary-context restoration.
+Settings and Duplicates retain the current browsing context. The accepted narrow-window sidebar
+rule, tonal surfaces, resizing and transition remain shared.
 
 `收藏夹` scopes the gallery by favorite state independently of album membership. Albums do not nest,
 and each current image group has at most one confirmed album assignment. A group can appear in

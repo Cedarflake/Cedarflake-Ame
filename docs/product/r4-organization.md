@@ -20,6 +20,11 @@ later analysis must preserve the human decisions established here.
 
 ## Albums, Favorites, and duplicate groups
 
+Albums has its own primary sidebar destination, ordered between Library and Duplicates. Its flat
+album list belongs to that destination's secondary sidebar. Favorites and physical sources stay
+under Library. Both destinations reuse the existing gallery and viewer, retaining their own scope
+and browsing position when switching.
+
 An album contains logical image groups. Albums are flat and do not nest. A group has at most one
 confirmed album assignment. Moving it to another album replaces that assignment for the entire
 group. Source folders describe physical locations and do not define album membership or duplicate

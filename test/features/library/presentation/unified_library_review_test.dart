@@ -1,10 +1,12 @@
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/application/library_review.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
+import "package:cedarflake_ame/features/library/application/library_workbench_controller.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_batch.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
@@ -78,6 +80,35 @@ void main() {
       await _more(tester, "退出整理模式");
       expect(container.read(libraryControllerProvider).query, state.query);
       expect(find.byKey(const Key("library-review-dock")), findsNothing);
+      expect(tester.takeException(), isNull);
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("workbench-albums")));
+      await tester.pumpAndSettle();
+      expect(find.text("选择相册"), findsOneWidget);
+      container
+          .read(ameNotificationControllerProvider.notifier)
+          .publish(
+            const AmeNotificationDraft(
+              title: "相册归属冲突",
+              message: "1 组图片需要选择相册，已放入稍后整理。",
+              severity: AmeNotificationSeverity.warning,
+              actionId: "library.open-conflicts",
+              actionLabel: "查看",
+            ),
+          );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("notification-primary-action")));
+      await tester.pumpAndSettle();
+      expect(
+        container.read(libraryWorkbenchControllerProvider),
+        LibraryWorkspace.gallery,
+      );
+      expect(
+        container.read(libraryControllerProvider).query.organizationQueue,
+        LibraryOrganizationQueue.deferred,
+      );
+      expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pump(const Duration(seconds: 6));
       await tester.pumpAndSettle();

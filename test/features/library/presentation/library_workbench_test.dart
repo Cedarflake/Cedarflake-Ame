@@ -23,6 +23,7 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(
+              albumsNavigationBuilder: (_) => const Text("Album list"),
               navigationBuilder: (width) => SizedBox(
                 key: const Key("folders"),
                 width: width,
@@ -63,6 +64,21 @@ void main() {
     scroll.jumpTo(1200);
     await tester.pump();
     final originalPosition = scroll.position;
+    final rail = tester.widget<NavigationRail>(
+      find.byKey(const Key("library-function-rail")),
+    );
+    expect(
+      rail.destinations.map((destination) => (destination.label as Text).data),
+      ["图库", "相册", "去重"],
+    );
+    await tester.tap(find.byKey(const Key("workbench-albums")));
+    await tester.pumpAndSettle();
+    expect(find.text("Album list"), findsOneWidget);
+    expect(find.byKey(const Key("folders")), findsNothing);
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
+    await tester.pumpAndSettle();
+    expect(find.text("Album list"), findsNothing);
+    expect(find.text("Expanded folder state"), findsOneWidget);
     await tester.tap(find.byKey(const Key("library-sidebar-settings")));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -123,6 +139,7 @@ void main() {
         child: MaterialApp(
           home: Scaffold(
             body: LibraryWorkbench(
+              albumsNavigationBuilder: (_) => const Text("Album list"),
               navigationBuilder: (width) =>
                   SizedBox(width: width, child: const Text("Folder tree")),
               galleryBuilder: (_) => const Text("Gallery"),

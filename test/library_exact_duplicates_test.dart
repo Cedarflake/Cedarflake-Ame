@@ -424,6 +424,7 @@ void main() {
           child: MaterialApp(
             home: Scaffold(
               body: LibraryWorkbench(
+                albumsNavigationBuilder: (_) => const Text("Album list"),
                 navigationBuilder: (width) => SizedBox(width: width),
                 galleryBuilder: (_) => const Text("Gallery"),
                 duplicatesBuilder: (_) => const LibraryExactDuplicatesPage(),

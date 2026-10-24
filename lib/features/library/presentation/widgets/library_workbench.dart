@@ -18,20 +18,26 @@ import "library_workbench_metrics.dart";
 class LibraryWorkbench extends ConsumerStatefulWidget {
   const LibraryWorkbench({
     required this.navigationBuilder,
+    required this.albumsNavigationBuilder,
     required this.galleryBuilder,
     required this.duplicatesBuilder,
     required this.settingsBuilder,
     required this.onSidebarResizeChanged,
     required this.onPreferenceError,
+    this.onWorkspaceSelected,
+    this.albumLanding,
     super.key,
   });
 
   final Widget Function(double width) navigationBuilder;
+  final Widget Function(double width) albumsNavigationBuilder;
   final WidgetBuilder galleryBuilder;
   final WidgetBuilder duplicatesBuilder;
   final WidgetBuilder settingsBuilder;
   final ValueChanged<bool> onSidebarResizeChanged;
   final void Function(String title, Object error) onPreferenceError;
+  final ValueChanged<LibraryWorkspace>? onWorkspaceSelected;
+  final Widget? albumLanding;
 
   @override
   ConsumerState<LibraryWorkbench> createState() => _LibraryWorkbenchState();
@@ -112,8 +118,39 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
           child: LibrarySidebarTransition(
             expanded: expanded,
             sidebarWidth: sidebarWidth,
-            sidebar: widget.navigationBuilder(sidebarWidth),
-            gallery: LibraryMainSurface(child: widget.galleryBuilder(context)),
+            sidebar: Stack(
+              fit: StackFit.expand,
+              children: [
+                _retainedWorkspace(
+                  workspace: LibraryWorkspace.gallery,
+                  visible: workspace != LibraryWorkspace.albums,
+                  child: widget.navigationBuilder(sidebarWidth),
+                ),
+                if (_visited.contains(LibraryWorkspace.albums))
+                  _retainedWorkspace(
+                    workspace: LibraryWorkspace.albums,
+                    visible: workspace == LibraryWorkspace.albums,
+                    child: widget.albumsNavigationBuilder(sidebarWidth),
+                  ),
+              ],
+            ),
+            gallery: LibraryMainSurface(
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  _retainedWorkspace(
+                    workspace: LibraryWorkspace.gallery,
+                    visible:
+                        workspace != LibraryWorkspace.albums ||
+                        widget.albumLanding == null,
+                    child: widget.galleryBuilder(context),
+                  ),
+                  if (workspace == LibraryWorkspace.albums &&
+                      widget.albumLanding != null)
+                    widget.albumLanding!,
+                ],
+              ),
+            ),
             resizeHandle: LibraryNavigationResizeHandle(
               width: sidebarWidth,
               minimumWidth: ameMinimumSidebarWidth,
@@ -130,14 +167,18 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
           color: Theme.of(context).colorScheme.surfaceContainerHigh,
           child: Row(
             children: [
-              _FunctionRail(workspace: workspace, sidebarToggle: toggle),
+              _FunctionRail(
+                workspace: workspace,
+                sidebarToggle: toggle,
+                onSelected: widget.onWorkspaceSelected,
+              ),
               Expanded(
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     _retainedWorkspace(
                       workspace: LibraryWorkspace.gallery,
-                      visible: workspace == LibraryWorkspace.gallery,
+                      visible: workspace.isBrowsing,
                       child: gallery,
                     ),
                     if (_visited.contains(LibraryWorkspace.duplicates))
@@ -181,13 +222,19 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
 }
 
 class _FunctionRail extends ConsumerWidget {
-  const _FunctionRail({required this.workspace, required this.sidebarToggle});
+  const _FunctionRail({
+    required this.workspace,
+    required this.sidebarToggle,
+    this.onSelected,
+  });
   final LibraryWorkspace workspace;
   final Widget sidebarToggle;
+  final ValueChanged<LibraryWorkspace>? onSelected;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final controller = ref.read(libraryWorkbenchControllerProvider.notifier);
+    final select = onSelected ?? controller.select;
     return NavigationRail(
       key: const Key("library-function-rail"),
       minWidth: LibraryWorkbenchMetrics.railWidth,
@@ -195,11 +242,16 @@ class _FunctionRail extends ConsumerWidget {
       labelType: NavigationRailLabelType.all,
       selectedIndex: switch (workspace) {
         LibraryWorkspace.gallery => 0,
-        LibraryWorkspace.duplicates => 1,
+        LibraryWorkspace.albums => 1,
+        LibraryWorkspace.duplicates => 2,
         LibraryWorkspace.settings => null,
       },
-      onDestinationSelected: (index) => controller.select(
-        index == 0 ? LibraryWorkspace.gallery : LibraryWorkspace.duplicates,
+      onDestinationSelected: (index) => select(
+        [
+          LibraryWorkspace.gallery,
+          LibraryWorkspace.albums,
+          LibraryWorkspace.duplicates,
+        ][index],
       ),
       destinations: const [
         NavigationRailDestination(
@@ -209,6 +261,14 @@ class _FunctionRail extends ConsumerWidget {
             key: Key("workbench-gallery"),
           ),
           label: Text(LibraryStrings.library),
+        ),
+        NavigationRailDestination(
+          icon: Icon(
+            Symbols.photo_album_rounded,
+            size: LibraryWorkbenchMetrics.iconSize,
+            key: Key("workbench-albums"),
+          ),
+          label: Text("相册"),
         ),
         NavigationRailDestination(
           icon: Icon(
@@ -225,13 +285,13 @@ class _FunctionRail extends ConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (workspace == LibraryWorkspace.gallery) sidebarToggle,
+            if (workspace.isBrowsing) sidebarToggle,
             AmeTooltip(
               message: LibraryStrings.settings,
               child: IconButton(
                 key: const Key("library-sidebar-settings"),
                 isSelected: workspace == LibraryWorkspace.settings,
-                onPressed: () => controller.select(LibraryWorkspace.settings),
+                onPressed: () => select(LibraryWorkspace.settings),
                 icon: const Icon(
                   Symbols.settings_rounded,
                   size: LibraryWorkbenchMetrics.iconSize,

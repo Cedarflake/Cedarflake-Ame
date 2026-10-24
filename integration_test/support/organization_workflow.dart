@@ -133,6 +133,7 @@ class _OrganizationWorkflow {
   }
 
   Future<void> verifyAlbumManagement() async {
+    await tapKey("workbench-albums");
     await waitFor(() => albumTile.evaluate().isNotEmpty);
     await tester.tap(albumTile);
     await tester.pumpAndSettle();

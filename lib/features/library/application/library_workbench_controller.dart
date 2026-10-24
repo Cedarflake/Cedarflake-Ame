@@ -1,6 +1,13 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
-enum LibraryWorkspace { gallery, duplicates, settings }
+enum LibraryWorkspace {
+  gallery,
+  albums,
+  duplicates,
+  settings;
+
+  bool get isBrowsing => this == gallery || this == albums;
+}
 
 final libraryWorkbenchControllerProvider =
     NotifierProvider<LibraryWorkbenchController, LibraryWorkspace>(

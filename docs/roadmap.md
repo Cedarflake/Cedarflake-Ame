@@ -269,6 +269,9 @@ are implemented through the application and typed bridge. Restored queue order a
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
 settings integration and explicit unresolved-record cleanup. Preserve the historical-upgrade repair's
 pending hosted verification and the earlier native-read observation in the evidence record.
+The requested primary Albums destination is being integrated under R4-05: Library, Albums and
+Duplicates retain separate navigation roles with one shared gallery. Its focused checks and
+remaining desktop verification belong to the R4 evidence record.
 R4-07 retains the complete integrated flow and retained-library
 resource measurements. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

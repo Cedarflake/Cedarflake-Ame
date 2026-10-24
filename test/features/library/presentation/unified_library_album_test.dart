@@ -51,6 +51,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(catalog.loadQueries.last.rootId, "root-1");
       final albumTile = find.byKey(const ValueKey("library-sidebar-album-a"));
+      expect(albumTile, findsNothing);
+      await tester.tap(find.byKey(const Key("workbench-albums")));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key("library-navigation")), findsNothing);
+      expect(find.text("选择相册"), findsOneWidget);
       await tester.tap(albumTile);
       await tester.pumpAndSettle();
       expect(
@@ -60,6 +65,21 @@ void main() {
       expect(catalog.loadQueries.last.rootId, isNull);
       expect(catalog.loadQueries.last.folderRelativePath, isNull);
       expect(tester.widget<ListTile>(albumTile).selected, isTrue);
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
+      await tester.pumpAndSettle();
+      expect(albumTile, findsNothing);
+      expect(catalog.loadQueries.last.rootId, "root-1");
+      expect(
+        catalog.loadQueries.last.collection,
+        const LibraryGalleryCollection.library(),
+      );
+      await tester.tap(find.byKey(const Key("workbench-albums")));
+      await tester.pumpAndSettle();
+      expect(tester.widget<ListTile>(albumTile).selected, isTrue);
+      expect(
+        catalog.loadQueries.last.collection,
+        const LibraryGalleryCollection.album("a"),
+      );
 
       Future<void> openMenu() async {
         await tester.tap(
@@ -95,6 +115,7 @@ void main() {
         const LibraryGalleryCollection.library(),
       );
       expect(find.text("已删除相册"), findsOneWidget);
+      expect(find.text("选择相册"), findsOneWidget);
       final deletionId = service.albumWrites.last.id;
       service.undoResult = (id) async {
         service.albumItems = [const LibraryOrganizationAlbum("a", "Renamed")];

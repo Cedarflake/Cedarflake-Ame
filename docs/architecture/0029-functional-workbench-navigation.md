@@ -10,8 +10,10 @@ Its gallery, viewer, source safety and Material interaction contracts remain in 
 ## Context and decision
 
 Ame needs stable destinations for browsing and duplicate analysis as its organizing capabilities
-grow. A permanent narrow function rail selects Library or Duplicates; Settings is pinned below.
+grow. A permanent narrow function rail selects Library, Albums and Duplicates in that order;
+Settings is pinned below.
 The Library workspace contains a collapsible source/folder sidebar and the existing photo wall.
+Favorites stays with Library. Albums owns a separate flat album sidebar and uses the same photo wall.
 The other workspaces own their contextual controls without duplicating the catalog or viewer.
 The accepted interaction blueprint is in [the gallery contract](../product/gallery-ui.md#workbench-blueprint).
 
@@ -22,11 +24,21 @@ retiring input and animation. Existing source navigation and resize controls rem
 The product-specific responsibility is destination lifetime, folder-panel preference and composing
 the existing gallery with a dedicated duplicate workspace. No new UI package is needed.
 
-The secondary-sidebar toggle lives in the function rail above Settings while Library is active,
+The secondary-sidebar toggle lives in the function rail above Settings while Library or Albums is active,
 outside the collapsible sidebar.
 Store its visibility with existing presentation preferences. Preserve source scope, expanded
 folders, scroll anchor and selection on workspace switches. Narrow windows may initially hide the
 secondary sidebar; explicitly opening it restores the same panel and its retained state.
+
+`LibraryBrowseWorkspaces` owns the two bounded browsing snapshots and serial destination changes.
+It reuses the existing ordinary-browse snapshot, logical query positioning and selection restoration.
+Leaving a browsing destination first completes organization-mode exit. Settings and Duplicates do
+not replace that snapshot. A failed query keeps the previous destination; the existing query retry
+replays the whole navigation intent. Album retirement invalidates both saved and in-flight album
+restoration before it can publish a destination. Disposal retires pending publication.
+The shell retains both sidebars and one gallery subtree through the existing visibility/focus
+owners; the unselected Albums destination uses the shared empty-state component. No additional
+gallery controller, database, package or navigation primitive is introduced.
 
 Compose its 180-millisecond transition from the pinned SDK's `AnimationController`, `AnimatedBuilder`,
 `ClipRect`/`ClipRRect` and `OverflowBox`. The gallery transition clips its backing surface to the

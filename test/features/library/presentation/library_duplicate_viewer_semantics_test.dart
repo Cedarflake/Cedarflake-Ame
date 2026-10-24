@@ -61,6 +61,7 @@ void main() {
                 ),
                 home: Scaffold(
                   body: LibraryWorkbench(
+                    albumsNavigationBuilder: (_) => const Text("Album list"),
                     navigationBuilder: (width) => SizedBox(
                       width: width,
                       child: ListView(

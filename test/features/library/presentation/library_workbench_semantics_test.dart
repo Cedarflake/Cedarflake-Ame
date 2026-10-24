@@ -31,6 +31,7 @@ void main() {
             child: MaterialApp(
               home: Scaffold(
                 body: LibraryWorkbench(
+                  albumsNavigationBuilder: (_) => const Text("Album list"),
                   navigationBuilder: (width) =>
                       SizedBox(width: width, child: const Text("Folders")),
                   galleryBuilder: (_) => Column(

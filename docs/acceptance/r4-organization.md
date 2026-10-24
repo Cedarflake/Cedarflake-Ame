@@ -1279,3 +1279,27 @@ The schema capability owner has 27 production lines. Recovery dispatch and resto
 have 62 and 82 production lines, with no inline tests. Dedicated restoration migration tests have
 121 lines. The organization facade adds only module composition; the existing migration and
 application regression owners retain their assertions.
+
+## Primary Albums navigation
+
+The function rail orders Library, Albums and Duplicates. Albums owns the existing flat album list;
+Library retains Favorites and physical sources. Both reuse one gallery, viewer and sidebar transition.
+The new navigation owner retains two browse snapshots, serializes rapid destination requests and
+replays failed navigation through the existing retry surface. Album retirement invalidates saved
+and in-flight restoration. Conflict notices open the visible Library deferred queue.
+
+Twelve focused Flutter cases pass across browse-workspace ownership, shell retention, retained
+semantics, album management and organization-mode integration. They cover independent source/album
+scope, selection and logical position; mode exit; failed-switch retry; latest-request ordering;
+retirement during restoration; disposal; destination order; sidebar retention and compact-width
+access; rename/delete/undo; and conflict-notice navigation from Albums. The native organization
+workflow now enters Albums before managing albums. Real-window verification remains pending while
+window operation is suspended; these widget checks do not establish that desktop result.
+
+The existing NavigationRail, retained workspace/focus composition, AmeScrollMotion and gallery
+message provide the controls; no dependency, schema or source-media change is introduced. The
+installed framework capabilities and alternatives remain those admitted by ADR 0029. The new
+navigation owner has 110 production lines and 142 dedicated test lines, with no inline tests.
+The composed shell has 306 lines and the album sidebar/landing has 39. The existing unified screen
+has 1,877 lines; it delegates navigation ownership rather than adding its state machine there.
+The shell, album-screen and organization-screen regressions have 167, 142 and 151 lines respectively.

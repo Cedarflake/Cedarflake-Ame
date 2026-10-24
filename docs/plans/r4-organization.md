@@ -181,8 +181,11 @@ mockup is a layout reference, not implementation or acceptance evidence.
 
 Work in this order within the slice:
 
-1. Connect flat albums and independent Favorites in the secondary sidebar, album management and the
-   single-destination picker in ordinary selection/viewer controls. Include create-in-picker, mixed
+1. Connect the primary destinations in `图库`, `相册`, `去重` order. Put flat albums in the Albums
+   secondary sidebar and keep independent Favorites with Library sources. Preserve each browsing
+   destination's scope, selection and logical position through the shared gallery and viewer.
+   Connect album management and the single-destination picker in ordinary selection/viewer controls.
+   Include create-in-picker, mixed
    selections, move/remove, independent favorite actions, cancellation, errors and undo. A normal-mode
    save updates shared progress while retaining the current image and organization anchor.
 2. Connect `加入相册前询问` and `默认加入的相册` to durable settings with the confirmed defaults. Missing

@@ -34,6 +34,7 @@ import "../domain/library_organization.dart";
 import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
+import "library_browse_workspaces.dart";
 import "library_gallery_dimension_publication.dart";
 import "library_gallery_layout_continuity.dart";
 import "library_gallery_query_transition.dart";
@@ -49,6 +50,7 @@ import "library_viewer_session.dart";
 import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_album_navigation.dart";
+import "widgets/library_albums_sidebar.dart";
 import "widgets/library_collection_navigation.dart";
 import "widgets/library_review_dock.dart";
 import "widgets/library_viewer_organization_controls.dart";
@@ -98,6 +100,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   bool _isSidebarResizing = false;
   late final LibraryViewerSession _viewer;
   late final LibraryOrganizationMode _review;
+  late final LibraryBrowseWorkspaces _browseWorkspaces;
   late final LibraryOrganizationPublication _organizationPublication;
   late final LibraryOrganizationProjectionRegistration _organizationProjection;
   late final LibraryConflictNotifications _conflictNotifications;
@@ -138,8 +141,15 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     _libraryController = ref.read(libraryControllerProvider.notifier);
     _review = LibraryOrganizationMode(ref.read(libraryReviewProvider), this)
       ..addListener(_handleViewerChanged);
+    _browseWorkspaces = LibraryBrowseWorkspaces(
+      surface: this,
+      review: _review,
+      publish: ref.read(libraryWorkbenchControllerProvider.notifier).select,
+    );
     _organizationPublication = ref.read(libraryOrganizationPublicationProvider);
-    _organizationProjection = _organizationPublication.attach(_review);
+    _organizationProjection = _organizationPublication.attach(
+      _browseWorkspaces,
+    );
     _viewer = LibraryViewerSession(
       readLibrary: () => ref.read(libraryControllerProvider),
       loadPrevious: () => _loadPreviousAssetsForViewer(_libraryController),
@@ -226,6 +236,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     _queryTransition.dispose();
     _viewer.removeListener(_handleViewerChanged);
     _review.removeListener(_handleViewerChanged);
+    _browseWorkspaces.dispose();
     _review.dispose();
     _viewer.dispose();
     _searchDebounce?.cancel();
@@ -263,7 +274,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
     if (_conflictNotifications.admit(notification)) {
-      unawaited(_review.showConflicts());
+      unawaited(_showOrganizationConflicts());
       return;
     }
     if (ref
@@ -440,7 +451,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
 
     return CallbackShortcuts(
       bindings:
-          viewerCatalogAsset == null && workspace == LibraryWorkspace.gallery
+          viewerCatalogAsset == null &&
+              workspace.isBrowsing &&
+              (workspace != LibraryWorkspace.albums ||
+                  state.query.collection is LibraryAlbumCollection)
           ? {
               const SingleActivator(
                 LogicalKeyboardKey.keyA,
@@ -469,7 +483,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                     children: [
                       LibraryGlobalBar(
                         isSearchEnabled:
-                            workspace == LibraryWorkspace.gallery &&
+                            workspace.isBrowsing &&
+                            (workspace != LibraryWorkspace.albums ||
+                                state.query.collection
+                                    is LibraryAlbumCollection) &&
                             canEditLibrarySearch(state),
                         searchController: _searchController,
                         onSearchChanged: _onSearchChanged,
@@ -667,6 +684,30 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         ? ref.watch(libraryAlbumProvider(collection.albumId)).value?.name
         : null;
     return LibraryWorkbench(
+      onWorkspaceSelected: (workspace) {
+        _searchDebounce?.cancel();
+        unawaited(_browseWorkspaces.select(workspace));
+      },
+      albumLanding: collection is LibraryAlbumCollection
+          ? null
+          : const LibraryAlbumsLanding(),
+      albumsNavigationBuilder: (width) => LibraryAlbumsSidebar(
+        width: width,
+        child: LibraryAlbumNavigation(
+          collection: collection,
+          enabled: LibraryBrowseAdmission(state).canBrowse,
+          onSelect: (album) => unawaited(
+            _applyQuery(
+              state.query.copyWith(
+                collection: LibraryGalleryCollection.album(album.id),
+                rootId: null,
+                folderRelativePath: null,
+              ),
+              preserveGalleryPosition: false,
+            ),
+          ),
+        ),
+      ),
       navigationBuilder: (width) => LibraryNavigation(
         isCompact: false,
         width: width,
@@ -676,40 +717,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             _synchronizationSnapshot.lastErrorCode != null,
         selectedRootId: state.query.rootId,
         collection: state.query.collection,
-        collections: Column(
-          children: [
-            LibraryCollectionNavigation(
-              collection: state.query.collection,
-              isCompact: false,
-              onFavorites: !LibraryBrowseAdmission(state).canBrowse
-                  ? null
-                  : () => unawaited(
-                      _applyQuery(
-                        state.query.copyWith(
-                          collection:
-                              const LibraryGalleryCollection.favorites(),
-                          rootId: null,
-                          folderRelativePath: null,
-                        ),
-                        preserveGalleryPosition: false,
-                      ),
+        collections: LibraryCollectionNavigation(
+          collection: state.query.collection,
+          isCompact: false,
+          onFavorites: !LibraryBrowseAdmission(state).canBrowse
+              ? null
+              : () => unawaited(
+                  _applyQuery(
+                    state.query.copyWith(
+                      collection: const LibraryGalleryCollection.favorites(),
+                      rootId: null,
+                      folderRelativePath: null,
                     ),
-            ),
-            LibraryAlbumNavigation(
-              collection: collection,
-              enabled: LibraryBrowseAdmission(state).canBrowse,
-              onSelect: (album) => unawaited(
-                _applyQuery(
-                  state.query.copyWith(
-                    collection: LibraryGalleryCollection.album(album.id),
-                    rootId: null,
-                    folderRelativePath: null,
+                    preserveGalleryPosition: false,
                   ),
-                  preserveGalleryPosition: false,
                 ),
-              ),
-            ),
-          ],
         ),
         selectedFolderRelativePath: state.query.folderRelativePath,
         transientSource: LibraryPendingSource.fromState(state),
@@ -810,9 +832,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             LibraryQueryFailed failure => LibraryQueryFailureBanner(
               onRetry: !LibraryBrowseAdmission(state).canBrowse
                   ? null
-                  : () => unawaited(
-                      _applyQuery(failure.requestedQuery, forceRefresh: true),
-                    ),
+                  : () => unawaited(_retryGalleryQuery(failure.requestedQuery)),
             ),
             _ => null,
           },
@@ -1064,11 +1084,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _onSearchChanged(String value) {
-    if (_destination != LibraryWorkspace.gallery) {
-      ref
-          .read(libraryWorkbenchControllerProvider.notifier)
-          .select(LibraryWorkspace.gallery);
-    }
     _searchDebounce?.cancel();
     _searchDebounce = Timer(const Duration(milliseconds: 250), () {
       if (!mounted) {
@@ -1094,6 +1109,17 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       preserveGalleryPosition: preserveGalleryPosition,
       forceRefresh: forceRefresh,
     );
+  }
+
+  Future<void> _retryGalleryQuery(LibraryGalleryQuery query) async {
+    if (await _browseWorkspaces.retry(query) || !mounted) return;
+    await _applyQuery(query, forceRefresh: true);
+  }
+
+  Future<void> _showOrganizationConflicts() async {
+    await _browseWorkspaces.select(LibraryWorkspace.gallery);
+    if (!mounted || _destination != LibraryWorkspace.gallery) return;
+    await _review.showConflicts();
   }
 
   Future<LibraryQueryUpdateOutcome> _publishGalleryQuery(
@@ -1362,9 +1388,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       return;
     }
     if (_destination != LibraryWorkspace.gallery) {
-      ref
-          .read(libraryWorkbenchControllerProvider.notifier)
-          .select(LibraryWorkspace.gallery);
+      unawaited(_browseWorkspaces.select(LibraryWorkspace.gallery));
     }
   }
 
