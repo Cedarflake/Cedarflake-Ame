@@ -15,19 +15,25 @@ class LibraryAlbumProposal {
   final bool hasConflict;
 }
 
-Future<LibraryAlbumProposal> prepareLibraryAlbumProposal({
+typedef LibraryAlbumPreparation = ({
+  LibraryAlbumProposal proposal,
+  LibraryOrganizationDecision decision,
+});
+
+Future<LibraryAlbumPreparation> prepareLibraryAlbumProposal({
   required LibraryOrganization service,
   required LibraryOrganizationTarget target,
   required AlbumPreferences preferences,
 }) async {
   final inspection = await service.inspect([target]);
   final decision = inspection.decisions.single;
-  return resolveLibraryAlbumProposal(
+  final proposal = await resolveLibraryAlbumProposal(
     service: service,
     preferences: preferences,
     current: decision.album,
     hasConflict: decision.hasConflict,
   );
+  return (proposal: proposal, decision: decision);
 }
 
 Future<LibraryAlbumProposal> resolveLibraryAlbumProposal({

@@ -20,6 +20,7 @@ import "../../domain/library_review.dart";
 import "../../domain/library_selection_availability.dart";
 import "../gallery_selection.dart";
 import "../library_organization_messages.dart";
+import "../library_progress_controls.dart";
 import "library_album_picker.dart";
 import "library_organization_menu.dart";
 import "library_selection_progress.dart";
@@ -233,7 +234,12 @@ class _LibrarySelectionActionsState
         progressRequestFactory: widget.query.organizationQueue == null
             ? null
             : (action) => LibraryBatchPickerProgressRequest(session, action),
-        ignoreLabel: "忽略所选图片",
+        progressControls: widget.query.organizationQueue == null
+            ? null
+            : LibraryProgressControls.forQueue(
+                widget.query.organizationQueue!,
+                hasConflict: summary.conflicts > 0,
+              ),
         actionLabel: availability.albumActionLabel,
         actionIcon: summary.assigned == 0
             ? Symbols.bookmark_add_rounded
@@ -275,6 +281,13 @@ class _LibrarySelectionActionsState
     final availability = summary == null
         ? null
         : LibrarySelectionAvailability(summary);
+    final queue = widget.query.organizationQueue;
+    final controls = queue == null
+        ? null
+        : LibraryProgressControls.forQueue(
+            queue,
+            hasConflict: (summary?.conflicts ?? 0) > 0,
+          );
     return Stack(
       alignment: Alignment.bottomCenter,
       children: [
@@ -319,14 +332,14 @@ class _LibrarySelectionActionsState
               icon: const Icon(Symbols.photo_album_rounded),
               label: const Text("相册"),
             ),
-            if (widget.query.organizationQueue != null)
+            if (controls case final controls?)
               TextButton.icon(
                 key: const Key("library-selection-defer"),
-                onPressed: enabled
-                    ? () => _setProgress(LibraryProgressAction.defer)
+                onPressed: enabled && controls.defer.enabled
+                    ? () => _setProgress(controls.defer.action)
                     : null,
-                icon: const Icon(Symbols.schedule_rounded),
-                label: const Text("稍后整理"),
+                icon: Icon(controls.defer.icon),
+                label: Text(controls.defer.label),
               ),
             if (_error case final error?)
               Text(
@@ -339,16 +352,12 @@ class _LibrarySelectionActionsState
               icon: const Icon(Symbols.close_rounded),
               label: const Text("取消"),
             ),
-            if (widget.query.organizationQueue != null)
+            if (controls case final controls?)
               LibraryOrganizationMenu(
                 key: ValueKey(widget.selection),
                 enabled: enabled,
-                ignoreLabel: "忽略所选图片",
-                onIgnore:
-                    widget.query.organizationQueue ==
-                        LibraryOrganizationQueue.ignored
-                    ? null
-                    : () => _setProgress(LibraryProgressAction.ignore),
+                progress: controls.ignore,
+                onProgress: _setProgress,
               ),
           ],
         ),

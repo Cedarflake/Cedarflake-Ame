@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_batch.dart";
+import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_selection_actions.dart";
 import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
@@ -49,7 +50,11 @@ void main() {
     visible.dispose();
   });
 
-  Future<void> host(WidgetTester tester, {bool organizing = false}) async {
+  Future<void> host(
+    WidgetTester tester, {
+    bool organizing = false,
+    LibraryOrganizationQueue queue = LibraryOrganizationQueue.pending,
+  }) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -69,9 +74,7 @@ void main() {
                       query: LibraryGalleryQuery(
                         rootId: "source",
                         searchText: "name",
-                        organizationQueue: organizing
-                            ? LibraryOrganizationQueue.pending
-                            : null,
+                        organizationQueue: organizing ? queue : null,
                       ),
                       catalogRevision: BigInt.from(42),
                       enabled: true,
@@ -140,6 +143,52 @@ void main() {
     await tester.pump();
     await tester.tap(find.byKey(const Key("library-album-confirm")));
     await tester.pumpAndSettle();
+  }
+
+  for (final queue in [
+    LibraryOrganizationQueue.deferred,
+    LibraryOrganizationQueue.ignored,
+  ]) {
+    for (final tray in [false, true]) {
+      testWidgets(
+        "remove $queue through ${tray ? 'album tray' : 'selection controls'} restores selected groups",
+        (tester) async {
+          await host(tester, organizing: true, queue: queue);
+          final deferred = queue == LibraryOrganizationQueue.deferred;
+          if (tray) {
+            await albums(tester);
+            await tester.tap(
+              find.byKey(
+                Key(deferred ? "library-album-defer" : "library-album-ignore"),
+              ),
+            );
+          } else if (deferred) {
+            expect(find.text("稍后整理"), findsNothing);
+            await tester.tap(find.byKey(const Key("library-selection-defer")));
+          } else {
+            await tester.tap(
+              find.byKey(const Key("library-review-actions-menu")),
+            );
+            await tester.pumpAndSettle();
+            expect(find.text("忽略所选图片"), findsNothing);
+            await tester.tap(find.text("移除"));
+          }
+          await tester.pumpAndSettle();
+          expect(
+            (batches.batches.single.writes.single.action
+                    as LibraryBatchProgressChange)
+                .action,
+            LibraryProgressAction.restore,
+          );
+          expect(batches.selections.single.query.organizationQueue, queue);
+          expect(batches.selections.single.assetIds, ["excluded"]);
+          expect(committed, 1);
+          expect(service.writes, isEmpty);
+          await tester.pump(const Duration(seconds: 6));
+          await tester.pumpAndSettle();
+        },
+      );
+    }
   }
 
   for (final favorites in [0, 1, 3]) {

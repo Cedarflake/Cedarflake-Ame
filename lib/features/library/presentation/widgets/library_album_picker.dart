@@ -11,6 +11,7 @@ import "../../application/library_progress_request.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_review.dart";
 import "../library_organization_messages.dart";
+import "../library_progress_controls.dart";
 import "library_album_editor.dart";
 import "library_conflict_albums.dart";
 
@@ -35,7 +36,7 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
   String? initialError,
   LibraryOrganizationRequest Function(LibraryProgressAction)?
   progressRequestFactory,
-  String ignoreLabel = "忽略此图",
+  LibraryProgressControls? progressControls,
 }) => showModalBottomSheet<LibraryAlbumChoice>(
   context: context,
   showDragHandle: true,
@@ -54,7 +55,7 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
     membership: membership,
     initialError: initialError,
     progressRequestFactory: progressRequestFactory,
-    ignoreLabel: ignoreLabel,
+    progressControls: progressControls,
   ),
 );
 
@@ -71,7 +72,7 @@ class LibraryAlbumPicker extends ConsumerStatefulWidget {
     this.membership,
     this.initialError,
     this.progressRequestFactory,
-    this.ignoreLabel = "忽略此图",
+    this.progressControls,
     super.key,
   });
   final String actionLabel;
@@ -86,7 +87,7 @@ class LibraryAlbumPicker extends ConsumerStatefulWidget {
   final String? initialError;
   final LibraryOrganizationRequest Function(LibraryProgressAction)?
   progressRequestFactory;
-  final String ignoreLabel;
+  final LibraryProgressControls? progressControls;
 
   @override
   ConsumerState<LibraryAlbumPicker> createState() => _LibraryAlbumPickerState();
@@ -203,6 +204,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
 
   @override
   Widget build(BuildContext context) {
+    final controls = widget.progressControls;
     final page = ref.watch(libraryAlbumPageProvider(_after));
     final saving = ref.watch(
       libraryOrganizationActionsProvider.select((state) => state.saving),
@@ -362,22 +364,22 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                   runSpacing: 8,
                   alignment: WrapAlignment.end,
                   children: [
-                    if (_progress != null) ...[
+                    if (_progress != null && controls != null) ...[
                       TextButton.icon(
                         key: const Key("library-album-ignore"),
-                        onPressed: busy
+                        onPressed: busy || !controls.ignore.enabled
                             ? null
-                            : () => _saveProgress(LibraryProgressAction.ignore),
-                        icon: const Icon(Symbols.hide_image_rounded, size: 20),
-                        label: Text(widget.ignoreLabel),
+                            : () => _saveProgress(controls.ignore.action),
+                        icon: Icon(controls.ignore.icon, size: 20),
+                        label: Text(controls.ignore.label),
                       ),
                       TextButton.icon(
                         key: const Key("library-album-defer"),
-                        onPressed: busy
+                        onPressed: busy || !controls.defer.enabled
                             ? null
-                            : () => _saveProgress(LibraryProgressAction.defer),
-                        icon: const Icon(Symbols.schedule_rounded, size: 20),
-                        label: const Text("稍后整理"),
+                            : () => _saveProgress(controls.defer.action),
+                        icon: Icon(controls.defer.icon, size: 20),
+                        label: Text(controls.defer.label),
                       ),
                     ],
                     TextButton.icon(

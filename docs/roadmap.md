@@ -114,9 +114,10 @@ publication cost regression. Schema 55's maintained unresolved-association looku
 group updates, with migration, cleanup/restoration, query-growth and exact-head hosted checks passing.
 The R4-05 control follow-up adds a bottom album tray, state-aware Favorite/album commands and
 persistent chronological undo/redo across viewed groups. Focused regressions and the controlled
-desktop move/remove and restart paths pass. Its hosted head exposes stale schema-56 recovery-shape
-admission, three Dart style findings and the removed picker-Cancel test expectation; retain these
-repairs with the control follow-up before hosted acceptance.
+desktop move/remove and restart paths pass. Schema-56 recovery-shape admission, Dart style and
+stale picker/archive test expectations are repaired with focused checks; hosted verification remains
+pending. Deferred/ignored controls now expose state-aware removal in gallery selection, detailed
+viewing and the album tray, with native removal/undo evidence in the R4 acceptance record.
 The retained-library database baseline exposes slow album, Favorite and organization-queue reads,
 including empty queues and continuation. Repair their owning queries before accepting large-library
 performance; retain the complete client/resource obligations with integrated verification.

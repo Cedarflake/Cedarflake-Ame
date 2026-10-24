@@ -1709,3 +1709,32 @@ previously failing Rust cases, exact-shape rejection, rollback, restart, queue p
 cancelled/failed restoration and idempotent replay. The compatibility owner has 109 lines and 56
 dedicated test lines; the affected archive test owner has 278 dedicated test/support lines.
 Current-head hosted verification follows publication; the retained-library R4 acceptance remains open.
+
+## State-aware progress removal
+
+Gallery selection, the detailed viewer and the album tray share one typed progress-control owner.
+Deferred groups replace defer with `移除`; ignored groups replace ignore with the same action.
+Both submit the existing return-to-pending command, retaining Favorite state and source media.
+Single-image controls use the inspected decision rather than the queue from which viewing began.
+Batch controls use the queue-scoped selection admitted and revalidated by the existing batch owner.
+Unresolved album conflicts retain their deferred assignment and cannot be removed through this control.
+An open menu retains its observed action and cannot silently switch ignore into remove after refresh.
+
+Forty-three distinct focused Flutter checks pass: album preparation (3), review widgets (13), batch
+selection (22) and history/progress menu (5). They cover actual restore requests from viewer and
+tray, deferred/ignored batch actions, preserved selection scope/exclusions, stale review entries,
+conflict admission, cancellation, uncertain saves and history changes while the menu is open.
+Owned Dart formatting and targeted analysis pass. The final Debug build completes in 25.7 seconds.
+
+Controlled desktop interaction on the retained 700-file corpus verifies deferred removal from the
+detail tray and ignored removal from the detail menu. Each changes the corresponding queue count
+from one to zero and pending from zero to one. Native undo restores ignored state and updates the
+open viewer's menu back to remove. Subsequent chronological undo restores the pre-test deferred
+decision. Read-only catalog snapshots confirm unchanged albums and Favorites across all six groups;
+all 700 source fixtures retain their SHA-256, sizes and modification times.
+
+Production owners contain 72 progress-control lines, 377 selection-action lines, 423 picker lines,
+134 menu lines, 141 review-action lines and 173 viewer-album-action lines, with no inline tests.
+Dedicated selection/review/menu tests contain 574/359/204 lines. No schema, generated bridge,
+dependency or licensing change is introduced. Hosted verification follows this publication;
+the broader recovery, retained-library performance and R4 integrated acceptance remain open.

@@ -382,6 +382,10 @@ Button bounds stay stable through preparation, tray opening and dismissal.
   explanation above the list. Retain actionable conflict feedback;
 - `忽略此图` and `稍后整理` appear only in organization mode, including batch selection.
   Ordinary Library/folder browsing, albums and Favorites omit both actions from the tray and menus;
+- replace an already-applied defer or ignore action with `移除`, returning that group to pending
+  without changing Favorites or source files. Apply the same state-based choice to gallery selection,
+  the detailed viewer and its album tray. Unresolved album conflicts cannot be removed from deferred
+  work before an album choice resolves them;
 - pair every tray action with a leading icon matching its operation, including create, remove,
   add and move; retain framework button labels, focus and disabled state;
 - reopening reflects the current confirmed assignment. A mixed batch or unresolved conflict must
@@ -997,7 +1001,8 @@ R4 uses the existing desktop gallery and image viewer. Ordinary browsing is the 
 Library workspace's upper-right `更多` menu contains `整理模式`: Library covers every configured
 source, while a source or folder selection restricts the queues and counts to that scope, including
 descendants under the existing folder rule. Favorites and albums expose no organization mode.
-Switching to Albums exits organization mode through the existing ordinary-context restoration.
+Primary-sidebar visits preserve the organizing Library's mode, scope, selection and position for
+its return; Albums itself remains ordinary browsing.
 Entering organization mode reveals its controls and `整理模式` beside the gallery title; the same menu offers
 `退出整理模式`. The title status disappears on exit. Do not add a separate review
 workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
@@ -1029,7 +1034,9 @@ the save commits, while the ordinary-mode viewer stays on the current image. Sha
 updated in either mode. Organization-mode actions provide `忽略` where applicable, plus `撤销操作` and
 `重做操作` following committed operation order across groups, with unavailable directions disabled.
 Ordinary viewing and selection omit this organization menu. The history commands replace the
-current-group `恢复待整理` shortcut. Organization ignore remains separate from Duplicates' review ignore.
+current-group `恢复待整理` shortcut. The contextual `移除` action only removes the current deferred or
+ignored state; it remains distinct from chronological undo. Organization ignore remains separate
+from Duplicates' review ignore.
 
 Album conflicts are visible in `稍后整理` with the label `相册归属冲突`, the involved albums, and an
 action to choose the destination. Use the shared notification surface to point to deferred conflicts

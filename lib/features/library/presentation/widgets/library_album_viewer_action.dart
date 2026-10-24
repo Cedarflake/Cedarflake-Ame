@@ -12,6 +12,7 @@ import "../../application/library_organization_requests.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_review.dart";
 import "../library_organization_messages.dart";
+import "../library_progress_controls.dart";
 import "library_album_picker.dart";
 
 class LibraryAlbumViewerAction extends ConsumerStatefulWidget {
@@ -70,12 +71,13 @@ class _LibraryAlbumViewerActionState
         mounted && identical(_opening, opening) && widget.target == target;
     LibraryAlbumMembership? membership;
     try {
-      final proposal = await prepareLibraryAlbumProposal(
+      final preparation = await prepareLibraryAlbumProposal(
         service: ref.read(libraryOrganizationProvider),
         target: target,
         preferences: ref.read(amePreferencesControllerProvider).albums,
       );
       if (!owns()) return;
+      final proposal = preparation.proposal;
       membership =
           widget.membershipFactory?.call() ??
           LibraryAlbumMembershipSession([
@@ -111,6 +113,10 @@ class _LibraryAlbumViewerActionState
         initialError: initialError,
         membership: membership,
         progressRequestFactory: widget.progressRequestFactory,
+        progressControls: LibraryProgressControls.forDisposition(
+          preparation.decision.disposition,
+          hasConflict: preparation.decision.hasConflict,
+        ),
       );
       if (choice != null && owns()) widget.onSaved?.call();
     } on Object catch (error) {

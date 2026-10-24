@@ -114,6 +114,11 @@ assign it to an album. A newly imported group with no album starts pending, not 
 ignore is separate from R3's duplicate-review ignore decision; neither changes the other's state,
 gallery folding, or source files.
 
+In organization mode, an already-deferred or ignored group replaces the corresponding action with
+`移除`. This returns it to pending and preserves Favorites. Gallery selection, detailed viewing and
+the album tray share this state-based behavior. Conflicting assignments stay in deferred work until
+an explicit album choice resolves them.
+
 Ordinary browsing uses these same transitions and counts. It remains in the current gallery or
 viewer after an album operation; it does not enter organization mode or advance to another image.
 Explicit ignore and defer controls belong to organization mode only; ordinary browsing, albums and

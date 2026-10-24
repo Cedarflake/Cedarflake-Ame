@@ -12,6 +12,7 @@ import "../../domain/library_organization.dart";
 import "../../domain/library_review.dart";
 import "../library_organization_mode.dart";
 import "../library_organization_messages.dart";
+import "../library_progress_controls.dart";
 import "library_album_viewer_action.dart";
 import "library_organization_menu.dart";
 
@@ -89,11 +90,17 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
         ref.watch(libraryOrganizationActionsProvider).saving;
     final entry = widget.entry;
     final target = entry.target;
-    final decision = ref
-        .watch(libraryOrganizationInspectionProvider(target))
-        .value
-        ?.decisions
-        .singleOrNull;
+    final inspection = ref.watch(libraryOrganizationInspectionProvider(target));
+    final decision = inspection.isLoading || inspection.hasError
+        ? null
+        : inspection.value?.decisions.singleOrNull;
+    final controls = decision == null
+        ? null
+        : LibraryProgressControls.forDisposition(
+            decision.disposition,
+            hasConflict: decision.hasConflict,
+          );
+    final defer = controls?.defer;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -109,24 +116,24 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
           onSaved: () => unawaited(widget.mode.afterSave(entry)),
         ),
         AmeTooltip(
-          message: "稍后整理",
+          message: defer?.label ?? "稍后整理",
           child: IconButton(
             key: const Key("viewer-review-defer"),
-            onPressed: busy ? null : () => _save(LibraryProgressAction.defer),
-            icon: const Icon(
-              Symbols.schedule_rounded,
+            onPressed: busy || defer == null || !defer.enabled
+                ? null
+                : () => _save(defer.action),
+            icon: Icon(
+              defer?.icon ?? Symbols.schedule_rounded,
               size: 20,
-              semanticLabel: "稍后整理",
+              semanticLabel: defer?.label ?? "稍后整理",
             ),
           ),
         ),
         LibraryOrganizationMenu(
           key: ValueKey(target),
           enabled: !busy,
-          onIgnore:
-              decision?.disposition == LibraryOrganizationDisposition.ignored
-              ? null
-              : () => _save(LibraryProgressAction.ignore),
+          progress: controls?.ignore,
+          onProgress: _save,
         ),
       ],
     );

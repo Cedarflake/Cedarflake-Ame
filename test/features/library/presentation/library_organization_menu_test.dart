@@ -5,6 +5,9 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_history.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_history.dart";
+import "package:cedarflake_ame/features/library/domain/library_organization.dart";
+import "package:cedarflake_ame/features/library/domain/library_review.dart";
+import "package:cedarflake_ame/features/library/presentation/library_progress_controls.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_organization_menu.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -40,6 +43,42 @@ void main() {
     await tester.tap(find.byKey(const Key("library-review-actions-menu")));
     await tester.pumpAndSettle();
   }
+
+  testWidgets("an open progress menu cannot switch to the opposite action", (
+    tester,
+  ) async {
+    final disposition = ValueNotifier(LibraryOrganizationDisposition.pending);
+    addTearDown(disposition.dispose);
+    final writes = <LibraryProgressAction>[];
+    await tester.pumpWidget(
+      UncontrolledProviderScope(
+        container: container,
+        child: MaterialApp(
+          home: Scaffold(
+            body: ValueListenableBuilder(
+              valueListenable: disposition,
+              builder: (context, value, _) => LibraryOrganizationMenu(
+                enabled: true,
+                progress: LibraryProgressControls.forDisposition(value).ignore,
+                onProgress: writes.add,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await open(tester);
+    disposition.value = LibraryOrganizationDisposition.ignored;
+    await tester.pumpAndSettle();
+    await tester.tap(find.text("忽略此图"));
+    await tester.pumpAndSettle();
+    expect(writes, isEmpty);
+    await open(tester);
+    await tester.tap(find.text("移除"));
+    await tester.pumpAndSettle();
+    expect(writes, [LibraryProgressAction.restore]);
+  });
 
   bool enabled(WidgetTester tester, String text) => tester
       .widget<PopupMenuItem<Object?>>(

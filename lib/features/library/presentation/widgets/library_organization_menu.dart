@@ -8,20 +8,22 @@ import "../../../../app/presentation/ame_menu.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_organization_history.dart";
 import "../../domain/library_organization_history.dart";
+import "../../domain/library_review.dart";
+import "../library_progress_controls.dart";
 
-enum _OrganizationMenuAction { undo, redo, ignore }
+enum _OrganizationMenuAction { undo, redo, progress }
 
 class LibraryOrganizationMenu extends ConsumerStatefulWidget {
   const LibraryOrganizationMenu({
     required this.enabled,
-    this.onIgnore,
-    this.ignoreLabel = "忽略此图",
+    this.progress,
+    this.onProgress,
     super.key,
   });
 
   final bool enabled;
-  final VoidCallback? onIgnore;
-  final String ignoreLabel;
+  final LibraryProgressControl? progress;
+  final ValueChanged<LibraryProgressAction>? onProgress;
 
   @override
   ConsumerState<LibraryOrganizationMenu> createState() =>
@@ -30,7 +32,8 @@ class LibraryOrganizationMenu extends ConsumerStatefulWidget {
 
 class _LibraryOrganizationMenuState
     extends ConsumerState<LibraryOrganizationMenu> {
-  LibraryOrganizationHistory? _openedHistory;
+  ({LibraryOrganizationHistory? history, LibraryProgressControl? progress})?
+  _opened;
 
   @override
   Widget build(BuildContext context) {
@@ -39,7 +42,7 @@ class _LibraryOrganizationMenuState
     final history = result.isLoading || result.hasError ? null : result.value;
     final canAct = widget.enabled && !saving;
     void step(LibraryOrganizationHistoryDirection direction) {
-      final observed = _openedHistory;
+      final observed = _opened?.history;
       if (!canAct || observed == null) return;
       final originalId = observed.operationFor(direction);
       if (originalId == null) return;
@@ -57,11 +60,15 @@ class _LibraryOrganizationMenuState
     }
 
     return AmePopupMenuButton<_OrganizationMenuAction>(
-      onOpened: () => _openedHistory = history,
+      onOpened: () => _opened = (history: history, progress: widget.progress),
       onOpenChanged: (open) {
-        if (!open) _openedHistory = null;
+        if (!open) _opened = null;
       },
-      labels: ["撤销操作", "重做操作", if (widget.onIgnore != null) widget.ignoreLabel],
+      labels: [
+        "撤销操作",
+        "重做操作",
+        if (widget.progress case final progress?) progress.label,
+      ],
       items: [
         PopupMenuItem(
           value: _OrganizationMenuAction.undo,
@@ -79,14 +86,14 @@ class _LibraryOrganizationMenuState
             icon: Symbols.redo_rounded,
           ),
         ),
-        if (widget.onIgnore != null) ...[
+        if (widget.progress case final progress?) ...[
           const PopupMenuDivider(),
           PopupMenuItem(
-            value: _OrganizationMenuAction.ignore,
-            enabled: canAct,
+            value: _OrganizationMenuAction.progress,
+            enabled: canAct && progress.enabled && widget.onProgress != null,
             child: AmeMenuItemContent(
-              label: widget.ignoreLabel,
-              icon: Symbols.hide_image_rounded,
+              label: progress.label,
+              icon: progress.icon,
             ),
           ),
         ],
@@ -97,8 +104,15 @@ class _LibraryOrganizationMenuState
             step(LibraryOrganizationHistoryDirection.undo);
           case _OrganizationMenuAction.redo:
             step(LibraryOrganizationHistoryDirection.redo);
-          case _OrganizationMenuAction.ignore:
-            if (canAct) widget.onIgnore?.call();
+          case _OrganizationMenuAction.progress:
+            if (_opened?.progress case final progress?) {
+              if (canAct &&
+                  progress.enabled &&
+                  widget.progress?.enabled == true &&
+                  widget.progress?.action == progress.action) {
+                widget.onProgress?.call(progress.action);
+              }
+            }
         }
       },
       builder: (context, openMenu) => IconButton(

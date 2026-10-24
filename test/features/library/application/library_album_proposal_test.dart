@@ -32,9 +32,13 @@ void main() {
             defaultAlbumId: preferred.id,
           ),
         );
-        expect(plan.shouldAsk, ask);
-        expect(plan.current?.id, current.id);
-        expect(plan.destination?.id, ask ? current.id : preferred.id);
+        expect(plan.proposal.shouldAsk, ask);
+        expect(plan.proposal.current?.id, current.id);
+        expect(plan.proposal.destination?.id, ask ? current.id : preferred.id);
+        expect(
+          plan.decision.disposition,
+          LibraryOrganizationDisposition.organized,
+        );
         expect(service.writes, isEmpty);
         expect(service.memberships, isEmpty);
       },
@@ -53,8 +57,8 @@ void main() {
           defaultAlbumId: "deleted",
         ),
       );
-      expect(missing.shouldAsk, isTrue);
-      expect(missing.destination, isNull);
+      expect(missing.proposal.shouldAsk, isTrue);
+      expect(missing.proposal.destination, isNull);
       service.albumItems = [preferred];
       service.inspectTarget = (_) async => LibraryOrganizationInspection(
         revision: BigInt.one,
@@ -74,9 +78,13 @@ void main() {
           defaultAlbumId: "preferred",
         ),
       );
-      expect(conflict.shouldAsk, isTrue);
-      expect(conflict.hasConflict, isTrue);
-      expect(conflict.destination, isNull);
+      expect(conflict.proposal.shouldAsk, isTrue);
+      expect(conflict.proposal.hasConflict, isTrue);
+      expect(conflict.proposal.destination, isNull);
+      expect(
+        conflict.decision.disposition,
+        LibraryOrganizationDisposition.deferred,
+      );
       expect(service.memberships, isEmpty);
     },
   );

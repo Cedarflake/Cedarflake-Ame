@@ -151,7 +151,7 @@ void main() {
 
   for (final ignored in [false, true]) {
     testWidgets(
-      "review menu ${ignored ? 'keeps ignored state without history' : 'commits ignore'} without a favorite change",
+      "review menu ${ignored ? 'removes ignored state' : 'commits ignore'} without a favorite change",
       (tester) async {
         organization.inspectTarget = (_) async => LibraryOrganizationInspection(
           revision: BigInt.one,
@@ -173,24 +173,89 @@ void main() {
         expect(find.text("恢复待整理"), findsNothing);
         expect(find.text("撤销操作"), findsOneWidget);
         expect(find.text("重做操作"), findsOneWidget);
-        if (ignored) {
-          expect(find.text("忽略此图"), findsNothing);
-          expect(review.writes, isEmpty);
-          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-        } else {
-          await tester.tap(find.text("忽略此图"));
-          await tester.pumpAndSettle();
-          expect(
-            (review.writes.single.action as LibraryReviewProgress).action,
-            LibraryProgressAction.ignore,
-          );
-        }
+        await tester.tap(find.text(ignored ? "移除" : "忽略此图"));
+        await tester.pumpAndSettle();
+        expect(
+          (review.writes.single.action as LibraryReviewProgress).action,
+          ignored
+              ? LibraryProgressAction.restore
+              : LibraryProgressAction.ignore,
+        );
         expect(organization.writes, isEmpty);
-        expect(surface.closes, ignored ? 0 : 1);
+        expect(surface.closes, 1);
         await tester.pump(const Duration(seconds: 6));
         await tester.pumpAndSettle();
       },
     );
+  }
+
+  for (final tray in [false, true]) {
+    for (final conflict in [false, true]) {
+      testWidgets(
+        "deferred viewer removal uses current state, tray $tray, conflict $conflict",
+        (tester) async {
+          organization.inspectTarget = (_) async =>
+              LibraryOrganizationInspection(
+                revision: BigInt.one,
+                decisions: [
+                  LibraryOrganizationDecision(
+                    favorite: true,
+                    disposition: LibraryOrganizationDisposition.deferred,
+                    hasConflict: conflict,
+                  ),
+                ],
+              );
+          review.saved = const LibraryReviewContinuation(
+            LibraryContinuationStatus.emptyScope,
+          );
+          await host(tester, viewer: true);
+          expect(mode.queue, LibraryOrganizationQueue.pending);
+          if (tray) {
+            await tester.tap(
+              find.byKey(
+                Key(conflict ? "viewer-album-conflict" : "viewer-album-action"),
+              ),
+            );
+            await tester.pumpAndSettle();
+          }
+          final button = find.byKey(
+            Key(tray ? "library-album-defer" : "viewer-review-defer"),
+          );
+          if (tray) {
+            expect(
+              find.descendant(of: button, matching: find.text("移除")),
+              findsOneWidget,
+            );
+            expect(
+              tester.widget<TextButton>(button).onPressed == null,
+              conflict,
+            );
+          } else {
+            expect(
+              tester.widget<IconButton>(button).onPressed == null,
+              conflict,
+            );
+            expect(find.bySemanticsLabel("移除"), findsOneWidget);
+          }
+          if (conflict) {
+            expect(review.writes, isEmpty);
+            if (tray) await tester.binding.handlePopRoute();
+          } else {
+            await tester.tap(button);
+            await tester.pumpAndSettle();
+            expect(
+              (review.writes.single.action as LibraryReviewProgress).action,
+              LibraryProgressAction.restore,
+            );
+            expect(surface.closes, 1);
+          }
+          expect(organization.writes, isEmpty);
+          expect(organization.memberships, isEmpty);
+          await tester.pump(const Duration(seconds: 6));
+          await tester.pumpAndSettle();
+        },
+      );
+    }
   }
 
   for (final scale in [1.0, 2.0]) {
