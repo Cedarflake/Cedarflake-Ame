@@ -15,6 +15,7 @@ mod batch;
 mod conflicts;
 mod inspection;
 mod lifecycle;
+mod native_recovery;
 mod publication;
 mod queries;
 mod reconciliation;

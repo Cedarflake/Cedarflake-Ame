@@ -92,7 +92,8 @@ controlled Windows integration verifies deletion and undo, with focused publicat
 regressions. Native unavailable-item integration also preserves pending decisions while navigating
 and retrying a blocked original. These desktop workflows have passed their controlled client and
 hosted checks. R4-06 now implements portable archive export, restoration admission and catalog-evidence
-association preview; atomic
+association preview. Catalog publication now reattaches rebuilt versions through compatible native
+evidence, with focused group, conflict, source-removal and migration checks. Atomic archive
 application, settings integration and unresolved-record cleanup remain pending. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
@@ -255,9 +256,10 @@ desktop checks cover conflict discovery, cancellation, resolution, restart and u
 navigation/retry without completing pending work. The corrected availability source inventory and
 native workflows have passed hosted verification. R4-06 is active with the versioned archive codec,
 snapshot export, staged restoration validation and bounded association preview behind the typed
-bridge. Continue with atomic restore, durable reassociation and repeat/conflict handling, then
-settings integration and
-explicit unresolved-record cleanup. R4-07 retains the complete integrated flow and retained-library
+bridge. Native-version reassociation is connected to the existing publication transaction, including
+cross-root aliases and contradictory-content rejection. Continue with atomic archive restore and
+repeat/conflict handling, then settings integration and explicit unresolved-record cleanup.
+R4-07 retains the complete integrated flow and retained-library
 resource measurements. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
 this roadmap owns their order and status. The complete R4 stage remains unaccepted.

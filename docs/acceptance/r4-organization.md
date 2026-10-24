@@ -1140,9 +1140,54 @@ consumer callback. Its declaration now uses a generic callback without changing 
 or suppressing the lint. The other jobs from that run retain their own outcomes; the new implementation
 requires checks on its own published commit.
 
+Hosted run [40079620605](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40079620605)
+completed successfully for `d2d6865a97d3d8f4b0438f48adb070fc24deebe4`, covering the corrected
+declaration and association-preview implementation. Signing-only jobs remained outside this run.
+
 The association owner has 77 production lines, current-evidence capture 75 and matching 93; none has
 inline tests. Dedicated matching and cost tests have 312 and 80 lines. The catalog archive facade has
 182 production lines and still delegates each responsibility. The catalog schema and archive format
 remain unchanged. Actual application must recompute matches under its write transaction and verify
 the inspected checksum. Atomic restore, durable unmatched records, newer-decision/conflict handling,
 recovery settings and explicit cleanup remain outstanding, as do retained-library measurements.
+
+## Native-version reassociation after derived rebuilds
+
+Publication now recovers retained organization bindings through the accepted Windows native-file
+identity, ChangeTime and byte-length evidence. It reuses the existing canonical-group reconciliation
+and binding transaction. Contrary compatible fingerprints or conflicting historical content keys
+leave native recovery unresolved; the ordinary exact-content path retains its authority. Schema 53
+adds an indexed lookup over durable native versions, with no changes to original media, archive
+format, existing records or catalog revisions. Existing recovery-shape validation explicitly includes
+schema 53 while continuing to reject unknown future schemas.
+
+Twelve focused native-recovery and migration tests passed in 26.82 seconds. They cover changed
+derived identities/generations, retained albums, favorites and continuation, reopen and repeat
+publication, unsupported/missing/changed evidence, contrary fingerprints, whole-transaction rollback
+and explicit-source-removal precedence. The actual scan-publication adapter path also recovers
+existing and newly imported aliases across roots, presents one album group, and preserves that group
+after removing one owner. These fixtures exercise database publication without reading source media;
+they do not establish the future settings restore workflow.
+
+The alias-cost regression first failed at 24,380,300 SQLite instructions for 1,001 current aliases
+and 1,001 historical bindings. Deduplicating native keys and canonical groups removes the repeated
+pairwise comparison. The same workload now passes its unchanged one-million-instruction ceiling
+both when attaching and when republishing already recovered aliases. The separate 50,000 unrelated
+record case stays below 30,000 instructions. These are query-growth checks, not retained-library
+throughput measurements.
+
+The affected existing publication, reconciliation, source-lifecycle and upgrade-backup suites also
+passed: 3, 8, 5 and 6 checks respectively. The three recovery-shape tests then passed in 7.06 seconds,
+covering schema 53, unknown-version rejection and damaged-contract rejection. Together with the 12
+new focused checks, that is 37 applicable passing checks. The first cross-root test build reported an incremental-cache hardlink
+fallback; subsequent diagnostic compilation disabled incremental artifacts for that process and
+completed without that warning. No compiler lint or test requirement was relaxed.
+
+The dedicated association owner has 110 production lines and no inline tests. Existing record,
+reconciliation and publication owners have 211, 137 and 110 production lines, with no inline tests;
+the organization facade has 176 production lines and delegates this responsibility. The index
+migration has 38 production lines and an 11-line test-only downgrade helper. Dedicated recovery,
+cost, scan-publication and migration tests have 325, 108, 84 and 94 lines. The catalog/migration
+facades add only the schema version and migration composition points. Full archive application,
+durable unmatched archive import, settings, explicit cleanup and R4-07's retained workload remain
+outstanding. Hosted verification must cover this implementation's own published commit.

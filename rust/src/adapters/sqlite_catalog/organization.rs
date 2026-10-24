@@ -19,6 +19,7 @@ mod conflicts;
 mod favorites;
 mod inspection;
 pub(super) mod lifecycle;
+mod native_recovery;
 mod operations;
 pub(super) mod publication;
 pub(super) mod reconciliation;

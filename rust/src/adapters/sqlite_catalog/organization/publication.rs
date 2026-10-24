@@ -77,7 +77,12 @@ pub(in crate::adapters::sqlite_catalog) fn root(
                (EXISTS(SELECT 1 FROM organization_bindings AS known
                   WHERE known.fingerprint_scheme = f.scheme AND known.digest = f.digest AND known.byte_length = f.byte_length)
                 OR EXISTS(SELECT 1 FROM organization_bindings AS binding
-                 WHERE binding.asset_id = l.asset_id AND binding.source_generation = l.source_generation))
+                 WHERE binding.asset_id = l.asset_id AND binding.source_generation = l.source_generation)
+                OR EXISTS(SELECT 1 FROM organization_bindings AS binding
+                  WHERE binding.file_identity_scheme = l.file_identity_scheme
+                    AND binding.file_identity_value = l.file_identity_value
+                    AND binding.source_revision_token = l.source_revision_token
+                    AND binding.byte_length = l.file_size))
              ORDER BY l.source_generation LIMIT ?4"
         )).map_err(database_error)?.query_map(
             params![EXACT_FINGERPRINT_SCHEME, root_id, after, EXACT_PUBLICATION_BATCH_SIZE as i64],

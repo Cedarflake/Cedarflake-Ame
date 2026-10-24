@@ -80,6 +80,19 @@ Changed generations have no inherited membership until compatible current eviden
 binding. An independent new content version remains pending, while a match to another known group
 adopts that group's decision. Identity-proven renames retain their compatible binding.
 
+Publication can also recover a durable binding after derived asset identities or source generations
+are rebuilt. Use the existing Windows metadata-reuse boundary: the same volume-qualified native
+file identity, canonical ChangeTime token and byte length. A dedicated indexed owner performs this
+association inside the catalog publication transaction, without original-media reads. Different
+known exact fingerprints for that native version, or a compatible current fingerprint contradicting
+its retained evidence, disable metadata association; ordinary exact-content publication can still
+resolve the supported content key. Missing native/version evidence cannot be replaced by a filename.
+Source removal deletes the durable records and their index entries, so later reimport has no recovery
+authority for those deleted decisions. Source reconciliation gives all current physical aliases the
+same generation; recover that complete generation across roots. Deduplicate native keys and canonical
+groups before comparing current and historical bindings, including the already-associated fast path.
+Schema 53 adds the native-version lookup index without changing records or requiring a rescan.
+
 Schema 49 normalizes previously stored content bindings and already available fingerprints once,
 without original-media reads. Generation lookups reuse the existing exact-source index; the
 root/scan/generation index supports bounded keyset windows. Schema 50 retires the redundant

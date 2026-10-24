@@ -7,8 +7,8 @@ use crate::domain::organization::{OrganizationGroupKey, stale_selection};
 use super::super::exact_duplicates::queries::{COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS};
 use super::super::exact_duplicates::read_unsigned;
 use super::super::{database_error, unix_time_ms};
-use super::reconciliation;
 use super::selection::member_query;
+use super::{native_recovery, reconciliation};
 
 pub(super) const CURRENT_RECORDS: &str = "SELECT DISTINCT related.record_id
     FROM temp.organization_command_members AS member CROSS JOIN organization_bindings AS binding
@@ -58,6 +58,7 @@ pub(in crate::adapters::sqlite_catalog) fn publish_generation(
     if !handled {
         return Ok(());
     }
+    native_recovery::publish_generation(connection, source_generation)?;
     let key = connection
         .query_row(
             &format!(
@@ -123,7 +124,7 @@ fn attach_known_source(connection: &Connection, source_generation: i64) -> Resul
     Ok(())
 }
 
-fn prepare_members(connection: &Connection) -> Result<(), ScanError> {
+pub(super) fn prepare_members(connection: &Connection) -> Result<(), ScanError> {
     // SQLite holds the membership set; even a very large duplicate group never crosses the bridge
     // or becomes a Rust vector. This table lives only on the command's catalog connection.
     connection
@@ -139,7 +140,7 @@ fn prepare_members(connection: &Connection) -> Result<(), ScanError> {
         .map_err(database_error)
 }
 
-fn validate_members(connection: &Connection) -> Result<(), ScanError> {
+pub(super) fn validate_members(connection: &Connection) -> Result<(), ScanError> {
     let incompatible: bool = connection.query_row(
         "SELECT EXISTS(SELECT 1 FROM temp.organization_command_members AS member
          CROSS JOIN organization_bindings AS binding
@@ -179,7 +180,7 @@ fn create_record(connection: &Connection) -> Result<String, ScanError> {
     Ok(record_id)
 }
 
-fn attach_members(connection: &Connection, record_id: &str) -> Result<(), ScanError> {
+pub(super) fn attach_members(connection: &Connection, record_id: &str) -> Result<(), ScanError> {
     connection.execute(
         "INSERT INTO organization_bindings(record_id, asset_id, source_generation, byte_length,
            file_identity_scheme, file_identity_value, source_revision_token, fingerprint_scheme, digest)

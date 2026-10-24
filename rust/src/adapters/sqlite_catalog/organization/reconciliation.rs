@@ -50,7 +50,7 @@ pub(super) fn resolve_members(
     merge(connection, preferred.as_deref())
 }
 
-fn prepare_groups(connection: &Connection) -> Result<(), ScanError> {
+pub(super) fn prepare_groups(connection: &Connection) -> Result<(), ScanError> {
     connection
         .execute_batch(
             "CREATE TEMP TABLE IF NOT EXISTS organization_merge_groups (
@@ -61,7 +61,7 @@ fn prepare_groups(connection: &Connection) -> Result<(), ScanError> {
         .map_err(database_error)
 }
 
-fn merge(
+pub(super) fn merge(
     connection: &Connection,
     preferred: Option<&str>,
 ) -> Result<Option<ResolvedRecord>, ScanError> {

@@ -170,6 +170,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 52 {
         super::organization_review::validate(connection)?;
     }
+    if schema_version >= 53 {
+        super::organization_native_recovery::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 
