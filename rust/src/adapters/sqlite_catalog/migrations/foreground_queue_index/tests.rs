@@ -97,6 +97,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_operation_changes",
                 "organization_operations",
                 "organization_records",
+                "organization_unassociated_records",
                 "organization_sources",
                 "organization_record_groups",
                 "organization_album_retirements",

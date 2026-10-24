@@ -109,7 +109,11 @@ static flow-control violations and a source-management integration setup error; 
 hosted verification. The settings-page control inventory now includes cleanup's age selector;
 its focused checks pass, with hosted verification pending. The ordinary-journal import failure has recurred;
 independent fallback now retires the superseded first-import execution owner, with focused
-handoff/restart/rollback checks passing. Its native-read cause remains unresolved. Retained-library
+handoff/restart/rollback checks passing. Subsequent hosted synchronization passes; retain the
+numeric native-read diagnostic for recurrence. The cleanup checkpoint also exposed a one-copy
+publication cost regression. Schema 55's maintained unresolved-association lookup restores bounded
+group updates, with migration, cleanup/restoration and query-growth checks passing; exact-head hosted
+verification remains pending. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
@@ -277,7 +281,7 @@ are implemented through the application and typed bridge. Restored queue order a
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
 native settings verification when window operation resumes. Manual unresolved-record cleanup passes
 its focused boundary checks. Preserve the remaining native journal-read investigation and pending
-follow-up hosted verification.
+follow-up hosted verification, including the schema-55 association-cost repair.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites is available
 from both browsing sidebars. Its focused checks and

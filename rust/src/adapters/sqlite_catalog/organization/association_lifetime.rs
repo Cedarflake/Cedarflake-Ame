@@ -10,33 +10,37 @@ pub(super) fn restore_generation(
     connection: &Connection,
     source_generation: i64,
 ) -> Result<(), ScanError> {
+    let members = unassociated_members(connection)?;
     connection.execute(
-        "UPDATE organization_records SET unassociated_since_unix_ms = NULL
+        &format!("UPDATE organization_records SET unassociated_since_unix_ms = NULL
          WHERE unassociated_since_unix_ms IS NOT NULL AND record_id IN (
            SELECT related.record_id FROM asset_locations AS location
            CROSS JOIN organization_bindings AS binding ON binding.asset_id = location.asset_id
              AND binding.source_generation = location.source_generation
            JOIN library_roots AS root ON root.id = location.root_id AND root.active_scan_id = location.scan_id
            JOIN organization_record_groups AS own ON own.record_id = binding.record_id
-           JOIN organization_record_groups AS related ON related.group_id = own.group_id
+           JOIN {members} AS related ON related.group_id = own.group_id
            WHERE location.source_generation = ?1
              AND location.file_size = binding.byte_length
              AND location.file_identity_scheme IS binding.file_identity_scheme
              AND location.file_identity_value IS binding.file_identity_value
-             AND location.source_revision_token IS binding.source_revision_token)",
+             AND location.source_revision_token IS binding.source_revision_token)"),
         [source_generation],
     ).map_err(database_error)?;
     Ok(())
 }
 
 pub(super) fn restore_group(connection: &Connection, record_id: &str) -> Result<(), ScanError> {
+    let members = unassociated_members(connection)?;
     connection
         .execute(
-            "UPDATE organization_records SET unassociated_since_unix_ms = NULL
+            &format!(
+                "UPDATE organization_records SET unassociated_since_unix_ms = NULL
          WHERE unassociated_since_unix_ms IS NOT NULL AND record_id IN (
            SELECT related.record_id FROM organization_record_groups AS own
-           JOIN organization_record_groups AS related ON related.group_id = own.group_id
-           WHERE own.record_id = ?1)",
+           JOIN {members} AS related ON related.group_id = own.group_id
+           WHERE own.record_id = ?1)"
+            ),
             [record_id],
         )
         .map_err(database_error)?;
@@ -154,18 +158,41 @@ pub(in crate::adapters::sqlite_catalog) fn refresh_groups(
              );",
         )
         .map_err(database_error)?;
+    let members = unassociated_members(connection)?;
     connection
         .execute(
-            "UPDATE organization_records AS record SET unassociated_since_unix_ms =
-               CASE WHEN EXISTS(SELECT 1 FROM organization_record_groups AS member
-                 JOIN temp.organization_association_window AS selected USING(group_id)
-                 WHERE member.record_id = record.record_id AND selected.associated = 1)
-               THEN NULL ELSE COALESCE(record.unassociated_since_unix_ms, ?1) END
-             WHERE record_id IN (SELECT member.record_id
-               FROM temp.organization_association_window AS selected
-               CROSS JOIN organization_record_groups AS member USING(group_id))",
+            &format!(
+                "UPDATE organization_records SET unassociated_since_unix_ms = NULL
+         WHERE unassociated_since_unix_ms IS NOT NULL AND record_id IN (
+           SELECT member.record_id FROM temp.organization_association_window AS selected
+           CROSS JOIN {members} AS member USING(group_id)
+           WHERE selected.associated = 1)"
+            ),
+            [],
+        )
+        .map_err(database_error)?;
+    connection
+        .execute(
+            "UPDATE organization_records SET unassociated_since_unix_ms = ?1
+         WHERE unassociated_since_unix_ms IS NULL AND record_id IN (
+           SELECT member.record_id FROM temp.organization_association_window AS selected
+           CROSS JOIN organization_record_groups AS member USING(group_id)
+           WHERE selected.associated = 0)",
             [observed_unix_ms],
         )
         .map_err(database_error)?;
     Ok(())
+}
+
+fn unassociated_members(connection: &Connection) -> Result<&'static str, ScanError> {
+    let version: i64 = connection
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .map_err(database_error)?;
+    // Historical organization migrations publish before the lookup is installed. Current
+    // catalogs must use the maintained lookup; a missing current table remains an error.
+    Ok(if version < 55 {
+        "organization_record_groups"
+    } else {
+        "organization_unassociated_records"
+    })
 }

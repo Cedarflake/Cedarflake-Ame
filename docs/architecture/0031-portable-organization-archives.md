@@ -176,8 +176,10 @@ Cleanup has a separate typed application port and transaction owner. Its single-
 independent atomic cancellation and structured inspection/application events through the generated
 bridge. Settings composes the existing settings row and choice control with a standard scrollable
 AlertDialog in the organization-records section. The pinned Flutter 3.44.9 supports this dialog;
-the shared settings choice supplies the existing desktop menu and focus behavior. No package,
-schema migration or custom confirmation component is needed.
+the shared settings choice supplies the existing desktop menu and focus behavior. The settings surface
+needs no additional package or custom confirmation component. Schema 55's maintained association
+lookup belongs to the [organization decision](0030-durable-organization-decisions.md); portable
+records and their existing archive format remain unchanged.
 
 Inspection reconciles association timestamps against current catalog evidence and stages eligible
 canonical group identifiers and unresolved R3 choices in connection-owned temporary tables. Keyset

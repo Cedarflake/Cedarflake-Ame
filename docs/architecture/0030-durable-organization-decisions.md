@@ -37,6 +37,16 @@ reassociation clears it for every lineage in the group. Older records without a 
 their first observed loss, rather than an invented historical date. Root refresh materializes its
 scoped group identifiers once and processes windows of 256; it does not read original media.
 
+Schema 55 adds a rebuildable association lookup containing only records whose unassociated time
+is set, indexed by canonical group and record. Database triggers maintain it with timestamp changes,
+group insertion/merging and record deletion in the owning transaction. Reassociation selects only
+this group's unresolved records, so an ordinary newly identified copy does not expand already
+associated historical aliases or unrelated unresolved groups. The original timestamps remain the
+durable values; migration backfills the lookup without changing decisions, revisions or source data.
+Historical organization migrations use their admitted membership tables until schema 55 is installed;
+a missing or inconsistent lookup in a current catalog is an error. The lookup is derived catalog data
+and is excluded from portable organization archives.
+
 Current compatible fingerprints project complete groups across configured roots. Without such a
 fingerprint, an admitted asset version is a provisional singleton. Several durable records may
 contribute provenance to one current group; they are not several confirmed album memberships.

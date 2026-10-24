@@ -1453,3 +1453,44 @@ The settings-page fixture now includes the cleanup age control in its exact six-
 covering shared popup menus and arrow icons as well as the cleanup row's presence. Its unchanged
 storage, cancellation, keyboard, disabled-state and feedback assertions remain in place. All 15 cases
 in `ame_settings_page_test.dart` pass locally. This correction changes no product behavior.
+
+## Bounded association-lifetime restoration
+
+Run `40101178770` completes with two failures on `0ff69b35b76af6088fa75317d1aed08128ac37ed`:
+the corrected settings control inventory and the catalog's one-copy publication growth regression.
+Catalog reports 653 passes, one failure and three ignored tests. The remaining three Rust partitions,
+Static, Windows Scan, Windows Accessibility, unsigned Release and all five synthetic workloads pass.
+The intermediate `3038650` run `40103198803` is superseded after this second failure is diagnosed;
+it is not evidence for the following correction.
+
+Clearing association timestamps previously expanded every historical lineage in the current group,
+including already associated records. Publishing one copy against 50,000 such lineages used at least
+600,200 SQLite steps, exceeding the unchanged 20,000-step assertion. Schema 55 adds a derived lookup
+of unresolved records indexed by canonical group. Triggers maintain timestamp changes, group merges
+and deletions atomically. Publication restores only matching unresolved members; first-loss writes
+leave existing times intact. Migration backfills the lookup without modifying decisions, queue order,
+catalog revisions or source media. Historical migration publication retains its schema-aware path.
+
+Twelve focused checks pass in 39.36 seconds after compilation, including the original unchanged
+one-copy publication test below its 20,000-step limit. The new mixed-history case retains 50,000
+associated aliases and 50,000 unrelated unresolved groups: restoration by canonical group and by
+source generation each stays below 5,000 SQLite steps and preserves all unrelated records.
+The other cases cover migration/reopen, retained values, rollback/retry, timestamp and mapping
+maintenance, missing/wrong lookup rows, missing maintenance triggers, ordinary association lifetime
+and current-version compatibility admission/rejection.
+
+Fifteen additional focused checks pass in 45.75 seconds: all ten cleanup cases, four historical
+organization-reconciliation migration cases, and the version-33 retained-row upgrade with repeated
+reopen. These include explicit backup restoration after cleanup, cancellation after a retirement
+window, matching without a revision change and complete alias retirement. The historical table
+inventory admits the new empty derived table explicitly. No UI interaction or original source
+participated. These query-growth fixtures do not replace retained-library client/resource measurement.
+
+Handwritten ownership sizes: association lifetime 198 production lines with 195 dedicated test lines;
+association-index migration/validation 84 production/support lines plus its three-line test declaration,
+schema objects 53 and dedicated tests 186. Current schema composition has 327 production/support
+lines. The existing migration facade retains 4,121 production/support and 2,290 inline-test lines;
+only module and migration dispatch calls were added. The existing catalog facade has 3,506
+production/support lines and changes only its schema constant. Compatibility shape checks have 109
+production/support lines, and the retained-row inventory test owner has 261 dedicated lines.
+The new owners have no inline test bodies. Exact-head hosted verification remains pending.
