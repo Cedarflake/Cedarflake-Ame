@@ -4684,6 +4684,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "organization_conflicts",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "organization_queue",
             visibility: "pub",
             attributes: &[],

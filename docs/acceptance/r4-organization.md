@@ -970,3 +970,20 @@ The previous conflict run 40071330712 was cancelled. Run
 availability module inventory lacks domain::organization_conflicts; the other inspected completed
 jobs passed. That inventory repair and this publication change require their published-head checks.
 Retained-library measurements, unavailable-item integration and R4 recovery/cleanup remain outstanding.
+
+## Conflict module source-contract admission - 2026-10-24
+
+Run 40071947604 completed with two failing source-contract assertions in Rust Remaining; the final
+gate failed and release builds were skipped. The exact domain inventory omitted the new
+`organization_conflicts` declaration. Its module contains only four typed data records and no
+filesystem operations. The inventory now admits its existing public, attribute-free, non-inline
+declaration exactly once. The topology fixture also applies all ten rejected loading mutations to
+it, including duplicate declarations, alternate paths, conditional loading and generated bodies.
+No production availability behavior or safety assertion is weakened.
+
+All nine focused `root_availability_` checks pass, including both failed assertions and the adjacent
+admission, loading-environment and metadata-only contracts. The suite took 30.75 seconds after a
+90-second compilation; owned rustfmt checks and diff checks pass. The changed local-files owner
+has 2,629 lines before its inline test module and 3,368 inline test lines; this change adds only six
+inventory lines within that test module. Its dedicated topology fixture has 450 test lines.
+The published repair and album-retirement change require current-head hosted verification.

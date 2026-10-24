@@ -63,8 +63,9 @@ pass. Durable continuation now retains logical work across reopen, group changes
 edits, with atomic progress saves and stale-session rejection. Focused continuation, migration and
 source-lifecycle checks pass. The viewer-Favorite checkpoint passed hosted verification. The current
 queue-layout checkpoint passed hosted verification, including its cancelled-request fixture
-correction. The subsequent conflict and batch-status head has two availability-inventory assertions
-to correct before its hosted checks can pass.
+correction. The subsequent conflict and batch-status head failed two availability-inventory assertions;
+the exact domain-module inventory is now corrected with passing focused admission and rejection
+checks. The published repair still requires hosted verification.
 R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
 Controlled desktop checks cover transient Favorite feedback without notification history,
 create-in-picker assignment, defer/ignore/restore, saved continuation, collection persistence and
@@ -247,8 +248,8 @@ Favorite commands, durable default-album settings, management, undo and stale-sa
 controlled client evidence. Gallery selection and the core
 organization-mode workflows and persistent conflict inspection/resolution are connected. Controlled
 desktop checks cover conflict discovery, cancellation, resolution and restart. Complete the
-unavailable-item interaction and repair the hosted availability source inventory before advancing
-to R4-06. Keep the product
+unavailable-item interaction and verify the corrected availability source inventory in CI before
+advancing to R4-06. Keep the product
 checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
 R4-07 remain pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
