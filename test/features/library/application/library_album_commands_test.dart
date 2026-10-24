@@ -136,8 +136,16 @@ void main() {
       await Future<void>.delayed(Duration.zero);
       session.dispose();
       service.preparing!.complete(const OrganizationPreparedFixture());
-      expect(await saving, isA<LibraryOrganizationRejected>());
+      expect(await saving, isA<LibraryOrganizationRetired>());
       expect(service.memberships, isEmpty);
+      expect(
+        container.read(ameNotificationControllerProvider).history,
+        isEmpty,
+      );
+      expect(
+        container.read(ameNotificationControllerProvider).hasUnread,
+        isFalse,
+      );
     },
   );
 }
