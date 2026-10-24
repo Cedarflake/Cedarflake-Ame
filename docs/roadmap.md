@@ -114,7 +114,9 @@ publication cost regression. Schema 55's maintained unresolved-association looku
 group updates, with migration, cleanup/restoration, query-growth and exact-head hosted checks passing.
 The R4-05 control follow-up adds a bottom album tray, state-aware Favorite/album commands and
 persistent chronological undo/redo across viewed groups. Focused regressions and the controlled
-desktop move/remove and restart paths pass; exact-head hosted verification remains pending.
+desktop move/remove and restart paths pass. Its hosted head exposes stale schema-56 recovery-shape
+admission, three Dart style findings and the removed picker-Cancel test expectation; retain these
+repairs with the control follow-up before hosted acceptance.
 The retained-library database baseline exposes slow album, Favorite and organization-queue reads,
 including empty queues and continuation. Repair their owning queries before accepting large-library
 performance; retain the complete client/resource obligations with integrated verification.
@@ -287,9 +289,12 @@ Hosted verification passes the schema-55 association-cost repair and earlier fol
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
-Duplicates retain separate navigation roles with one shared gallery, and Favorites is available
-from both browsing sidebars. Its focused checks and
-remaining desktop verification belong to the R4 evidence record.
+Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
+Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,
+with collection entry and cross-scope continuation excluded. Ordinary workspace switches reset
+selection and position; organizing Library retains its mode and browse context across primary-sidebar
+visits to Albums, Duplicates and Settings.
+Its focused checks and controlled desktop verification belong to the R4 evidence record.
 R4-07 retains the complete integrated flow and retained-library
 resource measurements. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

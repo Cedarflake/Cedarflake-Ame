@@ -46,7 +46,6 @@ class LibraryNavigation extends StatefulWidget {
     required this.onOpenFolder,
     required this.onRemoveRoot,
     this.collection = const LibraryGalleryCollection.library(),
-    this.collections,
     super.key,
   });
 
@@ -80,7 +79,6 @@ class LibraryNavigation extends StatefulWidget {
   final void Function(LibraryRoot root, LibraryFolder folder) onOpenFolder;
   final ValueChanged<LibraryRoot> onRemoveRoot;
   final LibraryGalleryCollection collection;
-  final Widget? collections;
 
   @override
   State<LibraryNavigation> createState() => _LibraryNavigationState();
@@ -259,7 +257,6 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                             ? null
                             : widget.onSelectLibrary,
                       ),
-                    ?widget.collections,
                     const SizedBox(height: 12),
                     if (widget.roots.isEmpty && widget.transientSource == null)
                       if (widget.isCompact)

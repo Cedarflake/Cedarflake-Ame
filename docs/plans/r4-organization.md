@@ -182,16 +182,20 @@ mockup is a layout reference, not implementation or acceptance evidence.
 Work in this order within the slice:
 
 1. Connect the primary destinations in `图库`, `相册`, `去重` order. Put flat albums in the Albums
-   secondary sidebar and expose independent Favorites in both browsing sidebars. Preserve each browsing
-   destination's scope, selection and logical position through the shared gallery and viewer.
+   secondary sidebar and expose independent Favorites there only. Preserve each browsing
+   destination's scope through the shared gallery and viewer. Primary-sidebar visits to Albums,
+   Duplicates or Settings clear ordinary selection and reset position; an organizing Library retains
+   its mode, queue, position and selection across those visits and restores them on return.
    Connect album management and the single-destination picker in ordinary selection/viewer controls.
    Include create-in-picker, mixed
    selections, move/remove, independent favorite actions, cancellation, errors and undo. A normal-mode
    save updates shared progress while retaining the current image and organization anchor.
 2. Connect `加入相册前询问` and `默认加入的相册` to durable settings with the confirmed defaults. Missing
    defaults and unresolved conflicts open the picker. Favorites is never an album destination.
-3. Add `整理模式` / `退出整理模式` to the gallery's existing overflow menu. Keep the gallery and viewer
-   as the shared canvas, preserving normal-mode sort, selection and browsing position.
+3. Add `整理模式` / `退出整理模式` to the Library overflow menu. All-source Library and selected
+   source/folder views define the queue scope; Favorites and albums have no organization mode.
+   Keep the gallery and viewer as the shared canvas, preserving normal-mode sort, selection and
+   browsing position. Offer continuation only for a saved position matching the current source scope.
 4. Put total, organized and pending counts in the existing count row. Dock `待整理`, `稍后整理` and
    `已忽略` at the bottom of the content area. Place `继续整理` independently beside the toolbar, on
    the same row and height, and hide it until prior activity and a resumable position both exist.

@@ -1636,3 +1636,53 @@ contain 436/287 lines. History owns 189 production lines plus 120 authority line
 test lines; migration owns 92 production lines, 16 test-support/declaration lines and 64 schema lines,
 with 110 dedicated test lines. The history menu has 166 dedicated test lines. These owners have no
 inline test bodies. No new dependency or license boundary is introduced.
+
+## Organization scope and contextual control refinement
+
+Organization entry now admits only all-source Library or a selected source/folder. Collection
+workspaces cannot enter it, and continuation must match the current source, folder and descendant
+policy. Favorites is available only in Albums. Ordinary workspace switches clear selection and
+reset the position; an organizing Library retains its query, queue, selection and logical anchor
+across primary-sidebar visits to Albums, Duplicates and Settings. The restored collection query is
+admitted before organization-session reactivation, and failure preserves a retryable destination
+snapshot. Duplicates and Settings retain the active review session while their surfaces are visible.
+
+Ordinary selection/viewing omits ignore, defer and the organization history menu. The album tray
+uses checkbox state without the selected-summary or routine whole-group explanation. Create,
+remove and add/move actions use the installed Material Symbols glyphs. Selection preparation
+no longer inserts text into the button row. A separate presentation owner waits 500 milliseconds
+before showing its progress line and retires the delay when the command or tray takes over.
+
+Ninety distinct focused Flutter checks pass: workspace navigation (11), organization mode (23),
+query navigation (5), integrated review (2), viewer album action (4), picker widgets (5), conflict
+workflow (7), review widgets (9), batch actions (18), history menu (4) and album settings (2).
+These include cross-scope continuation rejection, ordinary versus organizing round trips,
+restoration retry, hidden ordinary-mode controls, checkbox selection, cancellation and group writes.
+The controlled preparation case checks identical button bounds before loading, after 500 milliseconds
+and with the tray open. A 400-millisecond preparation completes without ever showing the indicator.
+The previous settings test's removed Cancel button is replaced by route dismissal with the no-write
+assertion retained. All 23 owned Dart files pass formatting and targeted analysis. The whole-tree
+format check retains the pre-existing unrelated gallery-empty-state finding.
+
+The final Debug build completes in 36.7 seconds. Controlled Windows interaction on the retained
+700-file corpus confirms that an ordinary selected, scrolled Library returns to the top without
+selection after primary-sidebar visits to Albums, Duplicates and Settings. An organizing Library
+returns with its source scope, deferred queue, mode marker and selection intact; Albums remains an
+ordinary browse surface. The native selection row hides organization history outside the mode and
+exposes undo, redo and ignore inside it. The organization
+tray retains the requested icons and conditional progress actions without the removed captions.
+Nonzero logical-anchor restoration and failed restoration retry are covered by the focused
+workspace tests. All 700 source fixtures retain their SHA-256, sizes and modification times.
+
+The prior control commit's hosted run `40116594303` fails on the removed settings Cancel control,
+three Dart style findings, seven current-schema recovery tests and three archive-restoration tests.
+The recovery compatibility admission still stops at schema 55 despite schema 56 retaining the same
+recovery structures.
+The archive cases fail current-history authority validation.
+These hosted failures remain distinct from the passing focused UI checks.
+
+Production owners contain 147 workspace-navigation lines, 361 organization-mode lines, 368
+selection-action lines, 51 delayed-progress lines, 421 picker lines and 1,891 screen-composition
+lines, with no inline test bodies. Dedicated workspace/selection/mode tests contain 226/525/426
+lines; integrated query/review tests contain 577/256. This refinement introduces no schema,
+bridge, dependency or license change.

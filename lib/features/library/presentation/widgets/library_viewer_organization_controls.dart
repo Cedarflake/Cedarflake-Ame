@@ -1,18 +1,13 @@
-import "dart:async";
-
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/library_organization_actions.dart";
-import "../../application/library_progress_request.dart";
 import "../../domain/library_organization.dart";
-import "../../domain/library_review.dart";
 import "../library_organization_mode.dart";
 import "library_album_viewer_action.dart";
 import "library_favorite_button.dart";
 import "library_organization_feedback.dart";
-import "library_organization_menu.dart";
 import "library_review_actions.dart";
 import "library_viewer_notice.dart";
 
@@ -32,23 +27,9 @@ class LibraryViewerOrganizationControls extends ConsumerWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         LibraryFavoriteButton(target: target, enabled: !mode.busy),
-        if (!mode.isActive) ...[
-          LibraryAlbumViewerAction(target: target),
-          LibraryOrganizationMenu(
-            key: ValueKey(target),
-            enabled: !mode.busy,
-            onIgnore: () => unawaited(
-              ref
-                  .read(libraryOrganizationActionsProvider.notifier)
-                  .submit(
-                    LibraryProgressRequest(
-                      target,
-                      LibraryProgressAction.ignore,
-                    ),
-                  ),
-            ),
-          ),
-        ] else if (entry != null && entry.target == target)
+        if (!mode.isActive)
+          LibraryAlbumViewerAction(target: target)
+        else if (entry != null && entry.target == target)
           LibraryReviewActions(mode: mode, entry: entry),
       ],
     );

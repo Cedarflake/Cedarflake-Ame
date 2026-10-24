@@ -89,7 +89,7 @@ void main() {
         await tester.ensureVisible(destination);
         await tester.tap(destination);
         await tester.pumpAndSettle();
-        expect(find.text("已选择：Destination 0"), findsOneWidget);
+        expect(tester.widget<CheckboxListTile>(destination).value, isTrue);
         await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
         expect(find.byKey(const Key("library-album-picker")), findsNothing);

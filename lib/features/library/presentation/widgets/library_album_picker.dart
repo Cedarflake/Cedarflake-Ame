@@ -24,9 +24,11 @@ class LibraryAlbumChoice {
 Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
   required BuildContext context,
   required String actionLabel,
+  IconData actionIcon = Symbols.bookmark_add_rounded,
   LibraryOrganizationAlbum? initialAlbum,
   LibraryOrganizationAlbum? currentAlbum,
   String? clearLabel,
+  IconData clearIcon = Symbols.bookmark_remove_rounded,
   String? explanation,
   LibraryOrganizationTarget? conflictTarget,
   LibraryAlbumMembership? membership,
@@ -42,9 +44,11 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
   enableDrag: false,
   builder: (_) => LibraryAlbumPicker(
     actionLabel: actionLabel,
+    actionIcon: actionIcon,
     initialAlbum: initialAlbum,
     currentAlbum: currentAlbum,
     clearLabel: clearLabel,
+    clearIcon: clearIcon,
     explanation: explanation,
     conflictTarget: conflictTarget,
     membership: membership,
@@ -57,9 +61,11 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
 class LibraryAlbumPicker extends ConsumerStatefulWidget {
   const LibraryAlbumPicker({
     required this.actionLabel,
+    this.actionIcon = Symbols.bookmark_add_rounded,
     this.initialAlbum,
     this.currentAlbum,
     this.clearLabel,
+    this.clearIcon = Symbols.bookmark_remove_rounded,
     this.explanation,
     this.conflictTarget,
     this.membership,
@@ -69,9 +75,11 @@ class LibraryAlbumPicker extends ConsumerStatefulWidget {
     super.key,
   });
   final String actionLabel;
+  final IconData actionIcon;
   final LibraryOrganizationAlbum? initialAlbum;
   final LibraryOrganizationAlbum? currentAlbum;
   final String? clearLabel;
+  final IconData clearIcon;
   final String? explanation;
   final LibraryOrganizationTarget? conflictTarget;
   final LibraryAlbumMembership? membership;
@@ -248,11 +256,6 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                                   ),
                                 ),
                               ),
-                            if (_selected case final selected?)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 8),
-                                child: Text("已选择：${selected.name}"),
-                              ),
                             page.when(
                               skipLoadingOnRefresh: true,
                               data: (value) => ConstrainedBox(
@@ -377,21 +380,23 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                         label: const Text("稍后整理"),
                       ),
                     ],
-                    TextButton(
+                    TextButton.icon(
                       key: const Key("library-album-create"),
                       onPressed: busy || page.isLoading || page.value == null
                           ? null
                           : () => _create(page.value!.revision),
-                      child: const Text("新建相册"),
+                      icon: const Icon(Symbols.add_rounded, size: 20),
+                      label: const Text("新建相册"),
                     ),
                     if (widget.clearLabel case final label?)
-                      TextButton(
+                      TextButton.icon(
                         onPressed: busy
                             ? null
                             : () => _confirm(const LibraryAlbumChoice(null)),
-                        child: Text(label),
+                        icon: Icon(widget.clearIcon, size: 20),
+                        label: Text(label),
                       ),
-                    FilledButton(
+                    FilledButton.icon(
                       key: const Key("library-album-confirm"),
                       onPressed:
                           busy ||
@@ -401,7 +406,8 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
                               page.hasError
                           ? null
                           : () => _confirm(LibraryAlbumChoice(_selected)),
-                      child: Text(saveLabel),
+                      icon: Icon(widget.actionIcon, size: 20),
+                      label: Text(saveLabel),
                     ),
                   ],
                 ),

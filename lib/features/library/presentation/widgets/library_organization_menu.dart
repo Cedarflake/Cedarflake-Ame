@@ -61,7 +61,7 @@ class _LibraryOrganizationMenuState
       onOpenChanged: (open) {
         if (!open) _openedHistory = null;
       },
-      labels: ["撤销操作", "重做操作", widget.ignoreLabel],
+      labels: ["撤销操作", "重做操作", if (widget.onIgnore != null) widget.ignoreLabel],
       items: [
         PopupMenuItem(
           value: _OrganizationMenuAction.undo,

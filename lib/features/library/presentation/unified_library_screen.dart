@@ -738,7 +738,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             _synchronizationSnapshot.lastErrorCode != null,
         selectedRootId: state.query.rootId,
         collection: state.query.collection,
-        collections: favorites,
         selectedFolderRelativePath: state.query.folderRelativePath,
         transientSource: LibraryPendingSource.fromState(state),
         folderTree: folderTree,
@@ -785,7 +784,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             isReviewing: _review.isActive,
             reviewCounts: _review.isActive ? state.organizationCounts : null,
             onToggleReview:
-                _review.busy || !LibraryBrowseAdmission(state).canBrowse
+                _destination != LibraryWorkspace.gallery ||
+                    !_review.canEnter ||
+                    _review.busy ||
+                    !LibraryBrowseAdmission(state).canBrowse
                 ? null
                 : () => unawaited(_review.toggle()),
             selectionToolbar: state.catalogRevision == null
@@ -1556,7 +1558,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         .select(LibraryWorkspace.gallery);
     unawaited(
       _applyQuery(
-        state.query.copyWith(rootId: root.id, folderRelativePath: null),
+        state.query.copyWith(
+          collection: const LibraryGalleryCollection.library(),
+          rootId: root.id,
+          folderRelativePath: null,
+        ),
         preserveGalleryPosition: false,
       ),
     );
@@ -1573,6 +1579,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     unawaited(
       _applyQuery(
         state.query.copyWith(
+          collection: const LibraryGalleryCollection.library(),
           rootId: root.id,
           folderRelativePath: folder.relativePath,
           includeDescendants: true,

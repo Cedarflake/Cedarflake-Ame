@@ -350,7 +350,16 @@ Ordinary favorite and unfavorite successes use the same transient receipt and un
 
 Organization mode has a typed presentation owner for its retained ordinary query, selection and
 visible anchor. It composes the existing query transition and viewer rather than adding another
-gallery. Progress counts carry their query identity and catalog revision; only a matching snapshot
+gallery. Entry and active query changes admit only the Library collection. Source/folder scope is
+preserved by the existing bounded query; album and Favorite browsing cannot enter organization mode.
+Continuation admission compares the saved source, folder and descendant policy to the active scope
+before offering or restoring it. Incompatible historical collection positions remain stored but
+cannot reopen organization mode in a collection or replace the selected source scope.
+Workspace navigation retains an organizing Library's active browse snapshot and ordinary return
+context while Albums uses the gallery. Query restoration precedes review-session reactivation on
+return. Duplicates and Settings retain the active organization session behind their surfaces;
+returning to an ordinary gallery resets selection and position across all primary destinations.
+Progress counts carry their query identity and catalog revision; only a matching snapshot
 can supply the header and dock. Exiting restores the retained browsing context through the existing
 query/selection admission rules, so obsolete all-matching selections cannot authorize new writes.
 

@@ -17,7 +17,7 @@ import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
 
 void main() {
-  testWidgets("favorites clears source scope and library restores all images", (
+  testWidgets("favorites belongs to Albums and preserves the Library source", (
     tester,
   ) async {
     tester.view.physicalSize = const Size(1280, 800);
@@ -47,7 +47,21 @@ void main() {
     await tester.tap(find.byKey(const ValueKey("source-title-root-1")));
     await tester.pumpAndSettle();
     expect(catalog.loadQueries.last.rootId, "root-1");
-    await tester.tap(find.byKey(const Key("library-sidebar-favorites")));
+    final favorites = find.byKey(const Key("library-sidebar-favorites"));
+    expect(favorites, findsNothing);
+    Future<void> selectImage() async {
+      await tester.tap(find.byKey(const Key("library-select-button")));
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey("select-location-1")));
+      await tester.pump();
+      expect(find.text("已选择 1 个项目"), findsOneWidget);
+    }
+
+    await selectImage();
+    await tester.tap(find.byKey(const Key("workbench-albums")));
+    await tester.pumpAndSettle();
+    expect(favorites, findsOneWidget);
+    await tester.tap(favorites);
     await tester.pumpAndSettle();
     expect(
       catalog.loadQueries.last.collection,
@@ -55,13 +69,29 @@ void main() {
     );
     expect(catalog.loadQueries.last.rootId, isNull);
     expect(catalog.loadQueries.last.folderRelativePath, isNull);
-    await tester.tap(find.byKey(const Key("library-sidebar-library")));
+    expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+    await selectImage();
+    await tester.tap(find.byKey(const Key("workbench-gallery")));
     await tester.pumpAndSettle();
     expect(catalog.loadQueries.last.collection, isA<LibraryAllCollection>());
-    expect(catalog.loadQueries.last.rootId, isNull);
+    expect(catalog.loadQueries.last.rootId, "root-1");
+    expect(favorites, findsNothing);
+    expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+    for (final destination in [
+      "workbench-duplicates",
+      "library-sidebar-settings",
+    ]) {
+      await selectImage();
+      await tester.tap(find.byKey(Key(destination)));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("workbench-gallery")));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+      expect(catalog.loadQueries.last.rootId, "root-1");
+      expect(catalog.loadQueries.last.collection, isA<LibraryAllCollection>());
+    }
     await tester.tap(find.byKey(const Key("workbench-albums")));
     await tester.pumpAndSettle();
-    final favorites = find.byKey(const Key("library-sidebar-favorites"));
     expect(favorites, findsOneWidget);
     await tester.tap(favorites);
     await tester.pumpAndSettle();
@@ -71,6 +101,7 @@ void main() {
     );
     expect(find.text("选择相册"), findsNothing);
     expect(tester.widget<ListTile>(favorites).selected, isTrue);
+    expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
     expect(
       tester.widget<NavigationRail>(find.byType(NavigationRail)).selectedIndex,
       1,
@@ -78,7 +109,7 @@ void main() {
     await tester.tap(find.byKey(const Key("workbench-gallery")));
     await tester.pumpAndSettle();
     expect(catalog.loadQueries.last.collection, isA<LibraryAllCollection>());
-    expect(favorites, findsOneWidget);
+    expect(favorites, findsNothing);
     await tester.tap(find.byKey(const Key("workbench-albums")));
     await tester.pumpAndSettle();
     expect(

@@ -4,7 +4,6 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
-import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_album_viewer_action.dart";
 import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
@@ -66,8 +65,17 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("viewer-album-action")));
       await tester.pumpAndSettle();
-      expect(find.text("已选择：Current"), findsOneWidget);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey("album-choice-current")),
+            )
+            .value,
+        isTrue,
+      );
       expect(find.text("移至其他相册"), findsOneWidget);
+      expect(find.byKey(const Key("library-album-defer")), findsNothing);
+      expect(find.byKey(const Key("library-album-ignore")), findsNothing);
       expect(service.memberships, isEmpty);
       await tester.tap(find.byKey(const ValueKey("album-choice-destination")));
       await tester.pump();
@@ -104,7 +112,14 @@ void main() {
       result.completeError(StateError("lost acknowledgement"));
       await tester.pumpAndSettle();
       expect(find.text("尚未确认保存结果，请重试。"), findsOneWidget);
-      expect(find.text("已选择：Destination"), findsOneWidget);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.byKey(const ValueKey("album-choice-destination")),
+            )
+            .value,
+        isTrue,
+      );
       service.saveMembership = null;
       await tester.tap(find.byKey(const Key("library-album-confirm")));
       await tester.pumpAndSettle();
@@ -147,26 +162,20 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final action in [
-    LibraryProgressAction.ignore,
-    LibraryProgressAction.defer,
-  ]) {
-    testWidgets("ordinary viewer tray saves $action for its whole group", (
-      tester,
-    ) async {
+  testWidgets(
+    "ordinary viewer tray keeps progress actions absent and dismisses without a write",
+    (tester) async {
       await host(tester, "one");
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("viewer-album-action")));
       await tester.pumpAndSettle();
-      final key = action == LibraryProgressAction.ignore
-          ? "library-album-ignore"
-          : "library-album-defer";
-      await tester.tap(find.byKey(Key(key)));
+      expect(find.byKey(const Key("library-album-defer")), findsNothing);
+      expect(find.byKey(const Key("library-album-ignore")), findsNothing);
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
-      expect(service.progressWrites.single.action, action);
-      expect(service.preparedTargets.single, [organizationTarget("one")]);
+      expect(service.progressWrites, isEmpty);
       expect(find.byKey(const Key("library-album-picker")), findsNothing);
       expect(service.memberships, isEmpty);
-    });
-  }
+    },
+  );
 }

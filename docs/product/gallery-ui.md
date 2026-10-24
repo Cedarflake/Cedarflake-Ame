@@ -132,8 +132,11 @@ Keep the gallery's right edge, toolbar and time rail anchored to the window; the
 also stays right-aligned when it wraps below the title. The gallery lays out once at its destination
 width, keeping its state and preview ownership. Respect
 reduced motion and reverse an interrupted toggle from the current boundary. Remember the
-preference and retain selected source, folder expansion, selection and gallery scroll position when
-switching workspaces. Reuse the accepted theme, global chrome, photo wall and viewer.
+preference, selected source and folder expansion when switching workspaces. Primary-sidebar switches
+to Albums, Duplicates or Settings clear ordinary selection and return the photo wall to the top.
+When Library is organizing, those visits retain its mode, queue, source scope, browsing position and
+selection for the return to Library. Albums itself remains ordinary browsing. Reuse the accepted
+theme, global chrome, photo wall and viewer.
 
 Library supports `全部图片` and `合并重复图片` in the existing upper-right filter area. The first
 shows every location; the second shows one scoped representative of each confirmed exact group.
@@ -264,19 +267,18 @@ behind each corner. Theme-derived tonal surfaces distinguish these levels withou
 The Library sidebar contains only navigation and source scope:
 
 - `图库` with a trailing folder-plus add-source action;
-- an independent `收藏夹` entry when R4 is functional;
 - imported folders in one aligned source list, without separating OneDrive and local folders into
   different navigation hierarchies;
 - expandable folder trees when functional.
 
 Albums is a separate primary destination between Library and Duplicates. Its secondary sidebar
 contains an independent Favorites entry followed by the flat album list, creation and management
-actions; it contains no source folders. Both Favorites entries open the same collection and do not
+actions; it contains no source folders. Favorites navigation belongs only to Albums and does not
 change album membership. Until a collection is selected, the content area invites selection or creation from
-the sidebar. Each browsing destination retains its own query, logical image position and selection.
-Switching between them exits organization mode through its existing ordinary-context restoration.
-Settings and Duplicates retain the current browsing context. The accepted narrow-window sidebar
-rule, tonal surfaces, resizing and transition remain shared.
+the sidebar. Each browsing destination retains its own query. Primary-sidebar switches reset ordinary
+position and selection; an organizing Library retains its mode, queue, position and selection across
+Albums, Duplicates and Settings visits. The accepted narrow-window sidebar rule, tonal surfaces,
+resizing and transition remain shared.
 
 `收藏夹` scopes the gallery by favorite state independently of album membership. Albums do not nest,
 and each current image group has at most one confirmed album assignment. A group can appear in
@@ -357,7 +359,12 @@ responsibility.
 
 When the album prompt is enabled, the album action opens a Material bottom sheet with one
 destination before group assignments are changed. The selection toolbar keeps Favorite first and
-More last; defer appears in organization mode.
+More last; ignore and defer appear only in organization mode.
+The organization More menu, including chronological undo and redo, is also limited to organization
+mode. Ordinary selection and viewing omit that menu entirely.
+Preparation lasting over 500 milliseconds uses a progress line below the existing controls without
+inserting text into their row. Short preparation shows no indicator; completion removes it immediately.
+Button bounds stay stable through preparation, tray opening and dismissal.
 
 ```text
 选择相册
@@ -371,6 +378,12 @@ More last; defer appears in organization mode.
 - only user albums are destinations; Favorites have a separate action and never appear here;
 - use checkboxes that allow the selected destination to be unchecked. At most one destination is
   selected; checking a different album replaces the previous choice for the complete image group;
+- the checkbox conveys the selection; omit a separate `已选择` summary and routine whole-group
+  explanation above the list. Retain actionable conflict feedback;
+- `忽略此图` and `稍后整理` appear only in organization mode, including batch selection.
+  Ordinary Library/folder browsing, albums and Favorites omit both actions from the tray and menus;
+- pair every tray action with a leading icon matching its operation, including create, remove,
+  add and move; retain framework button labels, focus and disabled state;
 - reopening reflects the current confirmed assignment. A mixed batch or unresolved conflict must
   not appear to have one shared assignment; show the existing album information and let the user
   choose one destination for the selected groups;
@@ -380,8 +393,8 @@ More last; defer appears in organization mode.
   redundant move. Removal leaves already-unassigned groups unchanged;
 - the sheet has no Cancel button. Escape or the backdrop dismisses without changing decisions;
   an admitted write retains the existing commit/cancellation boundary. The sheet offers ignore and
-  defer through the same whole-group commands, with plural wording for a batch. More also offers
-  ignore. Review-mode actions advance only after the committed receipt;
+  defer through the same whole-group commands in organization mode, with plural wording for a batch.
+  More offers ignore only in organization mode. These actions advance only after the committed receipt;
 - a new unassigned selection may use a valid configured default. Initially no default is selected;
   an empty album list offers `新建相册`, and cancellation leaves assignments and progress unchanged;
 - confirmation commits album and organization-state changes together and never changes source
@@ -980,9 +993,12 @@ directly editing derived smart-album membership.
 
 ## Review workflow
 
-R4 uses the existing desktop gallery and image viewer. Ordinary browsing is the default; the
-gallery's upper-right `更多` menu contains `整理模式` once its workflow is functional. Entering it
-reveals organization controls and `整理中` beside the gallery title; the same menu offers
+R4 uses the existing desktop gallery and image viewer. Ordinary browsing is the default. Only the
+Library workspace's upper-right `更多` menu contains `整理模式`: Library covers every configured
+source, while a source or folder selection restricts the queues and counts to that scope, including
+descendants under the existing folder rule. Favorites and albums expose no organization mode.
+Switching to Albums exits organization mode through the existing ordinary-context restoration.
+Entering organization mode reveals its controls and `整理模式` beside the gallery title; the same menu offers
 `退出整理模式`. The title status disappears on exit. Do not add a separate review
 workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 
@@ -999,18 +1015,20 @@ tonal selected color. The separate continuation button has a leading forward arr
 background, with the same height and elevation as the queue container.
 
 Hide `继续整理` and any saved-position marker before organization has begun or when no resumable
-position exists. Pending images alone do not create that entry. After a position has been recorded,
+position exists in the current source/folder scope. A saved position from another folder, all-source
+view, album or Favorites cannot change the current scope. Pending images alone do not create that
+entry. After a position has been recorded,
 continuation returns to the logical anchor under the [queue rules](r4-organization.md#queue-and-continuation).
 There is no separate `新增` selector or button; newly admitted groups go to the pending queue's front
 without moving the currently viewed image or overwriting the saved anchor.
 
-During selection and in the organization-mode viewer, `稍后整理` shares the action row with
+During organization-mode selection and viewing, `稍后整理` shares the action row with
 `加入相册`. Successful album assignment completes organization automatically; omit separate
 `标为已整理`, `保存并完成`, and `完成并下一张` controls. The organization-mode viewer can advance after
 the save commits, while the ordinary-mode viewer stays on the current image. Shared progress is
-updated in either mode. The contextual actions provide `忽略` where applicable, plus `撤销操作` and
-`重做操作` following committed operation order across groups. The history commands also appear in
-the ordinary viewer's upper-right menu, with unavailable directions disabled. They replace the
+updated in either mode. Organization-mode actions provide `忽略` where applicable, plus `撤销操作` and
+`重做操作` following committed operation order across groups, with unavailable directions disabled.
+Ordinary viewing and selection omit this organization menu. The history commands replace the
 current-group `恢复待整理` shortcut. Organization ignore remains separate from Duplicates' review ignore.
 
 Album conflicts are visible in `稍后整理` with the label `相册归属冲突`, the involved albums, and an

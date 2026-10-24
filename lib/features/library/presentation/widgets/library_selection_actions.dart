@@ -22,6 +22,7 @@ import "../gallery_selection.dart";
 import "../library_organization_messages.dart";
 import "library_album_picker.dart";
 import "library_organization_menu.dart";
+import "library_selection_progress.dart";
 
 class LibrarySelectionActions extends ConsumerStatefulWidget {
   const LibrarySelectionActions({
@@ -229,16 +230,18 @@ class _LibrarySelectionActionsState
       final choice = await showLibraryAlbumPicker(
         context: context,
         membership: membership,
-        progressRequestFactory: (action) =>
-            LibraryBatchPickerProgressRequest(session, action),
+        progressRequestFactory: widget.query.organizationQueue == null
+            ? null
+            : (action) => LibraryBatchPickerProgressRequest(session, action),
         ignoreLabel: "忽略所选图片",
         actionLabel: availability.albumActionLabel,
+        actionIcon: summary.assigned == 0
+            ? Symbols.bookmark_add_rounded
+            : Symbols.drive_file_move_rounded,
         initialAlbum: proposal.destination,
         currentAlbum: summary.commonAlbum,
         clearLabel: availability.canRemoveAlbum ? "移出相册" : null,
-        explanation: summary.conflicts > 0
-            ? "所选图片中有相册归属冲突，请选择一个相册。"
-            : "所选图片及其重复图片会一起加入所选相册。",
+        explanation: summary.conflicts > 0 ? "所选图片中有相册归属冲突，请选择一个相册。" : null,
         initialError: initialError,
       );
       if (choice != null) onCommitted();
@@ -268,89 +271,97 @@ class _LibrarySelectionActionsState
       libraryOrganizationActionsProvider.select((state) => state.saving),
     );
     final enabled = widget.enabled && !busy && !_working;
-    final progress = _progress;
     final summary = _session?.summary;
     final availability = summary == null
         ? null
         : LibrarySelectionAvailability(summary);
-    var progressText = progress?.phase == LibraryBatchPhase.saving
-        ? "正在保存"
-        : "正在准备";
-    if (progress != null && progress.total > 0) {
-      progressText += "（${progress.completed}/${progress.total}）";
-    }
-    return Row(
-      key: const Key("library-selection-toolbar"),
-      mainAxisSize: MainAxisSize.min,
+    return Stack(
+      alignment: Alignment.bottomCenter,
       children: [
-        AmePopupMenuButton<bool>(
-          labels: const ["加入收藏夹", "取消收藏"],
-          onSelected: _setFavorite,
-          onOpenChanged: (open) {
-            if (!open && !_working) _retire();
-          },
-          items: [
-            if (availability?.canFavorite == true)
-              const PopupMenuItem(
-                value: true,
-                child: AmeMenuItemContent(
-                  label: "加入收藏夹",
-                  icon: Symbols.favorite_rounded,
-                ),
+        Row(
+          key: const Key("library-selection-toolbar"),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AmePopupMenuButton<bool>(
+              labels: const ["加入收藏夹", "取消收藏"],
+              onSelected: _setFavorite,
+              onOpenChanged: (open) {
+                if (!open && !_working) _retire();
+              },
+              items: [
+                if (availability?.canFavorite == true)
+                  const PopupMenuItem(
+                    value: true,
+                    child: AmeMenuItemContent(
+                      label: "加入收藏夹",
+                      icon: Symbols.favorite_rounded,
+                    ),
+                  ),
+                if (availability?.canUnfavorite == true)
+                  const PopupMenuItem(
+                    value: false,
+                    child: AmeMenuItemContent(
+                      label: "取消收藏",
+                      icon: Symbols.heart_minus_rounded,
+                    ),
+                  ),
+              ],
+              builder: (context, openMenu) => TextButton.icon(
+                key: const Key("library-selection-favorite"),
+                onPressed: enabled ? () => _openFavorites(openMenu) : null,
+                icon: const Icon(Symbols.favorite_rounded),
+                label: const Text("收藏"),
               ),
-            if (availability?.canUnfavorite == true)
-              const PopupMenuItem(
-                value: false,
-                child: AmeMenuItemContent(
-                  label: "取消收藏",
-                  icon: Symbols.heart_minus_rounded,
-                ),
+            ),
+            TextButton.icon(
+              key: const Key("library-selection-album"),
+              onPressed: enabled ? _album : null,
+              icon: const Icon(Symbols.photo_album_rounded),
+              label: const Text("相册"),
+            ),
+            if (widget.query.organizationQueue != null)
+              TextButton.icon(
+                key: const Key("library-selection-defer"),
+                onPressed: enabled
+                    ? () => _setProgress(LibraryProgressAction.defer)
+                    : null,
+                icon: const Icon(Symbols.schedule_rounded),
+                label: const Text("稍后整理"),
+              ),
+            if (_error case final error?)
+              Text(
+                error,
+                style: TextStyle(color: Theme.of(context).colorScheme.error),
+              ),
+            TextButton.icon(
+              key: const Key("library-cancel-selection"),
+              onPressed: widget.onCancel,
+              icon: const Icon(Symbols.close_rounded),
+              label: const Text("取消"),
+            ),
+            if (widget.query.organizationQueue != null)
+              LibraryOrganizationMenu(
+                key: ValueKey(widget.selection),
+                enabled: enabled,
+                ignoreLabel: "忽略所选图片",
+                onIgnore:
+                    widget.query.organizationQueue ==
+                        LibraryOrganizationQueue.ignored
+                    ? null
+                    : () => _setProgress(LibraryProgressAction.ignore),
               ),
           ],
-          builder: (context, openMenu) => TextButton.icon(
-            key: const Key("library-selection-favorite"),
-            onPressed: enabled ? () => _openFavorites(openMenu) : null,
-            icon: const Icon(Symbols.favorite_rounded),
-            label: const Text("收藏"),
-          ),
         ),
-        TextButton.icon(
-          key: const Key("library-selection-album"),
-          onPressed: enabled ? _album : null,
-          icon: const Icon(Symbols.photo_album_rounded),
-          label: const Text("相册"),
-        ),
-        if (widget.query.organizationQueue != null)
-          TextButton.icon(
-            key: const Key("library-selection-defer"),
-            onPressed: enabled
-                ? () => _setProgress(LibraryProgressAction.defer)
-                : null,
-            icon: const Icon(Symbols.schedule_rounded),
-            label: const Text("稍后整理"),
-          ),
         if (_working && !_dialogOwnsSession)
-          Text(progressText, semanticsLabel: progressText),
-        if (_error case final error?)
-          Text(
-            error,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: LibrarySelectionProgress(
+              key: ObjectKey(_session),
+              progress: _progress,
+            ),
           ),
-        TextButton.icon(
-          key: const Key("library-cancel-selection"),
-          onPressed: widget.onCancel,
-          icon: const Icon(Symbols.close_rounded),
-          label: const Text("取消"),
-        ),
-        LibraryOrganizationMenu(
-          key: ValueKey(widget.selection),
-          enabled: enabled,
-          ignoreLabel: "忽略所选图片",
-          onIgnore:
-              widget.query.organizationQueue == LibraryOrganizationQueue.ignored
-              ? null
-              : () => _setProgress(LibraryProgressAction.ignore),
-        ),
       ],
     );
   }

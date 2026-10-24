@@ -13,7 +13,7 @@ Ame needs stable destinations for browsing and duplicate analysis as its organiz
 grow. A permanent narrow function rail selects Library, Albums and Duplicates in that order;
 Settings is pinned below.
 The Library workspace contains a collapsible source/folder sidebar and the existing photo wall.
-Favorites is accessible from Library and Albums through one shared collection entry implementation.
+Favorites is accessible only from Albums; Library contains source and folder navigation.
 Albums owns a separate flat album sidebar and uses the same photo wall.
 The other workspaces own their contextual controls without duplicating the catalog or viewer.
 The accepted interaction blueprint is in [the gallery contract](../product/gallery-ui.md#workbench-blueprint).
@@ -28,13 +28,21 @@ the existing gallery with a dedicated duplicate workspace. No new UI package is 
 The secondary-sidebar toggle lives in the function rail above Settings while Library or Albums is active,
 outside the collapsible sidebar.
 Store its visibility with existing presentation preferences. Preserve source scope, expanded
-folders, scroll anchor and selection on workspace switches. Narrow windows may initially hide the
+folders on workspace switches. Primary-sidebar switches to Albums, Duplicates or Settings clear
+ordinary selected images, exit selection mode and reset the scroll position on return. An organizing
+Library retains its mode, source/queue query, logical position, selection and ordinary return context
+across those visits. The collection workspace itself never enters organization mode.
+Narrow windows may initially hide the
 secondary sidebar; explicitly opening it restores the same panel and its retained state.
 
 `LibraryBrowseWorkspaces` owns the two bounded browsing snapshots and serial destination changes.
-It reuses the existing ordinary-browse snapshot, logical query positioning and selection restoration.
-Leaving a browsing destination first completes organization-mode exit. Settings and Duplicates do
-not replace that snapshot. A failed query keeps the previous destination; the existing query retry
+It retains query snapshots with empty ordinary selection and position; an organization-mode departure
+keeps its complete active snapshot. A departing active review session retires before the other
+collection can use the shared gallery. Returning restores the query before reactivating organization
+mode and its selection. The owner distinguishes the visible primary destination from the retained
+gallery. Returning from Settings or Duplicates resets an ordinary gallery through the same query
+transition, while an active organization session remains intact. A failed query keeps the previous
+destination; the existing query retry
 replays the whole navigation intent. Album retirement invalidates both saved and in-flight album
 restoration before it can publish a destination. Disposal retires pending publication.
 The shell retains both sidebars and one gallery subtree through the existing visibility/focus
@@ -181,7 +189,8 @@ changing destinations cannot restart hashing or dispose a running analysis.
 
 ## Validation and rollback
 
-Verify destination and folder-panel changes preserve browsing state, keyboard focus is restricted
+Verify primary-destination changes reset ordinary position and selection while preserving an
+organizing Library; folder-panel changes retain browsing state. Keyboard focus stays restricted
 to the visible workspace, the toggle remains reachable, and location activation reveals the exact
 file through the existing platform adapter. Exercise narrow and wide windows in the client.
 Automated boundary checks run in Actions. Rollback can restore the prior shell without discarding

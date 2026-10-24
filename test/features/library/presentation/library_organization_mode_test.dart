@@ -43,56 +43,115 @@ void main() {
     },
   );
 
-  test(
-    "retiring a review album also retires its saved ordinary scope",
-    () async {
+  for (final collection in const [
+    LibraryGalleryCollection.album("album"),
+    LibraryGalleryCollection.favorites(),
+  ]) {
+    test("collections cannot enter organization mode: $collection", () async {
       surface.library = surface.library.copyWith(
-        query: surface.library.query.copyWith(
-          collection: const LibraryGalleryCollection.album("retired"),
-        ),
+        query: surface.library.query.copyWith(collection: collection),
       );
+      expect(mode.canEnter, isFalse);
       await mode.enter();
-      await mode.selectQueue(LibraryOrganizationQueue.ignored);
-      expect(await mode.retireAlbum("retired"), isTrue);
-      expect(
-        surface.library.query.collection,
-        const LibraryGalleryCollection.library(),
-      );
-      expect(mode.queue, LibraryOrganizationQueue.ignored);
-      expect(
-        mode.session!.query.collection,
-        const LibraryGalleryCollection.library(),
-      );
-      await mode.exit();
-      expect(
-        surface.library.query.collection,
-        const LibraryGalleryCollection.library(),
-      );
-      expect(surface.restored!.selection.isEmpty, isTrue);
-      expect(surface.restored!.position, isNull);
-    },
-  );
+      expect(mode.isActive, isFalse);
+      expect(surface.queries, isEmpty);
+      expect(service.starts, isEmpty);
+    });
+
+    test(
+      "active organization cannot enter a collection: $collection",
+      () async {
+        await mode.enter();
+        final current = mode.session;
+        expect(
+          await mode.changeQuery(
+            surface.library.query.copyWith(collection: collection),
+          ),
+          isFalse,
+        );
+        expect(surface.library.query.collection, isA<LibraryAllCollection>());
+        expect(mode.session, same(current));
+      },
+    );
+  }
+
+  test("library and folder queues keep their selected source scope", () async {
+    await mode.enter();
+    expect(surface.library.query.rootId, isNull);
+    expect(surface.library.query.folderRelativePath, isNull);
+    final folder = surface.library.query.copyWith(
+      rootId: "root-1",
+      folderRelativePath: "photos/landscapes",
+      includeDescendants: true,
+    );
+    expect(await mode.changeQuery(folder), isTrue);
+    await mode.selectQueue(LibraryOrganizationQueue.deferred);
+    expect(surface.library.query.rootId, "root-1");
+    expect(surface.library.query.folderRelativePath, "photos/landscapes");
+    expect(surface.library.query.includeDescendants, isTrue);
+    expect(mode.session!.query, surface.library.query);
+    await mode.changeQuery(
+      surface.library.query.copyWith(rootId: null, folderRelativePath: null),
+    );
+    expect(surface.library.query.rootId, isNull);
+    expect(surface.library.query.folderRelativePath, isNull);
+  });
+
+  for (final (index, foreign) in const [
+    LibraryGalleryQuery(rootId: "other-root"),
+    LibraryGalleryQuery(rootId: "root-1", folderRelativePath: "other-folder"),
+    LibraryGalleryQuery(),
+    LibraryGalleryQuery(collection: LibraryGalleryCollection.favorites()),
+    LibraryGalleryQuery(collection: LibraryGalleryCollection.album("old")),
+  ].indexed) {
+    test(
+      "continuation rejects a different source scope (case $index)",
+      () async {
+        final original = surface.library.query.copyWith(
+          rootId: "root-1",
+          folderRelativePath: "photos",
+        );
+        surface.library = surface.library.copyWith(query: original);
+        service.saved = LibraryReviewContinuation(
+          LibraryContinuationStatus.ready,
+          query: foreign.copyWith(
+            organizationQueue: LibraryOrganizationQueue.pending,
+          ),
+          target: LibraryOrganizationTarget.fromAsset(
+            surface.library.assets.single,
+          ),
+        );
+        await mode.enter();
+        expect(mode.continuation?.canResume, isFalse);
+        await mode.resume();
+        expect(surface.opened, isEmpty);
+        expect(surface.library.query.rootId, original.rootId);
+        expect(
+          surface.library.query.folderRelativePath,
+          original.folderRelativePath,
+        );
+      },
+    );
+  }
 
   test(
-    "retiring the saved album preserves a different current review scope",
+    "library continuation cannot narrow all folders to a saved source",
     () async {
-      surface.library = surface.library.copyWith(
+      service.saved = LibraryReviewContinuation(
+        LibraryContinuationStatus.ready,
         query: surface.library.query.copyWith(
-          collection: const LibraryGalleryCollection.album("retired"),
+          rootId: "root-1",
+          organizationQueue: LibraryOrganizationQueue.pending,
+        ),
+        target: LibraryOrganizationTarget.fromAsset(
+          surface.library.assets.single,
         ),
       );
       await mode.enter();
-      const other = LibraryGalleryCollection.album("other");
-      await mode.changeQuery(surface.library.query.copyWith(collection: other));
-      final current = mode.session;
-      expect(await mode.retireAlbum("retired"), isTrue);
-      expect(surface.library.query.collection, other);
-      expect(mode.session, same(current));
-      await mode.exit();
-      expect(
-        surface.library.query.collection,
-        const LibraryGalleryCollection.library(),
-      );
+      expect(mode.continuation?.canResume, isFalse);
+      await mode.resume();
+      expect(surface.library.query.rootId, isNull);
+      expect(surface.opened, isEmpty);
     },
   );
 
@@ -232,8 +291,14 @@ void main() {
   );
 
   test(
-    "resume uses the saved scope and identity, never the queue head",
+    "resume restores the saved queue and identity within the current folder",
     () async {
+      surface.library = surface.library.copyWith(
+        query: surface.library.query.copyWith(
+          rootId: "root-1",
+          folderRelativePath: "photos",
+        ),
+      );
       final target = LibraryOrganizationTarget.fromAsset(
         surface.library.assets.single,
       );

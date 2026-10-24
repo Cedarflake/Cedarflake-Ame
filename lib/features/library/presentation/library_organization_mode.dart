@@ -55,12 +55,15 @@ class LibraryOrganizationMode extends ChangeNotifier
   ({String message, Future<void> Function()? retry})? _problem;
 
   bool get isActive => _ordinary != null;
+  bool get canEnter => surface.library.query.collection is LibraryAllCollection;
   LibraryGalleryQuery? get ordinaryQuery => _ordinary?.query;
+  LibraryReviewBrowseState? get ordinaryBrowse => _ordinary;
   bool get busy => _busy;
   String? get problem => _problem?.message;
   LibraryReviewSession? get session => _session;
   LibraryReviewEntry? get current => _session?.current;
-  LibraryReviewContinuation? get continuation => _continuation;
+  LibraryReviewContinuation? get continuation =>
+      _continuation?.forScope(surface.library.query);
   LibraryOrganizationQueue get queue =>
       surface.library.query.organizationQueue ??
       LibraryOrganizationQueue.pending;
@@ -96,7 +99,7 @@ class LibraryOrganizationMode extends ChangeNotifier
   }
 
   Future<void> enter() => _run(() async {
-    if (isActive) return;
+    if (isActive || !canEnter) return;
     final saved = surface.captureBrowse();
     final query = saved.query.copyWith(
       organizationQueue: LibraryOrganizationQueue.pending,
@@ -120,10 +123,27 @@ class LibraryOrganizationMode extends ChangeNotifier
     surface.restoreReviewBrowse(saved);
   });
 
+  bool restoreWorkspace(LibraryReviewBrowseState ordinary) {
+    final query = surface.library.query;
+    if (_disposed ||
+        _busy ||
+        isActive ||
+        !canEnter ||
+        query.organizationQueue == null) {
+      return false;
+    }
+    _ordinary = ordinary;
+    _session = LibraryReviewSession(service, query);
+    _problem = null;
+    unawaited(refreshContinuation());
+    notifyListeners();
+    return true;
+  }
+
   Future<bool> changeQuery(LibraryGalleryQuery requested) async {
     var applied = false;
     await _run(() async {
-      if (!isActive) return;
+      if (!isActive || requested.collection is! LibraryAllCollection) return;
       final query = requested.copyWith(
         organizationQueue: requested.organizationQueue ?? queue,
       );
@@ -222,8 +242,9 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> resume() => _run(() async {
     if (!isActive) return;
-    final result = await service.continuation();
+    final saved = await service.continuation();
     if (_disposed) return;
+    final result = saved.forScope(surface.library.query);
     _continuation = result;
     if (result.canResume) await _showContinuation(result);
   });
@@ -231,8 +252,9 @@ class LibraryOrganizationMode extends ChangeNotifier
   Future<void> afterSave(LibraryReviewEntry entry) => _run(() async {
     final session = _session;
     if (session == null || !session.owns(entry) || !entry.committed) return;
-    final result = await service.continuation();
+    final saved = await service.continuation();
     if (_disposed || !session.owns(entry)) return;
+    final result = saved.forScope(surface.library.query);
     _continuation = result;
     if (result.canResume) {
       await _showContinuation(result);

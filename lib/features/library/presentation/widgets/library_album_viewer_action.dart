@@ -9,7 +9,6 @@ import "../../application/library_album_requests.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_organization_requests.dart";
-import "../../application/library_progress_request.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_review.dart";
 import "../library_organization_messages.dart";
@@ -101,6 +100,9 @@ class _LibraryAlbumViewerActionState
       final choice = await showLibraryAlbumPicker(
         context: context,
         actionLabel: proposal.current == null ? "加入相册" : "移至其他相册",
+        actionIcon: proposal.current == null
+            ? Symbols.bookmark_add_rounded
+            : Symbols.drive_file_move_rounded,
         initialAlbum: proposal.destination,
         currentAlbum: proposal.current,
         clearLabel: proposal.current == null ? null : "移出相册",
@@ -108,13 +110,7 @@ class _LibraryAlbumViewerActionState
         conflictTarget: proposal.hasConflict ? target : null,
         initialError: initialError,
         membership: membership,
-        progressRequestFactory:
-            widget.progressRequestFactory ??
-            (action) => LibraryProgressRequest(
-              target,
-              action,
-              errorSurface: LibraryOrganizationErrorSurface.form,
-            ),
+        progressRequestFactory: widget.progressRequestFactory,
       );
       if (choice != null && owns()) widget.onSaved?.call();
     } on Object catch (error) {

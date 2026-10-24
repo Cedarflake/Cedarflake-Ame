@@ -7,7 +7,6 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/library_organization_mode.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_review_actions.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_review_dock.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_organization_controls.dart";
 import "package:flutter/material.dart";
@@ -44,10 +43,11 @@ void main() {
   Future<void> host(
     WidgetTester tester, {
     bool viewer = false,
+    bool organizing = true,
     double scale = 1,
   }) async {
-    await mode.enter();
-    if (viewer) mode.open(surface.library.assets.single);
+    if (organizing) await mode.enter();
+    if (viewer && organizing) mode.open(surface.library.assets.single);
     await tester.pumpWidget(
       UncontrolledProviderScope(
         container: container,
@@ -60,14 +60,15 @@ void main() {
                 builder: (context, _) => viewer
                     ? Stack(
                         children: [
-                          if (mode.current case final entry?)
-                            Align(
-                              alignment: Alignment.bottomCenter,
-                              child: LibraryReviewActions(
-                                mode: mode,
-                                entry: entry,
+                          Align(
+                            alignment: Alignment.bottomCenter,
+                            child: LibraryViewerOrganizationControls(
+                              mode: mode,
+                              target: LibraryOrganizationTarget.fromAsset(
+                                surface.library.assets.single,
                               ),
                             ),
+                          ),
                           LibraryViewerOrganizationNotice(mode: mode),
                         ],
                       )
@@ -85,6 +86,22 @@ void main() {
   }
 
   testWidgets(
+    "ordinary viewer omits the organization menu and progress actions",
+    (tester) async {
+      await host(tester, viewer: true, organizing: false);
+      expect(find.byKey(const Key("viewer-review-defer")), findsNothing);
+      expect(
+        find.byKey(const Key("library-review-actions-menu")),
+        findsNothing,
+      );
+      expect(find.text("忽略此图"), findsNothing);
+      expect(find.text("撤销操作"), findsNothing);
+      expect(find.text("重做操作"), findsNothing);
+      expect(review.writes, isEmpty);
+    },
+  );
+
+  testWidgets(
     "review album picker commits membership and position through the review service",
     (tester) async {
       organization.albumItems = [
@@ -96,6 +113,8 @@ void main() {
       await host(tester, viewer: true);
       await tester.tap(find.byKey(const Key("viewer-album-action")));
       await tester.pumpAndSettle();
+      expect(find.byKey(const Key("library-album-defer")), findsOneWidget);
+      expect(find.byKey(const Key("library-album-ignore")), findsOneWidget);
       expect(review.writes, isEmpty);
       await tester.tap(find.byKey(const ValueKey("album-choice-destination")));
       await tester.pump();

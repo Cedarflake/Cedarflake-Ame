@@ -25,6 +25,21 @@ class LibraryReviewContinuation {
   final LibraryGalleryQuery? query;
   final LibraryOrganizationTarget? target;
   bool get canResume => query != null && target != null;
+
+  LibraryReviewContinuation forScope(LibraryGalleryQuery current) {
+    final saved = query;
+    if (saved == null) return this;
+    if (current.collection is! LibraryAllCollection ||
+        saved.collection is! LibraryAllCollection ||
+        current.rootId != saved.rootId ||
+        current.folderRelativePath != saved.folderRelativePath ||
+        current.includeDescendants != saved.includeDescendants) {
+      return const LibraryReviewContinuation(
+        LibraryContinuationStatus.noActivity,
+      );
+    }
+    return this;
+  }
 }
 
 enum LibraryProgressAction { defer, ignore, restore }

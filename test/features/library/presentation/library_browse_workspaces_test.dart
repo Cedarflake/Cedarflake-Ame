@@ -40,20 +40,27 @@ void main() {
   }
 
   test(
-    "destinations retain independent scope, selection and position",
+    "ordinary destination switches retain scope and reset position and selection",
     () async {
       surface.library = surface.library.copyWith(
         query: surface.library.query.copyWith(rootId: "source"),
       );
+      await navigation.select(LibraryWorkspace.gallery);
+      expect(surface.restored, isNull);
       await visitAlbum();
+      expect(surface.restored!.isSelecting, isFalse);
+      expect(surface.restored!.selection.isEmpty, isTrue);
       expect(surface.queries, isEmpty);
       await navigation.select(LibraryWorkspace.gallery);
       expect(surface.library.query.rootId, "source");
       expect(surface.library.query.collection, isA<LibraryAllCollection>());
-      expect(surface.restored!.isSelecting, isTrue);
-      expect(surface.positions.last!.globalItemIndex, 23);
-      expect(surface.positions.last!.itemFraction, .3);
+      expect(surface.restored!.isSelecting, isFalse);
+      expect(surface.restored!.selection.isEmpty, isTrue);
+      expect(surface.positions.last, isNull);
       await navigation.select(LibraryWorkspace.albums);
+      expect(surface.restored!.isSelecting, isFalse);
+      expect(surface.restored!.selection.isEmpty, isTrue);
+      expect(surface.positions.last, isNull);
       expect(
         surface.library.query.collection,
         const LibraryGalleryCollection.album("a"),
@@ -63,19 +70,96 @@ void main() {
       await navigation.select(LibraryWorkspace.settings);
       await navigation.select(LibraryWorkspace.albums);
       expect(visible, LibraryWorkspace.albums);
-      expect(surface.queries.length, reads);
+      expect(surface.queries.length, reads + 1);
     },
   );
 
   test(
-    "switching browsing destinations exits review and restores ordinary scope",
+    "returning to Library restores organization mode scope position and selection",
     () async {
       await review.enter();
       expect(review.isActive, isTrue);
+      await review.changeQuery(
+        surface.library.query.copyWith(rootId: "review-source"),
+      );
+      final organized = surface.captureBrowse();
       await visitAlbum();
       expect(review.isActive, isFalse);
       await navigation.select(LibraryWorkspace.gallery);
-      expect(surface.library.query.organizationQueue, isNull);
+      expect(
+        surface.library.query.organizationQueue,
+        LibraryOrganizationQueue.pending,
+      );
+      expect(surface.library.query.rootId, "review-source");
+      expect(review.isActive, isTrue);
+      expect(surface.restored!.isSelecting, isTrue);
+      expect(
+        surface.restored!.selection.includedAssetIds,
+        organized.selection.includedAssetIds,
+      );
+      expect(surface.positions.last!.globalItemIndex, 23);
+      expect(surface.positions.last!.itemFraction, .3);
+      await review.exit();
+      await visitAlbum();
+      await navigation.select(LibraryWorkspace.gallery);
+      expect(surface.restored!.isSelecting, isFalse);
+      expect(surface.restored!.selection.isEmpty, isTrue);
+      expect(surface.positions.last, isNull);
+    },
+  );
+
+  for (final destination in [
+    LibraryWorkspace.duplicates,
+    LibraryWorkspace.settings,
+  ]) {
+    test(
+      "ordinary Library resets after visiting ${destination.name}",
+      () async {
+        surface.library = surface.library.copyWith(
+          query: surface.library.query.copyWith(rootId: "source"),
+        );
+        await navigation.select(destination);
+        expect(visible, destination);
+        expect(surface.queries, isEmpty);
+        await navigation.select(LibraryWorkspace.gallery);
+        expect(visible, LibraryWorkspace.gallery);
+        expect(surface.library.query.rootId, "source");
+        expect(surface.restored!.selection.isEmpty, isTrue);
+        expect(surface.restored!.isSelecting, isFalse);
+        expect(surface.positions.single, isNull);
+      },
+    );
+
+    test("organizing Library survives a ${destination.name} visit", () async {
+      await review.enter();
+      final session = review.session;
+      final reads = surface.queries.length;
+      await navigation.select(destination);
+      expect(visible, destination);
+      await navigation.select(LibraryWorkspace.gallery);
+      expect(visible, LibraryWorkspace.gallery);
+      expect(review.isActive, isTrue);
+      expect(identical(review.session, session), isTrue);
+      expect(surface.queries.length, reads);
+      expect(surface.restored, isNull);
+    });
+  }
+
+  test(
+    "failed organization restoration retains its snapshot for retry",
+    () async {
+      await review.enter();
+      await visitAlbum();
+      surface.publishing = () async => false;
+      await navigation.select(LibraryWorkspace.gallery);
+      expect(visible, LibraryWorkspace.albums);
+      expect(review.isActive, isFalse);
+      surface.publishing = null;
+      expect(await navigation.retry(surface.queries.last), isTrue);
+      expect(visible, LibraryWorkspace.gallery);
+      expect(review.isActive, isTrue);
+      expect(surface.restored!.isSelecting, isTrue);
+      expect(surface.positions.last!.globalItemIndex, 23);
     },
   );
 

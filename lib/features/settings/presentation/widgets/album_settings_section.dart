@@ -45,7 +45,9 @@ class _AlbumSettingsSectionState extends ConsumerState<AlbumSettingsSection> {
     final result = await showLibraryAlbumPicker(
       context: context,
       actionLabel: "选择",
+      actionIcon: Symbols.check_rounded,
       clearLabel: "未设置",
+      clearIcon: Symbols.close_rounded,
       initialAlbum: current,
     );
     if (!mounted || result == null) return;

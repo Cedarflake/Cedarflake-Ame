@@ -49,7 +49,7 @@ void main() {
     visible.dispose();
   });
 
-  Future<void> host(WidgetTester tester) async {
+  Future<void> host(WidgetTester tester, {bool organizing = false}) async {
     tester.view.physicalSize = const Size(1280, 800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -66,9 +66,12 @@ void main() {
                       selection: GallerySelection.empty(
                         "query-42",
                       ).selectAll().toggle("excluded"),
-                      query: const LibraryGalleryQuery(
+                      query: LibraryGalleryQuery(
                         rootId: "source",
                         searchText: "name",
+                        organizationQueue: organizing
+                            ? LibraryOrganizationQueue.pending
+                            : null,
                       ),
                       catalogRevision: BigInt.from(42),
                       enabled: true,
@@ -96,6 +99,43 @@ void main() {
     await tester.pumpAndSettle();
   }
 
+  for (final organizing in [false, true]) {
+    testWidgets(
+      "batch progress actions are available only during organization: $organizing",
+      (tester) async {
+        await host(tester, organizing: organizing);
+        if (organizing) {
+          await tester.tap(
+            find.byKey(const Key("library-review-actions-menu")),
+          );
+          await tester.pumpAndSettle();
+          expect(find.text("忽略所选图片"), findsOneWidget);
+          expect(find.text("撤销操作"), findsOneWidget);
+          expect(find.text("重做操作"), findsOneWidget);
+          await tester.binding.handlePopRoute();
+          await tester.pumpAndSettle();
+        } else {
+          expect(
+            find.byKey(const Key("library-review-actions-menu")),
+            findsNothing,
+          );
+        }
+        await albums(tester);
+        expect(
+          find.byKey(const Key("library-album-defer")),
+          organizing ? findsOneWidget : findsNothing,
+        );
+        expect(
+          find.byKey(const Key("library-album-ignore")),
+          organizing ? findsOneWidget : findsNothing,
+        );
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
+        expect(batches.batches.single.writes, isEmpty);
+      },
+    );
+  }
+
   Future<void> confirm(WidgetTester tester) async {
     await tester.pump();
     await tester.tap(find.byKey(const Key("library-album-confirm")));
@@ -118,8 +158,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("加入收藏夹"), favorites < 3 ? findsOneWidget : findsNothing);
       expect(find.text("取消收藏"), favorites > 0 ? findsOneWidget : findsNothing);
-      if (favorites > 0)
+      if (favorites > 0) {
         expect(find.byIcon(Symbols.heart_minus_rounded), findsOneWidget);
+      }
       await tester.tap(find.text(favorites == 3 ? "取消收藏" : "加入收藏夹"));
       await tester.pumpAndSettle();
       expect(batches.batches, hasLength(1));
@@ -211,12 +252,31 @@ void main() {
       ..preparing = Completer<LibraryBatchSummary>();
     batches.create = () => batch;
     await host(tester);
+    final controls = [
+      find.byKey(const Key("library-selection-favorite")),
+      find.byKey(const Key("library-selection-album")),
+      find.byKey(const Key("library-cancel-selection")),
+    ];
+    final bounds = controls.map(tester.getRect).toList();
     await tester.tap(find.byKey(const Key("library-selection-album")));
     await tester.pump();
-    expect(find.textContaining("正在准备"), findsOneWidget);
+    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    await tester.pump(const Duration(milliseconds: 499));
+    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(controls.map(tester.getRect).toList(), bounds);
+    expect(
+      tester
+          .widget<LinearProgressIndicator>(
+            find.byKey(const Key("library-selection-progress")),
+          )
+          .semanticsLabel,
+      "正在准备（0/3）",
+    );
     batch.preparing!.complete(batch.summary);
     await tester.pumpAndSettle();
-    expect(find.textContaining("正在准备"), findsNothing);
+    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    expect(controls.map(tester.getRect).toList(), bounds);
     expect(find.text("加入或移至相册"), findsOneWidget);
     expect(batches.batches.single.writes, isEmpty);
     await tester.tap(find.text("移出相册"));
@@ -229,6 +289,28 @@ void main() {
     expect(committed, 1);
     expect(find.byKey(const Key("library-album-picker")), findsNothing);
     expect(batches.batches.single.closes, 1);
+  });
+
+  testWidgets("short album preparation never displays progress", (
+    tester,
+  ) async {
+    final batch = OrganizationBatchFixture()
+      ..preparing = Completer<LibraryBatchSummary>();
+    batches.create = () => batch;
+    await host(tester);
+    await tester.tap(find.byKey(const Key("library-selection-album")));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 400));
+    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    batch.preparing!.complete(batch.summary);
+    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.byKey(const Key("library-selection-progress")), findsNothing);
+    expect(find.byKey(const Key("library-album-picker")), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(batch.writes, isEmpty);
+    expect(tester.takeException(), isNull);
   });
 
   testWidgets("conflicts require a choice even with an automatic default", (
@@ -285,7 +367,14 @@ void main() {
       await tester.tap(find.byKey(const Key("library-album-save")));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("library-selection-album")), findsNothing);
-      expect(find.text("已选择：New album"), findsOneWidget);
+      expect(
+        tester
+            .widget<CheckboxListTile>(
+              find.widgetWithText(CheckboxListTile, "New album"),
+            )
+            .value,
+        isTrue,
+      );
       expect(batches.batches.single.refreshes, 1);
       expect(batches.batches.single.closes, 0);
       await confirm(tester);

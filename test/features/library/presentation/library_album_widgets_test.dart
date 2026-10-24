@@ -161,6 +161,7 @@ void main() {
       expect(find.byType(BottomSheet), findsOneWidget);
       expect(find.byType(AlertDialog), findsNothing);
       expect(find.text("取消"), findsNothing);
+      expect(find.textContaining("已选择："), findsNothing);
       final confirm = find.byKey(const Key("library-album-confirm"));
       expect(tester.widget<FilledButton>(confirm).onPressed, isNull);
       await tester.tap(find.byKey(const ValueKey("album-choice-a")));
@@ -233,8 +234,18 @@ void main() {
     await tester.tap(find.text("下一页"));
     await tester.pumpAndSettle();
     expect(find.text("Second"), findsOneWidget);
-    expect(find.text("已选择：First"), findsOneWidget);
+    expect(find.textContaining("已选择："), findsNothing);
     expect(requested, [null, "a"]);
+    await tester.tap(find.text("上一页"));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<CheckboxListTile>(
+            find.byKey(const ValueKey("album-choice-a")),
+          )
+          .value,
+      isTrue,
+    );
     await tester.tap(find.byKey(const Key("library-album-create")));
     await tester.pumpAndSettle();
     await tester.enterText(
@@ -243,7 +254,7 @@ void main() {
     );
     await tester.tap(find.byKey(const Key("library-album-save")));
     await tester.pumpAndSettle();
-    expect(find.text("已选择：New album"), findsOneWidget);
+    expect(find.textContaining("已选择："), findsNothing);
     await tester.tap(find.byKey(const Key("library-album-confirm")));
     await tester.pumpAndSettle();
     expect(selected?.album?.name, "New album");

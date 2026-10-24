@@ -3,6 +3,11 @@ import "../application/library_workbench_controller.dart";
 import "../domain/library_models.dart";
 import "library_organization_mode.dart";
 
+typedef _WorkspaceBrowse = ({
+  LibraryReviewBrowseState browse,
+  LibraryReviewBrowseState? ordinary,
+});
+
 /// Shares one gallery while retaining each browsing destination's context.
 class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
   LibraryBrowseWorkspaces({
@@ -14,8 +19,9 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
   final LibraryReviewSurface surface;
   final LibraryOrganizationMode review;
   final void Function(LibraryWorkspace) publish;
-  final Map<LibraryWorkspace, LibraryReviewBrowseState> _saved = {};
+  final Map<LibraryWorkspace, _WorkspaceBrowse> _saved = {};
   LibraryWorkspace _browsing = LibraryWorkspace.gallery;
+  LibraryWorkspace _visible = LibraryWorkspace.gallery;
   LibraryWorkspace? _requested;
   ({LibraryWorkspace destination, LibraryGalleryQuery query})? _failed;
   Future<void>? _switching;
@@ -41,10 +47,18 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
 
   Future<void> _show(LibraryWorkspace destination) async {
     _failed = null;
-    if (!destination.isBrowsing || destination == _browsing) {
+    if (!destination.isBrowsing) {
+      _visible = destination;
       publish(destination);
       return;
     }
+    final retainsActiveGallery = destination == _browsing && review.isActive;
+    if (destination == _visible || retainsActiveGallery) {
+      _visible = destination;
+      publish(destination);
+      return;
+    }
+    final leaving = _captureBrowse();
     if (review.isActive) {
       await review.exit();
       if (_disposed) return;
@@ -58,31 +72,53 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
     }
     if (_browsing == LibraryWorkspace.gallery ||
         surface.library.query.collection is! LibraryAllCollection) {
-      _saved[_browsing] = surface.captureBrowse();
+      _saved[_browsing] = leaving;
     }
     final saved = _saved[destination];
     if (saved != null) {
       final restored = await surface.showReviewQuery(
-        saved.query,
-        position: saved.position,
+        saved.browse.query,
+        position: saved.browse.position,
       );
       if (_disposed) return;
       if (!restored) {
-        _failed = (destination: destination, query: saved.query);
+        _failed = (destination: destination, query: saved.browse.query);
         return;
       }
       if (!identical(_saved[destination], saved)) {
-        final collection = saved.query.collection;
+        final collection = saved.browse.query.collection;
         if (collection is LibraryAlbumCollection) {
           await review.retireAlbum(collection.albumId);
         }
         return;
       }
-      surface.restoreReviewBrowse(saved);
+      if (saved.ordinary case final ordinary?) {
+        if (!review.restoreWorkspace(ordinary)) {
+          _failed = (destination: destination, query: saved.browse.query);
+          return;
+        }
+      }
     }
     if (_disposed) return;
+    surface.restoreReviewBrowse(saved?.browse ?? _captureBrowse().browse);
     _browsing = destination;
+    _visible = destination;
     publish(destination);
+  }
+
+  _WorkspaceBrowse _captureBrowse() {
+    final current = surface.captureBrowse();
+    if (review.isActive) {
+      return (browse: current, ordinary: review.ordinaryBrowse);
+    }
+    return (
+      browse: LibraryReviewBrowseState(
+        query: current.query,
+        selection: current.selection.clear(),
+        isSelecting: false,
+      ),
+      ordinary: null,
+    );
   }
 
   Future<bool> retry(LibraryGalleryQuery query) async {
@@ -96,7 +132,8 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
   Future<bool> retireAlbum(String albumId) async {
     _saved.removeWhere(
       (_, saved) =>
-          saved.query.collection == LibraryGalleryCollection.album(albumId),
+          saved.browse.query.collection ==
+          LibraryGalleryCollection.album(albumId),
     );
     return !_disposed && await review.retireAlbum(albumId);
   }

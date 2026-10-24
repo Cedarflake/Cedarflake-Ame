@@ -22,9 +22,11 @@ later analysis must preserve the human decisions established here.
 
 Albums has its own primary sidebar destination, ordered between Library and Duplicates. Its flat
 album list belongs to that destination's secondary sidebar. Physical sources stay under Library;
-Favorites is accessible from both Library and Albums through the same independent collection.
-Both destinations reuse the existing gallery and viewer, retaining their own scope
-and browsing position when switching.
+Favorites is accessible only from Albums as an independent collection; Library lists source folders.
+Both destinations reuse the existing gallery and viewer, retaining their own scope when switching.
+Primary-sidebar switches to Albums, Duplicates or Settings clear ordinary selection and return the
+photo wall to the top. An organizing Library retains its mode, queue, position and selection across
+those visits and restores them on return.
 
 An album contains logical image groups. Albums are flat and do not nest. A group has at most one
 confirmed album assignment. Moving it to another album replaces that assignment for the entire
@@ -114,6 +116,8 @@ gallery folding, or source files.
 
 Ordinary browsing uses these same transitions and counts. It remains in the current gallery or
 viewer after an album operation; it does not enter organization mode or advance to another image.
+Explicit ignore and defer controls belong to organization mode only; ordinary browsing, albums and
+Favorites omit them from both the album tray and More menu.
 Cancelling a picker changes nothing. Repeated assignment to the same album is idempotent. Counts
 include each group once, regardless of physical-copy count or display mode, and reconcile when
 groups merge or split.
@@ -123,15 +127,21 @@ without undoing unrelated favorites, overwriting newer decisions, or applying to
 content. A failed save leaves the previous committed state available and exposes retry; only a
 successful commit may advance an organization-mode viewer or publish updated completion counts.
 
-Expose `撤销操作` and `重做操作` in chronological operation order, including operations on a
-previously viewed group. They reverse actual committed Favorite, album and organization changes;
-they do not merely reset the current group to pending. Successive reversals retain compatible
+Expose `撤销操作` and `重做操作` only in organization mode, in chronological operation order, including
+operations on a previously viewed group. They reverse actual committed Favorite, album and
+organization changes rather than resetting the current group to pending. Successive reversals retain compatible
 field-version evidence. A new committed edit after undo starts a new branch and clears redo.
 Persist the history position with the operation so restart or an uncertain response cannot apply
 the same step twice. Empty history disables the corresponding action. Source removal, cleanup,
 backup restoration and incompatible content retain their existing authority boundaries.
 
 ## Queue and continuation
+
+Organization mode is available in Library and its source/folder views only. The Library entry covers
+all configured sources; selecting a source or folder restricts its queues, counts and continuation
+to that source/folder and the selected descendant policy. Favorites and albums remain ordinary
+browsing collections. Scope filters choose which groups are presented; commands still apply to the
+whole duplicate group, including its copies in other folders.
 
 Organization is continuous work, not a frozen batch that excludes later imports. Newly discovered
 independent groups enter the front of the pending queue, including groups found during startup
@@ -144,8 +154,10 @@ New arrivals, duplicate folding, sorting, and representative changes preserve th
 browsing anchor. Ordinary gallery sorting remains the user's chosen sort; the organization queue
 does not silently replace it.
 
-`继续整理` requires previous organization activity and a resumable position. Merely having pending
-images does not make it appear. It returns to the saved logical position rather than jumping to
+`继续整理` requires previous organization activity and a resumable position in the current
+source/folder scope. A saved position in a different scope is not offered here and cannot silently
+change the selected folder or narrow the all-source view. Merely having pending images does not
+make it appear. It returns to the saved logical position rather than jumping to
 new arrivals at the queue head. If that item has already been handled, continue with the next
 eligible item in the retained scope. An unavailable item keeps its record and issue state while
 the user can continue with other items; unavailability is not completion.

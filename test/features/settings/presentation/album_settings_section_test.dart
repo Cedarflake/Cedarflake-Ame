@@ -63,7 +63,8 @@ void main() {
       final writes = store.saved.length;
       await tester.tap(find.byKey(const Key("settings-default-album")));
       await tester.pumpAndSettle();
-      await tester.tap(find.text("取消"));
+      expect(find.text("取消"), findsNothing);
+      await tester.binding.handlePopRoute();
       await tester.pumpAndSettle();
       expect(store.saved, hasLength(writes));
     },
