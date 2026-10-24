@@ -99,8 +99,9 @@ history, queue order, continuation and unmatched evidence. Focused restore, canc
 and queue-cost checks pass. Settings integration and unresolved-record cleanup remain pending.
 The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
 read archive tables before their migration. Schema-aware local versus imported authority now passes
-focused upgrade, rollback and current-catalog rejection checks; hosted verification of this repair
-remains pending. The earlier ordinary-journal failure did not recur in this checkpoint, although its
+focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
+repaired upgrade paths but exposes one stale expected-table inventory; its focused correction
+passes, with verification of the follow-up head pending. The earlier ordinary-journal failure did not recur in this checkpoint, although its
 original native-read cause remains unresolved. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
@@ -267,8 +268,8 @@ bridge. Native-version reassociation is connected to the existing publication tr
 cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
 are implemented through the application and typed bridge. Restored queue order and continuation,
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
-settings integration and explicit unresolved-record cleanup. Preserve the historical-upgrade repair's
-pending hosted verification and the earlier native-read observation in the evidence record.
+settings integration and explicit unresolved-record cleanup. Preserve the expected-table inventory
+correction's pending hosted verification and the earlier native-read observation in the evidence record.
 The requested primary Albums destination is being integrated under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery. Its focused checks and
 remaining desktop verification belong to the R4 evidence record.

@@ -110,6 +110,16 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_review_operations",
                 "organization_review_scopes",
                 "organization_review_session",
+                "organization_archive_restores",
+                "organization_archive_generations",
+                "organization_recovery_roots",
+                "organization_recovery_versions",
+                "organization_recovery_admissions",
+                "organization_recovery_admission_sources",
+                "organization_recovery_admission_links",
+                "organization_recovery_duplicate_decisions",
+                "organization_recovery_duplicate_sources",
+                "organization_restored_fields",
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }

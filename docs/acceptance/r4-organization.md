@@ -1303,3 +1303,19 @@ navigation owner has 110 production lines and 142 dedicated test lines, with no 
 The composed shell has 306 lines and the album sidebar/landing has 39. The existing unified screen
 has 1,877 lines; it delegates navigation ownership rather than adding its state machine there.
 The shell, album-screen and organization-screen regressions have 167, 142 and 151 lines respectively.
+
+## Retained migration table inventory
+
+The schema/queue partition of run `40093347873` on `da12c50a37ef078fb28b5407675db2893fb780dc`
+passes 342 cases and fails the version-33 retained-row comparison. Comparing the complete logged
+maps identifies ten additional empty schema-54 archive/recovery tables and no changed retained
+table or row. The fixture's exact post-upgrade inventory now names and asserts those empty tables
+before comparing every retained row. It still rejects an unexpected table, nonempty newly admitted
+table or changed historical record.
+
+The unchanged migration/reopen test passes locally for both preexisting-index states and both opens;
+execution takes 8.88 seconds after compilation. This is an expected-schema fixture correction, with
+no product, schema or migration change. The hosted run has completed: the other three Rust
+partitions, Static, Flutter, native scan/accessibility, unsigned Release and all five synthetic
+workloads pass. This inventory assertion is its only failing test; verification of the correction
+and subsequent implementation head remains pending.
