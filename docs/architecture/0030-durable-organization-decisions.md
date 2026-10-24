@@ -147,6 +147,9 @@ content bindings. This retains a card during verification without admitting a co
 evidence. Confirmed changed content leaves the old collection. Valid durable bindings survive
 derived-fingerprint cleanup, and their canonical mapping still folds the collection. Representatives
 honor the existing preferred copy within the physical query scope, then its smallest location ID.
+Representative selection resolves the compatible display evidence generation before joining its
+stored fingerprint, avoiding materialization of unrelated historical evidence. Current and retained
+display authority continue to use the same compatibility predicate.
 These reads use catalog data only and never load the membership graph into presentation.
 
 ### Queue admission and continuation

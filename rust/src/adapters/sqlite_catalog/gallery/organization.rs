@@ -1,6 +1,7 @@
 use rusqlite::types::Value;
 use rusqlite::{Connection, Transaction, params_from_iter};
 
+use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::organization::validate_identifier;
 use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 
@@ -80,9 +81,14 @@ fn compatible_binding(location: &str) -> String {
 fn representative_joins() -> String {
     let bound = compatible_binding("locations");
     let compatible = compatible_fingerprint("locations");
+    // Joining the union view materializes all historical fingerprints. Resolve the
+    // compatible evidence version first so the optional join remains a point lookup.
     format!(
         "LEFT JOIN organization_bindings AS binding ON {bound}
-         LEFT JOIN {DISPLAY_FINGERPRINTS} ON {compatible}
+         LEFT JOIN content_fingerprints AS f
+           ON f.source_generation = (
+             SELECT f.evidence_source_generation FROM {DISPLAY_FINGERPRINTS} WHERE {compatible})
+           AND f.scheme = '{EXACT_FINGERPRINT_SCHEME}'
          LEFT JOIN exact_duplicate_decisions AS decision
            ON decision.scheme = COALESCE(f.scheme, binding.fingerprint_scheme)
            AND decision.digest = COALESCE(f.digest, binding.digest)

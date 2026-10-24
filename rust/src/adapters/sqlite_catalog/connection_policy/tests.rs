@@ -95,6 +95,36 @@ fn pinned_read_snapshot_defers_checkpointing_without_blocking_commits() {
 }
 
 #[test]
+fn page_cache_budget_is_connection_local_and_does_not_change_read_authority() {
+    let (_directory, path, writer) = fixture();
+    let reader = Connection::open_with_flags(&path, OpenFlags::SQLITE_OPEN_READ_ONLY)
+        .expect("independent reader");
+    let cache_size = |connection: &Connection| {
+        connection
+            .pragma_query_value(None, "cache_size", |row| row.get::<_, i64>(0))
+            .expect("connection cache budget")
+    };
+    let default_budget = cache_size(&reader);
+    configure_catalog_read_connection(&reader).expect("catalog read policy");
+    assert_eq!(cache_size(&writer), -(32 * 1024));
+    assert_eq!(cache_size(&reader), -(32 * 1024));
+
+    writer
+        .pragma_update(None, "cache_size", -1024)
+        .expect("independent writer budget");
+    insert_entries(&writer, 0, 1);
+    assert_eq!(cache_size(&reader), -(32 * 1024));
+    assert_eq!(entry_count(&reader), 1);
+    assert!(reader.execute("DELETE FROM entries", []).is_err());
+    drop(reader);
+    drop(writer);
+
+    let reopened = Connection::open(&path).expect("unconfigured connection");
+    assert_eq!(cache_size(&reopened), default_budget);
+    assert_eq!(entry_count(&reopened), 1);
+}
+
+#[test]
 fn closing_the_retained_connection_preserves_the_committed_wal_without_rewriting_the_database() {
     let (_directory, path, mut catalog) = retained_fixture();
     catalog

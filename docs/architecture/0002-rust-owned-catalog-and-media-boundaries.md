@@ -88,6 +88,14 @@ per-batch issue, and the task resumes according to an explicit retry policy.
 ### Catalog connection and checkpoint policy
 
 `sqlite_catalog/connection_policy.rs` owns writable and read-only connection configuration.
+Both connection types use a 32 MiB demand-driven page-cache budget through SQLite's
+connection-local [`cache_size`](https://www.sqlite.org/pragma.html#pragma_cache_size).
+The retained-library organization queries repeatedly revisit catalog and decision indexes; the
+default approximately 2 MiB budget evicts needed pages during these reads. The larger budget
+reduces that churn without retaining connections or query results. It is not an immediate
+allocation or a process-wide memory ceiling: concurrent connections retain independent budgets,
+and query working memory remains separate. The setting is not persisted in the catalog; removing
+it restores SQLite's default on the next connection without a migration.
 Writable connections use SQLite's [passive automatic checkpoint](https://www.sqlite.org/wal.html#performance_considerations)
 at 256 WAL pages, approximately
 1 MiB at the default 4 KiB page size. This reduces the accumulated checkpoint work that one
@@ -103,9 +111,10 @@ admission. Every writer applies the current threshold before beginning a transac
 retained synchronization connections. Returning, failing, pausing or cancelling the scan retires
 the window; subsequent writes restore 256 pages. Imports alongside an already published root
 retain the ordinary policy. FULL synchronization and the existing scan checkpoints remain intact.
-The importing connection also borrows a 32 MiB page-cache budget for this scope; other connections
-keep their own cache settings. The typed connection scope restores the previous setting on normal
-return, failure and unwinding. Cache allocation remains demand-driven; this is a connection budget,
+The importing connection also establishes a 32 MiB page-cache budget for this scope, matching the
+ordinary connection budget; other connections keep their own settings. The typed connection scope
+restores the previous setting on normal return, failure and unwinding. Cache allocation remains
+demand-driven; this is a connection budget,
 not a reservation or a process-wide memory ceiling.
 The larger window trades less repeated database I/O for a longer individual passive checkpoint;
 real-client import and interruption measurements remain required for this path.

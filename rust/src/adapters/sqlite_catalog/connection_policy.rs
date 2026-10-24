@@ -8,6 +8,7 @@ pub(super) use initial_import::ImportCheckpointPolicy;
 // Smaller checkpoints limit the accumulated work performed by the committing writer.
 pub(super) const AUTOMATIC_CHECKPOINT_PAGES: i32 = 256;
 pub(super) const INITIAL_IMPORT_CHECKPOINT_PAGES: i32 = 32_768;
+const CATALOG_PAGE_CACHE_KIB: i64 = 32 * 1024;
 
 pub(super) fn configure_catalog_connection(connection: &Connection) -> Result<(), ScanError> {
     connection
@@ -16,7 +17,15 @@ pub(super) fn configure_catalog_connection(connection: &Connection) -> Result<()
     connection
         .execute_batch("PRAGMA foreign_keys = ON;")
         .map_err(database_error)?;
+    configure_page_cache(connection)?;
     configure_automatic_checkpoint(connection, AUTOMATIC_CHECKPOINT_PAGES)
+}
+
+fn configure_page_cache(connection: &Connection) -> Result<(), ScanError> {
+    // Negative cache_size values budget KiB; pages are allocated only on demand.
+    connection
+        .pragma_update(None, "cache_size", -CATALOG_PAGE_CACHE_KIB)
+        .map_err(database_error)
 }
 
 fn configure_automatic_checkpoint(connection: &Connection, pages: i32) -> Result<(), ScanError> {
@@ -44,7 +53,8 @@ pub(super) fn configure_catalog_read_connection(connection: &Connection) -> Resu
         .map_err(database_error)?;
     connection
         .execute_batch("PRAGMA foreign_keys = ON; PRAGMA query_only = ON;")
-        .map_err(database_error)
+        .map_err(database_error)?;
+    configure_page_cache(connection)
 }
 
 #[cfg(test)]

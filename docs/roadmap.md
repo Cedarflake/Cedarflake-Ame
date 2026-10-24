@@ -97,9 +97,11 @@ evidence, with focused group, conflict, source-removal and migration checks. Ato
 application now connects the application and typed bridge, preserving current decisions, operation
 history, queue order, continuation and unmatched evidence. Focused restore, cancellation, migration
 and queue-cost checks pass. Settings export, inspection and guarded restoration are connected,
-with focused controller/widget checks; native picker and restoration interaction remain pending.
+with focused controller/widget checks and native export, matched/unmatched restore and matched-profile
+restart evidence.
 Manual unresolved-record inspection, guarded cleanup and settings confirmation are connected;
-focused boundary checks pass, and their native interaction remains pending with archive recovery.
+focused boundary checks pass, and native age selection and confirmation counts are verified.
+Cleanup publication, late association and repeated native restore remain open.
 The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
 read archive tables before their migration. Schema-aware local versus imported authority now passes
 focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
@@ -292,6 +294,10 @@ restore remain open. Manual unresolved-record cleanup passes its focused boundar
 Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.
+Indexed representative evidence and a bounded connection page-cache budget reduce retained album
+and Favorite reads from over twelve seconds to about four, with unchanged query results and measured
+resource use. Empty queues and continuation remain slow; client and constrained-device performance
+acceptance is still open.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

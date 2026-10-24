@@ -1767,5 +1767,64 @@ remain for the following recovery check. Existing adapter regressions retain the
 
 All 700 reusable source fixtures retain their SHA-256, sizes and modification times. The archive,
 test profiles and diagnostic outputs remain in ignored derived storage. No original library or
-original catalog is changed. Hosted run `40122920970` remains in progress at the exact implementation
-commit; retained-library performance and integrated R4 acceptance remain open.
+original catalog is changed. Hosted run `40122920970` completes with all Rust partitions, Static,
+native integrations, unsigned Release and the five synthetic workloads passing. Flutter fails one
+integrated review assertion that still expects defer after selecting the deferred queue; the requested
+remove action correctly dispatches restore. That expectation requires correction. Retained-library
+performance and integrated R4 acceptance remain open.
+
+## Organization read cost and connection cache budget
+
+The representative join previously materialized the complete published/retained fingerprint view.
+It now resolves one compatible evidence generation and joins that fingerprint by its existing key.
+A regression with 50,000 unrelated published fingerprints keeps each collection, queue and saved
+continuation read below 20,000 SQLite VM steps. It covers current and retained display evidence,
+preferred copies, shared counts and empty scopes. All 19 organization query checks pass.
+
+Separate read-only trials on the populated disposable catalog identified page-cache churn: the
+same representative query took 2.273 seconds with a 2 MiB budget, 1.765 with 8 MiB, 0.926 with
+32 MiB and 0.672 with 64 MiB. The connection policy adopts 32 MiB per connection, allocated on
+demand. Eleven connection-policy checks pass, covering independent reader/writer budgets,
+non-persistence, read-only authority, rollback, durable reopen and first-import scope restoration.
+The focused Debug compilation emitted the local incremental-cache hard-link fallback warning;
+the subsequent Release build completed without that warning in 2 minutes 54 seconds.
+
+The complete retained-profile diagnostic uses the same unchanged schema-45 input, 63,077 physical
+files, 47,833 groups, normal migrations and real batch commands as the preceding baseline. It runs
+serially without a concurrent catalog capture, returns at most 128 assets/layout identifiers and
+does not flush the OS cache. The initial sample and three immediate repetitions give these ranges;
+they are observations rather than percentiles or desktop frame measurements.
+
+| Catalog operation | Measured elapsed time |
+| --- | --- |
+| One-time upgrade and open | 21.003 s |
+| Pending snapshot, including shared counts | 4.904–5.179 s |
+| Pending layout / following page | 3.658 s / 3.213 s |
+| Save continuation / repeat continuation reads | 2.202 s / 2.146–2.172 s |
+| Prepare / commit assignment of all 47,833 groups | 12.803 s / 58.442 s |
+| Prepare / commit Favorite for the same groups | 15.842 s / 36.071 s |
+| Reopen the populated copy | 1.926 s |
+| Populated album snapshot | 4.168–4.404 s |
+| Populated Favorite snapshot | 4.119–4.175 s |
+| Empty pending queue snapshot after assignment | 4.334–4.476 s |
+| Single-group unfavorite commit / resulting Favorite snapshot | 6.228 ms / 4.312 s |
+
+The diagnostic passes in 264.37 seconds. The enclosing worker measurement records 268.169 seconds
+wall time, 253.344 seconds lifetime CPU, a 92.406 MiB peak working set and an 81.766 MiB sampled
+peak private allocation. Its 514 samples use a 500 ms interval; the first observes only 0.047 seconds
+of worker CPU. Compilation is excluded. The input SHA-256 remains unchanged and source-media
+reads remain zero. Reports and resource samples are retained in ignored derived storage.
+
+These changes reduce the measured read waits substantially; they do not complete the performance
+exit. Empty queues still take over four seconds, continuation reads exceed two seconds, and the
+large Favorite commit is slower than the earlier baseline. Client save-to-visible timing, concurrent
+connection costs, constrained-device behavior and integrated resource acceptance remain open.
+The earlier fingerprint-only trial did not meaningfully improve populated reads, so it is not used
+as performance acceptance.
+
+The affected query owner contains 183 production lines, connection policy 61 production lines,
+and their new/existing dedicated regression owners 151 and 217 lines; there are no inline tests.
+No schema, bridge, dependency, licensing or source-authority changes are introduced. Rust formatting
+and owned whitespace checks pass. The whole-tree format check reports an unrelated, uncommitted
+gallery-state file; that file is preserved and excluded from this delivery. Hosted checks for the
+published implementation remain required.
