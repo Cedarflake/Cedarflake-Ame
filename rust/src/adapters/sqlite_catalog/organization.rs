@@ -1,8 +1,8 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationInspection,
-    OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
-    normalize_album_name, validate_identifier, validate_selections,
+    OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
+    OrganizationWriteReceipt, normalize_album_name, validate_identifier, validate_selections,
 };
 use crate::ports::organization::OrganizationRepository;
 
@@ -25,6 +25,14 @@ mod selection;
 mod undo;
 
 impl OrganizationRepository for SqliteCatalog {
+    fn find_organization_album(
+        &self,
+        album_id: &str,
+    ) -> Result<Option<OrganizationAlbum>, ScanError> {
+        validate_identifier(album_id)?;
+        albums::find(&self.connection, album_id)
+    }
+
     fn inspect_organization_selection(
         &self,
         selections: &[OrganizationSelection],

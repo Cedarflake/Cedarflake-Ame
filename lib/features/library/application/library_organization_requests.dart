@@ -11,13 +11,17 @@ String newOrganizationOperationId() {
   ).join();
 }
 
-sealed class LibraryOrganizationRequest {
+enum LibraryOrganizationErrorSurface { notice, form }
+
+abstract class LibraryOrganizationRequest {
   LibraryOrganizationRequest();
   final String feedbackId = newOrganizationOperationId();
   String id = newOrganizationOperationId();
   bool _cancelled = false;
   String get successMessage;
-  bool get canUndo => true;
+  bool canUndo(LibraryOrganizationReceipt receipt) => receipt.changedGroups > 0;
+  LibraryOrganizationErrorSurface get errorSurface =>
+      LibraryOrganizationErrorSurface.notice;
   Future<LibraryOrganizationReceipt> execute(LibraryOrganization service);
   void cancel() => _cancelled = true;
   void requireActive() {
@@ -61,7 +65,7 @@ class LibraryOrganizationUndoRequest extends LibraryOrganizationRequest {
   @override
   String get successMessage => "已撤销";
   @override
-  bool get canUndo => false;
+  bool canUndo(LibraryOrganizationReceipt receipt) => false;
 
   @override
   Future<LibraryOrganizationReceipt> execute(

@@ -55,6 +55,11 @@ Future<OrganizationAlbumPage> loadOrganizationAlbums({String? after}) => RustLib
     .api
     .crateApiOrganizationLoadOrganizationAlbums(after: after);
 
+Future<OrganizationAlbum?> findOrganizationAlbum({required String albumId}) =>
+    RustLib.instance.api.crateApiOrganizationFindOrganizationAlbum(
+      albumId: albumId,
+    );
+
 Future<OrganizationAlbumReceipt> createOrganizationAlbum({
   required String operationId,
   required BigInt expectedRevision,

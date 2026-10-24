@@ -3,12 +3,45 @@ import "package:cedarflake_ame/app/window/ame_window_placement.dart";
 import "package:cedarflake_ame/features/library/application/library_view_preferences.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/settings/application/ame_preferences.dart";
+import "package:cedarflake_ame/features/settings/application/album_preferences.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:shared_preferences/shared_preferences.dart";
 import "package:shared_preferences_platform_interface/in_memory_shared_preferences_async.dart";
 import "package:shared_preferences_platform_interface/shared_preferences_async_platform_interface.dart";
 
 void main() {
+  test(
+    "album settings preserve defaults, persist across store recreation and clear selection",
+    () async {
+      SharedPreferencesAsyncPlatform.instance =
+          InMemorySharedPreferencesAsync.empty();
+      final preferences = SharedPreferencesAsync();
+      final store = SharedPreferencesAmeStore(preferences: preferences);
+      final original = await store.loadAmePreferences();
+      expect(original.albums.askBeforeAdding, isTrue);
+      expect(original.albums.defaultAlbumId, isNull);
+      await store.saveAmePreferences(
+        original.copyWith(
+          albums: const AlbumPreferences(
+            askBeforeAdding: false,
+            defaultAlbumId: "album-one",
+          ),
+        ),
+      );
+      final reopened = SharedPreferencesAmeStore(preferences: preferences);
+      final restored = await reopened.loadAmePreferences();
+      expect(restored.albums.askBeforeAdding, isFalse);
+      expect(restored.albums.defaultAlbumId, "album-one");
+      await reopened.saveAmePreferences(
+        restored.copyWith(
+          albums: const AlbumPreferences(askBeforeAdding: false),
+        ),
+      );
+      expect((await store.loadAmePreferences()).albums.defaultAlbumId, isNull);
+      expect((await store.loadAmePreferences()).theme, original.theme);
+    },
+  );
+
   test(
     "defaults to automatic sizing and preserves all explicit opening preferences",
     () async {

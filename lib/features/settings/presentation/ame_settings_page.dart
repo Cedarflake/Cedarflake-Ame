@@ -9,6 +9,7 @@ import "../../../app/notifications/ame_notification_strings.dart";
 import "../../../app/presentation/ame_scroll_motion.dart";
 import "../application/ame_preferences.dart";
 import "widgets/settings_section.dart";
+import "widgets/album_settings_section.dart";
 import "widgets/storage_settings_section.dart";
 
 class AmeSettingsPage extends ConsumerWidget {
@@ -194,6 +195,8 @@ class AmeSettingsPage extends ConsumerWidget {
                             ),
                           ],
                         ),
+                        const SizedBox(height: 28),
+                        const AlbumSettingsSection(),
                         const SizedBox(height: 28),
                         StorageSettingsSection(
                           hasLibraryRoots: hasLibraryRoots,

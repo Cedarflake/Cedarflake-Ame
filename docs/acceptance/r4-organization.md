@@ -523,4 +523,63 @@ Queue. Its v33-to-current preservation fixture omitted seven newly introduced em
 new admission sequence initialized to zero. The corrected fixture asserts those exact additions and
 still compares every retained row and prior sequence. All four foreground-queue-index migration tests
 pass locally, including conflicting-object rollback and invalid-authority rejection. This result does
-not establish hosted verification for the current changes.
+not establish hosted verification for the current changes. The follow-up run
+[40060729462](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40060729462) for
+`c1059eb513ec9c6a6bdf25264bf102e28f8398c2` passes Schema and Queue, Flutter, static checks, unsigned
+packaging, synchronization/scan, native accessibility and the applicable synthetic workloads.
+Its Catalog job is still running at the album checkpoint; no job has reported a failure.
+
+## Album management, viewer membership and settings - 2026-10-24
+
+The secondary sidebar now opens album scopes and provides create, rename and delete through the
+existing Material menu/dialog controls. The viewer uses the same single-destination picker for
+assignment, movement and removal. It can create an album in that picker, keeps the selected
+destination across pages, waits for the committed receipt before closing and displays failures
+inline. Ordinary-mode commands retain the current image and use the existing whole-group
+transaction; deleting a selected album returns the gallery to the library.
+
+Prompt/default preferences use the existing presentation store. Prompting starts enabled with no
+default; disabled prompting uses a valid saved destination. Missing defaults and conflicts still
+require an explicit choice. Settings cancellation changes nothing, and a failed preference write
+restores the previous value. Neither Favorites nor physical folders are album destinations.
+
+Navigation and pickers retain one 64-album page. A new indexed, read-only album lookup resolves a
+saved default beyond that first page without fetching earlier pages. Its focused Rust test passes
+for a 65-album fixture, including missing/retired IDs and unchanged operation count. The generated
+Rust/Dart bridge hashes agree at `835197144`. Code generation completed; its trailing format command
+initially encountered Windows file-mapping error 1224. Retrying that remaining formatting step
+succeeded, and the matching optimized Rust library built in 108 seconds. No schema or dependency
+change is introduced.
+
+Thirty focused Flutter checks pass: five album-command cases, three destination-proposal cases,
+four dialog cases, three viewer-action cases, one composed gallery/navigation case, two settings
+widget cases, five shared-preference cases and seven existing organization-action cases. They cover
+unknown receipts and same-operation retry, stale authority, empty-album undo, cancelled preparation,
+default behavior, old viewer proposals, create-in-picker, pagination, input errors, removal,
+preference rollback and unchanged notification history/unread state. The composed gallery check
+initially used a nonexistent collection constructor, then exposed a missing scan-test dependency;
+using the actual library scope and existing no-op scanner isolates the intended path. Its rename,
+delete, return-to-library and transient undo assertions pass.
+
+Metadata-only receipts can undo without inventing a changed-group count. Outside the viewer, the
+existing gallery notification surface displays the transient receipt; the viewer retains its
+shared top notice. Form failures do not enter global notification history. The ordinary notification
+and task-surface priorities remain unchanged. The new controls were checked against the pinned
+Flutter 3.44.9 `RadioGroup`/`RadioListTile` API and reuse the accepted settings, menus, typography,
+spacing and scrolling owners.
+
+The Dart service and command facade have 295 and 219 production lines. Album request sessions,
+proposals and page providers have 151, 42 and 21 lines. Editor, picker, viewer action, navigation and
+settings controls have 150, 259, 127, 188 and 137 production lines, with 833 dedicated album-test
+lines. Scoped analysis and the repository format check pass. These production owners contain no
+inline tests. The 1,694-line screen receives composition
+and collection-title changes. The existing Rust album adapter has 239 production lines and its
+inspection test owner has 155 lines, including the new 35-line lookup case. Generated bridge files
+are excluded from handwritten counts.
+
+These checks use isolated catalogs or service fixtures and do not enumerate, decode or mutate
+original media. The user's no-window-operation instruction remains in force: no real client was
+opened, restarted or operated for this slice. Actual album controls, keyboard/focus, restart,
+retained-library latency and low-core measurements remain unverified. Gallery bulk selection,
+organization mode, involved-album conflict inspection and recovery settings remain subsequent
+R4 work. Hosted verification must cover the published album implementation commit.

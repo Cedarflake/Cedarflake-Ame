@@ -236,6 +236,19 @@ carry their catalog/query authority and are revalidated through bounded anchor r
 collection changes, preserving the currently displayed source. A fallback ordinal cannot prove that
 an image still belongs to a collection.
 
+Album navigation and destination dialogs read 64-album keyset pages. A separate indexed read resolves
+one saved default or selected album by ID; finding it does not traverse the list or create an
+operation. Retired albums are absent from both read contracts. Prompt and default-destination
+preferences use the existing durable presentation store, with prompting enabled and no default on
+first use. The destination proposal is read-only and leaves conflicts for an explicit choice.
+
+Each album dialog owns its pending command. An unknown receipt retries the same operation and
+prepared selection; changing the input creates a new command. Closing the dialog retires unfinished
+preparation, and failures remain in that form. Metadata-only operations retain undo even when they
+change no groups. Successful receipts use the existing gallery notification surface or viewer top
+notice without entering history. Gallery selection, query publication and viewer position retain
+their existing owners; the screen composes the album controls rather than owning their transactions.
+
 ## Alternatives and consequences
 
 Content-keyed decisions alone simplify queries but cannot retain provisional intent and conflict

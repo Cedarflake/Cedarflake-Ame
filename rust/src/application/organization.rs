@@ -1,7 +1,7 @@
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationInspection,
-    OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
-    normalize_album_name, validate_identifier, validate_selections,
+    OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
+    OrganizationWriteReceipt, normalize_album_name, validate_identifier, validate_selections,
 };
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::organization::OrganizationRepository;
@@ -61,6 +61,11 @@ pub(crate) fn load_albums(after: Option<String>) -> Result<OrganizationAlbumPage
         validate_identifier(after)?;
     }
     open_catalog()?.load_organization_albums(after.as_deref())
+}
+
+pub(crate) fn find_album(album_id: String) -> Result<Option<OrganizationAlbum>, ScanError> {
+    validate_identifier(&album_id)?;
+    open_catalog()?.find_organization_album(&album_id)
 }
 
 pub(crate) fn create_album(

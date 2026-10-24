@@ -32,12 +32,21 @@ class OrganizationServiceFixture implements LibraryOrganization {
       <({String id, LibraryOrganizationPrepared prepared, bool favorite})>[];
   final undos = <({String id, String originalId, BigInt revision})>[];
   int preparationCount = 0;
+  final preparedTargets = <List<LibraryOrganizationTarget>>[];
   bool isFavorite = false;
   Future<LibraryOrganizationInspection> Function(LibraryOrganizationTarget)?
   inspectTarget;
   Completer<LibraryOrganizationPrepared>? preparing;
   Future<LibraryOrganizationReceipt> Function(String)? save;
   Future<LibraryOrganizationReceipt> Function(String)? undoResult;
+  final albumWrites =
+      <({String id, BigInt revision, String? albumId, String? name})>[];
+  final memberships =
+      <({String id, LibraryOrganizationPrepared prepared, String? albumId})>[];
+  List<LibraryOrganizationAlbum> albumItems = [];
+  Future<LibraryOrganizationAlbumPage> Function(String?)? readAlbums;
+  Future<LibraryOrganizationReceipt> Function(String)? saveAlbum;
+  Future<LibraryOrganizationReceipt> Function(String)? saveMembership;
 
   LibraryOrganizationReceipt receipt(String id) => LibraryOrganizationReceipt(
     operationId: id,
@@ -56,6 +65,7 @@ class OrganizationServiceFixture implements LibraryOrganization {
     List<LibraryOrganizationTarget> targets,
   ) async {
     preparationCount++;
+    preparedTargets.add(List.unmodifiable(targets));
     return preparing?.future ?? const OrganizationPreparedFixture();
   }
 
@@ -74,6 +84,90 @@ class OrganizationServiceFixture implements LibraryOrganization {
 
   @override
   Future<BigInt> revision() async => BigInt.two;
+
+  @override
+  Future<LibraryOrganizationAlbumPage> albums({String? after}) async =>
+      readAlbums?.call(after) ??
+      LibraryOrganizationAlbumPage(
+        albums: albumItems,
+        revision: BigInt.one,
+        total: albumItems.length,
+      );
+
+  @override
+  Future<LibraryOrganizationAlbum?> findAlbum(String id) async =>
+      albumItems.where((album) => album.id == id).firstOrNull;
+
+  @override
+  Future<LibraryOrganizationReceipt> createAlbum(
+    String operationId,
+    BigInt revision,
+    String name,
+  ) => _album(operationId, revision, null, name);
+
+  @override
+  Future<LibraryOrganizationReceipt> renameAlbum(
+    String operationId,
+    BigInt revision,
+    String albumId,
+    String name,
+  ) => _album(operationId, revision, albumId, name);
+
+  @override
+  Future<LibraryOrganizationReceipt> deleteAlbum(
+    String operationId,
+    BigInt revision,
+    String albumId,
+  ) => _album(operationId, revision, albumId, null);
+
+  Future<LibraryOrganizationReceipt> _album(
+    String id,
+    BigInt revision,
+    String? albumId,
+    String? name,
+  ) async {
+    albumWrites.add((id: id, revision: revision, albumId: albumId, name: name));
+    if (saveAlbum case final save?) return save(id);
+    final album = name == null
+        ? null
+        : LibraryOrganizationAlbum(
+            albumId ?? 'album-${albumItems.length}',
+            name,
+          );
+    albumItems = [
+      for (final item in albumItems)
+        if (item.id != albumId) item,
+      ?album,
+    ];
+    return LibraryOrganizationReceipt(
+      operationId: id,
+      revision: revision + BigInt.one,
+      changedGroups: 0,
+      album: album,
+    );
+  }
+
+  @override
+  Future<LibraryOrganizationReceipt> assignAlbum(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+    String albumId,
+  ) => _membership(operationId, prepared, albumId);
+
+  @override
+  Future<LibraryOrganizationReceipt> removeAlbum(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+  ) => _membership(operationId, prepared, null);
+
+  Future<LibraryOrganizationReceipt> _membership(
+    String id,
+    LibraryOrganizationPrepared prepared,
+    String? albumId,
+  ) async {
+    memberships.add((id: id, prepared: prepared, albumId: albumId));
+    return saveMembership?.call(id) ?? receipt(id);
+  }
 
   @override
   Future<LibraryOrganizationReceipt> undo(

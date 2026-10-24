@@ -11,6 +11,30 @@ use super::operations::{self, Admission};
 
 const PAGE_SIZE: usize = 64;
 
+pub(super) fn find(
+    connection: &Connection,
+    album_id: &str,
+) -> Result<Option<OrganizationAlbum>, ScanError> {
+    connection
+        .query_row(
+            "SELECT album.album_id, album.name, album.revision
+         FROM organization_albums AS album
+         WHERE album.album_id = ?1 AND NOT EXISTS (
+             SELECT 1 FROM organization_album_retirements WHERE album_id = album.album_id
+         )",
+            [album_id],
+            |row| {
+                Ok(OrganizationAlbum {
+                    album_id: row.get(0)?,
+                    name: row.get(1)?,
+                    revision: read_unsigned(row, 2)?,
+                })
+            },
+        )
+        .optional()
+        .map_err(database_error)
+}
+
 pub(super) fn load(
     connection: &Connection,
     after: Option<&str>,

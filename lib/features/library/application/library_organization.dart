@@ -18,6 +18,33 @@ abstract interface class LibraryOrganization {
     bool favorite,
   );
   Future<BigInt> revision();
+  Future<LibraryOrganizationAlbumPage> albums({String? after});
+  Future<LibraryOrganizationAlbum?> findAlbum(String id);
+  Future<LibraryOrganizationReceipt> createAlbum(
+    String operationId,
+    BigInt revision,
+    String name,
+  );
+  Future<LibraryOrganizationReceipt> renameAlbum(
+    String operationId,
+    BigInt revision,
+    String albumId,
+    String name,
+  );
+  Future<LibraryOrganizationReceipt> deleteAlbum(
+    String operationId,
+    BigInt revision,
+    String albumId,
+  );
+  Future<LibraryOrganizationReceipt> assignAlbum(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+    String albumId,
+  );
+  Future<LibraryOrganizationReceipt> removeAlbum(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+  );
   Future<LibraryOrganizationReceipt> undo(
     String operationId,
     String originalId,
@@ -119,6 +146,120 @@ class RustLibraryOrganization implements LibraryOrganization {
   );
 
   @override
+  Future<LibraryOrganizationAlbumPage> albums({String? after}) =>
+      _call(() async {
+        final page = await api.loadOrganizationAlbums(after: after);
+        return LibraryOrganizationAlbumPage(
+          albums: [
+            for (final album in page.albums)
+              LibraryOrganizationAlbum(album.albumId, album.name),
+          ],
+          revision: page.organizationRevision,
+          total: page.totalAlbums.toInt(),
+          nextAlbumId: page.nextAlbumId,
+        );
+      });
+
+  @override
+  Future<LibraryOrganizationAlbum?> findAlbum(String id) => _call(() async {
+    final value = await api.findOrganizationAlbum(albumId: id);
+    return value == null
+        ? null
+        : LibraryOrganizationAlbum(value.albumId, value.name);
+  });
+
+  @override
+  Future<LibraryOrganizationReceipt> createAlbum(
+    String operationId,
+    BigInt revision,
+    String name,
+  ) => _call(() async {
+    final result = await api.createOrganizationAlbum(
+      operationId: operationId,
+      expectedRevision: revision,
+      name: name,
+    );
+    return _receipt(
+      result.operation,
+      album: LibraryOrganizationAlbum(result.albumId, name.trim()),
+    );
+  });
+
+  @override
+  Future<LibraryOrganizationReceipt> renameAlbum(
+    String operationId,
+    BigInt revision,
+    String albumId,
+    String name,
+  ) => _call(() async {
+    final result = await api.renameOrganizationAlbum(
+      operationId: operationId,
+      expectedRevision: revision,
+      albumId: albumId,
+      name: name,
+    );
+    return _receipt(
+      result.operation,
+      album: LibraryOrganizationAlbum(result.albumId, name.trim()),
+    );
+  });
+
+  @override
+  Future<LibraryOrganizationReceipt> deleteAlbum(
+    String operationId,
+    BigInt revision,
+    String albumId,
+  ) => _call(
+    () async => _receipt(
+      await api.deleteOrganizationAlbum(
+        operationId: operationId,
+        expectedRevision: revision,
+        albumId: albumId,
+      ),
+    ),
+  );
+
+  @override
+  Future<LibraryOrganizationReceipt> assignAlbum(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+    String albumId,
+  ) => _change(
+    operationId,
+    prepared,
+    dto.OrganizationAction.assignAlbum(albumId: albumId),
+  );
+
+  @override
+  Future<LibraryOrganizationReceipt> removeAlbum(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+  ) => _change(
+    operationId,
+    prepared,
+    const dto.OrganizationAction.removeAlbum(),
+  );
+
+  Future<LibraryOrganizationReceipt> _change(
+    String operationId,
+    LibraryOrganizationPrepared prepared,
+    dto.OrganizationAction action,
+  ) => _call(() async {
+    if (prepared is! _RustOrganizationPrepared) {
+      throw StateError(
+        "The prepared selection belongs to another organization adapter",
+      );
+    }
+    return _receipt(
+      await api.changeOrganization(
+        operationId: operationId,
+        prepared: prepared.value,
+        action: action,
+      ),
+    );
+  });
+
+  @override
   Future<LibraryOrganizationReceipt> undo(
     String operationId,
     String originalId,
@@ -133,12 +274,15 @@ class RustLibraryOrganization implements LibraryOrganization {
     ),
   );
 
-  LibraryOrganizationReceipt _receipt(dto.OrganizationWriteReceipt value) =>
-      LibraryOrganizationReceipt(
-        operationId: value.operationId,
-        revision: value.organizationRevision,
-        changedGroups: value.changedGroups.toInt(),
-      );
+  LibraryOrganizationReceipt _receipt(
+    dto.OrganizationWriteReceipt value, {
+    LibraryOrganizationAlbum? album,
+  }) => LibraryOrganizationReceipt(
+    operationId: value.operationId,
+    revision: value.organizationRevision,
+    changedGroups: value.changedGroups.toInt(),
+    album: album,
+  );
 }
 
 class _RustOrganizationPrepared extends LibraryOrganizationPrepared {

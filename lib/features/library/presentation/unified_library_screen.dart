@@ -12,11 +12,13 @@ import "../adapters/windows_library_platform_actions.dart";
 import "../../settings/application/ame_preferences.dart";
 import "../../settings/presentation/ame_settings_page.dart";
 import "../application/library_browse_admission.dart";
+import "../application/library_album_pages.dart";
 import "../application/library_catalog.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
 import "../application/library_organization_actions.dart";
+import "../application/library_organization_outcome.dart";
 import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
 import "../application/library_update_controller.dart";
@@ -41,6 +43,8 @@ import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
 import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
+import "widgets/library_album_navigation.dart";
+import "widgets/library_album_viewer_action.dart";
 import "widgets/library_collection_navigation.dart";
 import "widgets/library_favorite_button.dart";
 import "widgets/library_organization_feedback.dart";
@@ -379,7 +383,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     final hasLibraryTaskSurface = taskSurfaces.hasPrimary;
     final showsLibraryTaskSurface = taskSurfaces.showPrimary;
     final showsUpdateTaskSurface = taskSurfaces.showUpdates;
-    final currentNotification = notifications.current;
+    final organizationOutcome = ref.watch(libraryOrganizationOutcomeProvider);
+    final currentNotification = notifications.current ?? organizationOutcome;
     final catalogRevision = state.catalogRevision;
     final manifestRequest = catalogRevision != null && state.queryId.isNotEmpty
         ? LibraryGalleryLayoutManifestRequest(
@@ -463,10 +468,20 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           );
                           return LibraryImageViewer(
                             asset: viewerAsset,
-                            organizationActions: LibraryFavoriteButton(
-                              target: LibraryOrganizationTarget.fromAsset(
-                                viewerAsset,
-                              ),
+                            organizationActions: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                LibraryFavoriteButton(
+                                  target: LibraryOrganizationTarget.fromAsset(
+                                    viewerAsset,
+                                  ),
+                                ),
+                                LibraryAlbumViewerAction(
+                                  target: LibraryOrganizationTarget.fromAsset(
+                                    viewerAsset,
+                                  ),
+                                ),
+                              ],
                             ),
                             operationNotice: switch (ref.watch(
                               libraryOrganizationNoticeProvider,
@@ -534,7 +549,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                       key: ValueKey(currentNotification.id),
                       notification: currentNotification,
                       onAction: _handleNotificationAction,
-                      onDismiss: _notificationController.dismiss,
+                      onDismiss: (id) {
+                        _notificationController.dismiss(id);
+                        ref
+                            .read(libraryOrganizationOutcomeProvider.notifier)
+                            .dismiss(id);
+                      },
                     ),
                   ),
                 ),
@@ -610,6 +630,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   ) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
     final folderController = ref.read(libraryFolderControllerProvider.notifier);
+    final collection = state.query.collection;
+    final albumName = collection is LibraryAlbumCollection
+        ? ref.watch(libraryAlbumProvider(collection.albumId)).value?.name
+        : null;
     return LibraryWorkbench(
       navigationBuilder: (width) => LibraryNavigation(
         isCompact: false,
@@ -620,21 +644,47 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             _synchronizationSnapshot.lastErrorCode != null,
         selectedRootId: state.query.rootId,
         collection: state.query.collection,
-        collections: LibraryCollectionNavigation(
-          collection: state.query.collection,
-          isCompact: false,
-          onFavorites: !LibraryBrowseAdmission(state).canBrowse
-              ? null
-              : () => unawaited(
-                  _applyQuery(
-                    state.query.copyWith(
-                      collection: const LibraryGalleryCollection.favorites(),
-                      rootId: null,
-                      folderRelativePath: null,
+        collections: Column(
+          children: [
+            LibraryCollectionNavigation(
+              collection: state.query.collection,
+              isCompact: false,
+              onFavorites: !LibraryBrowseAdmission(state).canBrowse
+                  ? null
+                  : () => unawaited(
+                      _applyQuery(
+                        state.query.copyWith(
+                          collection:
+                              const LibraryGalleryCollection.favorites(),
+                          rootId: null,
+                          folderRelativePath: null,
+                        ),
+                        preserveGalleryPosition: false,
+                      ),
                     ),
-                    preserveGalleryPosition: false,
+            ),
+            LibraryAlbumNavigation(
+              collection: collection,
+              enabled: LibraryBrowseAdmission(state).canBrowse,
+              onSelect: (album) => unawaited(
+                _applyQuery(
+                  state.query.copyWith(
+                    collection: LibraryGalleryCollection.album(album.id),
+                    rootId: null,
+                    folderRelativePath: null,
                   ),
+                  preserveGalleryPosition: false,
                 ),
+              ),
+              onDeleted: (id) {
+                final current = ref.read(libraryControllerProvider);
+                if (current.query.collection ==
+                    LibraryGalleryCollection.album(id)) {
+                  _selectLibrary(current);
+                }
+              },
+            ),
+          ],
         ),
         selectedFolderRelativePath: state.query.folderRelativePath,
         transientSource: LibraryPendingSource.fromState(state),
@@ -686,7 +736,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                 unawaited(_persistViewPreferences(query: query));
               },
             ),
-            galleryTitle: _galleryTitle(state),
+            galleryTitle: _galleryTitle(state, albumName: albumName),
             totalItems: state.timeline?.totalSourceItems ?? _totalItems(state),
             mergedItems:
                 state.query.duplicateMode == LibraryGalleryDuplicateMode.merged
@@ -1564,19 +1614,25 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         state.roots.fold(0, (sum, root) => sum + root.assetCount);
   }
 
-  static String _galleryTitle(LibraryState state) {
+  static String _galleryTitle(LibraryState state, {String? albumName}) {
+    final collectionName = switch (state.query.collection) {
+      LibraryFavoritesCollection() => "收藏夹",
+      LibraryAlbumCollection() => albumName ?? "相册",
+      LibraryAllCollection() => null,
+    };
     final folder = state.query.folderRelativePath;
     if (folder != null) {
-      return folder.split("/").last;
+      final name = folder.split("/").last;
+      return collectionName == null ? name : "$collectionName · $name";
     }
     final rootId = state.query.rootId;
     if (rootId == null) {
-      if (state.query.collection is LibraryFavoritesCollection) return "收藏夹";
-      return LibraryStrings.library;
+      return collectionName ?? LibraryStrings.library;
     }
     for (final root in state.roots) {
       if (root.id == rootId) {
-        return librarySourceName(root.displayPath);
+        final name = librarySourceName(root.displayPath);
+        return collectionName == null ? name : "$collectionName · $name";
       }
     }
     return LibraryStrings.library;

@@ -6,6 +6,7 @@ import "../../../app/window/ame_window_placement.dart";
 import "../../library/application/library_view_preferences.dart";
 import "../../library/domain/library_models.dart";
 import "../application/ame_preferences.dart";
+import "../application/album_preferences.dart";
 
 class SharedPreferencesAmeStore
     implements
@@ -101,6 +102,7 @@ class SharedPreferencesAmeStore
           ? value["sidebarExpanded"] as bool
           : null,
       exactAnalysisPaused: value["exactAnalysisPaused"] == true,
+      albums: AlbumPreferences.fromStoredValue(value["albums"]),
       sidebarWidth:
           (_readDouble(value["sidebarWidth"]) ?? ameDefaultSidebarWidth)
               .clamp(ameMinimumSidebarWidth, ameMaximumSidebarWidth)
@@ -170,6 +172,7 @@ class SharedPreferencesAmeStore
         "sidebarWidth": preferences.sidebarWidth,
         "sidebarExpanded": preferences.sidebarExpanded,
         "exactAnalysisPaused": preferences.exactAnalysisPaused,
+        "albums": preferences.albums.toStoredValue(),
       }),
     );
   }

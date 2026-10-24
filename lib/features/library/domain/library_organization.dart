@@ -37,6 +37,20 @@ class LibraryOrganizationAlbum {
   final String name;
 }
 
+class LibraryOrganizationAlbumPage {
+  LibraryOrganizationAlbumPage({
+    required List<LibraryOrganizationAlbum> albums,
+    required this.revision,
+    required this.total,
+    this.nextAlbumId,
+  }) : albums = List.unmodifiable(albums);
+
+  final List<LibraryOrganizationAlbum> albums;
+  final BigInt revision;
+  final int total;
+  final String? nextAlbumId;
+}
+
 class LibraryOrganizationDecision {
   const LibraryOrganizationDecision({
     required this.favorite,
@@ -68,10 +82,30 @@ class LibraryOrganizationReceipt {
     required this.operationId,
     required this.revision,
     required this.changedGroups,
+    this.album,
   });
   final String operationId;
   final BigInt revision;
   final int changedGroups;
+  final LibraryOrganizationAlbum? album;
+}
+
+sealed class LibraryOrganizationCommandResult {
+  const LibraryOrganizationCommandResult();
+}
+
+class LibraryOrganizationSaved extends LibraryOrganizationCommandResult {
+  const LibraryOrganizationSaved(this.receipt);
+  final LibraryOrganizationReceipt receipt;
+}
+
+class LibraryOrganizationRejected extends LibraryOrganizationCommandResult {
+  const LibraryOrganizationRejected(this.failure);
+  final LibraryOrganizationFailure failure;
+}
+
+class LibraryOrganizationRetired extends LibraryOrganizationCommandResult {
+  const LibraryOrganizationRetired();
 }
 
 class LibraryOrganizationFailure implements Exception {

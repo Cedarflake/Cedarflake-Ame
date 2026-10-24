@@ -1,10 +1,16 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationInspection,
-    OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
+    OrganizationAction, OrganizationAlbum, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationInspection, OrganizationPreparedSelection, OrganizationSelection,
+    OrganizationWriteReceipt,
 };
 
 pub(crate) trait OrganizationRepository {
+    fn find_organization_album(
+        &self,
+        album_id: &str,
+    ) -> Result<Option<OrganizationAlbum>, ScanError>;
+
     fn inspect_organization_selection(
         &self,
         selections: &[OrganizationSelection],

@@ -51,8 +51,13 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
     return const LibraryOrganizationActivity();
   }
 
-  Future<void> favorite(LibraryOrganizationTarget target, bool favorite) =>
-      _run(LibraryFavoriteRequest(target, favorite));
+  Future<void> favorite(LibraryOrganizationTarget target, bool favorite) async {
+    await _run(LibraryFavoriteRequest(target, favorite));
+  }
+
+  Future<LibraryOrganizationCommandResult> submit(
+    LibraryOrganizationRequest request,
+  ) => _run(request);
 
   bool handleNotification(AmeNotificationEntry observed) {
     if (observed.actionId?.startsWith("organization.") != true) {
@@ -84,9 +89,11 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
     return true;
   }
 
-  Future<void> _run(LibraryOrganizationRequest request) async {
+  Future<LibraryOrganizationCommandResult> _run(
+    LibraryOrganizationRequest request,
+  ) async {
     if (_disposed || state.saving) {
-      return;
+      return const LibraryOrganizationRetired();
     }
     final notifications = ref.read(ameNotificationControllerProvider.notifier);
     final service = ref.read(libraryOrganizationProvider);
@@ -98,7 +105,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
       receipt = await request.execute(service);
     } on Object catch (error) {
       if (_disposed) {
-        return;
+        return const LibraryOrganizationRetired();
       }
       final code = error is LibraryOrganizationFailure
           ? error.code
@@ -111,6 +118,10 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
       final retryId = request.feedbackId;
       if (stale) {
         request.refreshAuthority();
+      }
+      final failure = LibraryOrganizationFailure(code, error.toString());
+      if (request.errorSurface == LibraryOrganizationErrorSurface.form) {
+        return LibraryOrganizationRejected(failure);
       }
       if (!undoUnavailable) {
         _failed[retryId] = request;
@@ -136,7 +147,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
           isPersistent: true,
         ),
       );
-      return;
+      return LibraryOrganizationRejected(failure);
     } finally {
       if (identical(_active, request)) {
         _active = null;
@@ -146,7 +157,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
       }
     }
     if (_disposed) {
-      return;
+      return const LibraryOrganizationRetired();
     }
     _failed.removeWhere((_, pending) => identical(pending, request));
     notifications.resolve(key);
@@ -156,9 +167,10 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
         .show(
           receipt,
           message: request.successMessage,
-          canUndo: request.canUndo,
+          canUndo: request.canUndo(receipt),
         );
     await _refresh();
+    return LibraryOrganizationSaved(receipt);
   }
 
   Future<void> _refresh() async {

@@ -17,7 +17,6 @@ class LibraryOrganizationOutcome extends Notifier<AmeNotificationEntry?> {
     required String message,
     required bool canUndo,
   }) {
-    final offersUndo = canUndo && receipt.changedGroups > 0;
     state = AmeNotificationEntry(
       id: "organization-outcome-${receipt.operationId}",
       title: message,
@@ -27,9 +26,9 @@ class LibraryOrganizationOutcome extends Notifier<AmeNotificationEntry?> {
       isUnread: false,
       isActive: true,
       isPersistent: false,
-      actionId: offersUndo ? "organization.undo" : null,
-      actionLabel: offersUndo ? "撤销" : null,
-      actionContext: offersUndo ? receipt.operationId : null,
+      actionId: canUndo ? "organization.undo" : null,
+      actionLabel: canUndo ? "撤销" : null,
+      actionContext: canUndo ? receipt.operationId : null,
     );
   }
 

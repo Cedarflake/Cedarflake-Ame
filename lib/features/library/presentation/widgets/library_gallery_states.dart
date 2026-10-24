@@ -169,7 +169,17 @@ class NoGalleryResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSearch = query.searchText.isNotEmpty;
-    if (!isSearch && query.collection is LibraryFavoritesCollection) {
+    final wholeCollection =
+        !isSearch && query.rootId == null && query.organizationQueue == null;
+    if (wholeCollection && query.collection is LibraryAlbumCollection) {
+      return const LibraryGalleryMessage(
+        key: Key("library-no-results"),
+        icon: Symbols.photo_album_rounded,
+        title: "这个相册里还没有图片",
+        detail: "在图库中打开图片后，可以将它加入相册。",
+      );
+    }
+    if (wholeCollection && query.collection is LibraryFavoritesCollection) {
       return const LibraryGalleryMessage(
         key: Key("library-no-results"),
         icon: Symbols.favorite_rounded,

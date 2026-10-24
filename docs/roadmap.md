@@ -69,8 +69,10 @@ that omitted new empty organization tables and its initial sequence. That fixtur
 its focused preservation and rollback checks. The current product checkpoint still requires hosted
 verification. R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
 The initial controlled desktop path passes; the final presentation, undo and restart recheck is
-deferred while window operation is paused. Album management, selection actions, settings and
-organization mode remain to be connected. Retain the real-interaction and retained-library
+deferred while window operation is paused. Album management, viewer assignment/movement/removal,
+sidebar scopes and durable album settings are connected and covered by focused regressions;
+their real-window and restart checks remain pending. Gallery selection actions and organization
+mode remain to be connected. Retain the real-interaction and retained-library
 performance obligations.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
@@ -221,8 +223,9 @@ passes the unchanged local and hosted 10,000-image workloads. R4-04's transactio
 passes focused publication, source-lifecycle and migration checks. Its bounded queue queries and
 coherent progress counts and durable continuation pass focused regressions, including reopen,
 ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle. R4-05 is active with
-the viewer Favorite path and collection entry connected. Its final desktop recheck is deferred while
-window operation is paused; album and organization-mode workflows remain pending. Keep the product
+the viewer Favorite path, album management, viewer membership commands, collection entries and
+album settings connected. Their desktop recheck is deferred while window operation is paused;
+gallery selection and organization-mode workflows remain pending. Keep the product
 checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
 R4-07 remain pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

@@ -1,5 +1,7 @@
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "album_preferences.dart";
+
 enum AmeThemePreference { system, light, dark }
 
 enum ImageViewerWheelBehavior { zoom, previousOrNext }
@@ -22,6 +24,7 @@ class AmePreferences {
     this.sidebarWidth = ameDefaultSidebarWidth,
     this.sidebarExpanded,
     this.exactAnalysisPaused = false,
+    this.albums = const AlbumPreferences(),
   });
 
   final AmeThemePreference theme;
@@ -32,6 +35,7 @@ class AmePreferences {
   final double sidebarWidth;
   final bool? sidebarExpanded;
   final bool exactAnalysisPaused;
+  final AlbumPreferences albums;
 
   AmePreferences copyWith({
     AmeThemePreference? theme,
@@ -42,6 +46,7 @@ class AmePreferences {
     double? sidebarWidth,
     bool? sidebarExpanded,
     bool? exactAnalysisPaused,
+    AlbumPreferences? albums,
   }) {
     return AmePreferences(
       theme: theme ?? this.theme,
@@ -53,6 +58,7 @@ class AmePreferences {
       sidebarWidth: sidebarWidth ?? this.sidebarWidth,
       sidebarExpanded: sidebarExpanded ?? this.sidebarExpanded,
       exactAnalysisPaused: exactAnalysisPaused ?? this.exactAnalysisPaused,
+      albums: albums ?? this.albums,
     );
   }
 }

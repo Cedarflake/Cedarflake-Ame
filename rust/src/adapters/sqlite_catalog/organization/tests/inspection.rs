@@ -118,3 +118,38 @@ fn inspection_rejects_stale_locations_and_oversized_requests() {
     let requests = vec![selected(&catalog, "b"); 257];
     assert!(catalog.inspect_organization_selection(&requests).is_err());
 }
+
+#[test]
+fn album_lookup_reads_outside_the_first_page_and_rejects_retired_destinations() {
+    let (_directory, mut catalog) = fixture();
+    for index in 0..65 {
+        create_album(&mut catalog, &format!("Album {index}"));
+    }
+    let page = catalog.load_organization_albums(None).unwrap();
+    assert_eq!(page.albums.len(), 64);
+    let later = catalog
+        .load_organization_albums(page.next_album_id.as_deref())
+        .unwrap();
+    let last = later.albums.into_iter().next().unwrap();
+    let operations = scalar(&catalog, "SELECT COUNT(*) FROM organization_operations");
+    assert_eq!(
+        catalog.find_organization_album(&last.album_id).unwrap(),
+        Some(last.clone())
+    );
+    assert_eq!(
+        scalar(&catalog, "SELECT COUNT(*) FROM organization_operations"),
+        operations
+    );
+    catalog
+        .delete_organization_album("remove-last", page.organization_revision, &last.album_id)
+        .unwrap();
+    assert_eq!(
+        catalog.find_organization_album(&last.album_id).unwrap(),
+        None
+    );
+    assert_eq!(
+        catalog.find_organization_album("unknown-album").unwrap(),
+        None
+    );
+    assert!(catalog.find_organization_album("").is_err());
+}
