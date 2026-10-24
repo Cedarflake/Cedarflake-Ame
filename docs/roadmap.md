@@ -101,7 +101,9 @@ with focused controller/widget checks and native export, matched/unmatched resto
 restart evidence.
 Manual unresolved-record inspection, guarded cleanup and settings confirmation are connected;
 focused boundary checks pass, and native age selection and confirmation counts are verified.
-Cleanup publication, late association and repeated native restore remain open.
+Repeated native restore, unmatched-profile restart and late association after importing the
+retained test corpus now have controlled client evidence. Cleanup publication and post-cleanup
+reimport remain open.
 The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
 read archive tables before their migration. Schema-aware local versus imported authority now passes
 focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
@@ -289,8 +291,10 @@ are implemented through the application and typed bridge. Restored queue order a
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
 the remaining native settings verification. Native export, matched restore, restart of the matched
 profile and unmatched restore into an empty profile now have controlled client evidence. Cleanup
-age selection and confirmation counts are verified; cleanup publication, late association and repeat
-restore remain open. Manual unresolved-record cleanup passes its focused boundary checks.
+age selection and confirmation counts are verified. Repeated restoration preserves the same
+decisions, and reimport associates all retained test records without duplicate albums or groups;
+both unmatched and associated records survive restart. Cleanup publication and post-cleanup
+reimport remain open. Manual unresolved-record cleanup passes its focused boundary checks.
 Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.

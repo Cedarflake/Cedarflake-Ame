@@ -1774,6 +1774,35 @@ remove action correctly dispatches restore. The corrected assertion also checks 
 label; both integrated review tests pass locally. Hosted verification of the corrected checkpoint,
 retained-library performance and integrated R4 acceptance remain open.
 
+### Repeated native restoration and late association
+
+The complete Debug client builds from product commit `7e11d8a7` in 49.8 seconds without warnings.
+It includes the three preserved, uncommitted presentation edits in duplicate wording, the gallery
+header and empty-state wording; no archive, association or persistence code differs from that commit.
+Unlike the earlier navigation-only check, this uses the matching current frontend and Rust adapter.
+
+A fresh isolated profile applies the existing 753,800-byte archive twice through the native picker,
+inspection, confirmation and completion flow. Both inspections report zero matched and six unmatched
+groups. Read-only catalog inspection after each application finds the same two albums, five organized
+groups, one deferred group and one independent Favorite. The verified archive identity remains single;
+two explicit restore operations are retained without duplicating decisions or imported history.
+Closing and reopening this still-empty profile preserves all six unmatched records.
+
+Importing the existing 700-file reusable source corpus through the native folder picker automatically
+associates all six records. The client shows five folded groups covering 490 files in the restored
+album, one Favorite group covering 25 files, and organization counts of five organized, zero pending,
+one deferred and zero ignored. The deferred queue contains its retained image. Selecting all ages
+in unresolved-record inspection returns no eligible records. No manual reassignment or additional
+backup application is needed after import.
+
+Another client restart retains these associations and displays the album's five groups again.
+Read-only catalog inspection confirms the same album, Favorite and disposition values, with all
+unassociated timestamps cleared. All 700 fixture SHA-256 values, sizes and modification times remain
+unchanged. The original test profile and the separate pending-cleanup profile remain intact; the
+archive and test outputs stay in ignored derived storage. This closes the repeated-restore,
+unmatched-profile restart and late-association client gaps. Native cleanup publication and
+post-cleanup reimport remain unverified pending the existing action-time confirmation.
+
 ## Organization read cost and connection cache budget
 
 The representative join previously materialized the complete published/retained fingerprint view.
