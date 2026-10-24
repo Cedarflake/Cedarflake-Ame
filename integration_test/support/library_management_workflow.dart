@@ -10,6 +10,8 @@ Future<void> verifyLibraryManagementWorkflow(
   WidgetTester tester,
   ProviderContainer container,
 ) async {
+  await tester.tap(find.byKey(const Key("workbench-gallery")));
+  await tester.pumpAndSettle();
   final before = container.read(libraryControllerProvider);
   expect(before.roots, hasLength(2));
   final first = before.roots.first;

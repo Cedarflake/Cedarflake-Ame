@@ -27,8 +27,9 @@ class _OrganizationArchiveSectionState
 
   Future<void> _choose({required bool exporting}) async {
     if (_picking ||
-        ref.read(libraryArchiveControllerProvider) is LibraryArchiveWorking)
+        ref.read(libraryArchiveControllerProvider) is LibraryArchiveWorking) {
       return;
+    }
     setState(() {
       _picking = true;
       _pickerError = null;

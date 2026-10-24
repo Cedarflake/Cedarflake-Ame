@@ -52,8 +52,9 @@ class LibraryArchiveController extends Notifier<LibraryArchiveState> {
   void cancel() {
     final current = state;
     final task = _active;
-    if (current is! LibraryArchiveWorking || current.stopping || task == null)
+    if (current is! LibraryArchiveWorking || current.stopping || task == null) {
       return;
+    }
     try {
       task.cancel();
       state = LibraryArchiveWorking(

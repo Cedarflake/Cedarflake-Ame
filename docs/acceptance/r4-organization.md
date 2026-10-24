@@ -1352,3 +1352,11 @@ The native task owner has 59 production lines plus its three-line test-module de
 49 dedicated test lines. Controller and settings tests have 183 and 201 lines; these owners contain
 no inline Dart tests. The settings page adds composition only, and application admission moves to
 the task owner rather than adding lifecycle flags to the archive facade.
+
+The hosted archive checkpoint `35ef95a` exposes two missing Dart flow-control blocks and a native
+workflow setup error. Static analysis rejects the unbraced multiline guards. The native organization
+workflow reaches its completion marker, then source management attempts to find a Library-only
+source menu while the Albums destination remains selected. The correction adds the required blocks
+and explicitly enters Library before the existing management assertions. It changes neither the
+source update/removal assertions nor their deadlines. Native verification of this correction belongs
+to the subsequent hosted head; local window interaction remains suspended.
