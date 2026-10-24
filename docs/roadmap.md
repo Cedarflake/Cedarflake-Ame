@@ -285,7 +285,10 @@ bridge. Native-version reassociation is connected to the existing publication tr
 cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
 are implemented through the application and typed bridge. Restored queue order and continuation,
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
-native settings verification. Manual unresolved-record cleanup passes its focused boundary checks.
+the remaining native settings verification. Native export, matched restore, restart of the matched
+profile and unmatched restore into an empty profile now have controlled client evidence. Cleanup
+age selection and confirmation counts are verified; cleanup publication, late association and repeat
+restore remain open. Manual unresolved-record cleanup passes its focused boundary checks.
 Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.
@@ -316,8 +319,8 @@ safety before exposing album writes. Migration backup belongs to R4-01; the late
 do not postpone protection of existing user data. Requirements and accepted control placement remain
 with their product owners rather than being re-decided during implementation.
 The [R4 evidence record](acceptance/r4-organization.md) covers internal boundaries and the connected
-desktop workflows. Recovery and cleanup settings retain their native interaction verification;
-integrated retained-library verification remains outstanding.
+desktop workflows. Recovery settings have native export and matched/unmatched restore evidence;
+the remaining recovery/cleanup interactions and integrated retained-library verification are outstanding.
 
 ## Frozen R2c ownership
 

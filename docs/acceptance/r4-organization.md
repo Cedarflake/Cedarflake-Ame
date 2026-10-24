@@ -1738,3 +1738,34 @@ Production owners contain 72 progress-control lines, 377 selection-action lines,
 Dedicated selection/review/menu tests contain 574/359/204 lines. No schema, generated bridge,
 dependency or licensing change is introduced. Hosted verification follows this publication;
 the broader recovery, retained-library performance and R4 integrated acceptance remain open.
+
+## Native archive export and restoration
+
+The Debug client built from `f096ffd5` exports the retained test profile through the native Save
+dialog into a new `.ame-backup` file outside source storage. The 753,800-byte archive has format
+version 2 and source schema 56. Its inspection reports two albums, six groups, one Favorite group
+and a saved continuation, matching the read-only catalog snapshot.
+
+Restoration into the same profile reports six matched groups and no unmatched groups. The actual
+confirmation and completion flow succeeds, producing one durable restore receipt. Catalog inspection
+retains the five organized groups, one deferred group and independent Favorite state without duplicate
+albums. After closing and reopening the client, the album displays five groups covering 490 physical
+files and Favorites displays one group covering 25 files, consistent with the stored decisions.
+
+A separately created empty test profile restores the same archive through the native file picker.
+The preview correctly reports zero matched groups and six unmatched groups. Completion retains both
+album definitions and all six decisions without configuring a source or inventing gallery members.
+Read-only inspection confirms five organized records, one deferred record, one Favorite bit and one
+restore receipt, with all six records marked unassociated.
+
+The cleanup UI excludes these recent records under the default 90-day threshold. Selecting all
+unassociated records presents six image records, zero duplicate choices, five album memberships,
+one Favorite and six progress records, all unassociated for less than one day. The destructive
+confirmation remains pending; this checkpoint does not establish native cleanup publication or
+post-cleanup reimport behavior. Fresh-profile restart, late association and repeated native restore
+remain for the following recovery check. Existing adapter regressions retain their separate scope.
+
+All 700 reusable source fixtures retain their SHA-256, sizes and modification times. The archive,
+test profiles and diagnostic outputs remain in ignored derived storage. No original library or
+original catalog is changed. Hosted run `40122920970` remains in progress at the exact implementation
+commit; retained-library performance and integrated R4 acceptance remain open.
