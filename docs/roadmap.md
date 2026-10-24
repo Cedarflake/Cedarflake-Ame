@@ -119,12 +119,14 @@ group updates, with migration, cleanup/restoration, query-growth and exact-head 
 The R4-05 control follow-up adds a bottom album tray, state-aware Favorite/album commands and
 persistent chronological undo/redo across viewed groups. Focused regressions and the controlled
 desktop move/remove and restart paths pass. Schema-56 recovery-shape admission, Dart style and
-stale picker/archive test expectations are repaired with focused checks; hosted verification remains
-pending. Deferred/ignored controls now expose state-aware removal in gallery selection, detailed
-viewing and the album tray, with native removal/undo evidence in the R4 acceptance record.
-The retained-library database baseline exposes slow album, Favorite and organization-queue reads,
-including empty queues and continuation. Repair their owning queries before accepting large-library
-performance; retain the complete client/resource obligations with integrated verification.
+stale picker/archive test expectations are repaired with focused checks; hosted verification now
+passes through product commit `7e11d8a7`. Deferred/ignored controls expose state-aware removal in
+gallery selection, detailed viewing and the album tray, with native removal/undo evidence in the
+R4 acceptance record.
+Owning-query repairs reduce retained-library album, Favorite and organization-queue read costs.
+The complete Debug client now verifies populated collections, single-group Favorite publication,
+new arrivals and an empty deferred queue on a full catalog copy. Optimized-client timings, remaining
+query/write waits and constrained-device resource acceptance are still open.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -301,8 +303,10 @@ by the catalog-only baseline before integrated performance acceptance.
 Indexed representative evidence, bounded connection caches and non-repeated group scope reduce
 retained album and Favorite reads from over twelve seconds to about 3.3 seconds, with unchanged
 query results and measured resource use. Continuation reads take about 1.6 seconds; empty queues
-still take 3.4–4.0 seconds. Client and constrained-device performance
-acceptance is still open.
+still take 3.4–4.0 seconds. The full Debug client preserves 47,833 organized groups while startup
+synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
+and empty deferred-queue interactions pass with sampled resources. Optimized-client response times,
+remaining read/write waits and constrained-device performance acceptance are still open.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

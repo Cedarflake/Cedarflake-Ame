@@ -1951,3 +1951,49 @@ of the same source with process-local incremental caching disabled completes wit
 Only the 290-line dedicated test owner and this evidence change; production lock behavior, schema,
 bridge, dependencies and source authority remain unchanged. Rust formatting and whitespace checks
 pass. Hosted verification of the combined published fixes remains required.
+
+Hosted run [40130669974](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40130669974)
+passes on `7e11d8a7478e8dc95f64f5067d4e75a82f6ebbb9`: Static, Flutter, all four Rust
+partitions, Windows accessibility and scan integrations, unsigned Release, all five synthetic
+workloads and the aggregate gate succeed. The three protected/signed-release jobs are skipped by
+their existing conditions. This covers the preceding query, navigation and fixture repairs.
+
+## Full-catalog Debug client interaction - 2026-10-25
+
+The complete Debug client from product commit `7e11d8a7` opens a separate, schema-56 copy of the
+retained `local-primary` catalog: 63,077 physical files, 47,833 organized and favorited groups,
+and one album containing those groups. The copy uses SQLite's read-only online backup and the
+Debug test-storage override. Three existing, uncommitted presentation/copy edits remain present;
+this is a working-tree client observation, not exact-commit packaging acceptance.
+
+Normal startup synchronization observes 77 journal entries and publishes one checkpoint without a
+reported journal failure. Twelve new independent images appear in the library, giving 63,089 files
+and 47,845 groups. The album and Favorites still show their original 63,077 files and 47,833 groups.
+Collection changes retain the previous frame with the existing top progress indicator until the
+new query completes.
+
+Selecting one Favorite offers only unfavorite. After commit, the shared transient notice appears,
+the selected group leaves Favorites, selection clears, and the collection shows 63,076 files and
+47,832 groups. A read-only post-exit check confirms one organized, non-favorite record and 47,832
+organized favorite records; all 47,833 retain the album. Organization mode shows 47,833 organized
+and 12 pending groups. The deferred queue completes with its empty state and zero count.
+
+The owned client exits normally. A 500 ms sampler records 864 samples over 444.493 seconds, with
+a peak working set of 568.191 MiB and peak private allocation of 530.309 MiB. Observed lifetime CPU
+rises from 46.266 seconds at the first sample to 475.844 seconds at the last; startup before the
+first sample is not included in the sampling interval. This interval includes UI observation gaps,
+ordinary synchronization, visible preview reads and Debug rendering. It is not a steady-idle or
+optimized-build resource benchmark. The bounded log check finds no exception, overflow, panic or
+nonzero journal-failure entry.
+
+The input catalog copy's SHA-256 remains unchanged; all application writes target the separate
+test profile. The native client reads original images for normal previews, so the earlier catalog
+diagnostic's zero-media-read claim does not apply here. No source mutation or hydration command is
+issued. Reports, resource samples and logs remain in ignored derived storage. The previous empty
+recovery profile is reopened with all six unmatched records and its pending cleanup preview intact.
+
+These observations cover full-catalog client state and committed-save feedback. Screenshot timing
+includes tool/observation intervals and is not reported as precise interaction latency. Profile or
+Release response times, concurrent-connection cost attribution, large-write waits and constrained
+two-core/8-GB measurements remain open. Ordinary optimized builds ignore the Debug-only storage
+override and must not be used as isolated clients without an admitted isolation path.
