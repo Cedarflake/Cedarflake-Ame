@@ -644,3 +644,12 @@ Gallery selection buttons and picker lifetimes have not yet been connected to th
 Real client interaction, retained-library save latency, resource/cancellation measurements and
 low-core behavior remain outstanding, along with the rest of R4-05 through R4-07. Window operation
 remains paused by user instruction. Hosted verification must cover the published combined head.
+
+The published batch foundation `97b9ff5a6e0d9ea1a9e5bcadb0dd02cc0136bcf7` completed its
+[hosted run](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40064409008) with two substantive
+failures: Clippy requires a collapsed conditional in batch admission, and the settings fixture's
+global dropdown-icon count includes the new default-album control. The import-feedback correction
+passes, and all other applicable jobs pass. The settings repair retains the exact five ordinary
+choice controls and separately checks the album destination arrow; all fifteen focused settings
+tests pass. The batch conditional is corrected with the connected selection implementation.
+The combined corrected product head still requires hosted verification.

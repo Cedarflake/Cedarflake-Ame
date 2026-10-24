@@ -82,7 +82,22 @@ void main() {
       find.byWidgetPredicate((widget) => widget is DropdownMenu<Object?>),
       findsNothing,
     );
-    expect(find.byIcon(Symbols.arrow_drop_down_rounded), findsNWidgets(5));
+    expect(
+      find.descendant(
+        of: find.byWidgetPredicate(
+          (widget) => widget is SettingsChoice<Object?>,
+        ),
+        matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+      ),
+      findsNWidgets(5),
+    );
+    expect(
+      find.descendant(
+        of: find.byKey(const Key("settings-default-album")),
+        matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+      ),
+      findsOneWidget,
+    );
     expect(find.byIcon(Icons.arrow_drop_down), findsNothing);
     expect(find.byIcon(Icons.arrow_drop_up), findsNothing);
     expect(AmeMenuTransition.duration, const Duration(milliseconds: 200));
