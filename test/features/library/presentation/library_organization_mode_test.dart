@@ -21,6 +21,102 @@ void main() {
   tearDown(() => mode.dispose());
 
   test(
+    "retiring the viewed album selects the library and preserves sorting",
+    () async {
+      surface.library = surface.library.copyWith(
+        query: surface.library.query.copyWith(
+          collection: const LibraryGalleryCollection.album("retired"),
+          rootId: "root",
+          searchText: "filter",
+          sortKey: LibraryGallerySortKey.fileName,
+        ),
+      );
+      expect(await mode.retireAlbum("retired"), isTrue);
+      expect(
+        surface.library.query.collection,
+        const LibraryGalleryCollection.library(),
+      );
+      expect(surface.library.query.rootId, isNull);
+      expect(surface.library.query.searchText, "filter");
+      expect(surface.library.query.sortKey, LibraryGallerySortKey.fileName);
+      expect(mode.isActive, isFalse);
+    },
+  );
+
+  test(
+    "retiring a review album also retires its saved ordinary scope",
+    () async {
+      surface.library = surface.library.copyWith(
+        query: surface.library.query.copyWith(
+          collection: const LibraryGalleryCollection.album("retired"),
+        ),
+      );
+      await mode.enter();
+      await mode.selectQueue(LibraryOrganizationQueue.ignored);
+      expect(await mode.retireAlbum("retired"), isTrue);
+      expect(
+        surface.library.query.collection,
+        const LibraryGalleryCollection.library(),
+      );
+      expect(mode.queue, LibraryOrganizationQueue.ignored);
+      expect(
+        mode.session!.query.collection,
+        const LibraryGalleryCollection.library(),
+      );
+      await mode.exit();
+      expect(
+        surface.library.query.collection,
+        const LibraryGalleryCollection.library(),
+      );
+      expect(surface.restored!.selection.isEmpty, isTrue);
+      expect(surface.restored!.position, isNull);
+    },
+  );
+
+  test(
+    "retiring the saved album preserves a different current review scope",
+    () async {
+      surface.library = surface.library.copyWith(
+        query: surface.library.query.copyWith(
+          collection: const LibraryGalleryCollection.album("retired"),
+        ),
+      );
+      await mode.enter();
+      const other = LibraryGalleryCollection.album("other");
+      await mode.changeQuery(surface.library.query.copyWith(collection: other));
+      final current = mode.session;
+      expect(await mode.retireAlbum("retired"), isTrue);
+      expect(surface.library.query.collection, other);
+      expect(mode.session, same(current));
+      await mode.exit();
+      expect(
+        surface.library.query.collection,
+        const LibraryGalleryCollection.library(),
+      );
+    },
+  );
+
+  test("failed retirement keeps the active scope retryable", () async {
+    surface.library = surface.library.copyWith(
+      query: surface.library.query.copyWith(
+        collection: const LibraryGalleryCollection.album("retired"),
+      ),
+    );
+    surface.publishing = () async => false;
+    expect(await mode.retireAlbum("retired"), isFalse);
+    expect(
+      surface.library.query.collection,
+      const LibraryGalleryCollection.album("retired"),
+    );
+    surface.publishing = null;
+    expect(await mode.retireAlbum("retired"), isTrue);
+    expect(
+      surface.library.query.collection,
+      const LibraryGalleryCollection.library(),
+    );
+  });
+
+  test(
     "conflict notification opens the global deferred queue and preserves ordinary context",
     () async {
       final original = surface.library.query.copyWith(
@@ -37,6 +133,31 @@ void main() {
       expect(service.starts, isEmpty);
       await mode.exit();
       expect(surface.library.query, original);
+    },
+  );
+
+  test(
+    "newer navigation supersedes a pending retired-album transition",
+    () async {
+      surface.library = surface.library.copyWith(
+        query: surface.library.query.copyWith(
+          collection: const LibraryGalleryCollection.album("retired"),
+        ),
+      );
+      final moved = Completer<bool>();
+      surface.publishing = () => moved.future;
+      final retirement = mode.retireAlbum("retired");
+      surface.library = surface.library.copyWith(
+        query: surface.library.query.copyWith(
+          collection: const LibraryGalleryCollection.favorites(),
+        ),
+      );
+      moved.complete(false);
+      expect(await retirement, isTrue);
+      expect(
+        surface.library.query.collection,
+        const LibraryGalleryCollection.favorites(),
+      );
     },
   );
 

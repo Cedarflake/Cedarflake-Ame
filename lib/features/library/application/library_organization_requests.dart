@@ -2,6 +2,7 @@ import "dart:math";
 
 import "../domain/library_organization.dart";
 import "library_organization.dart";
+import "library_organization_publication.dart";
 
 String newOrganizationOperationId() {
   final random = Random.secure();
@@ -20,6 +21,8 @@ abstract class LibraryOrganizationRequest {
   bool _cancelled = false;
   bool get isCancelled => _cancelled;
   String get successMessage;
+  LibraryOrganizationChange get change =>
+      const LibraryOrganizationChange.records();
   bool canUndo(LibraryOrganizationReceipt receipt) => receipt.changedGroups > 0;
   LibraryOrganizationErrorSurface get errorSurface =>
       LibraryOrganizationErrorSurface.notice;

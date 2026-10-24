@@ -1,5 +1,6 @@
 import "../domain/library_organization.dart";
 import "library_organization.dart";
+import "library_organization_publication.dart";
 import "library_organization_requests.dart";
 
 enum LibraryAlbumEditKind { create, rename, delete }
@@ -41,6 +42,11 @@ class LibraryAlbumEditRequest extends LibraryOrganizationRequest {
   final String? albumId;
   final String name;
   BigInt? _revision;
+
+  @override
+  LibraryOrganizationChange get change => kind == LibraryAlbumEditKind.delete
+      ? LibraryOrganizationChange.albumRetired(albumId!)
+      : const LibraryOrganizationChange.records();
 
   @override
   LibraryOrganizationErrorSurface get errorSurface =>

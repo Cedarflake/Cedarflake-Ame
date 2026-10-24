@@ -243,6 +243,15 @@ library and the execution/storage safeguards above.
 | Viewer entry, navigation and return | [Viewer transition](../../lib/features/library/presentation/widgets/library_viewer_transition.dart) and [review viewer](../../lib/features/library/presentation/widgets/library_duplicate_review_viewer.dart); [route motion](../../test/features/library/presentation/library_viewer_route_motion_test.dart), [member publication/navigation](../../test/library_duplicate_review_viewer_test.dart) and [native accessibility integration](../../integration_test/windows_accessibility_bridge_test.dart) | Enter from Gallery and Duplicates, navigate both ways across a batch, return, maximize/restore and toggle the sidebar. Check the shared transition, current image/order and underlying position; native semantic/engine failures require native evidence beyond a widget assertion. |
 | Counts and file actions | [Gallery header](../../lib/features/library/presentation/widgets/library_gallery_header.dart), [location row](../../lib/features/library/presentation/widgets/library_duplicate_location_tile.dart) and [reveal action](../../lib/features/library/presentation/widgets/library_duplicate_reveal_action.dart); [count regression](../../test/features/library/presentation/library_gallery_count_test.dart) and [sheet regression](../../test/library_duplicate_locations_sheet_test.dart) | Switch All images/Merge duplicates under the same scope: total count remains primary and merged count is additional. Activate a location in a newly opened Explorer folder and verify the exact file is selected; opening the parent directory alone does not establish that result. |
 
+Virtual organization uses the
+[native organization workflow](../../integration_test/support/organization_workflow.dart) inside the
+controlled Windows scan entrypoint: verify committed album/Favorite state and undo through the
+real adapter, active album retirement before refresh, form failure/retry, and keyboard focus.
+The [publication regression](../../test/features/library/application/library_organization_publication_test.dart)
+owns serial refresh, retry and projection lifetimes; the
+[mode regression](../../test/features/library/presentation/library_organization_mode_test.dart)
+owns active and retained scope transitions.
+
 Inspect the complete changed path before delivery, including meaningful neighboring states and
 return/dismissal behavior. Compare geometry and wording in the running client; use screenshots for
 layout comparison and actual interaction for motion, focus and continuity. Add boundary regressions

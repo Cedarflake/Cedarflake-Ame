@@ -917,3 +917,56 @@ reported failure. This handoff correction needs checks for its own published hea
 undo remains unverified: the control expired between tool observations, and direct accessibility
 clicks rejected their returned indexes. Ctrl+A produced no observed selection in this client; its
 cause has not been isolated. Menu-driven whole-query selection is verified.
+
+## Native undo, album retirement and settings - 2026-10-24
+
+The existing isolated 700-file client completed batch Favorite and unfavorite: Favorites changed
+from six groups to zero, with an empty notification history. Setting the default album to r4
+and disabling 加入相册前询问 moved the ordinary viewer's current group directly into that album,
+without opening a picker or changing the image. Both preferences survived a process restart.
+Clearing the default then opened the picker even with asking disabled; cancelling preserved the
+current image and membership. Native rename changed r4 to r5. All 700 filenames, sizes, UTC
+modification ticks and SHA-256 hashes match the retained baseline.
+
+The controlled Windows integration now invokes the production organization adapter through the
+gallery, viewer, picker and album editor. It checks Favorite undo, assignment undo, removal-to-ignore
+and undo, empty-name validation, concurrent-revision rejection with successful retry, rename undo,
+delete cancellation and deletion undo. Each result is read back through Rust, and ordinary viewer
+operations retain the selected asset. The existing scan fixture's source-byte and directory-entry
+checks remain after the added workflow. No organization service or query adapter is mocked.
+
+The first run, 8486a0aa3c0c482a9b650dc1d8ce7b23, failed after deleting the currently selected album.
+The committed command refreshed the retired album before the navigation callback ran, producing
+an unavailable-query warning whose Retry action displaced Undo. The new publication owner receives
+the committed retirement, serially retires affected active and saved ordinary scopes, and only then
+refreshes the catalog. Failed publication retains its obligation for retry; a detached or replaced
+projection cannot complete another view's work. Organization mode preserves a different current
+scope and forgets a deleted saved scope before returning to ordinary browsing.
+
+The repaired canonical Windows run, 61cfa0c649234af38689d6d3166ef7f6, passed all four integration
+cases, including the complete organization workflow and following source-management checks.
+Its owned runner completed in 94.534 seconds, with a 36.9-second Debug build and no cleanup failure.
+The expected stale-write rejection remained visible in the form; retry committed the new name.
+Deleting the selected album now returns to the library, and Undo restores the same album identity
+and organized membership without an unavailable-query warning.
+
+Native Flutter keyboard dispatch also verifies gallery Ctrl+A/Escape and text-field Ctrl+A without
+selecting gallery items behind the editor. Computer Use's earlier Ctrl+A and text insertion produced
+no visible result; these observations are retained separately from the passing application-dispatch
+checks and do not establish a physical-keyboard fault. The new native checks reach transient Undo
+while it is visible, resolving the earlier tool-timing verification gap.
+
+Twenty-nine focused Flutter checks pass across organization actions, publication, mode transitions
+and album navigation. This includes overlapping commits, failed retirement/read retry, replacement
+projection identity, disposal, newer navigation and saved-scope retirement. Scoped analysis and
+owned formatting pass. The publication owner has 130 production lines and 181 dedicated test lines;
+the action facade has 210 production lines, the mode owner 339 with 361 dedicated test lines, and the
+screen 1,853 with only registration composition changed. These owners contain no inline tests.
+The native workflow has 288 test lines. There is no schema, bridge, dependency or source-media change.
+
+The previous conflict run 40071330712 was cancelled. Run
+[40071947604](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40071947604), for
+9cd4c7b078d97c9f156ba5dacfc01dd0dcd57180, has two failures in Rust Remaining because the exact
+availability module inventory lacks domain::organization_conflicts; the other inspected completed
+jobs passed. That inventory repair and this publication change require their published-head checks.
+Retained-library measurements, unavailable-item integration and R4 recovery/cleanup remain outstanding.

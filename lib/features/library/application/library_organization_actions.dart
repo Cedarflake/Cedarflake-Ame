@@ -8,6 +8,7 @@ import "../domain/library_organization.dart";
 import "library_controller.dart";
 import "library_organization.dart";
 import "library_organization_outcome.dart";
+import "library_organization_publication.dart";
 import "library_organization_requests.dart";
 
 class LibraryOrganizationActivity {
@@ -95,7 +96,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
           unawaited(_run(request));
         }
       case "organization.refresh":
-        unawaited(_refresh());
+        unawaited(ref.read(libraryOrganizationPublicationProvider).refresh());
       default:
         break;
     }
@@ -187,38 +188,10 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
           message: request.successMessage,
           canUndo: request.canUndo(receipt),
         );
-    await _refresh();
+    await ref
+        .read(libraryOrganizationPublicationProvider)
+        .refresh(request.change);
     return LibraryOrganizationSaved(receipt);
-  }
-
-  Future<void> _refresh() async {
-    var refreshed = false;
-    try {
-      refreshed = await ref
-          .read(libraryControllerProvider.notifier)
-          .refreshCurrentQuery();
-    } on Object {
-      refreshed = false;
-    }
-    if (_disposed) {
-      return;
-    }
-    final notifications = ref.read(ameNotificationControllerProvider.notifier);
-    if (refreshed) {
-      notifications.resolve("organization-gallery-refresh");
-    } else {
-      notifications.publish(
-        const AmeNotificationDraft(
-          title: "更改已保存",
-          message: "图库尚未刷新，请重试。",
-          severity: AmeNotificationSeverity.warning,
-          dedupeKey: "organization-gallery-refresh",
-          actionId: "organization.refresh",
-          actionLabel: "重试",
-          isPersistent: true,
-        ),
-      );
-    }
   }
 }
 

@@ -16,13 +16,11 @@ class LibraryAlbumNavigation extends ConsumerStatefulWidget {
     required this.collection,
     required this.enabled,
     required this.onSelect,
-    required this.onDeleted,
     super.key,
   });
   final LibraryGalleryCollection collection;
   final bool enabled;
   final ValueChanged<LibraryOrganizationAlbum> onSelect;
-  final ValueChanged<String> onDeleted;
 
   @override
   ConsumerState<LibraryAlbumNavigation> createState() =>
@@ -39,15 +37,12 @@ class _LibraryAlbumNavigationState
     BigInt revision, [
     LibraryOrganizationAlbum? album,
   ]) async {
-    final result = await showLibraryAlbumEditor(
+    await showLibraryAlbumEditor(
       context: context,
       kind: kind,
       revision: revision,
       album: album,
     );
-    if (mounted && result != null && kind == LibraryAlbumEditKind.delete) {
-      widget.onDeleted(album!.id);
-    }
   }
 
   @override

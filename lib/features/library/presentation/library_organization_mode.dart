@@ -4,6 +4,7 @@ import "package:flutter/foundation.dart";
 
 import "../application/library_review.dart";
 import "../application/library_review_session.dart";
+import "../application/library_organization_publication.dart";
 import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
@@ -38,7 +39,8 @@ abstract interface class LibraryReviewSurface {
 }
 
 /// Retains ordinary browsing while the shared gallery visits review queues.
-class LibraryOrganizationMode extends ChangeNotifier {
+class LibraryOrganizationMode extends ChangeNotifier
+    implements LibraryOrganizationProjection {
   LibraryOrganizationMode(this.service, this.surface);
   final LibraryReview service;
   final LibraryReviewSurface surface;
@@ -64,6 +66,34 @@ class LibraryOrganizationMode extends ChangeNotifier {
       LibraryOrganizationQueue.pending;
 
   Future<void> toggle() => isActive ? exit() : enter();
+
+  @override
+  Future<bool> retireAlbum(String albumId) async {
+    if (_disposed) return false;
+    final collection = LibraryGalleryCollection.album(albumId);
+    LibraryGalleryQuery withoutAlbum(LibraryGalleryQuery query) =>
+        query.copyWith(
+          collection: const LibraryGalleryCollection.library(),
+          rootId: null,
+          folderRelativePath: null,
+        );
+    final saved = _ordinary;
+    if (saved != null && saved.query.collection == collection) {
+      _ordinary = LibraryReviewBrowseState(
+        query: withoutAlbum(saved.query),
+        selection: saved.selection.clear(),
+        isSelecting: false,
+      );
+    }
+    final current = surface.library.query;
+    if (current.collection != collection) return true;
+    final query = withoutAlbum(current);
+    final applied = await (isActive
+        ? changeQuery(query)
+        : surface.showReviewQuery(query));
+    return !_disposed &&
+        (applied || surface.library.query.collection != collection);
+  }
 
   Future<void> enter() => _run(() async {
     if (isActive) return;

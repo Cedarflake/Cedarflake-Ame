@@ -18,6 +18,7 @@ import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
 import "../application/library_organization_actions.dart";
+import "../application/library_organization_publication.dart";
 import "../application/library_organization_conflicts.dart";
 import "../application/library_organization_outcome.dart";
 import "../application/library_review.dart";
@@ -97,6 +98,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   bool _isSidebarResizing = false;
   late final LibraryViewerSession _viewer;
   late final LibraryOrganizationMode _review;
+  late final LibraryOrganizationPublication _organizationPublication;
+  late final LibraryOrganizationProjectionRegistration _organizationProjection;
   late final LibraryConflictNotifications _conflictNotifications;
   int _timelineSemanticsGeneration = 0;
   bool _isSelecting = false;
@@ -135,6 +138,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     _libraryController = ref.read(libraryControllerProvider.notifier);
     _review = LibraryOrganizationMode(ref.read(libraryReviewProvider), this)
       ..addListener(_handleViewerChanged);
+    _organizationPublication = ref.read(libraryOrganizationPublicationProvider);
+    _organizationProjection = _organizationPublication.attach(_review);
     _viewer = LibraryViewerSession(
       readLibrary: () => ref.read(libraryControllerProvider),
       loadPrevious: () => _loadPreviousAssetsForViewer(_libraryController),
@@ -214,6 +219,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   @override
   void dispose() {
     _isDisposing = true;
+    _organizationPublication.detach(_organizationProjection);
     _galleryLayoutContinuity.clear();
     _previousWindowCompensation?.retire();
     _libraryController.queryProjections.detach(_queryProjection);
@@ -702,13 +708,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                   preserveGalleryPosition: false,
                 ),
               ),
-              onDeleted: (id) {
-                final current = ref.read(libraryControllerProvider);
-                if (current.query.collection ==
-                    LibraryGalleryCollection.album(id)) {
-                  _selectLibrary(current);
-                }
-              },
             ),
           ],
         ),

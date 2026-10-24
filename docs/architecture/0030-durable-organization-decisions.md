@@ -189,6 +189,13 @@ reject that undo as a whole. Newly identified unhandled copies reuse the existin
 follow a still-valid whole-group undo. Resolving and then undoing a conflict restores one deferred
 group and its competing choices, never several confirmed memberships.
 
+Desktop publication retires a deleted album's active and retained browsing scopes before reading
+the committed catalog. A revocable presentation projection owns that navigation and organization
+session transition; the application owns serial publication and retry obligations. Failed or
+superseded projection work cannot satisfy a replacement window's obligation. Retry publishes the
+committed state without replaying the deletion, and ordinary record changes retain their existing
+position-preserving refresh.
+
 ### Upgrade protection
 
 Before an existing catalog advances to a newer schema, create an exclusively owned SQLite online
