@@ -3,7 +3,7 @@ use rusqlite::params_from_iter;
 use rusqlite::types::Value;
 
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
-use crate::domain::{GalleryDuplicateMode, GalleryQuery, ScanError};
+use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 
 use super::super::exact_duplicate_review::{DECISION_JOIN, representative_expression};
 use super::{database_error, push_source_filters};
@@ -53,7 +53,11 @@ pub(super) fn push_duplicate_filter(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
-    if query.duplicate_mode == GalleryDuplicateMode::All {
+    if !query.folds_duplicates() {
+        return;
+    }
+    if query.collection != GalleryCollection::Library {
+        super::organization::push_group_filter(query, clauses, parameters);
         return;
     }
     let mut scope = Vec::new();
@@ -85,8 +89,16 @@ pub(super) fn representative_for_anchor(
     location_id: &str,
     asset_id: Option<&str>,
 ) -> Result<Option<String>, ScanError> {
-    if query.duplicate_mode == GalleryDuplicateMode::All {
+    if !query.folds_duplicates() {
         return Ok(None);
+    }
+    if query.collection != GalleryCollection::Library {
+        return super::organization::representative_for_anchor(
+            transaction,
+            query,
+            location_id,
+            asset_id,
+        );
     }
     let mut scope = Vec::new();
     let mut parameters = Vec::new();

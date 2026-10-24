@@ -3053,6 +3053,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryCollection dco_decode_gallery_collection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return GalleryCollection_Library();
+      case 1:
+        return GalleryCollection_Favorites();
+      case 2:
+        return GalleryCollection_Album(albumId: dco_decode_String(raw[1]));
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
   GalleryDuplicateAnnotation dco_decode_gallery_duplicate_annotation(
     dynamic raw,
   ) {
@@ -3171,16 +3186,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   GalleryQuery dco_decode_gallery_query(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 7)
-      throw Exception('unexpected arr length: expect 7 but see ${arr.length}');
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
     return GalleryQuery(
-      rootId: dco_decode_opt_String(arr[0]),
-      folderRelativePath: dco_decode_opt_String(arr[1]),
-      includeDescendants: dco_decode_bool(arr[2]),
-      searchText: dco_decode_String(arr[3]),
-      sortKey: dco_decode_gallery_sort_key(arr[4]),
-      sortDirection: dco_decode_gallery_sort_direction(arr[5]),
-      duplicateMode: dco_decode_gallery_duplicate_mode(arr[6]),
+      collection: dco_decode_gallery_collection(arr[0]),
+      rootId: dco_decode_opt_String(arr[1]),
+      folderRelativePath: dco_decode_opt_String(arr[2]),
+      includeDescendants: dco_decode_bool(arr[3]),
+      searchText: dco_decode_String(arr[4]),
+      sortKey: dco_decode_gallery_sort_key(arr[5]),
+      sortDirection: dco_decode_gallery_sort_direction(arr[6]),
+      duplicateMode: dco_decode_gallery_duplicate_mode(arr[7]),
     );
   }
 
@@ -5037,6 +5053,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryCollection sse_decode_gallery_collection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        return GalleryCollection_Library();
+      case 1:
+        return GalleryCollection_Favorites();
+      case 2:
+        var var_albumId = sse_decode_String(deserializer);
+        return GalleryCollection_Album(albumId: var_albumId);
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
   GalleryDuplicateAnnotation sse_decode_gallery_duplicate_annotation(
     SseDeserializer deserializer,
   ) {
@@ -5172,6 +5208,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   GalleryQuery sse_decode_gallery_query(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_collection = sse_decode_gallery_collection(deserializer);
     var var_rootId = sse_decode_opt_String(deserializer);
     var var_folderRelativePath = sse_decode_opt_String(deserializer);
     var var_includeDescendants = sse_decode_bool(deserializer);
@@ -5180,6 +5217,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_sortDirection = sse_decode_gallery_sort_direction(deserializer);
     var var_duplicateMode = sse_decode_gallery_duplicate_mode(deserializer);
     return GalleryQuery(
+      collection: var_collection,
       rootId: var_rootId,
       folderRelativePath: var_folderRelativePath,
       includeDescendants: var_includeDescendants,
@@ -7350,6 +7388,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_gallery_collection(
+    GalleryCollection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case GalleryCollection_Library():
+        sse_encode_i_32(0, serializer);
+      case GalleryCollection_Favorites():
+        sse_encode_i_32(1, serializer);
+      case GalleryCollection_Album(albumId: final albumId):
+        sse_encode_i_32(2, serializer);
+        sse_encode_String(albumId, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_gallery_duplicate_annotation(
     GalleryDuplicateAnnotation self,
     SseSerializer serializer,
@@ -7449,6 +7504,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   void sse_encode_gallery_query(GalleryQuery self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_gallery_collection(self.collection, serializer);
     sse_encode_opt_String(self.rootId, serializer);
     sse_encode_opt_String(self.folderRelativePath, serializer);
     sse_encode_bool(self.includeDescendants, serializer);

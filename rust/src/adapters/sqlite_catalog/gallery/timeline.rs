@@ -1,9 +1,6 @@
 use rusqlite::{Transaction, params_from_iter};
 
-use crate::domain::{
-    GalleryDuplicateMode, GalleryQuery, GallerySortKey, GalleryTimeBucket, GalleryTimeline,
-    ScanError,
-};
+use crate::domain::{GalleryQuery, GallerySortKey, GalleryTimeBucket, GalleryTimeline, ScanError};
 
 use super::super::{database_error, sqlite_unsigned};
 use super::{
@@ -50,7 +47,7 @@ pub(crate) fn load_gallery_timeline(
         }
     }
     drop(statement);
-    let total_source_items = if matches!(query.duplicate_mode, GalleryDuplicateMode::All) {
+    let total_source_items = if !query.folds_duplicates() {
         total_items
     } else {
         load_source_count(transaction, query)?

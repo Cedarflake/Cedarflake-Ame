@@ -15,24 +15,32 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
-  for (final (reopenSameAsset, clickAgain) in [
-    (true, false),
-    (false, false),
-    (true, true),
+  for (final (collection, reopenSameAsset, clickAgain) in [
+    (const LibraryGalleryCollection.library(), true, false),
+    (const LibraryGalleryCollection.library(), false, false),
+    (const LibraryGalleryCollection.library(), true, true),
+    (const LibraryGalleryCollection.album("album"), true, false),
+    (const LibraryGalleryCollection.favorites(), false, false),
   ]) {
+    final viewerQuery = _baseViewerQuery.copyWith(collection: collection);
+    final scope = switch (collection) {
+      LibraryAllCollection() => "library",
+      LibraryFavoritesCollection() => "favorites",
+      LibraryAlbumCollection() => "album",
+    };
     testWidgets(
       clickAgain
-          ? "reopened boundary navigation joins the real pending page exactly once"
+          ? "$scope reopened boundary navigation joins the real pending page exactly once"
           : reopenSameAsset
-          ? "closed viewer paging cannot navigate a reopened same-asset session"
-          : "closed viewer paging cannot block navigation in a new session",
+          ? "$scope closed viewer paging cannot navigate a reopened same-asset session"
+          : "$scope closed viewer paging cannot block navigation in a new session",
       (tester) async {
         tester.view.physicalSize = const Size(1280, 800);
         tester.view.devicePixelRatio = 1;
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         final scanner = RetainedScanScanner()..checkpoint = null;
-        final catalog = _HeldViewerPageCatalog(scanner);
+        final catalog = _HeldViewerPageCatalog(scanner, viewerQuery);
         final container = ProviderContainer(
           overrides: [
             libraryScannerProvider.overrideWithValue(scanner),
@@ -40,7 +48,7 @@ void main() {
             initialLibraryStateProvider.overrideWithValue(
               LibraryState.fromSnapshot(
                 catalog.firstPage(),
-                query: _viewerQuery,
+                query: viewerQuery,
               ),
             ),
           ],
@@ -130,14 +138,15 @@ Future<void> _openTile(WidgetTester tester, String locationId) async {
   await tester.pump();
 }
 
-const _viewerQuery = LibraryGalleryQuery(
+const _baseViewerQuery = LibraryGalleryQuery(
   sortKey: LibraryGallerySortKey.modifiedTime,
   sortDirection: LibraryGallerySortDirection.ascending,
 );
 
 class _HeldViewerPageCatalog extends RetainedScanCatalog {
-  _HeldViewerPageCatalog(super.scanner);
+  _HeldViewerPageCatalog(super.scanner, this.query);
 
+  final LibraryGalleryQuery query;
   final Completer<LibrarySnapshot> _next = Completer();
   bool exposeNextPage = false;
 
@@ -169,8 +178,8 @@ class _HeldViewerPageCatalog extends RetainedScanCatalog {
   );
 
   LibrarySnapshot firstPage() {
-    final first = snapshot(_viewerQuery);
-    final second = snapshot(_viewerQuery, offset: 1).assets.single;
+    final first = snapshot(query);
+    final second = snapshot(query, offset: 1).assets.single;
     return LibrarySnapshot(
       roots: _roots,
       assets: [...first.assets, second],
@@ -188,7 +197,7 @@ class _HeldViewerPageCatalog extends RetainedScanCatalog {
     LibraryCatalogCursor? after,
     LibraryCatalogCursor? before,
   }) async {
-    expectSync(query, _viewerQuery);
+    expectSync(query, this.query);
     expectSync(maxItems, greaterThanOrEqualTo(2));
     expectSync(before, isNull);
     if (after != null) {
@@ -209,7 +218,7 @@ class _HeldViewerPageCatalog extends RetainedScanCatalog {
 
   @override
   Future<LibraryTimeline> loadTimeline(LibraryGalleryQuery query) async {
-    expectSync(query, _viewerQuery);
+    expectSync(query, this.query);
     final first = firstPage();
     return LibraryTimeline(
       revision: first.revision,
@@ -229,7 +238,7 @@ class _HeldViewerPageCatalog extends RetainedScanCatalog {
     if (_next.isCompleted) {
       return;
     }
-    final last = snapshot(_viewerQuery, offset: 2);
+    final last = snapshot(query, offset: 2);
     _next.complete(
       LibrarySnapshot(
         roots: _roots,

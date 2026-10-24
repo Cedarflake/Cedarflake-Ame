@@ -231,3 +231,46 @@ The foreground-scan and incremental-update cases both pass their focused serial 
 The same hosted run separately reports 67,731,456 catalog bytes in the 10,000-image scan workload,
 above its existing 64-MiB limit. That storage regression remains under investigation; these assertion
 corrections do not establish a passing hosted run or change its resource bound.
+
+## Bounded collection queries - 2026-10-24
+
+The typed gallery query now includes Library, Favorites or one album. Query hashes, Dart equality,
+bridge mapping, pagination, counts, layout and viewer anchors retain that same collection. Album
+queries fold complete groups even when the ordinary gallery preference is unfolded; Favorites
+retain that preference. Source/folder/search filters constrain the visible representative. Removing
+a selected physical source clears its source scope while retaining the collection.
+
+Canonical decisions supply membership; compatible version bindings and published/retained display
+fingerprints supply association. Pending display evidence keeps the prior card without admitting
+a write. Conflicts remove confirmed album membership, while favorites remain independent. Changed
+content leaves the obsolete collection. Derived-fingerprint cleanup retains valid membership and
+the preferred representative. Empty active albums return empty results; missing and retired albums
+return an explicit unavailable-scope error in the read snapshot.
+
+Twenty-three focused Rust checks pass: nine collection adapter cases, four query identity cases,
+eight existing R3 gallery cases and two filtered location-anchor cases. The collection cases cover
+forward/backward pages, counts/layout/anchors, scoped preferences, favorite independence, conflicts,
+pending evidence, content replacement, cache cleanup, empty/deleted albums and an album move between
+page and count reads. The 50,000-lineage history fixture stays below 20,000 SQLite VM instructions
+for a one-item pending collection snapshot; this is a history-lookup bound, not retained-library
+throughput evidence.
+
+Sixty-three focused Flutter checks pass: two collection model/bridge cases, 56 controller cases and
+five viewer navigation lifecycle cases. The changed cases verify supersession by album/Favorite
+queries, collection retention after source removal and rejection of closed-viewer completions.
+These use controlled catalogs and widget fixtures; actual R4 desktop controls are still absent.
+
+The canonical generator produced the typed bridge. Its first formatting step hit Windows error
+1224; after that process exited, formatting succeeded and the matching final Rust Release library
+built in 40.50 seconds. Owned Rust/Dart formatting and diff checks pass. No dependency or schema
+change is introduced by this slice, and no original library, user catalog or placeholder was read.
+Current-head hosted verification and retained-library query measurements remain outstanding.
+
+The collection SQL owner has 162 production lines and no inline tests, with 302 query-test and
+219 evolution-test lines. Query normalization/identity moved from the catalog application facade
+into a 61-line owner with 96 inline-test lines; the facade now has 239 production and 518 inline-test
+lines. The 502-line gallery builder and 3,504-line catalog facade receive composition calls only.
+The Dart collection owner has 42 lines; the 528-line model, 563-line catalog mapper and 1,292-line
+viewport controller gain the typed field/mapping and collection-preserving removal projection.
+Dedicated changed Dart test owners have 74, 3,655 and 253 lines, with no production test code.
+The 803-line Rust domain type file gains the collection type, query field and folding policy.

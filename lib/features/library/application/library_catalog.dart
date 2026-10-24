@@ -452,6 +452,13 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
   LibraryGalleryQuery query,
 ) {
   return rust_domain.GalleryQuery(
+    collection: switch (query.collection) {
+      LibraryAllCollection() => const rust_domain.GalleryCollection.library_(),
+      LibraryFavoritesCollection() =>
+        const rust_domain.GalleryCollection.favorites(),
+      LibraryAlbumCollection(:final albumId) =>
+        rust_domain.GalleryCollection.album(albumId: albumId),
+    },
     rootId: query.rootId,
     folderRelativePath: query.folderRelativePath,
     includeDescendants: query.includeDescendants,

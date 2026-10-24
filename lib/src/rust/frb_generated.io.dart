@@ -291,6 +291,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileIdentityEvidence dco_decode_file_identity_evidence(dynamic raw);
 
   @protected
+  GalleryCollection dco_decode_gallery_collection(dynamic raw);
+
+  @protected
   GalleryDuplicateAnnotation dco_decode_gallery_duplicate_annotation(
     dynamic raw,
   );
@@ -969,6 +972,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   FileIdentityEvidence sse_decode_file_identity_evidence(
     SseDeserializer deserializer,
   );
+
+  @protected
+  GalleryCollection sse_decode_gallery_collection(SseDeserializer deserializer);
 
   @protected
   GalleryDuplicateAnnotation sse_decode_gallery_duplicate_annotation(
@@ -1798,6 +1804,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_file_identity_evidence(
     FileIdentityEvidence self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_collection(
+    GalleryCollection self,
     SseSerializer serializer,
   );
 

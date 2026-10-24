@@ -390,6 +390,16 @@ class FileIdentityEvidence {
           value == other.value;
 }
 
+@freezed
+sealed class GalleryCollection with _$GalleryCollection {
+  const GalleryCollection._();
+
+  const factory GalleryCollection.library_() = GalleryCollection_Library;
+  const factory GalleryCollection.favorites() = GalleryCollection_Favorites;
+  const factory GalleryCollection.album({required String albumId}) =
+      GalleryCollection_Album;
+}
+
 enum GalleryDuplicateMode { all, merged }
 
 class GalleryLayoutDateGroup {
@@ -530,6 +540,7 @@ class GalleryLocationAnchorResolution {
 }
 
 class GalleryQuery {
+  final GalleryCollection collection;
   final String? rootId;
   final String? folderRelativePath;
   final bool includeDescendants;
@@ -539,6 +550,7 @@ class GalleryQuery {
   final GalleryDuplicateMode duplicateMode;
 
   const GalleryQuery({
+    required this.collection,
     this.rootId,
     this.folderRelativePath,
     required this.includeDescendants,
@@ -550,6 +562,7 @@ class GalleryQuery {
 
   @override
   int get hashCode =>
+      collection.hashCode ^
       rootId.hashCode ^
       folderRelativePath.hashCode ^
       includeDescendants.hashCode ^
@@ -563,6 +576,7 @@ class GalleryQuery {
       identical(this, other) ||
       other is GalleryQuery &&
           runtimeType == other.runtimeType &&
+          collection == other.collection &&
           rootId == other.rootId &&
           folderRelativePath == other.folderRelativePath &&
           includeDescendants == other.includeDescendants &&

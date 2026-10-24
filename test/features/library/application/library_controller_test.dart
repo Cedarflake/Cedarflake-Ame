@@ -316,12 +316,16 @@ void main() {
   );
 
   test(
-    "active visible range is superseded by sort source and search queries",
+    "active visible range is superseded by sort source search and collection queries",
     () async {
       const queries = [
         LibraryGalleryQuery(sortKey: LibraryGallerySortKey.fileName),
         LibraryGalleryQuery(rootId: "root-filter"),
         LibraryGalleryQuery(searchText: "needle"),
+        LibraryGalleryQuery(
+          collection: LibraryGalleryCollection.album("album"),
+        ),
+        LibraryGalleryQuery(collection: LibraryGalleryCollection.favorites()),
       ];
 
       for (var index = 0; index < queries.length; index++) {
@@ -2476,7 +2480,10 @@ void main() {
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(
               initialSnapshot,
-              query: const LibraryGalleryQuery(rootId: "root-remove-committed"),
+              query: const LibraryGalleryQuery(
+                rootId: "root-remove-committed",
+                collection: LibraryGalleryCollection.album("retained-album"),
+              ),
             ).copyWith(
               timeline: LibraryTimeline(
                 revision: BigInt.one,
@@ -2500,6 +2507,10 @@ void main() {
       expect(failed.roots, const [keptRoot]);
       expect(failed.assets.single.locationId, "location-kept-local-committed");
       expect(failed.query.rootId, isNull);
+      expect(
+        failed.query.collection,
+        const LibraryGalleryCollection.album("retained-album"),
+      );
       expect(failed.timeline, isNull);
       expect(catalog.unregisteredRootIds, [removedRoot.id]);
 
@@ -2518,6 +2529,10 @@ void main() {
       expect(completed.isRemovalCommitted, isFalse);
       expect(completed.completedRemovalRootId, removedRoot.id);
       expect(completed.rootRemovalCompletionSequence, 1);
+      expect(
+        completed.query.collection,
+        const LibraryGalleryCollection.album("retained-album"),
+      );
     },
   );
 

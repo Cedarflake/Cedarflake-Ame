@@ -1,5 +1,7 @@
+import "library_gallery_collection.dart";
 import "library_root_consolidation.dart";
 
+export "library_gallery_collection.dart";
 export "library_root_consolidation.dart";
 
 class LibraryAsset {
@@ -236,6 +238,7 @@ enum LibraryGalleryDuplicateMode { all, merged }
 
 class LibraryGalleryQuery {
   const LibraryGalleryQuery({
+    this.collection = const LibraryGalleryCollection.library(),
     this.rootId,
     this.folderRelativePath,
     this.includeDescendants = true,
@@ -247,6 +250,7 @@ class LibraryGalleryQuery {
 
   static const Object _unchanged = Object();
 
+  final LibraryGalleryCollection collection;
   final String? rootId;
   final String? folderRelativePath;
   final bool includeDescendants;
@@ -257,7 +261,12 @@ class LibraryGalleryQuery {
 
   bool get isChronological => sortKey != LibraryGallerySortKey.fileName;
 
+  bool get foldsDuplicates =>
+      collection is LibraryAlbumCollection ||
+      duplicateMode == LibraryGalleryDuplicateMode.merged;
+
   LibraryGalleryQuery copyWith({
+    LibraryGalleryCollection? collection,
     Object? rootId = _unchanged,
     Object? folderRelativePath = _unchanged,
     bool? includeDescendants,
@@ -267,6 +276,7 @@ class LibraryGalleryQuery {
     LibraryGalleryDuplicateMode? duplicateMode,
   }) {
     return LibraryGalleryQuery(
+      collection: collection ?? this.collection,
       rootId: rootId == _unchanged ? this.rootId : rootId as String?,
       folderRelativePath: folderRelativePath == _unchanged
           ? this.folderRelativePath
@@ -281,6 +291,7 @@ class LibraryGalleryQuery {
 
   @override
   int get hashCode => Object.hash(
+    collection,
     rootId,
     folderRelativePath,
     includeDescendants,
@@ -294,6 +305,7 @@ class LibraryGalleryQuery {
   bool operator ==(Object other) {
     return identical(this, other) ||
         other is LibraryGalleryQuery &&
+            collection == other.collection &&
             rootId == other.rootId &&
             folderRelativePath == other.folderRelativePath &&
             includeDescendants == other.includeDescendants &&

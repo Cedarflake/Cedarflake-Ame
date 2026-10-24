@@ -2524,6 +2524,7 @@ impl CatalogRepository for SqliteCatalog {
         }
         validate_gallery_query(query)?;
         let transaction = self.connection.transaction().map_err(database_error)?;
+        gallery::organization::validate_collection(&transaction, query)?;
         let revision = load_catalog_revision(&transaction)?;
         if after.is_some_and(|cursor| {
             cursor.revision != revision

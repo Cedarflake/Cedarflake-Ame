@@ -445,7 +445,15 @@ pub enum GalleryDuplicateMode {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub enum GalleryCollection {
+    Library,
+    Favorites,
+    Album { album_id: String },
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct GalleryQuery {
+    pub collection: GalleryCollection,
     pub root_id: Option<String>,
     pub folder_relative_path: Option<String>,
     pub include_descendants: bool,
@@ -458,6 +466,7 @@ pub struct GalleryQuery {
 impl Default for GalleryQuery {
     fn default() -> Self {
         Self {
+            collection: GalleryCollection::Library,
             root_id: None,
             folder_relative_path: None,
             include_descendants: true,
@@ -466,6 +475,13 @@ impl Default for GalleryQuery {
             sort_direction: GallerySortDirection::Descending,
             duplicate_mode: GalleryDuplicateMode::All,
         }
+    }
+}
+
+impl GalleryQuery {
+    pub fn folds_duplicates(&self) -> bool {
+        matches!(self.collection, GalleryCollection::Album { .. })
+            || self.duplicate_mode == GalleryDuplicateMode::Merged
     }
 }
 

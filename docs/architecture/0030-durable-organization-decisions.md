@@ -85,6 +85,23 @@ without original-media reads. Generation and root/generation indexes support pub
 and bounded keyset windows. Temporary member/group sets drive joins into durable history; their
 lack of persistent planner statistics must not turn one-copy publication into a history scan.
 
+### Collection queries
+
+Gallery queries carry a typed library, Favorite or album collection alongside source, folder,
+search and ordering scope. Collection identity participates in the query hash and client equality,
+so old cursors and asynchronous results cannot cross collections. Albums always fold their current
+groups; Favorites retain the selected gallery display mode. The same relational scope supplies
+pages, counts, layout and anchor resolution inside the existing read snapshots. A missing or retired
+album is an unavailable scope; an active album without members is an empty result.
+
+Collection reads resolve compatible asset-version bindings to canonical organization records.
+Published or retained gallery fingerprints can provide a display-only fallback through indexed
+content bindings. This retains a card during verification without admitting a command on pending
+evidence. Confirmed changed content leaves the old collection. Valid durable bindings survive
+derived-fingerprint cleanup, and their canonical mapping still folds the collection. Representatives
+honor the existing preferred copy within the physical query scope, then its smallest location ID.
+These reads use catalog data only and never load the membership graph into presentation.
+
 ### Command admission and transactions
 
 Application commands validate typed selection identities and bounded inputs before entering the

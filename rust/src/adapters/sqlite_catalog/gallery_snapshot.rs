@@ -35,6 +35,7 @@ impl<'connection, 'query> GalleryReadTransaction<'connection, 'query> {
     ) -> Result<Self, ScanError> {
         validate_gallery_query(query)?;
         let transaction = connection.transaction().map_err(database_error)?;
+        super::gallery::organization::validate_collection(&transaction, query)?;
         let revision = load_catalog_revision(&transaction)?;
         Ok(Self {
             transaction,

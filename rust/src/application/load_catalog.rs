@@ -1,6 +1,8 @@
 use std::path::Path;
 
+mod query;
 mod time_snapshot;
+use query::{gallery_query_identity, normalize_gallery_query, normalize_relative_folder};
 pub use time_snapshot::load_catalog_time_snapshot;
 
 #[cfg(test)]
@@ -8,9 +10,8 @@ use crate::adapters::SqliteCatalog;
 use crate::adapters::{SqliteCatalogReadExecutor, inspect_root_availability};
 use crate::domain::{
     AssetLocationView, CatalogCursor, CatalogSnapshot, GalleryLayoutManifestChunk,
-    GalleryLayoutManifestCursor, GalleryQuery, GallerySortDirection, GallerySortKey,
-    GalleryTimeAnchor, GalleryTimeline, LibraryChangeLane, LibraryFolderCursor, LibraryFolderPage,
-    PreviewStatus, ScanError,
+    GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
+    LibraryChangeLane, LibraryFolderCursor, LibraryFolderPage, PreviewStatus, ScanError,
 };
 use crate::ports::CatalogRepository;
 
@@ -236,50 +237,6 @@ fn prepare_catalog_reader(path: &Path) -> Result<SqliteCatalogReadExecutor, Scan
     super::catalog_session::open_catalog_reader(path)
 }
 
-fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
-    query.search_text = query.search_text.trim().to_owned();
-    query.folder_relative_path = query
-        .folder_relative_path
-        .map(|folder| normalize_relative_folder(&folder));
-    query
-}
-
-fn normalize_relative_folder(folder: &str) -> String {
-    folder.replace('\\', "/").trim_matches('/').to_owned()
-}
-
-fn gallery_query_identity(query: &GalleryQuery) -> String {
-    let mut hasher = blake3::Hasher::new();
-    hasher.update(b"ame-gallery-query-v2\0");
-    update_query_identity(&mut hasher, query.root_id.as_deref().unwrap_or_default());
-    update_query_identity(
-        &mut hasher,
-        query.folder_relative_path.as_deref().unwrap_or_default(),
-    );
-    hasher.update(&[u8::from(query.include_descendants)]);
-    update_query_identity(&mut hasher, &query.search_text);
-    hasher.update(&[match query.sort_key {
-        GallerySortKey::CaptureTime => 0,
-        GallerySortKey::CreatedTime => 1,
-        GallerySortKey::ModifiedTime => 2,
-        GallerySortKey::FileName => 3,
-    }]);
-    hasher.update(&[match query.sort_direction {
-        GallerySortDirection::Ascending => 0,
-        GallerySortDirection::Descending => 1,
-    }]);
-    hasher.update(&[match query.duplicate_mode {
-        crate::domain::GalleryDuplicateMode::All => 0,
-        crate::domain::GalleryDuplicateMode::Merged => 1,
-    }]);
-    hasher.finalize().to_hex().to_string()
-}
-
-fn update_query_identity(hasher: &mut blake3::Hasher, value: &str) {
-    hasher.update(&(value.len() as u64).to_le_bytes());
-    hasher.update(value.as_bytes());
-}
-
 #[cfg(test)]
 mod tests {
     use std::collections::HashSet;
@@ -304,57 +261,6 @@ mod tests {
     };
 
     use super::*;
-
-    #[test]
-    fn query_identity_uses_normalized_search_and_folder_scope() {
-        let first = normalize_gallery_query(GalleryQuery {
-            root_id: Some("root-1".to_owned()),
-            folder_relative_path: Some("/Memes\\Cats/".to_owned()),
-            search_text: "  neko  ".to_owned(),
-            ..GalleryQuery::default()
-        });
-        let second = GalleryQuery {
-            root_id: Some("root-1".to_owned()),
-            folder_relative_path: Some("Memes/Cats".to_owned()),
-            search_text: "neko".to_owned(),
-            ..GalleryQuery::default()
-        };
-
-        assert_eq!(
-            gallery_query_identity(&first),
-            gallery_query_identity(&second)
-        );
-    }
-
-    #[test]
-    fn query_identity_changes_with_sort_and_descendant_policy() {
-        let base = GalleryQuery::default();
-        let ascending = GalleryQuery {
-            sort_direction: GallerySortDirection::Ascending,
-            ..base.clone()
-        };
-        let direct_children = GalleryQuery {
-            include_descendants: false,
-            ..base.clone()
-        };
-        let merged = GalleryQuery {
-            duplicate_mode: crate::domain::GalleryDuplicateMode::Merged,
-            ..base.clone()
-        };
-        assert_ne!(
-            gallery_query_identity(&base),
-            gallery_query_identity(&merged)
-        );
-
-        assert_ne!(
-            gallery_query_identity(&base),
-            gallery_query_identity(&ascending)
-        );
-        assert_ne!(
-            gallery_query_identity(&base),
-            gallery_query_identity(&direct_children)
-        );
-    }
 
     #[test]
     fn current_catalog_read_preparation_validates_once_then_reuses_the_session() {

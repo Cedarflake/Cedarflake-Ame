@@ -12,6 +12,7 @@ use super::*;
 
 mod lifecycle;
 mod publication;
+mod queries;
 mod reconciliation;
 mod transitions;
 mod undo;

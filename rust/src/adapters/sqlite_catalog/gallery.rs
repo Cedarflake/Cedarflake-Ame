@@ -2,6 +2,7 @@ mod annotations;
 pub(super) mod duplicates;
 mod location_anchor;
 mod member_locations;
+pub(super) mod organization;
 pub(super) mod retained_membership;
 mod time_anchor;
 mod timeline;
@@ -361,6 +362,7 @@ fn push_source_filters(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
+    organization::push_collection_filter(query, clauses, parameters);
     if let Some(root_id) = &query.root_id {
         clauses.push("locations.root_id = ?".to_owned());
         parameters.push(Value::Text(root_id.clone()));

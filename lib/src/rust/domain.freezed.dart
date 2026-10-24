@@ -12,6 +12,302 @@ part of 'domain.dart';
 // dart format off
 T _$identity<T>(T value) => value;
 /// @nodoc
+mixin _$GalleryCollection {
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'GalleryCollection()';
+}
+
+
+}
+
+/// @nodoc
+class $GalleryCollectionCopyWith<$Res>  {
+$GalleryCollectionCopyWith(GalleryCollection _, $Res Function(GalleryCollection) __);
+}
+
+
+/// Adds pattern-matching-related methods to [GalleryCollection].
+extension GalleryCollectionPatterns on GalleryCollection {
+/// A variant of `map` that fallback to returning `orElse`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeMap<TResult extends Object?>({TResult Function( GalleryCollection_Library value)?  library_,TResult Function( GalleryCollection_Favorites value)?  favorites,TResult Function( GalleryCollection_Album value)?  album,required TResult orElse(),}){
+final _that = this;
+switch (_that) {
+case GalleryCollection_Library() when library_ != null:
+return library_(_that);case GalleryCollection_Favorites() when favorites != null:
+return favorites(_that);case GalleryCollection_Album() when album != null:
+return album(_that);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// Callbacks receives the raw object, upcasted.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case final Subclass2 value:
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult map<TResult extends Object?>({required TResult Function( GalleryCollection_Library value)  library_,required TResult Function( GalleryCollection_Favorites value)  favorites,required TResult Function( GalleryCollection_Album value)  album,}){
+final _that = this;
+switch (_that) {
+case GalleryCollection_Library():
+return library_(_that);case GalleryCollection_Favorites():
+return favorites(_that);case GalleryCollection_Album():
+return album(_that);}
+}
+/// A variant of `map` that fallback to returning `null`.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case final Subclass value:
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? mapOrNull<TResult extends Object?>({TResult? Function( GalleryCollection_Library value)?  library_,TResult? Function( GalleryCollection_Favorites value)?  favorites,TResult? Function( GalleryCollection_Album value)?  album,}){
+final _that = this;
+switch (_that) {
+case GalleryCollection_Library() when library_ != null:
+return library_(_that);case GalleryCollection_Favorites() when favorites != null:
+return favorites(_that);case GalleryCollection_Album() when album != null:
+return album(_that);case _:
+  return null;
+
+}
+}
+/// A variant of `when` that fallback to an `orElse` callback.
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return orElse();
+/// }
+/// ```
+
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>({TResult Function()?  library_,TResult Function()?  favorites,TResult Function( String albumId)?  album,required TResult orElse(),}) {final _that = this;
+switch (_that) {
+case GalleryCollection_Library() when library_ != null:
+return library_();case GalleryCollection_Favorites() when favorites != null:
+return favorites();case GalleryCollection_Album() when album != null:
+return album(_that.albumId);case _:
+  return orElse();
+
+}
+}
+/// A `switch`-like method, using callbacks.
+///
+/// As opposed to `map`, this offers destructuring.
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case Subclass2(:final field2):
+///     return ...;
+/// }
+/// ```
+
+@optionalTypeArgs TResult when<TResult extends Object?>({required TResult Function()  library_,required TResult Function()  favorites,required TResult Function( String albumId)  album,}) {final _that = this;
+switch (_that) {
+case GalleryCollection_Library():
+return library_();case GalleryCollection_Favorites():
+return favorites();case GalleryCollection_Album():
+return album(_that.albumId);}
+}
+/// A variant of `when` that fallback to returning `null`
+///
+/// It is equivalent to doing:
+/// ```dart
+/// switch (sealedClass) {
+///   case Subclass(:final field):
+///     return ...;
+///   case _:
+///     return null;
+/// }
+/// ```
+
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>({TResult? Function()?  library_,TResult? Function()?  favorites,TResult? Function( String albumId)?  album,}) {final _that = this;
+switch (_that) {
+case GalleryCollection_Library() when library_ != null:
+return library_();case GalleryCollection_Favorites() when favorites != null:
+return favorites();case GalleryCollection_Album() when album != null:
+return album(_that.albumId);case _:
+  return null;
+
+}
+}
+
+}
+
+/// @nodoc
+
+
+class GalleryCollection_Library extends GalleryCollection {
+  const GalleryCollection_Library(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Library);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'GalleryCollection.library_()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class GalleryCollection_Favorites extends GalleryCollection {
+  const GalleryCollection_Favorites(): super._();
+
+
+
+
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Favorites);
+}
+
+
+@override
+int get hashCode => runtimeType.hashCode;
+
+@override
+String toString() {
+  return 'GalleryCollection.favorites()';
+}
+
+
+}
+
+
+
+
+/// @nodoc
+
+
+class GalleryCollection_Album extends GalleryCollection {
+  const GalleryCollection_Album({required this.albumId}): super._();
+
+
+ final  String albumId;
+
+/// Create a copy of GalleryCollection
+/// with the given fields replaced by the non-null parameter values.
+@JsonKey(includeFromJson: false, includeToJson: false)
+@pragma('vm:prefer-inline')
+$GalleryCollection_AlbumCopyWith<GalleryCollection_Album> get copyWith => _$GalleryCollection_AlbumCopyWithImpl<GalleryCollection_Album>(this, _$identity);
+
+
+
+@override
+bool operator ==(Object other) {
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is GalleryCollection_Album&&(identical(other.albumId, albumId) || other.albumId == albumId));
+}
+
+
+@override
+int get hashCode => Object.hash(runtimeType,albumId);
+
+@override
+String toString() {
+  return 'GalleryCollection.album(albumId: $albumId)';
+}
+
+
+}
+
+/// @nodoc
+abstract mixin class $GalleryCollection_AlbumCopyWith<$Res> implements $GalleryCollectionCopyWith<$Res> {
+  factory $GalleryCollection_AlbumCopyWith(GalleryCollection_Album value, $Res Function(GalleryCollection_Album) _then) = _$GalleryCollection_AlbumCopyWithImpl;
+@useResult
+$Res call({
+ String albumId
+});
+
+
+
+
+}
+/// @nodoc
+class _$GalleryCollection_AlbumCopyWithImpl<$Res>
+    implements $GalleryCollection_AlbumCopyWith<$Res> {
+  _$GalleryCollection_AlbumCopyWithImpl(this._self, this._then);
+
+  final GalleryCollection_Album _self;
+  final $Res Function(GalleryCollection_Album) _then;
+
+/// Create a copy of GalleryCollection
+/// with the given fields replaced by the non-null parameter values.
+@pragma('vm:prefer-inline') $Res call({Object? albumId = null,}) {
+  return _then(GalleryCollection_Album(
+albumId: null == albumId ? _self.albumId : albumId // ignore: cast_nullable_to_non_nullable
+as String,
+  ));
+}
+
+
+}
+
+/// @nodoc
 mixin _$PreviewCleanupEvent {
 
  String get operationId;

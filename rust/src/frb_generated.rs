@@ -2822,6 +2822,30 @@ impl SseDecode for crate::domain::FileIdentityEvidence {
     }
 }
 
+impl SseDecode for crate::domain::GalleryCollection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut tag_ = <i32>::sse_decode(deserializer);
+        match tag_ {
+            0 => {
+                return crate::domain::GalleryCollection::Library;
+            }
+            1 => {
+                return crate::domain::GalleryCollection::Favorites;
+            }
+            2 => {
+                let mut var_albumId = <String>::sse_decode(deserializer);
+                return crate::domain::GalleryCollection::Album {
+                    album_id: var_albumId,
+                };
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseDecode for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -2960,6 +2984,7 @@ impl SseDecode for crate::domain::GalleryLocationAnchorResolution {
 impl SseDecode for crate::domain::GalleryQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_collection = <crate::domain::GalleryCollection>::sse_decode(deserializer);
         let mut var_rootId = <Option<String>>::sse_decode(deserializer);
         let mut var_folderRelativePath = <Option<String>>::sse_decode(deserializer);
         let mut var_includeDescendants = <bool>::sse_decode(deserializer);
@@ -2968,6 +2993,7 @@ impl SseDecode for crate::domain::GalleryQuery {
         let mut var_sortDirection = <crate::domain::GallerySortDirection>::sse_decode(deserializer);
         let mut var_duplicateMode = <crate::domain::GalleryDuplicateMode>::sse_decode(deserializer);
         return crate::domain::GalleryQuery {
+            collection: var_collection,
             root_id: var_rootId,
             folder_relative_path: var_folderRelativePath,
             include_descendants: var_includeDescendants,
@@ -5599,6 +5625,32 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::FileIdentityEvidence>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::GalleryCollection {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            crate::domain::GalleryCollection::Library => [0.into_dart()].into_dart(),
+            crate::domain::GalleryCollection::Favorites => [1.into_dart()].into_dart(),
+            crate::domain::GalleryCollection::Album { album_id } => {
+                [2.into_dart(), album_id.into_into_dart().into_dart()].into_dart()
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::GalleryCollection
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::GalleryCollection>
+    for crate::domain::GalleryCollection
+{
+    fn into_into_dart(self) -> crate::domain::GalleryCollection {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -5785,6 +5837,7 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::GalleryLocationAnchorResol
 impl flutter_rust_bridge::IntoDart for crate::domain::GalleryQuery {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
+            self.collection.into_into_dart().into_dart(),
             self.root_id.into_into_dart().into_dart(),
             self.folder_relative_path.into_into_dart().into_dart(),
             self.include_descendants.into_into_dart().into_dart(),
@@ -7561,6 +7614,27 @@ impl SseEncode for crate::domain::FileIdentityEvidence {
     }
 }
 
+impl SseEncode for crate::domain::GalleryCollection {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        match self {
+            crate::domain::GalleryCollection::Library => {
+                <i32>::sse_encode(0, serializer);
+            }
+            crate::domain::GalleryCollection::Favorites => {
+                <i32>::sse_encode(1, serializer);
+            }
+            crate::domain::GalleryCollection::Album { album_id } => {
+                <i32>::sse_encode(2, serializer);
+                <String>::sse_encode(album_id, serializer);
+            }
+            _ => {
+                unimplemented!("");
+            }
+        }
+    }
+}
+
 impl SseEncode for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -7660,6 +7734,7 @@ impl SseEncode for crate::domain::GalleryLocationAnchorResolution {
 impl SseEncode for crate::domain::GalleryQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::GalleryCollection>::sse_encode(self.collection, serializer);
         <Option<String>>::sse_encode(self.root_id, serializer);
         <Option<String>>::sse_encode(self.folder_relative_path, serializer);
         <bool>::sse_encode(self.include_descendants, serializer);
