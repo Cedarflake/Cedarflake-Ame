@@ -14,6 +14,7 @@ import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
 import "../library_strings.dart";
 import "library_cover_preview_size.dart";
+import "library_conflict_label.dart";
 import "library_image_reveal.dart";
 import "library_photo_tile_actions.dart";
 import "library_preview_feedback.dart";
@@ -158,6 +159,9 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
                       fit: StackFit.expand,
                       children: [
                         _buildPreview(context),
+                        LibraryConflictLabel(
+                          locationId: widget.asset.locationId,
+                        ),
                         Positioned(
                           top: 0,
                           left: 0,

@@ -814,3 +814,75 @@ Hosted run [40068207427](https://github.com/Cedarflake/Cedarflake-Ame/actions/ru
 covers `0fc9199dec10cba9039e3626fbcfd0ca8037cc26` and is still running at this checkpoint. The queue
 layout correction requires hosted verification for its own published commit. These controlled
 results do not close R4 or establish retained-library performance.
+
+## Persistent album conflict discovery and resolution - 2026-10-24
+
+A separate read-only conflict port exposes involved-album pages of 64, a scalar current-group count,
+and visible annotations in batches of at most 256 locations. The SQLite adapter reuses current
+content/group inspection and the gallery display-binding projection. Retired album names remain
+inspectable without becoming valid destinations. Reads neither create organization records nor
+open media. The generated Rust/Dart bridge agrees on content hash `1194935527`; this slice changes
+no schema, migration or dependency.
+
+One serialized status reader coalesces catalog publications. The shared notification opens the
+global deferred queue only on explicit action, preserving the ordinary browsing context for exit.
+Per-image labels and the viewer action retain conflict visibility after the notice disappears.
+The existing picker presents the involved albums and uses the existing whole-group assignment,
+atomic review continuation and undo commands. Cancel and failed saves retain the conflict; the
+default album cannot bypass explicit conflict resolution.
+
+Four focused Rust regressions pass, covering late-group reconciliation, reopening, retired album
+provenance, resolution/undo, 64+1 paging, annotation limits, stale versions, content invalidation,
+unpublished evidence and read-only inspection. Thirty-one distinct focused Flutter checks pass:
+conflict workflow (7), ordinary picker/editor (4), ordinary viewer album action (3), mode lifecycle
+(9), review widgets (7), and composed review screen (1). They cover notification coalescing and
+dismissal, serialized stale-result admission, failed-read recovery, cancellation, failed-save retry
+identity, global deferred entry and ordinary-context restoration. The final picker change reran
+the 22 affected picker/review checks; the nine mode lifecycle checks retain their valid result.
+
+The first dialog attempt enabled outer scrolling around shrink-wrapped lazy viewports and failed
+Flutter intrinsic-size layout assertions. Constraining only the destination list removed those
+assertions but a later 800x560 / 2x text interaction exposed an unreachable destination row. The
+final dialog has a scrollable body with bounded page contents, shared scroll motion and fixed
+framework actions. Both 1x and 2x checks now page forward/back, select a destination and cancel
+without hit-test misses or overflow. The installed Flutter 3.44.9 `AlertDialog`, `RadioGroup` and
+`SingleChildScrollView` retain layout, selection, focus and scrolling ownership.
+
+Scoped Dart analysis, Rust formatting and Clippy across all targets/features with warnings denied
+pass. The native bridge build completed, and the first Debug client build took 65.7 seconds.
+The final layout's scoped analysis passes and its Debug client rebuild took 30.1 seconds, using
+the same installed SDK and isolated client profile.
+
+The SQLite conflict reader has 158 production lines and 256 dedicated test lines. Dart conflict
+translation/window batching has 167 production lines, serialized status reading 53, notification
+ownership 35, provenance display 101 and the label 41. The existing picker has 317 lines and viewer
+album action 155. The 1,854-line screen receives 14 composition lines, the 464-line photo tile four,
+and the 309-line mode owner a 12-line navigation entry. None of these owners contains inline tests;
+the dedicated conflict workflow and mode suites have 365 and 240 lines. Generated bridge output is
+excluded from handwritten ownership counts.
+
+The native client used the existing 700-file/six-group test library. A closed-client SQLite backup
+was retained before placing the already favorited 210-copy group in a controlled two-album conflict
+between `r4` and `R4 conflict`. This is a desktop UI fixture; the Rust regressions separately prove
+production late-group reconciliation. Startup displayed one shared warning without navigating.
+After the notice expired, the gallery label and notification-history action remained available.
+That action opened the global deferred queue with two groups, including the marked conflict.
+
+Opening the marked image showed its conflict action and retained favorite. The picker displayed
+both involved albums. Cancel returned to the same image with its conflict still present. Assigning
+the group committed organized/deferred/pending counts of 2/1/3, removed the conflict and returned
+from the exhausted viewer to the queue. Exiting restored ordinary browsing. After restarting only
+the isolated client, `R4 conflict` retained 210 physical copies folded into one group, with its
+Favorite still set and no conflict label or renewed warning.
+The final rebuilt client then moved that group from ordinary global browsing into `r4`, retained
+the current image and favorite, and reopened the picker with the saved destination selected.
+Escape cancelled the picker and returned to the same preview. This final layout check leaves the
+test group in `r4`; the prior restart result describes the preceding resolved-conflict state.
+
+All 700 fixture names, sizes, UTC modification ticks and SHA-256 hashes match the retained baseline;
+the original library, original catalog and cloud placeholders were not touched. Scoped client logs
+contain no Flutter exception, overflow or organization-save failure. The transient undo control
+expired before the attempted native clicks, so native undo remains unverified; adapter and headless
+undo evidence remains valid. Other native management/settings, batch and failure paths and retained
+library/two-core measurements remain in the roadmap. The previous queue-layout head's hosted run
+`40069517946` was still running when inspected; this slice requires its own published-head checks.

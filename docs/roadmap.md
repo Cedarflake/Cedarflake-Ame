@@ -76,8 +76,10 @@ session checks pass. Gallery selection now connects whole-query album/Favorite c
 picker creation, cancellation and transient undo; focused Rust and Flutter checks pass. Organization
 mode now connects its menu entry, shared counts, bottom queues, contextual actions and durable
 continuation through the existing gallery and viewer. Both queue layouts use continuous rows;
-focused regressions and controlled desktop checks pass. Persistent
-involved-album conflict inspection and resolution remain to be connected.
+focused regressions and controlled desktop checks pass. Persistent conflict labels, involved-album
+inspection and resolution are connected through the shared notification, deferred queue and picker.
+Controlled desktop checks cover discovery after notice expiry, cancellation, committed resolution
+and restart retention; focused checks cover retired albums, pagination, failed saves and undo.
 Retain the real-interaction and retained-library
 performance obligations.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
@@ -234,8 +236,9 @@ album settings connected. The query-wide selection command boundary passes focus
 session checks. Controlled desktop checks cover the core organization-mode loop, restart,
 Favorite history behavior and restored ordinary context. Remaining native undo, batch,
 management/settings and failure paths still require verification. Gallery selection and the core
-organization-mode workflows are connected; persistent involved-album conflict inspection and
-resolution remain pending. Keep the product
+organization-mode workflows and persistent conflict inspection/resolution are connected. Controlled
+desktop checks cover conflict discovery, cancellation, resolution and restart; native undo and the
+other remaining interactions still require verification. Keep the product
 checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
 R4-07 remain pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

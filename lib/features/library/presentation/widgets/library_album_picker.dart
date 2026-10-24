@@ -8,6 +8,7 @@ import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
 import "../library_organization_messages.dart";
 import "library_album_editor.dart";
+import "library_conflict_albums.dart";
 
 class LibraryAlbumChoice {
   const LibraryAlbumChoice(this.album);
@@ -20,6 +21,7 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
   LibraryOrganizationAlbum? initialAlbum,
   String? clearLabel,
   String? explanation,
+  LibraryOrganizationTarget? conflictTarget,
   LibraryAlbumMembership? membership,
   String? initialError,
 }) => showDialog<LibraryAlbumChoice>(
@@ -29,6 +31,7 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
     initialAlbum: initialAlbum,
     clearLabel: clearLabel,
     explanation: explanation,
+    conflictTarget: conflictTarget,
     membership: membership,
     initialError: initialError,
   ),
@@ -40,6 +43,7 @@ class LibraryAlbumPicker extends ConsumerStatefulWidget {
     this.initialAlbum,
     this.clearLabel,
     this.explanation,
+    this.conflictTarget,
     this.membership,
     this.initialError,
     super.key,
@@ -48,6 +52,7 @@ class LibraryAlbumPicker extends ConsumerStatefulWidget {
   final LibraryOrganizationAlbum? initialAlbum;
   final String? clearLabel;
   final String? explanation;
+  final LibraryOrganizationTarget? conflictTarget;
   final LibraryAlbumMembership? membership;
   final String? initialError;
 
@@ -163,105 +168,115 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
         title: const Text("选择相册"),
         content: SizedBox(
           width: 440,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (widget.explanation case final explanation?) Text(explanation),
-              if (_error case final error?)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text(
-                    error,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                ),
-              if (_selected case final selected?)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Text("已选择：${selected.name}"),
-                ),
-              page.when(
-                skipLoadingOnRefresh: true,
-                data: (value) => ConstrainedBox(
-                  constraints: const BoxConstraints(maxHeight: 360),
-                  child: value.albums.isEmpty
-                      ? const Padding(
-                          padding: EdgeInsets.symmetric(vertical: 24),
-                          child: Text("还没有相册，可以先新建一个。"),
-                        )
-                      : RadioGroup<String>(
-                          groupValue: _selected?.id,
-                          onChanged: (id) {
-                            if (_saving) return;
-                            final selected = value.albums
-                                .where((album) => album.id == id)
-                                .firstOrNull;
-                            setState(() => _selected = selected);
-                          },
-                          child: AmeScrollMotion(
-                            child: ListView.builder(
-                              shrinkWrap: true,
-                              itemCount: value.albums.length,
-                              itemBuilder: (context, index) {
-                                final album = value.albums[index];
-                                return RadioListTile<String>(
-                                  key: ValueKey("album-choice-${album.id}"),
-                                  value: album.id,
-                                  title: Text(album.name),
-                                );
-                              },
-                            ),
-                          ),
+          child: AmeScrollMotion(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (widget.explanation case final explanation?)
+                    Text(explanation),
+                  if (widget.conflictTarget case final target?)
+                    LibraryConflictAlbumsView(target: target),
+                  if (_error case final error?)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        error,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
                         ),
-                ),
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 24),
-                  child: LinearProgressIndicator(),
-                ),
-                error: (error, stack) => Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Text("相册暂时无法加载。"),
-                    TextButton(
-                      onPressed: () =>
-                          ref.invalidate(libraryAlbumPageProvider(_after)),
-                      child: const Text("重试"),
+                      ),
                     ),
-                  ],
-                ),
-              ),
-              if (page.value case final value?)
-                if (_previous.isNotEmpty || value.nextAlbumId != null)
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed:
-                            _previous.isEmpty || page.isLoading || _saving
-                            ? null
-                            : () => setState(
-                                () => _after = _previous.removeLast(),
+                  if (_selected case final selected?)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text("已选择：${selected.name}"),
+                    ),
+                  page.when(
+                    skipLoadingOnRefresh: true,
+                    data: (value) => ConstrainedBox(
+                      constraints: const BoxConstraints(maxHeight: 360),
+                      child: value.albums.isEmpty
+                          ? const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 24),
+                              child: Text("还没有相册，可以先新建一个。"),
+                            )
+                          : RadioGroup<String>(
+                              groupValue: _selected?.id,
+                              onChanged: (id) {
+                                if (_saving) return;
+                                final selected = value.albums
+                                    .where((album) => album.id == id)
+                                    .firstOrNull;
+                                setState(() => _selected = selected);
+                              },
+                              child: AmeScrollMotion(
+                                child: SingleChildScrollView(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      for (final album in value.albums)
+                                        RadioListTile<String>(
+                                          key: ValueKey(
+                                            "album-choice-${album.id}",
+                                          ),
+                                          value: album.id,
+                                          title: Text(album.name),
+                                        ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                        child: const Text("上一页"),
-                      ),
-                      const Spacer(),
-                      TextButton(
-                        onPressed:
-                            value.nextAlbumId == null ||
-                                page.isLoading ||
-                                _saving
-                            ? null
-                            : () => setState(() {
-                                _previous.add(_after);
-                                _after = value.nextAlbumId;
-                              }),
-                        child: const Text("下一页"),
-                      ),
-                    ],
+                            ),
+                    ),
+                    loading: () => const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: LinearProgressIndicator(),
+                    ),
+                    error: (error, stack) => Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Text("相册暂时无法加载。"),
+                        TextButton(
+                          onPressed: () =>
+                              ref.invalidate(libraryAlbumPageProvider(_after)),
+                          child: const Text("重试"),
+                        ),
+                      ],
+                    ),
                   ),
-            ],
+                  if (page.value case final value?)
+                    if (_previous.isNotEmpty || value.nextAlbumId != null)
+                      Row(
+                        children: [
+                          TextButton(
+                            onPressed:
+                                _previous.isEmpty || page.isLoading || _saving
+                                ? null
+                                : () => setState(
+                                    () => _after = _previous.removeLast(),
+                                  ),
+                            child: const Text("上一页"),
+                          ),
+                          const Spacer(),
+                          TextButton(
+                            onPressed:
+                                value.nextAlbumId == null ||
+                                    page.isLoading ||
+                                    _saving
+                                ? null
+                                : () => setState(() {
+                                    _previous.add(_after);
+                                    _after = value.nextAlbumId;
+                                  }),
+                            child: const Text("下一页"),
+                          ),
+                        ],
+                      ),
+                ],
+              ),
+            ),
           ),
         ),
         actions: [

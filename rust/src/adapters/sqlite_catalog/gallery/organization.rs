@@ -37,7 +37,7 @@ pub(in super::super) fn validate_collection(
 
 // Retained display evidence preserves browsing during verification, but cannot
 // admit commands. The organization command owner still requires current evidence.
-pub(super) fn record_expression(location: &str) -> String {
+pub(in super::super) fn record_expression(location: &str) -> String {
     let compatible = compatible_fingerprint(location);
     let bound = compatible_binding(location);
     format!(

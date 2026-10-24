@@ -300,6 +300,25 @@ superseding catalog publications; they update resume availability without moving
 Review failures use the existing viewer notice and retry path, while confirmed results retain the
 shared transient receipt and undo behavior.
 
+Conflict inspection has a separate read-only port. Album provenance uses 64-entry keyset pages,
+including retired album names without admitting them as destinations. A bounded visible window
+reads conflict markers in batches of at most 256 locations through the existing display-binding
+projection. These markers grant no write authority; opening the picker revalidates the selected
+content through the organization command boundary. A scalar status query counts conflicting
+canonical groups that retain compatible configured-source bindings, independently of the current
+gallery filter. It does not read media or materialize unhandled decisions.
+
+Background status reads serialize and coalesce catalog publications. One shared notification points
+to the global deferred queue without changing current browsing until its action is selected.
+Dismissing that notice leaves per-image conflict labels and viewer resolution controls available.
+The existing destination picker displays provenance, retains explicit destination choice and uses
+ordinary or atomic review membership commands according to the active mode. Resolution and undo
+keep their existing transaction and continuation owners.
+The picker retains the framework dialog and radio selection. Its scrollable body keeps actions
+reachable at compact desktop heights and enlarged text. Provenance and destinations each render
+only their bounded 64-entry page; the framework scroll views and shared motion owner provide
+scrolling without intrinsic measurement of a lazy viewport.
+
 ## Alternatives and consequences
 
 Content-keyed decisions alone simplify queries but cannot retain provisional intent and conflict

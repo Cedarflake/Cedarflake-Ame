@@ -18,6 +18,7 @@ import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
 import "../application/library_organization_actions.dart";
+import "../application/library_organization_conflicts.dart";
 import "../application/library_organization_outcome.dart";
 import "../application/library_review.dart";
 import "../application/library_query_projection.dart";
@@ -36,6 +37,7 @@ import "library_gallery_dimension_publication.dart";
 import "library_gallery_layout_continuity.dart";
 import "library_gallery_query_transition.dart";
 import "library_organization_mode.dart";
+import "library_conflict_notifications.dart";
 import "library_pending_source.dart";
 import "library_strings.dart";
 import "library_synchronization_notifications.dart";
@@ -95,6 +97,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   bool _isSidebarResizing = false;
   late final LibraryViewerSession _viewer;
   late final LibraryOrganizationMode _review;
+  late final LibraryConflictNotifications _conflictNotifications;
   int _timelineSemanticsGeneration = 0;
   bool _isSelecting = false;
   LibraryGalleryPrependCompensation? _previousWindowCompensation;
@@ -143,6 +146,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     )..addListener(_handleViewerChanged);
     _notificationController = ref.read(
       ameNotificationControllerProvider.notifier,
+    );
+    _conflictNotifications = LibraryConflictNotifications(
+      _notificationController,
     );
     _synchronizationNotifications = LibrarySynchronizationNotifications(
       notifications: _notificationController,
@@ -250,6 +256,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
+    if (_conflictNotifications.admit(notification)) {
+      unawaited(_review.showConflicts());
+      return;
+    }
     if (ref
         .read(libraryOrganizationActionsProvider.notifier)
         .handleNotification(notification)) {
@@ -353,6 +363,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(libraryConflictStatusProvider, (_, next) {
+      final status = next.asData?.value;
+      if (status != null) _conflictNotifications.accept(status);
+    });
     ref.listen(
       libraryControllerProvider.select((state) => state.catalogRevision),
       (_, _) {

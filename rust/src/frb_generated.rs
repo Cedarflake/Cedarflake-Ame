@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1093802923;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1194935527;
 
 // Section: executor
 
@@ -1865,6 +1865,116 @@ fn wire__crate__api__organization__load_organization_albums_impl(
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
                     let output_ok = crate::api::organization::load_organization_albums(api_after)?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_organization_conflict_albums",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_selection =
+                <crate::domain::organization::OrganizationSelection>::sse_decode(&mut deserializer);
+            let api_after = <Option<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::organization_conflicts::load_organization_conflict_albums(
+                            api_selection,
+                            api_after,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_organization_conflict_annotations",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_revision = <u64>::sse_decode(&mut deserializer);
+            let api_location_ids = <Vec<String>>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::organization_conflicts::load_organization_conflict_annotations(
+                            api_revision,
+                            api_location_ids,
+                        )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "load_organization_conflict_status",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok =
+                        crate::api::organization_conflicts::load_organization_conflict_status()?;
                     Ok(output_ok)
                 })())
             }
@@ -4232,6 +4342,22 @@ impl SseDecode for Vec<crate::domain::organization::OrganizationAlbum> {
     }
 }
 
+impl SseDecode for Vec<crate::domain::organization_conflicts::OrganizationConflictAlbum> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::domain::organization_conflicts::OrganizationConflictAlbum>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::domain::organization::OrganizationGroupDecision> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4760,6 +4886,61 @@ impl SseDecode for crate::domain::organization_batch::OrganizationBatchSummary {
             assigned_count: var_assignedCount,
             conflicting_count: var_conflictingCount,
             common_album: var_commonAlbum,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization_conflicts::OrganizationConflictAlbum {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_albumId = <String>::sse_decode(deserializer);
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_retired = <bool>::sse_decode(deserializer);
+        return crate::domain::organization_conflicts::OrganizationConflictAlbum {
+            album_id: var_albumId,
+            name: var_name,
+            retired: var_retired,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization_conflicts::OrganizationConflictAlbums {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_organizationRevision = <u64>::sse_decode(deserializer);
+        let mut var_albums =
+            <Vec<crate::domain::organization_conflicts::OrganizationConflictAlbum>>::sse_decode(
+                deserializer,
+            );
+        let mut var_nextAlbumId = <Option<String>>::sse_decode(deserializer);
+        return crate::domain::organization_conflicts::OrganizationConflictAlbums {
+            organization_revision: var_organizationRevision,
+            albums: var_albums,
+            next_album_id: var_nextAlbumId,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization_conflicts::OrganizationConflictAnnotations {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_catalogRevision = <u64>::sse_decode(deserializer);
+        let mut var_locationIds = <Vec<String>>::sse_decode(deserializer);
+        return crate::domain::organization_conflicts::OrganizationConflictAnnotations {
+            catalog_revision: var_catalogRevision,
+            location_ids: var_locationIds,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::organization_conflicts::OrganizationConflictStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_catalogRevision = <u64>::sse_decode(deserializer);
+        let mut var_conflictingGroups = <u64>::sse_decode(deserializer);
+        return crate::domain::organization_conflicts::OrganizationConflictStatus {
+            catalog_revision: var_catalogRevision,
+            conflicting_groups: var_conflictingGroups,
         };
     }
 }
@@ -5741,116 +5922,136 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__organization_review__load_organization_continuation_impl(
+        46 => wire__crate__api__organization_conflicts__load_organization_conflict_albums_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__catalog__load_paused_library_scan_impl(
+        47 => {
+            wire__crate__api__organization_conflicts__load_organization_conflict_annotations_impl(
+                port,
+                ptr,
+                rust_vec_len,
+                data_len,
+            )
+        }
+        48 => wire__crate__api__organization_conflicts__load_organization_conflict_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+        49 => wire__crate__api__organization_review__load_organization_continuation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => {
+        50 => wire__crate__api__catalog__load_paused_library_scan_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        51 => wire__crate__api__catalog__load_recoverable_library_scan_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        52 => {
             wire__crate__api__storage__load_storage_status_impl(port, ptr, rust_vec_len, data_len)
         }
-        50 => wire__crate__api__preview__materialize_library_preview_impl(
+        53 => wire__crate__api__preview__materialize_library_preview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(
+        54 => wire__crate__api__organization_batch__open_gallery_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__synchronization__poll_library_synchronization_impl(
+        56 => wire__crate__api__synchronization__poll_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__organization__prepare_organization_selection_impl(
+        57 => wire__crate__api__organization__prepare_organization_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => {
+        58 => {
             wire__crate__api__catalog__relocate_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        56 => {
+        59 => {
             wire__crate__api__catalog__remove_library_root_impl(port, ptr, rust_vec_len, data_len)
         }
-        57 => wire__crate__api__organization__rename_organization_album_impl(
+        60 => wire__crate__api__organization__rename_organization_album_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        60 => {
+        63 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        61 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        62 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
+        64 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        65 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        63 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
+        66 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
+        67 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        65 => wire__crate__api__organization__set_organization_favorite_impl(
+        68 => wire__crate__api__organization__set_organization_favorite_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        69 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        67 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        70 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        68 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        71 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__organization__undo_organization_operation_impl(
+        73 => wire__crate__api__organization__undo_organization_operation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__storage__update_storage_settings_impl(
+        74 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -5874,18 +6075,18 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        58 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        55 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        62 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        69 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        72 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7615,6 +7816,110 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization_batch::Organi
     for crate::domain::organization_batch::OrganizationBatchSummary
 {
     fn into_into_dart(self) -> crate::domain::organization_batch::OrganizationBatchSummary {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::organization_conflicts::OrganizationConflictAlbum
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.album_id.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+            self.retired.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_conflicts::OrganizationConflictAlbum
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::organization_conflicts::OrganizationConflictAlbum,
+    > for crate::domain::organization_conflicts::OrganizationConflictAlbum
+{
+    fn into_into_dart(self) -> crate::domain::organization_conflicts::OrganizationConflictAlbum {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::organization_conflicts::OrganizationConflictAlbums
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.organization_revision.into_into_dart().into_dart(),
+            self.albums.into_into_dart().into_dart(),
+            self.next_album_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_conflicts::OrganizationConflictAlbums
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::organization_conflicts::OrganizationConflictAlbums,
+    > for crate::domain::organization_conflicts::OrganizationConflictAlbums
+{
+    fn into_into_dart(self) -> crate::domain::organization_conflicts::OrganizationConflictAlbums {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::organization_conflicts::OrganizationConflictAnnotations
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.catalog_revision.into_into_dart().into_dart(),
+            self.location_ids.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_conflicts::OrganizationConflictAnnotations
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::organization_conflicts::OrganizationConflictAnnotations,
+    > for crate::domain::organization_conflicts::OrganizationConflictAnnotations
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::organization_conflicts::OrganizationConflictAnnotations {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::organization_conflicts::OrganizationConflictStatus
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.catalog_revision.into_into_dart().into_dart(),
+            self.conflicting_groups.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_conflicts::OrganizationConflictStatus
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::organization_conflicts::OrganizationConflictStatus,
+    > for crate::domain::organization_conflicts::OrganizationConflictStatus
+{
+    fn into_into_dart(self) -> crate::domain::organization_conflicts::OrganizationConflictStatus {
         self
     }
 }
@@ -9619,6 +9924,18 @@ impl SseEncode for Vec<crate::domain::organization::OrganizationAlbum> {
     }
 }
 
+impl SseEncode for Vec<crate::domain::organization_conflicts::OrganizationConflictAlbum> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::domain::organization_conflicts::OrganizationConflictAlbum>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::domain::organization::OrganizationGroupDecision> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -10046,6 +10363,43 @@ impl SseEncode for crate::domain::organization_batch::OrganizationBatchSummary {
             self.common_album,
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::domain::organization_conflicts::OrganizationConflictAlbum {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.album_id, serializer);
+        <String>::sse_encode(self.name, serializer);
+        <bool>::sse_encode(self.retired, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::organization_conflicts::OrganizationConflictAlbums {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.organization_revision, serializer);
+        <Vec<crate::domain::organization_conflicts::OrganizationConflictAlbum>>::sse_encode(
+            self.albums,
+            serializer,
+        );
+        <Option<String>>::sse_encode(self.next_album_id, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::organization_conflicts::OrganizationConflictAnnotations {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.catalog_revision, serializer);
+        <Vec<String>>::sse_encode(self.location_ids, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::organization_conflicts::OrganizationConflictStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.catalog_revision, serializer);
+        <u64>::sse_encode(self.conflicting_groups, serializer);
     }
 }
 

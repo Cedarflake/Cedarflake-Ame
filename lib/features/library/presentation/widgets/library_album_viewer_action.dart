@@ -98,6 +98,7 @@ class _LibraryAlbumViewerActionState
         initialAlbum: proposal.destination,
         clearLabel: proposal.current == null ? null : "移出相册",
         explanation: proposal.hasConflict ? "这组图片的相册归属有冲突，请选择一个相册。" : null,
+        conflictTarget: proposal.hasConflict ? target : null,
         initialError: initialError,
         membership: membership,
       );
@@ -127,11 +128,22 @@ class _LibraryAlbumViewerActionState
         ?.decisions
         .singleOrNull;
     final label = _error ?? (decision?.album == null ? "加入相册" : "移至相册");
+    final onPressed = busy || _opening != null || !widget.enabled
+        ? null
+        : _open;
+    if (decision?.hasConflict == true) {
+      return TextButton.icon(
+        key: const Key("viewer-album-conflict"),
+        onPressed: onPressed,
+        icon: const Icon(Symbols.error_rounded, size: 20),
+        label: Text(_error ?? "相册归属冲突"),
+      );
+    }
     return AmeTooltip(
       message: label,
       child: IconButton(
         key: const Key("viewer-album-action"),
-        onPressed: busy || _opening != null || !widget.enabled ? null : _open,
+        onPressed: onPressed,
         icon: Icon(
           _error == null ? Symbols.photo_album_rounded : Symbols.error_rounded,
           size: 20,

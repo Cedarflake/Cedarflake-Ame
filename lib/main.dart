@@ -14,6 +14,7 @@ import "features/library/application/library_controller.dart";
 import "features/library/application/library_exact_analysis_controller.dart";
 import "features/library/application/library_exact_analysis_scheduler.dart";
 import "features/library/application/library_gallery_duplicates.dart";
+import "features/library/application/library_organization_conflicts.dart";
 import "features/library/application/library_exact_duplicates.dart";
 import "features/library/application/library_foreground_reads.dart";
 import "features/library/application/library_scan_shutdown.dart";
@@ -68,6 +69,9 @@ Future<void> main() async {
     shutdownCoordinator.register(exactScheduler.close);
     application = ProviderScope(
       overrides: [
+        libraryOrganizationConflictsProvider.overrideWithValue(
+          const RustLibraryOrganizationConflicts(),
+        ),
         libraryGalleryDuplicatesProvider.overrideWithValue(
           const RustLibraryGalleryDuplicates(),
         ),

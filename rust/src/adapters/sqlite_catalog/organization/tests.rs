@@ -12,6 +12,7 @@ use super::*;
 
 mod admission;
 mod batch;
+mod conflicts;
 mod inspection;
 mod lifecycle;
 mod publication;

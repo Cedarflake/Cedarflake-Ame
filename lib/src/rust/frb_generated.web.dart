@@ -11,6 +11,7 @@ import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
 import 'api/organization.dart';
 import 'api/organization_batch.dart';
+import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
 import 'api/storage.dart';
@@ -29,6 +30,7 @@ import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
 import 'domain/organization.dart';
 import 'domain/organization_batch.dart';
+import 'domain/organization_conflicts.dart';
 import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
 import 'domain/persistent_journal.dart';
@@ -516,6 +518,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<OrganizationAlbum> dco_decode_list_organization_album(dynamic raw);
 
   @protected
+  List<OrganizationConflictAlbum> dco_decode_list_organization_conflict_album(
+    dynamic raw,
+  );
+
+  @protected
   List<OrganizationGroupDecision> dco_decode_list_organization_group_decision(
     dynamic raw,
   );
@@ -659,6 +666,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationBatchSummary dco_decode_organization_batch_summary(dynamic raw);
+
+  @protected
+  OrganizationConflictAlbum dco_decode_organization_conflict_album(dynamic raw);
+
+  @protected
+  OrganizationConflictAlbums dco_decode_organization_conflict_albums(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationConflictAnnotations dco_decode_organization_conflict_annotations(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationConflictStatus dco_decode_organization_conflict_status(
+    dynamic raw,
+  );
 
   @protected
   OrganizationContinuation dco_decode_organization_continuation(dynamic raw);
@@ -1358,6 +1383,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<OrganizationConflictAlbum> sse_decode_list_organization_conflict_album(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<OrganizationGroupDecision> sse_decode_list_organization_group_decision(
     SseDeserializer deserializer,
   );
@@ -1533,6 +1563,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationBatchSummary sse_decode_organization_batch_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationConflictAlbum sse_decode_organization_conflict_album(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationConflictAlbums sse_decode_organization_conflict_albums(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationConflictAnnotations sse_decode_organization_conflict_annotations(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationConflictStatus sse_decode_organization_conflict_status(
     SseDeserializer deserializer,
   );
 
@@ -2393,6 +2443,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_organization_conflict_album(
+    List<OrganizationConflictAlbum> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_organization_group_decision(
     List<OrganizationGroupDecision> self,
     SseSerializer serializer,
@@ -2605,6 +2661,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_batch_summary(
     OrganizationBatchSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_conflict_album(
+    OrganizationConflictAlbum self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_conflict_albums(
+    OrganizationConflictAlbums self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_conflict_annotations(
+    OrganizationConflictAnnotations self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_conflict_status(
+    OrganizationConflictStatus self,
     SseSerializer serializer,
   );
 

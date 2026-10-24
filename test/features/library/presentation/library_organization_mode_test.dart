@@ -21,6 +21,26 @@ void main() {
   tearDown(() => mode.dispose());
 
   test(
+    "conflict notification opens the global deferred queue and preserves ordinary context",
+    () async {
+      final original = surface.library.query.copyWith(
+        rootId: "one-root",
+        searchText: "filter",
+      );
+      surface.library = surface.library.copyWith(query: original);
+      await mode.showConflicts();
+      expect(mode.isActive, isTrue);
+      expect(mode.queue, LibraryOrganizationQueue.deferred);
+      expect(surface.library.query.rootId, isNull);
+      expect(surface.library.query.searchText, isEmpty);
+      expect(surface.closes, 1);
+      expect(service.starts, isEmpty);
+      await mode.exit();
+      expect(surface.library.query, original);
+    },
+  );
+
+  test(
     "viewer-admitted representative replacement renews authority without duplicate checkpoints",
     () async {
       await mode.enter();

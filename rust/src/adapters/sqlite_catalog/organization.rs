@@ -15,6 +15,7 @@ mod authority;
 mod batch;
 pub(crate) use batch::SqliteOrganizationBatch;
 mod changes;
+mod conflicts;
 mod favorites;
 mod inspection;
 pub(super) mod lifecycle;

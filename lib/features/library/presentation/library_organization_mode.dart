@@ -109,6 +109,18 @@ class LibraryOrganizationMode extends ChangeNotifier {
     await changeQuery(surface.library.query.copyWith(organizationQueue: queue));
   }
 
+  Future<void> showConflicts() => _run(() async {
+    final saved = _ordinary ?? surface.captureBrowse();
+    const query = LibraryGalleryQuery(
+      organizationQueue: LibraryOrganizationQueue.deferred,
+    );
+    if (!await surface.showReviewQuery(query) || _disposed) return;
+    surface.closeReviewImage();
+    _ordinary = saved;
+    await _replaceSession(query);
+    await refreshContinuation();
+  });
+
   void open(LibraryAsset asset) {
     final session = _session;
     if (!isActive || _disposed || session == null) return;
