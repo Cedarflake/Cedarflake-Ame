@@ -1101,3 +1101,48 @@ cleanup remain outstanding. Archive-local generations and ordinals cannot enter 
 queue authority before trustworthy mapping; unmatched evidence must remain durable through that
 later publication boundary. The roadmap advances to R4-06 while retaining R4-07's integrated
 workflow, retained-library resource and source-preservation obligations.
+
+## Archive association preview
+
+Inspection now compares validated archive evidence with a single read-only catalog snapshot and
+returns matched/unmatched canonical-group counts, resolved/unresolved preferred-copy counts, and
+the inspected catalog/organization revisions. Source locations, historical bindings and preferred
+choices use 256-record windows. An indexed, disk-backed projection uses bounded per-database page
+caches; repeated native versions are aggregated before matching. No archive generation, filename
+or asset identifier alone authorizes a match, and no source-media read or mutation is introduced.
+
+The focused `organization_archive` run passed all 30 tests in 52.78 seconds after a 40.85-second test
+build. Nine added regressions cover rebuilt/renamed native versions, changed revision/volume/size,
+missing or unsupported evidence, published compatible fingerprints across volumes, contrary current
+fingerprints, canonical alias counts, physical preference ambiguity, cancellation and concurrent
+publication. A controlled 600-binding/600-copy case remains below its 150,000 SQLite-instruction
+ceiling while rejecting contrary content. This checks lookup growth, not real-library throughput.
+Cancellation after a 256-location window removes owned staging, and a later inspection succeeds.
+Archive bytes and live catalog changes are checked independently of the temporary matching tables.
+
+Review added the reverse hardlink case: several archived aliases followed by one surviving current
+alias still cannot identify the old preferred location. After that guard and its staging lookup
+index were added, all ten matching regressions passed in 34.04 seconds after a 35.95-second test
+build. The unchanged 21 codec/export/admission results are retained, giving applicable passing
+evidence for 31 distinct archive checks. The Rust library Clippy check passes with warnings denied,
+including the previously reported callback declaration. The final Release build passes in 48.44
+seconds; generated bridge output, owned formatting and staged whitespace checks are current.
+
+The first focused run exposed a fixture deletion-order error: published fingerprint references were
+still present when its evidence was replaced. Correcting the fixture's dependent-row order retains
+foreign-key enforcement and the original negative cases. A preceding build also identified unsigned
+SQLite conversions; the new readers now use the existing checked conversion helper.
+
+Hosted run [40077809287](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40077809287), for
+`4bcf19102b6a75ff8a557528374313214c1a6e2d`, finished with the Static job and aggregate gate failing:
+`clippy::type_complexity` in the archive record
+consumer callback. Its declaration now uses a generic callback without changing record validation
+or suppressing the lint. The other jobs from that run retain their own outcomes; the new implementation
+requires checks on its own published commit.
+
+The association owner has 77 production lines, current-evidence capture 75 and matching 93; none has
+inline tests. Dedicated matching and cost tests have 312 and 80 lines. The catalog archive facade has
+182 production lines and still delegates each responsibility. The catalog schema and archive format
+remain unchanged. Actual application must recompute matches under its write transaction and verify
+the inspected checksum. Atomic restore, durable unmatched records, newer-decision/conflict handling,
+recovery settings and explicit cleanup remain outstanding, as do retained-library measurements.

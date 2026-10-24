@@ -4903,6 +4903,26 @@ impl SseDecode for crate::domain::organization::OrganizationAlbumReceipt {
     }
 }
 
+impl SseDecode for crate::domain::organization_archive::OrganizationArchiveAssociations {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_catalogRevision = <u64>::sse_decode(deserializer);
+        let mut var_organizationRevision = <u64>::sse_decode(deserializer);
+        let mut var_matchedGroups = <u64>::sse_decode(deserializer);
+        let mut var_unmatchedGroups = <u64>::sse_decode(deserializer);
+        let mut var_resolvedPreferredCopies = <u64>::sse_decode(deserializer);
+        let mut var_unresolvedPreferredCopies = <u64>::sse_decode(deserializer);
+        return crate::domain::organization_archive::OrganizationArchiveAssociations {
+            catalog_revision: var_catalogRevision,
+            organization_revision: var_organizationRevision,
+            matched_groups: var_matchedGroups,
+            unmatched_groups: var_unmatchedGroups,
+            resolved_preferred_copies: var_resolvedPreferredCopies,
+            unresolved_preferred_copies: var_unresolvedPreferredCopies,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::organization_archive::OrganizationArchiveEvent {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4963,6 +4983,10 @@ impl SseDecode for crate::domain::organization_archive::OrganizationArchiveInspe
         let mut var_conflictingGroups = <u64>::sse_decode(deserializer);
         let mut var_duplicateChoices = <u64>::sse_decode(deserializer);
         let mut var_hasContinuation = <bool>::sse_decode(deserializer);
+        let mut var_associations =
+            <crate::domain::organization_archive::OrganizationArchiveAssociations>::sse_decode(
+                deserializer,
+            );
         return crate::domain::organization_archive::OrganizationArchiveInspection {
             archive_id: var_archiveId,
             checksum: var_checksum,
@@ -4974,6 +4998,7 @@ impl SseDecode for crate::domain::organization_archive::OrganizationArchiveInspe
             conflicting_groups: var_conflictingGroups,
             duplicate_choices: var_duplicateChoices,
             has_continuation: var_hasContinuation,
+            associations: var_associations,
         };
     }
 }
@@ -4986,6 +5011,7 @@ impl SseDecode for crate::domain::organization_archive::OrganizationArchivePhase
             0 => crate::domain::organization_archive::OrganizationArchivePhase::Snapshot,
             1 => crate::domain::organization_archive::OrganizationArchivePhase::Writing,
             2 => crate::domain::organization_archive::OrganizationArchivePhase::Verifying,
+            3 => crate::domain::organization_archive::OrganizationArchivePhase::Matching,
             _ => unreachable!("Invalid variant for OrganizationArchivePhase: {}", inner),
         };
     }
@@ -7940,6 +7966,39 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::organization::Organization
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
+    for crate::domain::organization_archive::OrganizationArchiveAssociations
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.catalog_revision.into_into_dart().into_dart(),
+            self.organization_revision.into_into_dart().into_dart(),
+            self.matched_groups.into_into_dart().into_dart(),
+            self.unmatched_groups.into_into_dart().into_dart(),
+            self.resolved_preferred_copies.into_into_dart().into_dart(),
+            self.unresolved_preferred_copies
+                .into_into_dart()
+                .into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::organization_archive::OrganizationArchiveAssociations
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::organization_archive::OrganizationArchiveAssociations,
+    > for crate::domain::organization_archive::OrganizationArchiveAssociations
+{
+    fn into_into_dart(
+        self,
+    ) -> crate::domain::organization_archive::OrganizationArchiveAssociations {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
     for crate::domain::organization_archive::OrganizationArchiveEvent
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -7999,6 +8058,7 @@ impl flutter_rust_bridge::IntoDart
             self.conflicting_groups.into_into_dart().into_dart(),
             self.duplicate_choices.into_into_dart().into_dart(),
             self.has_continuation.into_into_dart().into_dart(),
+            self.associations.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -8025,6 +8085,7 @@ impl flutter_rust_bridge::IntoDart
             Self::Snapshot => 0.into_dart(),
             Self::Writing => 1.into_dart(),
             Self::Verifying => 2.into_dart(),
+            Self::Matching => 3.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -10687,6 +10748,18 @@ impl SseEncode for crate::domain::organization::OrganizationAlbumReceipt {
     }
 }
 
+impl SseEncode for crate::domain::organization_archive::OrganizationArchiveAssociations {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <u64>::sse_encode(self.catalog_revision, serializer);
+        <u64>::sse_encode(self.organization_revision, serializer);
+        <u64>::sse_encode(self.matched_groups, serializer);
+        <u64>::sse_encode(self.unmatched_groups, serializer);
+        <u64>::sse_encode(self.resolved_preferred_copies, serializer);
+        <u64>::sse_encode(self.unresolved_preferred_copies, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::organization_archive::OrganizationArchiveEvent {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -10746,6 +10819,10 @@ impl SseEncode for crate::domain::organization_archive::OrganizationArchiveInspe
         <u64>::sse_encode(self.conflicting_groups, serializer);
         <u64>::sse_encode(self.duplicate_choices, serializer);
         <bool>::sse_encode(self.has_continuation, serializer);
+        <crate::domain::organization_archive::OrganizationArchiveAssociations>::sse_encode(
+            self.associations,
+            serializer,
+        );
     }
 }
 
@@ -10757,6 +10834,7 @@ impl SseEncode for crate::domain::organization_archive::OrganizationArchivePhase
                 crate::domain::organization_archive::OrganizationArchivePhase::Snapshot => 0,
                 crate::domain::organization_archive::OrganizationArchivePhase::Writing => 1,
                 crate::domain::organization_archive::OrganizationArchivePhase::Verifying => 2,
+                crate::domain::organization_archive::OrganizationArchivePhase::Matching => 3,
                 _ => {
                     unimplemented!("");
                 }

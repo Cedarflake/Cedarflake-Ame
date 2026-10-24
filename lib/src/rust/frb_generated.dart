@@ -4857,6 +4857,24 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationArchiveAssociations dco_decode_organization_archive_associations(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return OrganizationArchiveAssociations(
+      catalogRevision: dco_decode_u_64(arr[0]),
+      organizationRevision: dco_decode_u_64(arr[1]),
+      matchedGroups: dco_decode_u_64(arr[2]),
+      unmatchedGroups: dco_decode_u_64(arr[3]),
+      resolvedPreferredCopies: dco_decode_u_64(arr[4]),
+      unresolvedPreferredCopies: dco_decode_u_64(arr[5]),
+    );
+  }
+
+  @protected
   OrganizationArchiveEvent dco_decode_organization_archive_event(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     switch (raw[0]) {
@@ -4894,8 +4912,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return OrganizationArchiveInspection(
       archiveId: dco_decode_String(arr[0]),
       checksum: dco_decode_String(arr[1]),
@@ -4907,6 +4925,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       conflictingGroups: dco_decode_u_64(arr[7]),
       duplicateChoices: dco_decode_u_64(arr[8]),
       hasContinuation: dco_decode_bool(arr[9]),
+      associations: dco_decode_organization_archive_associations(arr[10]),
     );
   }
 
@@ -7685,6 +7704,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationArchiveAssociations sse_decode_organization_archive_associations(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_catalogRevision = sse_decode_u_64(deserializer);
+    var var_organizationRevision = sse_decode_u_64(deserializer);
+    var var_matchedGroups = sse_decode_u_64(deserializer);
+    var var_unmatchedGroups = sse_decode_u_64(deserializer);
+    var var_resolvedPreferredCopies = sse_decode_u_64(deserializer);
+    var var_unresolvedPreferredCopies = sse_decode_u_64(deserializer);
+    return OrganizationArchiveAssociations(
+      catalogRevision: var_catalogRevision,
+      organizationRevision: var_organizationRevision,
+      matchedGroups: var_matchedGroups,
+      unmatchedGroups: var_unmatchedGroups,
+      resolvedPreferredCopies: var_resolvedPreferredCopies,
+      unresolvedPreferredCopies: var_unresolvedPreferredCopies,
+    );
+  }
+
+  @protected
   OrganizationArchiveEvent sse_decode_organization_archive_event(
     SseDeserializer deserializer,
   ) {
@@ -7737,6 +7777,9 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_conflictingGroups = sse_decode_u_64(deserializer);
     var var_duplicateChoices = sse_decode_u_64(deserializer);
     var var_hasContinuation = sse_decode_bool(deserializer);
+    var var_associations = sse_decode_organization_archive_associations(
+      deserializer,
+    );
     return OrganizationArchiveInspection(
       archiveId: var_archiveId,
       checksum: var_checksum,
@@ -7748,6 +7791,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       conflictingGroups: var_conflictingGroups,
       duplicateChoices: var_duplicateChoices,
       hasContinuation: var_hasContinuation,
+      associations: var_associations,
     );
   }
 
@@ -10429,6 +10473,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_organization_archive_associations(
+    OrganizationArchiveAssociations self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_u_64(self.catalogRevision, serializer);
+    sse_encode_u_64(self.organizationRevision, serializer);
+    sse_encode_u_64(self.matchedGroups, serializer);
+    sse_encode_u_64(self.unmatchedGroups, serializer);
+    sse_encode_u_64(self.resolvedPreferredCopies, serializer);
+    sse_encode_u_64(self.unresolvedPreferredCopies, serializer);
+  }
+
+  @protected
   void sse_encode_organization_archive_event(
     OrganizationArchiveEvent self,
     SseSerializer serializer,
@@ -10481,6 +10539,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.conflictingGroups, serializer);
     sse_encode_u_64(self.duplicateChoices, serializer);
     sse_encode_bool(self.hasContinuation, serializer);
+    sse_encode_organization_archive_associations(self.associations, serializer);
   }
 
   @protected

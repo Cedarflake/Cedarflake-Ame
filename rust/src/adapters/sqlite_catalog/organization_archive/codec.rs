@@ -139,7 +139,7 @@ pub(super) fn validate(
 
 pub(super) fn read_records(
     mut input: impl BufRead,
-    accept: &mut dyn FnMut(usize, &[Cell]) -> Result<(), ScanError>,
+    accept: &mut impl FnMut(usize, &[Cell]) -> Result<(), ScanError>,
     progress: &mut dyn FnMut(u64) -> Result<(), ScanError>,
 ) -> Result<VerifiedArchive, ScanError> {
     let mut bytes = read_line(&mut input)?;

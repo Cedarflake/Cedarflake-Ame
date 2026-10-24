@@ -674,6 +674,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationAlbumReceipt dco_decode_organization_album_receipt(dynamic raw);
 
   @protected
+  OrganizationArchiveAssociations dco_decode_organization_archive_associations(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationArchiveEvent dco_decode_organization_archive_event(dynamic raw);
 
   @protected
@@ -1606,6 +1611,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationAlbumReceipt sse_decode_organization_album_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveAssociations sse_decode_organization_archive_associations(
     SseDeserializer deserializer,
   );
 
@@ -2749,6 +2759,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_album_receipt(
     OrganizationAlbumReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_associations(
+    OrganizationArchiveAssociations self,
     SseSerializer serializer,
   );
 

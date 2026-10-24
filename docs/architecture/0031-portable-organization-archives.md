@@ -71,6 +71,31 @@ checkpoints. Inspection returns the archive identifier and verified checksum wit
 counts. Applying a backup requires a separately implemented reconciliation/transaction boundary;
 inspection does not grant foreign location identifiers, revisions or session identifiers live authority.
 
+### Association preview
+
+After archive validation, compare stored bindings with one read-only snapshot of the current catalog.
+An indexed, disk-backed temporary projection captures active published locations in windows of 256;
+neither original files nor retained display-only fingerprints are read. Report matched and unmatched
+canonical groups separately from uniquely identified preferred physical copies. Include the observed
+catalog and organization revisions with the counts. The projection and read transaction expire at
+the end of inspection; these numbers are explanatory, not write authority.
+
+A compatible published `blake3-256-full-v1` fingerprint and byte length can identify content across
+volumes and rebuilt catalogs. The existing Windows metadata-reuse boundary also accepts the same
+volume-qualified native file identity, canonical ChangeTime token and byte length. Contradictory
+compatible content evidence, including a completed fingerprint not yet published to the gallery,
+disqualifies that metadata match. Missing or unsupported native evidence cannot be replaced by equal
+paths, local asset identifiers or source-generation numbers.
+
+Content equality alone does not identify an R3 preferred physical copy. Require its archived version
+evidence to agree with the choice's content key and to identify exactly one current native file
+location. Multiple hardlink locations in either the archive or current catalog remain unresolved;
+one surviving hardlink does not establish which older alias was preferred. Aggregate
+repeated native versions before matching so many aliases or hardlinks do not multiply lookup work.
+Cancellation checkpoints retire the entire private projection. Concurrent catalog writes can proceed
+while all counts retain the same inspected snapshot. Later application must revalidate the archive
+checksum and recompute associations within its publication transaction.
+
 ## Dependencies and alternatives
 
 Use serde 1.0.229 and serde_json 1.0.154 (MIT OR Apache-2.0), behind the archive adapter. Their typed

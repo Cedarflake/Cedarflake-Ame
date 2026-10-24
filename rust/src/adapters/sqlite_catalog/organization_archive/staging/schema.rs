@@ -128,4 +128,6 @@ CREATE TABLE archive_duplicate_decision (
   ignored INTEGER NOT NULL CHECK(ignored IN (0, 1)), updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
   CHECK((preferred_location_id IS NULL) = (preferred_asset_id IS NULL)), PRIMARY KEY(scheme, digest, byte_length)
 ) STRICT;
+CREATE INDEX archive_version_evidence_native
+  ON archive_version_evidence(file_identity_scheme, file_identity_value);
 ";

@@ -7,7 +7,8 @@ use tempfile::NamedTempFile;
 
 use crate::domain::ScanError;
 use crate::domain::organization_archive::{
-    OrganizationArchiveInspection, OrganizationArchivePhase, OrganizationArchiveProgress,
+    OrganizationArchiveAssociations, OrganizationArchiveInspection, OrganizationArchivePhase,
+    OrganizationArchiveProgress,
 };
 
 use super::{codec, database_error, error, io_error, records, report};
@@ -101,7 +102,14 @@ impl ToSql for codec::Cell {
 }
 
 impl StagedArchive {
-    pub fn inspect(&self) -> Result<OrganizationArchiveInspection, ScanError> {
+    pub(super) fn path(&self) -> &Path {
+        self._file.path()
+    }
+
+    pub fn inspect(
+        &self,
+        associations: OrganizationArchiveAssociations,
+    ) -> Result<OrganizationArchiveInspection, ScanError> {
         let counts: (i64, i64, i64, i64, i64, bool) = self.connection.query_row(
             "SELECT
                (SELECT COUNT(*) FROM archive_album AS album
@@ -125,6 +133,7 @@ impl StagedArchive {
             conflicting_groups: counts.3 as u64,
             duplicate_choices: counts.4 as u64,
             has_continuation: counts.5,
+            associations,
         })
     }
 }

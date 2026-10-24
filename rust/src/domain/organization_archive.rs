@@ -3,6 +3,7 @@ pub enum OrganizationArchivePhase {
     Snapshot,
     Writing,
     Verifying,
+    Matching,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -30,6 +31,17 @@ pub struct OrganizationArchiveInspection {
     pub conflicting_groups: u64,
     pub duplicate_choices: u64,
     pub has_continuation: bool,
+    pub associations: OrganizationArchiveAssociations,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct OrganizationArchiveAssociations {
+    pub catalog_revision: u64,
+    pub organization_revision: u64,
+    pub matched_groups: u64,
+    pub unmatched_groups: u64,
+    pub resolved_preferred_copies: u64,
+    pub unresolved_preferred_copies: u64,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

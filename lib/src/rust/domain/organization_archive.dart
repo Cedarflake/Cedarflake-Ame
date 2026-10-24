@@ -8,6 +8,45 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'package:freezed_annotation/freezed_annotation.dart' hide protected;
 part 'organization_archive.freezed.dart';
 
+class OrganizationArchiveAssociations {
+  final BigInt catalogRevision;
+  final BigInt organizationRevision;
+  final BigInt matchedGroups;
+  final BigInt unmatchedGroups;
+  final BigInt resolvedPreferredCopies;
+  final BigInt unresolvedPreferredCopies;
+
+  const OrganizationArchiveAssociations({
+    required this.catalogRevision,
+    required this.organizationRevision,
+    required this.matchedGroups,
+    required this.unmatchedGroups,
+    required this.resolvedPreferredCopies,
+    required this.unresolvedPreferredCopies,
+  });
+
+  @override
+  int get hashCode =>
+      catalogRevision.hashCode ^
+      organizationRevision.hashCode ^
+      matchedGroups.hashCode ^
+      unmatchedGroups.hashCode ^
+      resolvedPreferredCopies.hashCode ^
+      unresolvedPreferredCopies.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationArchiveAssociations &&
+          runtimeType == other.runtimeType &&
+          catalogRevision == other.catalogRevision &&
+          organizationRevision == other.organizationRevision &&
+          matchedGroups == other.matchedGroups &&
+          unmatchedGroups == other.unmatchedGroups &&
+          resolvedPreferredCopies == other.resolvedPreferredCopies &&
+          unresolvedPreferredCopies == other.unresolvedPreferredCopies;
+}
+
 @freezed
 sealed class OrganizationArchiveEvent with _$OrganizationArchiveEvent {
   const OrganizationArchiveEvent._();
@@ -40,6 +79,7 @@ class OrganizationArchiveInspection {
   final BigInt conflictingGroups;
   final BigInt duplicateChoices;
   final bool hasContinuation;
+  final OrganizationArchiveAssociations associations;
 
   const OrganizationArchiveInspection({
     required this.archiveId,
@@ -52,6 +92,7 @@ class OrganizationArchiveInspection {
     required this.conflictingGroups,
     required this.duplicateChoices,
     required this.hasContinuation,
+    required this.associations,
   });
 
   @override
@@ -65,7 +106,8 @@ class OrganizationArchiveInspection {
       favoriteGroups.hashCode ^
       conflictingGroups.hashCode ^
       duplicateChoices.hashCode ^
-      hasContinuation.hashCode;
+      hasContinuation.hashCode ^
+      associations.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -81,10 +123,11 @@ class OrganizationArchiveInspection {
           favoriteGroups == other.favoriteGroups &&
           conflictingGroups == other.conflictingGroups &&
           duplicateChoices == other.duplicateChoices &&
-          hasContinuation == other.hasContinuation;
+          hasContinuation == other.hasContinuation &&
+          associations == other.associations;
 }
 
-enum OrganizationArchivePhase { snapshot, writing, verifying }
+enum OrganizationArchivePhase { snapshot, writing, verifying, matching }
 
 class OrganizationArchiveProgress {
   final OrganizationArchivePhase phase;

@@ -14,6 +14,7 @@ use crate::ports::organization_archive::OrganizationArchiveRepository;
 
 use super::{SqliteCatalog, database_error};
 
+mod association;
 mod codec;
 mod records;
 mod snapshot;
@@ -30,7 +31,8 @@ impl OrganizationArchiveRepository for SqliteCatalog {
             .parent()
             .ok_or_else(|| error("staging", "Missing catalog directory"))?;
         let stage = staging::read(archive, parent, progress)?;
-        stage.inspect()
+        let associations = association::inspect(&self.path, &stage, progress)?;
+        stage.inspect(associations)
     }
 
     fn export_organization_archive(
@@ -161,7 +163,10 @@ fn report(
     }) {
         Ok(())
     } else {
-        Err(error("cancelled", "The organization export was cancelled"))
+        Err(error(
+            "cancelled",
+            "The organization archive operation was cancelled",
+        ))
     }
 }
 

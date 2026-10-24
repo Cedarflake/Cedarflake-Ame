@@ -91,7 +91,8 @@ Committed album retirement now leaves affected active and saved browsing scopes 
 controlled Windows integration verifies deletion and undo, with focused publication and lifecycle
 regressions. Native unavailable-item integration also preserves pending decisions while navigating
 and retrying a blocked original. These desktop workflows have passed their controlled client and
-hosted checks. R4-06 now implements portable archive export and restoration admission; atomic
+hosted checks. R4-06 now implements portable archive export, restoration admission and catalog-evidence
+association preview; atomic
 application, settings integration and unresolved-record cleanup remain pending. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
@@ -253,8 +254,9 @@ organization-mode workflows and persistent conflict inspection/resolution are co
 desktop checks cover conflict discovery, cancellation, resolution, restart and unavailable-image
 navigation/retry without completing pending work. The corrected availability source inventory and
 native workflows have passed hosted verification. R4-06 is active with the versioned archive codec,
-snapshot export and staged restoration validation behind the typed bridge. Continue with atomic
-restore, trustworthy reassociation and repeat/conflict handling, then settings integration and
+snapshot export, staged restoration validation and bounded association preview behind the typed
+bridge. Continue with atomic restore, durable reassociation and repeat/conflict handling, then
+settings integration and
 explicit unresolved-record cleanup. R4-07 retains the complete integrated flow and retained-library
 resource measurements. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
@@ -274,8 +276,8 @@ R4-01 is the first implementation slice. Establish group evolution and explicit 
 safety before exposing album writes. Migration backup belongs to R4-01; the later recovery settings
 do not postpone protection of existing user data. Requirements and accepted control placement remain
 with their product owners rather than being re-decided during implementation.
-The [R4 evidence record](acceptance/r4-organization.md) covers the current internal foundation;
-organization controls remain absent until their complete user paths are connected.
+The [R4 evidence record](acceptance/r4-organization.md) covers internal boundaries and the connected
+desktop workflows. Recovery settings remain pending until their complete user paths are connected.
 
 ## Frozen R2c ownership
 
