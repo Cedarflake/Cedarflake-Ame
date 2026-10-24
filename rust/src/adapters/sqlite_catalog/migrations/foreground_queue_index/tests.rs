@@ -103,12 +103,33 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_album_operation_changes",
                 "organization_operation_conflicts",
                 "organization_operation_targets",
+                "organization_admission_roots",
+                "organization_admission_sources",
+                "organization_admissions",
+                "organization_review_bookmark",
+                "organization_review_operations",
+                "organization_review_scopes",
+                "organization_review_session",
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }
             assert_eq!(
                 after.remove("organization_state"),
                 Some(vec![vec![Value::Integer(1), Value::Integer(0)]]),
+            );
+            let sequences = after
+                .get_mut("sqlite_sequence")
+                .expect("retained sequences");
+            let admission_sequence = sequences
+                .iter()
+                .position(|row| row.first() == Some(&Value::Text("organization_admissions".into())))
+                .expect("new admission sequence");
+            assert_eq!(
+                sequences.remove(admission_sequence),
+                vec![
+                    Value::Text("organization_admissions".into()),
+                    Value::Integer(0)
+                ],
             );
             assert_eq!(after, before);
         }
