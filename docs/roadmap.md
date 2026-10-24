@@ -309,6 +309,9 @@ The full Debug client preserves 47,833 organized groups while startup
 synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
 and empty deferred-queue interactions pass with sampled resources. Optimized-client response times,
 remaining read/write waits and constrained-device performance acceptance are still open.
+Full-catalog cancellation now verifies prompt return during preparation and halfway through a
+47,833-group write, with all durable records unchanged after reopen. Native response timings and
+the remaining recovery confirmation still require client verification.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

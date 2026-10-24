@@ -21,6 +21,8 @@ use crate::ports::organization_review::OrganizationReviewRepository;
 use super::transitions::create_album;
 use super::*;
 
+mod cancellation;
+
 const PAGE_SIZE: u32 = 128;
 
 struct Profile {
@@ -50,7 +52,7 @@ impl Profile {
 #[test]
 #[ignore = "manual retained-catalog profile; requires an isolated snapshot under build/test/derived"]
 fn profile_retained_organization_queries() {
-    let (directory, catalog_path, mut profile) = prepare_copy();
+    let (directory, catalog_path, mut profile) = prepare_copy("organization-profile.jsonl");
     let mut catalog = profile.measure("upgrade_and_open_copy", || {
         SqliteCatalog::open(catalog_path.clone())
     });
@@ -242,7 +244,7 @@ fn apply_batch(
     watchdog.join().unwrap();
 }
 
-fn prepare_copy() -> (tempfile::TempDir, PathBuf, Profile) {
+fn prepare_copy(report_name: &str) -> (tempfile::TempDir, PathBuf, Profile) {
     let repository = Path::new(env!("CARGO_MANIFEST_DIR"))
         .parent()
         .unwrap()
@@ -260,7 +262,7 @@ fn prepare_copy() -> (tempfile::TempDir, PathBuf, Profile) {
     .unwrap();
     assert!(input.starts_with(&derived));
     reject_reparse_ancestors(&input, &repository);
-    let report = input.parent().unwrap().join("organization-profile.jsonl");
+    let report = input.parent().unwrap().join(report_name);
     let output = OpenOptions::new()
         .write(true)
         .create_new(true)

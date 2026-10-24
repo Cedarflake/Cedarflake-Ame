@@ -2045,4 +2045,40 @@ The worker exits successfully after 213.707 seconds, using 201.797 CPU seconds. 
 Compilation is excluded. The input SHA-256 is unchanged, source-media reads are zero, and the
 workload's result assertions pass. This measures catalog ports, not native-client response time;
 the earlier full-client Debug observation remains separate. Hosted verification for this source
-change is pending publication.
+change is running for commit `dcf79c9d` in
+[CI run 40135559945](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40135559945).
+
+## Retained-catalog batch cancellation - 2026-10-25
+
+The retained cancellation diagnostic uses the same complete local-primary catalog, with 63,077
+physical files, 47,833 organized and favorited groups, and one album. It backs up the admitted
+snapshot into disposable derived storage and exercises the production batch control. It does not
+operate the pending recovery window or read original media.
+
+Cancellation is requested from a separate observer after actual preparation/write progress, with
+the full 47,833-group selection retained. The observed outcomes are:
+
+| Phase | Groups completed when requested | Groups completed when stopped | Request to return |
+| --- | ---: | ---: | ---: |
+| Preparation | 11,958 | 11,959 | 2.872 ms |
+| Saving, before transaction commit | 23,918 | 23,919 | 4.516 ms |
+
+Both return `organization_selection_cancelled` and publish the cancelled terminal phase. Preparation
+has run for 5.584 seconds when it returns. A separate complete preparation takes 15.013 seconds;
+the interrupted save runs for 17.211 seconds. Reopening after cancellation takes 1.776 seconds.
+After both cancellations, a deterministic streaming digest of every organization table and catalog
+revision matches the original. Reopen retains all 47,833 Favorites, and no receipt for the cancelled
+write exists. This covers record values, history and continuation rather than only row totals.
+
+The Release worker passes its one explicit manual case and exits with code zero. Its 53.547-second
+measured lifetime uses 47.984 CPU seconds. The 97 samples at 500 ms record peak working set/private
+memory of 88.148/78.527 MiB. Compilation is excluded, OS cache is not flushed, both retained input
+hashes remain unchanged, and source-media reads are zero. These are individual catalog-operation
+samples, not percentile estimates or native-client cancellation timings.
+
+The diagnostic wrapper initially requests the old report filename after the successful worker and
+resource capture. Its output path is corrected, and the existing worker log, phase records,
+completion record and original input hash are verified without rerunning the workload. The manual
+case is retained as a 200-line dedicated test owner; its existing snapshot/profiling owner has 318
+test/support lines and no production changes. Compilation of the ignored manual case belongs to
+ordinary CI; its retained input remains local and is never sent to hosted runners.
