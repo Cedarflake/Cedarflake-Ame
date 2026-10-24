@@ -126,7 +126,7 @@ void main() {
   );
 
   testWidgets(
-    "gallery overflow connects queues, coherent counts, bulk deferral and mode exit",
+    "gallery overflow connects queues, coherent counts, deferred removal and mode exit",
     (tester) async {
       tester.view.physicalSize = const Size(1280, 800);
       tester.view.devicePixelRatio = 1;
@@ -174,12 +174,17 @@ void main() {
         LibraryOrganizationQueue.deferred,
       );
       await _more(tester, "全选");
-      await tester.tap(find.byKey(const Key("library-selection-defer")));
+      final remove = find.byKey(const Key("library-selection-defer"));
+      expect(
+        find.descendant(of: remove, matching: find.text("移除")),
+        findsOneWidget,
+      );
+      await tester.tap(remove);
       await tester.pumpAndSettle();
       final action =
           batches.batches.single.writes.single.action
               as LibraryBatchProgressChange;
-      expect(action.action, LibraryProgressAction.defer);
+      expect(action.action, LibraryProgressAction.restore);
       expect(batches.selections.single.allMatching, isTrue);
       expect(review.checkpoints, isEmpty);
       await _more(tester, "退出整理模式");

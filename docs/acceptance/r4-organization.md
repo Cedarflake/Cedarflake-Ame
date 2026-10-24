@@ -1770,8 +1770,9 @@ test profiles and diagnostic outputs remain in ignored derived storage. No origi
 original catalog is changed. Hosted run `40122920970` completes with all Rust partitions, Static,
 native integrations, unsigned Release and the five synthetic workloads passing. Flutter fails one
 integrated review assertion that still expects defer after selecting the deferred queue; the requested
-remove action correctly dispatches restore. That expectation requires correction. Retained-library
-performance and integrated R4 acceptance remain open.
+remove action correctly dispatches restore. The corrected assertion also checks the visible remove
+label; both integrated review tests pass locally. Hosted verification of the corrected checkpoint,
+retained-library performance and integrated R4 acceptance remain open.
 
 ## Organization read cost and connection cache budget
 
