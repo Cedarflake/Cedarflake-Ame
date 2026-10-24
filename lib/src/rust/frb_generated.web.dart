@@ -48,6 +48,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_OrganizationArchiveTaskPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_OrganizationSelectionDraftPtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft;
 
@@ -57,6 +61,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
+  OrganizationArchiveTask
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    dynamic raw,
+  );
 
   @protected
   OrganizationSelectionDraft
@@ -71,6 +81,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationArchiveTask
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationSelectionDraft
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     dynamic raw,
@@ -79,6 +95,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationArchiveTask
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     dynamic raw,
   );
 
@@ -858,6 +880,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
+  OrganizationArchiveTask
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationSelectionDraft
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     SseDeserializer deserializer,
@@ -870,6 +898,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationArchiveTask
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationSelectionDraft
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     SseDeserializer deserializer,
@@ -878,6 +912,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveTask
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     SseDeserializer deserializer,
   );
 
@@ -1867,6 +1907,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    OrganizationArchiveTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     OrganizationSelectionDraft self,
     SseSerializer serializer,
@@ -1881,6 +1928,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    OrganizationArchiveTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     OrganizationSelectionDraft self,
     SseSerializer serializer,
@@ -1890,6 +1944,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    OrganizationArchiveTask self,
     SseSerializer serializer,
   );
 
@@ -3081,6 +3142,22 @@ class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     int ptr,
   ) => wasmModule
@@ -3119,6 +3196,16 @@ external RustLibWasmModule get wasmModule;
 @JS()
 @anonymous
 extension type RustLibWasmModule._(JSObject _) implements JSObject {
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    int ptr,
+  );
+
   external void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     int ptr,

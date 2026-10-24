@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::domain::organization_archive::{
     OrganizationArchiveInspection, OrganizationArchiveProgress, OrganizationArchiveReceipt,
@@ -9,32 +8,12 @@ use crate::domain::{GalleryQuery, ScanError};
 use crate::ports::CatalogRepository;
 use crate::ports::organization_archive::OrganizationArchiveRepository;
 
-static ARCHIVE_ACTIVE: AtomicBool = AtomicBool::new(false);
-
-struct ArchiveLease<'a>(&'a AtomicBool);
-
-impl<'a> ArchiveLease<'a> {
-    fn acquire(active: &'a AtomicBool) -> Result<Self, ScanError> {
-        active
-            .compare_exchange(false, true, Ordering::AcqRel, Ordering::Acquire)
-            .map_err(|_| {
-                ScanError::new(
-                    "organization_archive_busy",
-                    "An organization backup operation is already running",
-                )
-            })?;
-        Ok(Self(active))
-    }
-}
-
-impl Drop for ArchiveLease<'_> {
-    fn drop(&mut self) {
-        self.0.store(false, Ordering::Release);
-    }
-}
+mod operation;
+pub(crate) use operation::ArchiveTaskControl;
 
 pub(crate) fn export(
     destination: &str,
+    control: &ArchiveTaskControl,
     progress: &mut dyn FnMut(OrganizationArchiveProgress) -> bool,
 ) -> Result<OrganizationArchiveReceipt, ScanError> {
     let destination = Path::new(destination);
@@ -44,7 +23,7 @@ pub(crate) fn export(
             "Choose an absolute destination filename",
         ));
     }
-    let _lease = ArchiveLease::acquire(&ARCHIVE_ACTIVE)?;
+    let _lease = control.admit()?;
     let mut catalog = super::organization::open_catalog()?;
     let roots = catalog
         .load_snapshot(
@@ -79,11 +58,14 @@ pub(crate) fn export(
         .into_iter()
         .chain(roots.iter().map(|root| Path::new(&root.path))),
     )?;
-    catalog.export_organization_archive(destination, progress)
+    catalog.export_organization_archive(destination, &mut |update| {
+        control.should_continue() && progress(update)
+    })
 }
 
 pub(crate) fn inspect(
     archive: &str,
+    control: &ArchiveTaskControl,
     progress: &mut dyn FnMut(OrganizationArchiveProgress) -> bool,
 ) -> Result<OrganizationArchiveInspection, ScanError> {
     let archive = Path::new(archive);
@@ -93,13 +75,16 @@ pub(crate) fn inspect(
             "Choose an absolute backup filename",
         ));
     }
-    let _lease = ArchiveLease::acquire(&ARCHIVE_ACTIVE)?;
-    super::organization::open_catalog()?.inspect_organization_archive(archive, progress)
+    let _lease = control.admit()?;
+    super::organization::open_catalog()?.inspect_organization_archive(archive, &mut |update| {
+        control.should_continue() && progress(update)
+    })
 }
 
 pub(crate) fn restore(
     archive: &str,
     request: &OrganizationArchiveRestoreRequest,
+    control: &ArchiveTaskControl,
     progress: &mut dyn FnMut(OrganizationArchiveProgress) -> bool,
 ) -> Result<OrganizationArchiveRestoreReceipt, ScanError> {
     request.validate()?;
@@ -110,8 +95,12 @@ pub(crate) fn restore(
             "Choose an absolute backup filename",
         ));
     }
-    let _lease = ArchiveLease::acquire(&ARCHIVE_ACTIVE)?;
-    super::organization::open_catalog()?.restore_organization_archive(archive, request, progress)
+    let _lease = control.admit()?;
+    super::organization::open_catalog()?.restore_organization_archive(
+        archive,
+        request,
+        &mut |update| control.should_continue() && progress(update),
+    )
 }
 
 fn validate_destination<'a>(
@@ -132,21 +121,6 @@ fn validate_destination<'a>(
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn organization_archive_bounds_concurrent_exports_and_releases_admission() {
-        let active = AtomicBool::new(false);
-        let first = ArchiveLease::acquire(&active).unwrap();
-        assert_eq!(
-            ArchiveLease::acquire(&active).err().unwrap().code,
-            "organization_archive_busy"
-        );
-        assert!(active.load(Ordering::Acquire));
-        drop(first);
-        let second = ArchiveLease::acquire(&active).unwrap();
-        drop(second);
-        assert!(!active.load(Ordering::Acquire));
-    }
 
     #[test]
     fn organization_archive_destination_excludes_sources_and_storage_sidecars() {

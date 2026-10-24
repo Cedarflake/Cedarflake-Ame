@@ -96,7 +96,9 @@ association preview. Catalog publication now reattaches rebuilt versions through
 evidence, with focused group, conflict, source-removal and migration checks. Atomic archive
 application now connects the application and typed bridge, preserving current decisions, operation
 history, queue order, continuation and unmatched evidence. Focused restore, cancellation, migration
-and queue-cost checks pass. Settings integration and unresolved-record cleanup remain pending.
+and queue-cost checks pass. Settings export, inspection and guarded restoration are connected,
+with focused controller/widget checks; native picker and restoration interaction remain pending
+while window operation is suspended. Unresolved-record cleanup remains to be implemented.
 The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
 read archive tables before their migration. Schema-aware local versus imported authority now passes
 focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
@@ -268,7 +270,8 @@ bridge. Native-version reassociation is connected to the existing publication tr
 cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
 are implemented through the application and typed bridge. Restored queue order and continuation,
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
-settings integration and explicit unresolved-record cleanup. Preserve the expected-table inventory
+native settings verification when window operation resumes and explicit unresolved-record cleanup.
+Preserve the expected-table inventory
 correction's pending hosted verification and the earlier native-read observation in the evidence record.
 The requested primary Albums destination is being integrated under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery. Its focused checks and
@@ -293,7 +296,8 @@ safety before exposing album writes. Migration backup belongs to R4-01; the late
 do not postpone protection of existing user data. Requirements and accepted control placement remain
 with their product owners rather than being re-decided during implementation.
 The [R4 evidence record](acceptance/r4-organization.md) covers internal boundaries and the connected
-desktop workflows. Recovery settings remain pending until their complete user paths are connected.
+desktop workflows. Recovery settings retain their native picker/restore verification; cleanup and
+integrated retained-library verification remain outstanding.
 
 ## Frozen R2c ownership
 

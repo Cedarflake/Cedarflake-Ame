@@ -49,6 +49,32 @@ The application owns destination admission and use-case sequencing. A narrow rep
 the export request and progress; the SQLite adapter owns snapshot extraction, while its archive
 codec owns framing and format validation. Only typed progress and a scalar receipt cross the bridge.
 
+### Desktop command lifetime
+
+Each export, inspection or restore uses a single-use opaque task with independent atomic cancellation.
+Cancelling requests retirement while retaining the application admission lease until the worker
+actually exits. A later task cannot inherit an earlier cancellation. The bridge keeps the event
+stream open for its terminal result; committed restoration wins a simultaneous cancellation request.
+Application progress checkpoints combine the task token with stream liveness. A disconnected client
+cannot leave a worker with unbounded publication authority.
+
+The persistent Flutter archive controller owns this lifetime across Settings navigation. Requests
+retain their operation identifier through uncertain retries. An inspected backup can be restored
+only from the same still-current confirmation state; changed input/catalog evidence requires a new
+inspection and confirmation. Missing or mismatched terminal results remain failures, never success.
+Disposal cancels the task; an unsuccessful stream also requests cancellation before releasing its
+handle. Completed restoration invalidates album projections and uses the shared organization
+publication owner to refresh browsing.
+
+Settings composes the existing SettingsSection/SettingsRow, Material buttons, shared notification
+owner and scrollable AlertDialog. The installed Flutter 3.44.9 AlertDialog supports scrollable
+content with actions outside that scroll region; a custom dialog or separate notification component
+is unnecessary. The already locked file_selector 1.1.0 supplies native save/open dialogs for
+`.ame-backup` files. Confirmation exposes inspected counts, unmatched records and preserved choices
+before restore. The existing compact desktop layout remains applicable; no new package is added.
+Reference APIs: [AlertDialog](https://api.flutter.dev/flutter/material/AlertDialog-class.html) and
+[getSaveLocation](https://pub.dev/documentation/file_selector/latest/file_selector/getSaveLocation.html).
+
 ### Restoration admission
 
 Inspection streams decoded records into a separate, exclusively owned SQLite staging file. Fixed

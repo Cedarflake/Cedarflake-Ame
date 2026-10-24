@@ -1319,3 +1319,32 @@ no product, schema or migration change. The hosted run has completed: the other 
 partitions, Static, Flutter, native scan/accessibility, unsigned Release and all five synthetic
 workloads pass. This inventory assertion is its only failing test; verification of the correction
 and subsequent implementation head remains pending.
+
+## Settings archive integration checkpoint
+
+Settings connects native destination/input selection, export progress and cancellation, validated
+inspection, restore confirmation, guarded application, retry and committed refresh. The persistent
+controller keeps work across navigation. Cancellation waits for a terminal result; uncertain retries
+reuse the operation identifier, while changed inspection evidence requires renewed confirmation.
+The generated opaque task separates atomic cancellation from the worker's admission lease.
+
+Seven controller tests and four settings widget tests pass, covering failed/missing/mismatched
+results, preserved retry identity, stale confirmation, cancellation/commit ordering, disposal, picker
+cancellation, restore confirmation and the scrollable dialog at 800 by 600 with enlarged text.
+Three native task tests pass for cancellation before dispatch, single use, retained worker admission
+and cancellation isolation. The generated Rust/Dart content hashes and 17 asynchronous bridge
+contracts pass. The canonical generator also removes trailing whitespace from its generated Rust
+output, using the same normalization already applied to generated Freezed files.
+
+The archive-capable Windows Debug build completed before the primary Albums navigation changes.
+The reused isolated client profile opened from schema 52 to 54 with catalog revision 40, organization
+revision 28, two albums and six organized groups retained. A subsequent read-only check finds zero
+restore receipts. All 700 controlled source files retain their SHA-256, length and modification time.
+Native picker/export/restore interaction and restart verification remain pending while window
+operation is suspended. Small-fixture checks do not discharge retained-library performance work.
+
+The archive controller, typed gateway and settings section have 165, 130 and 200 production lines.
+The native task owner has 59 production lines plus its three-line test-module declaration and
+49 dedicated test lines. Controller and settings tests have 183 and 201 lines; these owners contain
+no inline Dart tests. The settings page adds composition only, and application admission moves to
+the task owner rather than adding lifecycle flags to the archive facade.

@@ -12,9 +12,10 @@ try {
     }
 
     $generatedRoot = Join-Path $repositoryRoot "lib\src\rust"
-    $freezedFiles = Get-ChildItem -LiteralPath $generatedRoot -Recurse -File -Filter "*.freezed.dart"
-    foreach ($freezedFile in $freezedFiles) {
-        $content = [System.IO.File]::ReadAllText($freezedFile.FullName, [System.Text.Encoding]::UTF8)
+    $generatedFiles = @(Get-ChildItem -LiteralPath $generatedRoot -Recurse -File -Filter "*.freezed.dart")
+    $generatedFiles += Get-Item -LiteralPath (Join-Path $repositoryRoot "rust\src\frb_generated.rs")
+    foreach ($generatedFile in $generatedFiles) {
+        $content = [System.IO.File]::ReadAllText($generatedFile.FullName, [System.Text.Encoding]::UTF8)
         $content = [System.Text.RegularExpressions.Regex]::Replace(
             $content,
             "[ \t]+(?=\r?$)",
@@ -22,7 +23,7 @@ try {
             [System.Text.RegularExpressions.RegexOptions]::Multiline
         )
         [System.IO.File]::WriteAllText(
-            $freezedFile.FullName,
+            $generatedFile.FullName,
             $content,
             [System.Text.UTF8Encoding]::new($false)
         )

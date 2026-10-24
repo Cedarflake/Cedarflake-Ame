@@ -10,22 +10,38 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 // These functions are ignored because they are not marked as `pub`: `send_result`
 
+OrganizationArchiveTask createOrganizationArchiveTask() => RustLib.instance.api
+    .crateApiOrganizationArchiveCreateOrganizationArchiveTask();
+
 Stream<OrganizationArchiveEvent> exportOrganizationArchive({
   required String destination,
+  required OrganizationArchiveTask task,
 }) => RustLib.instance.api.crateApiOrganizationArchiveExportOrganizationArchive(
   destination: destination,
+  task: task,
 );
 
 Stream<OrganizationArchiveEvent> inspectOrganizationArchive({
   required String archive,
-}) => RustLib.instance.api
-    .crateApiOrganizationArchiveInspectOrganizationArchive(archive: archive);
+  required OrganizationArchiveTask task,
+}) =>
+    RustLib.instance.api.crateApiOrganizationArchiveInspectOrganizationArchive(
+      archive: archive,
+      task: task,
+    );
 
 Stream<OrganizationArchiveEvent> restoreOrganizationArchive({
   required String archive,
   required OrganizationArchiveRestoreRequest request,
+  required OrganizationArchiveTask task,
 }) =>
     RustLib.instance.api.crateApiOrganizationArchiveRestoreOrganizationArchive(
       archive: archive,
       request: request,
+      task: task,
     );
+
+// Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<OrganizationArchiveTask>>
+abstract class OrganizationArchiveTask implements RustOpaqueInterface {
+  void cancel();
+}
