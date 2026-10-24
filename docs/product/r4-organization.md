@@ -34,6 +34,8 @@ Every organization action resolves its selection to complete current groups. Sel
 in an unfolded view or through a restricted folder/filter scope still targets its whole group;
 selecting several members of that group does not repeat the operation. Adding, moving, or removing
 an album entry applies to the group, so removing one entry cannot reveal another copy in its place.
+For a mixed selection, removal changes only groups with a confirmed album; groups without an album
+retain their existing progress. An unresolved conflict still requires an explicit destination.
 Each group has a representative image. Group actions that need a file target resolve the current
 representative rather than the incidentally selected copy. Explicit physical-location inspection
 continues to show the actual locations and grants no file-mutation authority.

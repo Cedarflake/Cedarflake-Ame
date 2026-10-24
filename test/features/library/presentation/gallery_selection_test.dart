@@ -2,6 +2,21 @@ import "package:cedarflake_ame/features/library/presentation/gallery_selection.d
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test(
+    "late commands retain revision rebinding but cannot clear a newer selection gesture",
+    () {
+      final original = GallerySelection.empty("1:query").toggle("asset-a");
+      final published = original.rebind("2:query");
+      expect(published.sharesIntentWith(original), isTrue);
+      final reselected = published.clear().toggle("asset-a");
+      expect(reselected.includedAssetIds, original.includedAssetIds);
+      expect(reselected.sharesIntentWith(original), isFalse);
+      final all = original.selectAll();
+      expect(all.clear().selectAll().sharesIntentWith(all), isFalse);
+      expect(all.rebind("3:query").sharesIntentWith(all), isFalse);
+    },
+  );
+
   test("explicit selection toggles stable asset identities", () {
     var selection = GallerySelection.empty("query-1");
 

@@ -14,6 +14,7 @@ class LibraryGalleryHeader extends StatelessWidget {
     required this.galleryTitle,
     this.leading,
     this.filter,
+    this.selectionActions,
     required this.totalItems,
     this.mergedItems,
     required this.selectedCount,
@@ -35,6 +36,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   final String galleryTitle;
   final Widget? leading;
   final Widget? filter;
+  final Widget? selectionActions;
   final int totalItems;
   final int? mergedItems;
   final int selectedCount;
@@ -100,7 +102,10 @@ class LibraryGalleryHeader extends StatelessWidget {
                 ),
               );
               final toolbar = isSelecting
-                  ? _SelectionToolbar(onCancel: onCancelSelection)
+                  ? _SelectionToolbar(
+                      onCancel: onCancelSelection,
+                      actions: selectionActions,
+                    )
                   : _BrowsingToolbar(
                       filter: filter,
                       layoutShape: layoutShape,
@@ -225,9 +230,10 @@ class _BrowsingToolbar extends StatelessWidget {
 }
 
 class _SelectionToolbar extends StatelessWidget {
-  const _SelectionToolbar({required this.onCancel});
+  const _SelectionToolbar({required this.onCancel, this.actions});
 
   final VoidCallback onCancel;
+  final Widget? actions;
 
   @override
   Widget build(BuildContext context) {
@@ -235,6 +241,7 @@ class _SelectionToolbar extends StatelessWidget {
       key: const Key("library-selection-toolbar"),
       mainAxisSize: MainAxisSize.min,
       children: [
+        ?actions,
         TextButton.icon(
           key: const Key("library-cancel-selection"),
           onPressed: onCancel,

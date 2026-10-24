@@ -8,7 +8,7 @@ use crate::domain::organization::{
 
 use super::super::{database_error, unix_time_ms};
 use super::operations::{self, Admission, GroupWrite};
-use super::{albums, authority, records, selection};
+use super::{albums, authority, inspection, records, selection};
 
 pub(super) fn save(
     connection: &Connection,
@@ -57,6 +57,15 @@ pub(super) fn apply_group(
     key: &OrganizationGroupKey,
     action: &OrganizationAction,
 ) -> Result<GroupWrite, ScanError> {
+    if matches!(action, OrganizationAction::RemoveAlbum) {
+        let current = inspection::decision(connection, key)?;
+        if current.album.is_none() && !current.has_conflict {
+            return Ok(GroupWrite {
+                changed: false,
+                reconciled: false,
+            });
+        }
+    }
     let (disposition, album_id) = action.decision();
     let reconciled = records::materialize(connection, key)?;
     let conflict: bool = connection

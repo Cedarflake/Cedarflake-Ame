@@ -263,6 +263,21 @@ operation; receipt replay remains independent of later catalog changes. Progress
 are session-owned, and closing or dropping a session releases its temporary data. Pending selections
 are disposable; albums, decisions, history and saved continuation remain durable.
 
+Creating a destination inside the picker may refresh a ready batch's authority without rerunning
+its gallery query. Recheck the frozen group set against current representatives, content/membership
+evidence, effective decisions, canonical record IDs and field revisions in one read snapshot.
+Only unchanged targets receive current catalog/organization revisions. Newly matching results stay
+outside the original selection; an intervening target decision or content change requires reselection.
+Refresh is unavailable after a write attempt, so an uncertain receipt keeps its original digest and
+operation ID for replay. Decision-version evidence shares the existing group inspection query.
+
+The gallery selection owner uploads bounded inclusion/exclusion chunks only on an explicit action.
+It releases pending preparation when selection changes or the toolbar is disposed. Once the album
+picker opens, that dialog owns the batch independently of toolbar publication; creating an album
+cannot retire its own pending assignment. The shared picker exposes save cancellation only when
+its membership command supports it, waits for retirement, and preserves a commit that wins the race.
+Ordinary favorite and unfavorite successes use the same transient receipt and undo path as the viewer.
+
 ## Alternatives and consequences
 
 Content-keyed decisions alone simplify queries but cannot retain provisional intent and conflict

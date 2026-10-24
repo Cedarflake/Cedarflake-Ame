@@ -28,6 +28,10 @@ impl OrganizationSelectionDraft {
         self.inner.prepare()
     }
 
+    pub fn refresh(&self) -> Result<OrganizationBatchSummary, ScanError> {
+        self.inner.refresh()
+    }
+
     pub fn apply(
         &self,
         operation_id: String,

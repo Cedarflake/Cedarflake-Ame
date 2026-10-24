@@ -11,6 +11,7 @@ use crate::domain::organization_batch::{
 pub(crate) trait OrganizationBatchRepository: Send {
     fn append_ids(&mut self, asset_ids: &[String]) -> Result<(), ScanError>;
     fn prepare(&mut self) -> Result<OrganizationBatchSummary, ScanError>;
+    fn refresh(&mut self) -> Result<OrganizationBatchSummary, ScanError>;
     fn apply(
         &mut self,
         operation_id: &str,

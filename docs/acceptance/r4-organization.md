@@ -653,3 +653,56 @@ passes, and all other applicable jobs pass. The settings repair retains the exac
 choice controls and separately checks the album destination arrow; all fifteen focused settings
 tests pass. The batch conditional is corrected with the connected selection implementation.
 The combined corrected product head still requires hosted verification.
+
+## Connected gallery selection - 2026-10-24
+
+The gallery selection toolbar now connects album assignment/movement/removal and explicit Favorite/
+unfavorite actions to the query-wide batch boundary. All matching results retain their exclusions;
+only bounded ID chunks cross the bridge, without expanding the visible card window into a full
+membership list. Mixed selections resolve to whole groups. Album removal preserves already
+unassigned progress and does not create records for untouched pending groups. Conflicting selections
+require an album choice. The existing default-destination policy, picker, inline errors and transient
+receipt/undo surfaces are shared with the viewer. Successful Favorite/unfavorite/undo results leave
+notification history and unread state unchanged.
+
+A typed selection session owns preparation, retirement and unknown-result retry. Once the album
+picker opens it owns the batch, so creating a destination can refresh the gallery and retire its
+launching toolbar without cancelling the pending assignment. Ready-batch refresh revalidates its
+frozen groups and decision versions in one snapshot; it never expands the original query or rebases
+an uncertain write. Version evidence is read with the existing group inspection rather than through
+additional per-group lookups. A changed group or intervening decision requires reselection.
+
+The shared picker permits cancellation only for commands that support it, waits for retirement,
+and still publishes a successful receipt when commit wins cancellation. Selection intent survives
+ordinary revision rebinding but changes with user gestures, so a late command cannot clear a newer
+selection. The installed Flutter 3.44.9 `PopScope` implementation confirms the blocked-pop callback;
+the controls reuse existing Material text buttons, Ame menus and album dialogs. No new responsive
+layout, overlay design or dependency is introduced.
+
+The final organization/migration Rust filter passes all 98 cases, including fifteen batch cases and
+five inspection cases. The new boundaries cover create-in-picker refresh, frozen all-matching scope,
+intervening target decisions, changed content, retained unknown receipts, mixed removal and undo.
+Fifty-three distinct focused Flutter checks pass across organization actions (7), selection sessions
+(6), destination proposals (3), album dialogs (4), viewer album actions (3), selection actions (9),
+selection intent (5), composed gallery selection (1), and settings (15). These include cancellation
+before opening, during preparation/save, commit-versus-cancel, retry identity, conflict/default policy,
+toolbar disposal, transient Favorites/undo and query-wide selection beyond the single loaded card.
+Initial fixture failures required waiting for the preparation error listener and radio-selection
+rebuild; the existing single-image save-cancellation assertion is retained. Scoped Dart analysis with
+fatal infos, Clippy for all targets with warnings denied, and the 504-file format check pass. Generated
+Rust/Dart content hashes agree at `1093802923`.
+
+The 1,714-line screen and 528-line header receive composition changes. The selection widget has 275
+production lines, the selection session 101, its bridge adapter 137, the shared action owner 237,
+and the picker 302; none contains inline tests. Dedicated session, selection-widget, gallery
+composition and selection-intent tests have 193, 363, 76 and 69 lines respectively. Rust preparation,
+inspection and transition owners have 147, 176 and 129 production lines. The batch facade has 252
+production/support lines and a 14-line test-only hook; its refresh and mutation tests have 123 and
+279 dedicated lines. Generated bridge output is excluded from handwritten counts.
+
+All checks use isolated catalogs or service fixtures. Original media, original catalogs and cloud
+placeholder state were not opened or modified for this slice. No persistent schema changes are
+introduced. Window operation remains paused: real pointer/keyboard/focus, restart, retained-library
+latency, cancellation/resource measurements and two-core behavior remain unverified. Organization
+mode, involved-album conflict inspection and R4 recovery settings remain in the active execution
+queue. The published selection head requires its own hosted verification before acceptance.

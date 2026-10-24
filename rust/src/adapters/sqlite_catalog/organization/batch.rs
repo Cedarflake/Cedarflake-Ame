@@ -16,11 +16,13 @@ use super::super::exact_duplicates::read_unsigned;
 use super::super::{SqliteCatalog, database_error, gallery};
 use super::{albums, authority, changes, favorites, inspection, operations, selection};
 
+mod preparation;
 mod staging;
 
 struct PreparedBatch {
     summary: OrganizationBatchSummary,
     authority: String,
+    decisions: String,
 }
 
 pub(crate) struct SqliteOrganizationBatch {
@@ -76,89 +78,6 @@ impl SqliteOrganizationBatch {
         })
     }
 
-    fn prepare_inner(&mut self) -> Result<OrganizationBatchSummary, ScanError> {
-        self.control.check()?;
-        if let Some(prepared) = &self.prepared {
-            return Ok(prepared.summary.clone());
-        }
-        self.control.report(OrganizationBatchPhase::Preparing, 0, 0);
-        let transaction = self
-            .catalog
-            .connection
-            .unchecked_transaction()
-            .map_err(database_error)?;
-        let (catalog_revision, organization_revision) = revisions(&transaction)?;
-        if catalog_revision != self.catalog_revision {
-            return Err(stale_selection());
-        }
-        staging::materialize(&transaction, &self.query, self.all_matching)?;
-        let group_count = transaction
-            .query_row(
-                "SELECT COUNT(*) FROM temp.organization_batch_groups",
-                [],
-                |row| read_unsigned(row, 0),
-            )
-            .map_err(database_error)?;
-        if group_count == 0 {
-            return Err(ScanError::new(
-                "organization_selection_empty",
-                "No current image groups are selected",
-            ));
-        }
-        let mut summary = OrganizationBatchSummary {
-            catalog_revision,
-            organization_revision,
-            group_count,
-            favorite_count: 0,
-            assigned_count: 0,
-            conflicting_count: 0,
-            common_album: None,
-        };
-        let mut hasher = blake3::Hasher::new();
-        authority::field(&mut hasher, b"ame-organization-batch-v1");
-        for value in [catalog_revision, organization_revision, group_count] {
-            authority::field(&mut hasher, &value.to_le_bytes());
-        }
-        let mut after = 0;
-        let mut completed = 0;
-        loop {
-            let groups = staging::groups(&transaction, after)?;
-            if groups.is_empty() {
-                break;
-            }
-            for group in groups {
-                self.control.check()?;
-                let target = selection::target(&transaction, &group.key)?;
-                let decision = inspection::decision(&transaction, &group.key)?;
-                if completed == 0 {
-                    summary.common_album = decision.album.clone();
-                } else if summary.common_album.as_ref().map(|album| &album.album_id)
-                    != decision.album.as_ref().map(|album| &album.album_id)
-                {
-                    summary.common_album = None;
-                }
-                summary.favorite_count += u64::from(decision.favorite);
-                summary.assigned_count += u64::from(decision.album.is_some());
-                summary.conflicting_count += u64::from(decision.has_conflict);
-                authority::group_fields(&mut hasher, &target);
-                staging::retain_target(&transaction, group.sequence, &target)?;
-                after = group.sequence;
-                completed += 1;
-                self.control
-                    .report(OrganizationBatchPhase::Preparing, completed, group_count);
-            }
-        }
-        self.control.check()?;
-        transaction.commit().map_err(database_error)?;
-        self.prepared = Some(PreparedBatch {
-            summary: summary.clone(),
-            authority: hasher.finalize().to_hex().to_string(),
-        });
-        self.control
-            .report(OrganizationBatchPhase::Ready, group_count, group_count);
-        Ok(summary)
-    }
-
     fn apply_inner(
         &mut self,
         operation_id: &str,
@@ -203,10 +122,10 @@ impl SqliteOrganizationBatch {
         if revisions(&transaction)?.0 != prepared.summary.catalog_revision {
             return Err(stale_selection());
         }
-        if let OrganizationBatchAction::Organize { action } = action {
-            if let Some(album_id) = action.decision().1 {
-                albums::require_active(&transaction, album_id)?;
-            }
+        if let OrganizationBatchAction::Organize { action } = action
+            && let Some(album_id) = action.decision().1
+        {
+            albums::require_active(&transaction, album_id)?;
         }
         let total = prepared.summary.group_count;
         self.control
@@ -307,7 +226,12 @@ impl OrganizationBatchRepository for SqliteOrganizationBatch {
     }
 
     fn prepare(&mut self) -> Result<OrganizationBatchSummary, ScanError> {
-        self.prepare_inner()
+        self.prepare_inner(false)
+            .map_err(|error| self.terminal_error(error))
+    }
+
+    fn refresh(&mut self) -> Result<OrganizationBatchSummary, ScanError> {
+        self.prepare_inner(true)
             .map_err(|error| self.terminal_error(error))
     }
 

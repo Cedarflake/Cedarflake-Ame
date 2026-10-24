@@ -18,6 +18,7 @@ abstract class LibraryOrganizationRequest {
   final String feedbackId = newOrganizationOperationId();
   String id = newOrganizationOperationId();
   bool _cancelled = false;
+  bool get isCancelled => _cancelled;
   String get successMessage;
   bool canUndo(LibraryOrganizationReceipt receipt) => receipt.changedGroups > 0;
   LibraryOrganizationErrorSurface get errorSurface =>

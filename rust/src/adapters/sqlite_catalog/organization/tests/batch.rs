@@ -10,6 +10,7 @@ use super::transitions::{change, create_album, decision};
 use super::*;
 
 mod mutations;
+mod refresh;
 
 fn open(
     directory: &Path,

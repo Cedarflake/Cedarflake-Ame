@@ -35,6 +35,10 @@ impl OrganizationBatchRepository for HeldPreparation {
     ) -> Result<OrganizationWriteReceipt, ScanError> {
         panic!("The cancelled session cannot apply a write");
     }
+
+    fn refresh(&mut self) -> Result<OrganizationBatchSummary, ScanError> {
+        self.prepare()
+    }
 }
 
 #[test]

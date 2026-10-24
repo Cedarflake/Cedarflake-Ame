@@ -22,21 +22,33 @@ Future<LibraryAlbumProposal> prepareLibraryAlbumProposal({
 }) async {
   final inspection = await service.inspect([target]);
   final decision = inspection.decisions.single;
+  return resolveLibraryAlbumProposal(
+    service: service,
+    preferences: preferences,
+    current: decision.album,
+    hasConflict: decision.hasConflict,
+  );
+}
+
+Future<LibraryAlbumProposal> resolveLibraryAlbumProposal({
+  required LibraryOrganization service,
+  required AlbumPreferences preferences,
+  required LibraryOrganizationAlbum? current,
+  required bool hasConflict,
+}) async {
   LibraryOrganizationAlbum? defaultAlbum;
   if (preferences.defaultAlbumId case final id?) {
     defaultAlbum = await service.findAlbum(id);
   }
   final shouldAsk =
-      preferences.askBeforeAdding ||
-      defaultAlbum == null ||
-      decision.hasConflict;
+      preferences.askBeforeAdding || defaultAlbum == null || hasConflict;
   var destination = defaultAlbum;
-  if (shouldAsk) destination = decision.album ?? defaultAlbum;
-  if (decision.hasConflict) destination = null;
+  if (shouldAsk) destination = current ?? defaultAlbum;
+  if (hasConflict) destination = null;
   return LibraryAlbumProposal(
-    current: decision.album,
+    current: current,
     destination: destination,
     shouldAsk: shouldAsk,
-    hasConflict: decision.hasConflict,
+    hasConflict: hasConflict,
   );
 }

@@ -20,7 +20,7 @@ Future<LibraryAlbumChoice?> showLibraryAlbumPicker({
   LibraryOrganizationAlbum? initialAlbum,
   String? clearLabel,
   String? explanation,
-  LibraryAlbumMembershipSession? membership,
+  LibraryAlbumMembership? membership,
   String? initialError,
 }) => showDialog<LibraryAlbumChoice>(
   context: context,
@@ -48,7 +48,7 @@ class LibraryAlbumPicker extends ConsumerStatefulWidget {
   final LibraryOrganizationAlbum? initialAlbum;
   final String? clearLabel;
   final String? explanation;
-  final LibraryAlbumMembershipSession? membership;
+  final LibraryAlbumMembership? membership;
   final String? initialError;
 
   @override
@@ -60,6 +60,7 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
   String? _after;
   final List<String?> _previous = [];
   bool _saving = false;
+  bool _stopping = false;
   String? _error;
 
   @override
@@ -91,6 +92,10 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
         .submit(membership.request(choice.album));
     if (!mounted) return;
     setState(() => _saving = false);
+    if (_stopping && result is! LibraryOrganizationSaved) {
+      Navigator.of(context).pop();
+      return;
+    }
     switch (result) {
       case LibraryOrganizationSaved():
         Navigator.of(context).pop(choice);
@@ -102,23 +107,57 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
   }
 
   Future<void> _create(BigInt revision) async {
-    final result = await showLibraryAlbumEditor(
-      context: context,
-      kind: LibraryAlbumEditKind.create,
-      revision: revision,
-    );
-    if (!mounted || result?.album == null) return;
-    setState(() => _selected = result!.album);
+    setState(() => _saving = true);
+    try {
+      final result = await showLibraryAlbumEditor(
+        context: context,
+        kind: LibraryAlbumEditKind.create,
+        revision: revision,
+      );
+      if (!mounted || result?.album == null) return;
+      setState(() => _selected = result!.album);
+      await widget.membership?.albumCreated();
+    } on Object catch (error) {
+      if (mounted) {
+        setState(
+          () => _error = libraryOrganizationErrorMessage(
+            error is LibraryOrganizationFailure
+                ? error.code
+                : "unexpected_error",
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+        if (_stopping) Navigator.of(context).pop();
+      }
+    }
+  }
+
+  void _cancel() {
+    if (_stopping) return;
+    if (_saving && widget.membership?.supportsCancellation != true) return;
+    if (!_saving) {
+      Navigator.of(context).pop();
+      return;
+    }
+    setState(() => _stopping = true);
+    widget.membership?.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final page = ref.watch(libraryAlbumPageProvider(_after));
-    final busy = ref.watch(
+    final saving = ref.watch(
       libraryOrganizationActionsProvider.select((state) => state.saving),
     );
+    final busy = saving || _saving;
     return PopScope(
       canPop: !_saving,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) _cancel();
+      },
       child: AlertDialog(
         key: const Key("library-album-picker"),
         title: const Text("选择相册"),
@@ -241,8 +280,12 @@ class _LibraryAlbumPickerState extends ConsumerState<LibraryAlbumPicker> {
               child: Text(label),
             ),
           TextButton(
-            onPressed: _saving ? null : () => Navigator.of(context).pop(),
-            child: const Text("取消"),
+            onPressed:
+                _stopping ||
+                    (_saving && widget.membership?.supportsCancellation != true)
+                ? null
+                : _cancel,
+            child: Text(_stopping ? "正在停止" : "取消"),
           ),
           FilledButton(
             key: const Key("library-album-confirm"),

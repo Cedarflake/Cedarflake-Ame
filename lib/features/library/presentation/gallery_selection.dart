@@ -1,10 +1,11 @@
 class GallerySelection {
-  const GallerySelection._({
+  GallerySelection._({
     required this.queryId,
     required this.isAllMatching,
     required this.includedAssetIds,
     required this.excludedAssetIds,
-  });
+    Object? intent,
+  }) : _intent = intent ?? Object();
 
   factory GallerySelection.empty(String queryId) {
     return GallerySelection._(
@@ -19,6 +20,10 @@ class GallerySelection {
   final bool isAllMatching;
   final Set<String> includedAssetIds;
   final Set<String> excludedAssetIds;
+  final Object _intent;
+
+  bool sharesIntentWith(GallerySelection other) =>
+      identical(_intent, other._intent);
 
   bool get isEmpty => !isAllMatching && includedAssetIds.isEmpty;
 
@@ -81,6 +86,7 @@ class GallerySelection {
       isAllMatching: false,
       includedAssetIds: includedAssetIds,
       excludedAssetIds: const {},
+      intent: _intent,
     );
   }
 }

@@ -35,4 +35,6 @@ abstract class OrganizationSelectionDraft implements RustOpaqueInterface {
   Future<OrganizationBatchSummary> prepare();
 
   Future<OrganizationBatchProgress> progress();
+
+  Future<OrganizationBatchSummary> refresh();
 }

@@ -47,6 +47,9 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
     ref.onDispose(() {
       _disposed = true;
       _active?.cancel();
+      for (final request in _failed.values) {
+        request.cancel();
+      }
     });
     return const LibraryOrganizationActivity();
   }
@@ -58,6 +61,16 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
   Future<LibraryOrganizationCommandResult> submit(
     LibraryOrganizationRequest request,
   ) => _run(request);
+
+  void retire(LibraryOrganizationRequest request) {
+    request.cancel();
+    _failed.removeWhere((_, pending) => identical(pending, request));
+    if (!_disposed) {
+      ref
+          .read(ameNotificationControllerProvider.notifier)
+          .resolve("organization-save-${request.feedbackId}");
+    }
+  }
 
   bool handleNotification(AmeNotificationEntry observed) {
     if (observed.actionId?.startsWith("organization.") != true) {
@@ -92,7 +105,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
   Future<LibraryOrganizationCommandResult> _run(
     LibraryOrganizationRequest request,
   ) async {
-    if (_disposed || state.saving) {
+    if (_disposed || state.saving || request.isCancelled) {
       return const LibraryOrganizationRetired();
     }
     final notifications = ref.read(ameNotificationControllerProvider.notifier);
@@ -104,7 +117,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
     try {
       receipt = await request.execute(service);
     } on Object catch (error) {
-      if (_disposed) {
+      if (_disposed || request.isCancelled) {
         return const LibraryOrganizationRetired();
       }
       final code = error is LibraryOrganizationFailure
@@ -115,6 +128,7 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
       final undoUnavailable =
           error is LibraryOrganizationFailure &&
           error.code == "organization_undo_unavailable";
+      final selectionExpired = code == "organization_selection_expired";
       final retryId = request.feedbackId;
       if (stale) {
         request.refreshAuthority();
@@ -123,17 +137,19 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
       if (request.errorSurface == LibraryOrganizationErrorSurface.form) {
         return LibraryOrganizationRejected(failure);
       }
-      if (!undoUnavailable) {
+      if (!undoUnavailable && !selectionExpired) {
         _failed[retryId] = request;
       }
       while (_failed.length > ameNotificationHistoryLimit) {
-        _failed.remove(_failed.keys.first);
+        _failed.remove(_failed.keys.first)?.cancel();
       }
       var message = "更改尚未确认保存，请重试。";
       if (undoUnavailable) {
         message = "图片或整理记录已更改，当前记录已保留。";
       } else if (stale) {
         message = "图片或整理信息已更新，请重试。";
+      } else if (selectionExpired) {
+        message = "图片或整理信息已更新，请重新选择图片。";
       }
       notifications.publish(
         AmeNotificationDraft(
@@ -141,9 +157,11 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
           message: message,
           severity: AmeNotificationSeverity.error,
           dedupeKey: key,
-          actionId: undoUnavailable ? null : "organization.retry",
-          actionLabel: undoUnavailable ? null : "重试",
-          actionContext: undoUnavailable ? null : retryId,
+          actionId: undoUnavailable || selectionExpired
+              ? null
+              : "organization.retry",
+          actionLabel: undoUnavailable || selectionExpired ? null : "重试",
+          actionContext: undoUnavailable || selectionExpired ? null : retryId,
           isPersistent: true,
         ),
       );

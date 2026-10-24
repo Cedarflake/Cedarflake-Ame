@@ -1,6 +1,42 @@
 use super::*;
 
 #[test]
+fn mixed_removal_preserves_unassigned_progress_and_only_undoes_actual_membership() {
+    let (directory, mut catalog) = fixture();
+    let album_id = create_album(&mut catalog, "Existing album");
+    change(
+        &mut catalog,
+        "assign-a",
+        &["a"],
+        OrganizationAction::AssignAlbum {
+            album_id: album_id.clone(),
+        },
+    );
+    change(&mut catalog, "defer-b", &["b"], OrganizationAction::Defer);
+    let (mut batch, _) = open(directory.path(), &catalog, GalleryQuery::default(), true);
+    assert_eq!(batch.prepare().unwrap().assigned_count, 1);
+    let receipt = batch
+        .apply("remove-mixed", &organize(OrganizationAction::RemoveAlbum))
+        .unwrap();
+    assert_eq!(receipt.changed_groups, 1);
+    assert_eq!(decision(&catalog, "a").1, "ignored");
+    assert_eq!(decision(&catalog, "b").1, "deferred");
+    assert_eq!(
+        scalar(&catalog, "SELECT COUNT(*) FROM organization_records"),
+        2
+    );
+    catalog
+        .undo_organization_operation("undo-mixed", "remove-mixed", receipt.organization_revision)
+        .unwrap();
+    assert_eq!(decision(&catalog, "a").0, Some(album_id));
+    assert_eq!(decision(&catalog, "b").1, "deferred");
+    assert_eq!(
+        scalar(&catalog, "SELECT COUNT(*) FROM organization_records"),
+        2
+    );
+}
+
+#[test]
 fn a_later_group_failure_rolls_back_earlier_groups_and_the_operation_receipt() {
     let (directory, catalog) = fixture();
     let (mut batch, _) = open(directory.path(), &catalog, GalleryQuery::default(), true);

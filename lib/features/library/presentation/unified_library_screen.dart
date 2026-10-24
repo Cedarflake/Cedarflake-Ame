@@ -50,6 +50,7 @@ import "widgets/library_favorite_button.dart";
 import "widgets/library_organization_feedback.dart";
 import "widgets/library_gallery_activity.dart";
 import "widgets/library_gallery_header.dart";
+import "widgets/library_selection_actions.dart";
 import "widgets/library_gallery_filter.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
@@ -629,6 +630,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     LibraryGalleryLayoutManifest? layoutManifest,
   ) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
+    final selection = _selection;
     final folderController = ref.read(libraryFolderControllerProvider.notifier);
     final collection = state.query.collection;
     final albumName = collection is LibraryAlbumCollection
@@ -729,6 +731,24 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         controller: controller,
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
+            selectionActions: state.catalogRevision == null
+                ? null
+                : LibrarySelectionActions(
+                    selection: _selection,
+                    query: state.query,
+                    catalogRevision: state.catalogRevision!,
+                    enabled:
+                        _selection.selectedCount(_totalItems(state)) > 0 &&
+                        LibraryBrowseAdmission(state).canBrowse &&
+                        !state.isRefreshingQuery,
+                    onCommitted: () {
+                      if (mounted &&
+                          _selection.sharesIntentWith(selection) &&
+                          _selectionStableQueryId == _stableQueryId(state)) {
+                        _clearSelection();
+                      }
+                    },
+                  ),
             filter: LibraryGalleryFilter(
               query: state.query,
               onChanged: (query) {

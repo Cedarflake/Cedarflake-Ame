@@ -86,7 +86,16 @@ class LibraryAlbumEditRequest extends LibraryOrganizationRequest {
   }
 }
 
-class LibraryAlbumMembershipSession {
+abstract interface class LibraryAlbumMembership {
+  bool get supportsCancellation;
+  LibraryOrganizationRequest request(LibraryOrganizationAlbum? album);
+  Future<void> albumCreated();
+  void dispose();
+}
+
+class LibraryAlbumMembershipSession implements LibraryAlbumMembership {
+  @override
+  bool get supportsCancellation => false;
   LibraryAlbumMembershipSession(
     List<LibraryOrganizationTarget> targets, {
     required this.isMove,
@@ -95,6 +104,7 @@ class LibraryAlbumMembershipSession {
   final bool isMove;
   LibraryAlbumMembershipRequest? _attempt;
 
+  @override
   LibraryAlbumMembershipRequest request(LibraryOrganizationAlbum? album) {
     final existing = _attempt;
     if (existing != null && existing.album?.id == album?.id) return existing;
@@ -106,6 +116,10 @@ class LibraryAlbumMembershipSession {
     );
   }
 
+  @override
+  Future<void> albumCreated() async {}
+
+  @override
   void dispose() => _attempt?.cancel();
 }
 

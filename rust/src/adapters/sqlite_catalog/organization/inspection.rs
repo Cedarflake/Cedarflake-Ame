@@ -44,13 +44,34 @@ pub(super) fn decision(
     connection: &Connection,
     key: &OrganizationGroupKey,
 ) -> Result<OrganizationGroupDecision, ScanError> {
+    Ok(inspect_group(connection, key)?.decision)
+}
+
+pub(super) struct GroupDecisionVersion {
+    pub record_id: String,
+    pub organization_revision: u64,
+    pub favorite_revision: u64,
+}
+
+pub(super) struct InspectedGroup {
+    pub decision: OrganizationGroupDecision,
+    pub version: Option<GroupDecisionVersion>,
+}
+
+pub(super) fn inspect_group(
+    connection: &Connection,
+    key: &OrganizationGroupKey,
+) -> Result<InspectedGroup, ScanError> {
     let Some(record_id) = record(connection, key)? else {
-        return Ok(OrganizationGroupDecision {
-            key: key.clone(),
-            favorite: false,
-            disposition: OrganizationDisposition::Pending,
-            album: None,
-            has_conflict: false,
+        return Ok(InspectedGroup {
+            version: None,
+            decision: OrganizationGroupDecision {
+                key: key.clone(),
+                favorite: false,
+                disposition: OrganizationDisposition::Pending,
+                album: None,
+                has_conflict: false,
+            },
         });
     };
     connection
@@ -60,11 +81,11 @@ pub(super) fn decision(
                     EXISTS(
                         SELECT 1 FROM organization_conflicts AS conflict
                         WHERE conflict.record_id = record.record_id
-                    )
+                    ), record.organization_revision, record.favorite_revision
              FROM organization_records AS record
              LEFT JOIN organization_albums AS album ON album.album_id = record.album_id
              WHERE record.record_id = ?1",
-            [record_id],
+            [&record_id],
             |row| {
                 let disposition = match row.get::<_, String>(1)?.as_str() {
                     "pending" => OrganizationDisposition::Pending,
@@ -81,12 +102,19 @@ pub(super) fn decision(
                     }),
                     None => None,
                 };
-                Ok(OrganizationGroupDecision {
-                    key: key.clone(),
-                    favorite: row.get(0)?,
-                    disposition,
-                    album,
-                    has_conflict: row.get(5)?,
+                Ok(InspectedGroup {
+                    version: Some(GroupDecisionVersion {
+                        record_id: record_id.clone(),
+                        organization_revision: read_unsigned(row, 6)?,
+                        favorite_revision: read_unsigned(row, 7)?,
+                    }),
+                    decision: OrganizationGroupDecision {
+                        key: key.clone(),
+                        favorite: row.get(0)?,
+                        disposition,
+                        album,
+                        has_conflict: row.get(5)?,
+                    },
                 })
             },
         )

@@ -90,6 +90,10 @@ impl OrganizationBatchSession {
         self.with_repository(|repository| repository.prepare())
     }
 
+    pub(crate) fn refresh(&self) -> Result<OrganizationBatchSummary, ScanError> {
+        self.with_repository(|repository| repository.refresh())
+    }
+
     pub(crate) fn apply(
         &self,
         operation_id: String,
