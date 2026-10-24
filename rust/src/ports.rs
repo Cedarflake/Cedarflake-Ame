@@ -8,6 +8,7 @@ mod gallery_query;
 pub(crate) mod organization;
 pub(crate) mod organization_archive;
 pub(crate) mod organization_batch;
+pub(crate) mod organization_cleanup;
 pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
 pub(crate) mod search_index;

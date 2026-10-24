@@ -52,6 +52,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "exact_duplicate_review",
         "organization_archive",
         "organization_batch",
+        "organization_cleanup",
         "organization_conflicts",
         "organization_queue",
         "organization_review",
@@ -350,6 +351,12 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
             DOMAIN_SOURCE,
             "pub mod organization_batch;",
             "pub(crate) mod organization_batch;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod organization_cleanup;",
+            "pub(crate) mod organization_cleanup;",
         ),
         (
             "domain",

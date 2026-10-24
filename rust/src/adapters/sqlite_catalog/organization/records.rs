@@ -121,7 +121,7 @@ fn attach_known_source(connection: &Connection, source_generation: i64) -> Resul
             [source_generation],
         )
         .map_err(database_error)?;
-    Ok(())
+    super::association_lifetime::restore_generation(connection, source_generation)
 }
 
 pub(super) fn prepare_members(connection: &Connection) -> Result<(), ScanError> {
@@ -200,12 +200,5 @@ pub(super) fn attach_members(connection: &Connection, record_id: &str) -> Result
          CROSS JOIN organization_bindings AS binding
            ON binding.asset_id = member.asset_id AND binding.source_generation = member.source_generation", []
     ).map_err(database_error)?;
-    connection
-        .execute(
-            "UPDATE organization_records SET unassociated_since_unix_ms = NULL
-             WHERE unassociated_since_unix_ms IS NOT NULL AND record_id = ?1",
-            [record_id],
-        )
-        .map_err(database_error)?;
-    Ok(())
+    super::association_lifetime::restore_group(connection, record_id)
 }

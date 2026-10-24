@@ -11,6 +11,12 @@ pub(super) fn remove(
     root_id: &str,
     location_id: &str,
 ) -> Result<(), ScanError> {
+    let group = super::super::organization::association_lifetime::location_group(
+        transaction,
+        active_scan_id,
+        root_id,
+        location_id,
+    )?;
     transaction
         .execute(
             "DELETE FROM preview_artifact_locations
@@ -34,6 +40,13 @@ pub(super) fn remove(
                 params![scan_id, location_id, root_id],
             )
             .map_err(database_error)?;
+    }
+    if let Some(group) = group {
+        super::super::organization::association_lifetime::refresh_groups(
+            transaction,
+            &[group],
+            super::super::unix_time_ms(),
+        )?;
     }
     Ok(())
 }

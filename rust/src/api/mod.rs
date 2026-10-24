@@ -5,6 +5,7 @@ pub mod initialization;
 pub mod organization;
 pub mod organization_archive;
 pub mod organization_batch;
+pub mod organization_cleanup;
 pub mod organization_conflicts;
 pub mod organization_review;
 pub mod preview;

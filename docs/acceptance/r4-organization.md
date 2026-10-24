@@ -1360,3 +1360,56 @@ source menu while the Albums destination remains selected. The correction adds t
 and explicitly enters Library before the existing management assertions. It changes neither the
 source update/removal assertions nor their deadlines. Native verification of this correction belongs
 to the subsequent hosted head; local window interaction remains suspended.
+
+Run `40096057273` has completed on `35ef95a780fd32180bd260d22efe8f70247ff3c6`. The schema/queue,
+catalog and remaining Rust partitions, Flutter, Windows accessibility, unsigned x64 Release and
+all five synthetic workloads pass. Static and Windows Scan fail at the two boundaries above.
+Synchronization and Scan also reproduces the ordinary-journal import failure: its nested client
+does not reach a continuous checkpoint and reports `persistent_journal_metadata_fallback`, with
+pending live/recovery work. That partition records 416 passes, one failure and 12 ignored tests.
+The separate protected release jobs are skipped. `ae53b81` corrects the static blocks and native
+workflow navigation; the journal cause and verification of subsequent heads remain outstanding.
+
+## Manual unresolved-record cleanup
+
+Settings now connects age selection, inspection, affected counts, confirmation, application,
+cancellation and retry through the typed cleanup port. It shares the existing organization-records
+section and standard settings/dialog controls. The default 90-day filter, 30-day option and all-record
+option remain manual choices. Cleanup preserves album definitions and original media. Committed
+results refresh shared organization state; uncertain retries reuse their operation identifier and
+stale inspections require a new confirmation.
+
+The association-lifetime owner captures first loss in the location/root publication transaction,
+retains it across repeated observation, and clears the whole lineage after compatible reassociation.
+Three focused cases pass for first loss/restoration, a surviving copy with an inactive watcher, and
+transaction rollback. Twelve cleanup and restoration cases cover age selection, canonical aliases,
+retained R3 choices, recent shared-generation history, unpublished/inactive sources, cancelled
+windows, injected write failure, repeat receipts, stale confirmation, explicit backup recovery and
+no resurrection after reimport. The preferred-copy cases restore a real archive into a catalog with
+ambiguous native aliases and matching published content: the unresolved choice remains manually
+cleanable, while an already resolved choice is excluded.
+The local `cleanup` test filter completes with 116 passes, including those 12 boundary cases, in
+334.06 seconds after compilation; the additional matches are existing cleanup regressions.
+
+Four controller and two settings widget cases pass for retained task lifetime, superseded
+confirmation, uncertain retry identity, cancellation/commit ordering, changed records, missing
+terminal results, cancelled confirmation, explicit confirmation and empty results. The widget
+surface uses 800 by 600 with 1.4 text scaling. Canonical formatting, focused Dart analysis and the
+generated content-hash/17 existing asynchronous bridge-contract checks passed. Those existing
+Future-contract checks do not validate the new streaming cleanup API's native execution.
+
+The native source-module inventory explicitly admits `organization_cleanup` with its exact public,
+external declaration and retains alternate-loading rejection cases. This is a test inventory update;
+source availability policy is unchanged. All four focused topology admission/rejection cases pass
+in 36.98 seconds after compilation. Real-window navigation, archive export/restore/restart,
+cleanup interaction and retained-library resource measurements remain outstanding while window
+operation is suspended. No source library or original catalog participated in these cleanup tests.
+
+Handwritten ownership sizes: association lifetime 171 production lines; cleanup transaction facade
+127, inspection 228 and retirement 139; domain 81, application 64 and native API 76. Their dedicated
+lifetime and cleanup tests have 106 and 353 lines; the existing duplicate-restoration test owner has
+334. Dart controller/state/gateway have 155/81/119 production lines, and the settings row/confirmation
+have 169/65. Dedicated controller and widget tests each have 107 lines; these new production owners
+contain no inline tests. The existing local-file facade retains 2,629 production/support lines and
+3,380 inline-test lines; only six inventory lines were added to that test section. Its dedicated
+source-topology test owner has 458 lines. Generated bridge output is excluded from these counts.

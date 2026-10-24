@@ -11,7 +11,9 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 use super::*;
 
 mod admission;
+mod association_lifetime;
 mod batch;
+mod cleanup;
 mod conflicts;
 mod inspection;
 mod lifecycle;

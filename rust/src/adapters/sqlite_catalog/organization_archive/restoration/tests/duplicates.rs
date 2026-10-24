@@ -1,5 +1,6 @@
 use crate::adapters::sqlite_catalog::{gallery, organization, tests::publish_gallery_fixture};
 use crate::ports::CatalogRepository;
+use crate::ports::organization_cleanup::OrganizationCleanupRepository;
 
 use super::*;
 
@@ -258,4 +259,76 @@ fn organization_archive_duplicate_forgets_pending_choices_on_explicit_source_rem
     organization::publication::root(&transaction, "next-root").unwrap();
     transaction.commit().unwrap();
     assert_eq!(count(&target.connection, "exact_duplicate_decisions"), 0);
+}
+
+#[test]
+fn cleanup_can_retire_an_ambiguous_preferred_copy_despite_matching_content() {
+    let (directory, source) = source();
+    let mut target = target(directory.path(), true);
+    native(&target);
+    content(&target, '0', true);
+    let (archive, staged) = attach_archive(&target, &source, directory.path());
+    apply(&target, &archive).unwrap();
+    queue::detach(&target, staged);
+    let inspection = target
+        .inspect_organization_cleanup(None, &mut |_| true)
+        .unwrap();
+    assert_eq!(inspection.duplicate_choices, 1);
+    target
+        .apply_organization_cleanup(
+            &crate::domain::organization_cleanup::OrganizationCleanupRequest {
+                operation_id: "cleanup-ambiguous-copy".into(),
+                inspection,
+            },
+            &mut |_| true,
+        )
+        .unwrap();
+    assert_eq!(
+        count(
+            &target.connection,
+            "organization_recovery_duplicate_decisions"
+        ),
+        0
+    );
+    assert_eq!(count(&target.connection, "asset_locations"), 2);
+    publish_gallery_fixture(
+        &mut target,
+        "unique-scan",
+        "current-root",
+        "D:\\UnavailableRestoredCopies",
+        &[("renamed", None, 3)],
+    );
+    native(&target);
+    let transaction = target.connection.unchecked_transaction().unwrap();
+    organization::publication::root(&transaction, "current-root").unwrap();
+    transaction.commit().unwrap();
+    assert_eq!(count(&target.connection, "exact_duplicate_decisions"), 0);
+}
+
+#[test]
+fn cleanup_preserves_resolved_choices_and_choices_owned_by_unavailable_sources() {
+    for unavailable in [false, true] {
+        let (directory, source) = source();
+        let mut target = target(directory.path(), unavailable);
+        native(&target);
+        let (archive, staged) = attach_archive(&target, &source, directory.path());
+        apply(&target, &archive).unwrap();
+        queue::detach(&target, staged);
+        if unavailable {
+            target
+                .connection
+                .execute_batch("UPDATE library_change_root_state SET is_active = 0;")
+                .unwrap();
+        }
+        let inspection = target
+            .inspect_organization_cleanup(None, &mut |_| true)
+            .unwrap();
+        assert_eq!(inspection.duplicate_choices, 0);
+        let retained_table = if unavailable {
+            "organization_recovery_duplicate_decisions"
+        } else {
+            "exact_duplicate_decisions"
+        };
+        assert_eq!(count(&target.connection, retained_table), 1);
+    }
 }

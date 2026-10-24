@@ -9,6 +9,7 @@ import 'api/exact_duplicates.dart';
 import 'api/organization.dart';
 import 'api/organization_archive.dart';
 import 'api/organization_batch.dart';
+import 'api/organization_cleanup.dart';
 import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
@@ -30,6 +31,7 @@ import 'domain/library_synchronization.dart';
 import 'domain/organization.dart';
 import 'domain/organization_archive.dart';
 import 'domain/organization_batch.dart';
+import 'domain/organization_cleanup.dart';
 import 'domain/organization_conflicts.dart';
 import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
@@ -50,6 +52,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTaskPtr;
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_OrganizationCleanupTaskPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTaskPtr;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_OrganizationSelectionDraftPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraftPtr;
 
@@ -63,6 +69,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   OrganizationArchiveTask
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationCleanupTask
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
     dynamic raw,
   );
 
@@ -85,6 +97,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCleanupTask
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationSelectionDraft
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     dynamic raw,
@@ -99,6 +117,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   OrganizationArchiveTask
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationCleanupTask
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
     dynamic raw,
   );
 
@@ -121,6 +145,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   RustStreamSink<OrganizationArchiveEvent>
   dco_decode_StreamSink_organization_archive_event_Sse(dynamic raw);
+
+  @protected
+  RustStreamSink<OrganizationCleanupEvent>
+  dco_decode_StreamSink_organization_cleanup_event_Sse(dynamic raw);
 
   @protected
   RustStreamSink<PreviewCleanupEvent>
@@ -234,6 +262,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationBatchAction dco_decode_box_autoadd_organization_batch_action(
     dynamic raw,
   );
+
+  @protected
+  OrganizationCleanupInspection
+  dco_decode_box_autoadd_organization_cleanup_inspection(dynamic raw);
+
+  @protected
+  OrganizationCleanupProgress
+  dco_decode_box_autoadd_organization_cleanup_progress(dynamic raw);
+
+  @protected
+  OrganizationCleanupReceipt
+  dco_decode_box_autoadd_organization_cleanup_receipt(dynamic raw);
+
+  @protected
+  OrganizationCleanupRequest
+  dco_decode_box_autoadd_organization_cleanup_request(dynamic raw);
 
   @protected
   OrganizationCounts dco_decode_box_autoadd_organization_counts(dynamic raw);
@@ -748,6 +792,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationBatchSummary dco_decode_organization_batch_summary(dynamic raw);
 
   @protected
+  OrganizationCleanupEvent dco_decode_organization_cleanup_event(dynamic raw);
+
+  @protected
+  OrganizationCleanupInspection dco_decode_organization_cleanup_inspection(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationCleanupPhase dco_decode_organization_cleanup_phase(dynamic raw);
+
+  @protected
+  OrganizationCleanupProgress dco_decode_organization_cleanup_progress(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationCleanupReceipt dco_decode_organization_cleanup_receipt(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationCleanupRequest dco_decode_organization_cleanup_request(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationConflictAlbum dco_decode_organization_conflict_album(dynamic raw);
 
   @protected
@@ -884,6 +954,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCleanupTask
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationSelectionDraft
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     SseDeserializer deserializer,
@@ -902,6 +978,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCleanupTask
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationSelectionDraft
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     SseDeserializer deserializer,
@@ -916,6 +998,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   OrganizationArchiveTask
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupTask
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
     SseDeserializer deserializer,
   );
 
@@ -940,6 +1028,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   RustStreamSink<OrganizationArchiveEvent>
   sse_decode_StreamSink_organization_archive_event_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  RustStreamSink<OrganizationCleanupEvent>
+  sse_decode_StreamSink_organization_cleanup_event_Sse(
     SseDeserializer deserializer,
   );
 
@@ -1093,6 +1187,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationBatchAction sse_decode_box_autoadd_organization_batch_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupInspection
+  sse_decode_box_autoadd_organization_cleanup_inspection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupProgress
+  sse_decode_box_autoadd_organization_cleanup_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupReceipt
+  sse_decode_box_autoadd_organization_cleanup_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupRequest
+  sse_decode_box_autoadd_organization_cleanup_request(
     SseDeserializer deserializer,
   );
 
@@ -1739,6 +1857,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationCleanupEvent sse_decode_organization_cleanup_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupInspection sse_decode_organization_cleanup_inspection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupPhase sse_decode_organization_cleanup_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupProgress sse_decode_organization_cleanup_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupReceipt sse_decode_organization_cleanup_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationCleanupRequest sse_decode_organization_cleanup_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationConflictAlbum sse_decode_organization_conflict_album(
     SseDeserializer deserializer,
   );
@@ -1912,6 +2060,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    OrganizationCleanupTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     OrganizationSelectionDraft self,
     SseSerializer serializer,
@@ -1928,6 +2083,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask(
     OrganizationArchiveTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    OrganizationCleanupTask self,
     SseSerializer serializer,
   );
 
@@ -1954,6 +2116,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    OrganizationCleanupTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     OrganizationSelectionDraft self,
     SseSerializer serializer,
@@ -1975,6 +2144,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_StreamSink_organization_archive_event_Sse(
     RustStreamSink<OrganizationArchiveEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_StreamSink_organization_cleanup_event_Sse(
+    RustStreamSink<OrganizationCleanupEvent> self,
     SseSerializer serializer,
   );
 
@@ -2152,6 +2327,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_organization_batch_action(
     OrganizationBatchAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_inspection(
+    OrganizationCleanupInspection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_progress(
+    OrganizationCleanupProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_receipt(
+    OrganizationCleanupReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_request(
+    OrganizationCleanupRequest self,
     SseSerializer serializer,
   );
 
@@ -2942,6 +3141,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_organization_cleanup_event(
+    OrganizationCleanupEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_cleanup_inspection(
+    OrganizationCleanupInspection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_cleanup_phase(
+    OrganizationCleanupPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_cleanup_progress(
+    OrganizationCleanupProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_cleanup_receipt(
+    OrganizationCleanupReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_cleanup_request(
+    OrganizationCleanupRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_organization_conflict_album(
     OrganizationConflictAlbum self,
     SseSerializer serializer,
@@ -3180,6 +3415,40 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTaskPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTaskPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTaskPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTaskPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_cedarflake_ame_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTaskPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void

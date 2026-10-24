@@ -10,6 +10,7 @@ import "../../../library/application/library_archive_state.dart";
 import "../../application/organization_archive_picker.dart";
 import "../organization_archive_messages.dart";
 import "organization_archive_confirmation.dart";
+import "organization_cleanup_row.dart";
 import "settings_section.dart";
 
 class OrganizationArchiveSection extends ConsumerStatefulWidget {
@@ -108,6 +109,7 @@ class _OrganizationArchiveSectionState
           ),
         if (state is! LibraryArchiveIdle)
           Padding(padding: const EdgeInsets.all(20), child: _feedback(state)),
+        const OrganizationCleanupRow(),
       ],
     );
   }

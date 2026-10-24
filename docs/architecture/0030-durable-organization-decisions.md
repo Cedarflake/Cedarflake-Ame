@@ -29,6 +29,14 @@ retire only its associations and the records with no surviving owners. A rebuilt
 reassociate a record through compatible identity and content evidence; a filename is insufficient.
 Unresolved associations retain their first-unassociated time for explicit cleanup.
 
+The association-lifetime owner records loss of the last compatible published member within the
+location-removal or root-publication transaction. It checks the canonical group's complete lineage,
+including members in other configured roots. A retained published location remains association
+evidence when its watcher is inactive. Repeated observations keep the first timestamp; compatible
+reassociation clears it for every lineage in the group. Older records without a timestamp begin at
+their first observed loss, rather than an invented historical date. Root refresh materializes its
+scoped group identifiers once and processes windows of 256; it does not read original media.
+
 Current compatible fingerprints project complete groups across configured roots. Without such a
 fingerprint, an admitted asset version is a provisional singleton. Several durable records may
 contribute provenance to one current group; they are not several confirmed album memberships.

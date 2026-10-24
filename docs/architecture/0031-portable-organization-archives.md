@@ -170,6 +170,39 @@ admitted connection owns temporary tables and its staging attachment and closes 
 file is retired, including on Windows. Archive input and original media remain read-only. No source
 scan or new content hashing occurs in this operation.
 
+### Manual unresolved-record cleanup
+
+Cleanup has a separate typed application port and transaction owner. Its single-use task exposes
+independent atomic cancellation and structured inspection/application events through the generated
+bridge. Settings composes the existing settings row and choice control with a standard scrollable
+AlertDialog in the organization-records section. The pinned Flutter 3.44.9 supports this dialog;
+the shared settings choice supplies the existing desktop menu and focus behavior. No package,
+schema migration or custom confirmation component is needed.
+
+Inspection reconciles association timestamps against current catalog evidence and stages eligible
+canonical group identifiers and unresolved R3 choices in connection-owned temporary tables. Keyset
+windows of 256 bound application memory and provide cancellation points. Configured roots without
+a published catalog do not establish absence. Pending R3 choices also remain protected while their
+owning configured source is inactive. Association publication owns restoration: an active R3 choice
+is excluded, while an unresolved preferred-copy choice may be cleaned even when equal content exists.
+Content equality alone cannot resolve physical-copy ambiguity.
+
+The inspection returns scalar counts, age bounds, catalog/organization revisions and a typed-field
+BLAKE3 digest of the selected decisions. Application admits an operation identifier and payload digest
+through the existing receipt owner, rechecks both revisions, restages eligibility and compares the
+selection digest within one immediate transaction. A changed selection requires renewed confirmation;
+an identical committed request returns its receipt even after later catalog changes. No transaction
+or worker admission is held while the user considers the confirmation.
+
+Retirement removes every selected group's provenance aliases, their bindings, conflicts and bookmark
+references together. It removes selected unresolved R3 choices and retires unused generation/admission
+authority without touching evidence still owned by a retained record, published location or pending
+choice. Album definitions and opaque operation history remain; history cannot reauthorize a deleted
+lineage. Reimport cannot recover a cleaned decision, while explicit backup application can restore it.
+Cancellation before commit or a failed statement rolls back the complete selection and receipt.
+After commit, presentation refreshes shared organization state and reports the confirmed result.
+No original media, preview, source enumeration or hydration participates in inspection or cleanup.
+
 ## Dependencies and alternatives
 
 Use serde 1.0.229 and serde_json 1.0.154 (MIT OR Apache-2.0), behind the archive adapter. Their typed

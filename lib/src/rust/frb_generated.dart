@@ -9,6 +9,7 @@ import 'api/exact_duplicates.dart';
 import 'api/organization.dart';
 import 'api/organization_archive.dart';
 import 'api/organization_batch.dart';
+import 'api/organization_cleanup.dart';
 import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
@@ -29,6 +30,7 @@ import 'domain/library_synchronization.dart';
 import 'domain/organization.dart';
 import 'domain/organization_archive.dart';
 import 'domain/organization_batch.dart';
+import 'domain/organization_cleanup.dart';
 import 'domain/organization_conflicts.dart';
 import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
@@ -93,7 +95,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.12.0';
 
   @override
-  int get rustContentHash => 2142713485;
+  int get rustContentHash => 395218813;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -107,6 +109,10 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 abstract class RustLibApi extends BaseApi {
   void crateApiOrganizationArchiveOrganizationArchiveTaskCancel({
     required OrganizationArchiveTask that,
+  });
+
+  void crateApiOrganizationCleanupOrganizationCleanupTaskCancel({
+    required OrganizationCleanupTask that,
   });
 
   Future<void> crateApiOrganizationBatchOrganizationSelectionDraftAppendIds({
@@ -154,6 +160,12 @@ abstract class RustLibApi extends BaseApi {
 
   Stream<ExactAnalysisProgress> crateApiExactDuplicatesAnalyzeExactDuplicates({
     required String runId,
+  });
+
+  Stream<OrganizationCleanupEvent>
+  crateApiOrganizationCleanupApplyOrganizationCleanup({
+    required OrganizationCleanupRequest request,
+    required OrganizationCleanupTask task,
   });
 
   Future<OrganizationReviewSession>
@@ -215,6 +227,9 @@ abstract class RustLibApi extends BaseApi {
   OrganizationArchiveTask
   crateApiOrganizationArchiveCreateOrganizationArchiveTask();
 
+  OrganizationCleanupTask
+  crateApiOrganizationCleanupCreateOrganizationCleanupTask();
+
   Future<OrganizationWriteReceipt> crateApiOrganizationDeleteOrganizationAlbum({
     required String operationId,
     required BigInt expectedRevision,
@@ -241,6 +256,12 @@ abstract class RustLibApi extends BaseApi {
   crateApiOrganizationArchiveInspectOrganizationArchive({
     required String archive,
     required OrganizationArchiveTask task,
+  });
+
+  Stream<OrganizationCleanupEvent>
+  crateApiOrganizationCleanupInspectOrganizationCleanup({
+    PlatformInt64? cutoffUnixMs,
+    required OrganizationCleanupTask task,
   });
 
   Future<OrganizationInspection>
@@ -491,6 +512,15 @@ abstract class RustLibApi extends BaseApi {
   get rust_arc_decrement_strong_count_OrganizationArchiveTaskPtr;
 
   RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_OrganizationCleanupTask;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_OrganizationCleanupTask;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_OrganizationCleanupTaskPtr;
+
+  RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_OrganizationSelectionDraft;
 
   RustArcDecrementStrongCountFnType
@@ -551,6 +581,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  void crateApiOrganizationCleanupOrganizationCleanupTaskCancel({
+    required OrganizationCleanupTask that,
+  }) {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+            that,
+            serializer,
+          );
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiOrganizationCleanupOrganizationCleanupTaskCancelConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOrganizationCleanupOrganizationCleanupTaskCancelConstMeta =>
+      const TaskConstMeta(
+        debugName: "OrganizationCleanupTask_cancel",
+        argNames: ["that"],
+      );
+
+  @override
   Future<void> crateApiOrganizationBatchOrganizationSelectionDraftAppendIds({
     required OrganizationSelectionDraft that,
     required List<String> assetIds,
@@ -567,7 +630,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 3,
             port: port_,
           );
         },
@@ -610,7 +673,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 4,
             port: port_,
           );
         },
@@ -648,7 +711,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 5,
             port: port_,
           );
         },
@@ -687,7 +750,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 6,
             port: port_,
           );
         },
@@ -726,7 +789,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 7,
             port: port_,
           );
         },
@@ -765,7 +828,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 8,
             port: port_,
           );
         },
@@ -803,7 +866,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 9,
             port: port_,
           );
         },
@@ -839,7 +902,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 10,
             port: port_,
           );
         },
@@ -874,7 +937,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 11,
             port: port_,
           );
         },
@@ -911,7 +974,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 11,
+              funcId: 12,
               port: port_,
             );
           },
@@ -935,6 +998,58 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Stream<OrganizationCleanupEvent>
+  crateApiOrganizationCleanupApplyOrganizationCleanup({
+    required OrganizationCleanupRequest request,
+    required OrganizationCleanupTask task,
+  }) {
+    final sink = RustStreamSink<OrganizationCleanupEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_box_autoadd_organization_cleanup_request(
+              request,
+              serializer,
+            );
+            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+              task,
+              serializer,
+            );
+            sse_encode_StreamSink_organization_cleanup_event_Sse(
+              sink,
+              serializer,
+            );
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 13,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_scan_error,
+          ),
+          constMeta:
+              kCrateApiOrganizationCleanupApplyOrganizationCleanupConstMeta,
+          argValues: [request, task, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta
+  get kCrateApiOrganizationCleanupApplyOrganizationCleanupConstMeta =>
+      const TaskConstMeta(
+        debugName: "apply_organization_cleanup",
+        argNames: ["request", "task", "sink"],
+      );
+
+  @override
   Future<OrganizationReviewSession>
   crateApiOrganizationReviewBeginOrganizationReview({
     required GalleryQuery query,
@@ -947,7 +1062,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 14,
             port: port_,
           );
         },
@@ -981,7 +1096,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 15,
             port: port_,
           );
         },
@@ -1014,7 +1129,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 16,
             port: port_,
           );
         },
@@ -1044,7 +1159,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 15)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1070,7 +1185,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(operationId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 18)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -1101,7 +1216,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 19,
             port: port_,
           );
         },
@@ -1147,7 +1262,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 20,
             port: port_,
           );
         },
@@ -1189,7 +1304,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 21,
             port: port_,
           );
         },
@@ -1228,7 +1343,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 22,
             port: port_,
           );
         },
@@ -1266,7 +1381,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 21,
+              funcId: 23,
               port: port_,
             );
           },
@@ -1306,7 +1421,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 22,
+              funcId: 24,
               port: port_,
             );
           },
@@ -1345,7 +1460,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 25,
             port: port_,
           );
         },
@@ -1373,7 +1488,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 24)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 26)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -1396,6 +1511,35 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  OrganizationCleanupTask
+  crateApiOrganizationCleanupCreateOrganizationCleanupTask() {
+    return handler.executeSync(
+      SyncTask(
+        callFfi: () {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask,
+          decodeErrorData: null,
+        ),
+        constMeta:
+            kCrateApiOrganizationCleanupCreateOrganizationCleanupTaskConstMeta,
+        argValues: [],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOrganizationCleanupCreateOrganizationCleanupTaskConstMeta =>
+      const TaskConstMeta(
+        debugName: "create_organization_cleanup_task",
+        argNames: [],
+      );
+
+  @override
   Future<OrganizationWriteReceipt> crateApiOrganizationDeleteOrganizationAlbum({
     required String operationId,
     required BigInt expectedRevision,
@@ -1411,7 +1555,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1444,7 +1588,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1489,7 +1633,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 27,
+              funcId: 30,
               port: port_,
             );
           },
@@ -1526,7 +1670,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1556,7 +1700,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 32,
             port: port_,
           );
         },
@@ -1598,7 +1742,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 30,
+              funcId: 33,
               port: port_,
             );
           },
@@ -1624,6 +1768,55 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Stream<OrganizationCleanupEvent>
+  crateApiOrganizationCleanupInspectOrganizationCleanup({
+    PlatformInt64? cutoffUnixMs,
+    required OrganizationCleanupTask task,
+  }) {
+    final sink = RustStreamSink<OrganizationCleanupEvent>();
+    unawaited(
+      handler.executeNormal(
+        NormalTask(
+          callFfi: (port_) {
+            final serializer = SseSerializer(generalizedFrbRustBinding);
+            sse_encode_opt_box_autoadd_i_64(cutoffUnixMs, serializer);
+            sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+              task,
+              serializer,
+            );
+            sse_encode_StreamSink_organization_cleanup_event_Sse(
+              sink,
+              serializer,
+            );
+            pdeCallFfi(
+              generalizedFrbRustBinding,
+              serializer,
+              funcId: 34,
+              port: port_,
+            );
+          },
+          codec: SseCodec(
+            decodeSuccessData: sse_decode_unit,
+            decodeErrorData: sse_decode_scan_error,
+          ),
+          constMeta:
+              kCrateApiOrganizationCleanupInspectOrganizationCleanupConstMeta,
+          argValues: [cutoffUnixMs, task, sink],
+          apiImpl: this,
+        ),
+      ),
+    );
+    return sink.stream;
+  }
+
+  TaskConstMeta
+  get kCrateApiOrganizationCleanupInspectOrganizationCleanupConstMeta =>
+      const TaskConstMeta(
+        debugName: "inspect_organization_cleanup",
+        argNames: ["cutoffUnixMs", "task", "sink"],
+      );
+
+  @override
   Future<OrganizationInspection>
   crateApiOrganizationInspectOrganizationSelection({
     required List<OrganizationSelection> selections,
@@ -1636,7 +1829,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1668,7 +1861,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1705,7 +1898,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1743,7 +1936,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1783,7 +1976,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1821,7 +2014,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1861,7 +2054,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 41,
             port: port_,
           );
         },
@@ -1898,7 +2091,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1933,7 +2126,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1972,7 +2165,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 44,
             port: port_,
           );
         },
@@ -2013,7 +2206,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 45,
             port: port_,
           );
         },
@@ -2062,7 +2255,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 46,
             port: port_,
           );
         },
@@ -2099,7 +2292,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 47,
             port: port_,
           );
         },
@@ -2138,7 +2331,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2179,7 +2372,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2214,7 +2407,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 50,
             port: port_,
           );
         },
@@ -2251,7 +2444,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 51,
             port: port_,
           );
         },
@@ -2288,7 +2481,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 52,
             port: port_,
           );
         },
@@ -2321,7 +2514,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 53,
             port: port_,
           );
         },
@@ -2357,7 +2550,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 54,
             port: port_,
           );
         },
@@ -2395,7 +2588,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 55,
             port: port_,
           );
         },
@@ -2428,7 +2621,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 56,
             port: port_,
           );
         },
@@ -2461,7 +2654,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 57,
             port: port_,
           );
         },
@@ -2493,7 +2686,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 58,
             port: port_,
           );
         },
@@ -2520,7 +2713,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 59,
             port: port_,
           );
         },
@@ -2550,7 +2743,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 60,
             port: port_,
           );
         },
@@ -2580,7 +2773,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 61,
             port: port_,
           );
         },
@@ -2618,7 +2811,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 62,
             port: port_,
           );
         },
@@ -2649,7 +2842,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 59)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 63)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -2681,7 +2874,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 64,
             port: port_,
           );
         },
@@ -2716,7 +2909,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 65,
             port: port_,
           );
         },
@@ -2757,7 +2950,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 62,
+              funcId: 66,
               port: port_,
             );
           },
@@ -2790,7 +2983,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 67,
             port: port_,
           );
         },
@@ -2829,7 +3022,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 68,
             port: port_,
           );
         },
@@ -2856,7 +3049,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -2883,7 +3076,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 66)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 70)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_64,
@@ -2933,7 +3126,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 67,
+              funcId: 71,
               port: port_,
             );
           },
@@ -2973,7 +3166,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 68,
+              funcId: 72,
               port: port_,
             );
           },
@@ -3009,7 +3202,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             pdeCallFfi(
               generalizedFrbRustBinding,
               serializer,
-              funcId: 69,
+              funcId: 73,
               port: port_,
             );
           },
@@ -3046,7 +3239,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 74,
             port: port_,
           );
         },
@@ -3084,7 +3277,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 75,
             port: port_,
           );
         },
@@ -3125,7 +3318,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 76,
             port: port_,
           );
         },
@@ -3167,7 +3360,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 77,
             port: port_,
           );
         },
@@ -3201,7 +3394,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 78,
             port: port_,
           );
         },
@@ -3235,7 +3428,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 79,
             port: port_,
           );
         },
@@ -3269,7 +3462,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 80,
             port: port_,
           );
         },
@@ -3298,7 +3491,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(scanId, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 77)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 81)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_bool,
@@ -3334,7 +3527,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 82,
             port: port_,
           );
         },
@@ -3367,7 +3560,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 83,
             port: port_,
           );
         },
@@ -3395,6 +3588,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_OrganizationArchiveTask => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationArchiveTask;
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_OrganizationCleanupTask => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_OrganizationCleanupTask => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_OrganizationSelectionDraft => wire
@@ -3425,6 +3626,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return OrganizationArchiveTaskImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  OrganizationCleanupTask
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return OrganizationCleanupTaskImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -3461,6 +3673,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCleanupTask
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return OrganizationCleanupTaskImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
   OrganizationSelectionDraft
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     dynamic raw,
@@ -3487,6 +3710,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return OrganizationArchiveTaskImpl.frbInternalDcoDecode(
+      raw as List<dynamic>,
+    );
+  }
+
+  @protected
+  OrganizationCleanupTask
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return OrganizationCleanupTaskImpl.frbInternalDcoDecode(
       raw as List<dynamic>,
     );
   }
@@ -3521,6 +3755,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   RustStreamSink<OrganizationArchiveEvent>
   dco_decode_StreamSink_organization_archive_event_Sse(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    throw UnimplementedError();
+  }
+
+  @protected
+  RustStreamSink<OrganizationCleanupEvent>
+  dco_decode_StreamSink_organization_cleanup_event_Sse(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     throw UnimplementedError();
   }
@@ -3761,6 +4002,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_organization_batch_action(raw);
+  }
+
+  @protected
+  OrganizationCleanupInspection
+  dco_decode_box_autoadd_organization_cleanup_inspection(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_organization_cleanup_inspection(raw);
+  }
+
+  @protected
+  OrganizationCleanupProgress
+  dco_decode_box_autoadd_organization_cleanup_progress(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_organization_cleanup_progress(raw);
+  }
+
+  @protected
+  OrganizationCleanupReceipt
+  dco_decode_box_autoadd_organization_cleanup_receipt(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_organization_cleanup_receipt(raw);
+  }
+
+  @protected
+  OrganizationCleanupRequest
+  dco_decode_box_autoadd_organization_cleanup_request(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_organization_cleanup_request(raw);
   }
 
   @protected
@@ -5262,6 +5531,111 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCleanupEvent dco_decode_organization_cleanup_event(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    switch (raw[0]) {
+      case 0:
+        return OrganizationCleanupEvent_Progress(
+          progress: dco_decode_box_autoadd_organization_cleanup_progress(
+            raw[1],
+          ),
+        );
+      case 1:
+        return OrganizationCleanupEvent_Inspected(
+          inspection: dco_decode_box_autoadd_organization_cleanup_inspection(
+            raw[1],
+          ),
+        );
+      case 2:
+        return OrganizationCleanupEvent_Completed(
+          receipt: dco_decode_box_autoadd_organization_cleanup_receipt(raw[1]),
+        );
+      case 3:
+        return OrganizationCleanupEvent_Cancelled();
+      case 4:
+        return OrganizationCleanupEvent_Failed(
+          code: dco_decode_String(raw[1]),
+          message: dco_decode_String(raw[2]),
+        );
+      default:
+        throw Exception("unreachable");
+    }
+  }
+
+  @protected
+  OrganizationCleanupInspection dco_decode_organization_cleanup_inspection(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 12)
+      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    return OrganizationCleanupInspection(
+      cutoffUnixMs: dco_decode_i_64(arr[0]),
+      inspectedUnixMs: dco_decode_i_64(arr[1]),
+      catalogRevision: dco_decode_u_64(arr[2]),
+      organizationRevision: dco_decode_u_64(arr[3]),
+      selectionDigest: dco_decode_String(arr[4]),
+      groups: dco_decode_u_64(arr[5]),
+      albumGroups: dco_decode_u_64(arr[6]),
+      favoriteGroups: dco_decode_u_64(arr[7]),
+      progressGroups: dco_decode_u_64(arr[8]),
+      duplicateChoices: dco_decode_u_64(arr[9]),
+      oldestUnassociatedUnixMs: dco_decode_opt_box_autoadd_i_64(arr[10]),
+      newestUnassociatedUnixMs: dco_decode_opt_box_autoadd_i_64(arr[11]),
+    );
+  }
+
+  @protected
+  OrganizationCleanupPhase dco_decode_organization_cleanup_phase(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return OrganizationCleanupPhase.values[raw as int];
+  }
+
+  @protected
+  OrganizationCleanupProgress dco_decode_organization_cleanup_progress(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return OrganizationCleanupProgress(
+      phase: dco_decode_organization_cleanup_phase(arr[0]),
+      examinedRecords: dco_decode_u_64(arr[1]),
+    );
+  }
+
+  @protected
+  OrganizationCleanupReceipt dco_decode_organization_cleanup_receipt(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return OrganizationCleanupReceipt(
+      operationId: dco_decode_String(arr[0]),
+      organizationRevision: dco_decode_u_64(arr[1]),
+      removedRecords: dco_decode_u_64(arr[2]),
+    );
+  }
+
+  @protected
+  OrganizationCleanupRequest dco_decode_organization_cleanup_request(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return OrganizationCleanupRequest(
+      operationId: dco_decode_String(arr[0]),
+      inspection: dco_decode_organization_cleanup_inspection(arr[1]),
+    );
+  }
+
+  @protected
   OrganizationConflictAlbum dco_decode_organization_conflict_album(
     dynamic raw,
   ) {
@@ -5861,6 +6235,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCleanupTask
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return OrganizationCleanupTaskImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   OrganizationSelectionDraft
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     SseDeserializer deserializer,
@@ -5891,6 +6277,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return OrganizationArchiveTaskImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  OrganizationCleanupTask
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return OrganizationCleanupTaskImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -5933,6 +6331,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCleanupTask
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return OrganizationCleanupTaskImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   OrganizationSelectionDraft
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     SseDeserializer deserializer,
@@ -5968,6 +6378,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   @protected
   RustStreamSink<OrganizationArchiveEvent>
   sse_decode_StreamSink_organization_archive_event_Sse(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    throw UnimplementedError('Unreachable ()');
+  }
+
+  @protected
+  RustStreamSink<OrganizationCleanupEvent>
+  sse_decode_StreamSink_organization_cleanup_event_Sse(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -6271,6 +6690,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_organization_batch_action(deserializer));
+  }
+
+  @protected
+  OrganizationCleanupInspection
+  sse_decode_box_autoadd_organization_cleanup_inspection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_organization_cleanup_inspection(deserializer));
+  }
+
+  @protected
+  OrganizationCleanupProgress
+  sse_decode_box_autoadd_organization_cleanup_progress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_organization_cleanup_progress(deserializer));
+  }
+
+  @protected
+  OrganizationCleanupReceipt
+  sse_decode_box_autoadd_organization_cleanup_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_organization_cleanup_receipt(deserializer));
+  }
+
+  @protected
+  OrganizationCleanupRequest
+  sse_decode_box_autoadd_organization_cleanup_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_organization_cleanup_request(deserializer));
   }
 
   @protected
@@ -8241,6 +8696,133 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  OrganizationCleanupEvent sse_decode_organization_cleanup_event(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var tag_ = sse_decode_i_32(deserializer);
+    switch (tag_) {
+      case 0:
+        var var_progress = sse_decode_box_autoadd_organization_cleanup_progress(
+          deserializer,
+        );
+        return OrganizationCleanupEvent_Progress(progress: var_progress);
+      case 1:
+        var var_inspection =
+            sse_decode_box_autoadd_organization_cleanup_inspection(
+              deserializer,
+            );
+        return OrganizationCleanupEvent_Inspected(inspection: var_inspection);
+      case 2:
+        var var_receipt = sse_decode_box_autoadd_organization_cleanup_receipt(
+          deserializer,
+        );
+        return OrganizationCleanupEvent_Completed(receipt: var_receipt);
+      case 3:
+        return OrganizationCleanupEvent_Cancelled();
+      case 4:
+        var var_code = sse_decode_String(deserializer);
+        var var_message = sse_decode_String(deserializer);
+        return OrganizationCleanupEvent_Failed(
+          code: var_code,
+          message: var_message,
+        );
+      default:
+        throw UnimplementedError('');
+    }
+  }
+
+  @protected
+  OrganizationCleanupInspection sse_decode_organization_cleanup_inspection(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_cutoffUnixMs = sse_decode_i_64(deserializer);
+    var var_inspectedUnixMs = sse_decode_i_64(deserializer);
+    var var_catalogRevision = sse_decode_u_64(deserializer);
+    var var_organizationRevision = sse_decode_u_64(deserializer);
+    var var_selectionDigest = sse_decode_String(deserializer);
+    var var_groups = sse_decode_u_64(deserializer);
+    var var_albumGroups = sse_decode_u_64(deserializer);
+    var var_favoriteGroups = sse_decode_u_64(deserializer);
+    var var_progressGroups = sse_decode_u_64(deserializer);
+    var var_duplicateChoices = sse_decode_u_64(deserializer);
+    var var_oldestUnassociatedUnixMs = sse_decode_opt_box_autoadd_i_64(
+      deserializer,
+    );
+    var var_newestUnassociatedUnixMs = sse_decode_opt_box_autoadd_i_64(
+      deserializer,
+    );
+    return OrganizationCleanupInspection(
+      cutoffUnixMs: var_cutoffUnixMs,
+      inspectedUnixMs: var_inspectedUnixMs,
+      catalogRevision: var_catalogRevision,
+      organizationRevision: var_organizationRevision,
+      selectionDigest: var_selectionDigest,
+      groups: var_groups,
+      albumGroups: var_albumGroups,
+      favoriteGroups: var_favoriteGroups,
+      progressGroups: var_progressGroups,
+      duplicateChoices: var_duplicateChoices,
+      oldestUnassociatedUnixMs: var_oldestUnassociatedUnixMs,
+      newestUnassociatedUnixMs: var_newestUnassociatedUnixMs,
+    );
+  }
+
+  @protected
+  OrganizationCleanupPhase sse_decode_organization_cleanup_phase(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return OrganizationCleanupPhase.values[inner];
+  }
+
+  @protected
+  OrganizationCleanupProgress sse_decode_organization_cleanup_progress(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_phase = sse_decode_organization_cleanup_phase(deserializer);
+    var var_examinedRecords = sse_decode_u_64(deserializer);
+    return OrganizationCleanupProgress(
+      phase: var_phase,
+      examinedRecords: var_examinedRecords,
+    );
+  }
+
+  @protected
+  OrganizationCleanupReceipt sse_decode_organization_cleanup_receipt(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_operationId = sse_decode_String(deserializer);
+    var var_organizationRevision = sse_decode_u_64(deserializer);
+    var var_removedRecords = sse_decode_u_64(deserializer);
+    return OrganizationCleanupReceipt(
+      operationId: var_operationId,
+      organizationRevision: var_organizationRevision,
+      removedRecords: var_removedRecords,
+    );
+  }
+
+  @protected
+  OrganizationCleanupRequest sse_decode_organization_cleanup_request(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_operationId = sse_decode_String(deserializer);
+    var var_inspection = sse_decode_organization_cleanup_inspection(
+      deserializer,
+    );
+    return OrganizationCleanupRequest(
+      operationId: var_operationId,
+      inspection: var_inspection,
+    );
+  }
+
+  @protected
   OrganizationConflictAlbum sse_decode_organization_conflict_album(
     SseDeserializer deserializer,
   ) {
@@ -8973,6 +9555,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    OrganizationCleanupTask self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as OrganizationCleanupTaskImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
+  }
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     OrganizationSelectionDraft self,
     SseSerializer serializer,
@@ -9006,6 +9601,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as OrganizationArchiveTaskImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    OrganizationCleanupTask self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as OrganizationCleanupTaskImpl).frbInternalSseEncode(move: false),
       serializer,
     );
   }
@@ -9047,6 +9655,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as OrganizationArchiveTaskImpl).frbInternalSseEncode(move: null),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationCleanupTask(
+    OrganizationCleanupTask self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as OrganizationCleanupTaskImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -9104,6 +9725,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       self.setupAndSerialize(
         codec: SseCodec(
           decodeSuccessData: sse_decode_organization_archive_event,
+          decodeErrorData: sse_decode_AnyhowException,
+        ),
+      ),
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_StreamSink_organization_cleanup_event_Sse(
+    RustStreamSink<OrganizationCleanupEvent> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(
+      self.setupAndSerialize(
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_organization_cleanup_event,
           decodeErrorData: sse_decode_AnyhowException,
         ),
       ),
@@ -9425,6 +10063,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_organization_batch_action(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_inspection(
+    OrganizationCleanupInspection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_cleanup_inspection(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_progress(
+    OrganizationCleanupProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_cleanup_progress(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_receipt(
+    OrganizationCleanupReceipt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_cleanup_receipt(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_organization_cleanup_request(
+    OrganizationCleanupRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_cleanup_request(self, serializer);
   }
 
   @protected
@@ -11049,6 +11723,103 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_organization_cleanup_event(
+    OrganizationCleanupEvent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    switch (self) {
+      case OrganizationCleanupEvent_Progress(progress: final progress):
+        sse_encode_i_32(0, serializer);
+        sse_encode_box_autoadd_organization_cleanup_progress(
+          progress,
+          serializer,
+        );
+      case OrganizationCleanupEvent_Inspected(inspection: final inspection):
+        sse_encode_i_32(1, serializer);
+        sse_encode_box_autoadd_organization_cleanup_inspection(
+          inspection,
+          serializer,
+        );
+      case OrganizationCleanupEvent_Completed(receipt: final receipt):
+        sse_encode_i_32(2, serializer);
+        sse_encode_box_autoadd_organization_cleanup_receipt(
+          receipt,
+          serializer,
+        );
+      case OrganizationCleanupEvent_Cancelled():
+        sse_encode_i_32(3, serializer);
+      case OrganizationCleanupEvent_Failed(
+        code: final code,
+        message: final message,
+      ):
+        sse_encode_i_32(4, serializer);
+        sse_encode_String(code, serializer);
+        sse_encode_String(message, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_organization_cleanup_inspection(
+    OrganizationCleanupInspection self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.cutoffUnixMs, serializer);
+    sse_encode_i_64(self.inspectedUnixMs, serializer);
+    sse_encode_u_64(self.catalogRevision, serializer);
+    sse_encode_u_64(self.organizationRevision, serializer);
+    sse_encode_String(self.selectionDigest, serializer);
+    sse_encode_u_64(self.groups, serializer);
+    sse_encode_u_64(self.albumGroups, serializer);
+    sse_encode_u_64(self.favoriteGroups, serializer);
+    sse_encode_u_64(self.progressGroups, serializer);
+    sse_encode_u_64(self.duplicateChoices, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.oldestUnassociatedUnixMs, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.newestUnassociatedUnixMs, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_cleanup_phase(
+    OrganizationCleanupPhase self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_cleanup_progress(
+    OrganizationCleanupProgress self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_organization_cleanup_phase(self.phase, serializer);
+    sse_encode_u_64(self.examinedRecords, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_cleanup_receipt(
+    OrganizationCleanupReceipt self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.operationId, serializer);
+    sse_encode_u_64(self.organizationRevision, serializer);
+    sse_encode_u_64(self.removedRecords, serializer);
+  }
+
+  @protected
+  void sse_encode_organization_cleanup_request(
+    OrganizationCleanupRequest self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.operationId, serializer);
+    sse_encode_organization_cleanup_inspection(self.inspection, serializer);
+  }
+
+  @protected
   void sse_encode_organization_conflict_album(
     OrganizationConflictAlbum self,
     SseSerializer serializer,
@@ -11667,6 +12438,38 @@ class OrganizationArchiveTaskImpl extends RustOpaque
 
   void cancel() => RustLib.instance.api
       .crateApiOrganizationArchiveOrganizationArchiveTaskCancel(that: this);
+}
+
+@sealed
+class OrganizationCleanupTaskImpl extends RustOpaque
+    implements OrganizationCleanupTask {
+  // Not to be used by end users
+  OrganizationCleanupTaskImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  OrganizationCleanupTaskImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_increment_strong_count_OrganizationCleanupTask,
+    rustArcDecrementStrongCount: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_OrganizationCleanupTask,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_OrganizationCleanupTaskPtr,
+  );
+
+  void cancel() => RustLib.instance.api
+      .crateApiOrganizationCleanupOrganizationCleanupTaskCancel(that: this);
 }
 
 @sealed

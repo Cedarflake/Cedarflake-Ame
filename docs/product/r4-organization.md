@@ -175,6 +175,14 @@ selected cleanup. Revalidate eligibility when applying it so records that have b
 are preserved. Cleanup is separate from thumbnail cleanup, does not delete original media, and
 requires an explicit user action rather than automatic age-based expiration.
 
+The settings control defaults to records unassociated for more than 90 days, with 30-day and all-record
+choices. These are manual inspection filters, not retention deadlines. Confirmation shows the oldest
+and newest unassociated duration, canonical group counts and affected album, Favorite, progress and
+unresolved duplicate-choice counts. A group is counted once even when several provenance records
+contribute to it. Cleanup keeps album definitions and original images. It has no ordinary undo;
+applying an existing backup remains an explicit recovery option. Cancelled or failed writes retain
+all selected records. Changed eligibility requires another inspection and confirmation.
+
 Schema upgrades preserve user data through forward migrations and a recoverable pre-upgrade
 backup. R4 provides versioned export and restoration of durable organization data and the identity
 evidence needed to reconnect it, including existing durable duplicate choices. Exports do not

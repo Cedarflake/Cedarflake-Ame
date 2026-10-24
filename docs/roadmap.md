@@ -98,13 +98,16 @@ application now connects the application and typed bridge, preserving current de
 history, queue order, continuation and unmatched evidence. Focused restore, cancellation, migration
 and queue-cost checks pass. Settings export, inspection and guarded restoration are connected,
 with focused controller/widget checks; native picker and restoration interaction remain pending
-while window operation is suspended. Unresolved-record cleanup remains to be implemented.
+while window operation is suspended. Manual unresolved-record inspection, guarded cleanup and
+settings confirmation are connected; focused boundary checks pass, and their native
+interaction remains pending with archive recovery.
 The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
 read archive tables before their migration. Schema-aware local versus imported authority now passes
 focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
-repaired upgrade paths but exposes one stale expected-table inventory; its focused correction
-passes, with verification of the follow-up head pending. The earlier ordinary-journal failure did not recur in this checkpoint, although its
-original native-read cause remains unresolved. Retained-library
+repaired upgrade paths and expected-table inventory. The later archive checkpoint exposes two
+static flow-control violations and a source-management integration setup error; both are corrected
+with follow-up hosted verification pending. The ordinary-journal import failure has recurred and
+its native-read cause remains unresolved. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
@@ -270,11 +273,11 @@ bridge. Native-version reassociation is connected to the existing publication tr
 cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
 are implemented through the application and typed bridge. Restored queue order and continuation,
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
-native settings verification when window operation resumes and explicit unresolved-record cleanup.
-Preserve the expected-table inventory
-correction's pending hosted verification and the earlier native-read observation in the evidence record.
-The requested primary Albums destination is being integrated under R4-05: Library, Albums and
-Duplicates retain separate navigation roles with one shared gallery. Its focused checks and
+native settings verification when window operation resumes. Manual unresolved-record cleanup passes
+its focused boundary checks. Preserve the remaining journal-import failure and pending follow-up hosted verification.
+The requested primary Albums destination is connected under R4-05: Library, Albums and
+Duplicates retain separate navigation roles with one shared gallery, and Favorites is available
+from both browsing sidebars. Its focused checks and
 remaining desktop verification belong to the R4 evidence record.
 R4-07 retains the complete integrated flow and retained-library
 resource measurements. The
@@ -296,8 +299,8 @@ safety before exposing album writes. Migration backup belongs to R4-01; the late
 do not postpone protection of existing user data. Requirements and accepted control placement remain
 with their product owners rather than being re-decided during implementation.
 The [R4 evidence record](acceptance/r4-organization.md) covers internal boundaries and the connected
-desktop workflows. Recovery settings retain their native picker/restore verification; cleanup and
-integrated retained-library verification remain outstanding.
+desktop workflows. Recovery and cleanup settings retain their native interaction verification;
+integrated retained-library verification remains outstanding.
 
 ## Frozen R2c ownership
 

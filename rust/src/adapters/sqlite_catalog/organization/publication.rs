@@ -80,7 +80,7 @@ pub(in crate::adapters::sqlite_catalog) fn root(
             records::publish_generation(connection, generation)?;
         }
     }
-    Ok(())
+    super::association_lifetime::refresh_root(connection, root_id)
 }
 
 fn has_records(connection: &Connection) -> Result<bool, ScanError> {
