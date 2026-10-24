@@ -5,6 +5,8 @@ use crate::ports::exact_duplicates::ExactDuplicateRepository;
 
 use super::*;
 
+mod organization;
+
 #[test]
 fn incremental_content_changes_rehash_only_changed_sources_and_reject_late_evidence() {
     let (_directory, mut catalog) = fixture();

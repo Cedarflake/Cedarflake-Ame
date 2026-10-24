@@ -34,8 +34,9 @@ pub(super) fn save(
         albums::require_active(connection, album_id)?;
     }
     let mut changed_groups = 0;
+    let mut reconciled = false;
     for group in &prepared.groups {
-        records::materialize(connection, &group.key)?;
+        reconciled |= records::materialize(connection, &group.key)?;
         let conflict: bool = connection
             .query_row(
                 &format!(
@@ -60,8 +61,10 @@ pub(super) fn save(
         let resolving = conflict && matches!(action, OrganizationAction::AssignAlbum { .. });
         let changed = connection.execute(&format!(
             "INSERT INTO organization_operation_changes(operation_id, record_id, field, previous_album_id, previous_disposition, applied_revision)
-             SELECT ?1, record_id, 'organization', album_id, disposition, ?2 FROM organization_records
-             WHERE record_id IN ({}) AND (album_id IS NOT ?3 OR disposition <> ?4 OR ?5)", records::CURRENT_RECORDS
+             SELECT ?1, member.record_id, 'organization', canonical.album_id, canonical.disposition, ?2
+             FROM organization_record_groups AS member
+             JOIN organization_records AS canonical ON canonical.record_id = member.group_id
+             WHERE member.record_id IN ({}) AND (canonical.album_id IS NOT ?3 OR canonical.disposition <> ?4 OR ?5)", records::CURRENT_RECORDS
         ), params![operation_id, revision, album_id, disposition.stored(), resolving]).map_err(database_error)?;
         if changed == 0 {
             continue;
@@ -87,5 +90,11 @@ pub(super) fn save(
         ), params![album_id, disposition.stored(), revision, unix_time_ms()]).map_err(database_error)?;
         changed_groups += 1;
     }
-    operations::finish(connection, operation_id, revision, changed_groups, false)
+    operations::finish(
+        connection,
+        operation_id,
+        revision,
+        changed_groups,
+        reconciled,
+    )
 }

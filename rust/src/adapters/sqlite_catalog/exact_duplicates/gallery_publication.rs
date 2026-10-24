@@ -57,6 +57,7 @@ pub(super) fn publish(
             params_from_iter(&parameters),
         )
         .map_err(database_error)?;
+    super::super::organization::publication::batch(transaction, run_id, source_generations)?;
     transaction
         .execute(
             &format!(

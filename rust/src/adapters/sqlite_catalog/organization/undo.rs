@@ -76,6 +76,12 @@ fn validate_fields(connection: &Connection, original_id: &str) -> Result<(), Sca
          WHERE target.operation_id = ?2 AND (record.record_id IS NULL OR change.record_id IS NULL
            OR (change.field = 'favorite' AND record.favorite_revision <> change.applied_revision)
            OR (change.field = 'organization' AND record.organization_revision <> change.applied_revision)
+           OR EXISTS(SELECT 1 FROM organization_record_groups AS affected
+             JOIN organization_record_groups AS member ON member.group_id = affected.group_id
+             WHERE affected.record_id = target.record_id AND NOT EXISTS(
+               SELECT 1 FROM organization_operation_targets AS original
+               WHERE original.operation_id = target.operation_id AND original.field = target.field
+                 AND original.record_id = member.record_id))
            OR NOT EXISTS(SELECT 1 FROM {CURRENT_LOCATIONS}
              JOIN organization_bindings AS binding ON binding.asset_id = l.asset_id AND binding.source_generation = l.source_generation
              JOIN organization_record_groups AS evidence ON evidence.record_id = binding.record_id

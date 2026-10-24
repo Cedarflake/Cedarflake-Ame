@@ -14,6 +14,7 @@ pub(in super::super) fn publish_completed_evidence(
     // Fingerprints are complete immutable records, including those retained by a
     // cancelled process. Admit them together so a gallery cursor never changes
     // membership while retaining its revision.
+    super::super::organization::publication::pending_evidence(transaction)?;
     let changed = transaction
         .execute(
             "INSERT INTO gallery_content_fingerprints(source_generation, scheme)

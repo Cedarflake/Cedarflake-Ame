@@ -56,6 +56,10 @@ pub(in super::super) fn apply(
     if let Some(retained) = retained {
         retained.bind(transaction, persisted.source_generation)?;
     }
+    super::super::organization::records::publish_generation(
+        transaction,
+        persisted.source_generation,
+    )?;
     if let Some(running_scan_id) = running_scan_id {
         let mut mirrored = location.clone();
         mirrored.source_generation =

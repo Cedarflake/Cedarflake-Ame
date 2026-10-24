@@ -8,13 +8,16 @@ use crate::ports::organization::OrganizationRepository;
 
 use super::{SqliteCatalog, database_error};
 
+mod album_membership;
 mod albums;
 mod authority;
 mod changes;
 mod favorites;
 pub(super) mod lifecycle;
 mod operations;
-mod records;
+pub(super) mod publication;
+pub(super) mod reconciliation;
+pub(super) mod records;
 mod selection;
 mod undo;
 

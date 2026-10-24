@@ -26,7 +26,8 @@ pub(super) fn change(
 pub(super) fn decision(catalog: &SqliteCatalog, id: &str) -> (Option<String>, String, bool) {
     catalog.connection.query_row(
         "SELECT record.album_id, record.disposition, record.favorite FROM organization_records AS record
-         JOIN organization_bindings AS binding ON binding.record_id = record.record_id
+         JOIN organization_record_groups AS member ON member.group_id = record.record_id
+         JOIN organization_bindings AS binding ON binding.record_id = member.record_id
          JOIN asset_locations AS location ON location.asset_id = binding.asset_id
            AND location.source_generation = binding.source_generation WHERE location.location_id = ?1",
         [id], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?))

@@ -11,6 +11,8 @@ use crate::ports::{CatalogRepository, IncrementalCatalogRepository};
 use super::*;
 
 mod lifecycle;
+mod publication;
+mod reconciliation;
 mod transitions;
 mod undo;
 

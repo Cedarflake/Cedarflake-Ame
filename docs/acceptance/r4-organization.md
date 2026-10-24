@@ -171,3 +171,51 @@ The lifecycle owner has 92 production lines and no inline tests; its dedicated t
 The 174-line root-removal owner and 203-line parent-consolidation owner gain only composition calls.
 The 491-line application scan test owner registers a 121-line dedicated organization test module.
 This change adds no schema or public bridge contract. Hosted checks still need to cover its commit.
+
+The [hosted run for `6a276ba`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40048106213)
+subsequently passed all applicable jobs, including the repaired historical fixtures and module
+contracts. This covers the foundation, album transitions, undo and source lifecycle at that commit.
+
+## Group reconciliation and content-version association - 2026-10-24
+
+Schema 49 normalizes existing organization bindings once and adds generation and root/generation
+indexes for bounded publication reads. Compatible evidence merges lineage mappings into one
+canonical state. Agreeing albums converge; differing albums retain their decision provenance in a
+deferred conflict with no confirmed membership. Favorite intent remains independent. Explicit
+resolution and guarded undo preserve one whole-group state and the prior conflict choices.
+
+Batch and terminal evidence publication commit these changes with the existing catalog revision.
+Catalog delta and complete scan publication reassociate reused current evidence in their original
+transactions. The first handled member binds already verified copies even when those copies were
+identified earlier. Subsequent copies use point lookups instead of rewriting prior lineages.
+Changed content cannot inherit an obsolete binding; a match to another handled group adopts its
+state. Retiring an album involved in a conflict does not silently resolve that conflict.
+
+Focused serial diagnostics cover 57 passing cases: 41 shared organization/schema-47 cases, four
+schema-49 migration and index cases, four schema-48 cases, one actual catalog-delta rename/content
+change case, two parent-import cases, three recovery compatibility cases, the schema-33 retained-row
+upgrade and the terminal-spool regression. Relevant shared tests were repeated after the final
+query-order and first-member association changes. The older schema-48 unit fixtures now validate
+their explicit intermediate version before testing the remaining upgrade chain.
+
+The 50,000-lineage fixture initially used at least 200,100 SQLite VM instructions to publish one
+new copy. The same test now passes its fewer-than-20,000-instruction bound after bounded temporary
+membership sets became the outer side of history lookups. This diagnoses database work, not gallery
+latency or retained-library throughput. The reverse-identification-order case also removes the
+original source and verifies that the remaining copy retains its album.
+
+All new cases use derived fixture catalogs; parent-import fixtures retain their byte-preservation
+assertions. No retained library, original catalog or cloud placeholder was accessed. New migration
+failures roll back the version, indexes and decisions together. No dependency or bridge signature
+changed. The latest commit still requires hosted checks; real R4 controls, query-scale measurements,
+continuation and portable recovery remain with the following slices.
+
+The binding, reconciliation, merge-decision, publication and album-membership owners have 210, 137,
+104, 105 and 50 production lines, respectively, with no inline tests. Dedicated reconciliation and
+publication tests have 319 and 119 lines; the catalog-delta organization test has 92. The schema-49
+owner has 93 production lines, a 14-line test helper and a two-line test declaration, with 147
+dedicated test lines. Album, transition, favorite and undo owners contain 215, 100, 59 and 149 lines.
+The 245-line scan-publication owner, 113-line delta-location owner and 78/127-line evidence owners
+gain only composition calls. The 3,503-line catalog facade changes its schema version; the migration
+facade has 3,259 lines before its historical helpers, 844 helper lines and 2,290 inline-test lines,
+and gains only module registration and migration dispatch.

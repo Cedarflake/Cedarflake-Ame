@@ -57,6 +57,34 @@ ownership to the admitted parent before child retirement; cancellation or failed
 back the transfer with the catalog. Album definitions remain available even when their last group
 is removed.
 
+### Group evolution and publication
+
+The canonical record owns the current album, progress and favorite state. Alias records retain
+stable provenance; readers resolve their direct mapping before interpreting membership. Explicit
+whole-group actions record the canonical previous value for every affected lineage. Automatic
+merges update the canonical state without manufacturing user operations or rewriting all historical
+aliases for each newly identified copy.
+
+One compatible album choice survives a merge. Different album choices, or an existing unresolved
+conflict, produce a deferred group with no confirmed album and retain the competing choices and
+their decision revisions. Favorite intent follows its latest field revision independently; equal
+revisions prefer a positive favorite. With no album or conflict, the latest organization decision
+survives. Retiring a conflicting album retains its provenance and does not resolve the conflict.
+Removing a confirmed album ignores the complete current group.
+
+Reconcile at the existing bounded and terminal fingerprint-publication transactions, and when
+catalog publication reuses current evidence. Individual fingerprint writes do not publish group
+changes. The first handled member of newly confirmed content binds all already verified copies,
+including copies identified before that member; later copies use indexed association lookups.
+Changed generations have no inherited membership until compatible current evidence establishes a
+binding. An independent new content version remains pending, while a match to another known group
+adopts that group's decision. Identity-proven renames retain their compatible binding.
+
+Schema 49 normalizes previously stored content bindings and already available fingerprints once,
+without original-media reads. Generation and root/generation indexes support publication lookups
+and bounded keyset windows. Temporary member/group sets drive joins into durable history; their
+lack of persistent planner statistics must not turn one-copy publication into a history scan.
+
 ### Command admission and transactions
 
 Application commands validate typed selection identities and bounded inputs before entering the
@@ -83,6 +111,10 @@ target receipt even when explicit record removal cascades its field history; a m
 rejects the entire undo instead of restoring only surviving groups. Undo cannot restore an album
 that another operation retired, discard later members when undoing album creation, or overwrite a
 later name or field revision. Failure rolls back the undo receipt and every related write together.
+If a later merge introduces a separately handled lineage outside the original operation's targets,
+reject that undo as a whole. Newly identified unhandled copies reuse the existing lineage and can
+follow a still-valid whole-group undo. Resolving and then undoing a conflict restores one deferred
+group and its competing choices, never several confirmed memberships.
 
 ### Upgrade protection
 

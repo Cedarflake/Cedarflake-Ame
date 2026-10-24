@@ -33,7 +33,7 @@ fn prior_catalog() -> Connection {
 fn upgrade_preserves_decisions_and_establishes_complete_group_and_undo_authority() {
     let mut connection = prior_catalog();
     migrate(&mut connection).unwrap();
-    current_schema::validate_current_schema_contract(&connection).unwrap();
+    current_schema::validate_schema_version(&connection, 48).unwrap();
     let records: Vec<PreservedRecord> = connection.prepare(
         "SELECT record.record_id, member.group_id, record.album_id, record.disposition,
            record.favorite, record.organization_revision, record.favorite_revision
@@ -153,7 +153,7 @@ fn removed_records_leave_a_missing_target_receipt_for_atomic_undo_rejection() {
             [],
         )
         .unwrap();
-    current_schema::validate_current_schema_contract(&connection).unwrap();
+    current_schema::validate_schema_version(&connection, 48).unwrap();
     assert_eq!(
         connection
             .query_row(
