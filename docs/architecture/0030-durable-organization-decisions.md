@@ -220,6 +220,22 @@ remain authoritative. The sketch supplies layout and flow only. Final R4 require
 obsolete prototype controls, including multiple-album choices and a missing ignored queue. No
 mobile adaptation or independent design system is introduced.
 
+Read current organization decisions through a separate bounded, read-only inspection contract.
+Opening a viewer does not prepare a write, hash group membership or create a lineage record. Pending
+group publication returns an explicit unavailable decision instead of a default unhandled value.
+Write preparation remains at the user action boundary. Unknown write outcomes retain their operation
+identifier and prepared authority for idempotent retry; confirmed stale authority requires a new
+preparation and operation identifier. Refresh failure after commit retries the read independently.
+
+Presentation keeps one active organization write and retires pending preparation on disposal.
+The existing viewer notice renders results. A bounded organization outcome owner retains only the
+latest successful receipt and rejects superseded undo actions; routine successes do not enter
+notification history or unread state. The shared notification owner retains actionable failures.
+Transient display lifetime is shared with ordinary notifications. Query-local viewer positions
+carry their catalog/query authority and are revalidated through bounded anchor reads after group or
+collection changes, preserving the currently displayed source. A fallback ordinal cannot prove that
+an image still belongs to a collection.
+
 ## Alternatives and consequences
 
 Content-keyed decisions alone simplify queries but cannot retain provisional intent and conflict

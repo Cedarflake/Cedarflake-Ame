@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-04 backend implemented, connected desktop workflows next |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-05 desktop workflows in progress |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -63,10 +63,15 @@ pass. Durable continuation now retains logical work across reopen, group changes
 edits, with atomic progress saves and stale-session rejection. Focused continuation, migration and
 source-lifecycle checks pass. The admission checkpoint's unfinished jobs were superseded by the
 queue-query run. That run exposes a missing exact-module registration in the source-read guard;
-the registration is corrected and its focused positive/negative checks pass. The current product
-checkpoint still requires hosted verification. Continue with connected desktop workflows while
-retaining the real-interaction and retained-library performance obligations.
-No R4 controls are exposed yet.
+the registration is corrected and its focused positive/negative checks pass. The continuation
+checkpoint's hosted run passed the other applicable jobs but exposed a historical migration fixture
+that omitted new empty organization tables and its initial sequence. That fixture is corrected with
+its focused preservation and rollback checks. The current product checkpoint still requires hosted
+verification. R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
+The initial controlled desktop path passes; the final presentation, undo and restart recheck is
+deferred while window operation is paused. Album management, selection actions, settings and
+organization mode remain to be connected. Retain the real-interaction and retained-library
+performance obligations.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -215,9 +220,11 @@ group reconciliation and R4-03's bounded collection queries are implemented. The
 passes the unchanged local and hosted 10,000-image workloads. R4-04's transactional admission ordering
 passes focused publication, source-lifecycle and migration checks. Its bounded queue queries and
 coherent progress counts and durable continuation pass focused regressions, including reopen,
-ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle. R4-05 is the next
-implementation slice; keep the product checkpoint's hosted verification and retained-library query
-measurements outstanding. R4-06 and R4-07 remain pending. The
+ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle. R4-05 is active with
+the viewer Favorite path and collection entry connected. Its final desktop recheck is deferred while
+window operation is paused; album and organization-mode workflows remain pending. Keep the product
+checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
+R4-07 remain pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
 this roadmap owns their order and status. No R4 user workflow has passed acceptance yet.
 

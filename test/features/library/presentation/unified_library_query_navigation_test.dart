@@ -17,6 +17,51 @@ import "support/library_screen_fixture.dart";
 import "support/library_screen_menu_fixture.dart";
 
 void main() {
+  testWidgets("favorites clears source scope and library restores all images", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final initialState = populatedScreenState(totalItems: 1);
+    final catalog = RecordingQueryCatalog(
+      LibrarySnapshot(
+        catalogPath: initialState.catalogPath ?? "",
+        revision: initialState.catalogRevision ?? BigInt.zero,
+        queryId: "collection-query",
+        roots: initialState.roots,
+        assets: initialState.assets,
+      ),
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(initialState),
+          libraryCatalogProvider.overrideWithValue(catalog),
+        ],
+        child: const AmeApp(),
+      ),
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey("source-title-root-1")));
+    await tester.pumpAndSettle();
+    expect(catalog.loadQueries.last.rootId, "root-1");
+    await tester.tap(find.byKey(const Key("library-sidebar-favorites")));
+    await tester.pumpAndSettle();
+    expect(
+      catalog.loadQueries.last.collection,
+      isA<LibraryFavoritesCollection>(),
+    );
+    expect(catalog.loadQueries.last.rootId, isNull);
+    expect(catalog.loadQueries.last.folderRelativePath, isNull);
+    await tester.tap(find.byKey(const Key("library-sidebar-library")));
+    await tester.pumpAndSettle();
+    expect(catalog.loadQueries.last.collection, isA<LibraryAllCollection>());
+    expect(catalog.loadQueries.last.rootId, isNull);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets("connects source search and Material sort to one gallery query", (
     tester,
   ) async {

@@ -10,6 +10,99 @@ import "package:flutter_test/flutter_test.dart";
 import "../support/retained_scan_fixture.dart";
 
 void main() {
+  for (final stillInCollection in [true, false]) {
+    test(
+      "revalidates retained position after grouping or collection removal: $stillInCollection",
+      () async {
+        final fixture = _ViewerFixture();
+        final selected = fixture.assets[1];
+        fixture.viewer.open(selected);
+        fixture.state = fixture.state.copyWith(
+          assets: [fixture.assets[0]],
+          catalogRevision: BigInt.two,
+        );
+        expect(fixture.viewer.navigation(1).position, isNull);
+        fixture.catalog.neighbor = Completer<LibraryQuerySnapshot>();
+        final pending = fixture.viewer.reconcile();
+        fixture.catalog.lookup.complete(selected);
+        await Future<void>.delayed(Duration.zero);
+        fixture.catalog.neighbor!.complete(
+          _positionSnapshot(fixture, resolved: stillInCollection),
+        );
+        await pending;
+        expect(fixture.viewer.retainedAsset, same(selected));
+        expect(fixture.viewer.navigation(1), (
+          position: stillInCollection ? 1 : null,
+          canPrevious: false,
+          canNext: false,
+        ));
+        expect(fixture.catalog.neighborLimit, 1);
+        expect(fixture.viewer.sourceNotice, isNull);
+      },
+    );
+  }
+
+  test(
+    "late position revalidation cannot replace a newer opened image",
+    () async {
+      final fixture = _ViewerFixture();
+      final selected = fixture.assets[1];
+      fixture.viewer.open(selected);
+      fixture.state = fixture.state.copyWith(
+        assets: [fixture.assets[0]],
+        catalogRevision: BigInt.two,
+      );
+      fixture.catalog.neighbor = Completer<LibraryQuerySnapshot>();
+      final pending = fixture.viewer.reconcile();
+      fixture.catalog.lookup.complete(selected);
+      await Future<void>.delayed(Duration.zero);
+      fixture.viewer.open(fixture.assets[0]);
+      fixture.catalog.neighbor!.complete(
+        _positionSnapshot(fixture, resolved: false),
+      );
+      await pending;
+      expect(fixture.viewer.locationId, fixture.assets[0].locationId);
+      expect(fixture.viewer.navigation(1).position, 1);
+    },
+  );
+
+  test(
+    "retained duplicate member navigates from its current group representative",
+    () async {
+      final fixture = _ViewerFixture();
+      fixture.viewer.open(fixture.assets[1]);
+      fixture.state = fixture.state.copyWith(assets: const []);
+      fixture.catalog.neighbor = Completer<LibraryQuerySnapshot>();
+      final pending = fixture.viewer.navigate(LibraryViewerDirection.next);
+      fixture.catalog.neighbor!.complete(
+        LibraryQuerySnapshot(
+          snapshot: LibrarySnapshot(
+            catalogPath: "catalog.sqlite3",
+            revision: BigInt.one,
+            queryId: "viewer-test",
+            roots: const [],
+            assets: [fixture.assets[0], fixture.assets[2]],
+            queryAnchorResolution: LibraryQueryAnchorResolution(
+              requestedLocationId: fixture.assets[1].locationId,
+              windowStartItemOffset: 0,
+              locationId: fixture.assets[0].locationId,
+              ordinal: 0,
+            ),
+          ),
+          timeline: LibraryTimeline(
+            revision: BigInt.one,
+            queryId: "viewer-test",
+            totalItems: 2,
+            buckets: const [],
+          ),
+        ),
+      );
+      expect(await pending, isTrue);
+      expect(fixture.viewer.locationId, fixture.assets[2].locationId);
+      expect(fixture.viewer.ordinal, 1);
+    },
+  );
+
   for (final relocated in [false, true]) {
     for (final direction in LibraryViewerDirection.values) {
       test(
@@ -79,8 +172,8 @@ void main() {
         final pending = viewer.navigate(LibraryViewerDirection.next);
         expect(fixture.catalog.neighborLimit, 64);
         expect(
-          fixture.catalog.neighborAnchor?.assetId,
-          fixture.assets[1].assetId,
+          fixture.catalog.neighborAnchor?.requestedLocationId,
+          fixture.assets[1].locationId,
         );
         if (closeBeforeResult) {
           viewer.close();
@@ -352,6 +445,31 @@ void main() {
     );
   }
 }
+
+LibraryQuerySnapshot _positionSnapshot(
+  _ViewerFixture fixture, {
+  required bool resolved,
+}) => LibraryQuerySnapshot(
+  snapshot: LibrarySnapshot(
+    catalogPath: "catalog.sqlite3",
+    revision: BigInt.two,
+    queryId: "viewer-test",
+    roots: const [],
+    assets: [fixture.assets[0]],
+    queryAnchorResolution: LibraryQueryAnchorResolution(
+      requestedLocationId: fixture.assets[1].locationId,
+      windowStartItemOffset: 0,
+      locationId: resolved ? fixture.assets[0].locationId : null,
+      ordinal: resolved ? 0 : null,
+    ),
+  ),
+  timeline: LibraryTimeline(
+    revision: BigInt.two,
+    queryId: "viewer-test",
+    totalItems: 1,
+    buckets: const [],
+  ),
+);
 
 LibraryAsset _alias(
   LibraryAsset asset,

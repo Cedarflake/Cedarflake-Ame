@@ -16,6 +16,7 @@ import "../application/library_catalog.dart";
 import "../application/library_controller.dart";
 import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
+import "../application/library_organization_actions.dart";
 import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
 import "../application/library_update_controller.dart";
@@ -24,6 +25,7 @@ import "../application/library_workbench_controller.dart";
 import "../domain/gallery_layout_manifest.dart";
 import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
+import "../domain/library_organization.dart";
 import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
@@ -39,6 +41,9 @@ import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
 import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
+import "widgets/library_collection_navigation.dart";
+import "widgets/library_favorite_button.dart";
+import "widgets/library_organization_feedback.dart";
 import "widgets/library_gallery_activity.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_gallery_filter.dart";
@@ -233,6 +238,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _handleNotificationAction(AmeNotificationEntry notification) {
+    if (ref
+        .read(libraryOrganizationActionsProvider.notifier)
+        .handleNotification(notification)) {
+      return;
+    }
     switch (_synchronizationNotifications.admitAction(notification)) {
       case LibrarySynchronizationRefreshRetry():
         _synchronizationRefresh.retry();
@@ -453,6 +463,19 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           );
                           return LibraryImageViewer(
                             asset: viewerAsset,
+                            organizationActions: LibraryFavoriteButton(
+                              target: LibraryOrganizationTarget.fromAsset(
+                                viewerAsset,
+                              ),
+                            ),
+                            operationNotice: switch (ref.watch(
+                              libraryOrganizationNoticeProvider,
+                            )) {
+                              final notice? => LibraryOrganizationFeedback(
+                                notification: notice,
+                              ),
+                              null => null,
+                            },
                             sourceNotice: _viewer.sourceNotice,
                             onReloadSource: _viewer.reloadSource,
                             filmstrip: LibraryViewerFilmstrip(
@@ -596,6 +619,23 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         hasSynchronizationFailure:
             _synchronizationSnapshot.lastErrorCode != null,
         selectedRootId: state.query.rootId,
+        collection: state.query.collection,
+        collections: LibraryCollectionNavigation(
+          collection: state.query.collection,
+          isCompact: false,
+          onFavorites: !LibraryBrowseAdmission(state).canBrowse
+              ? null
+              : () => unawaited(
+                  _applyQuery(
+                    state.query.copyWith(
+                      collection: const LibraryGalleryCollection.favorites(),
+                      rootId: null,
+                      folderRelativePath: null,
+                    ),
+                    preserveGalleryPosition: false,
+                  ),
+                ),
+        ),
         selectedFolderRelativePath: state.query.folderRelativePath,
         transientSource: LibraryPendingSource.fromState(state),
         folderTree: folderTree,
@@ -1260,7 +1300,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         .select(LibraryWorkspace.gallery);
     unawaited(
       _applyQuery(
-        state.query.copyWith(rootId: null, folderRelativePath: null),
+        state.query.copyWith(
+          collection: const LibraryGalleryCollection.library(),
+          rootId: null,
+          folderRelativePath: null,
+        ),
         preserveGalleryPosition: false,
       ),
     );
@@ -1527,6 +1571,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     }
     final rootId = state.query.rootId;
     if (rootId == null) {
+      if (state.query.collection is LibraryFavoritesCollection) return "收藏夹";
       return LibraryStrings.library;
     }
     for (final root in state.roots) {

@@ -1,5 +1,5 @@
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationInspection,
     OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
     normalize_album_name, validate_identifier, validate_selections,
 };
@@ -9,6 +9,13 @@ use crate::ports::organization::OrganizationRepository;
 pub(super) fn open_catalog() -> Result<crate::adapters::SqliteCatalog, ScanError> {
     let storage = super::storage_paths()?;
     super::catalog_session::open_catalog(&storage.catalog_path, LibraryChangeLane::Live)
+}
+
+pub(crate) fn inspect_selection(
+    selections: Vec<OrganizationSelection>,
+) -> Result<OrganizationInspection, ScanError> {
+    validate_selections(&selections)?;
+    open_catalog()?.inspect_organization_selection(&selections)
 }
 
 pub(crate) fn undo(

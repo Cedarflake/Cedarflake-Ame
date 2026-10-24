@@ -169,6 +169,14 @@ class NoGalleryResults extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSearch = query.searchText.isNotEmpty;
+    if (!isSearch && query.collection is LibraryFavoritesCollection) {
+      return const LibraryGalleryMessage(
+        key: Key("library-no-results"),
+        icon: Symbols.favorite_rounded,
+        title: "收藏夹里还没有图片",
+        detail: "打开图片后，可以将它加入收藏夹。",
+      );
+    }
     return LibraryGalleryMessage(
       key: const Key("library-no-results"),
       icon: isSearch ? Symbols.image_search_rounded : Symbols.photo_rounded,

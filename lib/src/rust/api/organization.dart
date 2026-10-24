@@ -8,6 +8,12 @@ import '../domain/organization.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+Future<OrganizationInspection> inspectOrganizationSelection({
+  required List<OrganizationSelection> selections,
+}) => RustLib.instance.api.crateApiOrganizationInspectOrganizationSelection(
+  selections: selections,
+);
+
 Future<OrganizationWriteReceipt> undoOrganizationOperation({
   required String operationId,
   required String originalId,

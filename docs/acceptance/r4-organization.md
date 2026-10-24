@@ -459,3 +459,68 @@ facade gains registration/dispatch calls and retains its historical helpers and 
 test section. The source-read guard change adds 12 exact-contract lines inside the existing
 3,356-line inline test module; its 2,629-line production/support section is unchanged. The dedicated
 topology test owner has 436 lines. Generated bridge output is excluded from handwritten counts.
+
+## Viewer Favorites and shared feedback - 2026-10-24
+
+The viewer reads the current whole-group Favorite state through a bounded inspection API. Inspection
+does not prepare a command, materialize records or read original media. Four focused Rust tests cover
+read-only inspection, repeated-member normalization, cross-root decisions after reopen, pending
+publication, conflict state, independent changed content and invalid/stale input. One conflict fixture
+initially republished an already written fingerprint; publishing its retained generation batch fixes
+the fixture while preserving its conflict assertions. Generated Rust/Dart content hashes agree at
+`-389473781`, and the matching Rust Release library builds successfully.
+
+The Favorite action retains the committed state while saving, admits one write at a time and keeps
+the original operation identity after an unknown receipt. Confirmed stale selections are prepared
+again. A failed gallery refresh does not replay a successful write. Undo uses the original receipt
+and current revision, with separate handling for decisions that can no longer be undone. The
+collection entry uses the existing sidebar query path, and current viewer content survives removal
+from Favorites.
+
+Results reuse `LibraryViewerNotice` at the top of the image viewport. Source notices and original-image
+failures retain priority; no additional bottom viewer surface remains. The notification timer is
+extracted into `AmeNotificationLifetime` without changing its five-second or persistent behavior.
+Internal error details are excluded from the product notice; diagnostic output retains the error code.
+The notice has no added close button. A bounded outcome owner holds the latest successful receipt
+without adding notification history or unread state; old undo callbacks and dismissals cannot affect
+a newer outcome. Save failures retain the existing actionable notification path.
+
+Sixty-two focused Flutter checks cover seven operation lifecycle cases, three Favorite button cases,
+five collection/query-navigation cases, seven existing notification cases, two viewer-result cases,
+eight source-image cases, 25 viewer-session cases and five viewer-navigation lifecycle widget cases.
+Coverage includes lost receipts, stale preparation, refresh-only retry, undo, disposal, late image
+responses, top placement, automatic dismissal, source-notice priority and continued browsing after
+query changes. The initial collection fixture used an obsolete folder-field name; it now asserts the
+actual `folderRelativePath` contract. Scoped static analysis and formatting pass after correcting the
+new code's flow-control and nullable-element style findings.
+
+The added controls compose Material `IconButton` and `ListTile`, existing `AmeTooltip`, sidebar spacing
+and viewer notice tokens. Their toggle, focus and selected-state APIs were checked in the installed
+Flutter 3.44.9 source and the official [IconButton](https://api.flutter.dev/flutter/material/IconButton-class.html)
+and [ListTile](https://api.flutter.dev/flutter/material/ListTile-class.html) references. No framework,
+dependency, source-write capability or schema migration is added by this slice.
+
+The inspection owner has 148 production lines and 120 dedicated test lines. The Dart service, action
+lifecycle, request and transient-outcome owners have 151, 207, 80 and 42 lines. The existing viewer session and bounded
+navigation reader have 354 and 117 lines, with 594 dedicated session-test lines. The notification
+surface and shared lifetime have 273 and 60 production lines. These production owners have no inline
+tests. The 1,638-line screen and 446-line navigation widget receive composition only; storage and
+command policy stay in their dedicated owners. Generated bridge output is excluded from these counts.
+
+The isolated Windows client imported the existing 700-file fixture corpus and converged to six exact
+groups. A Favorite saved during group publication rejected stale authority, then succeeded through
+retry. The Favorites scope showed one group representing 210 physical images. Unfavorite removed the
+group from that scope while retaining the displayed image. These observations preceded the final
+top-notice, transient-history and viewer-position corrections. The Debug build for the initial
+top-notice correction succeeds; the final native undo, restart and presentation recheck remain deferred
+under the current no-window-operation constraint. The test process remains open, so disposable profile
+cleanup is also pending. SHA-256, file size, modification time and file count match for all 700 source
+fixtures; no retained-library catalog or original media was used.
+
+Hosted run [40057826622](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40057826622)
+for `4eddf115bab727fe766b43f2e0076f96b0601e03` passed the other applicable jobs but failed Schema and
+Queue. Its v33-to-current preservation fixture omitted seven newly introduced empty tables and the
+new admission sequence initialized to zero. The corrected fixture asserts those exact additions and
+still compares every retained row and prior sequence. All four foreground-queue-index migration tests
+pass locally, including conflicting-object rollback and invalid-authority rejection. This result does
+not establish hosted verification for the current changes.

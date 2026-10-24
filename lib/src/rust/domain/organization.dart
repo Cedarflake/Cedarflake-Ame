@@ -98,6 +98,43 @@ class OrganizationAlbumReceipt {
           operation == other.operation;
 }
 
+enum OrganizationDisposition { pending, deferred_, organized, ignored }
+
+class OrganizationGroupDecision {
+  final OrganizationGroupKey key;
+  final bool favorite;
+  final OrganizationDisposition disposition;
+  final OrganizationAlbum? album;
+  final bool hasConflict;
+
+  const OrganizationGroupDecision({
+    required this.key,
+    required this.favorite,
+    required this.disposition,
+    this.album,
+    required this.hasConflict,
+  });
+
+  @override
+  int get hashCode =>
+      key.hashCode ^
+      favorite.hashCode ^
+      disposition.hashCode ^
+      album.hashCode ^
+      hasConflict.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationGroupDecision &&
+          runtimeType == other.runtimeType &&
+          key == other.key &&
+          favorite == other.favorite &&
+          disposition == other.disposition &&
+          album == other.album &&
+          hasConflict == other.hasConflict;
+}
+
 @freezed
 sealed class OrganizationGroupKey with _$OrganizationGroupKey {
   const OrganizationGroupKey._();
@@ -141,6 +178,33 @@ class OrganizationGroupTarget {
           representative == other.representative &&
           locationCount == other.locationCount &&
           membershipAuthority == other.membershipAuthority;
+}
+
+class OrganizationInspection {
+  final BigInt catalogRevision;
+  final BigInt organizationRevision;
+  final List<OrganizationGroupDecision> decisions;
+
+  const OrganizationInspection({
+    required this.catalogRevision,
+    required this.organizationRevision,
+    required this.decisions,
+  });
+
+  @override
+  int get hashCode =>
+      catalogRevision.hashCode ^
+      organizationRevision.hashCode ^
+      decisions.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is OrganizationInspection &&
+          runtimeType == other.runtimeType &&
+          catalogRevision == other.catalogRevision &&
+          organizationRevision == other.organizationRevision &&
+          decisions == other.decisions;
 }
 
 class OrganizationPreparedSelection {

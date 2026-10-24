@@ -674,6 +674,14 @@ These notices share the existing viewer fallback notice, neutral notification su
 corners and action styling. They float within the image viewport without moving its contents. A
 confirmed source notice takes precedence over retry feedback for the old source version.
 
+Favorite and organization results reuse this same top-of-viewport notice component, including its
+geometry, colors and action styling. Show undo or retry when applicable, without an additional close
+button. Successful transient results use the shared notification lifetime. Favorite, unfavorite and
+their successful undo provide transient feedback only; they do not enter notification history or
+increase unread state. Keep failed saves actionable. Source changes and original-image failures
+retain priority. An organization result cannot replace their recovery action or add a second surface
+at the bottom of the viewer. Detailed internal errors remain in diagnostics.
+
 The zoom percentage keeps its source-pixel reference: actual size (`1:1`) is 100%, enlargement by
 one quarter is 125%, and reduction by half is 50%. The default opening preference is Automatic:
 images exceeding the available width or height shrink to fit the viewport, while fitting images

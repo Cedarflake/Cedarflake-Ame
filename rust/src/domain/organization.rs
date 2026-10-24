@@ -38,6 +38,22 @@ pub struct OrganizationPreparedSelection {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OrganizationGroupDecision {
+    pub key: OrganizationGroupKey,
+    pub favorite: bool,
+    pub disposition: OrganizationDisposition,
+    pub album: Option<OrganizationAlbum>,
+    pub has_conflict: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct OrganizationInspection {
+    pub catalog_revision: u64,
+    pub organization_revision: u64,
+    pub decisions: Vec<OrganizationGroupDecision>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct OrganizationWriteReceipt {
     pub operation_id: String,
     pub organization_revision: u64,

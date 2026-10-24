@@ -45,6 +45,8 @@ class LibraryNavigation extends StatefulWidget {
     required this.onOpenRoot,
     required this.onOpenFolder,
     required this.onRemoveRoot,
+    this.collection = const LibraryGalleryCollection.library(),
+    this.collections,
     super.key,
   });
 
@@ -77,6 +79,8 @@ class LibraryNavigation extends StatefulWidget {
   final ValueChanged<LibraryRoot> onOpenRoot;
   final void Function(LibraryRoot root, LibraryFolder folder) onOpenFolder;
   final ValueChanged<LibraryRoot> onRemoveRoot;
+  final LibraryGalleryCollection collection;
+  final Widget? collections;
 
   @override
   State<LibraryNavigation> createState() => _LibraryNavigationState();
@@ -180,7 +184,9 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         child: IconButton(
                           key: const Key("library-sidebar-library"),
                           focusNode: _libraryFocusNode,
-                          isSelected: widget.selectedRootId == null,
+                          isSelected:
+                              widget.selectedRootId == null &&
+                              widget.collection is LibraryAllCollection,
                           onPressed: widget.isBrowseDisabled
                               ? null
                               : widget.onSelectLibrary,
@@ -204,7 +210,9 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                       ListTile(
                         key: const Key("library-sidebar-library"),
                         focusNode: _libraryFocusNode,
-                        selected: widget.selectedRootId == null,
+                        selected:
+                            widget.selectedRootId == null &&
+                            widget.collection is LibraryAllCollection,
                         selectedTileColor: Theme.of(
                           context,
                         ).colorScheme.secondaryContainer,
@@ -225,7 +233,8 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           LibraryStrings.library,
                           style: _navigationTitleStyle(
                             context,
-                            widget.selectedRootId == null,
+                            widget.selectedRootId == null &&
+                                widget.collection is LibraryAllCollection,
                           ),
                         ),
                         trailing: SizedBox(
@@ -250,6 +259,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                             ? null
                             : widget.onSelectLibrary,
                       ),
+                    ?widget.collections,
                     const SizedBox(height: 12),
                     if (widget.roots.isEmpty && widget.transientSource == null)
                       if (widget.isCompact)

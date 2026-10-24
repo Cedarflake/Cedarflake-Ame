@@ -15,6 +15,38 @@ import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "source notices take the shared top slot before organization feedback",
+    (tester) async {
+      final directory = Directory.systemTemp.createTempSync(
+        "ame-viewer-priority-",
+      );
+      addTearDown(() => directory.deleteSync(recursive: true));
+      final source = File(
+        "${directory.path}${Platform.pathSeparator}source.png",
+      );
+      final bytes = await tester.runAsync(() => _png(Colors.blue));
+      source.writeAsBytesSync(bytes!);
+      await tester.pumpWidget(
+        _viewer(_asset(source.path), operationNotice: const Text("已收藏")),
+      );
+      await _waitForFrame(tester, () => find.text("已收藏").evaluate().isNotEmpty);
+      await tester.pumpWidget(
+        _viewer(
+          _asset(source.path),
+          operationNotice: const Text("已收藏"),
+          notice: LibraryViewerSourceNoticeBanner(
+            notice: LibraryViewerSourceNotice.changed,
+            onBack: () {},
+          ),
+        ),
+      );
+      expect(find.text("已收藏"), findsNothing);
+      expect(find.text(LibraryStrings.viewerSourceChanged), findsOneWidget);
+      await tester.pumpWidget(const SizedBox.shrink());
+    },
+  );
+
   test(
     "source cache identity follows revision and generation, not preview",
     () {
@@ -289,6 +321,7 @@ Widget _viewer(
   LibraryAsset asset, {
   LibrarySourceBufferLoader? bufferLoader,
   Widget? notice,
+  Widget? operationNotice,
 }) => MaterialApp(
   home: Scaffold(
     body: LibraryViewerImage(
@@ -296,6 +329,7 @@ Widget _viewer(
       sourceReadScheduler: _sourceScheduler,
       sourceBufferLoader: bufferLoader,
       notice: notice,
+      operationNotice: operationNotice,
     ),
   ),
 );

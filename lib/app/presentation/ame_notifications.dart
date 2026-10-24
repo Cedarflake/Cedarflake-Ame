@@ -1,11 +1,10 @@
-import "dart:async";
-
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../notifications/ame_notification_controller.dart";
 import "../notifications/ame_notification_strings.dart";
 import "ame_menu.dart";
+import "ame_notification_lifetime.dart";
 import "ame_overlay_semantics.dart";
 import "ame_theme.dart";
 import "ame_notification_time.dart";
@@ -14,7 +13,6 @@ export "ame_notification_details.dart" show showAmeNotificationDetails;
 
 const _notificationMenuWidth = 360.0;
 const _notificationMenuMaximumHeight = 520.0;
-const _transientNotificationDuration = Duration(seconds: 5);
 
 class AmeNotificationHistoryButton extends StatelessWidget {
   const AmeNotificationHistoryButton({
@@ -100,7 +98,7 @@ class AmeNotificationHistoryButton extends StatelessWidget {
   }
 }
 
-class AmeNotificationSurface extends StatefulWidget {
+class AmeNotificationSurface extends StatelessWidget {
   const AmeNotificationSurface({
     required this.notification,
     required this.onAction,
@@ -113,107 +111,71 @@ class AmeNotificationSurface extends StatefulWidget {
   final ValueChanged<String> onDismiss;
 
   @override
-  State<AmeNotificationSurface> createState() => _AmeNotificationSurfaceState();
-}
-
-class _AmeNotificationSurfaceState extends State<AmeNotificationSurface> {
-  Timer? _dismissTimer;
-
-  @override
-  void initState() {
-    super.initState();
-    _scheduleDismiss();
-  }
-
-  @override
-  void didUpdateWidget(AmeNotificationSurface oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.notification.id != widget.notification.id ||
-        oldWidget.notification.isPersistent !=
-            widget.notification.isPersistent) {
-      _scheduleDismiss();
-    }
-  }
-
-  @override
-  void dispose() {
-    _dismissTimer?.cancel();
-    super.dispose();
-  }
-
-  void _scheduleDismiss() {
-    _dismissTimer?.cancel();
-    if (widget.notification.isPersistent) {
-      return;
-    }
-    _dismissTimer = Timer(
-      _transientNotificationDuration,
-      () => widget.onDismiss(widget.notification.id),
-    );
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final notification = widget.notification;
     final colorScheme = Theme.of(context).colorScheme;
-    return Material(
-      key: const Key("ame-notification-surface"),
-      elevation: ameNotificationElevation,
-      color: colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(ameNotificationRadius),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints.tightFor(width: ameNotificationWidth),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: const EdgeInsets.only(top: 2),
-                child: Icon(
-                  _severityIcon(notification.severity),
-                  color: _severityColor(colorScheme, notification.severity),
-                  size: 20,
+    return AmeNotificationLifetime(
+      notification: notification,
+      onDismiss: onDismiss,
+      child: Material(
+        key: const Key("ame-notification-surface"),
+        elevation: ameNotificationElevation,
+        color: colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(ameNotificationRadius),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints.tightFor(
+            width: ameNotificationWidth,
+          ),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    _severityIcon(notification.severity),
+                    color: _severityColor(colorScheme, notification.severity),
+                    size: 20,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      notification.title,
-                      style: Theme.of(context).textTheme.titleSmall,
-                    ),
-                    if (notification.message.isNotEmpty) ...[
-                      const SizedBox(height: 4),
-                      Text(notification.message),
-                    ],
-                    if (notification.detail case final detail?) ...[
-                      const SizedBox(height: 4),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
                       Text(
-                        detail,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: colorScheme.onSurfaceVariant,
-                        ),
+                        notification.title,
+                        style: Theme.of(context).textTheme.titleSmall,
                       ),
+                      if (notification.message.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(notification.message),
+                      ],
+                      if (notification.detail case final detail?) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          detail,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(color: colorScheme.onSurfaceVariant),
+                        ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
-              ),
-              if (notification.actionLabel case final actionLabel?)
+                if (notification.actionLabel case final actionLabel?)
+                  TextButton(
+                    key: const Key("notification-primary-action"),
+                    onPressed: () => onAction(notification),
+                    child: Text(actionLabel),
+                  ),
                 TextButton(
-                  key: const Key("notification-primary-action"),
-                  onPressed: () => widget.onAction(notification),
-                  child: Text(actionLabel),
+                  key: const Key("notification-dismiss-button"),
+                  onPressed: () => onDismiss(notification.id),
+                  child: const Text(AmeNotificationStrings.acknowledge),
                 ),
-              TextButton(
-                key: const Key("notification-dismiss-button"),
-                onPressed: () => widget.onDismiss(notification.id),
-                child: const Text(AmeNotificationStrings.acknowledge),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

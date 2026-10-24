@@ -34,6 +34,8 @@ class LibraryImageViewer extends ConsumerStatefulWidget {
     this.filmstrip,
     this.sourceNotice,
     this.onReloadSource,
+    this.organizationActions,
+    this.operationNotice,
     super.key,
   });
 
@@ -51,6 +53,8 @@ class LibraryImageViewer extends ConsumerStatefulWidget {
   final Widget? filmstrip;
   final LibraryViewerSourceNotice? sourceNotice;
   final VoidCallback? onReloadSource;
+  final Widget? organizationActions;
+  final Widget? operationNotice;
 
   @override
   ConsumerState<LibraryImageViewer> createState() => _LibraryImageViewerState();
@@ -192,6 +196,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
                 ),
               LibraryViewerToolbar(
                 asset: widget.asset,
+                organizationActions: widget.organizationActions,
                 positionLabel: _positionLabel,
                 onCopyPath: widget.onCopyPath,
                 onRevealFile: widget.onRevealFile,
@@ -231,6 +236,7 @@ class _LibraryImageViewerState extends ConsumerState<LibraryImageViewer>
           asset: widget.asset,
           zoomScale: _zoom.transform.value.getMaxScaleOnAxis(),
           imageBuilder: _buildTransformedImage,
+          operationNotice: widget.operationNotice,
           notice: switch (widget.sourceNotice) {
             null => null,
             final notice => LibraryViewerSourceNoticeBanner(

@@ -1,10 +1,15 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationInspection,
     OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
 };
 
 pub(crate) trait OrganizationRepository {
+    fn inspect_organization_selection(
+        &self,
+        selections: &[OrganizationSelection],
+    ) -> Result<OrganizationInspection, ScanError>;
+
     fn undo_organization_operation(
         &mut self,
         operation_id: &str,

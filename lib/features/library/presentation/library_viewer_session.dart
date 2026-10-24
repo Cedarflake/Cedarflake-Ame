@@ -57,7 +57,7 @@ class LibraryViewerSession extends ChangeNotifier {
   _NavigationRequest? _navigation;
   Object? _lookup;
   bool _isDisposed = false;
-  int? _ordinal;
+  ({int ordinal, _QueryIdentity query})? _position;
   late final _navigationWindow = LibraryViewerNavigationWindow(_catalog);
 
   LibraryViewerSelection? get selection => _selection;
@@ -65,7 +65,7 @@ class LibraryViewerSession extends ChangeNotifier {
   String? get locationId => _selection?.locationId;
   LibraryAsset? get retainedAsset => _source?.asset;
   LibraryViewerSourceNotice? get sourceNotice => _source?.notice;
-  int? get ordinal => _ordinal;
+  int? get ordinal => _position?.query == _query ? _position?.ordinal : null;
   bool get isNavigating => _navigation != null && _owns(_navigation!);
 
   LibraryViewerNavigation navigation(int totalItems) {
@@ -76,23 +76,25 @@ class LibraryViewerSession extends ChangeNotifier {
     }
     final state = _readLibrary();
     final index = _index(state, selection);
-    final ordinal = index < 0 ? _ordinal : state.windowStartItemOffset + index;
+    final currentOrdinal = index < 0
+        ? ordinal
+        : state.windowStartItemOffset + index;
     if (isNavigating) {
       return (
-        position: ordinal == null ? null : ordinal + 1,
+        position: currentOrdinal == null ? null : currentOrdinal + 1,
         canPrevious: false,
         canNext: false,
       );
     }
     if (index < 0) {
       return (
-        position: ordinal == null ? null : ordinal + 1,
-        canPrevious: ordinal != null && ordinal > 0,
-        canNext: ordinal != null && ordinal + 1 < totalItems,
+        position: currentOrdinal == null ? null : currentOrdinal + 1,
+        canPrevious: currentOrdinal != null && currentOrdinal > 0,
+        canNext: currentOrdinal != null && currentOrdinal + 1 < totalItems,
       );
     }
     return (
-      position: ordinal! + 1,
+      position: currentOrdinal! + 1,
       canPrevious: index > 0 || state.hasPreviousAssets,
       canNext: index < state.assets.length - 1 || state.hasMoreAssets,
     );
@@ -116,7 +118,12 @@ class LibraryViewerSession extends ChangeNotifier {
     final index = state.assets.indexWhere(
       (item) => item.locationId == asset.locationId,
     );
-    _ordinal = index < 0 ? ordinal : state.windowStartItemOffset + index;
+    final currentOrdinal = index < 0
+        ? ordinal
+        : state.windowStartItemOffset + index;
+    _position = currentOrdinal == null
+        ? null
+        : (ordinal: currentOrdinal, query: _query);
     _source = LibraryViewerSourceState(asset);
     _navigation = null;
     _lookup = null;
@@ -129,7 +136,7 @@ class LibraryViewerSession extends ChangeNotifier {
       return;
     }
     _selection = null;
-    _ordinal = null;
+    _position = null;
     _source = null;
     _navigation = null;
     _lookup = null;
@@ -160,7 +167,7 @@ class LibraryViewerSession extends ChangeNotifier {
 
   void reloadSource() {
     final replacement = _source?.replacement;
-    if (replacement != null) open(replacement, ordinal: _ordinal);
+    if (replacement != null) open(replacement, ordinal: ordinal);
   }
 
   Future<bool> navigate(LibraryViewerDirection direction) async {
@@ -185,7 +192,7 @@ class LibraryViewerSession extends ChangeNotifier {
           selection: retained,
           query: request.query.query,
           minimumRevision: request.query.revision,
-          fallbackOrdinal: _ordinal ?? 0,
+          fallbackOrdinal: ordinal ?? 0,
           step: step,
         );
         if (_owns(request) && neighbor != null) {
@@ -267,7 +274,6 @@ class LibraryViewerSession extends ChangeNotifier {
         query != _query) {
       return;
     }
-    _lookup = null;
     asset ??= _readLibrary().assets
         .where(
           (item) =>
@@ -276,12 +282,46 @@ class LibraryViewerSession extends ChangeNotifier {
         )
         .firstOrNull;
     if (asset == null) {
+      _lookup = null;
       _source?.reconcile(null);
       _navigation = null;
       _onPreviewDemand(null);
       notifyListeners();
     } else {
       _retainCatalogAsset(selection, asset);
+      final retainedSelection = _selection;
+      if (retainedSelection == null || sourceNotice != null) return;
+      final state = _readLibrary();
+      final index = _index(state, retainedSelection);
+      if (index >= 0) {
+        _position = (
+          ordinal: state.windowStartItemOffset + index,
+          query: query,
+        );
+      } else if (_position?.query != query) {
+        int? refreshed;
+        try {
+          refreshed = await _navigationWindow.position(
+            selection: asset,
+            query: query.query,
+            queryId: query.id,
+            revision: query.revision,
+          );
+        } on Object {
+          return;
+        }
+        if (_isDisposed ||
+            !identical(_selection, retainedSelection) ||
+            !identical(_lookup, lookup) ||
+            query != _query) {
+          return;
+        }
+        _position = refreshed == null
+            ? null
+            : (ordinal: refreshed, query: query);
+      }
+      _lookup = null;
+      notifyListeners();
     }
   }
 

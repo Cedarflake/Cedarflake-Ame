@@ -156,6 +156,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationAction dco_decode_box_autoadd_organization_action(dynamic raw);
 
   @protected
+  OrganizationAlbum dco_decode_box_autoadd_organization_album(dynamic raw);
+
+  @protected
   OrganizationCounts dco_decode_box_autoadd_organization_counts(dynamic raw);
 
   @protected
@@ -484,6 +487,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<OrganizationAlbum> dco_decode_list_organization_album(dynamic raw);
 
   @protected
+  List<OrganizationGroupDecision> dco_decode_list_organization_group_decision(
+    dynamic raw,
+  );
+
+  @protected
   List<OrganizationGroupTarget> dco_decode_list_organization_group_target(
     dynamic raw,
   );
@@ -570,6 +578,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationAlbum? dco_decode_opt_box_autoadd_organization_album(dynamic raw);
+
+  @protected
   OrganizationCounts? dco_decode_opt_box_autoadd_organization_counts(
     dynamic raw,
   );
@@ -620,10 +631,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationCounts dco_decode_organization_counts(dynamic raw);
 
   @protected
+  OrganizationDisposition dco_decode_organization_disposition(dynamic raw);
+
+  @protected
+  OrganizationGroupDecision dco_decode_organization_group_decision(dynamic raw);
+
+  @protected
   OrganizationGroupKey dco_decode_organization_group_key(dynamic raw);
 
   @protected
   OrganizationGroupTarget dco_decode_organization_group_target(dynamic raw);
+
+  @protected
+  OrganizationInspection dco_decode_organization_inspection(dynamic raw);
 
   @protected
   OrganizationPreparedSelection dco_decode_organization_prepared_selection(
@@ -845,6 +865,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationAction sse_decode_box_autoadd_organization_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationAlbum sse_decode_box_autoadd_organization_album(
     SseDeserializer deserializer,
   );
 
@@ -1269,6 +1294,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<OrganizationGroupDecision> sse_decode_list_organization_group_decision(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<OrganizationGroupTarget> sse_decode_list_organization_group_target(
     SseDeserializer deserializer,
   );
@@ -1369,6 +1399,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationAlbum? sse_decode_opt_box_autoadd_organization_album(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationCounts? sse_decode_opt_box_autoadd_organization_counts(
     SseDeserializer deserializer,
   );
@@ -1433,12 +1468,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationDisposition sse_decode_organization_disposition(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationGroupDecision sse_decode_organization_group_decision(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationGroupKey sse_decode_organization_group_key(
     SseDeserializer deserializer,
   );
 
   @protected
   OrganizationGroupTarget sse_decode_organization_group_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationInspection sse_decode_organization_inspection(
     SseDeserializer deserializer,
   );
 
@@ -1706,6 +1756,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_organization_action(
     OrganizationAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_album(
+    OrganizationAlbum self,
     SseSerializer serializer,
   );
 
@@ -2226,6 +2282,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_organization_group_decision(
+    List<OrganizationGroupDecision> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_organization_group_target(
     List<OrganizationGroupTarget> self,
     SseSerializer serializer,
@@ -2346,6 +2408,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_organization_album(
+    OrganizationAlbum? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_organization_counts(
     OrganizationCounts? self,
     SseSerializer serializer,
@@ -2424,6 +2492,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_organization_disposition(
+    OrganizationDisposition self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_group_decision(
+    OrganizationGroupDecision self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_organization_group_key(
     OrganizationGroupKey self,
     SseSerializer serializer,
@@ -2432,6 +2512,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_group_target(
     OrganizationGroupTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_inspection(
+    OrganizationInspection self,
     SseSerializer serializer,
   );
 

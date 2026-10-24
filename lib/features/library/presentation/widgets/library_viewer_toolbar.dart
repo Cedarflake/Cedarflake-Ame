@@ -26,6 +26,7 @@ class LibraryViewerToolbar extends StatelessWidget {
     required this.isFullscreen,
     required this.onToggleFullscreen,
     this.positionLabel,
+    this.organizationActions,
     super.key,
   });
 
@@ -37,6 +38,7 @@ class LibraryViewerToolbar extends StatelessWidget {
   final VoidCallback onCopyPath;
   final VoidCallback onRevealFile;
   final String? positionLabel;
+  final Widget? organizationActions;
   final bool isActualSize;
   final VoidCallback? onToggleZoomMode;
   final double sliderValue;
@@ -81,6 +83,7 @@ class LibraryViewerToolbar extends StatelessWidget {
                           selected: isFilmstripVisible,
                           onPressed: onToggleFilmstrip,
                         ),
+                        ?organizationActions,
                         _button(
                           key: "viewer-information",
                           label: LibraryStrings.viewInformation,

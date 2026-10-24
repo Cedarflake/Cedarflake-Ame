@@ -1,8 +1,14 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationInspection,
     OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
 };
+
+pub fn inspect_organization_selection(
+    selections: Vec<OrganizationSelection>,
+) -> Result<OrganizationInspection, ScanError> {
+    crate::application::organization::inspect_selection(selections)
+}
 
 pub fn undo_organization_operation(
     operation_id: String,

@@ -1,6 +1,6 @@
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt,
+    OrganizationAction, OrganizationAlbumPage, OrganizationAlbumReceipt, OrganizationInspection,
     OrganizationPreparedSelection, OrganizationSelection, OrganizationWriteReceipt,
     normalize_album_name, validate_identifier, validate_selections,
 };
@@ -14,6 +14,7 @@ mod albums;
 mod authority;
 mod changes;
 mod favorites;
+mod inspection;
 pub(super) mod lifecycle;
 mod operations;
 pub(super) mod publication;
@@ -24,6 +25,20 @@ mod selection;
 mod undo;
 
 impl OrganizationRepository for SqliteCatalog {
+    fn inspect_organization_selection(
+        &self,
+        selections: &[OrganizationSelection],
+    ) -> Result<OrganizationInspection, ScanError> {
+        validate_selections(selections)?;
+        let transaction = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
+        let result = inspection::load(&transaction, selections)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(result)
+    }
+
     fn undo_organization_operation(
         &mut self,
         operation_id: &str,

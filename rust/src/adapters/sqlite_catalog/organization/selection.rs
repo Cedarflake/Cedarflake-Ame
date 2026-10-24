@@ -50,7 +50,7 @@ pub(super) fn prepare(
     })
 }
 
-fn selected_keys(
+pub(super) fn selected_keys(
     connection: &Connection,
     selections: &[OrganizationSelection],
 ) -> Result<BTreeSet<OrganizationGroupKey>, ScanError> {

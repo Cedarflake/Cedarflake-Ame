@@ -6,15 +6,15 @@ class LibraryViewerNotice extends StatelessWidget {
   const LibraryViewerNotice({
     required this.icon,
     required this.message,
-    required this.actionLabel,
-    required this.onAction,
+    this.actionLabel,
+    this.onAction,
     this.actionKey,
     super.key,
   });
 
   final IconData icon;
   final String message;
-  final String actionLabel;
+  final String? actionLabel;
   final VoidCallback? onAction;
   final Key? actionKey;
 
@@ -25,7 +25,10 @@ class LibraryViewerNotice extends StatelessWidget {
     top: 16,
     child: Center(
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: ameNotificationWidth),
+        constraints: const BoxConstraints(
+          maxWidth: ameNotificationWidth,
+          minHeight: kMinInteractiveDimension,
+        ),
         child: Semantics(
           liveRegion: true,
           child: Material(
@@ -40,11 +43,12 @@ class LibraryViewerNotice extends StatelessWidget {
                   Icon(icon, size: 20),
                   const SizedBox(width: 8),
                   Flexible(child: Text(message)),
-                  TextButton(
-                    key: actionKey,
-                    onPressed: onAction,
-                    child: Text(actionLabel),
-                  ),
+                  if (actionLabel case final label?)
+                    TextButton(
+                      key: actionKey,
+                      onPressed: onAction,
+                      child: Text(label),
+                    ),
                 ],
               ),
             ),

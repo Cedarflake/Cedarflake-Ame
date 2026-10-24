@@ -26,6 +26,7 @@ class LibraryViewerImage extends StatefulWidget {
     this.imageBuilder,
     this.zoomScale = 1,
     this.notice,
+    this.operationNotice,
     super.key,
   });
 
@@ -35,6 +36,7 @@ class LibraryViewerImage extends StatefulWidget {
   final LibraryViewerImageBuilder? imageBuilder;
   final double zoomScale;
   final Widget? notice;
+  final Widget? operationNotice;
 
   @override
   State<LibraryViewerImage> createState() => _LibraryViewerImageState();
@@ -130,6 +132,9 @@ class _LibraryViewerImageState extends State<LibraryViewerImage> {
             fit: StackFit.expand,
             children: [
               _buildImage(context, child),
+              if (widget.notice == null &&
+                  (frame != null || wasSynchronouslyLoaded))
+                ?widget.operationNotice,
               if (frame == null && !wasSynchronouslyLoaded)
                 const IgnorePointer(
                   child: LibraryLoadingIndicator(
