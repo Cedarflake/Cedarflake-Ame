@@ -274,3 +274,30 @@ The Dart collection owner has 42 lines; the 528-line model, 563-line catalog map
 viewport controller gain the typed field/mapping and collection-preserving removal projection.
 Dedicated changed Dart test owners have 74, 3,655 and 253 lines, with no production test code.
 The 803-line Rust domain type file gains the collection type, query field and folding policy.
+
+## Organization index storage correction - 2026-10-24
+
+Schema 49 added a generation-first organization index alongside the existing generation-first
+exact-source index. Schema 50 removes that redundant index in a forward transaction while retaining
+the root/scan/generation index used by bounded publication windows. It changes neither catalog
+revisions nor organization decisions. Existing catalogs retain their pre-upgrade backup; freed
+index pages become available for reuse under the existing storage-reclamation policy. No full
+database vacuum or original-media read is added.
+
+Seventy focused checks pass: 66 organization, collection, reconciliation, source-lifecycle and
+migration cases, three recovery-contract compatibility cases and the version-27 terminal-spool
+upgrade regression. The five new migration cases cover retained data and revisions, rollback after
+index removal, malformed historical schema, required current indexes and indexed point/keyset reads.
+The existing 50,000-lineage publication and collection cases retain their fewer-than-20,000-VM-step
+bounds. Rust formatting and whitespace checks pass.
+
+The canonical 10,000-image scan diagnostic is running against this change. Its existing storage,
+timing, responsiveness, row-count and source-preservation assertions remain unchanged; current-head
+hosted verification is also pending.
+
+The schema-50 owner has 52 production lines, a 12-line test helper and a two-line test declaration,
+with 173 dedicated test lines. The schema-49 owner retains its historical DDL and exposes the two
+index definitions for validation and test fixtures. The 3,504-line catalog facade changes only its
+version constant. The 6,396-line migration facade gains module registration and dispatch; its
+historical helpers and inline tests are unchanged. The current-schema validator selects the
+version-specific index contract, and recovery admission retains explicit known-version bounds.

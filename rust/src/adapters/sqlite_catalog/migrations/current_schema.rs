@@ -152,8 +152,11 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 48 {
         super::organization_transitions::validate(connection)?;
     }
-    if schema_version >= 49 {
+    if schema_version == 49 {
         super::organization_reconciliation::validate(connection)?;
+    }
+    if schema_version >= 50 {
+        super::organization_index_retirement::validate(connection)?;
     }
     validate_existing_source_metadata_marker(connection)
 }

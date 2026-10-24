@@ -81,8 +81,10 @@ binding. An independent new content version remains pending, while a match to an
 adopts that group's decision. Identity-proven renames retain their compatible binding.
 
 Schema 49 normalizes previously stored content bindings and already available fingerprints once,
-without original-media reads. Generation and root/generation indexes support publication lookups
-and bounded keyset windows. Temporary member/group sets drive joins into durable history; their
+without original-media reads. Generation lookups reuse the existing exact-source index; the
+root/scan/generation index supports bounded keyset windows. Schema 50 retires the redundant
+generation index added in schema 49 without changing records or catalog revisions. Temporary
+member/group sets drive joins into durable history; their
 lack of persistent planner statistics must not turn one-copy publication into a history scan.
 
 ### Collection queries

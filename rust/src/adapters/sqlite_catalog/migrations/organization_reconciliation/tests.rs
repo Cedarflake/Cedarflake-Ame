@@ -28,7 +28,7 @@ fn prior_catalog() -> Connection {
 fn upgrade_normalizes_known_content_and_preserves_conflict_provenance_favorites_and_history() {
     let mut connection = prior_catalog();
     migrate(&mut connection).unwrap();
-    current_schema::validate_current_schema_contract(&connection).unwrap();
+    current_schema::validate_schema_version(&connection, 49).unwrap();
     let canonical: (Option<String>, String, bool, i64) = connection.query_row(
         "SELECT album_id, disposition, favorite, favorite_revision FROM organization_records WHERE record_id = 'a'", [],
         |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),

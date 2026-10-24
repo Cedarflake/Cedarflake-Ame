@@ -5,18 +5,19 @@ use crate::domain::ScanError;
 use super::super::organization::{publication, reconciliation};
 use super::{current_schema, database_error};
 
-const INDEXES: &[(&str, &str)] = &[
-    (
-        "asset_locations_organization_generation",
-        "CREATE INDEX asset_locations_organization_generation
+pub(super) const GENERATION_INDEX: (&str, &str) = (
+    "asset_locations_organization_generation",
+    "CREATE INDEX asset_locations_organization_generation
        ON asset_locations(source_generation, root_id, scan_id)",
-    ),
-    (
-        "asset_locations_organization_root_generation",
-        "CREATE INDEX asset_locations_organization_root_generation
+);
+
+pub(super) const ROOT_GENERATION_INDEX: (&str, &str) = (
+    "asset_locations_organization_root_generation",
+    "CREATE INDEX asset_locations_organization_root_generation
        ON asset_locations(root_id, scan_id, source_generation)",
-    ),
-];
+);
+
+const INDEXES: &[(&str, &str)] = &[GENERATION_INDEX, ROOT_GENERATION_INDEX];
 
 pub(super) fn migrate(connection: &mut Connection) -> Result<(), ScanError> {
     let transaction = connection
@@ -93,6 +94,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v48_for_test(connection: &Connection) {
+    super::organization_index_retirement::downgrade_to_v49_for_test(connection);
     if super::schema_shape::schema_version(connection).unwrap() == 49 {
         for (name, _) in INDEXES {
             connection

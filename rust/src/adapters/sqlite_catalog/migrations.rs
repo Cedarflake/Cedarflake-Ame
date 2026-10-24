@@ -52,6 +52,7 @@ mod metadata_fallback;
 mod metadata_inventory_contract;
 mod metadata_recheck_index;
 mod organization;
+mod organization_index_retirement;
 mod organization_reconciliation;
 mod organization_transitions;
 #[cfg(test)]
@@ -134,6 +135,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         organization::migrate_transaction(&transaction)?;
         organization_transitions::migrate_transaction(&transaction)?;
         organization_reconciliation::migrate_transaction(&transaction)?;
+        organization_index_retirement::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -222,6 +224,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             46 => organization::migrate(connection)?,
             47 => organization_transitions::migrate(connection)?,
             48 => organization_reconciliation::migrate(connection)?,
+            49 => organization_index_retirement::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",
