@@ -1655,6 +1655,9 @@ fn migrated_v17_location_is_preserved_while_unproven_namespace_blocks_backfill()
     } = fixture;
     drop(catalog);
     let connection = Connection::open(&catalog_path).expect("migration fixture catalog");
+    let current_version: i64 = connection
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("current schema version");
     remove_persistent_journal_v22_contract_for_test(&connection);
     connection
         .execute_batch(
@@ -1755,7 +1758,7 @@ fn migrated_v17_location_is_preserved_while_unproven_namespace_blocks_backfill()
             },
         )
         .expect("load post-backfill counts");
-    assert_eq!(schema_version, 48);
+    assert_eq!(schema_version, current_version);
     assert_eq!(location_count, 1);
     assert_eq!(asset_count, 1);
     assert_eq!(proof_count, 0);

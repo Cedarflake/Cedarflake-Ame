@@ -219,3 +219,15 @@ The 245-line scan-publication owner, 113-line delta-location owner and 78/127-li
 gain only composition calls. The 3,503-line catalog facade changes its schema version; the migration
 facade has 3,259 lines before its historical helpers, 844 helper lines and 2,290 inline-test lines,
 and gains only module registration and migration dispatch.
+
+## Historical upgrade assertion correction - 2026-10-24
+
+The hosted run for `c9f7e24` found two historical version-17 upgrade fixtures that still expected
+schema 48. Both now retain the freshly created catalog's current version before constructing the
+historical fixture, and require the upgrade to return to that version. Placeholder preservation,
+normalized location identity, namespace authority and source-state assertions remain unchanged.
+The foreground-scan and incremental-update cases both pass their focused serial diagnostics.
+
+The same hosted run separately reports 67,731,456 catalog bytes in the 10,000-image scan workload,
+above its existing 64-MiB limit. That storage regression remains under investigation; these assertion
+corrections do not establish a passing hosted run or change its resource bound.

@@ -5288,6 +5288,9 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
     let old_location_id = before_asset.location_id.clone();
     let old_asset_id = before_asset.asset_id.clone();
     let connection = Connection::open(&storage_paths.catalog_path).expect("catalog database");
+    let current_version: i64 = connection
+        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .expect("current schema version");
     remove_persistent_journal_v22_contract_for_test(&connection);
     connection
         .execute_batch(
@@ -5375,7 +5378,7 @@ fn migrated_v17_placeholder_preserves_the_normalized_legacy_location() {
         .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
         .expect("schema version");
     assert!(matches!(events.last(), Some(ScanEvent::Stale { .. })));
-    assert_eq!(version, 48);
+    assert_eq!(version, current_version);
     assert_eq!(after.revision, before.revision);
     assert_eq!(after.assets.len(), 1);
     assert_eq!(retained.location_id, "legacy-v17-location");
