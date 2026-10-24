@@ -10,6 +10,7 @@ use super::*;
 pub(super) mod evolution;
 mod fingerprint_cost;
 mod queues;
+mod source_scope_cost;
 
 fn album_query(album_id: &str) -> GalleryQuery {
     GalleryQuery {

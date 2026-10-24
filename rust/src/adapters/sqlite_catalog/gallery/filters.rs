@@ -4,6 +4,19 @@ use crate::domain::{GalleryCollection, GalleryQuery};
 
 use super::{duplicates, normalize_relative_folder, organization, organization_queue};
 
+pub(super) fn gallery_source(query: &GalleryQuery) -> &'static str {
+    if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
+        // Resolve organization predicates only inside published sources. Otherwise SQLite may
+        // walk historical locations in display order before checking their active scan.
+        "FROM library_roots AS roots
+         CROSS JOIN asset_locations AS locations
+           ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id"
+    } else {
+        "FROM library_roots AS roots
+         JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id"
+    }
+}
+
 pub(super) fn push_gallery_filters(
     query: &GalleryQuery,
     clauses: &mut Vec<String>,

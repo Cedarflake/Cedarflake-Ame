@@ -121,7 +121,7 @@ fn collection_and_queue_reads_do_not_expand_unrelated_fingerprints() {
     }
 }
 
-fn bounded_read<T>(
+pub(super) fn bounded_read<T>(
     catalog: &mut SqliteCatalog,
     read: impl FnOnce(&mut SqliteCatalog) -> Result<T, ScanError>,
 ) -> T {

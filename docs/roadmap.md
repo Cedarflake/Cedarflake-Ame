@@ -300,10 +300,12 @@ reimport remain open. Manual unresolved-record cleanup passes its focused bounda
 Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.
-Indexed representative evidence, bounded connection caches and non-repeated group scope reduce
-retained album and Favorite reads from over twelve seconds to about 3.3 seconds, with unchanged
-query results and measured resource use. Continuation reads take about 1.6 seconds; empty queues
-still take 3.4–4.0 seconds. The full Debug client preserves 47,833 organized groups while startup
+Indexed representative evidence, bounded connection caches, non-repeated group scope and
+published-source query plans reduce retained album and Favorite reads from over twelve seconds to
+2.8–3.0 seconds, with unchanged query results and measured resource use. Continuation reads take
+about 1.4 seconds; empty queues still take 2.4–2.5 seconds. Focused query regressions and the
+retained-catalog workload pass; hosted verification of the published-source query change is pending.
+The full Debug client preserves 47,833 organized groups while startup
 synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
 and empty deferred-queue interactions pass with sampled resources. Optimized-client response times,
 remaining read/write waits and constrained-device performance acceptance are still open.

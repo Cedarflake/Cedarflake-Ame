@@ -4,8 +4,8 @@ use crate::domain::{GalleryQuery, GallerySortKey, GalleryTimeBucket, GalleryTime
 
 use super::super::{database_error, sqlite_unsigned};
 use super::{
-    BuiltGalleryQuery, gallery_direction_sql, gallery_order_expressions, push_gallery_filters,
-    push_source_filters,
+    BuiltGalleryQuery, gallery_direction_sql, gallery_order_expressions, gallery_source,
+    push_gallery_filters, push_source_filters,
 };
 
 pub(crate) fn load_gallery_timeline(
@@ -78,10 +78,9 @@ fn load_source_count(
         .query_row(
             &format!(
                 "SELECT COUNT(*)
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations
-               ON locations.scan_id = roots.active_scan_id
-             {where_clause}"
+             {source}
+             {where_clause}",
+                source = gallery_source(query),
             ),
             params_from_iter(parameters.iter()),
             |row| row.get(0),
@@ -114,12 +113,11 @@ fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
                         ELSE (locations.width * 1000) / locations.height
                       END
                     ) AS aspect_ratio_milli_sum
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations
-               ON locations.scan_id = roots.active_scan_id
+             {source}
              {where_clause}
              GROUP BY {month}
              ORDER BY (month_key IS NULL), month_key {direction}",
+            source = gallery_source(query),
         ),
         parameters,
     }

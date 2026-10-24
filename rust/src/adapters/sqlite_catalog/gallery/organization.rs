@@ -129,11 +129,13 @@ pub(super) fn push_group_filter(
     let joins = representative_joins();
     let representative = representative_expression("locations");
     let group = group_expression("locations");
+    // Keep published roots outermost so history cannot replace the scoped generation-index read.
     clauses.push(format!(
         "locations.location_id IN (
            SELECT {representative}
            FROM library_roots AS roots
-           JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+           CROSS JOIN asset_locations AS locations
+             ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id
            {joins}
            WHERE {} GROUP BY {group})",
         scope.join(" AND ")
@@ -171,7 +173,8 @@ pub(super) fn representative_for_anchor(
             &format!(
                 "SELECT {representative}
                  FROM library_roots AS roots
-                 JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+                 CROSS JOIN asset_locations AS locations
+                   ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id
                  {joins}
                  WHERE {}",
                 scope.join(" AND ")

@@ -85,7 +85,8 @@ pub(in super::super) fn load_counts(
                         COALESCE(SUM(disposition = 'ignored'), 0)
                  FROM (
                    SELECT {disposition} AS disposition FROM library_roots AS roots
-                   JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
+                   CROSS JOIN asset_locations AS locations
+                     ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id
                    WHERE {scope} GROUP BY {group}
                  )"
             ),

@@ -14,7 +14,7 @@ mod timeline;
 
 pub(super) use timeline::load_gallery_timeline;
 
-use filters::{push_gallery_filters, push_source_filters};
+use filters::{gallery_source, push_gallery_filters, push_source_filters};
 
 pub(super) use location_anchor::{
     GalleryAssetAnchor, resolve_gallery_asset_anchor, resolve_gallery_location_anchor,
@@ -128,15 +128,14 @@ pub(super) fn build_gallery_asset_query(
                     locations.capture_raw_value, locations.file_identity_scheme,
                     locations.file_identity_value, locations.source_revision_token,
                     locations.source_generation
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations
-               ON locations.scan_id = roots.active_scan_id
+             {source}
              {where_clause}
              ORDER BY {missing} {missing_direction},
                       {text} {primary_direction}, {number} {primary_direction},
                       locations.root_id {tie_direction},
                       locations.location_id {tie_direction}
              LIMIT ?",
+            source = gallery_source(query),
             missing = order.missing,
             text = order.text,
             number = order.number,
@@ -183,14 +182,13 @@ pub(super) fn build_gallery_layout_manifest_query(
                     {missing} AS primary_missing,
                     {text} AS primary_text,
                     {number} AS primary_number
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations
-               ON locations.scan_id = roots.active_scan_id
+             {source}
              {where_clause}
              ORDER BY {missing}, {text} {primary_direction},
                       {number} {primary_direction},
                       locations.root_id, locations.location_id
              LIMIT ?",
+            source = gallery_source(query),
             missing = order.missing,
             text = order.text,
             number = order.number,
@@ -211,10 +209,9 @@ pub(super) fn build_gallery_count_query(query: &GalleryQuery) -> BuiltGalleryQue
     BuiltGalleryQuery {
         sql: format!(
             "SELECT COUNT(*)
-             FROM library_roots AS roots
-             JOIN asset_locations AS locations
-               ON locations.scan_id = roots.active_scan_id
-             {where_clause}"
+             {source}
+             {where_clause}",
+            source = gallery_source(query),
         ),
         parameters,
     }

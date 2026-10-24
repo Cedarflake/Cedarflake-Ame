@@ -1997,3 +1997,52 @@ includes tool/observation intervals and is not reported as precise interaction l
 Release response times, concurrent-connection cost attribution, large-write waits and constrained
 two-core/8-GB measurements remain open. Ordinary optimized builds ignore the Debug-only storage
 override and must not be used as isolated clients without an admitted isolation path.
+
+## Published-source organization query plans - 2026-10-25
+
+Organization queries now join locations through both their root and active scan, keeping roots
+outermost so SQLite can use the existing root/generation index. The shared gallery scope owner
+selects this source relation for albums, Favorites and organization queues. Windows, layout,
+timeline and source counts share that policy; ordinary Library ordering retains its previous
+query source. Group representatives and progress aggregation keep their existing canonical
+membership, compatible evidence and preferred-copy rules.
+
+A new regression adds 25,000 unpublished historical locations beside three current locations.
+The unfolded Favorite snapshot previously executed about 4,376,000 SQLite instructions because
+its plan resolves organization state before rejecting the old scan. The repaired snapshot and
+layout reads each stay below the unchanged 20,000-instruction bound. The same case checks folded
+Favorites, a whole-library album, a single-source album and an empty pending queue, including
+exact location IDs, physical/group counts and progress totals. Its initial fixture omission of
+the required preview size is corrected before measuring these reads.
+
+All 66 focused cases pass: 21 organization-query, 13 continuation, 24 ordinary gallery-query and
+eight exact-duplicate gallery checks. Debug compilation and owned formatting complete without
+warnings. The gallery facade contains 394 production lines; scope, organization, queue-count and
+timeline owners contain 77, 186, 112 and 124 production lines, respectively, with no inline tests.
+The new regression has 88 dedicated lines and reuses the existing 151-line cost-test owner.
+No schema, cache-budget, bridge, dependency or source-authority change is introduced.
+
+The same Release retained-catalog workload completes against the unchanged isolated input with
+63,077 physical files and 47,833 groups. Each collection snapshot returns at most 128 assets;
+populated album/Favorite timelines still contain 109 buckets. Four snapshot samples include the
+first read and three repeats, with fresh catalog connections but no OS cache flush:
+
+| Operation | Before this change | Published-source query |
+| --- | --- | --- |
+| Pending snapshot | 3.578–3.761 s | 2.360–2.655 s |
+| Album snapshot | 3.316–3.442 s | 2.814–3.046 s |
+| Favorite snapshot | 3.301–3.325 s | 2.784–2.836 s |
+| Empty pending snapshot | 3.352–4.014 s | 2.357–2.503 s |
+| Warm continuation, three samples | 1.597–1.618 s | 1.341–1.382 s |
+
+All-group album assignment takes 11.932 s to prepare and 54.251 s to commit; all-group favorite
+preparation/commit takes 15.116/34.008 s. These writes show no material improvement from the
+previous 12.152/55.634 s and 15.739/34.174 s. A single unfavorite commits in 3.657 ms, followed by a
+2.812-second Favorite snapshot. The remaining read and whole-library write waits stay open.
+
+The worker exits successfully after 213.707 seconds, using 201.797 CPU seconds. Sampling every
+500 ms across 408 samples records peak working set/private memory of 94.453/83.039 MiB.
+Compilation is excluded. The input SHA-256 is unchanged, source-media reads are zero, and the
+workload's result assertions pass. This measures catalog ports, not native-client response time;
+the earlier full-client Debug observation remains separate. Hosted verification for this source
+change is pending publication.
