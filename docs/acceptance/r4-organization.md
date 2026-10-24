@@ -1686,3 +1686,26 @@ selection-action lines, 51 delayed-progress lines, 421 picker lines and 1,891 sc
 lines, with no inline test bodies. Dedicated workspace/selection/mode tests contain 226/525/426
 lines; integrated query/review tests contain 577/256. This refinement introduces no schema,
 bridge, dependency or license change.
+
+## Schema 56 verification follow-up
+
+The completed hosted run `40116594303` exposes two recovery admission bounds still ending at schema
+55. Schema 56 changes organization history without changing the inventory-spool or live-gap
+contracts. Both explicit bounds now admit 56, retaining exact DDL/marker checks and rejection of
+unknown future versions. No migration, validator relaxation or source-media change is introduced.
+
+Three lower-level archive-restoration tests reopen catalogs after bypassing the production writer's
+history-epoch reset. Their transaction helper now performs that same finalization after updating the
+organization revision. The production writer and current-history validation remain unchanged; the
+existing reopen, rollback, ordering and retry assertions are retained.
+
+The history request uses a typed initializing formal, and its menu test drops an unused import.
+The removed settings Cancel control and selection-test braces are handled by the preceding UI
+change. Targeted Dart analysis, formatting, Rust formatting and all four history-menu checks pass.
+
+All 44 focused Rust checks pass: compatibility shape (3), atomic current recovery (1), retired
+live-gap repair (8), terminal inventory repair (7) and archive restoration (25). They cover all ten
+previously failing Rust cases, exact-shape rejection, rollback, restart, queue preservation,
+cancelled/failed restoration and idempotent replay. The compatibility owner has 109 lines and 56
+dedicated test lines; the affected archive test owner has 278 dedicated test/support lines.
+Current-head hosted verification follows publication; the retained-library R4 acceptance remains open.

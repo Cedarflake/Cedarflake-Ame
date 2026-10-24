@@ -4,7 +4,6 @@ import "package:cedarflake_ame/app/notifications/ame_notification_controller.dar
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_history.dart";
-import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_history.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_organization_menu.dart";
 import "package:flutter/material.dart";

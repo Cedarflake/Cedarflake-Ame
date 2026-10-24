@@ -46,6 +46,7 @@ fn apply(target: &SqliteCatalog, archive: &str) -> Result<(), ScanError> {
     transaction
         .execute("UPDATE organization_state SET revision = 103", [])
         .unwrap();
+    crate::adapters::sqlite_catalog::organization::history::reset(&transaction)?;
     transaction.commit().unwrap();
     Ok(())
 }

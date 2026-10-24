@@ -22,8 +22,8 @@ class LibraryOrganizationHistoryRequest extends LibraryOrganizationRequest {
   LibraryOrganizationHistoryRequest({
     required this.direction,
     required this.originalId,
-    required BigInt revision,
-  }) : _revision = revision;
+    required BigInt this._revision,
+  });
 
   final LibraryOrganizationHistoryDirection direction;
   final String originalId;
