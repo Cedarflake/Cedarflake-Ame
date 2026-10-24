@@ -4678,6 +4678,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "organization_archive",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "organization_batch",
             visibility: "pub",
             attributes: &[],

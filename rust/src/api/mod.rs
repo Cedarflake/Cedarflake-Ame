@@ -3,6 +3,7 @@ pub mod exact_duplicate_review;
 pub mod exact_duplicates;
 pub mod initialization;
 pub mod organization;
+pub mod organization_archive;
 pub mod organization_batch;
 pub mod organization_conflicts;
 pub mod organization_review;

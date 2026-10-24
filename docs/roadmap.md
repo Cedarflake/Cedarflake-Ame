@@ -65,7 +65,8 @@ source-lifecycle checks pass. The viewer-Favorite checkpoint passed hosted verif
 queue-layout checkpoint passed hosted verification, including its cancelled-request fixture
 correction. The subsequent conflict and batch-status head failed two availability-inventory assertions;
 the exact domain-module inventory is now corrected with passing focused admission and rejection
-checks. The published repair still requires hosted verification.
+checks. The published inventory repair passed hosted verification; the subsequent native-check
+commit is being verified separately.
 R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
 Controlled desktop checks cover transient Favorite feedback without notification history,
 create-in-picker assignment, defer/ignore/restore, saved continuation, collection persistence and
@@ -251,7 +252,9 @@ desktop checks cover conflict discovery, cancellation, resolution, restart and u
 navigation/retry without completing pending work. Verify the corrected availability source inventory
 and the completed native workflows in CI before advancing to R4-06. Keep the product
 checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
-R4-07 remain pending. The
+R4-07 remain pending. Independent R4-06 preparation now establishes the versioned archive codec,
+snapshot export and typed bridge; settings export, restoration and unresolved-record cleanup remain
+unconnected. This preparation does not close the pending R4-05 hosted check. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
 this roadmap owns their order and status. No R4 user workflow has passed acceptance yet.
 

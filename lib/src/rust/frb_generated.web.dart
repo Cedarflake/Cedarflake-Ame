@@ -10,6 +10,7 @@ import 'api/catalog.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
 import 'api/organization.dart';
+import 'api/organization_archive.dart';
 import 'api/organization_batch.dart';
 import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
@@ -29,6 +30,7 @@ import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
 import 'domain/organization.dart';
+import 'domain/organization_archive.dart';
 import 'domain/organization_batch.dart';
 import 'domain/organization_conflicts.dart';
 import 'domain/organization_queue.dart';
@@ -95,6 +97,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   RustStreamSink<ExactAnalysisProgress>
   dco_decode_StreamSink_exact_analysis_progress_Sse(dynamic raw);
+
+  @protected
+  RustStreamSink<OrganizationArchiveEvent>
+  dco_decode_StreamSink_organization_archive_event_Sse(dynamic raw);
 
   @protected
   RustStreamSink<PreviewCleanupEvent>
@@ -183,6 +189,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationAlbum dco_decode_box_autoadd_organization_album(dynamic raw);
+
+  @protected
+  OrganizationArchiveProgress
+  dco_decode_box_autoadd_organization_archive_progress(dynamic raw);
+
+  @protected
+  OrganizationArchiveReceipt
+  dco_decode_box_autoadd_organization_archive_receipt(dynamic raw);
 
   @protected
   OrganizationBatchAction dco_decode_box_autoadd_organization_batch_action(
@@ -656,6 +670,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationAlbumReceipt dco_decode_organization_album_receipt(dynamic raw);
 
   @protected
+  OrganizationArchiveEvent dco_decode_organization_archive_event(dynamic raw);
+
+  @protected
+  OrganizationArchivePhase dco_decode_organization_archive_phase(dynamic raw);
+
+  @protected
+  OrganizationArchiveProgress dco_decode_organization_archive_progress(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationArchiveReceipt dco_decode_organization_archive_receipt(
+    dynamic raw,
+  );
+
+  @protected
   OrganizationBatchAction dco_decode_organization_batch_action(dynamic raw);
 
   @protected
@@ -840,6 +870,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  RustStreamSink<OrganizationArchiveEvent>
+  sse_decode_StreamSink_organization_archive_event_Sse(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   RustStreamSink<PreviewCleanupEvent>
   sse_decode_StreamSink_preview_cleanup_event_Sse(SseDeserializer deserializer);
 
@@ -954,6 +990,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationAlbum sse_decode_box_autoadd_organization_album(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveProgress
+  sse_decode_box_autoadd_organization_archive_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveReceipt
+  sse_decode_box_autoadd_organization_archive_receipt(
     SseDeserializer deserializer,
   );
 
@@ -1547,6 +1595,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationArchiveEvent sse_decode_organization_archive_event(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchivePhase sse_decode_organization_archive_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveProgress sse_decode_organization_archive_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationArchiveReceipt sse_decode_organization_archive_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationBatchAction sse_decode_organization_batch_action(
     SseDeserializer deserializer,
   );
@@ -1780,6 +1848,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_StreamSink_organization_archive_event_Sse(
+    RustStreamSink<OrganizationArchiveEvent> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_StreamSink_preview_cleanup_event_Sse(
     RustStreamSink<PreviewCleanupEvent> self,
     SseSerializer serializer,
@@ -1917,6 +1991,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_organization_album(
     OrganizationAlbum self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_archive_progress(
+    OrganizationArchiveProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_archive_receipt(
+    OrganizationArchiveReceipt self,
     SseSerializer serializer,
   );
 
@@ -2637,6 +2723,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_organization_album_receipt(
     OrganizationAlbumReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_event(
+    OrganizationArchiveEvent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_phase(
+    OrganizationArchivePhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_progress(
+    OrganizationArchiveProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_archive_receipt(
+    OrganizationArchiveReceipt self,
     SseSerializer serializer,
   );
 

@@ -1022,6 +1022,46 @@ helper only exposes its original-decoding assertion for reuse. No production beh
 bridge is changed by this checkpoint.
 
 The inventory repair is published as 5cc6525a8f14315e9cebe86262d920a9cb19e00f. Its run
-[40074028181](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40074028181) remains in
-progress at this checkpoint. The subsequent native-check commit also needs hosted verification;
+[40074028181](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40074028181) completed
+successfully. The subsequent native-check commit cb2fb80528bba6127be43ebd9189f8b9955ada35 is covered by
+[40075785832](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40075785832), still in progress
+when archive preparation began;
 retained-library measurements and R4 export, restoration and cleanup remain outstanding.
+
+## Portable organization archive export boundary
+
+The [archive decision](../architecture/0031-portable-organization-archives.md) introduces a versioned
+JSON Lines codec and a catalog-snapshot exporter behind a narrow repository port and typed bridge.
+Twenty explicit record families cover durable R3/R4 intent, committed continuation, history and
+association evidence. Local integer admission keys are translated to root identifiers; active
+review authority, source media and previews are excluded. Each encoded line is limited to 1 MiB,
+and parsing never buffers the complete archive. The completion footer verifies counts and BLAKE3.
+
+The production boundary admits one export at a time, excludes source and application-storage
+destinations, copies committed WAL state in bounded SQLite backup steps, then streams the immutable
+snapshot into an exclusively owned output. Completed output is flushed and validated before
+no-clobber publication. Failure and cancellation release scratch ownership; current catalog writes
+can continue while archive records are serialized. Format validation alone is not restore admission.
+
+The first focused run passed 12 tests in 11.56 seconds after an 88-second test build. It covers all
+record families and Unicode, an empty catalog, every truncated prefix, unsupported/unknown fields,
+tampering, count mismatches, oversized input, read/write failures, phase cancellation, existing and
+concurrently created destinations, source/storage admission and concurrent committed decisions.
+The populated fixture's source root is unavailable, proving export does not need original-file reads.
+The canonical bridge generator completed its Rust Release build in 58.27 seconds. These fixture
+timings do not establish retained-library export throughput.
+
+After adding exclusive export admission, both application-boundary checks passed in 0.03 seconds
+and all nine existing root-availability checks passed in 28.71 seconds. This brings the focused
+archive coverage to 13 distinct tests while retaining the first run's unchanged codec/export
+results. Owned formatting and diff checks pass. Hosted verification remains required for the
+published implementation commit.
+
+The new catalog facade has 163 production lines, its codec 239, record projection 146 and snapshot
+owner 66. Dedicated export and codec tests have 197 and 173 lines. The application owner has 98
+production lines and 46 lines for its two inline boundary tests. Existing catalog and application
+facades only declare the new responsibility; no migration or source-reading workflow is extended.
+
+Settings integration, restoration/merge policy, unresolved-record cleanup and large-library
+temporary-storage/resource measurements remain outstanding. No R4-06 user workflow is accepted by
+this backend checkpoint; previous native UI evidence is retained without replay.

@@ -45,6 +45,7 @@ mod migration_backup;
 mod migrations;
 mod operation_diagnostics;
 mod organization;
+mod organization_archive;
 pub(crate) use organization::SqliteOrganizationBatch;
 #[cfg_attr(
     not(test),

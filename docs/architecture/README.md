@@ -45,3 +45,4 @@ Recorded decisions:
 - [ADR 0028: Version exact-content evidence behind a guarded reader](0028-versioned-exact-content-analysis.md)
 - [ADR 0029: Functional workbench navigation](0029-functional-workbench-navigation.md)
 - [ADR 0030: Bind durable organization decisions to content lineages](0030-durable-organization-decisions.md)
+- [ADR 0031: Stream portable organization archives from a committed snapshot](0031-portable-organization-archives.md)

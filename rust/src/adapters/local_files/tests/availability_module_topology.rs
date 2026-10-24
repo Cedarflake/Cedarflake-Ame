@@ -50,6 +50,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert!(!location[0].is_inline);
     for module_name in [
         "exact_duplicate_review",
+        "organization_archive",
         "organization_batch",
         "organization_conflicts",
         "organization_queue",
