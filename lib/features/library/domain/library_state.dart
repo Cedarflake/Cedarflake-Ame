@@ -39,6 +39,7 @@ class LibraryState {
     this.previousCursor,
     this.nextCursor,
     this.timeline,
+    this.organizationSummary,
     this.activeTimeAnchor,
     this.queryAnchorResolution,
     this._isScanLimited = false,
@@ -143,6 +144,9 @@ class LibraryState {
   final LibraryCatalogCursor? previousCursor;
   final LibraryCatalogCursor? nextCursor;
   final LibraryTimeline? timeline;
+  final LibraryOrganizationCountSnapshot? organizationSummary;
+  LibraryOrganizationCounts? get organizationCounts =>
+      organizationSummary?.forQuery(queryId, catalogRevision);
   final LibraryTimeAnchor? activeTimeAnchor;
   final LibraryQueryAnchorResolution? queryAnchorResolution;
   final bool _isScanLimited;
@@ -292,6 +296,7 @@ class LibraryState {
     Object? previousCursor = _unchanged,
     Object? nextCursor = _unchanged,
     Object? timeline = _unchanged,
+    Object? organizationSummary = _unchanged,
     Object? activeTimeAnchor = _unchanged,
     Object? queryAnchorResolution = _unchanged,
     bool? isScanLimited,
@@ -362,6 +367,9 @@ class LibraryState {
       timeline: timeline == _unchanged
           ? this.timeline
           : timeline as LibraryTimeline?,
+      organizationSummary: organizationSummary == _unchanged
+          ? this.organizationSummary
+          : organizationSummary as LibraryOrganizationCountSnapshot?,
       activeTimeAnchor: activeTimeAnchor == _unchanged
           ? this.activeTimeAnchor
           : activeTimeAnchor as LibraryTimeAnchor?,

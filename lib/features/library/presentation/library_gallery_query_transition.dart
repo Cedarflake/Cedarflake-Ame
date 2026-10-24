@@ -88,12 +88,14 @@ class LibraryGalleryQueryTransition implements LibraryQueryProjection {
     LibraryQueryPublication publication, {
     bool preservePosition = true,
     bool reconcileSelection = false,
+    LibraryGalleryVisiblePosition? retainedPosition,
   }) {
     clearFilterPosition();
     return _run(
       publication,
       preservePosition: preservePosition,
       reconcileSelection: reconcileSelection,
+      retainedPosition: retainedPosition,
     );
   }
 

@@ -15,6 +15,9 @@ class LibraryGalleryHeader extends StatelessWidget {
     this.leading,
     this.filter,
     this.selectionActions,
+    this.reviewCounts,
+    this.isReviewing = false,
+    this.onToggleReview,
     required this.totalItems,
     this.mergedItems,
     required this.selectedCount,
@@ -37,6 +40,9 @@ class LibraryGalleryHeader extends StatelessWidget {
   final Widget? leading;
   final Widget? filter;
   final Widget? selectionActions;
+  final LibraryOrganizationCounts? reviewCounts;
+  final bool isReviewing;
+  final VoidCallback? onToggleReview;
   final int totalItems;
   final int? mergedItems;
   final int selectedCount;
@@ -60,7 +66,12 @@ class LibraryGalleryHeader extends StatelessWidget {
     if (mergedItems case final count?) {
       subtitle = "$subtitle · 去重后 $count 张";
     }
-    if (isSelecting) subtitle = galleryTitle;
+    if (reviewCounts case final counts?) {
+      subtitle =
+          "${counts.total} 张图片 · 已整理 ${counts.organized} · 待整理 ${counts.pending}";
+    } else if (isSelecting) {
+      subtitle = galleryTitle;
+    }
     return SizedBox(
       key: const Key("library-gallery-header"),
       width: double.infinity,
@@ -108,6 +119,8 @@ class LibraryGalleryHeader extends StatelessWidget {
                     )
                   : _BrowsingToolbar(
                       filter: filter,
+                      isReviewing: isReviewing,
+                      onToggleReview: onToggleReview,
                       layoutShape: layoutShape,
                       thumbnailSize: thumbnailSize,
                       sortKey: sortKey,
@@ -174,6 +187,8 @@ class LibraryGalleryHeader extends StatelessWidget {
 class _BrowsingToolbar extends StatelessWidget {
   const _BrowsingToolbar({
     this.filter,
+    required this.isReviewing,
+    this.onToggleReview,
     required this.layoutShape,
     required this.thumbnailSize,
     required this.sortKey,
@@ -187,6 +202,8 @@ class _BrowsingToolbar extends StatelessWidget {
   });
 
   final Widget? filter;
+  final bool isReviewing;
+  final VoidCallback? onToggleReview;
   final GalleryLayoutShape layoutShape;
   final GalleryThumbnailSize thumbnailSize;
   final LibraryGallerySortKey sortKey;
@@ -210,12 +227,13 @@ class _BrowsingToolbar extends StatelessWidget {
           icon: const Icon(Symbols.check_box_rounded),
           label: const Text(LibraryStrings.select),
         ),
-        _SortMenu(
-          sortKey: sortKey,
-          direction: sortDirection,
-          onSortKeyChanged: onSortKeyChanged,
-          onDirectionChanged: onSortDirectionChanged,
-        ),
+        if (!isReviewing)
+          _SortMenu(
+            sortKey: sortKey,
+            direction: sortDirection,
+            onSortKeyChanged: onSortKeyChanged,
+            onDirectionChanged: onSortDirectionChanged,
+          ),
         ?filter,
         _LayoutMenu(
           shape: layoutShape,
@@ -223,7 +241,11 @@ class _BrowsingToolbar extends StatelessWidget {
           onShapeChanged: onLayoutShapeChanged,
           onSizeChanged: onThumbnailSizeChanged,
         ),
-        _MoreMenu(onSelectAll: onSelectAll),
+        _MoreMenu(
+          onSelectAll: onSelectAll,
+          isReviewing: isReviewing,
+          onToggleReview: onToggleReview,
+        ),
       ],
     );
   }
@@ -441,18 +463,28 @@ class _LayoutMenu extends StatelessWidget {
 }
 
 class _MoreMenu extends StatelessWidget {
-  const _MoreMenu({required this.onSelectAll});
+  const _MoreMenu({
+    required this.onSelectAll,
+    required this.isReviewing,
+    this.onToggleReview,
+  });
 
   final VoidCallback onSelectAll;
+  final bool isReviewing;
+  final VoidCallback? onToggleReview;
 
   @override
   Widget build(BuildContext context) {
+    final reviewLabel = isReviewing ? "退出整理模式" : "整理模式";
     return AmePopupMenuButton<_MoreMenuAction>(
-      labels: const [LibraryStrings.selectAll],
+      labels: [
+        LibraryStrings.selectAll,
+        if (onToggleReview != null) reviewLabel,
+      ],
       shortcuts: const ["Ctrl+A"],
       viewportRightMargin: AmeMenuMetrics.viewportPadding,
-      items: const [
-        PopupMenuItem(
+      items: [
+        const PopupMenuItem(
           value: _MoreMenuAction.selectAll,
           child: AmeMenuItemContent(
             icon: Symbols.select_all_rounded,
@@ -460,8 +492,23 @@ class _MoreMenu extends StatelessWidget {
             shortcut: "Ctrl+A",
           ),
         ),
+        if (onToggleReview != null)
+          PopupMenuItem(
+            value: _MoreMenuAction.review,
+            child: AmeMenuItemContent(
+              icon: Symbols.checklist_rounded,
+              label: reviewLabel,
+            ),
+          ),
       ],
-      onSelected: (_) => onSelectAll(),
+      onSelected: (action) {
+        switch (action) {
+          case _MoreMenuAction.selectAll:
+            onSelectAll();
+          case _MoreMenuAction.review:
+            onToggleReview?.call();
+        }
+      },
       builder: (context, openMenu) => AmeTooltip(
         message: LibraryStrings.more,
         child: IconButton(
@@ -525,4 +572,4 @@ enum _SortMenuAction {
 
 enum _LayoutMenuAction { equalHeight, square, small, medium, large }
 
-enum _MoreMenuAction { selectAll }
+enum _MoreMenuAction { selectAll, review }

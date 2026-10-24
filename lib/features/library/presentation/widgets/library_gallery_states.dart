@@ -168,6 +168,18 @@ class NoGalleryResults extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (query.organizationQueue case final queue?) {
+      return LibraryGalleryMessage(
+        key: const Key("library-no-results"),
+        icon: Symbols.checklist_rounded,
+        title: switch (queue) {
+          LibraryOrganizationQueue.pending => "当前范围没有待整理图片",
+          LibraryOrganizationQueue.deferred => "当前范围没有稍后整理的图片",
+          LibraryOrganizationQueue.ignored => "当前范围没有已忽略的图片",
+        },
+        detail: "可以切换下方的整理队列，或在更多菜单中退出整理模式。",
+      );
+    }
     final isSearch = query.searchText.isNotEmpty;
     final wholeCollection =
         !isSearch && query.rootId == null && query.organizationQueue == null;

@@ -1,9 +1,11 @@
 import "../domain/library_organization.dart";
 import "../domain/library_organization_batch.dart";
+import "../domain/library_review.dart";
 import "library_album_requests.dart";
 import "library_organization.dart";
 import "library_organization_requests.dart";
 import "library_selection_session.dart";
+import "library_review_requests.dart";
 
 abstract class _BatchRequest extends LibraryOrganizationRequest {
   _BatchRequest(this.session, this.action);
@@ -36,6 +38,19 @@ class LibraryBatchFavoriteRequest extends _BatchRequest {
   @override
   String get successMessage => favorite ? "已加入收藏夹" : "已取消收藏";
 
+  @override
+  void cancel() {
+    super.cancel();
+    session.dispose();
+  }
+}
+
+class LibraryBatchProgressRequest extends _BatchRequest {
+  LibraryBatchProgressRequest(LibrarySelectionSession session, this.progress)
+    : super(session, LibraryBatchProgressChange(progress));
+  final LibraryProgressAction progress;
+  @override
+  String get successMessage => libraryProgressMessage(progress);
   @override
   void cancel() {
     super.cancel();

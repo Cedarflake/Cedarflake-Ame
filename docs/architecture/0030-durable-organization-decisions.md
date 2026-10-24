@@ -278,6 +278,28 @@ cannot retire its own pending assignment. The shared picker exposes save cancell
 its membership command supports it, waits for retirement, and preserves a commit that wins the race.
 Ordinary favorite and unfavorite successes use the same transient receipt and undo path as the viewer.
 
+Organization mode has a typed presentation owner for its retained ordinary query, selection and
+visible anchor. It composes the existing query transition and viewer rather than adding another
+gallery. Progress counts carry their query identity and catalog revision; only a matching snapshot
+can supply the header and dock. Exiting restores the retained browsing context through the existing
+query/selection admission rules, so obsolete all-matching selections cannot authorize new writes.
+
+A separate review session owns the current image entry and lazy native session creation. Opening
+the mode or changing its queue does not create activity. An explicit image visit checkpoints its
+logical target; an admitted representative replacement renews that authority without duplicating
+the same target checkpoint. Allocate position sequences with a reserved intervening value for a
+commit still in flight. Unknown checkpoint or write outcomes reuse their original position and
+operation identities; a newer image retires the previous entry even if its result arrives later.
+Ending a session also retires a begin operation that completes after the surface is disposed.
+
+Album and progress actions use the atomic review command and advance only their still-current,
+committed entry. Favorites retain the ordinary independent command. Continuation restores the saved
+scope and logical target through a bounded query, never a guessed queue ordinal. Closing the viewer
+retires pending navigation intent. Background continuation reads run one at a time and coalesce
+superseding catalog publications; they update resume availability without moving the current image.
+Review failures use the existing viewer notice and retry path, while confirmed results retain the
+shared transient receipt and undo behavior.
+
 ## Alternatives and consequences
 
 Content-keyed decisions alone simplify queries but cannot retain provisional intent and conflict

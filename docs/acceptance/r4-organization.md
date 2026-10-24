@@ -706,3 +706,55 @@ introduced. Window operation remains paused: real pointer/keyboard/focus, restar
 latency, cancellation/resource measurements and two-core behavior remain unverified. Organization
 mode, involved-album conflict inspection and R4 recovery settings remain in the active execution
 queue. The published selection head requires its own hosted verification before acceptance.
+
+## Shared gallery organization mode
+
+The gallery overflow now enters and exits organization mode through the existing query transition.
+The original count row shows total, organized and pending groups from one matching query/revision
+snapshot. The bottom dock reserves content space for pending, deferred and ignored queues, with
+an independent, same-height resume button only when prior activity has a resumable target. The
+existing Material segmented control is also used elsewhere in the application; its installed
+Flutter 3.44.9 implementation supplies selection, disabled state, focus and semantics. No mobile
+layout, new dependency or replacement notification design is introduced.
+
+The viewer reuses its album picker and top notice. Assignment, deferral, ignore and restore commands
+save the current decision and continuation atomically through the existing native review API;
+advancement waits for the committed receipt. Favorites remain independent. Selection commands add
+the same progress actions using the existing bounded batch owner. Exiting restores the saved ordinary
+query, selection and visible anchor subject to existing query authority. A representative replacement
+admitted by the viewer renews the review target without duplicate checkpoints. Background updates
+coalesce continuation reads and do not move the displayed image.
+
+Sixty-seven distinct focused Flutter checks pass: review sessions (7), mode lifecycle (8), review
+widgets (7), composed gallery review (1), count authority (1), query transitions (17), ordinary
+viewer album actions (3), selection actions (9), ordinary gallery counts (4), and coherent snapshot
+reads (10). These cover inert first entry, saved-scope restoration, unknown-result retry identity,
+newer checkpoints versus late commits, close-during-read, commit-only advancement, album picker
+saves, defer/ignore/restore, query-wide deferral, unchanged ordinary counts, restored viewport
+fractions, and dock/resume alignment at 1x and 2x text scaling. The final mode and composed-gallery
+checks were repeated after representative adoption changed. Scoped Dart analysis with fatal infos
+passes after correcting a missing conditional block in that final change; owned Dart files are
+formatted. These are headless interaction and state checks, not native desktop acceptance.
+
+The 1,840-line screen and 575-line header compose the new owners. The 1,300-line viewport controller
+only forwards the coherent count snapshot; its publication lifecycle is unchanged. The state model
+has 406 lines, and the query/revision count guard belongs to its dedicated value type. The mode owner
+has 297 production lines, review adapter 189, session 99, request owner 86, contextual controls 161,
+and dock 96, with no inline tests. Dedicated session, mode, widget and composed-gallery tests have
+185, 220, 242 and 119 lines respectively. Session authority, presentation navigation and native
+translation remain separate responsibilities under ADR 0025.
+
+Hosted run [40066452840](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40066452840) for
+selection commit `369fe6dd8c5077fdd4d2b048eca947d47855182a` reports a Flutter failure while the run is
+still in progress. Its cancelled-picker assertion expected rejection after the request was retired.
+Commit `6dd398c10e76a38968da3446311913f54f63f2ff` corrects that assertion, retains the no-write check,
+and checks empty notification history and unread state. All five focused album command tests pass.
+This does not establish hosted verification for either that correction or the current mode slice.
+
+The mode slice changes no schema, Rust implementation, generated bridge or media adapter. The
+existing atomic continuation and source-lifecycle evidence remains applicable. Its tests use service
+fixtures and isolated catalogs; no original media, original catalog or cloud placeholder was opened
+or modified. Window operation remains paused. Native keyboard/focus, top-notice consistency,
+restart, retained-library latency/resource bounds and two-core behavior remain pending, as do
+persistent involved-album conflict discovery and the later recovery settings. R4 remains active
+under the canonical roadmap.

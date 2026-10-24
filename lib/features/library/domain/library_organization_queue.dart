@@ -1,5 +1,21 @@
 enum LibraryOrganizationQueue { pending, deferred, ignored }
 
+class LibraryOrganizationCountSnapshot {
+  const LibraryOrganizationCountSnapshot(
+    this.queryId,
+    this.revision,
+    this.counts,
+  );
+  final String queryId;
+  final BigInt revision;
+  final LibraryOrganizationCounts counts;
+
+  LibraryOrganizationCounts? forQuery(
+    String currentQueryId,
+    BigInt? currentRevision,
+  ) => queryId == currentQueryId && revision == currentRevision ? counts : null;
+}
+
 class LibraryOrganizationCounts {
   const LibraryOrganizationCounts({
     required this.total,

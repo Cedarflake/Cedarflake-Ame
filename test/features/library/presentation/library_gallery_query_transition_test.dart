@@ -9,6 +9,33 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   test(
+    "leaving organization restores the saved ordinary anchor and fractions",
+    () async {
+      final fixture = _Fixture();
+      final saved = LibraryGalleryVisiblePosition(
+        queryId: "saved-query",
+        revision: BigInt.one,
+        monthKey: null,
+        locationId: "old-location",
+        assetId: "saved-asset",
+        globalItemIndex: 48,
+        itemFraction: .6,
+        viewportFraction: .7,
+      );
+      await fixture.transition.run((anchor) async {
+        expect(anchor?.assetId, "saved-asset");
+        expect(anchor?.fallbackGlobalItemIndex, 48);
+        fixture.state = _state(revision: 2, resolved: true);
+        return LibraryQueryUpdateOutcome.applied;
+      }, retainedPosition: saved);
+      final position = fixture.published.single.position!;
+      expect(position.locationId, "new-location");
+      expect(position.itemFraction, .6);
+      expect(position.viewportFraction, .7);
+    },
+  );
+
+  test(
     "folder selection resets the old position without waiting for its gesture",
     () async {
       final fixture = _Fixture();

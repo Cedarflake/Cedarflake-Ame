@@ -22,4 +22,12 @@ class LibraryQuerySnapshot {
   final LibrarySnapshot snapshot;
   final LibraryTimeline timeline;
   final LibraryOrganizationCounts? organizationCounts;
+  LibraryOrganizationCountSnapshot? get organizationSummary =>
+      organizationCounts == null
+      ? null
+      : LibraryOrganizationCountSnapshot(
+          snapshot.queryId,
+          snapshot.revision,
+          organizationCounts!,
+        );
 }

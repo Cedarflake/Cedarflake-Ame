@@ -13,8 +13,17 @@ import "../library_organization_messages.dart";
 import "library_album_picker.dart";
 
 class LibraryAlbumViewerAction extends ConsumerStatefulWidget {
-  const LibraryAlbumViewerAction({required this.target, super.key});
+  const LibraryAlbumViewerAction({
+    required this.target,
+    this.membershipFactory,
+    this.onSaved,
+    this.enabled = true,
+    super.key,
+  });
   final LibraryOrganizationTarget target;
+  final LibraryAlbumMembership Function()? membershipFactory;
+  final VoidCallback? onSaved;
+  final bool enabled;
 
   @override
   ConsumerState<LibraryAlbumViewerAction> createState() =>
@@ -24,7 +33,7 @@ class LibraryAlbumViewerAction extends ConsumerStatefulWidget {
 class _LibraryAlbumViewerActionState
     extends ConsumerState<LibraryAlbumViewerAction> {
   Object? _opening;
-  LibraryAlbumMembershipSession? _membership;
+  LibraryAlbumMembership? _membership;
   String? _error;
 
   @override
@@ -45,7 +54,7 @@ class _LibraryAlbumViewerActionState
   }
 
   Future<void> _open() async {
-    if (_opening != null) return;
+    if (_opening != null || !widget.enabled) return;
     final target = widget.target;
     final opening = Object();
     setState(() {
@@ -54,7 +63,7 @@ class _LibraryAlbumViewerActionState
     });
     bool owns() =>
         mounted && identical(_opening, opening) && widget.target == target;
-    LibraryAlbumMembershipSession? membership;
+    LibraryAlbumMembership? membership;
     try {
       final proposal = await prepareLibraryAlbumProposal(
         service: ref.read(libraryOrganizationProvider),
@@ -62,22 +71,28 @@ class _LibraryAlbumViewerActionState
         preferences: ref.read(amePreferencesControllerProvider).albums,
       );
       if (!owns()) return;
-      membership = LibraryAlbumMembershipSession([
-        target,
-      ], isMove: proposal.current != null);
+      membership =
+          widget.membershipFactory?.call() ??
+          LibraryAlbumMembershipSession([
+            target,
+          ], isMove: proposal.current != null);
       _membership = membership;
       String? initialError;
       if (!proposal.shouldAsk && proposal.destination != null) {
         final result = await ref
             .read(libraryOrganizationActionsProvider.notifier)
             .submit(membership.request(proposal.destination));
-        if (!owns() || result is LibraryOrganizationSaved) return;
+        if (!owns()) return;
+        if (result is LibraryOrganizationSaved) {
+          widget.onSaved?.call();
+          return;
+        }
         if (result case LibraryOrganizationRejected(:final failure)) {
           initialError = libraryOrganizationErrorMessage(failure.code);
         }
       }
       if (!mounted || !owns()) return;
-      await showLibraryAlbumPicker(
+      final choice = await showLibraryAlbumPicker(
         context: context,
         actionLabel: proposal.current == null ? "加入相册" : "移至相册",
         initialAlbum: proposal.destination,
@@ -86,6 +101,7 @@ class _LibraryAlbumViewerActionState
         initialError: initialError,
         membership: membership,
       );
+      if (choice != null && owns()) widget.onSaved?.call();
     } on Object catch (error) {
       if (owns()) {
         setState(
@@ -115,7 +131,7 @@ class _LibraryAlbumViewerActionState
       message: label,
       child: IconButton(
         key: const Key("viewer-album-action"),
-        onPressed: busy || _opening != null ? null : _open,
+        onPressed: busy || _opening != null || !widget.enabled ? null : _open,
         icon: Icon(
           _error == null ? Symbols.photo_album_rounded : Symbols.error_rounded,
           size: 20,

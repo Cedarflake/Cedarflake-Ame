@@ -115,7 +115,7 @@ class RustLibraryOrganization implements LibraryOrganization {
   Future<LibraryOrganizationPrepared> prepare(
     List<LibraryOrganizationTarget> targets,
   ) => _call(
-    () async => _RustOrganizationPrepared(
+    () async => RustOrganizationPrepared(
       await api.prepareOrganizationSelection(selections: _selections(targets)),
     ),
   );
@@ -126,7 +126,7 @@ class RustLibraryOrganization implements LibraryOrganization {
     LibraryOrganizationPrepared prepared,
     bool favorite,
   ) => _call(() async {
-    if (prepared is! _RustOrganizationPrepared) {
+    if (prepared is! RustOrganizationPrepared) {
       throw StateError(
         "The prepared selection belongs to another organization adapter",
       );
@@ -245,7 +245,7 @@ class RustLibraryOrganization implements LibraryOrganization {
     LibraryOrganizationPrepared prepared,
     dto.OrganizationAction action,
   ) => _call(() async {
-    if (prepared is! _RustOrganizationPrepared) {
+    if (prepared is! RustOrganizationPrepared) {
       throw StateError(
         "The prepared selection belongs to another organization adapter",
       );
@@ -285,8 +285,8 @@ class RustLibraryOrganization implements LibraryOrganization {
   );
 }
 
-class _RustOrganizationPrepared extends LibraryOrganizationPrepared {
-  const _RustOrganizationPrepared(this.value);
+class RustOrganizationPrepared extends LibraryOrganizationPrepared {
+  const RustOrganizationPrepared(this.value);
   final dto.OrganizationPreparedSelection value;
 }
 

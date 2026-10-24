@@ -9,8 +9,13 @@ import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
 
 class LibraryFavoriteButton extends ConsumerWidget {
-  const LibraryFavoriteButton({required this.target, super.key});
+  const LibraryFavoriteButton({
+    required this.target,
+    this.enabled = true,
+    super.key,
+  });
   final LibraryOrganizationTarget target;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -26,7 +31,7 @@ class LibraryFavoriteButton extends ConsumerWidget {
       error: status.error,
     );
     VoidCallback? action;
-    if (!saving && !status.isLoading) {
+    if (enabled && !saving && !status.isLoading) {
       if (failed) {
         action = () =>
             ref.invalidate(libraryOrganizationInspectionProvider(target));

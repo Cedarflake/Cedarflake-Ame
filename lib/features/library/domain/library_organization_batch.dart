@@ -1,5 +1,6 @@
 import "library_models.dart";
 import "library_organization.dart";
+import "library_review.dart";
 
 class LibraryOrganizationSelection {
   LibraryOrganizationSelection({
@@ -42,6 +43,11 @@ class LibraryBatchFavorite extends LibraryBatchAction {
 class LibraryBatchAlbum extends LibraryBatchAction {
   const LibraryBatchAlbum(this.albumId);
   final String? albumId;
+}
+
+class LibraryBatchProgressChange extends LibraryBatchAction {
+  const LibraryBatchProgressChange(this.action);
+  final LibraryProgressAction action;
 }
 
 enum LibraryBatchPhase {

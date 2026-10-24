@@ -62,7 +62,7 @@ queries share bounded pages, group counts and logical anchors; focused Rust and 
 pass. Durable continuation now retains logical work across reopen, group changes and ordinary-mode
 edits, with atomic progress saves and stale-session rejection. Focused continuation, migration and
 source-lifecycle checks pass. The viewer-Favorite checkpoint passed hosted verification. The current
-product checkpoint still requires hosted verification after its batch-admission lint correction.
+product checkpoint still requires hosted verification after its cancelled-request fixture correction.
 R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
 The initial controlled desktop path passes; the final presentation, undo and restart recheck is
 deferred while window operation is paused. Album management, viewer assignment/movement/removal,
@@ -71,7 +71,9 @@ their real-window and restart checks remain pending. The query-wide selection fo
 implemented with bounded staging, atomic group writes and cancellation; its focused adapter and
 session checks pass. Gallery selection now connects whole-query album/Favorite commands, shared
 picker creation, cancellation and transient undo; focused Rust and Flutter checks pass. Organization
-mode remains to be connected.
+mode now connects its menu entry, shared counts, bottom queues, contextual actions and durable
+continuation through the existing gallery and viewer. Focused regressions pass; persistent
+involved-album conflict inspection and resolution remain to be connected.
 Retain the real-interaction and retained-library
 performance obligations.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
@@ -226,7 +228,8 @@ ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle
 the viewer Favorite path, album management, viewer membership commands, collection entries and
 album settings connected. The query-wide selection command boundary passes focused adapter and
 session checks. Their desktop recheck is deferred while window operation is paused;
-gallery selection controls are connected and organization-mode workflows remain pending. Keep the product
+gallery selection and the core organization-mode workflows are connected; persistent involved-album
+conflict inspection and resolution remain pending. Keep the product
 checkpoint's hosted verification and retained-library query measurements outstanding. R4-06 and
 R4-07 remain pending. The
 [execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;

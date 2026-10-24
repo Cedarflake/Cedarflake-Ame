@@ -19,6 +19,7 @@ import "../application/library_folder_controller.dart";
 import "../application/library_layout_manifest_catalog.dart";
 import "../application/library_organization_actions.dart";
 import "../application/library_organization_outcome.dart";
+import "../application/library_review.dart";
 import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
 import "../application/library_update_controller.dart";
@@ -34,6 +35,7 @@ import "gallery_selection.dart";
 import "library_gallery_dimension_publication.dart";
 import "library_gallery_layout_continuity.dart";
 import "library_gallery_query_transition.dart";
+import "library_organization_mode.dart";
 import "library_pending_source.dart";
 import "library_strings.dart";
 import "library_synchronization_notifications.dart";
@@ -44,10 +46,9 @@ import "library_viewer_session.dart";
 import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_album_navigation.dart";
-import "widgets/library_album_viewer_action.dart";
 import "widgets/library_collection_navigation.dart";
-import "widgets/library_favorite_button.dart";
-import "widgets/library_organization_feedback.dart";
+import "widgets/library_review_dock.dart";
+import "widgets/library_viewer_organization_controls.dart";
 import "widgets/library_gallery_activity.dart";
 import "widgets/library_gallery_header.dart";
 import "widgets/library_selection_actions.dart";
@@ -79,7 +80,8 @@ class UnifiedLibraryScreen extends ConsumerStatefulWidget {
       _UnifiedLibraryScreenState();
 }
 
-class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
+class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
+    implements LibraryReviewSurface {
   late final AmeScrollController _galleryScrollController;
   final Set<ScrollPosition> _galleryScrollPositions = {};
   late final LibraryController _libraryController;
@@ -92,6 +94,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   late GalleryThumbnailSize _thumbnailSize;
   bool _isSidebarResizing = false;
   late final LibraryViewerSession _viewer;
+  late final LibraryOrganizationMode _review;
   int _timelineSemanticsGeneration = 0;
   bool _isSelecting = false;
   LibraryGalleryPrependCompensation? _previousWindowCompensation;
@@ -127,6 +130,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
       onDetach: _handleGalleryScrollPositionDetached,
     );
     _libraryController = ref.read(libraryControllerProvider.notifier);
+    _review = LibraryOrganizationMode(ref.read(libraryReviewProvider), this)
+      ..addListener(_handleViewerChanged);
     _viewer = LibraryViewerSession(
       readLibrary: () => ref.read(libraryControllerProvider),
       loadPrevious: () => _loadPreviousAssetsForViewer(_libraryController),
@@ -208,6 +213,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
     _libraryController.queryProjections.detach(_queryProjection);
     _queryTransition.dispose();
     _viewer.removeListener(_handleViewerChanged);
+    _review.removeListener(_handleViewerChanged);
+    _review.dispose();
     _viewer.dispose();
     _searchDebounce?.cancel();
     _dimensionPublication.dispose();
@@ -346,6 +353,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    ref.listen(
+      libraryControllerProvider.select((state) => state.catalogRevision),
+      (_, _) {
+        unawaited(_review.refreshContinuation());
+      },
+    );
     ref.listen<int>(
       libraryControllerProvider.select(
         (state) => state.rootRemovalCompletionSequence,
@@ -469,34 +482,26 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                           );
                           return LibraryImageViewer(
                             asset: viewerAsset,
-                            organizationActions: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                LibraryFavoriteButton(
+                            organizationActions:
+                                LibraryViewerOrganizationControls(
                                   target: LibraryOrganizationTarget.fromAsset(
                                     viewerAsset,
                                   ),
+                                  mode: _review,
                                 ),
-                                LibraryAlbumViewerAction(
-                                  target: LibraryOrganizationTarget.fromAsset(
-                                    viewerAsset,
-                                  ),
-                                ),
-                              ],
+                            operationNotice: LibraryViewerOrganizationNotice(
+                              mode: _review,
                             ),
-                            operationNotice: switch (ref.watch(
-                              libraryOrganizationNoticeProvider,
-                            )) {
-                              final notice? => LibraryOrganizationFeedback(
-                                notification: notice,
-                              ),
-                              null => null,
-                            },
                             sourceNotice: _viewer.sourceNotice,
-                            onReloadSource: _viewer.reloadSource,
+                            onReloadSource: () {
+                              _viewer.reloadSource();
+                              if (_viewer.retainedAsset case final asset?) {
+                                _review.adoptDisplayedAsset(asset);
+                              }
+                            },
                             filmstrip: LibraryViewerFilmstrip(
                               selection: viewerAsset,
-                              onSelected: _viewer.open,
+                              onSelected: _openAsset,
                               loadPrevious: () =>
                                   _loadPreviousAssetsForViewer(controller),
                             ),
@@ -504,16 +509,17 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                             openBehavior: amePreferences.viewerOpenBehavior,
                             position: viewerNavigation.position,
                             totalItems: _totalItems(state),
-                            onPrevious: viewerNavigation.canPrevious
+                            onPrevious:
+                                viewerNavigation.canPrevious && !_review.busy
                                 ? () => unawaited(
-                                    _viewer.navigate(
+                                    _navigateViewer(
                                       LibraryViewerDirection.previous,
                                     ),
                                   )
                                 : null,
-                            onNext: viewerNavigation.canNext
+                            onNext: viewerNavigation.canNext && !_review.busy
                                 ? () => unawaited(
-                                    _viewer.navigate(
+                                    _navigateViewer(
                                       LibraryViewerDirection.next,
                                     ),
                                   )
@@ -532,7 +538,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
+                    padding: EdgeInsets.only(
+                      bottom: _review.isActive ? 104 : 24,
+                    ),
                     child: LibraryTaskFeedback(
                       onRetryPrimary: _retryLibraryTask,
                     ),
@@ -545,7 +553,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
                 Align(
                   alignment: Alignment.bottomCenter,
                   child: Padding(
-                    padding: const EdgeInsets.only(bottom: 24),
+                    padding: EdgeInsets.only(
+                      bottom: _review.isActive ? 104 : 24,
+                    ),
                     child: AmeNotificationSurface(
                       key: ValueKey(currentNotification.id),
                       notification: currentNotification,
@@ -731,6 +741,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
         controller: controller,
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
+            isReviewing: _review.isActive,
+            reviewCounts: _review.isActive ? state.organizationCounts : null,
+            onToggleReview:
+                _review.busy || !LibraryBrowseAdmission(state).canBrowse
+                ? null
+                : () => unawaited(_review.toggle()),
             selectionActions: state.catalogRevision == null
                 ? null
                 : LibrarySelectionActions(
@@ -787,6 +803,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
             ),
             _ => null,
           },
+          footer: _review.isActive
+              ? LibraryReviewDock(
+                  mode: _review,
+                  counts: state.organizationCounts,
+                )
+              : null,
           isEmpty: state.assets.isEmpty,
           isLoading:
               state.isRefreshingQuery ||
@@ -896,15 +918,99 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   void _handleViewerChanged() {
-    if (mounted && !_isDisposing) setState(() {});
+    if (mounted && !_isDisposing) {
+      final asset = _viewer.retainedAsset;
+      if (asset != null && _viewer.sourceNotice == null) {
+        _review.reconcileDisplayedAsset(asset);
+      }
+      setState(() {});
+    }
   }
 
+  @override
+  LibraryState get library => ref.read(libraryControllerProvider);
+
+  @override
+  LibraryReviewBrowseState captureBrowse() => LibraryReviewBrowseState(
+    query: library.query,
+    selection: _selection,
+    isSelecting: _isSelecting,
+    position: _freezeCurrentGalleryPosition(library),
+  );
+
+  @override
+  Future<bool> showReviewQuery(
+    LibraryGalleryQuery query, {
+    LibraryOrganizationTarget? target,
+    LibraryGalleryVisiblePosition? position,
+  }) async {
+    _previousWindowCompensation?.retire();
+    final anchorPosition = target == null
+        ? position
+        : LibraryGalleryVisiblePosition(
+            queryId: library.queryId,
+            revision: library.catalogRevision ?? BigInt.zero,
+            monthKey: null,
+            locationId: target.locationId,
+            assetId: target.assetId,
+            globalItemIndex: 0,
+            itemFraction: 0,
+            viewportFraction: 0,
+          );
+    final result = await _queryTransition.run(
+      (anchor) async {
+        final applied = await _libraryController.updateQuery(
+          query,
+          anchorLocationId: anchor?.requestedLocationId,
+          anchorAssetId: anchor?.assetId,
+          fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
+          forceRefresh: true,
+        );
+        return applied
+            ? LibraryQueryUpdateOutcome.applied
+            : LibraryQueryUpdateOutcome.failed;
+      },
+      preservePosition: anchorPosition != null,
+      retainedPosition: anchorPosition,
+    );
+    if (!mounted || result != LibraryQueryUpdateOutcome.applied) return false;
+    _searchController.text = query.searchText;
+    return true;
+  }
+
+  @override
+  void restoreReviewBrowse(LibraryReviewBrowseState saved) {
+    if (!mounted) return;
+    setState(() {
+      _selection = saved.selection.queryId == _queryId(library)
+          ? saved.selection
+          : saved.selection.rebind(_queryId(library));
+      _selectionStableQueryId = _stableQueryId(library);
+      _isSelecting = saved.isSelecting && !_selection.isEmpty;
+    });
+  }
+
+  @override
+  void openReviewImage(LibraryAsset asset) => _viewer.open(asset);
+
+  @override
+  void closeReviewImage() => _closeViewer();
+
   void _openAsset(LibraryAsset asset) {
+    if (_review.busy) return;
     _galleryScrollController.stopWheelMotion();
+    _review.open(asset);
     _viewer.open(asset);
   }
 
+  Future<void> _navigateViewer(LibraryViewerDirection direction) async {
+    if (await _viewer.navigate(direction) && _viewer.retainedAsset != null) {
+      _review.adoptDisplayedAsset(_viewer.retainedAsset!);
+    }
+  }
+
   void _closeViewer() {
+    _review.closeCurrent();
     _timelineSemanticsGeneration += 1;
     _viewer.close();
   }
@@ -961,6 +1067,23 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   Future<LibraryQueryUpdateOutcome> _applyQuery(
+    LibraryGalleryQuery query, {
+    bool preserveGalleryPosition = true,
+    bool forceRefresh = false,
+  }) async {
+    if (_review.isActive) {
+      return await _review.changeQuery(query)
+          ? LibraryQueryUpdateOutcome.applied
+          : LibraryQueryUpdateOutcome.failed;
+    }
+    return _publishGalleryQuery(
+      query,
+      preserveGalleryPosition: preserveGalleryPosition,
+      forceRefresh: forceRefresh,
+    );
+  }
+
+  Future<LibraryQueryUpdateOutcome> _publishGalleryQuery(
     LibraryGalleryQuery query, {
     bool preserveGalleryPosition = true,
     bool forceRefresh = false,
@@ -1193,7 +1316,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen> {
   }
 
   Future<void> _persistViewPreferences({LibraryGalleryQuery? query}) async {
-    final currentQuery = query ?? ref.read(libraryControllerProvider).query;
+    final currentQuery =
+        _review.ordinaryQuery ??
+        query ??
+        ref.read(libraryControllerProvider).query;
     try {
       await ref
           .read(libraryViewPreferenceStoreProvider)

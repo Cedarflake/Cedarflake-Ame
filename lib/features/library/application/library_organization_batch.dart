@@ -7,6 +7,7 @@ import "../../../src/rust/domain/organization_batch.dart" as dto;
 import "../domain/library_organization.dart";
 import "../domain/library_organization_batch.dart";
 import "library_catalog.dart";
+import "library_review.dart";
 
 abstract interface class LibraryOrganizationBatches {
   Future<LibraryOrganizationBatch> open(LibraryOrganizationSelection selection);
@@ -82,6 +83,10 @@ class _RustBatch implements LibraryOrganizationBatch {
             action: albumId == null
                 ? const organization.OrganizationAction.removeAlbum()
                 : organization.OrganizationAction.assignAlbum(albumId: albumId),
+          ),
+        LibraryBatchProgressChange(:final action) =>
+          dto.OrganizationBatchAction.organize(
+            action: mapLibraryProgressAction(action),
           ),
       },
     );

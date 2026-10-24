@@ -11,13 +11,16 @@ import "../../application/library_batch_requests.dart";
 import "../../application/library_organization.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_organization_batch.dart";
+import "../../application/library_organization_requests.dart";
 import "../../application/library_selection_session.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_organization.dart";
 import "../../domain/library_organization_batch.dart";
+import "../../domain/library_review.dart";
 import "../gallery_selection.dart";
 import "../library_organization_messages.dart";
 import "library_album_picker.dart";
+import "library_review_actions.dart";
 
 class LibrarySelectionActions extends ConsumerStatefulWidget {
   const LibrarySelectionActions({
@@ -42,7 +45,7 @@ class LibrarySelectionActions extends ConsumerStatefulWidget {
 class _LibrarySelectionActionsState
     extends ConsumerState<LibrarySelectionActions> {
   LibrarySelectionSession? _session;
-  LibraryBatchFavoriteRequest? _favorite;
+  LibraryOrganizationRequest? _pendingRequest;
   late LibraryOrganizationActions _actions;
   bool _working = false;
   bool _dialogOwnsSession = false;
@@ -71,12 +74,12 @@ class _LibrarySelectionActionsState
     _timer?.cancel();
     _session?.dispose();
     _session = null;
-    final request = _favorite;
+    final request = _pendingRequest;
     if (request != null) {
       request.cancel();
       scheduleMicrotask(() => _actions.retire(request));
     }
-    _favorite = null;
+    _pendingRequest = null;
     _working = false;
     _progress = null;
   }
@@ -130,12 +133,20 @@ class _LibrarySelectionActionsState
     }
   }
 
-  Future<void> _setFavorite(bool favorite) async {
+  Future<void> _setFavorite(bool favorite) =>
+      _apply((session) => LibraryBatchFavoriteRequest(session, favorite));
+
+  Future<void> _setProgress(LibraryProgressAction action) =>
+      _apply((session) => LibraryBatchProgressRequest(session, action));
+
+  Future<void> _apply(
+    LibraryOrganizationRequest Function(LibrarySelectionSession) create,
+  ) async {
     if (!mounted || _working || !widget.enabled) return;
     final onCommitted = widget.onCommitted;
     final session = _start();
-    final request = LibraryBatchFavoriteRequest(session, favorite);
-    _favorite = request;
+    final request = create(session);
+    _pendingRequest = request;
     final result = await _actions.submit(request);
     if (result is LibraryOrganizationSaved) {
       session.dispose();
@@ -237,6 +248,23 @@ class _LibrarySelectionActionsState
           icon: const Icon(Symbols.photo_album_rounded),
           label: const Text("加入相册"),
         ),
+        if (widget.query.organizationQueue != null) ...[
+          TextButton.icon(
+            key: const Key("library-selection-defer"),
+            onPressed: enabled
+                ? () => _setProgress(LibraryProgressAction.defer)
+                : null,
+            icon: const Icon(Symbols.schedule_rounded),
+            label: const Text("稍后整理"),
+          ),
+          LibraryProgressMenu(
+            enabled: enabled,
+            ignored:
+                widget.query.organizationQueue ==
+                LibraryOrganizationQueue.ignored,
+            onSelected: _setProgress,
+          ),
+        ],
         AmePopupMenuButton<bool>(
           labels: const ["加入收藏夹", "取消收藏"],
           onSelected: _setFavorite,
