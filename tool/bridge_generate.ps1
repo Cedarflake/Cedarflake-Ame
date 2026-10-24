@@ -11,9 +11,10 @@ try {
         throw "flutter_rust_bridge_codegen failed with exit code $LASTEXITCODE"
     }
 
-    $freezedPath = Join-Path $repositoryRoot "lib\src\rust\domain.freezed.dart"
-    if (Test-Path -LiteralPath $freezedPath) {
-        $content = [System.IO.File]::ReadAllText($freezedPath)
+    $generatedRoot = Join-Path $repositoryRoot "lib\src\rust"
+    $freezedFiles = Get-ChildItem -LiteralPath $generatedRoot -Recurse -File -Filter "*.freezed.dart"
+    foreach ($freezedFile in $freezedFiles) {
+        $content = [System.IO.File]::ReadAllText($freezedFile.FullName, [System.Text.Encoding]::UTF8)
         $content = [System.Text.RegularExpressions.Regex]::Replace(
             $content,
             "[ \t]+(?=\r?$)",
@@ -21,7 +22,7 @@ try {
             [System.Text.RegularExpressions.RegexOptions]::Multiline
         )
         [System.IO.File]::WriteAllText(
-            $freezedPath,
+            $freezedFile.FullName,
             $content,
             [System.Text.UTF8Encoding]::new($false)
         )

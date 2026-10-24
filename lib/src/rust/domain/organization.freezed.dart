@@ -176,7 +176,7 @@ return provisional(_that.assetId,_that.sourceGeneration);case _:
 
 class OrganizationGroupKey_Confirmed extends OrganizationGroupKey {
   const OrganizationGroupKey_Confirmed({required this.digest, required this.byteLength}): super._();
-  
+
 
  final  String digest;
  final  BigInt byteLength;
@@ -244,7 +244,7 @@ as BigInt,
 
 class OrganizationGroupKey_Provisional extends OrganizationGroupKey {
   const OrganizationGroupKey_Provisional({required this.assetId, required this.sourceGeneration}): super._();
-  
+
 
  final  String assetId;
  final  BigInt sourceGeneration;
