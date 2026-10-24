@@ -41,6 +41,7 @@ import "library_gallery_query_transition.dart";
 import "library_organization_mode.dart";
 import "library_conflict_notifications.dart";
 import "library_pending_source.dart";
+import "library_review_query_transition.dart";
 import "library_strings.dart";
 import "library_synchronization_notifications.dart";
 import "library_synchronization_refresh.dart";
@@ -117,6 +118,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   LibraryGalleryLayoutTransition? _galleryLayoutTransition;
   final _galleryLayoutContinuity = LibraryGalleryLayoutContinuity();
   late final LibraryGalleryQueryTransition _queryTransition;
+  late final LibraryReviewQueryTransition _reviewQueryTransition;
   late final LibraryQueryProjectionRegistration _queryProjection;
   final LibraryGalleryPositionResolver _galleryPositionResolver =
       LibraryGalleryPositionResolver();
@@ -215,6 +217,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     );
     _queryProjection = _libraryController.queryProjections.attach(
       _queryTransition,
+    );
+    _reviewQueryTransition = LibraryReviewQueryTransition(
+      readState: () => library,
+      updateQuery: _libraryController.updateQuery,
+      positionTransition: _queryTransition,
     );
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
@@ -987,35 +994,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     LibraryGalleryVisiblePosition? position,
   }) async {
     _previousWindowCompensation?.retire();
-    final anchorPosition = target == null
-        ? position
-        : LibraryGalleryVisiblePosition(
-            queryId: library.queryId,
-            revision: library.catalogRevision ?? BigInt.zero,
-            monthKey: null,
-            locationId: target.locationId,
-            assetId: target.assetId,
-            globalItemIndex: 0,
-            itemFraction: 0,
-            viewportFraction: 0,
-          );
-    final result = await _queryTransition.run(
-      (anchor) async {
-        final applied = await _libraryController.updateQuery(
-          query,
-          anchorLocationId: anchor?.requestedLocationId,
-          anchorAssetId: anchor?.assetId,
-          fallbackGlobalItemIndex: anchor?.fallbackGlobalItemIndex,
-          forceRefresh: true,
-        );
-        return applied
-            ? LibraryQueryUpdateOutcome.applied
-            : LibraryQueryUpdateOutcome.failed;
-      },
-      preservePosition: anchorPosition != null,
-      retainedPosition: anchorPosition,
+    final applied = await _reviewQueryTransition.show(
+      query,
+      target: target,
+      position: position,
     );
-    if (!mounted || result != LibraryQueryUpdateOutcome.applied) return false;
+    if (!mounted || !applied) return false;
     _searchController.text = query.searchText;
     return true;
   }

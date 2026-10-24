@@ -82,11 +82,13 @@ void main() {
       "library-sidebar-settings",
     ]) {
       await selectImage();
+      final reads = catalog.loadQueries.length;
       await tester.tap(find.byKey(Key(destination)));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("workbench-gallery")));
       await tester.pumpAndSettle();
       expect(find.byKey(const Key("library-selection-toolbar")), findsNothing);
+      expect(catalog.loadQueries.length, reads);
       expect(catalog.loadQueries.last.rootId, "root-1");
       expect(catalog.loadQueries.last.collection, isA<LibraryAllCollection>());
     }

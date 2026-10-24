@@ -41,7 +41,12 @@ keeps its complete active snapshot. A departing active review session retires be
 collection can use the shared gallery. Returning restores the query before reactivating organization
 mode and its selection. The owner distinguishes the visible primary destination from the retained
 gallery. Returning from Settings or Duplicates resets an ordinary gallery through the same query
-transition, while an active organization session remains intact. A failed query keeps the previous
+transition, while an active organization session remains intact. `LibraryReviewQueryTransition`
+owns the requested target and reload decision. An unchanged query whose first window remains loaded
+can reset its position without another catalog read. A later window, saved review anchor, pending
+window request or query failure retains the existing refresh and admission path. The application's
+query owner still admits changed collection/source queries and rejects stale results.
+A failed query keeps the previous
 destination; the existing query retry
 replays the whole navigation intent. Album retirement invalidates both saved and in-flight album
 restoration before it can publish a destination. Disposal retires pending publication.

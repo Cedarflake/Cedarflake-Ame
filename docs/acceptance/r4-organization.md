@@ -1871,3 +1871,34 @@ tests. The new aggregation regression contains 99 dedicated test lines. No schem
 dependency, licensing or source-authority changes are introduced. Owned Rust formatting and
 whitespace checks pass. The whole-tree format check still reports only the preserved, unrelated
 gallery-state edit. Exact-commit hosted verification remains required.
+
+## Returning to the retained gallery
+
+Hosted run `40127335693` exposes an empty-shell navigation failure: returning from Settings forces
+a catalog read even when the current query's first window is already retained. The local reproduction
+reports `bridge_query_snapshot_load_failed` and keeps Settings visible. The unchanged one-frame
+return assertion now passes after `LibraryReviewQueryTransition` takes ownership of target and
+reload selection. First-window reuse still passes through the application query admission and
+position-reset path. Later windows, active time anchors, pending reads and failed queries retain
+refresh/admission behavior; changed collections and saved review positions still read their scope.
+
+Thirty-four focused checks pass across the query-transition boundary, workspace lifetime, empty
+shell, collection navigation and integrated organization flow. They include failed restoration,
+supersession, album retirement, disposal, bounded-window reset and preserved review selection.
+The new boundary contains 80 production lines and 184 dedicated test lines; the shared screen
+is reduced to 1,875 production lines with no inline tests. Its remaining responsibilities are
+unchanged; this extraction does not resolve all screen-composition debt.
+
+The current Profile frontend builds without warnings in 138.8 seconds. Native checks use a disposable
+copy paired with the existing `f096ffd5` Debug Rust adapter so the test-storage override remains
+effective; the generated bridge/API contract is unchanged between these revisions. This combination
+verifies the changed frontend interaction, not Release packaging or backend performance. Empty
+Library returns from Settings. In a copied 700-file/six-group test catalog, ordinary browsing with
+one selected image and a scrolled viewport returns to the first row with selection cleared.
+Organization mode retains its deferred queue and selected group across the same Settings visit.
+All 700 source fixture hashes, sizes and modification times remain unchanged. The separate recovery
+profile retains its six unmatched records and pending cleanup authority.
+
+The same hosted run separately fails the exclusive-WAL-lock fixture during lock acquisition,
+before recovery dispatch. Its diagnostic is retained for the following cause-level repair; this
+navigation checkpoint does not claim that Rust partition or exact-commit CI has passed.
