@@ -97,24 +97,24 @@ evidence, with focused group, conflict, source-removal and migration checks. Ato
 application now connects the application and typed bridge, preserving current decisions, operation
 history, queue order, continuation and unmatched evidence. Focused restore, cancellation, migration
 and queue-cost checks pass. Settings export, inspection and guarded restoration are connected,
-with focused controller/widget checks; native picker and restoration interaction remain pending
-while window operation is suspended. Manual unresolved-record inspection, guarded cleanup and
-settings confirmation are connected; focused boundary checks pass, and their native
-interaction remains pending with archive recovery.
+with focused controller/widget checks; native picker and restoration interaction remain pending.
+Manual unresolved-record inspection, guarded cleanup and settings confirmation are connected;
+focused boundary checks pass, and their native interaction remains pending with archive recovery.
 The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
 read archive tables before their migration. Schema-aware local versus imported authority now passes
 focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
 repaired upgrade paths and expected-table inventory. The later archive checkpoint exposes two
 static flow-control violations and a source-management integration setup error; both pass subsequent
 hosted verification. The settings-page control inventory now includes cleanup's age selector;
-its focused checks pass, with hosted verification pending. The ordinary-journal import failure has recurred;
+its focused and hosted checks pass. The ordinary-journal import failure has recurred;
 independent fallback now retires the superseded first-import execution owner, with focused
 handoff/restart/rollback checks passing. Subsequent hosted synchronization passes; retain the
 numeric native-read diagnostic for recurrence. The cleanup checkpoint also exposed a one-copy
 publication cost regression. Schema 55's maintained unresolved-association lookup restores bounded
-group updates, with migration, cleanup/restoration and query-growth checks passing; exact-head hosted
-verification remains pending. Retained-library
-performance obligations stay with integrated verification.
+group updates, with migration, cleanup/restoration, query-growth and exact-head hosted checks passing.
+The retained-library database baseline exposes slow album, Favorite and organization-queue reads,
+including empty queues and continuation. Repair their owning queries before accepting large-library
+performance; retain the complete client/resource obligations with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -279,9 +279,10 @@ bridge. Native-version reassociation is connected to the existing publication tr
 cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
 are implemented through the application and typed bridge. Restored queue order and continuation,
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
-native settings verification when window operation resumes. Manual unresolved-record cleanup passes
-its focused boundary checks. Preserve the remaining native journal-read investigation and pending
-follow-up hosted verification, including the schema-55 association-cost repair.
+native settings verification. Manual unresolved-record cleanup passes its focused boundary checks.
+Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
+native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
+by the catalog-only baseline before integrated performance acceptance.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites is available
 from both browsing sidebars. Its focused checks and

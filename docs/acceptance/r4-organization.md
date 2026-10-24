@@ -1494,3 +1494,61 @@ only module and migration dispatch calls were added. The existing catalog facade
 production/support lines and changes only its schema constant. Compatibility shape checks have 109
 production/support lines, and the retained-row inventory test owner has 261 dedicated lines.
 The new owners have no inline test bodies. Exact-head hosted verification remains pending.
+
+Run [40104428180](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40104428180)
+passes on `2736fc3f091ce9b4c9390701d6236a6aa75e8e25`: Static, Flutter, all four Rust
+partitions, Windows Scan, Windows Accessibility, unsigned Windows x64 Release and all five synthetic
+workloads. The three separately protected release jobs are skipped. This verifies the association
+lookup, settings inventory and fallback handoff corrections; the native attribute-read error did
+not recur, and its original cause remains unexplained.
+
+## Retained-catalog organization query baseline
+
+The manual `profile_retained_organization_queries` diagnostic uses the actual gallery, organization,
+batch and continuation ports on a disposable copy of the retained `local-primary` catalog. Input
+must resolve inside `build/test/derived`; the driver rejects path escape/reparse ancestry, opens that
+input read-only and creates its writable copy in a separately owned temporary directory. It does
+not resolve application storage, enumerate source roots, read images or generate previews. Its
+scalar JSONL report contains no source paths or image identifiers and refuses to overwrite an
+existing report. Automatic tests leave this explicitly ignored diagnostic unexecuted.
+
+The prepared schema-45 snapshot contains 63,077 published physical files and 59,538 fingerprints.
+It folds to 47,833 groups. Capturing the snapshot took 4.370 seconds, and the original database
+file's SHA-256 remained unchanged across capture. The isolated input's SHA-256 also remained unchanged
+after the complete diagnostic. Ordinary migrations and real group commands populate the working
+copy; no SQL shortcut creates its album or Favorite decisions. The writable copy is retired after
+the run, while the retained input and redacted report remain in ignored derived storage.
+
+The production implementation is `2736fc3`; only the manual diagnostic differs from that revision.
+An optimized Release build completes the diagnostic in 483.92 seconds after 7 minutes 11 seconds of
+compilation. Connections are opened normally and the OS cache is not flushed. Each snapshot returns
+at most 128 assets; each layout chunk returns at most 128 identifiers. The ranges below contain the
+initial sample and three immediate repetitions, not statistically established percentiles.
+
+| Catalog operation | Measured elapsed time |
+| --- | --- |
+| One-time schema-45 upgrade and open of the copy | 51.645 s |
+| Pending snapshot, including shared counts | 11.565–12.896 s |
+| Pending layout / following page | 8.013 s / 5.337 s |
+| Save continuation / repeat continuation reads | 3.790 s / 3.734–3.753 s |
+| Prepare / commit assignment of all 47,833 groups | 15.373 s / 62.567 s |
+| Prepare / commit Favorite for the same groups | 20.164 s / 29.646 s |
+| Reopen the populated copy | 2.737 s |
+| Populated album snapshot | 12.119–13.175 s |
+| Populated Favorite snapshot | 12.264–15.068 s |
+| Empty pending queue snapshot after assignment | 11.184–12.105 s |
+| Single-group unfavorite commit / resulting Favorite snapshot | 3.317 ms / 11.424 s |
+
+All grouping, page bounds, layout totals, continuation identity and final Favorite-count assertions
+pass. They expose an unresolved large-library latency problem: even an empty queue and the read
+following a fast single-group write remain slow. These are database-port measurements, not desktop
+save-to-visible latency or a retained-library performance pass. Continuous CPU/peak-memory sampling,
+two-core measurements and client frames remain outstanding. The original process sampler could not
+observe the sandbox worker; its timeout is not a zero-resource result.
+
+The diagnostic is selected under the repository tool lock with `AME_R4_RETAINED_SNAPSHOT` pointing
+only to the prepared isolated snapshot, then `cargo test --locked --release --manifest-path
+rust/Cargo.toml --lib profile_retained_organization_queries -- --ignored --nocapture --test-threads=1`.
+Its 180-second batch deadline is an operational cancellation guard, not a product acceptance target.
+The dedicated diagnostic contains 316 test/support lines and adds one module declaration to the
+existing organization test owner; it changes no production behavior. Canonical formatting passes.

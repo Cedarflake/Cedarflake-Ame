@@ -22,6 +22,7 @@ mod publication;
 mod queries;
 mod reconciliation;
 mod restored_authority;
+mod retained_profile;
 mod review;
 mod transitions;
 mod undo;
