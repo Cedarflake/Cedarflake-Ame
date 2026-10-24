@@ -19,10 +19,14 @@ fn recovery_dispatch_does_not_wait_for_an_exclusive_sqlite_lock() {
     let (mut publisher, change_id) = ready_recovery_catalog(path.clone());
     let before = queue_state(&publisher.connection, change_id);
     let timeout = busy_timeout(&publisher.connection);
-    // A fresh connection has not joined the WAL, so another connection can hold its read boundary.
+    // Page-cache configuration joins the WAL; keep this handle cold until the blocker releases it.
     publisher.connection = Connection::open(&path).expect("fresh publisher connection");
-    crate::adapters::sqlite_catalog::configure_catalog_connection(&publisher.connection)
-        .expect("publisher configuration");
+    publisher
+        .connection
+        .busy_timeout(Duration::from_millis(
+            timeout.try_into().expect("nonnegative timeout"),
+        ))
+        .expect("publisher busy timeout");
     let blocker = Connection::open(&path).expect("exclusive blocker");
     blocker
         .execute_batch("PRAGMA locking_mode = EXCLUSIVE; BEGIN IMMEDIATE;")
@@ -53,6 +57,8 @@ fn recovery_dispatch_does_not_wait_for_an_exclusive_sqlite_lock() {
         assert_eq!(queue_state(&publisher.connection, change_id), before);
         assert_eq!(busy_timeout(&publisher.connection), timeout);
         assert!(publisher.connection.is_autocommit());
+        crate::adapters::sqlite_catalog::configure_catalog_connection(&publisher.connection)
+            .expect("publisher configuration after reader unlock");
         let leased = publisher
             .lease_metadata_inventory_recovery(
                 "root-a",

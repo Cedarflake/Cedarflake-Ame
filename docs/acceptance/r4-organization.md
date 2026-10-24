@@ -1902,3 +1902,23 @@ profile retains its six unmatched records and pending cleanup authority.
 The same hosted run separately fails the exclusive-WAL-lock fixture during lock acquisition,
 before recovery dispatch. Its diagnostic is retained for the following cause-level repair; this
 navigation checkpoint does not claim that Rust partition or exact-commit CI has passed.
+
+## Exclusive-WAL-lock fixture preparation
+
+Run `40127335693` finishes with two failing partitions: the empty-shell Flutter case above and
+Schema/Queue's exclusive-lock fixture. Its other Rust partitions, Static, native integrations,
+unsigned Release and synthetic workloads pass. The lock failure reproduces locally at blocker
+creation, before the timed recovery call. Configuring the new connection's page-cache budget
+already joins the WAL, contradicting the fixture's required unopened read boundary.
+
+The fixture now sets only its existing busy deadline before establishing the exclusive blocker;
+normal catalog configuration runs after unlock and before retry. Its one-second nonblocking
+dispatch assertion, unchanged queue/attempt state, restored deadline, autocommit and successful
+subsequent lease assertions remain intact. All six lease-admission checks pass in 9.96 seconds.
+The initial Debug compile reports an incremental-cache hard-link fallback; a subsequent compilation
+of the same source with process-local incremental caching disabled completes without warnings in
+72 seconds. This diagnostic changes no persistent compiler setting or warning policy.
+
+Only the 290-line dedicated test owner and this evidence change; production lock behavior, schema,
+bridge, dependencies and source authority remain unchanged. Rust formatting and whitespace checks
+pass. Hosted verification of the combined published fixes remains required.
