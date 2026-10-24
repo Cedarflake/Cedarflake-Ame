@@ -6,6 +6,8 @@ use super::super::{SqliteCatalog, database_error, sqlite_integer};
 
 use crate::domain::persistent_journal::METADATA_FALLBACK_CODE;
 
+mod first_import_handoff;
+
 pub(super) fn admit(
     transaction: &Transaction<'_>,
     change_id: LibraryChangeId,
@@ -23,6 +25,7 @@ pub(super) fn admit(
             ],
         )
         .map_err(database_error)?;
+    first_import_handoff::retire_superseded(transaction, root_id, generation, now)?;
     // Keep the original cursor, ranges and failed window as evidence. Inventory owns
     // this recovery's completion; none of these rows is a successful journal receipt.
     transaction.execute(
@@ -89,6 +92,7 @@ impl SqliteCatalog {
         now: i64,
     ) -> Result<bool, ScanError> {
         let transaction = self.begin_write()?;
+        first_import_handoff::retire_superseded(&transaction, root_id, generation, now)?;
         let pending: bool = transaction
             .query_row(
                 "SELECT EXISTS (
@@ -103,6 +107,7 @@ impl SqliteCatalog {
             )
             .map_err(database_error)?;
         if pending {
+            transaction.commit().map_err(database_error)?;
             return Ok(false);
         }
         let updated = transaction

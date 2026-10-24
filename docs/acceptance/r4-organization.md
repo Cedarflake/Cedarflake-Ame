@@ -1413,3 +1413,38 @@ have 169/65. Dedicated controller and widget tests each have 107 lines; these ne
 contain no inline tests. The existing local-file facade retains 2,629 production/support lines and
 3,380 inline-test lines; only six inventory lines were added to that test section. Its dedicated
 source-topology test owner has 458 lines. Generated bridge output is excluded from these counts.
+
+## First-import fallback handoff
+
+The ordinary-journal failure in run `40096057273` first reports
+`identity_journal_file_attributes`, then admits independent metadata fallback. The published first
+import still owns an unfinished journal window and a pending control. Each new inventory is rejected
+with `metadata_inventory_baseline_authority_conflict`, leaving both recovery owners and live work
+pending. This is a persistent execution-ownership conflict after fallback admission.
+
+The separate first-import handoff owner retires that published import's pending control and authority
+only after a current independent fallback receipt exists for the same root and generation. Receipt
+admission and retirement share one transaction. Startup repairs retained overlapping owners even while
+the replacement is pending. Baseline readers exclude retired unfinished execution while preserving
+the failed window, cursor and completed history. No schema, source-media or journal-success claim
+changes.
+
+Four focused checks pass in 10.07 seconds after compilation: independent inventory admission with
+unchanged failed-window evidence, durable handoff after reopening a prior overlapping state,
+injected retirement failure rolling back the whole admission, and ordinary first-import replay
+retaining its authority without a fallback receipt. The original native journal test passes locally
+in 3.64 seconds before this handoff correction, so it does not reproduce or explain the hosted native
+attribute error. Test-only diagnostics now retain the failing stage and numeric Windows error without
+paths; the native-read cause remains open pending matching hosted evidence.
+
+Run `40101178770` on `0ff69b35b76af6088fa75317d1aed08128ac37ed` confirms Static, Windows Scan,
+Windows Accessibility and unsigned Release passing. Its Flutter failure is the settings-page fixture
+expecting five choice controls after cleanup adds the sixth age selector. Other jobs are still running
+at this checkpoint. This run predates the handoff correction; exact-head hosted verification remains
+required. Local window operation is still suspended.
+
+Handwritten ownership sizes: fallback composition 204 production lines, first-import handoff 66,
+baseline reads 236 and inventory recovery-journal checks 110. The dedicated handoff tests have 234
+lines. The existing persistent-journal facade retains 1,315 production/support lines and 3,131
+inline-test lines; this change adds only the dedicated test-module declaration there. The native
+lookup-error owner has 72 lines, including the five-line test-only diagnostic.

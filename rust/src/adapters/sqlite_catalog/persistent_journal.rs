@@ -1318,6 +1318,7 @@ mod tests {
     mod baseline_admission;
     mod baseline_closing;
     mod completed_history;
+    mod first_import_fallback;
     mod volume_publication;
 
     mod baseline_window;

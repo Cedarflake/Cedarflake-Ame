@@ -23,6 +23,11 @@ pub(super) fn identity_open_error(error: io::Error) -> Option<ScanError> {
 }
 
 pub(super) fn metadata_error(code: &str, error: io::Error) -> ScanError {
+    #[cfg(test)]
+    eprintln!(
+        "[Ame identity journal] stage={code} os_error={:?}",
+        error.raw_os_error()
+    );
     let code = match error.raw_os_error().map(|value| value as u32) {
         Some(ERROR_FILE_NOT_FOUND | ERROR_PATH_NOT_FOUND) => "identity_journal_identity_missing",
         Some(ERROR_ACCESS_DENIED | ERROR_SHARING_VIOLATION) => {

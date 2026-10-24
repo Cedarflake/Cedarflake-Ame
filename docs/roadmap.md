@@ -105,9 +105,11 @@ The atomic-restore checkpoint failed hosted historical upgrade checks because sh
 read archive tables before their migration. Schema-aware local versus imported authority now passes
 focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
 repaired upgrade paths and expected-table inventory. The later archive checkpoint exposes two
-static flow-control violations and a source-management integration setup error; both are corrected
-with follow-up hosted verification pending. The ordinary-journal import failure has recurred and
-its native-read cause remains unresolved. Retained-library
+static flow-control violations and a source-management integration setup error; both pass subsequent
+hosted verification. Cleanup adds an age selector, and the settings-page control inventory still
+needs its corresponding fixture update. The ordinary-journal import failure has recurred;
+independent fallback now retires the superseded first-import execution owner, with focused
+handoff/restart/rollback checks passing. Its native-read cause remains unresolved. Retained-library
 performance obligations stay with integrated verification.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
@@ -274,7 +276,8 @@ cross-root aliases and contradictory-content rejection. Atomic restore and repea
 are implemented through the application and typed bridge. Restored queue order and continuation,
 retained R3 choices and source-removal precedence have focused regression coverage. Continue with
 native settings verification when window operation resumes. Manual unresolved-record cleanup passes
-its focused boundary checks. Preserve the remaining journal-import failure and pending follow-up hosted verification.
+its focused boundary checks. Preserve the remaining native journal-read investigation, settings
+fixture correction and pending follow-up hosted verification.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites is available
 from both browsing sidebars. Its focused checks and

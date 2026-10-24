@@ -1305,6 +1305,11 @@ to cover the interval without a watcher.
 An independent receipt supersedes the execution requirements of older journal windows for that root
 generation. Their boundaries and canonical history remain stored; they are not successful USN
 coverage. The checkpoint cursor is unchanged, and the root uses LiveOnly continuity for this round.
+If the older window belongs to an already published first import, admission retires its pending
+control and execution authority in the same transaction as the replacement receipt. The first-import
+handoff owner requires the published foreground scan and a live replacement for the same root and
+generation. Startup applies the same handoff to retained overlapping owners. Retired windows remain
+historical evidence and do not reserve a new inventory or hold unlineaged live work.
 Complete inventory, candidate publication and absence checks retire the recovery authority atomically.
 This can finish the current catalog update without claiming recovered journal continuity. Subsequent
 watcher changes remain normal P0 work, and the failed journal is not retried again in that session.

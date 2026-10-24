@@ -89,8 +89,10 @@ pub(super) fn unfinished_baseline_change_id(
         .query_row(
             "SELECT baseline.change_id
          FROM library_persistent_journal_baselines AS baseline
+         JOIN library_recovery_authorities AS authority ON authority.change_id = baseline.change_id
          WHERE baseline.root_id = ?1 AND baseline.root_generation = ?2
            AND baseline.phase <> 'completed'
+           AND authority.retired_unix_ms IS NULL
            AND NOT EXISTS (SELECT 1 FROM library_metadata_fallbacks AS fallback
              WHERE fallback.change_id = baseline.change_id)",
             params![
