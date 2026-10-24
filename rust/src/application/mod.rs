@@ -15,6 +15,7 @@ mod library_synchronization;
 mod load_catalog;
 mod metadata_inventory;
 pub(crate) mod organization;
+pub(crate) mod organization_batch;
 pub(crate) mod organization_review;
 mod persistent_journal_continuity;
 mod preview;

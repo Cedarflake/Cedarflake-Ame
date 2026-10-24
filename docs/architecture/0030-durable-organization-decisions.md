@@ -249,6 +249,20 @@ change no groups. Successful receipts use the existing gallery notification surf
 notice without entering history. Gallery selection, query publication and viewer position retain
 their existing owners; the screen composes the album controls rather than owning their transactions.
 
+Gallery-wide actions use an opaque, cancellable selection session instead of expanding a full query
+into the single-image command's 256-location bridge payload. Upload explicit inclusion or exclusion
+IDs in bounded chunks. The adapter retains those IDs and deduplicated whole-group targets in
+connection-local SQLite temporary tables backed by bounded caches, outside original-media trees.
+No transaction remains open while a destination dialog waits. The existing gallery predicates own
+visible query membership, including folded representatives, folders, search and collection scopes.
+
+Preparation returns scalar counts and common-assignment information. Commit revalidates the observed
+catalog/decision revisions and each group's content/membership authority, then applies all selected
+groups under one operation and one transaction. Cancellation or a later failure rolls back the whole
+operation; receipt replay remains independent of later catalog changes. Progress and cancellation
+are session-owned, and closing or dropping a session releases its temporary data. Pending selections
+are disposable; albums, decisions, history and saved continuation remain durable.
+
 ## Alternatives and consequences
 
 Content-keyed decisions alone simplify queries but cannot retain provisional intent and conflict

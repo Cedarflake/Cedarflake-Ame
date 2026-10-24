@@ -40,7 +40,7 @@ pub(super) fn load(
     })
 }
 
-fn decision(
+pub(super) fn decision(
     connection: &Connection,
     key: &OrganizationGroupKey,
 ) -> Result<OrganizationGroupDecision, ScanError> {

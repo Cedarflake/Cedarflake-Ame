@@ -590,4 +590,57 @@ one failure in the existing import-feedback test: its global `LinearProgressIndi
 matches both the import progress and the album-list loading indicator. The repair scopes the finder
 to the existing import task surface while retaining the exact validated/total ratio assertion.
 All seven focused import-feedback checks pass after the repair. Product progress behavior is
-unchanged; follow-up hosted verification remains required for the published correction.
+unchanged. The correction is committed as `d2bdd3173fd66f54c74bfd2ea66c57c8a56900e0`.
+The album run completed with all other applicable jobs passing; the aggregate gate reflects the
+Flutter failure. Follow-up hosted verification remains required for the combined correction.
+
+## Query-wide organization selection boundary - 2026-10-24
+
+The batch application boundary accepts explicit selections or all matching gallery results with
+exclusions. IDs arrive in chunks of at most 256; the existing gallery predicates retain collection,
+folder, search and duplicate-display scope. A private SQLite connection stores selected IDs,
+locations and deduplicated whole-group targets in temporary tables. Its temporary page cache is
+configured for 2 MiB with file-backed overflow. Two concurrent drafts are permitted; no transaction
+remains open while a destination choice waits. Preparation returns scalar counts and the common
+album, without sending the full group/member graph to Flutter.
+
+The adapter reads targets in 64-group windows, retaining catalog/organization revisions and current
+representative/membership authority. Commit revalidates these before applying the existing per-group
+Favorite or organization transition under one receipt and one transaction. Cancellation and late
+failures roll back all changes. Receipt retry precedes new revision admission, and reused operation
+IDs cannot accept different actions. Undo uses the existing field-specific history. The new opaque
+bridge exposes preparation, progress, application and close; closing signals cancellation before
+waiting for an active operation and releases its temporary connection and capacity permit.
+
+The existing 83 organization/migration regressions pass after extracting shared group writes.
+All ten new adapter cases pass, covering 600 explicit groups across input chunks,
+300 exclusions, mixed assignments and Favorites, late-merge conflicts, write rollback and retry,
+unpublished content changes, intervening decisions, cancellation after a real record write,
+whole-batch undo and preserved Favorites. Folded/unfolded exclusions and restricted folder selections
+preserve whole-group authority. The application check proves that close cancels held preparation
+before waiting, retires the connection once and returns its capacity permit. Twelve source-availability
+checks pass, including exact module-loading rejection and retained offline/rename recovery. Together
+these checkpoints cover 106 focused Rust cases. Initial diagnostics found a new receipt-kind value
+rejected by the existing schema; the batch now uses the established Favorite/organization kinds without a migration.
+The folder fixture was corrected to the existing relative-folder contract.
+
+Canonical bridge generation succeeds with Rust/Dart content hash `-688938423`; its matching optimized
+Rust library builds in 117 seconds. The repository format check covers 495 Dart files without changes,
+and the final whitespace check passes. No dependency or persistent schema changes are introduced.
+These controlled catalog fixtures do not open or alter original media. The 600-group case establishes
+coverage beyond one input chunk, not retained-library performance or desktop acceptance.
+
+The batch adapter has 328 production/support lines and a 14-line test-only cancellation hook;
+temporary staging has 199 production lines, and the gallery selection builder has 28. The application
+session has 127 production lines plus its two-line test declaration; the port, domain and API owners
+have 65, 36 and 46 production lines, respectively. Shared organization/Favorite write owners have
+120 and 83 lines with no inline tests. Dedicated batch adapter and application tests have 503 and
+92 lines. Large existing domain, catalog and gallery facades have 817, 3,505 and 446 lines and receive
+only registration/reexport changes. The source-read guard adds six exact-contract lines in its
+3,362-line inline test section; its 2,629-line production/support section is unchanged. Its dedicated
+topology tests have 443 lines. Generated bridge output is excluded from handwritten counts.
+
+Gallery selection buttons and picker lifetimes have not yet been connected to this boundary.
+Real client interaction, retained-library save latency, resource/cancellation measurements and
+low-core behavior remain outstanding, along with the rest of R4-05 through R4-07. Window operation
+remains paused by user instruction. Hosted verification must cover the published combined head.

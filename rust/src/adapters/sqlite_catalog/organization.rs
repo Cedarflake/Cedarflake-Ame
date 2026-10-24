@@ -12,6 +12,8 @@ pub(super) mod admission;
 mod album_membership;
 mod albums;
 mod authority;
+mod batch;
+pub(crate) use batch::SqliteOrganizationBatch;
 mod changes;
 mod favorites;
 mod inspection;

@@ -10,6 +10,7 @@ import 'api/catalog.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
 import 'api/organization.dart';
+import 'api/organization_batch.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
 import 'api/storage.dart';
@@ -27,6 +28,7 @@ import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
 import 'domain/organization.dart';
+import 'domain/organization_batch.dart';
 import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
 import 'domain/persistent_journal.dart';
@@ -42,11 +44,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   });
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_OrganizationSelectionDraftPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_ViewerSourceReadLeasePtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease;
 
   @protected
   AnyhowException dco_decode_AnyhowException(dynamic raw);
+
+  @protected
+  OrganizationSelectionDraft
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    dynamic raw,
+  );
 
   @protected
   ViewerSourceReadLease
@@ -55,8 +67,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationSelectionDraft
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    dynamic raw,
+  );
+
+  @protected
   ViewerSourceReadLease
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    dynamic raw,
+  );
+
+  @protected
+  OrganizationSelectionDraft
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     dynamic raw,
   );
 
@@ -157,6 +181,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationAlbum dco_decode_box_autoadd_organization_album(dynamic raw);
+
+  @protected
+  OrganizationBatchAction dco_decode_box_autoadd_organization_batch_action(
+    dynamic raw,
+  );
 
   @protected
   OrganizationCounts dco_decode_box_autoadd_organization_counts(dynamic raw);
@@ -620,6 +649,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   OrganizationAlbumReceipt dco_decode_organization_album_receipt(dynamic raw);
 
   @protected
+  OrganizationBatchAction dco_decode_organization_batch_action(dynamic raw);
+
+  @protected
+  OrganizationBatchPhase dco_decode_organization_batch_phase(dynamic raw);
+
+  @protected
+  OrganizationBatchProgress dco_decode_organization_batch_progress(dynamic raw);
+
+  @protected
+  OrganizationBatchSummary dco_decode_organization_batch_summary(dynamic raw);
+
+  @protected
   OrganizationContinuation dco_decode_organization_continuation(dynamic raw);
 
   @protected
@@ -732,14 +773,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   AnyhowException sse_decode_AnyhowException(SseDeserializer deserializer);
 
   @protected
+  OrganizationSelectionDraft
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     SseDeserializer deserializer,
   );
 
   @protected
+  OrganizationSelectionDraft
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ViewerSourceReadLease
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationSelectionDraft
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
     SseDeserializer deserializer,
   );
 
@@ -870,6 +929,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   OrganizationAlbum sse_decode_box_autoadd_organization_album(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationBatchAction sse_decode_box_autoadd_organization_batch_action(
     SseDeserializer deserializer,
   );
 
@@ -1453,6 +1517,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  OrganizationBatchAction sse_decode_organization_batch_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationBatchPhase sse_decode_organization_batch_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationBatchProgress sse_decode_organization_batch_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  OrganizationBatchSummary sse_decode_organization_batch_summary(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   OrganizationContinuation sse_decode_organization_continuation(
     SseDeserializer deserializer,
   );
@@ -1599,6 +1683,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    OrganizationSelectionDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
     SseSerializer serializer,
@@ -1606,8 +1697,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    OrganizationSelectionDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     ViewerSourceReadLease self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    OrganizationSelectionDraft self,
     SseSerializer serializer,
   );
 
@@ -1762,6 +1867,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_organization_album(
     OrganizationAlbum self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_organization_batch_action(
+    OrganizationBatchAction self,
     SseSerializer serializer,
   );
 
@@ -2474,6 +2585,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_organization_batch_action(
+    OrganizationBatchAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_batch_phase(
+    OrganizationBatchPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_batch_progress(
+    OrganizationBatchProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_organization_batch_summary(
+    OrganizationBatchSummary self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_organization_continuation(
     OrganizationContinuation self,
     SseSerializer serializer,
@@ -2648,6 +2783,22 @@ class RustLibWire implements BaseWire {
   RustLibWire.fromExternalLibrary(ExternalLibrary lib);
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     int ptr,
   ) => wasmModule
@@ -2670,6 +2821,16 @@ external RustLibWasmModule get wasmModule;
 @JS()
 @anonymous
 extension type RustLibWasmModule._(JSObject _) implements JSObject {
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerOrganizationSelectionDraft(
+    int ptr,
+  );
+
   external void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerViewerSourceReadLease(
     int ptr,

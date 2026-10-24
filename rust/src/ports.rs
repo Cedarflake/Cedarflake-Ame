@@ -6,6 +6,7 @@ pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 mod gallery_query;
 pub(crate) mod organization;
+pub(crate) mod organization_batch;
 pub(crate) mod organization_review;
 pub(crate) mod search_index;
 pub use gallery_query::GalleryQueryRepository;

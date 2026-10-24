@@ -68,31 +68,38 @@ fn prepared_fields(hasher: &mut blake3::Hasher, prepared: &OrganizationPreparedS
     }
     field(hasher, &(prepared.groups.len() as u64).to_le_bytes());
     for group in &prepared.groups {
-        match &group.key {
-            OrganizationGroupKey::Confirmed {
-                digest,
-                byte_length,
-            } => {
-                field(hasher, b"confirmed");
-                field(hasher, digest.as_bytes());
-                field(hasher, &byte_length.to_le_bytes());
-            }
-            OrganizationGroupKey::Provisional {
-                asset_id,
-                source_generation,
-            } => {
-                field(hasher, b"provisional");
-                field(hasher, asset_id.as_bytes());
-                field(hasher, &source_generation.to_le_bytes());
-            }
-        }
-        field(hasher, group.representative.asset_id.as_bytes());
-        field(hasher, group.representative.location_id.as_bytes());
-        field(
-            hasher,
-            &group.representative.source_generation.to_le_bytes(),
-        );
-        field(hasher, &group.location_count.to_le_bytes());
-        field(hasher, group.membership_authority.as_bytes());
+        group_fields(hasher, group);
     }
+}
+
+pub(super) fn group_fields(
+    hasher: &mut blake3::Hasher,
+    group: &crate::domain::organization::OrganizationGroupTarget,
+) {
+    match &group.key {
+        OrganizationGroupKey::Confirmed {
+            digest,
+            byte_length,
+        } => {
+            field(hasher, b"confirmed");
+            field(hasher, digest.as_bytes());
+            field(hasher, &byte_length.to_le_bytes());
+        }
+        OrganizationGroupKey::Provisional {
+            asset_id,
+            source_generation,
+        } => {
+            field(hasher, b"provisional");
+            field(hasher, asset_id.as_bytes());
+            field(hasher, &source_generation.to_le_bytes());
+        }
+    }
+    field(hasher, group.representative.asset_id.as_bytes());
+    field(hasher, group.representative.location_id.as_bytes());
+    field(
+        hasher,
+        &group.representative.source_generation.to_le_bytes(),
+    );
+    field(hasher, &group.location_count.to_le_bytes());
+    field(hasher, group.membership_authority.as_bytes());
 }

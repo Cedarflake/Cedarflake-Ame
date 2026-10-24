@@ -71,9 +71,9 @@ pub(crate) use sqlite_catalog::MetadataInventorySpoolExecution;
 pub use sqlite_catalog::SqliteCatalog;
 pub(crate) use sqlite_catalog::{
     RejectedInputValidationRoster, SqliteCatalogReadExecutor, SqliteCatalogSession,
-    SqliteCatalogSpaceMaintenance, SqliteJournalNamespaceReader, StagedValidationOutcome,
-    StagedValidationRoster, ValidatedStagingProof, load_retained_scan_issue_window,
-    retained_scan_has_unclassified_issues,
+    SqliteCatalogSpaceMaintenance, SqliteJournalNamespaceReader, SqliteOrganizationBatch,
+    StagedValidationOutcome, StagedValidationRoster, ValidatedStagingProof,
+    load_retained_scan_issue_window, retained_scan_has_unclassified_issues,
 };
 #[cfg(test)]
 pub(crate) use sqlite_catalog::{

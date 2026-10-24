@@ -2,11 +2,12 @@ use rusqlite::{Connection, params};
 
 use crate::domain::ScanError;
 use crate::domain::organization::{
-    OrganizationAction, OrganizationPreparedSelection, OrganizationWriteReceipt, stale_selection,
+    OrganizationAction, OrganizationGroupKey, OrganizationPreparedSelection,
+    OrganizationWriteReceipt, stale_selection,
 };
 
 use super::super::{database_error, unix_time_ms};
-use super::operations::{self, Admission};
+use super::operations::{self, Admission, GroupWrite};
 use super::{albums, authority, records, selection};
 
 pub(super) fn save(
@@ -29,66 +30,16 @@ pub(super) fn save(
     if &selection::prepare(connection, &prepared.selections)? != prepared {
         return Err(stale_selection());
     }
-    let (disposition, album_id) = action.decision();
+    let (_, album_id) = action.decision();
     if let Some(album_id) = album_id {
         albums::require_active(connection, album_id)?;
     }
     let mut changed_groups = 0;
     let mut reconciled = false;
     for group in &prepared.groups {
-        reconciled |= records::materialize(connection, &group.key)?;
-        let conflict: bool = connection
-            .query_row(
-                &format!(
-                    "SELECT EXISTS(SELECT 1 FROM organization_conflicts WHERE record_id IN ({}))",
-                    records::CURRENT_RECORDS
-                ),
-                [],
-                |row| row.get(0),
-            )
-            .map_err(database_error)?;
-        if conflict
-            && !matches!(
-                action,
-                OrganizationAction::AssignAlbum { .. } | OrganizationAction::Defer
-            )
-        {
-            return Err(ScanError::new(
-                "organization_conflict_unresolved",
-                "Choose an album to resolve this group's conflicting assignments",
-            ));
-        }
-        let resolving = conflict && matches!(action, OrganizationAction::AssignAlbum { .. });
-        let changed = connection.execute(&format!(
-            "INSERT INTO organization_operation_changes(operation_id, record_id, field, previous_album_id, previous_disposition, applied_revision)
-             SELECT ?1, member.record_id, 'organization', canonical.album_id, canonical.disposition, ?2
-             FROM organization_record_groups AS member
-             JOIN organization_records AS canonical ON canonical.record_id = member.group_id
-             WHERE member.record_id IN ({}) AND (canonical.album_id IS NOT ?3 OR canonical.disposition <> ?4 OR ?5)", records::CURRENT_RECORDS
-        ), params![operation_id, revision, album_id, disposition.stored(), resolving]).map_err(database_error)?;
-        if changed == 0 {
-            continue;
-        }
-        connection.execute(&format!(
-            "INSERT INTO organization_operation_conflicts
-             SELECT ?1, record_id, album_id, decision_revision FROM organization_conflicts WHERE record_id IN ({})", records::CURRENT_RECORDS
-        ), [operation_id]).map_err(database_error)?;
-        if resolving {
-            connection
-                .execute(
-                    &format!(
-                        "DELETE FROM organization_conflicts WHERE record_id IN ({})",
-                        records::CURRENT_RECORDS
-                    ),
-                    [],
-                )
-                .map_err(database_error)?;
-        }
-        connection.execute(&format!(
-            "UPDATE organization_records SET album_id = ?1, disposition = ?2, organization_revision = ?3, updated_unix_ms = ?4
-             WHERE record_id IN ({})", records::CURRENT_RECORDS
-        ), params![album_id, disposition.stored(), revision, unix_time_ms()]).map_err(database_error)?;
-        changed_groups += 1;
+        let outcome = apply_group(connection, operation_id, revision, &group.key, action)?;
+        reconciled |= outcome.reconciled;
+        changed_groups += u64::from(outcome.changed);
     }
     operations::finish(
         connection,
@@ -97,4 +48,73 @@ pub(super) fn save(
         changed_groups,
         reconciled,
     )
+}
+
+pub(super) fn apply_group(
+    connection: &Connection,
+    operation_id: &str,
+    revision: i64,
+    key: &OrganizationGroupKey,
+    action: &OrganizationAction,
+) -> Result<GroupWrite, ScanError> {
+    let (disposition, album_id) = action.decision();
+    let reconciled = records::materialize(connection, key)?;
+    let conflict: bool = connection
+        .query_row(
+            &format!(
+                "SELECT EXISTS(SELECT 1 FROM organization_conflicts WHERE record_id IN ({}))",
+                records::CURRENT_RECORDS
+            ),
+            [],
+            |row| row.get(0),
+        )
+        .map_err(database_error)?;
+    if conflict
+        && !matches!(
+            action,
+            OrganizationAction::AssignAlbum { .. } | OrganizationAction::Defer
+        )
+    {
+        return Err(ScanError::new(
+            "organization_conflict_unresolved",
+            "Choose an album to resolve this group's conflicting assignments",
+        ));
+    }
+    let resolving = conflict && matches!(action, OrganizationAction::AssignAlbum { .. });
+    let changed = connection.execute(&format!(
+            "INSERT INTO organization_operation_changes(operation_id, record_id, field, previous_album_id, previous_disposition, applied_revision)
+             SELECT ?1, member.record_id, 'organization', canonical.album_id, canonical.disposition, ?2
+             FROM organization_record_groups AS member
+             JOIN organization_records AS canonical ON canonical.record_id = member.group_id
+             WHERE member.record_id IN ({}) AND (canonical.album_id IS NOT ?3 OR canonical.disposition <> ?4 OR ?5)", records::CURRENT_RECORDS
+        ), params![operation_id, revision, album_id, disposition.stored(), resolving]).map_err(database_error)?;
+    if changed == 0 {
+        return Ok(GroupWrite {
+            changed: false,
+            reconciled,
+        });
+    }
+    connection.execute(&format!(
+            "INSERT INTO organization_operation_conflicts
+             SELECT ?1, record_id, album_id, decision_revision FROM organization_conflicts WHERE record_id IN ({})", records::CURRENT_RECORDS
+        ), [operation_id]).map_err(database_error)?;
+    if resolving {
+        connection
+            .execute(
+                &format!(
+                    "DELETE FROM organization_conflicts WHERE record_id IN ({})",
+                    records::CURRENT_RECORDS
+                ),
+                [],
+            )
+            .map_err(database_error)?;
+    }
+    connection.execute(&format!(
+            "UPDATE organization_records SET album_id = ?1, disposition = ?2, organization_revision = ?3, updated_unix_ms = ?4
+             WHERE record_id IN ({})", records::CURRENT_RECORDS
+        ), params![album_id, disposition.stored(), revision, unix_time_ms()]).map_err(database_error)?;
+    Ok(GroupWrite {
+        changed: true,
+        reconciled,
+    })
 }

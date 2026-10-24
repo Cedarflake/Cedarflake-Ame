@@ -12,6 +12,11 @@ pub(super) enum Admission {
     New { revision: i64 },
 }
 
+pub(super) struct GroupWrite {
+    pub changed: bool,
+    pub reconciled: bool,
+}
+
 pub(super) fn request_digest(kind: &str, revision: u64, values: &[&str]) -> String {
     let mut hasher = blake3::Hasher::new();
     field(&mut hasher, b"ame-organization-operation-v1");
