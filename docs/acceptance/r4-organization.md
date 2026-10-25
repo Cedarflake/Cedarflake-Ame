@@ -2357,3 +2357,41 @@ the five organized groups and one ignored group remain unchanged. The isolated w
 The state-label, menu, viewer-action and selection-action owners contain 72, 159, 125 and 369
 production lines with no inline tests. Their dedicated menu/review/selection/unified suites contain
 216/455/573/281 lines. No schema, bridge, dependency or source-policy change is introduced.
+
+## Organization header and positional rail - 2026-10-25
+
+Organization controls occupy the second row of the upper-right action area. One dropdown displays
+the current queue's icon and name before the labeled exit and continuation buttons. Selection retains this
+row, and first-use state omits continuation. The former bottom dock is removed; notification
+placement is unchanged. The shared annotated rail accepts an explicit scroll range without date
+buckets and renders positional scrolling without date labels or markers, including ordinary name
+sorting. Entry and exit animate row height and opacity over 180 ms, with continuous reversal,
+retired input during exit, and immediate reduced-motion transitions.
+
+The scroll surface owns the current query's drag lifecycle through Flutter's public
+`ScrollPosition.drag` API. This preserves loaded-window pagination before the full wall layout is
+available and cancels obsolete gestures on query/controller replacement or disposal. Material Slider,
+checked popup items, TextButton, SizeTransition and FadeTransition continue to own input, focus,
+accessibility and motion on the installed SDK.
+
+All 58 focused Flutter cases pass across the annotated rail (9), gallery interaction (24), scroll
+surface (2), sidebar motion (3), header motion (2), review overlays (2), review widgets (14), and unified review (2).
+Coverage includes distant and near-top-to-top dragging in both wall layouts, stale callbacks,
+viewport resize, short queues, enlarged text, first-use continuation, selection, dropdown admission
+while busy, and a retained scroll rail after leaving name-sorted organization. Strict analysis
+of the 15 affected handwritten Dart files and the Windows Debug build pass. The unavailable-image
+integration helper uses the new control identity and scopes menu lookup to its popup; the full
+integration suite is not rerun locally. The repository formatting check reports only the existing,
+unrelated edit in `library_gallery_states.dart`; owned files pass formatting and whitespace checks.
+
+Native verification uses the retained 10,000-file generated library. Both header rows remain visible
+during selection; dragging to the bottom and then from near the top to the top displays images
+without another wheel event. Continuation opens the saved image, and exit restores ordinary browsing.
+The final dropdown displays all three labels and counts without truncation, updates its icon and
+name after selection, and ordinary name sorting exposes the same positional rail with working drag.
+The existing five organized, 65 pending, one deferred and one ignored groups remain unchanged.
+
+The screen/header composition owners contain 1,883/587 production lines. Header-row layout, review
+toolbar, scroll surface, annotated rail and viewport contain 106/93/148/454/61 lines, with no inline
+tests. Dedicated scroll/interaction/sidebar/header-motion/overlay/review/unified tests contain
+98/247/147/90/113/482/312 lines. No schema, bridge, dependency or source-policy changes are introduced.

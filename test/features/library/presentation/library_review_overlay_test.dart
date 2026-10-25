@@ -1,8 +1,9 @@
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/library_organization_mode.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_header_actions.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_viewport.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_review_dock.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_review_toolbar.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_review_mode_notice.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -11,7 +12,7 @@ import "../support/library_review_fixture.dart";
 
 void main() {
   testWidgets(
-    "dock floats above the full gallery and gaps pass pointer input",
+    "review actions sit below browsing actions and leave the gallery bottom clear",
     (tester) async {
       final service = ReviewServiceFixture()
         ..saved = const LibraryReviewContinuation(
@@ -26,7 +27,10 @@ void main() {
         MaterialApp(
           home: Scaffold(
             body: LibraryGalleryViewport(
-              header: const SizedBox(height: 80),
+              header: LibraryGalleryHeaderActions(
+                primary: TextButton(onPressed: () {}, child: const Text("选择")),
+                secondary: LibraryReviewToolbar(mode: mode),
+              ),
               isEmpty: false,
               isLoading: false,
               body: GestureDetector(
@@ -35,7 +39,6 @@ void main() {
                 onTap: () => imageTaps++,
                 child: const ColoredBox(color: Colors.blue),
               ),
-              footer: LibraryReviewDock(mode: mode),
             ),
           ),
         ),
@@ -45,17 +48,23 @@ void main() {
       final queues = tester.getRect(
         find.byKey(const Key("library-review-queues")),
       );
-      expect(gallery.top, viewport.top + 80);
+      final toolbar = tester.getRect(
+        find.byKey(const Key("library-review-toolbar")),
+      );
+      final browsing = tester.getRect(find.widgetWithText(TextButton, "选择"));
+      expect(browsing.bottom, lessThan(toolbar.top));
+      expect(browsing.right, toolbar.right);
+      expect(gallery.top, toolbar.bottom);
       expect(gallery.bottom, viewport.bottom);
-      expect(gallery.contains(queues.center), isTrue);
+      expect(gallery.contains(queues.center), isFalse);
       expect(
         find.descendant(
-          of: find.byKey(const Key("library-review-dock")),
+          of: find.byKey(const Key("library-review-toolbar")),
           matching: find.byType(Text),
         ),
-        findsNothing,
+        findsNWidgets(2),
       );
-      await tester.tapAt(Offset(gallery.left + 32, queues.center.dy));
+      await tester.tapAt(Offset(gallery.left + 32, gallery.bottom - 32));
       expect(imageTaps, 1);
       await tester.tap(find.byKey(const Key("library-review-exit")));
       await tester.pumpAndSettle();
@@ -85,7 +94,6 @@ void main() {
               isEmpty: false,
               isLoading: false,
               notice: LibraryReviewModeNotice(mode: mode),
-              footer: LibraryReviewDock(mode: mode),
             ),
           ),
         ),

@@ -14,7 +14,7 @@ import "viewer_source_workflow.dart";
 Future<void> verifyOrganizationUnavailableWorkflow(WidgetTester tester) async {
   await expectLater(SourceReadBlock.acquire("README.md"), throwsArgumentError);
   await _mode(tester, "整理模式");
-  expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
+  expect(find.byKey(const Key("library-review-toolbar")), findsOneWidget);
   expect(find.bySemanticsLabel("待整理 2"), findsOneWidget);
   final tile = find.byType(LibraryPhotoTile).hitTestable().first;
   final selected = tester.widget<LibraryPhotoTile>(tile).asset;
@@ -56,7 +56,7 @@ Future<void> verifyOrganizationUnavailableWorkflow(WidgetTester tester) async {
   await tester.pumpAndSettle();
   expect(find.bySemanticsLabel("待整理 2"), findsOneWidget);
   await _mode(tester, "退出整理");
-  expect(find.byKey(const Key("library-review-dock")), findsNothing);
+  expect(find.byKey(const Key("library-review-toolbar")), findsNothing);
   expect(tester.takeException(), isNull);
   debugPrint("AME_ORGANIZATION_UNAVAILABLE_WORKFLOW_PASSED");
 }
@@ -73,7 +73,12 @@ Future<void> _expectPending(LibraryOrganizationTarget target) async {
 Future<void> _mode(WidgetTester tester, String label) async {
   await tester.tap(find.byKey(const Key("library-more-menu")));
   await tester.pumpAndSettle();
-  await tester.tap(find.text(label));
+  await tester.tap(
+    find.descendant(
+      of: find.byWidgetPredicate((widget) => widget is PopupMenuItem<Object?>),
+      matching: find.text(label),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 

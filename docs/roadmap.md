@@ -80,7 +80,7 @@ picker creation, cancellation and transient undo; focused Rust and Flutter check
 batch path has controlled desktop evidence for whole-query album assignment,
 picker cancellation, restart retention and batch Favorite/unfavorite without history entries.
 Preparation feedback ends when
-the picker takes ownership. Organization mode connects its menu entry, shared counts, bottom queues,
+the picker takes ownership. Organization mode connects its menu entry, shared counts, queue controls,
 contextual actions and durable
 continuation through the existing gallery and viewer. Both queue layouts use continuous rows;
 focused regressions and controlled desktop checks pass. Persistent conflict labels, involved-album

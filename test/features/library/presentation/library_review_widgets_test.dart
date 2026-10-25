@@ -7,11 +7,11 @@ import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_review.dart";
 import "package:cedarflake_ame/features/library/presentation/library_organization_mode.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_review_dock.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_review_toolbar.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_viewer_organization_controls.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
-import "package:flutter/semantics.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
@@ -75,7 +75,7 @@ void main() {
                       )
                     : Align(
                         alignment: Alignment.bottomCenter,
-                        child: LibraryReviewDock(mode: mode),
+                        child: LibraryReviewToolbar(mode: mode),
                       ),
               ),
             ),
@@ -267,22 +267,41 @@ void main() {
 
   for (final scale in [1.0, 2.0]) {
     testWidgets(
-      "review dock at scale $scale hides first-use resume and keeps buttons aligned",
+      "review toolbar at scale $scale hides first-use resume and keeps actions after queues",
       (tester) async {
         await host(tester, scale: scale);
+        final queueMenu = find.byKey(const Key("library-review-queues"));
+        expect(find.text("待整理"), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey("library-review-queue-deferred")),
+          findsNothing,
+        );
+        await tester.tap(queueMenu);
+        await tester.pumpAndSettle();
         for (final queue in LibraryOrganizationQueue.values) {
+          final choice = find.byKey(
+            ValueKey("library-review-queue-${queue.name}"),
+          );
+          expect(choice, findsOneWidget);
+          final label = find.descendant(
+            of: choice,
+            matching: find.byType(Text),
+          );
           expect(
-            find.byKey(ValueKey("library-review-queue-${queue.name}")),
-            findsOneWidget,
+            tester.renderObject<RenderParagraph>(label).didExceedMaxLines,
+            isFalse,
           );
         }
         expect(
-          find.descendant(
-            of: find.byKey(const Key("library-review-queues")),
-            matching: find.byType(Text),
-          ),
-          findsNothing,
+          tester
+              .widget<CheckedPopupMenuItem<LibraryOrganizationQueue>>(
+                find.byKey(const ValueKey("library-review-queue-pending")),
+              )
+              .checked,
+          isTrue,
         );
+        await tester.binding.handlePopRoute();
+        await tester.pumpAndSettle();
         expect(find.byKey(const Key("library-review-resume")), findsNothing);
         review.saved = LibraryReviewContinuation(
           LibraryContinuationStatus.ready,
@@ -302,12 +321,12 @@ void main() {
         final exit = tester.getRect(
           find.byKey(const Key("library-review-exit")),
         );
-        expect(exit.right, lessThan(queue.left));
+        expect(queue.right, lessThan(exit.left));
+        expect(exit.right, lessThan(resume.left));
         expect(queue.center.dy, closeTo(exit.center.dy, .1));
-        expect(exit.size, const Size(40, 40));
-        expect(exit.height, lessThan(queue.height));
         expect(queue.center.dy, closeTo(resume.center.dy, .1));
-        expect(resume.size, exit.size);
+        expect(find.text("退出整理"), findsOneWidget);
+        expect(find.text("继续整理"), findsOneWidget);
         for (final key in ["library-review-exit", "library-review-resume"]) {
           final icon = find.descendant(
             of: find.byKey(Key(key)),
@@ -318,11 +337,17 @@ void main() {
         final deferred = find.byKey(
           const ValueKey("library-review-queue-deferred"),
         );
+        await tester.tap(queueMenu);
+        await tester.pumpAndSettle();
         await tester.ensureVisible(deferred);
         await tester.tap(deferred);
         await tester.pumpAndSettle();
         expect(mode.queue, LibraryOrganizationQueue.deferred);
-        expect(tester.widget<ChoiceChip>(deferred).selected, isTrue);
+        expect(
+          find.descendant(of: queueMenu, matching: find.text("稍后整理")),
+          findsOneWidget,
+        );
+        expect(deferred, findsNothing);
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         expect(FocusManager.instance.primaryFocus?.context, isNotNull);
         final ordinary = mode.ordinaryBrowse;
@@ -339,59 +364,61 @@ void main() {
     );
   }
 
-  testWidgets("busy dock keeps its appearance and blocks repeated commands", (
-    tester,
-  ) async {
-    final semantics = tester.ensureSemantics();
-    try {
-      await host(tester);
-      final pending = find.byKey(
-        const ValueKey("library-review-queue-pending"),
-      );
-      final deferred = find.byKey(
-        const ValueKey("library-review-queue-deferred"),
-      );
-      final exit = find.byKey(const Key("library-review-exit"));
-      final originalBounds = tester.getRect(pending);
-      final publication = Completer<bool>();
-      surface.publishing = () => publication.future;
-      final countBefore = surface.queries.length;
-      await tester.tap(deferred);
-      await tester.pump();
-      expect(mode.busy, isTrue);
-      expect(tester.getRect(pending), originalBounds);
-      expect(tester.widget<ChoiceChip>(pending).onSelected, isNotNull);
-      expect(tester.widget<FilledButton>(exit).onPressed, isNotNull);
-      expect(
-        tester
-            .getSemantics(deferred)
-            .getSemanticsData()
-            .hasAction(SemanticsAction.tap),
-        isFalse,
-      );
-      await tester.tapAt(tester.getCenter(exit));
-      await tester.tapAt(tester.getCenter(pending));
-      tester.widget<FilledButton>(exit).onPressed!();
-      tester.widget<ChoiceChip>(pending).onSelected!(true);
-      await tester.pump();
-      expect(surface.queries.length, countBefore + 1);
-      expect(mode.isActive, isTrue);
-      publication.complete(true);
-      await tester.pumpAndSettle();
-      expect(mode.busy, isFalse);
-      expect(mode.queue, LibraryOrganizationQueue.deferred);
-      expect(
-        tester
-            .getSemantics(deferred)
-            .getSemanticsData()
-            .hasAction(SemanticsAction.tap),
-        isTrue,
-      );
-      expect(review.writes, isEmpty);
-    } finally {
-      semantics.dispose();
-    }
-  });
+  testWidgets(
+    "busy toolbar keeps its appearance and blocks repeated commands",
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        await host(tester);
+        final pending = find.byKey(const Key("library-review-queues"));
+        final deferred = find.byKey(
+          const ValueKey("library-review-queue-deferred"),
+        );
+        final exit = find.byKey(const Key("library-review-exit"));
+        final originalBounds = tester.getRect(pending);
+        await tester.tap(pending);
+        await tester.pumpAndSettle();
+        final publication = Completer<bool>();
+        surface.publishing = () => publication.future;
+        final countBefore = surface.queries.length;
+        await tester.tap(deferred);
+        await tester.pumpAndSettle();
+        expect(mode.busy, isTrue);
+        expect(tester.getRect(pending), originalBounds);
+        expect(tester.widget<TextButton>(pending).onPressed, isNotNull);
+        expect(tester.widget<TextButton>(exit).onPressed, isNotNull);
+        expect(
+          tester
+              .getSemantics(pending)
+              .getSemanticsData()
+              .hasAction(SemanticsAction.tap),
+          isFalse,
+        );
+        await tester.tapAt(tester.getCenter(exit));
+        await tester.tapAt(tester.getCenter(pending));
+        tester.widget<TextButton>(exit).onPressed!();
+        tester.widget<TextButton>(pending).onPressed!();
+        await tester.pump();
+        expect(surface.queries.length, countBefore + 1);
+        expect(mode.isActive, isTrue);
+        expect(deferred, findsNothing);
+        publication.complete(true);
+        await tester.pumpAndSettle();
+        expect(mode.busy, isFalse);
+        expect(mode.queue, LibraryOrganizationQueue.deferred);
+        expect(
+          tester
+              .getSemantics(pending)
+              .getSemanticsData()
+              .hasAction(SemanticsAction.tap),
+          isTrue,
+        );
+        expect(review.writes, isEmpty);
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
 
   testWidgets(
     "defer remains on the current image until the save receipt commits",

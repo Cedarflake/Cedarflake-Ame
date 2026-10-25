@@ -3,10 +3,10 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
-import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
+import "library_gallery_header_actions.dart";
 import "library_sidebar_content.dart";
 
 class LibraryGalleryHeader extends StatelessWidget {
@@ -15,6 +15,7 @@ class LibraryGalleryHeader extends StatelessWidget {
     this.leading,
     this.filter,
     this.selectionToolbar,
+    this.reviewToolbar,
     this.reviewCounts,
     this.isReviewing = false,
     this.onToggleReview,
@@ -40,6 +41,7 @@ class LibraryGalleryHeader extends StatelessWidget {
   final Widget? leading;
   final Widget? filter;
   final Widget? selectionToolbar;
+  final Widget? reviewToolbar;
   final LibraryOrganizationCounts? reviewCounts;
   final bool isReviewing;
   final VoidCallback? onToggleReview;
@@ -152,13 +154,9 @@ class LibraryGalleryHeader extends StatelessWidget {
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: AmeScrollMotion(
-                        scrollDirection: Axis.horizontal,
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          reverse: true,
-                          child: toolbar,
-                        ),
+                      child: LibraryGalleryHeaderActions(
+                        primary: toolbar,
+                        secondary: reviewToolbar,
                       ),
                     ),
                   ],
@@ -169,21 +167,10 @@ class LibraryGalleryHeader extends StatelessWidget {
                   titleBlock,
                   const SizedBox(width: 24),
                   Expanded(
-                    child: AmeScrollMotion(
-                      scrollDirection: Axis.horizontal,
-                      child: SingleChildScrollView(
-                        scrollDirection: Axis.horizontal,
-                        reverse: true,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            minWidth: constraints.maxWidth - 210,
-                          ),
-                          child: Align(
-                            alignment: Alignment.centerRight,
-                            child: toolbar,
-                          ),
-                        ),
-                      ),
+                    child: LibraryGalleryHeaderActions(
+                      primary: toolbar,
+                      secondary: reviewToolbar,
+                      minimumWidth: constraints.maxWidth - 210,
                     ),
                   ),
                 ],

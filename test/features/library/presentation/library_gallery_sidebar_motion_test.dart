@@ -2,7 +2,7 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:cedarflake_ame/features/library/presentation/library_organization_mode.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_states.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_viewport.dart";
-import "package:cedarflake_ame/features/library/presentation/widgets/library_review_dock.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_review_toolbar.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_transition.dart";
 import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -12,7 +12,7 @@ import "../support/library_review_fixture.dart";
 void main() {
   for (final scale in [1.0, 2.0]) {
     testWidgets(
-      "empty content and review dock follow the visible center at ${scale}x text",
+      "empty content follows visible center and review actions stay right at ${scale}x text",
       (tester) async {
         await tester.binding.setSurfaceSize(const Size(1600, 900));
         addTearDown(() => tester.binding.setSurfaceSize(null));
@@ -37,15 +37,15 @@ void main() {
         );
         await tester.pumpAndSettle();
         final title = find.text("建立你的图片图库");
-        final exit = find.byKey(const Key("library-review-exit"));
-        final queues = find.byKey(const Key("library-review-queues"));
+        final toolbar = find.byKey(const Key("library-review-toolbar"));
         final boundary = find.byKey(const Key("library-gallery-transition"));
         void expectAligned() {
           final center = tester.getRect(boundary).center.dx;
           expect(tester.getCenter(title).dx, closeTo(center, .01));
-          final dockCenter =
-              (tester.getTopLeft(exit).dx + tester.getTopRight(queues).dx) / 2;
-          expect(dockCenter, closeTo(center, .01));
+          expect(
+            tester.getRect(toolbar).right,
+            closeTo(tester.getRect(boundary).right, .01),
+          );
           expect(tester.takeException(), isNull);
         }
 
@@ -125,12 +125,17 @@ Widget _fixture({
           builder: (_, constraints) {
             widths.add(constraints.maxWidth);
             return LibraryGalleryViewport(
-              header: const SizedBox(height: 80),
+              header: SizedBox(
+                height: 80,
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: LibraryReviewToolbar(mode: mode),
+                ),
+              ),
               body: EmptyLibraryGallery(
                 state: const LibraryState(),
                 onImport: onImport,
               ),
-              footer: LibraryReviewDock(mode: mode),
               isEmpty: true,
               isLoading: false,
             );

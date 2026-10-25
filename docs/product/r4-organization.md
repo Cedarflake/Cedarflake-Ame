@@ -176,7 +176,7 @@ progress and continuation. Opening the saved work, not a separate dashboard or t
 the same gallery/viewer workflow.
 
 The [review UI contract](gallery-ui.md#review-workflow) owns the overflow-menu entry, count row,
-bottom toolbar, separate continuation button, and contextual actions. R4 targets the desktop
+two-row upper-right operation area, continuation button, and contextual actions. R4 targets the desktop
 application and does not introduce a mobile layout.
 
 ## Persistence, removal, and recovery

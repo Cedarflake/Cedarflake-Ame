@@ -197,13 +197,15 @@ Work in this order within the slice:
    source/folder views define the queue scope; Favorites and albums have no organization mode.
    Keep the gallery and viewer as the shared canvas, preserving normal-mode sort, selection and
    browsing position. Offer continuation only for a saved position matching the current source scope.
-4. Put total, organized, pending and ignored counts in the existing count row. Dock icon-only
-   `待整理`, `稍后整理` and `已忽略` selectors at the bottom of the content area, with names and counts
-   in tooltips and accessibility labels. Place separate exit and continuation icon buttons to the
-   toolbar's left and right, centered on the same row with smaller backgrounds. Hide continuation
+4. Put total, organized, pending and ignored counts in the existing count row. Use two rows in the
+   upper-right operation area: existing browsing/selection actions above, then one dropdown with
+   the current queue's icon and name, followed by exit and continuation buttons with icons and labels.
+   The checked menu offers `待整理`, `稍后整理` and `已忽略` with counts. Animate row entry and exit,
+   respecting reduced motion. Hide continuation
    until prior activity and a resumable position both exist. Retain content and control appearance
-   during short query changes. Float the dock over the images without a full-width background or
-   passive text above it, and provide a right-side scrollbar for organization queues.
+   during short query changes. Preserve bottom notification placement and reuse the right-side
+   time rail as a positional scroll control without date annotations for organization queues and
+   ordinary non-chronological browsing.
 5. Put defer and album actions on the same contextual action row. Successful album assignment
    completes work; the organization-mode viewer advances only after commit. Add the accepted ignore
    actions without adding manual completion or a separate new-items tab. Keep chronological undo and

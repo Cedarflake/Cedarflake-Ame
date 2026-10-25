@@ -1011,28 +1011,27 @@ Entering organization mode reveals its controls and `整理模式` beside the ga
 `退出整理`. The title status disappears on exit. Do not add a separate review
 workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 
-The existing count row contains the total, `已整理`, `待整理`, and `已忽略` counts on one line. A floating toolbar
-attached to the bottom of the gallery content area contains `待整理`, `稍后整理`, and `已忽略` selectors,
-using only their corresponding inbox, clock, or hidden-image icons. Tooltips and accessible names
-provide each queue's name and current count.
-`退出整理` is a separate icon button to the toolbar's left, and `继续整理` is a separate icon button to its
-right. Both remain vertically centered on the toolbar's row. Float these controls over the gallery
-without a full-width background or a reserved footer row. Images continue behind the dock; its
-surrounding transparent space passes pointer input to the gallery. Retain trailing scroll padding
-so the last images can be brought above the controls, and keep the dock reachable by keyboard at
-supported desktop widths and text scales.
+The existing count row contains the total, `已整理`, `待整理`, and `已忽略` counts on one line. During
+organization, the upper-right operation area has two right-aligned rows. The first retains browsing
+or selection actions. The second contains one mode dropdown showing the current queue's icon and
+name, followed by `退出整理` and `继续整理`. Its menu offers `待整理`, `稍后整理`, and `已忽略`, marks the
+current choice and includes queue counts. Exit and continuation use a close
+icon and forward arrow with their text labels. Both rows remain available during selection and use
+the header's horizontal scrolling at constrained desktop widths or enlarged text scales.
 
-Match the accepted sketch's padded, rounded floating surface: each queue has its own rounded
-selection background, with space between choices and no joined outline or dividers. Use the theme's
-tonal selected color. The separate exit button uses a close icon; continuation uses a forward arrow.
-Both use compact 40-pixel tonal buttons with unchanged 20-pixel icons, named tooltips and the
-queue container's elevation. Their backgrounds are smaller than the central queue surface.
-Omit passive continuation messages above the dock. An operation failure uses the existing top
-notice with retry. Organization queues have an interactive scrollbar on the right, using the same
-gallery position and bounded loading; ordinary chronological browsing retains its time navigation.
+Reuse the existing checked popup menu and text-button styles. Reveal and collapse the second row
+with a 180 ms height and opacity transition, retaining its content until exit finishes and retiring
+input on exit. Reversing the transition preserves its current progress; reduced motion is immediate.
+Keep these controls in the header without a bottom
+dock or passive continuation messages. Bottom notifications retain their existing placement.
+An operation failure uses the existing top notice with retry. Organization reuses the gallery's
+right-side time rail, including its track, position line, arrows and drag interaction, without date
+labels, markers or date seeking. It scrolls the current sorted queue and retains bounded loading;
+ordinary chronological browsing retains its time navigation. Ordinary name sorting also uses the
+positional rail, so exiting organization never removes its scrolling control.
 
 Mode entry, queue changes and exit retain published content while the replacement query loads.
-An existing empty result does not flash a loading page or an hourglass, and the dock keeps its
+An existing empty result does not flash a loading page or an hourglass, and the controls keep their
 normal colors while blocking repeated commands. Query and mode waits show the shared top loading
 line after 250 milliseconds; shorter waits stay quiet. Direct scrolling and positioning keep their
 immediate feedback, and an initial catalog load without a published result retains its loading state.

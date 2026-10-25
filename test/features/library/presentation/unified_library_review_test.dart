@@ -98,10 +98,10 @@ void main() {
       ]) {
         await tester.tap(find.byKey(Key(destination)));
         await tester.pumpAndSettle();
-        expect(find.byKey(const Key("library-review-dock")), findsNothing);
+        expect(find.byKey(const Key("library-review-toolbar")), findsNothing);
         await tester.tap(find.byKey(const Key("workbench-gallery")));
         await tester.pumpAndSettle();
-        expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
+        expect(find.byKey(const Key("library-review-toolbar")), findsOneWidget);
         expect(find.text("已选择 1 个项目"), findsOneWidget);
         expect(
           container.read(libraryControllerProvider).query.organizationQueue,
@@ -110,7 +110,7 @@ void main() {
       }
       await tester.tap(find.byKey(const Key("workbench-albums")));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key("library-review-dock")), findsNothing);
+      expect(find.byKey(const Key("library-review-toolbar")), findsNothing);
       for (final key in const [
         "library-sidebar-favorites",
         "library-sidebar-album-a",
@@ -128,7 +128,7 @@ void main() {
       }
       await tester.tap(find.byKey(const Key("workbench-gallery")));
       await tester.pumpAndSettle();
-      expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
+      expect(find.byKey(const Key("library-review-toolbar")), findsOneWidget);
       expect(find.text("已选择 1 个项目"), findsOneWidget);
       expect(catalog.loadQueries.last.rootId, isNull);
       expect(
@@ -147,7 +147,11 @@ void main() {
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      final state = populatedScreenState(totalItems: 12);
+      final state = populatedScreenState(totalItems: 12).copyWith(
+        query: const LibraryGalleryQuery(
+          sortKey: LibraryGallerySortKey.fileName,
+        ),
+      );
       final review = ReviewServiceFixture();
       final batches = OrganizationBatchesFixture();
       final catalog = _Catalog(
@@ -177,11 +181,24 @@ void main() {
       );
       await tester.pumpAndSettle();
       await _more(tester, "整理模式");
-      expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
+      expect(find.byKey(const Key("library-review-toolbar")), findsOneWidget);
+      expect(find.byKey(const Key("library-position-rail")), findsOneWidget);
       expect(find.byKey(const Key("library-review-resume")), findsNothing);
+      final reviewToolbar = find.byKey(const Key("library-review-toolbar"));
+      final browsingToolbar = find.byKey(const Key("library-browsing-toolbar"));
+      expect(
+        tester.getRect(reviewToolbar).top,
+        greaterThan(tester.getRect(browsingToolbar).bottom),
+      );
+      expect(
+        tester.getRect(reviewToolbar).right,
+        closeTo(tester.getRect(browsingToolbar).right, .1),
+      );
       expect(find.text("12 张图片 · 已整理 4 · 待整理 6 · 已忽略 1"), findsOneWidget);
       expect(find.text("拍摄日期未知"), findsNothing);
       expect(review.starts, isEmpty);
+      await tester.tap(find.byKey(const Key("library-review-queues")));
+      await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey("library-review-queue-deferred")),
       );
@@ -191,6 +208,14 @@ void main() {
         LibraryOrganizationQueue.deferred,
       );
       await _more(tester, "全选");
+      expect(
+        tester.getRect(reviewToolbar).top,
+        greaterThan(
+          tester
+              .getRect(find.byKey(const Key("library-selection-toolbar")))
+              .bottom,
+        ),
+      );
       expect(find.byKey(const Key("library-selection-defer")), findsNothing);
       await tester.tap(find.byKey(const Key("library-review-actions-menu")));
       await tester.pumpAndSettle();
@@ -209,7 +234,8 @@ void main() {
       expect(review.checkpoints, isEmpty);
       await _more(tester, "退出整理");
       expect(container.read(libraryControllerProvider).query, state.query);
-      expect(find.byKey(const Key("library-review-dock")), findsNothing);
+      expect(find.byKey(const Key("library-review-toolbar")), findsNothing);
+      expect(find.byKey(const Key("library-position-rail")), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pump(const Duration(seconds: 6));
       await tester.pumpAndSettle();
@@ -238,7 +264,7 @@ void main() {
         container.read(libraryControllerProvider).query.organizationQueue,
         LibraryOrganizationQueue.deferred,
       );
-      expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
+      expect(find.byKey(const Key("library-review-toolbar")), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pump(const Duration(seconds: 6));
       await tester.pumpAndSettle();
@@ -249,7 +275,12 @@ void main() {
 Future<void> _more(WidgetTester tester, String label) async {
   await tester.tap(find.byKey(const Key("library-more-menu")));
   await tester.pumpAndSettle();
-  await tester.tap(find.text(label));
+  await tester.tap(
+    find.descendant(
+      of: find.byWidgetPredicate((widget) => widget is PopupMenuItem<Object?>),
+      matching: find.text(label),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 

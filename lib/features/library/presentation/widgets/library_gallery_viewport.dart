@@ -11,7 +11,6 @@ class LibraryGalleryViewport extends StatelessWidget {
     required this.isEmpty,
     required this.isLoading,
     this.failure,
-    this.footer,
     this.notice,
     this.loadingDelay = Duration.zero,
     super.key,
@@ -20,7 +19,6 @@ class LibraryGalleryViewport extends StatelessWidget {
   final Widget header;
   final Widget body;
   final Widget? failure;
-  final Widget? footer;
   final Widget? notice;
   final bool isEmpty;
   final bool isLoading;
@@ -57,16 +55,6 @@ class LibraryGalleryViewport extends StatelessWidget {
             ),
           ],
         ),
-        if (footer case final content?)
-          Positioned(
-            left: 0,
-            right: 0,
-            bottom: 0,
-            child: LibrarySidebarContent(
-              alignment: Alignment.topCenter,
-              child: content,
-            ),
-          ),
       ],
     );
   }

@@ -372,12 +372,14 @@ context while Albums uses the gallery. Query restoration precedes review-session
 return. Duplicates and Settings retain the active organization session behind their surfaces;
 returning to an ordinary gallery resets selection and position across all primary destinations.
 Progress counts carry their query identity and catalog revision; only a matching snapshot
-can supply the header and dock. Exiting restores the retained browsing context through the existing
+can supply the header and review controls. Exiting restores the retained browsing context through the existing
 query/selection admission rules, so obsolete all-matching selections cannot authorize new writes.
 
-`LibraryReviewDockControls` owns the icon-only queue, exit and continuation controls; the dock
-only positions those controls. Material buttons and ChoiceChip keep their focus,
-selection and accessible names. The pinned SDK's `AbsorbPointer` removes pointer-related semantic
+`LibraryReviewToolbar` owns the current-queue dropdown and labeled exit/continuation controls.
+`LibraryGalleryHeaderActions` positions the two action rows and owns the retained secondary row's
+height/opacity transition, reversible progress and reduced-motion behavior. The retiring row loses
+pointer, keyboard and semantic input immediately. Material buttons and checked popup items retain
+focus, selection and accessible names. The pinned SDK's `AbsorbPointer` removes pointer-related semantic
 actions during a mode operation without repainting the controls as disabled; the existing mode
 guard also rejects repeated keyboard commands. Published empty content remains mounted during
 query replacement. `LibraryGalleryLoadingRegion` owns the optional feedback delay and cancels its
@@ -385,12 +387,14 @@ timer when loading ends or the region is disposed. Query and mode composition se
 direct positioning remains immediate. These presentation changes do not alter query admission,
 progress publication or persistence authority.
 
-`LibraryGalleryScrollSurface` composes the existing time navigation for ordinary browsing and
-Flutter's Material `Scrollbar` for organization queues. The pinned SDK owns thumb dragging,
-track hit testing and painting on the right; the scrollbar uses the gallery's existing controller
-and scroll notifications. Both bounded gallery renderers retain their current visible-range and
-page-loading owners. No second scroll position or full-library payload is introduced.
-Passive continuation text is omitted from the dock. `LibraryReviewModeNotice` preserves mode
+`LibraryGalleryScrollSurface` composes existing date navigation for chronological browsing and the
+same annotated rail without date buckets for non-chronological queries, including organization.
+The existing Material Slider owns track hit testing and gestures; the surface translates its
+normalized values through the gallery's `ScrollPosition.drag` lifecycle. This preserves the drag
+notifications used by loaded-window pagination. Query/controller changes and disposal cancel the
+active drag and retire prior callbacks. Both bounded gallery renderers retain their current visible-range
+and page-loading owners. No second scroll position or full-library payload is introduced.
+Passive continuation text is omitted. `LibraryReviewModeNotice` preserves mode
 failures and retry through the same top notice used by the viewer, below the gallery header.
 
 A separate review session owns the current image entry and lazy native session creation. Opening

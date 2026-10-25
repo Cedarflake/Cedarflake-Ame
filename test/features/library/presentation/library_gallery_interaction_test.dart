@@ -79,7 +79,7 @@ void main() {
       );
 
       testWidgets(
-        "review scrollbar drags to the end and returns to the top ($withManifest, $shape)",
+        "review position rail loads distant images and settles at the top ($withManifest, $shape)",
         (tester) async {
           final fixture = await _mountWall(
             tester,
@@ -94,14 +94,14 @@ void main() {
           );
           await tester.pumpAndSettle();
           final bounds = tester.getRect(
-            find.byKey(const Key("library-gallery-scrollbar")),
+            find.byKey(const Key("timeline-hover-region")),
           );
-          final start = Offset(bounds.right - 12, bounds.top + 20);
+          final start = Offset(bounds.right - 24, bounds.top + 1);
           final gesture = await tester.startGesture(
             start,
             kind: PointerDeviceKind.mouse,
           );
-          await gesture.moveTo(Offset(start.dx, bounds.bottom - 20));
+          await gesture.moveTo(Offset(start.dx, bounds.bottom - 1));
           await tester.pumpAndSettle();
           expect(
             fixture.scroll.offset,
@@ -116,8 +116,16 @@ void main() {
           } else {
             expect(fixture.controller.nextPageRequests, greaterThan(0));
           }
-          await gesture.moveTo(start);
+          final nearTop = Offset(start.dx, bounds.top + bounds.height * .08);
+          await gesture.moveTo(nearTop);
           await gesture.up();
+          await tester.pumpAndSettle();
+          final returnGesture = await tester.startGesture(
+            nearTop,
+            kind: PointerDeviceKind.mouse,
+          );
+          await returnGesture.moveTo(start);
+          await returnGesture.up();
           await tester.pumpAndSettle();
           expect(fixture.scroll.offset, closeTo(0, 1));
           expect(tester.takeException(), isNull);
@@ -195,27 +203,29 @@ Future<_WallFixture> _mountWall(
       child: MaterialApp(
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
-          child: LibraryGalleryScrollSurface(
-            controller: fixture.scroll,
-            isOrganizing: showScrollbar,
-            gallery: LibraryGalleryWall(
-              state: currentState,
-              controller: fixture.controller,
-              scrollController: fixture.scroll,
-              layoutShape: shape,
-              thumbnailSize: GalleryThumbnailSize.medium,
-              selection: GallerySelection.empty(currentState.queryId),
-              isSelecting: false,
-              layoutManifest: withManifest ? galleryManifest(1000) : null,
-              onOpen: (_) {},
-              onToggleSelection: (_) {},
-              onViewInformation: (_) {},
-              onCopyPath: (_) {},
-              onRevealFile: (_) {},
-              onVisiblePositionChanged: fixture.positions.add,
-              onVisibleRangeChanged: fixture.ranges.add,
-              onLoadPrevious: fixture.controller.loadPreviousPage,
-              onLayoutChanged: (_, geometry) => fixture.geometry = geometry,
+          child: Material(
+            child: LibraryGalleryScrollSurface(
+              controller: fixture.scroll,
+              usePositionRail: showScrollbar,
+              gallery: LibraryGalleryWall(
+                state: currentState,
+                controller: fixture.controller,
+                scrollController: fixture.scroll,
+                layoutShape: shape,
+                thumbnailSize: GalleryThumbnailSize.medium,
+                selection: GallerySelection.empty(currentState.queryId),
+                isSelecting: false,
+                layoutManifest: withManifest ? galleryManifest(1000) : null,
+                onOpen: (_) {},
+                onToggleSelection: (_) {},
+                onViewInformation: (_) {},
+                onCopyPath: (_) {},
+                onRevealFile: (_) {},
+                onVisiblePositionChanged: fixture.positions.add,
+                onVisibleRangeChanged: fixture.ranges.add,
+                onLoadPrevious: fixture.controller.loadPreviousPage,
+                onLayoutChanged: (_, geometry) => fixture.geometry = geometry,
+              ),
             ),
           ),
         ),

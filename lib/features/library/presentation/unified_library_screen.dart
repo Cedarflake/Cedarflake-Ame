@@ -52,7 +52,7 @@ import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_album_navigation.dart";
 import "widgets/library_albums_sidebar.dart";
 import "widgets/library_collection_navigation.dart";
-import "widgets/library_review_dock.dart";
+import "widgets/library_review_toolbar.dart";
 import "widgets/library_review_mode_notice.dart";
 import "widgets/library_viewer_organization_controls.dart";
 import "widgets/library_gallery_activity.dart";
@@ -790,6 +790,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         child: LibraryGalleryViewport(
           header: LibraryGalleryHeader(
             isReviewing: _review.isActive,
+            reviewToolbar: _review.isActive
+                ? LibraryReviewToolbar(
+                    mode: _review,
+                    counts: state.organizationCounts,
+                  )
+                : null,
             reviewCounts: _review.isActive ? state.organizationCounts : null,
             onToggleReview:
                 _destination != LibraryWorkspace.gallery ||
@@ -853,12 +859,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             ),
             _ => null,
           },
-          footer: _review.isActive
-              ? LibraryReviewDock(
-                  mode: _review,
-                  counts: state.organizationCounts,
-                )
-              : null,
           notice: _destination == LibraryWorkspace.gallery
               ? LibraryReviewModeNotice(mode: _review)
               : null,
@@ -907,7 +907,8 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     }
     return LibraryGalleryScrollSurface(
       controller: _galleryScrollController,
-      isOrganizing: state.query.organizationQueue != null,
+      usePositionRail: !state.query.isChronological,
+      scrollIdentity: state.query,
       gallery: LibraryGalleryWall(
         state: state,
         controller: controller,

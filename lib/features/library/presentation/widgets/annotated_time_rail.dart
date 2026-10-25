@@ -75,7 +75,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
               inferredTimelineMaximumOffset(widget.buckets),
         );
     final anchors = buildTimelineRailAnchors(widget.buckets, projection);
-    if (anchors.isEmpty) {
+    if (anchors.isEmpty && widget.maximumScrollOffset == null) {
       return const SizedBox(width: AnnotatedTimeRail.width);
     }
     return SizedBox(
@@ -88,7 +88,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
           children: [
             _buildStepButton(
               key: const Key("timeline-previous"),
-              tooltip: "向较新的内容移动一行",
+              tooltip: anchors.isEmpty ? "向上滚动" : "向较新的内容移动一行",
               icon: Symbols.arrow_drop_up_rounded,
               direction: -1,
             ),
@@ -108,10 +108,12 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                     markerExtent: _markerExtent,
                     markerMinimumGap: _markerMinimumGap,
                   );
-                  final currentBucketId = timelineRailBucketAtValue(
-                    anchors,
-                    widget.value,
-                  ).bucket.id;
+                  final currentBucketId = anchors.isEmpty
+                      ? null
+                      : timelineRailBucketAtValue(
+                          anchors,
+                          widget.value,
+                        ).bucket.id;
                   return Listener(
                     key: const Key("timeline-hover-region"),
                     behavior: HitTestBehavior.translucent,
@@ -149,11 +151,12 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                               onChangeEnd: widget.onChanged == null
                                   ? null
                                   : (visualValue) => _commit(visualValue),
-                              semanticLabelFor: (sliderValue) =>
-                                  timelineRailBucketAtValue(
-                                    anchors,
-                                    sliderValue,
-                                  ).bucket.label,
+                              semanticLabelFor: (sliderValue) => anchors.isEmpty
+                                  ? "滚动位置 ${(sliderValue * 100).round()}%"
+                                  : timelineRailBucketAtValue(
+                                      anchors,
+                                      sliderValue,
+                                    ).bucket.label,
                             ),
                           ),
                           _buildPositionLine(
@@ -178,7 +181,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                               ),
                               isCurrent: currentBucketId == anchor.bucket.id,
                             ),
-                          if (_isDragging)
+                          if (anchors.isNotEmpty && _isDragging)
                             _buildPositionLabel(
                               context,
                               key: const Key("timeline-drag-label"),
@@ -186,11 +189,11 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                               visualValue: widget.value,
                               railHeight: constraints.maxHeight,
                             )
-                          else if (_hoverValue case final hoverValue?)
+                          else if (anchors.isNotEmpty && _hoverValue != null)
                             ..._buildHoverPreview(
                               context,
                               anchors: anchors,
-                              visualValue: hoverValue,
+                              visualValue: _hoverValue!,
                               railHeight: constraints.maxHeight,
                             ),
                         ],
@@ -202,7 +205,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             ),
             _buildStepButton(
               key: const Key("timeline-next"),
-              tooltip: "向较早的内容移动一行",
+              tooltip: anchors.isEmpty ? "向下滚动" : "向较早的内容移动一行",
               icon: Symbols.arrow_drop_down_rounded,
               direction: 1,
             ),
