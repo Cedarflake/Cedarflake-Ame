@@ -15,7 +15,7 @@ Future<void> verifyOrganizationUnavailableWorkflow(WidgetTester tester) async {
   await expectLater(SourceReadBlock.acquire("README.md"), throwsArgumentError);
   await _mode(tester, "整理模式");
   expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
-  expect(find.text("待整理 2"), findsOneWidget);
+  expect(find.bySemanticsLabel("待整理 2"), findsOneWidget);
   final tile = find.byType(LibraryPhotoTile).hitTestable().first;
   final selected = tester.widget<LibraryPhotoTile>(tile).asset;
   final target = LibraryOrganizationTarget.fromAsset(selected);
@@ -54,8 +54,8 @@ Future<void> verifyOrganizationUnavailableWorkflow(WidgetTester tester) async {
   }
   await tester.tap(find.byKey(const Key("viewer-back-button")));
   await tester.pumpAndSettle();
-  expect(find.text("待整理 2"), findsOneWidget);
-  await _mode(tester, "退出整理模式");
+  expect(find.bySemanticsLabel("待整理 2"), findsOneWidget);
+  await _mode(tester, "退出整理");
   expect(find.byKey(const Key("library-review-dock")), findsNothing);
   expect(tester.takeException(), isNull);
   debugPrint("AME_ORGANIZATION_UNAVAILABLE_WORKFLOW_PASSED");

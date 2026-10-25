@@ -68,7 +68,7 @@ class LibraryGalleryHeader extends StatelessWidget {
     }
     if (reviewCounts case final counts?) {
       subtitle =
-          "${counts.total} 张图片 · 已整理 ${counts.organized} · 待整理 ${counts.pending}";
+          "${counts.total} 张图片 · 已整理 ${counts.organized} · 待整理 ${counts.pending} · 已忽略 ${counts.ignored}";
     } else if (isSelecting) {
       subtitle = galleryTitle;
     }
@@ -96,7 +96,7 @@ class LibraryGalleryHeader extends StatelessWidget {
                       ),
                       if (isReviewing)
                         Text(
-                          "整理中",
+                          "整理模式",
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(context).colorScheme.primary,
@@ -485,7 +485,7 @@ class _MoreMenu extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final reviewLabel = isReviewing ? "退出整理模式" : "整理模式";
+    final reviewLabel = isReviewing ? "退出整理" : "整理模式";
     return AmePopupMenuButton<_MoreMenuAction>(
       labels: [
         LibraryStrings.selectAll,

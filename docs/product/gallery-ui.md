@@ -1007,21 +1007,28 @@ descendants under the existing folder rule. Favorites and albums expose no organ
 Primary-sidebar visits preserve the organizing Library's mode, scope, selection and position for
 its return; Albums itself remains ordinary browsing.
 Entering organization mode reveals its controls and `整理模式` beside the gallery title; the same menu offers
-`退出整理模式`. The title status disappears on exit. Do not add a separate review
+`退出整理`. The title status disappears on exit. Do not add a separate review
 workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 
-The existing count row contains the total, `已整理`, and `待整理` counts on one line. A floating toolbar
+The existing count row contains the total, `已整理`, `待整理`, and `已忽略` counts on one line. A floating toolbar
 attached to the bottom of the gallery content area contains `待整理`, `稍后整理`, and `已忽略` selectors,
-each with its corresponding inbox, clock, or hidden-image icon beside the text.
-`退出整理模式` is a separate button to the toolbar's left, and `继续整理` is a separate button to its
+using only their corresponding inbox, clock, or hidden-image icons. Tooltips and accessible names
+provide each queue's name and current count.
+`退出整理` is a separate icon button to the toolbar's left, and `继续整理` is a separate icon button to its
 right. Both share the toolbar's row and height. Reserve
 content space so the dock does not obscure the last images or their actions, and keep it reachable
 by keyboard at supported desktop widths and text scales.
 
 Match the accepted sketch's padded, rounded floating surface: each queue has its own rounded
 selection background, with space between choices and no joined outline or dividers. Use the theme's
-tonal selected color. The separate exit button has a leading close icon; continuation has a forward
-arrow. Both use a tonal background with the same height and elevation as the queue container.
+tonal selected color. The separate exit button uses a close icon; continuation uses a forward arrow.
+Both have named tooltips and a tonal background with the same height and elevation as the queue container.
+
+Mode entry, queue changes and exit retain published content while the replacement query loads.
+An existing empty result does not flash a loading page or an hourglass, and the dock keeps its
+normal colors while blocking repeated commands. Query and mode waits show the shared top loading
+line after 250 milliseconds; shorter waits stay quiet. Direct scrolling and positioning keep their
+immediate feedback, and an initial catalog load without a published result retains its loading state.
 
 Hide `继续整理` and any saved-position marker before organization has begun or when no resumable
 position exists in the current source/folder scope. A saved position from another folder, all-source

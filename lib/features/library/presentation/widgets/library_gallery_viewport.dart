@@ -12,6 +12,7 @@ class LibraryGalleryViewport extends StatelessWidget {
     required this.isLoading,
     this.failure,
     this.footer,
+    this.loadingDelay = Duration.zero,
     super.key,
   });
 
@@ -21,6 +22,7 @@ class LibraryGalleryViewport extends StatelessWidget {
   final Widget? footer;
   final bool isEmpty;
   final bool isLoading;
+  final Duration loadingDelay;
 
   @override
   Widget build(BuildContext context) {
@@ -47,6 +49,7 @@ class LibraryGalleryViewport extends StatelessWidget {
                   Expanded(
                     child: LibraryGalleryLoadingRegion(
                       isLoading: isLoading,
+                      delay: loadingDelay,
                       child: isEmpty ? const SizedBox.shrink() : body,
                     ),
                   ),

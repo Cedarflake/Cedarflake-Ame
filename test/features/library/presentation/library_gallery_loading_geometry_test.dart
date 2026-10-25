@@ -55,6 +55,10 @@ void main() {
     for (final activity in _LoadingActivity.values) {
       controller.showLoading(activity);
       await tester.pump();
+      if (activity == _LoadingActivity.query) {
+        expect(loadingBar, findsNothing);
+        await tester.pump(const Duration(milliseconds: 250));
+      }
       expect(loadingBar, findsOneWidget);
       expect(tester.getRect(wall), idleBounds, reason: activity.name);
       expect(position.viewportDimension, idleExtent, reason: activity.name);

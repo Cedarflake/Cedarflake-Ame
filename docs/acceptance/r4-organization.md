@@ -2228,3 +2228,38 @@ unavailable-position feedback and queue selection remain present. Native inspect
 interaction and final geometry; deterministic widget checks cover the animation's intermediate
 frames. Source media and recovery records remain untouched. Queue-change loading feedback is a
 separate reported follow-up.
+
+## Stable organization transitions and icon controls - 2026-10-25
+
+Mode entry, queue switching and exit now retain the published empty surface instead of replacing it
+with a spinner, an hourglass and disabled import styling. The dock blocks repeated input without
+changing button colors; the existing mode guard still rejects concurrent keyboard commands.
+Query and mode feedback uses a 250-millisecond delay in the shared loading region, with cancellation
+on completion and disposal. Direct page and timeline positioning retain immediate feedback.
+The bottom controls now use icons with named tooltips and queue counts, and the header adds ignored
+groups to its count row. Existing continuation visibility and whole-group progress rules remain intact.
+
+Forty focused widget cases pass across empty-query feedback, first-import states, loading geometry,
+loading-region lifetime, sidebar motion, review controls, unified loading and unified review. They
+cover short and sustained waits, timer retirement, repeated pointer/callback commands, removed and
+restored semantic tap actions, unchanged geometry, initial loading, 1.0/2.0 text scaling, scoped
+counts and ordinary-context restoration. The initial busy-control regression exposed a test-owned
+semantics handle disposed after the binding check; disposing it in the case's `finally` resolves
+the harness failure. Strict analysis and the Windows Debug build pass. The unavailable-image
+integration assertion now uses the queue's accessible name; that workflow was analyzed but not rerun.
+The read-only repository format check reported the empty-state file and one queue-lookup assertion.
+The assertion is corrected within its changed lines; the staged empty-state source and affected
+assertions pass formatting. Unrelated working-tree formatting remains outside this commit.
+
+The rebuilt Windows client verifies entry, all three queue selections, the independent exit button,
+re-entry, tooltip names/counts, accessible button labels and sidebar collapse/expansion. The header
+shows the ignored count, and the dock stays icon-only and centered. Native checks cover the actual
+interactions and final layout; deterministic widget checks cover transient frames and delayed
+feedback. The existing empty recovery profile is retained, with no import or cleanup performed.
+
+The dock and controls owners have 42/141 production lines, and the loading owner has 78; they have
+no inline tests. The existing screen/header have 1,879/585 lines and only receive composition/copy
+changes. Dedicated review-widget, empty-feedback and unified-review suites have 437/70/263 lines;
+the affected unavailable-image integration owner has 95. No schema, bridge, dependency or source
+policy changes are introduced. Publication remains on the existing R4 branch. Its pushes have no
+automatic workflow trigger without a pull request; no hosted run covers this checkpoint yet.

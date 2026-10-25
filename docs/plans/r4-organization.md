@@ -192,13 +192,15 @@ Work in this order within the slice:
    save updates shared progress while retaining the current image and organization anchor.
 2. Connect `加入相册前询问` and `默认加入的相册` to durable settings with the confirmed defaults. Missing
    defaults and unresolved conflicts open the picker. Favorites is never an album destination.
-3. Add `整理模式` / `退出整理模式` to the Library overflow menu. All-source Library and selected
+3. Add `整理模式` / `退出整理` to the Library overflow menu. All-source Library and selected
    source/folder views define the queue scope; Favorites and albums have no organization mode.
    Keep the gallery and viewer as the shared canvas, preserving normal-mode sort, selection and
    browsing position. Offer continuation only for a saved position matching the current source scope.
-4. Put total, organized and pending counts in the existing count row. Dock `待整理`, `稍后整理` and
-   `已忽略` at the bottom of the content area. Place `继续整理` independently beside the toolbar, on
-   the same row and height, and hide it until prior activity and a resumable position both exist.
+4. Put total, organized, pending and ignored counts in the existing count row. Dock icon-only
+   `待整理`, `稍后整理` and `已忽略` selectors at the bottom of the content area, with names and counts
+   in tooltips and accessibility labels. Place separate exit and continuation icon buttons to the
+   toolbar's left and right, on the same row and height. Hide continuation until prior activity and
+   a resumable position both exist. Retain content and control appearance during short query changes.
 5. Put defer and album actions on the same contextual action row. Successful album assignment
    completes work; the organization-mode viewer advances only after commit. Add the accepted ignore
    actions without adding manual completion or a separate new-items tab. Keep chronological undo and

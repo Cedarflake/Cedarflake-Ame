@@ -3,6 +3,40 @@ import "package:flutter/material.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  testWidgets(
+    "short refreshes stay quiet and delayed feedback retires with its owner",
+    (tester) async {
+      Future<void> show(bool loading) => tester.pumpWidget(
+        MaterialApp(
+          home: LibraryGalleryLoadingRegion(
+            isLoading: loading,
+            delay: const Duration(milliseconds: 250),
+            child: const SizedBox.expand(),
+          ),
+        ),
+      );
+      final indicator = find.byType(LinearProgressIndicator);
+      await show(false);
+      await show(true);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(indicator, findsNothing);
+      await show(false);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(indicator, findsNothing);
+      await show(true);
+      await tester.pump(const Duration(milliseconds: 249));
+      expect(indicator, findsNothing);
+      await tester.pump(const Duration(milliseconds: 1));
+      expect(indicator, findsOneWidget);
+      await show(false);
+      expect(indicator, findsNothing);
+      await show(true);
+      await tester.pumpWidget(const SizedBox.shrink());
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(tester.takeException(), isNull);
+    },
+  );
+
   testWidgets("loading line preserves geometry and passes gallery input", (
     tester,
   ) async {

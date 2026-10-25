@@ -859,7 +859,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                 )
               : null,
           isEmpty: state.assets.isEmpty,
+          loadingDelay: state.isRefreshingQuery || _review.busy
+              ? const Duration(milliseconds: 250)
+              : Duration.zero,
           isLoading:
+              _review.busy ||
               state.isRefreshingQuery ||
               state.isLoadingPage ||
               state.isLoadingPreviousPage ||

@@ -21,9 +21,10 @@ class EmptyLibraryGallery extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (state.status == LibraryStatus.refreshing ||
-        state.isRefreshingQuery ||
-        state.isLoadingTimeline) {
+    if (state.catalogRevision == null &&
+        (state.status == LibraryStatus.refreshing ||
+            state.isRefreshingQuery ||
+            state.isLoadingTimeline)) {
       return const GalleryLoadingState();
     }
     if (_isAwaitingPublishedDisplay) {
@@ -231,7 +232,7 @@ class EmptyLibrary extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(
-                state.isProcessing
+                state.isProcessing && !state.isRefreshingQuery
                     ? Symbols.hourglass_top_rounded
                     : Symbols.add_photo_alternate_rounded,
                 size: 56,
@@ -249,12 +250,19 @@ class EmptyLibrary extends StatelessWidget {
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 24),
-              FilledButton.icon(
-                onPressed: state.isBusy || state.hasRetainedScan
-                    ? null
-                    : onImport,
-                icon: const Icon(Symbols.create_new_folder_rounded),
-                label: const Text(LibraryStrings.import),
+              AbsorbPointer(
+                absorbing: state.isRefreshingQuery,
+                child: FilledButton.icon(
+                  onPressed:
+                      state.hasRetainedScan ||
+                          (state.isBusy && !state.isRefreshingQuery)
+                      ? null
+                      : () {
+                          if (!state.isBusy) onImport();
+                        },
+                  icon: const Icon(Symbols.create_new_folder_rounded),
+                  label: const Text(LibraryStrings.import),
+                ),
               ),
               if (state.hasRetainedScan) ...[
                 const SizedBox(height: 8),

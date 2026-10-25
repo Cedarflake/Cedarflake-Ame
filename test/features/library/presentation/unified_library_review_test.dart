@@ -107,7 +107,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(find.text("全选"), findsOneWidget);
         expect(find.text("整理模式"), findsNothing);
-        expect(find.text("退出整理模式"), findsNothing);
+        expect(find.text("退出整理"), findsNothing);
         await tester.binding.handlePopRoute();
         await tester.pumpAndSettle();
       }
@@ -164,10 +164,12 @@ void main() {
       await _more(tester, "整理模式");
       expect(find.byKey(const Key("library-review-dock")), findsOneWidget);
       expect(find.byKey(const Key("library-review-resume")), findsNothing);
-      expect(find.text("12 张图片 · 已整理 4 · 待整理 6"), findsOneWidget);
+      expect(find.text("12 张图片 · 已整理 4 · 待整理 6 · 已忽略 1"), findsOneWidget);
       expect(find.text("拍摄日期未知"), findsNothing);
       expect(review.starts, isEmpty);
-      await tester.tap(find.text("稍后整理 1"));
+      await tester.tap(
+        find.byKey(const ValueKey("library-review-queue-deferred")),
+      );
       await tester.pumpAndSettle();
       expect(
         container.read(libraryControllerProvider).query.organizationQueue,
@@ -187,7 +189,7 @@ void main() {
       expect(action.action, LibraryProgressAction.restore);
       expect(batches.selections.single.allMatching, isTrue);
       expect(review.checkpoints, isEmpty);
-      await _more(tester, "退出整理模式");
+      await _more(tester, "退出整理");
       expect(container.read(libraryControllerProvider).query, state.query);
       expect(find.byKey(const Key("library-review-dock")), findsNothing);
       expect(tester.takeException(), isNull);

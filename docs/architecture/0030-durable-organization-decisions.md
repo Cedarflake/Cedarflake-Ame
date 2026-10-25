@@ -371,6 +371,16 @@ Progress counts carry their query identity and catalog revision; only a matching
 can supply the header and dock. Exiting restores the retained browsing context through the existing
 query/selection admission rules, so obsolete all-matching selections cannot authorize new writes.
 
+`LibraryReviewDockControls` owns the icon-only queue, exit and continuation controls; the dock
+retains continuation and failure messages. Material buttons and ChoiceChip keep their focus,
+selection and accessible names. The pinned SDK's `AbsorbPointer` removes pointer-related semantic
+actions during a mode operation without repainting the controls as disabled; the existing mode
+guard also rejects repeated keyboard commands. Published empty content remains mounted during
+query replacement. `LibraryGalleryLoadingRegion` owns the optional feedback delay and cancels its
+timer when loading ends or the region is disposed. Query and mode composition selects the delay;
+direct positioning remains immediate. These presentation changes do not alter query admission,
+progress publication or persistence authority.
+
 A separate review session owns the current image entry and lazy native session creation. Opening
 the mode or changing its queue does not create activity. An explicit image visit checkpoints its
 logical target; an admitted representative replacement renews that authority without duplicating
