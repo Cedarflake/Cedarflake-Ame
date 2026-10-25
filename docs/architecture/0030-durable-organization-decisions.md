@@ -393,6 +393,9 @@ progress publication or persistence authority.
 
 `LibraryGalleryScrollSurface` composes existing date navigation for chronological browsing and the
 same annotated rail without date buckets for non-chronological queries, including organization.
+`TimelineRailTicks` supplies at most 21 evenly spaced position markers, thinning shorter tracks;
+date and positional annotations share `TimelineRailMarker`. These decorative ticks have no input
+or semantic actions and do not add Slider divisions or synthetic date buckets.
 The existing Material Slider owns track hit testing and gestures; the surface translates its
 normalized values through the gallery's `ScrollPosition.drag` lifecycle. This preserves the drag
 notifications used by loaded-window pagination. Query/controller changes and disposal cancel the

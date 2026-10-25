@@ -39,9 +39,15 @@ void main() {
       expect(rail().onChanged, isNotNull);
       final slider = tester.widget<Slider>(find.byType(Slider));
       expect(slider.semanticFormatterCallback!(.5), "滚动位置 50%");
-      rail().onChanged!(.5);
+      expect(slider.divisions, isNull);
+      final middleTick = find.byKey(const ValueKey("position-tick-10"));
+      expect(middleTick, findsOneWidget);
+      await tester.tapAt(tester.getCenter(middleTick));
       await tester.pumpAndSettle();
-      expect(controller.offset, controller.position.maxScrollExtent / 2);
+      expect(
+        controller.offset,
+        closeTo(controller.position.maxScrollExtent / 2, 1),
+      );
       final previousEnd = rail().onChangeEnd!;
       query.value = 2;
       controller.jumpTo(0);

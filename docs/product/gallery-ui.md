@@ -1030,8 +1030,10 @@ Reversing the transition preserves its current progress; reduced motion is immed
 Keep these controls in the header without a bottom
 dock or passive continuation messages. Bottom notifications retain their existing placement.
 An operation failure uses the existing top notice with retry. Organization reuses the gallery's
-right-side time rail, including its track, position line, arrows and drag interaction, without date
-labels, markers or date seeking. It scrolls the current sorted queue and retains bounded loading;
+right-side time rail, including its track, dot ticks, position line, arrows and drag interaction,
+without date labels or date seeking. Positional ticks use the timeline's existing dot size and color,
+mark evenly spaced scroll fractions, and thin out only when the track becomes too short. They do not
+snap scrolling to discrete positions. It scrolls the current sorted queue and retains bounded loading;
 ordinary chronological browsing retains its time navigation. Ordinary name sorting also uses the
 positional rail, so exiting organization never removes its scrolling control.
 

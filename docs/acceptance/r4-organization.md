@@ -2442,3 +2442,25 @@ The header, animation, measured-row, shared menu-choice and review-toolbar owner
 544/153/125/44/92 production lines, with no inline tests. Their dedicated alignment/motion/review
 tests contain 128/90/481 lines. No schema, bridge, dependency, source-policy or queue-order change
 is introduced.
+
+## Positional rail ticks - 2026-10-25
+
+Non-chronological rails retain the timeline's dot appearance without date annotations. The shared
+marker widget supplies the existing four-pixel outline-colored dots. The positional layer places
+at most 21 ticks at evenly spaced scroll fractions and reduces density on short tracks. Decorative
+ticks exclude pointer and semantic actions; the existing Material Slider remains continuous.
+
+All 15 focused Flutter cases pass: date rail (9), positional surface (2), and bounded tick geometry
+(4). The surface test clicks through a visible middle tick to the corresponding scroll offset and
+retains stale-query, resize and disabled-short-queue coverage. Geometry covers 80–4,000-pixel tracks.
+Scoped formatting, strict analysis and the Windows Debug build pass. The repository format check
+still reports only the unrelated pre-existing `library_gallery_states.dart` edit.
+
+Native verification on the retained generated library shows the dots in ordinary name sorting and
+organization mode. Dragging away from the top and then from near the top back to the top updates
+the gallery immediately without a follow-up wheel event. The existing 72 groups and organization
+counts remain unchanged, and the isolated client remains open in organization mode.
+
+The rail and extracted tick/marker owners contain 458/67 production lines with no inline tests;
+their affected surface/tick suites contain 104/42 lines. No source, schema, query, scrollbar gesture
+or queue-order policy changes are introduced.

@@ -6,6 +6,7 @@ import "timeline_linear_projection.dart";
 import "timeline_rail_layout.dart";
 import "timeline_rail_model.dart";
 import "timeline_rail_motion.dart";
+import "timeline_rail_ticks.dart";
 import "vertical_material_timeline_slider.dart";
 
 export "timeline_rail_model.dart"
@@ -44,8 +45,8 @@ class AnnotatedTimeRail extends StatefulWidget {
 class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
   static const double _controlWidth = kMinInteractiveDimension;
   static const double _endpointInset = 12;
-  static const double _markerExtent = 4;
-  static const double _markerMinimumGap = 6;
+  static const double _markerExtent = TimelineRailMarker.extent;
+  static const double _markerMinimumGap = TimelineRailMarker.minimumGap;
   static const double _labelExtent = 24;
   static const double _positionLineHeight = 3;
   static const double _positionLineWidth = 30;
@@ -166,6 +167,16 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                             color: colorScheme.primary,
                             geometry: geometry,
                           ),
+                          if (anchors.isEmpty)
+                            Positioned(
+                              top: 0,
+                              bottom: 0,
+                              right: (_controlWidth - _markerExtent) / 2,
+                              width: _markerExtent,
+                              child: const TimelineRailTicks(
+                                endpointInset: _endpointInset,
+                              ),
+                            ),
                           for (final anchor in anchors)
                             ..._buildAnnotation(
                               context,
@@ -259,14 +270,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
         _markerExtent,
         _markerExtent,
       ),
-      child: IgnorePointer(
-        child: DecoratedBox(
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.outline,
-            shape: BoxShape.circle,
-          ),
-        ),
-      ),
+      child: const TimelineRailMarker(),
     );
     if (!hasLabel) {
       if (!hasMarker) {
