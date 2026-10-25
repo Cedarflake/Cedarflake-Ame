@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Last updated: 2026-09-09
+- Last updated: 2026-10-26
 - Related: ADR 0006, ADR 0014
 
 ## Context
@@ -72,6 +72,13 @@ v3 representation records enough evidence to identify and account for an artifac
 - one bounded physical-pixel size bucket and actual encoded dimensions;
 - artifact path, byte size, and rebuildable lifecycle state;
 - coarsened last-use evidence that does not require a persistent write on every scroll tick.
+
+Publishing a loaded gallery page only attempts a last-use update when catalog write admission is
+available immediately. SQLite contention also returns without waiting, leaving the previous usage
+time intact for a later publication to refresh. This approximate cache-recency update cannot delay
+the page behind a batch organization transaction. The adapter restores the normal connection timeout
+and still reports other database errors; artifact ownership, active-demand pinning and source leases
+retain their existing rules.
 
 An absolute path alone is not artifact identity. Preview artifacts use a finite measured bucket set,
 not a distinct key for every logical tile width. Ame selects the smallest compatible bucket that

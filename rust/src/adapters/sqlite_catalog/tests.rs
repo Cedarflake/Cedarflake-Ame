@@ -7,6 +7,7 @@ mod legacy_scan_retirement;
 mod preview_cleanup;
 mod preview_publication;
 mod preview_reclamation;
+mod preview_usage;
 mod query_anchors;
 mod query_geometry;
 mod query_indexes;

@@ -2579,3 +2579,38 @@ card shapes: chronological rows keep date anchors/headings; name and admission r
 Both manifest and loaded-window packing, item order and layout-input identity are checked. All 38
 layout snapshot cases and three rail-projection cases pass locally, along with strict Dart analysis.
 The earlier run's failed Flutter result remains a failure; the correction needs its own hosted head.
+
+## Loaded-page publication during organization writes - 2026-10-26
+
+The retained read-stage profile separates page retrieval from timeline/source counts. On a fresh
+copy of the existing derived client catalog, its 47,832-group album takes 1,141–1,265 ms for a
+128-item page and 1,669–1,788 ms for timeline/counts. The empty Favorite scope takes 890–896 ms and
+1,429–1,436 ms respectively. The one-item pending queue takes 601–627 ms for its page,
+1,139–1,153 ms for timeline/counts and another 631–651 ms for organization totals. These are two
+samples on one connection with the OS cache retained; they do not establish a new speedup. The
+manual `profile_retained_organization_read_stages` check passes in Release, opens the input read-only,
+uses a disposable database copy and reads no source media. Its report is
+`build/test/derived/r4-client-measure/profile/catalog/organization-read-stages.jsonl`.
+
+Source inspection also identifies a separate publication wait: after the page is read, its preview
+last-use update enters the normal blocking writer admission. A held external write reproduces a
+5,008-ms wait followed by `catalog_database_busy`. The extracted `preview_usage` owner now attempts
+both process admission and the SQLite transaction without waiting. Contention leaves last-use
+evidence unchanged; the next idle publication can refresh it. The 4,096-item limit, minute-level
+coarsening, key/path guards and atomic update remain intact, and other errors still propagate.
+
+All three new regressions pass, including a complete page read plus usage publication while an
+in-process writer remains held, external-write contention, subsequent idle update, restored timeout,
+write-error propagation and the size bound. The contention checks require return within 250 ms;
+they are small-fixture bounds, not full-library response timings. Forty unchanged preview-related
+cases retain their passing results; seven preview-health and five catalog-read cases also pass.
+The catalog-read suite separately runs its WAL subprocess helper; the real-library opt-in check
+remains ignored. Initial new-fixture setup omitted the source-generation counter advancement;
+the fixture now satisfies the unchanged reopen contract without changing production validation.
+Final Rust formatting and Clippy with warnings denied pass. The normal Windows Debug build passes;
+the isolated recovery profile is reopened after the owned test process is replaced.
+
+The catalog facade has 3,469 lines, the new usage owner 91, and neither has an inline test module.
+Dedicated usage and retained read-stage suites contain 126 and 89 lines respectively. This change
+adds no schema, dependency, source read, background queue or durable organization-policy change.
+Full retained-client publication timing, remaining query cost and final interactive checks stay open.

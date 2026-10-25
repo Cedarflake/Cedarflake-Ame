@@ -126,9 +126,9 @@ R4 acceptance record.
 Owning-query repairs reduce retained-library album, Favorite and organization-queue read costs.
 The complete Debug client verifies populated collections, single-group Favorite publication,
 new arrivals and an empty deferred queue on a full catalog copy. Optimized-client timing now covers
-collection reads, committed-save publication, empty queues and saved continuation. During a full
-organization write, the requested album becomes visible only after the write finishes; this blocked
-read, other query/publication waits and constrained-device resource acceptance remain open.
+collection reads, committed-save publication, empty queues and saved continuation. Preview-usage
+publication now yields to an active writer, with focused contention checks passing. Its retained-client
+timing, remaining query/publication waits and constrained-device resource acceptance remain open.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -311,9 +311,10 @@ retained cancellation case with all applicable jobs passing.
 The full Debug client preserves 47,833 organized groups while startup
 synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
 and empty deferred-queue interactions pass with sampled resources. Optimized-client measurements
-now locate additional waits in collection reads, saved continuation and committed-list publication.
-Opening an album during the full organization write waits for that write to finish. Repair these
-owning read/write paths before integrated performance acceptance; retain the completed measurements.
+locate additional waits in collection reads, saved continuation and committed-list publication.
+Preview last-use publication now yields immediately to an active organization writer, with bounded
+read/write-contention regressions. Verify the resulting retained-client publication timing and repair
+remaining query costs before integrated performance acceptance; retain the completed measurements.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication

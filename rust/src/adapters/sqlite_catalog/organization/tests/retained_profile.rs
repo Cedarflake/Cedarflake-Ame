@@ -22,6 +22,7 @@ use super::transitions::create_album;
 use super::*;
 
 mod cancellation;
+mod read_stages;
 
 const PAGE_SIZE: u32 = 128;
 

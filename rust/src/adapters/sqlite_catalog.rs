@@ -60,6 +60,7 @@ mod poll_retirement_diagnostics;
 mod preview_cleanup;
 mod preview_publication;
 mod preview_recovery;
+mod preview_usage;
 mod read_retry;
 mod reclamation;
 mod retained_scan;
@@ -1811,45 +1812,7 @@ impl CatalogRepository for SqliteCatalog {
         &mut self,
         artifacts: &[(String, String)],
     ) -> Result<u64, ScanError> {
-        if artifacts.len() > 4_096 {
-            return Err(ScanError::new(
-                "preview_touch_batch_too_large",
-                "Preview usage updates are limited to 4096 artifacts per batch",
-            ));
-        }
-        if artifacts.is_empty() {
-            return Ok(0);
-        }
-        let now = unix_time_ms();
-        let oldest_retained = now.saturating_sub(60_000);
-        let transaction = self.begin_write()?;
-        let mut statement = transaction
-            .prepare_cached(
-                "UPDATE preview_artifacts
-                 SET last_used_unix_ms = ?3
-                 WHERE artifact_key IN (
-                     SELECT artifact_key FROM preview_artifact_locations
-                     WHERE location_id = ?1
-                 )
-                   AND artifact_path = ?2 AND last_used_unix_ms < ?4",
-            )
-            .map_err(database_error)?;
-        let mut updated = 0_usize;
-        for (location_id, artifact_path) in artifacts {
-            updated = updated.saturating_add(
-                statement
-                    .execute(params![location_id, artifact_path, now, oldest_retained])
-                    .map_err(database_error)?,
-            );
-        }
-        drop(statement);
-        transaction.commit().map_err(database_error)?;
-        u64::try_from(updated).map_err(|_| {
-            ScanError::new(
-                "preview_touch_count_invalid",
-                "The preview usage update count exceeds the supported range",
-            )
-        })
+        preview_usage::touch(self, artifacts)
     }
 
     fn load_preview_reclamation_candidates(
