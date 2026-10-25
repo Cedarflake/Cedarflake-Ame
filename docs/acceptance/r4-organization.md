@@ -2614,3 +2614,20 @@ The catalog facade has 3,469 lines, the new usage owner 91, and neither has an i
 Dedicated usage and retained read-stage suites contain 126 and 89 lines respectively. This change
 adds no schema, dependency, source read, background queue or durable organization-policy change.
 Full retained-client publication timing, remaining query cost and final interactive checks stay open.
+
+## Schema 57 recovery admission - 2026-10-26
+
+Hosted run `40222442645` also reports seven current-recovery failures. Schema 57 adds organization
+sort and continuation tables, leaving the inventory-spool and live-gap recovery structures unchanged.
+Their compatibility owner still admitted only versions through 56, so current-catalog opening skipped
+the existing residue repair and then rejected the unrepaired authority records. Both explicit ranges
+now include 57. Exact DDL and completion-marker checks, unknown-version rejection, transaction
+boundaries and final full validation remain unchanged. This repair introduces no schema or source read.
+
+All 21 focused Rust checks pass with their existing assertions: compatibility shape (3), atomic
+current recovery (1), retired live-gap repair (8), terminal inventory repair (7), and organization
+review-order migration (2). They include all seven hosted failures, malformed-shape rejection,
+historical upgrades, rollback, idempotent reopening, and preservation of organization decisions and
+the saved continuation cursor. Rust formatting passes. The compatibility owner remains 109 production
+lines with no inline test body and 56 dedicated test lines. Exact-head hosted verification follows
+publication; the earlier failed run and retained-client acceptance gaps remain recorded.

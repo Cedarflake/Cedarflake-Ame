@@ -324,6 +324,8 @@ focused and Windows Profile component checks pass. Retained-library publication/
 measurements and full client interaction remain open while preserving the accepted controls.
 Sort-driven date, name and current-entry arrival-range rails have focused regression and build
 coverage; their final native interaction check remains pending after desktop activation failed.
+Schema-57 recovery admission is corrected with passing focused repair, rejection and upgrade checks;
+exact-head hosted verification remains pending.
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
 47,833-group write, with all durable records unchanged after reopen. Client operation timings are
 recorded; native cancellation interaction and cleanup publication remain open.
