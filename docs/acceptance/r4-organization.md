@@ -2590,7 +2590,7 @@ copy of the existing derived client catalog, its 47,832-group album takes 1,141�
 samples on one connection with the OS cache retained; they do not establish a new speedup. The
 manual `profile_retained_organization_read_stages` check passes in Release, opens the input read-only,
 uses a disposable database copy and reads no source media. Its report is
-`build/test/derived/r4-client-measure/profile/catalog/organization-read-stages-before-presence.jsonl`.
+`build/test/derived/r4-client-measure/attempt-07-before-timeline/profile/catalog/organization-read-stages-before-presence.jsonl`.
 
 Source inspection also identifies a separate publication wait: after the page is read, its preview
 last-use update enters the normal blocking writer admission. A held external write reproduces a
@@ -2629,8 +2629,8 @@ current recovery (1), retired live-gap repair (8), terminal inventory repair (7)
 review-order migration (2). They include all seven hosted failures, malformed-shape rejection,
 historical upgrades, rollback, idempotent reopening, and preservation of organization decisions and
 the saved continuation cursor. Rust formatting passes. The compatibility owner remains 109 production
-lines with no inline test body and 56 dedicated test lines. Exact-head hosted verification follows
-publication; the earlier failed run and retained-client acceptance gaps remain recorded.
+lines with no inline test body and 56 dedicated test lines. Hosted run `40228493472` on `491d0692`
+passes the repaired paths; the earlier failed run and retained-client acceptance gaps remain recorded.
 
 ## Empty collection and queue reads - 2026-10-26
 
@@ -2653,7 +2653,7 @@ The earlier source-index probe compared identical returned IDs and order. Forcin
 primary key increased the populated album page from 1,140 to 1,216 ms and saved only 61–85 ms for
 the empty Favorite and one-item pending pages, so that change was discarded. Its report remains in
 ignored
-`build/test/derived/r4-client-measure/profile/catalog/organization-read-index-probe.jsonl`.
+`build/test/derived/r4-client-measure/attempt-07-before-timeline/profile/catalog/organization-read-index-probe.jsonl`.
 The before/after presence reports are `organization-read-stages-before-presence.jsonl` and
 `organization-read-stages-after-presence.jsonl` in the same directory. Each run reads the input
 catalog read-only, uses a disposable database copy and reads no source media. The input SHA-256 remains
@@ -2687,7 +2687,8 @@ It now checks no line through 249 ms, the line at 250 ms, and removal when the r
 The other root's update surface and Cancel action retain their assertions throughout the query.
 The production loading behavior is unchanged; direct scrolling and positioning retain immediate
 feedback. All eight retained-scan interaction tests pass, along with scoped Dart formatting and
-strict analysis. The earlier hosted failure remains recorded; the corrected head needs its own CI.
+strict analysis. Hosted run `40228493472` on `491d0692` passes the corrected assertion; the earlier
+hosted failure remains recorded.
 
 ## Shared chronological counts - 2026-10-26
 
@@ -2709,7 +2710,7 @@ overall. Returned group, physical-file and page counts match the saved baseline.
 
 An earlier per-representative point-lookup variant improved the small pending queue but left the
 large album at 2.87–2.90 seconds, so it was replaced by the shared relation. Reports remain in
-`build/test/derived/r4-client-measure/profile/catalog`: `organization-read-stages-after-presence.jsonl`
+`build/test/derived/r4-client-measure/attempt-07-before-timeline/profile/catalog`: `organization-read-stages-after-presence.jsonl`
 is the baseline, `organization-read-stages-point-lookup.jsonl` records that comparison, and
 `organization-read-stages.jsonl` contains the adopted implementation. The workload opens the input
 read-only, measures a disposable copy, and leaves its SHA-256 unchanged at
@@ -2724,5 +2725,78 @@ with warnings denied pass. The query facade has 399 production lines, the bindin
 group-selection owner 110 and the timeline owner 192, with no inline test bodies; the dedicated
 timeline-count suite has 121 lines.
 
-These are backend measurements. Native retained-client publication/frame-time and constrained-device
-verification remain open, and this change needs its own hosted checks after publication.
+These backend measurements are supplemented by the complete-client measurements below; constrained-device
+verification remains open. [Hosted run `40228493472`](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40228493472)
+passes all 14 applicable jobs on `491d0692900f374b91a423044fffe3daa36ec8eb`. The three signing and
+protected release jobs are skipped under the unsigned development boundary.
+
+## Resumed native sort-rail interaction - 2026-10-26
+
+Rebinding and activating the retained Debug window succeeds. The existing controlled profile contains
+10,000 physical images and 72 groups; organization mode reports five organized, 65 pending, one
+deferred and one ignored group. The title and first action row align, as do the count and second
+action row. Date sorting displays both year labels and intermediate ticks in organization mode.
+
+Name sorting displays `0–9` for the numeric fixture filenames. Dragging the same rail near the top,
+then back to the top, restores the leading images immediately without persistent placeholders.
+This running build predates `491d0692`'s SQL-only timeline change and verifies the unchanged native
+sort/control implementation. Current-entry arrival-range interaction and latest full-catalog client
+timing remain separate checks.
+
+## Current retained-client performance - 2026-10-26
+
+The complete Profile client uses product head `491d0692` and the two existing uncommitted presentation
+edits in duplicate wording and gallery empty states. Rust is optimized with debug assertions and
+isolation diagnostics; its DLL SHA-256 is
+`3F4607B91D75FF71EC4C99280A0267A72DECCDA58B464EF7C90246C8E8950F22`.
+The workload starts from the same schema-56 catalog containing 63,077 physical files, 47,833 organized
+and favorited groups, and one album. The fresh derived copy takes 5.064 seconds, outside the driver
+lifetime; OS caches remain populated. Only visible images use the guarded preview/original-image
+read path. Directory synchronization and duplicate analysis remain disabled.
+
+The old diagnostic entrypoint inspected storage before opening the catalog. Current-schema inspection
+therefore rejected its not-yet-upgraded copy. The entrypoint now follows the normal application's
+catalog-first order, retaining the active-path assertion and all schema guards. The unsuccessful
+attempt is retained in `attempt-08-preupgrade-inspection`; it did not reach browsing or change the
+input. The corrected workflow upgrades through the production path with its completed pre-upgrade
+backup, then passes all result/count/continuation assertions and exits successfully.
+
+| Client operation | Earlier Profile | Current Profile |
+| --- | ---: | ---: |
+| Album catalog visible, three reads | 4.708–5.360 s | 3.632–3.995 s |
+| Favorite catalog visible, three reads | 4.743–4.894 s | 3.464–4.192 s |
+| Single unfavorite feedback | 0.166 s | 0.108 s |
+| Updated Favorite list, from the same click | 10.697 s | 9.715 s |
+| Enter empty pending queue | 4.436 s | 3.380 s |
+| Empty deferred queue, including prior mode-read wait | 6.556 s | 4.658 s |
+| Continue saved work: actions ready | 5.515 s | 4.982 s |
+| Prepare 47,832 Favorite changes | 21.868 s | 7.100 s |
+| Commit those Favorite changes | 38.862 s | 19.904 s |
+| Album visible after a click during that write | 38.857 s | 4.051 s |
+| First album preview after that click | 38.867 s | 4.069 s |
+| Empty Favorites after commit and publication refresh | 10.291 s | 6.087 s |
+
+The current concurrent read starts after 25 of 47,832 groups have been written. Both the album and its
+preview become visible while saving is still active; the earlier workload waited for the write to
+finish. Preparation plus commit falls from 60.730 to 27.004 seconds. Single-group publication and the
+final refresh remain slow and require a focused comparison of anchored refresh with collection entry.
+These are one sample per operation except the three collection reads, not percentiles or two-core
+device results.
+
+First catalog/preview visibility takes 14.638/14.654 seconds from catalog initialization. This includes
+the schema-56-to-57 backup and upgrade and cannot be compared directly with the previous current-schema
+startup. Driver lifetime is 131.161 seconds with 237.891 process CPU seconds. Across 242 samples at
+500 ms, peak working set/private memory is 412.652/542.981 MiB. In-process peak RSS is 425.715 MiB,
+and the maximum retained detail count remains 500. Across 5,063 frames, build/raster P95 is
+0.993/1.502 ms. Aggregate frame times retain the separate header/viewport continuity evidence and do
+not establish that the measured query waits or constrained-device behavior are acceptable.
+
+The input SHA-256 remains
+`4AE81C622C784EFA43542858D7819665822463D97FF747824EB328924221C15D`.
+The original recovery profile's closed database hash also matches its pre-measurement value. Reports
+remain in ignored `build/test/derived/r4-client-measure`; the earlier complete client reports and
+read-stage diagnostics are preserved in `attempt-07-before-timeline`. No original catalog or source
+media is modified. The normal Debug entrypoint rebuilds in 47.4 seconds, restores the original profile
+and activates successfully. Native readback shows `已同步`, 10,000 physical images and 72 groups.
+The recovery profile now contains associated records, so its old six-record cleanup confirmation is
+stale; a fresh eligible restore fixture is required for that remaining native check.

@@ -127,8 +127,10 @@ Owning-query repairs reduce retained-library album, Favorite and organization-qu
 The complete Debug client verifies populated collections, single-group Favorite publication,
 new arrivals and an empty deferred queue on a full catalog copy. Optimized-client timing now covers
 collection reads, committed-save publication, empty queues and saved continuation. Preview-usage
-publication now yields to an active writer, with focused contention checks passing. Its retained-client
-timing, remaining query/publication waits and constrained-device resource acceptance remain open.
+publication now yields to an active writer, with focused contention checks passing. The current Profile
+client displays an album in 4.05 seconds during the write, before saving finishes, and prepares/saves
+47,832 Favorite changes in 27.00 seconds. Remaining query/publication waits and constrained-device
+resource acceptance remain open.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -306,9 +308,9 @@ Indexed representative evidence, bounded connection caches, non-repeated group s
 published-source query plans are implemented. Shared chronological membership/count reads now take
 about 2.37 seconds for the retained album and 1.90–1.94 seconds for the one-item pending queue,
 including its shared progress counts. Empty deferred/ignored reads take 0.66–0.68 seconds including
-counts. Focused query regressions and the retained-catalog workload pass. The published-source query
-and retained cancellation checkpoint passed hosted verification; the latest timeline change awaits
-its own exact-head checks.
+counts. Focused query regressions and the retained-catalog workload pass. Exact-head hosted run
+`40228493472` passes all 14 applicable jobs on `491d0692`, including the timeline change, schema-57
+recovery admission and retained-update loading regression.
 The full Debug client preserves 47,833 organized groups while startup
 synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
 and empty deferred-queue interactions pass with sampled resources. Optimized-client measurements
@@ -317,26 +319,30 @@ Preview last-use publication now yields immediately to an active organization wr
 read/write-contention regressions. Empty album, Favorite, deferred and ignored reads now avoid
 location traversal when no matching decisions exist, with focused and retained-catalog checks passing.
 Chronological timelines reuse one scoped group relation for representatives and physical counts.
-Verify retained-client publication and frame timing next, and use those measured user-path waits to
-select any further query repair before integrated performance acceptance. Retain the completed
-measurements.
+The current retained Profile client completes the measured workflow. Album reads take 3.63–3.99
+seconds; concurrent album publication takes 4.05 seconds while the writer remains active. Single
+unfavorite-to-list publication still takes 9.72 seconds, and the final empty-Favorite refresh takes
+6.09 seconds. Diagnose these refresh paths next, separating anchored publication from collection
+entry and retaining the completed measurements.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication
 and remaining read/write waits separate from these backend measurements. Header-height changes now
 preserve the viewport anchor in the current frame without repeatedly restarting photo reflow;
-focused and Windows Profile component checks pass. Retained-library publication/frame-time
-measurements and full client interaction remain open while preserving the accepted controls.
+focused and Windows Profile component checks pass. The current complete client records 5,063 frames
+with build/raster P95 of 0.993/1.502 ms and at most 500 retained assets. These aggregate frame results
+do not close the measured publication waits or constrained-device acceptance.
 Sort-driven date, name and current-entry arrival-range rails have focused regression and build
-coverage; their final native interaction check remains pending after desktop activation failed.
-Schema-57 recovery admission is corrected with passing focused repair, rejection and upgrade checks;
-exact-head hosted verification remains pending.
+coverage. Native interaction has resumed: date years/ticks, numeric name sections and near-top-to-top
+dragging display correctly. Current-entry arrival-range interaction remains open. Schema-57 recovery
+admission passes focused repair, rejection, upgrade and hosted checks.
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
 47,833-group write, with all durable records unchanged after reopen. Client operation timings are
 recorded; native cancellation interaction and cleanup publication remain open.
 The timing client has exited and the original recovery profile remains intact. Native inspection and
-cancellation now use one settings entry with range selection inside the dialog. Cleanup publication
-still awaits its existing action-time confirmation;
+cancellation now use one settings entry with range selection inside the dialog. The original six
+unmatched records are now associated in that profile, so cleanup publication needs an eligible isolated
+restore fixture and fresh action-time confirmation;
 constrained-device work awaits confirmation of cloud-primary's changed saved device identity.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
