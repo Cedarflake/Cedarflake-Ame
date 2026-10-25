@@ -115,9 +115,10 @@ ignore is separate from R3's duplicate-review ignore decision; neither changes t
 gallery folding, or source files.
 
 In organization mode, an already-deferred or ignored group replaces the corresponding action with
-`移除`. This returns it to pending and preserves Favorites. Gallery selection, detailed viewing and
-the album tray share this state-based behavior. Conflicting assignments stay in deferred work until
-an explicit album choice resolves them.
+`取消稍后整理` or `取消忽略`. This returns it to pending and preserves Favorites. Gallery selection,
+detailed viewing and the album tray share this state-based behavior. Selection and viewer controls
+place defer and ignore in their More menu; batch ignore uses `忽略所选`. Conflicting assignments stay
+in deferred work until an explicit album choice resolves them.
 
 Ordinary browsing uses these same transitions and counts. It remains in the current gallery or
 viewer after an album operation; it does not enter organization mode or advance to another image.

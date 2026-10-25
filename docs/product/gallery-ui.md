@@ -349,7 +349,7 @@ Normal browsing state:
 Selection state:
 
 ```text
-已选择 N 个项目                         收藏 | 相册 | 稍后整理 | 取消 | 更多
+已选择 N 个项目                         收藏 | 相册 | 取消 | 更多
 ```
 
 The normal toolbar is replaced rather than nested when selection begins. Selection is keyed by
@@ -362,7 +362,7 @@ responsibility.
 
 When the album prompt is enabled, the album action opens a Material bottom sheet with one
 destination before group assignments are changed. The selection toolbar keeps Favorite first and
-More last; ignore and defer appear only in organization mode.
+More last; ignore and defer appear inside More only in organization mode.
 The organization More menu, including chronological undo and redo, is also limited to organization
 mode. Ordinary selection and viewing omit that menu entirely.
 Preparation lasting over 500 milliseconds uses a progress line below the existing controls without
@@ -383,12 +383,12 @@ Button bounds stay stable through preparation, tray opening and dismissal.
   selected; checking a different album replaces the previous choice for the complete image group;
 - the checkbox conveys the selection; omit a separate `已选择` summary and routine whole-group
   explanation above the list. Retain actionable conflict feedback;
-- `忽略此图` and `稍后整理` appear only in organization mode, including batch selection.
+- `忽略此图` (`忽略所选` for a batch) and `稍后整理` appear only in organization mode.
   Ordinary Library/folder browsing, albums and Favorites omit both actions from the tray and menus;
-- replace an already-applied defer or ignore action with `移除`, returning that group to pending
-  without changing Favorites or source files. Apply the same state-based choice to gallery selection,
-  the detailed viewer and its album tray. Unresolved album conflicts cannot be removed from deferred
-  work before an album choice resolves them;
+- replace an already-applied defer or ignore action with `取消稍后整理` or `取消忽略`, returning that group
+  to pending without changing Favorites or source files. Apply the same state-based choice to gallery
+  selection, the detailed viewer and its album tray. Unresolved album conflicts cannot be removed from
+  deferred work before an album choice resolves them;
 - pair every tray action with a leading icon matching its operation, including create, remove,
   add and move; retain framework button labels, focus and disabled state;
 - reopening reflects the current confirmed assignment. A mixed batch or unresolved conflict must
@@ -741,9 +741,10 @@ that same edge. Its placement and animation leave the triggering button unobscur
 The top bar retains the filename, back action and window controls. Favorite, album and organization
 actions form one icon-only group on its right, before the window controls and outside the draggable
 filename region. Hover tooltips and accessible names describe each action and its current state;
-defer and album-conflict actions use icons as well. Full screen keeps these actions at the upper
-right while hiding the filename and window controls, preserving any in-flight action across the
-placement change. Both sides of the bottom toolbar use the same icon size and text style.
+defer and ignore use labeled entries with icons inside the organization More menu. Album-conflict
+actions also use icons. Full screen keeps these actions at the upper right while hiding the filename
+and window controls, preserving any in-flight action across the placement change. Both sides of the
+bottom toolbar use the same icon size and text style.
 Zoom mode, percentage, zoom slider and full-screen
 action are on the right; full screen is the last action. The strip starts hidden and remembers its
 visibility. It uses bounded catalog paging and lazily creates visible thumbnails; selecting one opens
@@ -1045,16 +1046,16 @@ There is no separate `新增` selector or button. Organization inherits the gall
 the sort menu, adding `新加入优先` for admission-descending order. New groups follow the chosen sort
 without moving the currently viewed image or overwriting the saved anchor.
 
-During organization-mode selection and viewing, `稍后整理` shares the action row with
-`加入相册`. Successful album assignment completes organization automatically; omit separate
-`标为已整理`, `保存并完成`, and `完成并下一张` controls. The organization-mode viewer can advance after
-the save commits, while the ordinary-mode viewer stays on the current image. Shared progress is
+During organization-mode selection and viewing, `稍后整理` appears in the rightmost More menu
+alongside ignore and operation history. Successful album assignment completes organization
+automatically; omit separate `标为已整理`, `保存并完成`, and `完成并下一张` controls. The organization-mode
+viewer can advance after the save commits, while the ordinary-mode viewer stays on the current image. Shared progress is
 updated in either mode. Organization-mode actions provide `忽略` where applicable, plus `撤销操作` and
 `重做操作` following committed operation order across groups, with unavailable directions disabled.
 Ordinary viewing and selection omit this organization menu. The history commands replace the
-current-group `恢复待整理` shortcut. The contextual `移除` action only removes the current deferred or
-ignored state; it remains distinct from chronological undo. Organization ignore remains separate
-from Duplicates' review ignore.
+current-group `恢复待整理` shortcut. The contextual `取消稍后整理` or `取消忽略` action only clears the
+corresponding current state; it remains distinct from chronological undo. Organization ignore
+remains separate from Duplicates' review ignore.
 
 Album conflicts are visible in `稍后整理` with the label `相册归属冲突`, the involved albums, and an
 action to choose the destination. Use the shared notification surface to point to deferred conflicts

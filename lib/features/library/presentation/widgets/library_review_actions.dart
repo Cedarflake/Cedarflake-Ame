@@ -2,9 +2,7 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_review_requests.dart";
 import "../../application/library_review_session.dart";
@@ -100,7 +98,6 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
             decision.disposition,
             hasConflict: decision.hasConflict,
           );
-    final defer = controls?.defer;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -115,24 +112,11 @@ class _LibraryReviewActionsState extends ConsumerState<LibraryReviewActions> {
           ),
           onSaved: () => unawaited(widget.mode.afterSave(entry)),
         ),
-        AmeTooltip(
-          message: defer?.label ?? "稍后整理",
-          child: IconButton(
-            key: const Key("viewer-review-defer"),
-            onPressed: busy || defer == null || !defer.enabled
-                ? null
-                : () => _save(defer.action),
-            icon: Icon(
-              defer?.icon ?? Symbols.schedule_rounded,
-              size: 20,
-              semanticLabel: defer?.label ?? "稍后整理",
-            ),
-          ),
-        ),
         LibraryOrganizationMenu(
           key: ValueKey(target),
           enabled: !busy,
           progress: controls?.ignore,
+          defer: controls?.defer,
           onProgress: _save,
         ),
       ],

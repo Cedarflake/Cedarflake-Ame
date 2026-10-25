@@ -174,7 +174,7 @@ void main() {
         expect(find.text("恢复待整理"), findsNothing);
         expect(find.text("撤销操作"), findsOneWidget);
         expect(find.text("重做操作"), findsOneWidget);
-        await tester.tap(find.text(ignored ? "移除" : "忽略此图"));
+        await tester.tap(find.text(ignored ? "取消忽略" : "忽略此图"));
         await tester.pumpAndSettle();
         expect(
           (review.writes.single.action as LibraryReviewProgress).action,
@@ -218,13 +218,19 @@ void main() {
               ),
             );
             await tester.pumpAndSettle();
+          } else {
+            expect(find.byKey(const Key("viewer-review-defer")), findsNothing);
+            await tester.tap(
+              find.byKey(const Key("library-review-actions-menu")),
+            );
+            await tester.pumpAndSettle();
           }
           final button = find.byKey(
-            Key(tray ? "library-album-defer" : "viewer-review-defer"),
+            Key(tray ? "library-album-defer" : "library-review-menu-defer"),
           );
           if (tray) {
             expect(
-              find.descendant(of: button, matching: find.text("移除")),
+              find.descendant(of: button, matching: find.text("取消稍后整理")),
               findsOneWidget,
             );
             expect(
@@ -233,14 +239,14 @@ void main() {
             );
           } else {
             expect(
-              tester.widget<IconButton>(button).onPressed == null,
-              conflict,
+              tester.widget<PopupMenuItem<Object?>>(button).enabled,
+              !conflict,
             );
-            expect(find.bySemanticsLabel("移除"), findsOneWidget);
+            expect(find.text("取消稍后整理"), findsOneWidget);
           }
           if (conflict) {
             expect(review.writes, isEmpty);
-            if (tray) await tester.binding.handlePopRoute();
+            await tester.binding.handlePopRoute();
           } else {
             await tester.tap(button);
             await tester.pumpAndSettle();
@@ -396,7 +402,9 @@ void main() {
         LibraryContinuationStatus.emptyScope,
       );
       await host(tester, viewer: true);
-      await tester.tap(find.byKey(const Key("viewer-review-defer")));
+      await tester.tap(find.byKey(const Key("library-review-actions-menu")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("library-review-menu-defer")));
       await tester.pump();
       expect(surface.closes, 0);
       expect(mode.current?.committed, isFalse);
@@ -422,7 +430,9 @@ void main() {
     (tester) async {
       review.writing = (_) async => throw StateError("Receipt unavailable");
       await host(tester, viewer: true);
-      await tester.tap(find.byKey(const Key("viewer-review-defer")));
+      await tester.tap(find.byKey(const Key("library-review-actions-menu")));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const Key("library-review-menu-defer")));
       await tester.pumpAndSettle();
       expect(surface.closes, 0);
       expect(find.text("尚未确认保存结果，请重试。"), findsOneWidget);

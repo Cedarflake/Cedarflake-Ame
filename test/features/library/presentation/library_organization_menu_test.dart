@@ -44,41 +44,53 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets("an open progress menu cannot switch to the opposite action", (
-    tester,
-  ) async {
-    final disposition = ValueNotifier(LibraryOrganizationDisposition.pending);
-    addTearDown(disposition.dispose);
-    final writes = <LibraryProgressAction>[];
-    await tester.pumpWidget(
-      UncontrolledProviderScope(
-        container: container,
-        child: MaterialApp(
-          home: Scaffold(
-            body: ValueListenableBuilder(
-              valueListenable: disposition,
-              builder: (context, value, _) => LibraryOrganizationMenu(
-                enabled: true,
-                progress: LibraryProgressControls.forDisposition(value).ignore,
-                onProgress: writes.add,
+  for (final deferred in [false, true]) {
+    testWidgets(
+      "an open progress menu cannot switch to the opposite action: $deferred",
+      (tester) async {
+        final disposition = ValueNotifier(
+          LibraryOrganizationDisposition.pending,
+        );
+        addTearDown(disposition.dispose);
+        final writes = <LibraryProgressAction>[];
+        await tester.pumpWidget(
+          UncontrolledProviderScope(
+            container: container,
+            child: MaterialApp(
+              home: Scaffold(
+                body: ValueListenableBuilder(
+                  valueListenable: disposition,
+                  builder: (context, value, _) => LibraryOrganizationMenu(
+                    enabled: true,
+                    progress: deferred
+                        ? null
+                        : LibraryProgressControls.forDisposition(value).ignore,
+                    defer: deferred
+                        ? LibraryProgressControls.forDisposition(value).defer
+                        : null,
+                    onProgress: writes.add,
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+        await tester.pumpAndSettle();
+        await open(tester);
+        disposition.value = deferred
+            ? LibraryOrganizationDisposition.deferred
+            : LibraryOrganizationDisposition.ignored;
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(deferred ? "稍后整理" : "忽略此图"));
+        await tester.pumpAndSettle();
+        expect(writes, isEmpty);
+        await open(tester);
+        await tester.tap(find.text(deferred ? "取消稍后整理" : "取消忽略"));
+        await tester.pumpAndSettle();
+        expect(writes, [LibraryProgressAction.restore]);
+      },
     );
-    await tester.pumpAndSettle();
-    await open(tester);
-    disposition.value = LibraryOrganizationDisposition.ignored;
-    await tester.pumpAndSettle();
-    await tester.tap(find.text("忽略此图"));
-    await tester.pumpAndSettle();
-    expect(writes, isEmpty);
-    await open(tester);
-    await tester.tap(find.text("移除"));
-    await tester.pumpAndSettle();
-    expect(writes, [LibraryProgressAction.restore]);
-  });
+  }
 
   bool enabled(WidgetTester tester, String text) => tester
       .widget<PopupMenuItem<Object?>>(

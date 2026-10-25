@@ -11,18 +11,20 @@ import "../../domain/library_organization_history.dart";
 import "../../domain/library_review.dart";
 import "../library_progress_controls.dart";
 
-enum _OrganizationMenuAction { undo, redo, progress }
+enum _OrganizationMenuAction { undo, redo, defer, progress }
 
 class LibraryOrganizationMenu extends ConsumerStatefulWidget {
   const LibraryOrganizationMenu({
     required this.enabled,
     this.progress,
+    this.defer,
     this.onProgress,
     super.key,
   });
 
   final bool enabled;
   final LibraryProgressControl? progress;
+  final LibraryProgressControl? defer;
   final ValueChanged<LibraryProgressAction>? onProgress;
 
   @override
@@ -32,7 +34,11 @@ class LibraryOrganizationMenu extends ConsumerStatefulWidget {
 
 class _LibraryOrganizationMenuState
     extends ConsumerState<LibraryOrganizationMenu> {
-  ({LibraryOrganizationHistory? history, LibraryProgressControl? progress})?
+  ({
+    LibraryOrganizationHistory? history,
+    LibraryProgressControl? progress,
+    LibraryProgressControl? defer,
+  })?
   _opened;
 
   @override
@@ -60,13 +66,18 @@ class _LibraryOrganizationMenuState
     }
 
     return AmePopupMenuButton<_OrganizationMenuAction>(
-      onOpened: () => _opened = (history: history, progress: widget.progress),
+      onOpened: () => _opened = (
+        history: history,
+        progress: widget.progress,
+        defer: widget.defer,
+      ),
       onOpenChanged: (open) {
         if (!open) _opened = null;
       },
       labels: [
         "撤销操作",
         "重做操作",
+        if (widget.defer case final defer?) defer.label,
         if (widget.progress case final progress?) progress.label,
       ],
       items: [
@@ -86,8 +97,16 @@ class _LibraryOrganizationMenuState
             icon: Symbols.redo_rounded,
           ),
         ),
-        if (widget.progress case final progress?) ...[
+        if (widget.defer != null || widget.progress != null)
           const PopupMenuDivider(),
+        if (widget.defer case final defer?)
+          PopupMenuItem(
+            key: const Key("library-review-menu-defer"),
+            value: _OrganizationMenuAction.defer,
+            enabled: canAct && defer.enabled && widget.onProgress != null,
+            child: AmeMenuItemContent(label: defer.label, icon: defer.icon),
+          ),
+        if (widget.progress case final progress?)
           PopupMenuItem(
             value: _OrganizationMenuAction.progress,
             enabled: canAct && progress.enabled && widget.onProgress != null,
@@ -96,7 +115,6 @@ class _LibraryOrganizationMenuState
               icon: progress.icon,
             ),
           ),
-        ],
       ],
       onSelected: (action) {
         switch (action) {
@@ -104,12 +122,19 @@ class _LibraryOrganizationMenuState
             step(LibraryOrganizationHistoryDirection.undo);
           case _OrganizationMenuAction.redo:
             step(LibraryOrganizationHistoryDirection.redo);
+          case _OrganizationMenuAction.defer:
           case _OrganizationMenuAction.progress:
-            if (_opened?.progress case final progress?) {
+            final observed = action == _OrganizationMenuAction.defer
+                ? _opened?.defer
+                : _opened?.progress;
+            final current = action == _OrganizationMenuAction.defer
+                ? widget.defer
+                : widget.progress;
+            if (observed case final progress?) {
               if (canAct &&
                   progress.enabled &&
-                  widget.progress?.enabled == true &&
-                  widget.progress?.action == progress.action) {
+                  current?.enabled == true &&
+                  current?.action == progress.action) {
                 widget.onProgress?.call(progress.action);
               }
             }

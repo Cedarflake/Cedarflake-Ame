@@ -191,9 +191,12 @@ void main() {
         LibraryOrganizationQueue.deferred,
       );
       await _more(tester, "全选");
-      final remove = find.byKey(const Key("library-selection-defer"));
+      expect(find.byKey(const Key("library-selection-defer")), findsNothing);
+      await tester.tap(find.byKey(const Key("library-review-actions-menu")));
+      await tester.pumpAndSettle();
+      final remove = find.byKey(const Key("library-review-menu-defer"));
       expect(
-        find.descendant(of: remove, matching: find.text("移除")),
+        find.descendant(of: remove, matching: find.text("取消稍后整理")),
         findsOneWidget,
       );
       await tester.tap(remove);

@@ -2332,3 +2332,28 @@ existing progress counts. Native inspection confirms ordinary name sorting is in
 the organization sort menu remains available, and selecting `新加入优先` changes the order while
 retaining the prior visible image in the viewport. Ordinary menus omit this organization-only choice.
 The test window remains open. Large-library performance acceptance remains with the existing R4 gate.
+
+## Organization action labels and placement - 2026-10-25
+
+Gallery selection and the detailed viewer place defer inside the existing organization More menu.
+Batch ignore uses `忽略所选`; applied states use `取消稍后整理` and `取消忽略` across selection,
+viewing and the album tray. Cancellation restores pending state without changing Favorites.
+The menu retains the action observed when opened and rejects it if the group's current action
+has changed. Conflict and in-flight save guards remain active.
+
+All 44 focused Flutter cases pass: six organization-menu, 14 review-widget, 22 selection-action
+and two unified-review cases. Coverage includes both stale menu actions, conflict-disabled
+cancellation, receipt-bound advancement, failed-save retry and preserved Favorites. Strict analysis
+and formatting of the eight affected Dart files pass. The repository formatting check reports
+only the pre-existing, unrelated edit in `library_gallery_states.dart`; that file remains untouched
+and outside this delivery. The Windows Debug build passes.
+
+Native verification uses the retained generated library. The selection row has no direct defer
+button, and its More menu shows `取消稍后整理` and `忽略所选`. Cancelling the one deferred group
+changes pending from 65 to 66 and deferred from one to zero. The ignored-image viewer shows
+`稍后整理` and `取消忽略` in its upper More menu. Undo restores pending/deferred to 65/one;
+the five organized groups and one ignored group remain unchanged. The isolated window remains open.
+
+The state-label, menu, viewer-action and selection-action owners contain 72, 159, 125 and 369
+production lines with no inline tests. Their dedicated menu/review/selection/unified suites contain
+216/455/573/281 lines. No schema, bridge, dependency or source-policy change is introduced.

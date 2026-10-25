@@ -332,15 +332,6 @@ class _LibrarySelectionActionsState
               icon: const Icon(Symbols.photo_album_rounded),
               label: const Text("相册"),
             ),
-            if (controls case final controls?)
-              TextButton.icon(
-                key: const Key("library-selection-defer"),
-                onPressed: enabled && controls.defer.enabled
-                    ? () => _setProgress(controls.defer.action)
-                    : null,
-                icon: Icon(controls.defer.icon),
-                label: Text(controls.defer.label),
-              ),
             if (_error case final error?)
               Text(
                 error,
@@ -357,6 +348,7 @@ class _LibrarySelectionActionsState
                 key: ValueKey(widget.selection),
                 enabled: enabled,
                 progress: controls.ignore,
+                defer: controls.defer,
                 onProgress: _setProgress,
               ),
           ],

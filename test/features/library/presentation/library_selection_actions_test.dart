@@ -107,12 +107,14 @@ void main() {
       "batch progress actions are available only during organization: $organizing",
       (tester) async {
         await host(tester, organizing: organizing);
+        expect(find.byKey(const Key("library-selection-defer")), findsNothing);
         if (organizing) {
           await tester.tap(
             find.byKey(const Key("library-review-actions-menu")),
           );
           await tester.pumpAndSettle();
-          expect(find.text("忽略所选图片"), findsOneWidget);
+          expect(find.text("忽略所选"), findsOneWidget);
+          expect(find.text("稍后整理"), findsOneWidget);
           expect(find.text("撤销操作"), findsOneWidget);
           expect(find.text("重做操作"), findsOneWidget);
           await tester.binding.handlePopRoute();
@@ -162,16 +164,13 @@ void main() {
                 Key(deferred ? "library-album-defer" : "library-album-ignore"),
               ),
             );
-          } else if (deferred) {
-            expect(find.text("稍后整理"), findsNothing);
-            await tester.tap(find.byKey(const Key("library-selection-defer")));
           } else {
             await tester.tap(
               find.byKey(const Key("library-review-actions-menu")),
             );
             await tester.pumpAndSettle();
-            expect(find.text("忽略所选图片"), findsNothing);
-            await tester.tap(find.text("移除"));
+            expect(find.text(deferred ? "稍后整理" : "忽略所选"), findsNothing);
+            await tester.tap(find.text(deferred ? "取消稍后整理" : "取消忽略"));
           }
           await tester.pumpAndSettle();
           expect(

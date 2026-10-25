@@ -27,7 +27,7 @@ class LibraryProgressControls {
   }) : defer = disposition == LibraryOrganizationDisposition.deferred
            ? LibraryProgressControl(
                LibraryProgressAction.restore,
-               "移除",
+               "取消稍后整理",
                Symbols.remove_circle_rounded,
                !hasConflict,
              )
@@ -40,13 +40,13 @@ class LibraryProgressControls {
        ignore = disposition == LibraryOrganizationDisposition.ignored
            ? LibraryProgressControl(
                LibraryProgressAction.restore,
-               "移除",
+               "取消忽略",
                Symbols.remove_circle_rounded,
                !hasConflict,
              )
            : LibraryProgressControl(
                LibraryProgressAction.ignore,
-               multiple ? "忽略所选图片" : "忽略此图",
+               multiple ? "忽略所选" : "忽略此图",
                Symbols.hide_image_rounded,
                !hasConflict,
              );
