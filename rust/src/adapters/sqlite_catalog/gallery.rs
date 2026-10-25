@@ -5,6 +5,7 @@ mod location_anchor;
 mod member_locations;
 mod ordering;
 pub(super) mod organization;
+mod organization_groups;
 pub(super) mod organization_queue;
 pub(super) mod retained_membership;
 pub(super) mod review;

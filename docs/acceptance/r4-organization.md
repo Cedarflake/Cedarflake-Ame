@@ -2655,8 +2655,8 @@ the empty Favorite and one-item pending pages, so that change was discarded. Its
 ignored
 `build/test/derived/r4-client-measure/profile/catalog/organization-read-index-probe.jsonl`.
 The before/after presence reports are `organization-read-stages-before-presence.jsonl` and
-`organization-read-stages.jsonl` in the same directory. Each run reads the input catalog read-only,
-uses a disposable database copy and reads no source media. The input SHA-256 remains
+`organization-read-stages-after-presence.jsonl` in the same directory. Each run reads the input
+catalog read-only, uses a disposable database copy and reads no source media. The input SHA-256 remains
 `FEADB9DBF60BB7F26F61277DD53E049356B09D979728FF22339B2F68AA69ACB7`.
 
 All 26 collection/queue regressions and 15 batch regressions pass, as do Rust formatting and Clippy
@@ -2688,3 +2688,41 @@ The other root's update surface and Cancel action retain their assertions throug
 The production loading behavior is unchanged; direct scrolling and positioning retain immediate
 feedback. All eight retained-scan interaction tests pass, along with scoped Dart formatting and
 strict analysis. The earlier hosted failure remains recorded; the corrected head needs its own CI.
+
+## Shared chronological counts - 2026-10-26
+
+Chronological album, folded Favorite and organization-queue timelines previously selected scoped
+group representatives, then repeated the membership traversal to count physical files. The extracted
+`gallery/organization_groups.rs` owner now supplies the same scoped grouping to pages, continuation
+and timeline reads. The timeline materializes that relation within one SQL statement and reuses it
+for both representative membership and physical counts. Root publication, source/folder/search scope,
+compatible evidence, preferred copies and snapshot authority remain unchanged. No schema, bridge,
+dependency, durable cache or source-media access is added.
+
+The retained Release read-stage workload passes on the same 47,832-group album and 63,076 physical
+files, with two samples on one fresh connection and the OS cache retained. Album page plus timeline
+reads change from 2,792–2,851 ms to 2,369–2,378 ms; the timeline component changes from 1,699–1,721 ms
+to 1,227–1,229 ms. The one-item pending queue, including shared progress counts, changes from
+2,418–2,445 ms to 1,902–1,943 ms; its timeline changes from 1,165–1,183 ms to 623–628 ms. Empty
+deferred/ignored reads remain dominated by the unchanged shared progress count, at 661–677 ms
+overall. Returned group, physical-file and page counts match the saved baseline.
+
+An earlier per-representative point-lookup variant improved the small pending queue but left the
+large album at 2.87–2.90 seconds, so it was replaced by the shared relation. Reports remain in
+`build/test/derived/r4-client-measure/profile/catalog`: `organization-read-stages-after-presence.jsonl`
+is the baseline, `organization-read-stages-point-lookup.jsonl` records that comparison, and
+`organization-read-stages.jsonl` contains the adopted implementation. The workload opens the input
+read-only, measures a disposable copy, and leaves its SHA-256 unchanged at
+`FEADB9DBF60BB7F26F61277DD53E049356B09D979728FF22339B2F68AA69ACB7`.
+
+All 28 query checks pass after the final timeline change. The shared group-selection path also
+passes 15 continuation and 15 batch checks. New regressions cover three date sorts in both directions,
+root/folder scopes, current and retained evidence, preferred dates, confirmed content splitting and
+representative IDs repeated across roots. Existing empty-scope, historical-evidence cost, concurrent
+save, paging, cancellation, rollback and undo assertions remain intact. Rust formatting and Clippy
+with warnings denied pass. The query facade has 399 production lines, the binding owner 122, the
+group-selection owner 110 and the timeline owner 192, with no inline test bodies; the dedicated
+timeline-count suite has 121 lines.
+
+These are backend measurements. Native retained-client publication/frame-time and constrained-device
+verification remain open, and this change needs its own hosted checks after publication.

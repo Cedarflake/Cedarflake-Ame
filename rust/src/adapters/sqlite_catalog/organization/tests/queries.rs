@@ -13,6 +13,7 @@ mod fingerprint_cost;
 mod queues;
 mod scroll_sections;
 mod source_scope_cost;
+mod timeline_counts;
 
 fn album_query(album_id: &str) -> GalleryQuery {
     GalleryQuery {

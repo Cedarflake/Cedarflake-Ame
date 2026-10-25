@@ -5,8 +5,14 @@ use crate::domain::{GalleryQuery, GallerySortKey, GalleryTimeBucket, GalleryTime
 use super::super::{database_error, sqlite_unsigned};
 use super::{
     BuiltGalleryQuery, gallery_direction_sql, gallery_order_expressions, gallery_source,
-    push_gallery_filters, push_source_filters,
+    organization_groups, push_gallery_filters, push_source_filters,
 };
+
+struct TimelineBuckets {
+    buckets: Vec<GalleryTimeBucket>,
+    total_items: u64,
+    total_source_items: Option<u64>,
+}
 
 pub(crate) fn load_gallery_timeline(
     transaction: &Transaction<'_>,
@@ -21,22 +27,29 @@ pub(crate) fn load_gallery_timeline(
         }
         _ => Vec::new(),
     };
-    let (buckets, total_items) = if matches!(
+    let TimelineBuckets {
+        buckets,
+        total_items,
+        total_source_items,
+    } = if matches!(
         query.sort_key,
         GallerySortKey::FileName | GallerySortKey::LibraryAdmission
     ) {
-        (
-            Vec::new(),
-            scroll_sections
+        TimelineBuckets {
+            buckets: Vec::new(),
+            total_items: scroll_sections
                 .iter()
                 .map(|section| section.item_count)
                 .sum(),
-        )
+            total_source_items: None,
+        }
     } else {
         load_time_buckets(transaction, query)?
     };
     let total_source_items = if !query.folds_duplicates() {
         total_items
+    } else if let Some(count) = total_source_items {
+        count
     } else {
         load_source_count(transaction, query)?
     };
@@ -53,7 +66,7 @@ pub(crate) fn load_gallery_timeline(
 fn load_time_buckets(
     transaction: &Transaction<'_>,
     query: &GalleryQuery,
-) -> Result<(Vec<GalleryTimeBucket>, u64), ScanError> {
+) -> Result<TimelineBuckets, ScanError> {
     let built = build_gallery_timeline_query(query);
     let mut statement = transaction.prepare(&built.sql).map_err(database_error)?;
     let rows = statement
@@ -62,13 +75,19 @@ fn load_time_buckets(
                 row.get::<_, Option<String>>(0)?,
                 row.get::<_, i64>(1)?,
                 row.get::<_, i64>(2)?,
+                row.get::<_, Option<i64>>(3)?,
             ))
         })
         .map_err(database_error)?;
     let mut total_items = 0_u64;
+    let mut total_source_items = organization_groups::uses_grouped_organization(query).then_some(0);
     let mut buckets = Vec::new();
     for row in rows {
-        let (month_key, item_count, aspect_ratio_milli_sum) = row.map_err(database_error)?;
+        let (month_key, item_count, aspect_ratio_milli_sum, source_items) =
+            row.map_err(database_error)?;
+        if let Some(count) = source_items {
+            total_source_items = Some(sqlite_unsigned(count, "gallery source item count")?);
+        }
         let item_count = sqlite_unsigned(item_count, "timeline bucket item count")?;
         let aspect_ratio_milli_sum =
             sqlite_unsigned(aspect_ratio_milli_sum, "timeline bucket aspect ratio sum")?;
@@ -85,7 +104,11 @@ fn load_time_buckets(
         });
     }
     drop(statement);
-    Ok((buckets, total_items))
+    Ok(TimelineBuckets {
+        buckets,
+        total_items,
+        total_source_items,
+    })
 }
 
 fn load_source_count(
@@ -119,8 +142,25 @@ fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
     let order = gallery_order_expressions(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
-    let source = gallery_source(query, &mut parameters);
-    push_gallery_filters(query, &mut clauses, &mut parameters);
+    let mut prefix = String::new();
+    let (source, source_count) = if organization_groups::uses_grouped_organization(query) {
+        let grouped = organization_groups::build_group_query(query);
+        parameters.extend(grouped.parameters);
+        // Materialize scoped groups once for representative selection and physical counts.
+        prefix = format!("WITH organization_groups AS MATERIALIZED ({})", grouped.sql);
+        let source = gallery_source(query, &mut parameters);
+        clauses.push(
+            "locations.location_id IN (SELECT location_id FROM organization_groups)".to_owned(),
+        );
+        (
+            source,
+            "(SELECT SUM(source_items) FROM organization_groups)",
+        )
+    } else {
+        let source = gallery_source(query, &mut parameters);
+        push_gallery_filters(query, &mut clauses, &mut parameters);
+        (source, "NULL")
+    };
     let where_clause = if clauses.is_empty() {
         String::new()
     } else {
@@ -130,7 +170,8 @@ fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
     let direction = gallery_direction_sql(query.order_direction());
     BuiltGalleryQuery {
         sql: format!(
-            "SELECT {month} AS month_key,
+            "{prefix}
+             SELECT {month} AS month_key,
                     COUNT(*),
                     SUM(
                       CASE
@@ -139,7 +180,8 @@ fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
                         WHEN locations.width > locations.height * 5 THEN 5000
                         ELSE (locations.width * 1000) / locations.height
                       END
-                    ) AS aspect_ratio_milli_sum
+                    ) AS aspect_ratio_milli_sum,
+                    {source_count}
              {source}
              {where_clause}
              GROUP BY {month}

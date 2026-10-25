@@ -303,11 +303,12 @@ Hosted verification passes the schema-55 association-cost repair and earlier fol
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.
 Indexed representative evidence, bounded connection caches, non-repeated group scope and
-published-source query plans reduce retained album and Favorite reads from over twelve seconds to
-2.8–3.0 seconds, with unchanged query results and measured resource use. Continuation reads take
-about 1.4 seconds; empty queues still take 2.4–2.5 seconds. Focused query regressions and the
-retained-catalog workload pass; hosted verification includes the published-source query change and
-retained cancellation case with all applicable jobs passing.
+published-source query plans are implemented. Shared chronological membership/count reads now take
+about 2.37 seconds for the retained album and 1.90–1.94 seconds for the one-item pending queue,
+including its shared progress counts. Empty deferred/ignored reads take 0.66–0.68 seconds including
+counts. Focused query regressions and the retained-catalog workload pass. The published-source query
+and retained cancellation checkpoint passed hosted verification; the latest timeline change awaits
+its own exact-head checks.
 The full Debug client preserves 47,833 organized groups while startup
 synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
 and empty deferred-queue interactions pass with sampled resources. Optimized-client measurements
@@ -315,8 +316,10 @@ locate additional waits in collection reads, saved continuation and committed-li
 Preview last-use publication now yields immediately to an active organization writer, with bounded
 read/write-contention regressions. Empty album, Favorite, deferred and ignored reads now avoid
 location traversal when no matching decisions exist, with focused and retained-catalog checks passing.
-Verify the resulting retained-client publication timing and repair remaining populated-query costs
-before integrated performance acceptance; retain the completed measurements.
+Chronological timelines reuse one scoped group relation for representatives and physical counts.
+Verify retained-client publication and frame timing next, and use those measured user-path waits to
+select any further query repair before integrated performance acceptance. Retain the completed
+measurements.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication

@@ -106,7 +106,7 @@ pub(super) fn representative_for_anchor(
         return Ok(None);
     }
     if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
-        return super::organization::representative_for_anchor(
+        return super::organization_groups::representative_for_anchor(
             transaction,
             query,
             location_id,

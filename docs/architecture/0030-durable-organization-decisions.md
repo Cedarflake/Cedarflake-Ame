@@ -155,6 +155,12 @@ organization-group representatives are selected. Page, layout and continuation r
 scoped result without repeating the same membership predicates outside it. Shared progress counts
 aggregate canonical groups directly: every member of a group has the same disposition, so counting
 does not depend on preferred-copy selection or its decision table.
+Chronological collection and queue timelines retain the physical member count while selecting
+scoped representatives. One statement-local materialized relation supplies both representative
+membership and the physical total, preserving existing membership semantics across roots. Date
+buckets reuse that result instead of resolving membership a second time. Page, continuation and
+timeline reads share the group-selection owner; name/admission sections and unfolded Favorite
+counts retain their existing paths.
 Album, Favorite, deferred and ignored page/layout/timeline reads first test for a matching durable
 record through a one-row relation in the same SQL snapshot. Its absence avoids location traversal;
 its presence retains the complete scoped membership and representative checks. Pending queues

@@ -291,6 +291,11 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   adds an inclusive ordered-date bound; the complete cursor predicate still decides exact ties.
   Unknown-date and other ordering policies remain distinct. The gallery facade shares query filters
   and order expressions rather than duplicating anchor fallback or source-access policy.
+- `sqlite_catalog/gallery/organization_groups.rs` owns scoped organization-group selection,
+  preferred representatives and group-anchor resolution. Its group query retains physical member
+  counts for chronological timeline aggregation; page filters and continuation reuse the same
+  scope and representative rules. Compatible bindings and canonical record expressions remain in
+  `gallery/organization.rs`. All reads retain the caller's snapshot and published-source boundary.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.

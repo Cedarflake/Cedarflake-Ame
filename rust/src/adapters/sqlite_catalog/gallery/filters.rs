@@ -2,7 +2,9 @@ use rusqlite::types::Value;
 
 use crate::domain::{GalleryCollection, GalleryQuery};
 
-use super::{duplicates, normalize_relative_folder, organization, organization_queue};
+use super::{
+    duplicates, normalize_relative_folder, organization, organization_groups, organization_queue,
+};
 
 pub(super) fn gallery_source(query: &GalleryQuery, parameters: &mut Vec<Value>) -> String {
     if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
@@ -34,11 +36,9 @@ pub(super) fn push_gallery_filters(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
-    if query.folds_duplicates()
-        && (query.organization_queue.is_some() || query.collection != GalleryCollection::Library)
-    {
+    if organization_groups::uses_grouped_organization(query) {
         // The group subquery already applies the complete scope before choosing representatives.
-        organization::push_group_filter(query, clauses, parameters);
+        organization_groups::push_group_filter(query, clauses, parameters);
     } else {
         push_source_filters(query, clauses, parameters);
         duplicates::push_duplicate_filter(query, clauses, parameters);
