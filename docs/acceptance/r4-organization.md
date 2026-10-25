@@ -2667,11 +2667,12 @@ admission parameters and independent Favorite changes. Existing tests retain con
 consistency, hidden-member anchors, pending unrecorded groups, content evolution, historical evidence,
 batch cancellation, rollback and undo.
 
-The normal Windows Debug entrypoint builds in 39.6 seconds and restores the existing isolated
-profile, with 10,000 physical images and 72 groups visible. The repository formatting check reports
-an existing uncommitted formatting difference in `library_gallery_states.dart`; its read-only check
+The normal Windows Debug entrypoint builds in 39.6 seconds and reopens the existing isolated
+profile. Accessibility reports 10,000 physical images and 72 groups. The repository formatting check
+reports an existing uncommitted formatting difference in `library_gallery_states.dart`; its read-only check
 does not rewrite that unrelated file. The owned Rust formatting check passes. Interactive verification
-remains open after window activation fails; reading the restored window confirms its profile only.
+remains open: input and explicit activation still fail after reopening, so the accessibility readback
+confirms the loaded profile only.
 
 The gallery query/source/organization owners contain 398/89/212 production lines, with timeline and
 scroll-section owners at 150/111. They contain no inline test bodies. The dedicated empty-scope suite
