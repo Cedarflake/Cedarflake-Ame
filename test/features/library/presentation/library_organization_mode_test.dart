@@ -21,6 +21,37 @@ void main() {
   tearDown(() => mode.dispose());
 
   test(
+    "review inherits sorting and preserves its visible anchor when reordered",
+    () async {
+      surface.library = surface.library.copyWith(
+        query: surface.library.query.copyWith(
+          sortKey: LibraryGallerySortKey.fileName,
+          sortDirection: LibraryGallerySortDirection.ascending,
+        ),
+      );
+      final ordinary = surface.library.query;
+      await mode.enter();
+      expect(surface.library.query.sortKey, ordinary.sortKey);
+      expect(surface.library.query.sortDirection, ordinary.sortDirection);
+      final position = surface.captureBrowse().position!;
+      final sorted = surface.library.query.copyWith(
+        sortKey: LibraryGallerySortKey.modifiedTime,
+      );
+      expect(await mode.changeQuery(sorted), isTrue);
+      expect(surface.positions.last!.locationId, position.locationId);
+      expect(
+        surface.positions.last!.viewportFraction,
+        position.viewportFraction,
+      );
+      expect(service.continuationQueries.last, sorted);
+      expect(mode.ordinaryQuery, ordinary);
+      await mode.selectQueue(LibraryOrganizationQueue.deferred);
+      expect(surface.positions.last, isNull);
+      expect(surface.library.query.sortKey, sorted.sortKey);
+    },
+  );
+
+  test(
     "retiring the viewed album selects the library and preserves sorting",
     () async {
       surface.library = surface.library.copyWith(

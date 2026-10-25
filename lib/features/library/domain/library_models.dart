@@ -232,7 +232,13 @@ class LibraryCatalogCursor {
   final String locationId;
 }
 
-enum LibraryGallerySortKey { captureTime, createdTime, modifiedTime, fileName }
+enum LibraryGallerySortKey {
+  captureTime,
+  createdTime,
+  modifiedTime,
+  fileName,
+  libraryAdmission,
+}
 
 enum LibraryGallerySortDirection { ascending, descending }
 
@@ -264,7 +270,9 @@ class LibraryGalleryQuery {
   final LibraryGalleryDuplicateMode duplicateMode;
 
   bool get isChronological =>
-      organizationQueue == null && sortKey != LibraryGallerySortKey.fileName;
+      organizationQueue == null &&
+      sortKey != LibraryGallerySortKey.fileName &&
+      sortKey != LibraryGallerySortKey.libraryAdmission;
 
   bool get foldsDuplicates =>
       organizationQueue != null ||

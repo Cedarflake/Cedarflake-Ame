@@ -23,8 +23,10 @@ pub fn checkpoint_organization_review(
     crate::application::organization_review::checkpoint(position, selection)
 }
 
-pub fn load_organization_continuation() -> Result<OrganizationContinuation, ScanError> {
-    crate::application::organization_review::load()
+pub fn load_organization_continuation(
+    query: Option<GalleryQuery>,
+) -> Result<OrganizationContinuation, ScanError> {
+    crate::application::organization_review::load(query)
 }
 
 pub fn change_current_organization_review(

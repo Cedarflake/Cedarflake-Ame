@@ -84,7 +84,7 @@ fn profile_retained_organization_queries() {
     catalog.end_organization_review(&review.session_id).unwrap();
     for sample in 0..3 {
         let continuation = profile.measure(&format!("continuation_warm_{sample}"), || {
-            catalog.load_organization_continuation()
+            catalog.load_organization_continuation(None)
         });
         assert_eq!(continuation.status, OrganizationContinuationStatus::Ready);
         assert_eq!(continuation.target.as_ref(), Some(&selected_anchor));

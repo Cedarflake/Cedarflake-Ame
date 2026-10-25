@@ -390,7 +390,7 @@ abstract class RustLibApi extends BaseApi {
   crateApiOrganizationConflictsLoadOrganizationConflictStatus();
 
   Future<OrganizationContinuation>
-  crateApiOrganizationReviewLoadOrganizationContinuation();
+  crateApiOrganizationReviewLoadOrganizationContinuation({GalleryQuery? query});
 
   Future<OrganizationHistory> crateApiOrganizationLoadOrganizationHistory();
 
@@ -2656,11 +2656,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @override
   Future<OrganizationContinuation>
-  crateApiOrganizationReviewLoadOrganizationContinuation() {
+  crateApiOrganizationReviewLoadOrganizationContinuation({
+    GalleryQuery? query,
+  }) {
     return handler.executeNormal(
       NormalTask(
         callFfi: (port_) {
           final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_opt_box_autoadd_gallery_query(query, serializer);
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
@@ -2674,7 +2677,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         ),
         constMeta:
             kCrateApiOrganizationReviewLoadOrganizationContinuationConstMeta,
-        argValues: [],
+        argValues: [query],
         apiImpl: this,
       ),
     );
@@ -2684,7 +2687,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   get kCrateApiOrganizationReviewLoadOrganizationContinuationConstMeta =>
       const TaskConstMeta(
         debugName: "load_organization_continuation",
-        argNames: [],
+        argNames: ["query"],
       );
 
   @override

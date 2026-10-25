@@ -92,6 +92,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v55_for_test(connection: &Connection) {
+    super::organization_review_order::downgrade_to_v56_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 56 {
         for (kind, name, _) in schema::OBJECTS.iter().rev() {
             connection

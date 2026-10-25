@@ -18,7 +18,7 @@ abstract interface class LibraryReview {
     LibraryReviewPosition position,
     LibraryOrganizationTarget target,
   );
-  Future<LibraryReviewContinuation> continuation();
+  Future<LibraryReviewContinuation> continuation({LibraryGalleryQuery? query});
   Future<LibraryReviewReceipt> change(
     String operationId,
     LibraryReviewPosition position,
@@ -65,8 +65,12 @@ class RustLibraryReview implements LibraryReview {
   );
 
   @override
-  Future<LibraryReviewContinuation> continuation() => _call(() async {
-    final value = await api.loadOrganizationContinuation();
+  Future<LibraryReviewContinuation> continuation({
+    LibraryGalleryQuery? query,
+  }) => _call(() async {
+    final value = await api.loadOrganizationContinuation(
+      query: query == null ? null : mapLibraryGalleryQueryToRust(query),
+    );
     final target = value.target;
     return LibraryReviewContinuation(
       switch (value.status) {
@@ -168,6 +172,8 @@ class RustLibraryReview implements LibraryReview {
       rust.GallerySortKey.createdTime => LibraryGallerySortKey.createdTime,
       rust.GallerySortKey.modifiedTime => LibraryGallerySortKey.modifiedTime,
       rust.GallerySortKey.fileName => LibraryGallerySortKey.fileName,
+      rust.GallerySortKey.libraryAdmission =>
+        LibraryGallerySortKey.libraryAdmission,
     },
     sortDirection: value.sortDirection == rust.GallerySortDirection.ascending
         ? LibraryGallerySortDirection.ascending

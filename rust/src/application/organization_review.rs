@@ -28,8 +28,8 @@ pub(crate) fn checkpoint(
     open_catalog()?.checkpoint_organization_review(&position, &selection)
 }
 
-pub(crate) fn load() -> Result<OrganizationContinuation, ScanError> {
-    open_catalog()?.load_organization_continuation()
+pub(crate) fn load(query: Option<GalleryQuery>) -> Result<OrganizationContinuation, ScanError> {
+    open_catalog()?.load_organization_continuation(query.as_ref())
 }
 
 pub(crate) fn change(

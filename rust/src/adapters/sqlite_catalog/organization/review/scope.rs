@@ -61,7 +61,7 @@ pub(super) fn save_active(connection: &Connection, query: &GalleryQuery) -> Resu
             ],
         )
         .map_err(database_error)?;
-    Ok(())
+    super::ordering::save_scope(connection, query)
 }
 
 pub(super) fn copy_to_bookmark(connection: &Connection) -> Result<(), ScanError> {
@@ -77,11 +77,15 @@ pub(super) fn copy_to_bookmark(connection: &Connection) -> Result<(), ScanError>
                include_descendants = excluded.include_descendants,
                search_text = excluded.search_text, queue = excluded.queue;",
         )
-        .map_err(database_error)
+        .map_err(database_error)?;
+    super::ordering::copy_to_bookmark(connection)
 }
 
-pub(super) fn load(connection: &Connection, slot: &str) -> Result<Option<GalleryQuery>, ScanError> {
-    connection
+pub(in super::super::super) fn load(
+    connection: &Connection,
+    slot: &str,
+) -> Result<Option<GalleryQuery>, ScanError> {
+    let mut query = connection
         .query_row(
             "SELECT collection, album_id, root_id, folder_relative_path,
                include_descendants, search_text, queue
@@ -116,7 +120,11 @@ pub(super) fn load(connection: &Connection, slot: &str) -> Result<Option<Gallery
             },
         )
         .optional()
-        .map_err(database_error)
+        .map_err(database_error)?;
+    if let Some(query) = &mut query {
+        super::ordering::load_scope(connection, slot, query)?;
+    }
+    Ok(query)
 }
 
 fn invalid() -> ScanError {

@@ -6,8 +6,7 @@ pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
     query.folder_relative_path = query
         .folder_relative_path
         .map(|folder| normalize_relative_folder(&folder));
-    if query.organization_queue.is_some() {
-        query.sort_key = GallerySortKey::ModifiedTime;
+    if query.sort_key == GallerySortKey::LibraryAdmission {
         query.sort_direction = GallerySortDirection::Descending;
     }
     if query.organization_queue.is_some()
@@ -55,6 +54,7 @@ pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
         GallerySortKey::CreatedTime => 1,
         GallerySortKey::ModifiedTime => 2,
         GallerySortKey::FileName => 3,
+        GallerySortKey::LibraryAdmission => 4,
     }]);
     hasher.update(&[match query.sort_direction {
         GallerySortDirection::Ascending => 0,
@@ -77,7 +77,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn queue_identity_separates_progress_scopes_and_normalizes_only_queue_ordering() {
+    fn queue_identity_preserves_sort_choices_and_separates_progress_scopes() {
         let ordinary = GalleryQuery {
             sort_key: GallerySortKey::FileName,
             sort_direction: GallerySortDirection::Ascending,
@@ -98,11 +98,14 @@ mod tests {
                 organization_queue: Some(queue),
                 ..GalleryQuery::default()
             });
-            assert_eq!(first, second);
+            assert_ne!(first, second);
+            assert_eq!(first.sort_key, ordinary.sort_key);
+            assert_eq!(first.sort_direction, ordinary.sort_direction);
             assert!(first.folds_duplicates());
             identities.insert(gallery_query_identity(&first));
+            identities.insert(gallery_query_identity(&second));
         }
-        assert_eq!(identities.len(), 4);
+        assert_eq!(identities.len(), 7);
         assert_eq!(normalize_gallery_query(ordinary.clone()), ordinary);
     }
 

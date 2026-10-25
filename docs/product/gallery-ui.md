@@ -1041,7 +1041,8 @@ position exists in the current source/folder scope. A saved position from anothe
 view, album or Favorites cannot change the current scope. Pending images alone do not create that
 entry. After a position has been recorded,
 continuation returns to the logical anchor under the [queue rules](r4-organization.md#queue-and-continuation).
-There is no separate `新增` selector or button; newly admitted groups go to the pending queue's front
+There is no separate `新增` selector or button. Organization inherits the gallery sort and keeps
+the sort menu, adding `新加入优先` for admission-descending order. New groups follow the chosen sort
 without moving the currently viewed image or overwriting the saved anchor.
 
 During organization-mode selection and viewing, `稍后整理` shares the action row with

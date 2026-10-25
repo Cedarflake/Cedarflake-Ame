@@ -30,7 +30,7 @@ pub(super) mod reconciliation;
 pub(super) mod records;
 pub(super) mod recovery;
 mod restoration_schema;
-mod review;
+pub(super) mod review;
 mod selection;
 mod undo;
 

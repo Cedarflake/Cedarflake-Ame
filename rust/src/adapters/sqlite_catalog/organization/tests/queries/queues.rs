@@ -8,8 +8,8 @@ mod history;
 fn queue(kind: OrganizationQueue) -> GalleryQuery {
     GalleryQuery {
         organization_queue: Some(kind),
-        sort_key: GallerySortKey::FileName,
-        sort_direction: GallerySortDirection::Ascending,
+        sort_key: GallerySortKey::LibraryAdmission,
+        sort_direction: GallerySortDirection::Descending,
         ..GalleryQuery::default()
     }
 }
@@ -29,6 +29,8 @@ fn new_versions_precede_older_work_without_changing_ordinary_gallery_sorting() {
     assert_eq!(ids(&mut catalog, &pending), ["c", "b", "a"]);
     let ordinary = GalleryQuery {
         organization_queue: None,
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
         ..pending.clone()
     };
     assert_eq!(ids(&mut catalog, &ordinary), ["a", "b", "c"]);

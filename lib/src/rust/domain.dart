@@ -593,7 +593,13 @@ class GalleryQuery {
 
 enum GallerySortDirection { ascending, descending }
 
-enum GallerySortKey { captureTime, createdTime, modifiedTime, fileName }
+enum GallerySortKey {
+  captureTime,
+  createdTime,
+  modifiedTime,
+  fileName,
+  libraryAdmission,
+}
 
 class GalleryTimeAnchor {
   final BigInt revision;

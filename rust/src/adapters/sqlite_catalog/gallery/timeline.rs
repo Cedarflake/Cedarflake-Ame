@@ -38,7 +38,11 @@ pub(crate) fn load_gallery_timeline(
                 "The gallery timeline item count exceeds the supported range",
             )
         })?;
-        if query.organization_queue.is_none() && !matches!(query.sort_key, GallerySortKey::FileName)
+        if query.organization_queue.is_none()
+            && !matches!(
+                query.sort_key,
+                GallerySortKey::FileName | GallerySortKey::LibraryAdmission
+            )
         {
             buckets.push(GalleryTimeBucket {
                 month_key,

@@ -12,8 +12,9 @@ use super::super::{SqliteCatalog, database_error};
 
 mod continuation;
 mod operations;
+pub(in super::super) mod ordering;
 mod position;
-mod scope;
+pub(in super::super) mod scope;
 
 pub(super) use scope::{forget_source, transfer_source};
 
@@ -70,12 +71,15 @@ impl OrganizationReviewRepository for SqliteCatalog {
         Ok(requested.clone())
     }
 
-    fn load_organization_continuation(&self) -> Result<OrganizationContinuation, ScanError> {
+    fn load_organization_continuation(
+        &self,
+        query: Option<&GalleryQuery>,
+    ) -> Result<OrganizationContinuation, ScanError> {
         let transaction = self
             .connection
             .unchecked_transaction()
             .map_err(database_error)?;
-        let result = continuation::load(&transaction)?;
+        let result = continuation::load(&transaction, query)?;
         transaction.commit().map_err(database_error)?;
         Ok(result)
     }

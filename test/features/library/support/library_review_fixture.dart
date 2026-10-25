@@ -19,6 +19,7 @@ typedef ReviewWrite = ({
 class ReviewServiceFixture implements LibraryReview {
   final starts = <LibraryGalleryQuery>[];
   final ends = <String>[];
+  final continuationQueries = <LibraryGalleryQuery?>[];
   final checkpoints =
       <({LibraryReviewPosition position, LibraryOrganizationTarget target})>[];
   final writes = <ReviewWrite>[];
@@ -50,8 +51,12 @@ class ReviewServiceFixture implements LibraryReview {
   }
 
   @override
-  Future<LibraryReviewContinuation> continuation() async =>
-      reading?.call() ?? saved;
+  Future<LibraryReviewContinuation> continuation({
+    LibraryGalleryQuery? query,
+  }) async {
+    continuationQueries.add(query);
+    return reading?.call() ?? saved;
+  }
 
   @override
   Future<LibraryReviewReceipt> change(

@@ -12,7 +12,10 @@ pub(super) fn load_time_snapshot(
     query_id: &str,
     intent: &GalleryTimeIntent,
 ) -> Result<GalleryTimeSnapshot, ScanError> {
-    if matches!(query.sort_key, GallerySortKey::FileName) {
+    if matches!(
+        query.sort_key,
+        GallerySortKey::FileName | GallerySortKey::LibraryAdmission
+    ) {
         return Err(ScanError::new(
             "catalog_time_anchor_unavailable",
             "Name-sorted gallery results do not have a chronological time anchor",

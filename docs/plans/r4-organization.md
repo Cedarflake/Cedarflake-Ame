@@ -13,8 +13,8 @@ complete the later desktop workflow.
 
 The user can assign an entire logical image group to one flat album, keep Favorites independently,
 and resume unfinished organization in the existing gallery and viewer. Ordinary browsing and
-organization mode share durable decisions and counts. New groups enter the pending queue's front
-without moving the current image or replacing the saved continuation position.
+organization mode share durable decisions and counts. Organization inherits gallery sorting and
+offers `新加入优先`; sort changes retain the current image and logical continuation position.
 
 Implement the data and group-lifecycle rules before exposing album writes. Build bounded queries
 and continuation next, then connect ordinary album/Favorite use and organization mode. Finish portable
@@ -150,9 +150,9 @@ the underlying organization states already exist and ordinary-mode work must ret
 
 Work:
 
-1. Provide bounded pending, deferred and ignored queries and group counts. Order newly admitted
-   independent groups at the pending queue's front using library admission order with a stable tie
-   breaker; capture dates and duplicate-copy arrival must not manufacture new tasks.
+1. Provide bounded pending, deferred and ignored queries and group counts. Share gallery sorting,
+   with an organization-only `新加入优先` option using library admission and a stable tie breaker.
+   Capture dates and duplicate-copy arrival must not manufacture new tasks.
 2. Persist the organization scope, queue ordering and logical continuation anchor separately from
    handled-group state. Store relevant content/group authority and deterministic fallback information,
    not just a row number or scroll offset.
@@ -168,7 +168,8 @@ Work:
 
 Exit conditions:
 
-- new groups appear at the front while the open image and saved continuation remain stable;
+- inherited sorting, explicit sort changes and `新加入优先` share page and continuation order;
+- new arrivals and sort changes preserve the open image and logical continuation;
 - newly identified copies reuse work, and counts reconcile once per group after merges/splits;
 - restart and interruption restore the correct logical position and committed decisions together;
 - ordinary-mode operations cannot overwrite the organization-mode anchor;

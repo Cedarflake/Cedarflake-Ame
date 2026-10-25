@@ -1,14 +1,17 @@
 use rusqlite::Connection;
 
-use crate::domain::ScanError;
 use crate::domain::organization_review::{
     OrganizationContinuation, OrganizationContinuationStatus as Status,
 };
+use crate::domain::{GalleryQuery, ScanError};
 
 use super::super::super::gallery::review::{ReviewRead, candidate};
 use super::{position, scope};
 
-pub(super) fn load(connection: &Connection) -> Result<OrganizationContinuation, ScanError> {
+pub(super) fn load(
+    connection: &Connection,
+    requested: Option<&GalleryQuery>,
+) -> Result<OrganizationContinuation, ScanError> {
     let Some(bookmark) = position::bookmark(connection)? else {
         return Ok(OrganizationContinuation {
             status: Status::NoActivity,
@@ -16,8 +19,24 @@ pub(super) fn load(connection: &Connection) -> Result<OrganizationContinuation, 
             target: None,
         });
     };
-    let query = scope::load(connection, "bookmark")?
+    let saved = scope::load(connection, "bookmark")?
         .ok_or_else(crate::domain::organization_review::stale_session)?;
+    let mut query = saved.clone();
+    if let Some(requested) = requested {
+        if requested.collection != saved.collection
+            || requested.root_id != saved.root_id
+            || requested.folder_relative_path != saved.folder_relative_path
+            || requested.include_descendants != saved.include_descendants
+        {
+            return Ok(OrganizationContinuation {
+                status: Status::NoActivity,
+                query: None,
+                target: None,
+            });
+        }
+        query.sort_key = requested.sort_key.clone();
+        query.sort_direction = requested.order_direction().clone();
+    }
     if let Err(error) = scope::validate(connection, &query) {
         if error.code != "organization_review_scope_unavailable"
             && error.code != "organization_album_unavailable"
@@ -40,18 +59,37 @@ pub(super) fn load(connection: &Connection) -> Result<OrganizationContinuation, 
             target: Some(current.selection),
         });
     }
-    let unfiltered = crate::domain::GalleryQuery::default();
-    let associated = candidate(
+    let mut anchor_scope = query.clone();
+    anchor_scope.organization_queue = None;
+    let current = candidate(
         connection,
-        &unfiltered,
+        &anchor_scope,
         ReviewRead::Current(&bookmark.record_id),
-    )?
-    .is_some();
+    )?;
+    let associated = current.is_some()
+        || candidate(
+            connection,
+            &GalleryQuery::default(),
+            ReviewRead::Current(&bookmark.record_id),
+        )?
+        .is_some();
+    let boundary = if let Some(current) = &current {
+        &current.boundary
+    } else if saved.sort_key == query.sort_key && saved.order_direction() == query.order_direction()
+    {
+        &bookmark.boundary
+    } else {
+        return Ok(OrganizationContinuation {
+            status: Status::AnchorUnavailable,
+            query: Some(query),
+            target: None,
+        });
+    };
     let next = candidate(
         connection,
         &query,
         ReviewRead::After {
-            boundary: &bookmark.boundary,
+            boundary,
             exclude_record: &bookmark.record_id,
         },
     )?;

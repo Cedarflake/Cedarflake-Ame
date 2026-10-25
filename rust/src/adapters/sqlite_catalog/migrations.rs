@@ -60,6 +60,7 @@ mod organization_native_recovery;
 mod organization_reconciliation;
 mod organization_restoration;
 mod organization_review;
+mod organization_review_order;
 mod organization_transitions;
 #[cfg(test)]
 pub(super) use organization::downgrade_to_v46_for_test;
@@ -148,6 +149,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         organization_restoration::migrate_transaction(&transaction)?;
         organization_association_index::migrate_transaction(&transaction)?;
         organization_history::migrate_transaction(&transaction)?;
+        organization_review_order::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -243,6 +245,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             53 => organization_restoration::migrate(connection)?,
             54 => organization_association_index::migrate(connection)?,
             55 => organization_history::migrate(connection)?,
+            56 => organization_review_order::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

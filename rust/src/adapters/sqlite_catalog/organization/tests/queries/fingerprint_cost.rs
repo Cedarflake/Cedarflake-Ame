@@ -114,7 +114,7 @@ fn collection_and_queue_reads_do_not_expand_unrelated_fingerprints() {
             }
         }
         let continuation = bounded_read(&mut catalog, |catalog| {
-            catalog.load_organization_continuation()
+            catalog.load_organization_continuation(None)
         });
         assert_eq!(continuation.status, OrganizationContinuationStatus::Ready);
         assert_eq!(continuation.target, Some(selected(&catalog, "b")));

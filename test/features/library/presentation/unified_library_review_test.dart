@@ -59,6 +59,21 @@ void main() {
       await tester.tap(find.byKey(const ValueKey("source-title-root-1")));
       await tester.pumpAndSettle();
       await _more(tester, "整理模式");
+      await tester.tap(find.byKey(const Key("library-sort-menu")));
+      await tester.pumpAndSettle();
+      expect(find.text("名称"), findsOneWidget);
+      await tester.tap(find.text("新加入优先"));
+      await tester.pumpAndSettle();
+      expect(
+        catalog.loadQueries.last.sortKey,
+        LibraryGallerySortKey.libraryAdmission,
+      );
+      await tester.tap(find.byKey(const Key("library-sort-menu")));
+      await tester.pumpAndSettle();
+      expect(find.text("升序"), findsNothing);
+      await tester.tap(find.text("名称"));
+      await tester.pumpAndSettle();
+      expect(catalog.loadQueries.last.sortKey, LibraryGallerySortKey.fileName);
       expect(catalog.loadQueries.last.rootId, "root-1");
       expect(
         catalog.loadQueries.last.organizationQueue,

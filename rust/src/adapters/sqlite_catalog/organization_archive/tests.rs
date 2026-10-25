@@ -37,10 +37,12 @@ pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
          INSERT INTO organization_album_operation_changes VALUES ('operation-a', 'album-b', '旧相册', 0, 3);
          INSERT INTO organization_review_scopes VALUES ('bookmark', 'library', NULL, NULL, NULL, 1, '', 'pending');
          INSERT INTO organization_review_scopes VALUES ('active', 'library', NULL, NULL, NULL, 1, '', 'pending');
+         INSERT INTO organization_review_sort SELECT slot, 'library_admission', 'descending' FROM organization_review_scopes;
          INSERT INTO organization_review_session VALUES (1, 'active', 'live-session', 1, NULL);
          INSERT INTO organization_review_bookmark
            SELECT 1, 'bookmark', 'record-a', admission_id, 'root-a', 'a', 0, 3
            FROM organization_admissions LIMIT 1;
+         INSERT INTO organization_review_cursor SELECT singleton, 0, '', admission_id FROM organization_review_bookmark;
          INSERT INTO organization_review_operations VALUES ('operation-a', 'old-session', 1, 2);
          INSERT INTO exact_duplicate_decisions VALUES ('blake3-256-full-v1', printf('%064d', 0), 20, 'a', 'asset-a', 1, 3);"
     ).unwrap();

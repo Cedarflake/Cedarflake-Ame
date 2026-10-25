@@ -2293,3 +2293,42 @@ Production owners contain 1,877 lines in the screen (composition changes only), 
 viewer organization controls, with no inline tests. Dedicated interaction, review-widget and overlay
 suites contain 237, 445 and 105 lines. No schema, bridge, dependency or source-policy changes are
 introduced. Publication stays on the existing R4 branch; its push alone has no hosted workflow trigger.
+
+## Shared gallery sorting in organization mode - 2026-10-25
+
+Organization entry inherits the ordinary gallery sort and exposes the existing sort menu, with
+`新加入优先` as the explicit admission-descending option. The three queues retain continuous layout.
+Changing only the sort carries the visible image anchor through the shared query transition.
+Continuation uses the active same-source sort and reanchors a handled logical group before finding
+the next eligible group. A missing anchor cannot supply a cursor under a different sort.
+
+Schema 57 adds scope sorting and generic bookmark boundaries without replacing decision tables.
+Existing bookmarks retain admission-descending order. Archive version 3 includes these values;
+versions 1 and 2 expand to their original admission order on read. Restored admission offsets change
+only admission cursors. No source media reads, mutations or new dependencies are introduced.
+
+The organization-filtered Rust run passes 241 cases, with two existing ignored diagnostics.
+One root-consolidation fixture collided on its shared scan identifier under two test threads;
+its serial rerun passes. Targeted checks cover all five sort choices, both directions, missing
+dates, bounded paging, continuation after ordinary edits, reopen, order changes, migration rollback,
+retained decisions and old/new archive compatibility. The strengthened date fixture initially lacked
+the schema-required EXIF provenance; adding that evidence makes both ordering cases pass.
+All 17 asynchronous bridge contracts and generated content hashes pass.
+
+The saved-order owner has 91 production lines, continuation 110, the migration 109 plus three test
+declaration lines, and archive compatibility 31. The existing archive codec has 266 production lines
+plus three test declaration lines. The screen/header/mode have 1,882/600/376 production lines with
+no inline tests; screen changes only compose the query. The migration registry retains 6,417 total
+lines: 4,127 before its inline test module (including 52 historical test-helper lines) and 2,290 in
+that module, and receives only migration dispatch. Catalog/model/layout Dart owners retain
+589/548/432 lines with no inline tests. The Rust catalog facade and domain module retain 3,506/821
+total lines, including existing test hooks/declarations; their changes are schema/enum dispatch.
+Dedicated sort/migration/mode/unified-review suites have 126/89/457/278 lines.
+
+All 31 focused Flutter cases pass across organization mode, unified review and query navigation.
+Strict analysis of the 12 affected handwritten Dart files and the Windows Debug build pass.
+The retained 10,000-file isolated client upgrades successfully and keeps its 72 logical groups and
+existing progress counts. Native inspection confirms ordinary name sorting is inherited on entry,
+the organization sort menu remains available, and selecting `新加入优先` changes the order while
+retaining the prior visible image in the viewport. Ordinary menus omit this organization-only choice.
+The test window remains open. Large-library performance acceptance remains with the existing R4 gate.

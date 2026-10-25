@@ -44,7 +44,11 @@ pub(super) fn restore(connection: &Connection, archive_id: &str) -> Result<(), S
            WHERE known.admission_id = bookmark.admission_id);
          INSERT INTO organization_recovery_admissions(source_generation, admission_id)
          SELECT source_generation, restored_position FROM temp.organization_restore_admissions WHERE 1
-         ON CONFLICT(source_generation) DO UPDATE SET admission_id = excluded.admission_id;",
+         ON CONFLICT(source_generation) DO UPDATE SET admission_id = excluded.admission_id;
+         UPDATE organization_review_cursor SET primary_number = (
+           SELECT admission_id FROM organization_review_bookmark)
+         WHERE EXISTS(SELECT 1 FROM organization_review_sort
+           WHERE scope_slot = 'bookmark' AND sort_key = 'library_admission');",
     ).map_err(database_error)
 }
 

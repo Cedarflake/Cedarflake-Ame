@@ -86,13 +86,17 @@ CREATE TABLE archive_review_scope (
   include_descendants INTEGER NOT NULL CHECK(include_descendants IN (0, 1)),
   search_text TEXT NOT NULL CHECK(length(search_text) <= 512),
   queue TEXT NOT NULL CHECK(queue IN ('pending', 'deferred', 'ignored')),
+  sort_key TEXT NOT NULL CHECK(sort_key IN ('capture_time', 'created_time', 'modified_time', 'file_name', 'library_admission')),
+  sort_direction TEXT NOT NULL CHECK(sort_direction IN ('ascending', 'descending')),
   CHECK((collection = 'album') = (album_id IS NOT NULL))
 ) STRICT;
 CREATE UNIQUE INDEX archive_review_scope_singleton ON archive_review_scope((1));
 CREATE TABLE archive_bookmark (
   record_id TEXT NOT NULL REFERENCES archive_record(record_id), admission_id INTEGER NOT NULL CHECK(admission_id > 0),
   root_id TEXT NOT NULL, location_id TEXT NOT NULL, after_current INTEGER NOT NULL CHECK(after_current IN (0, 1)),
-  updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0)
+  updated_unix_ms INTEGER NOT NULL CHECK(updated_unix_ms >= 0),
+  primary_missing INTEGER NOT NULL CHECK(primary_missing IN (0, 1)),
+  primary_text TEXT NOT NULL, primary_number INTEGER NOT NULL
 ) STRICT;
 CREATE UNIQUE INDEX archive_bookmark_singleton ON archive_bookmark((1));
 CREATE TABLE archive_review_operation (

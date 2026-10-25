@@ -8,5 +8,9 @@ enum LibraryGalleryGrouping {
       query.isChronological ? date : continuous;
 
   factory LibraryGalleryGrouping.forSortKey(LibraryGallerySortKey sortKey) =>
-      sortKey == LibraryGallerySortKey.fileName ? continuous : date;
+      switch (sortKey) {
+        LibraryGallerySortKey.fileName ||
+        LibraryGallerySortKey.libraryAdmission => continuous,
+        _ => date,
+      };
 }

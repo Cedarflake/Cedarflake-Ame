@@ -89,7 +89,7 @@ fn organization_native_recovery_restores_album_favorite_and_continuation_after_r
     );
     assert_eq!(
         catalog
-            .load_organization_continuation()
+            .load_organization_continuation(None)
             .unwrap()
             .target
             .unwrap()
@@ -121,7 +121,7 @@ fn organization_native_recovery_restores_album_favorite_and_continuation_after_r
     );
     assert_eq!(
         catalog
-            .load_organization_continuation()
+            .load_organization_continuation(None)
             .unwrap()
             .target
             .unwrap()

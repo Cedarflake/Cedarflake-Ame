@@ -239,13 +239,13 @@ class _BrowsingToolbar extends StatelessWidget {
           icon: const Icon(Symbols.check_box_rounded),
           label: const Text(LibraryStrings.select),
         ),
-        if (!isReviewing)
-          _SortMenu(
-            sortKey: sortKey,
-            direction: sortDirection,
-            onSortKeyChanged: onSortKeyChanged,
-            onDirectionChanged: onSortDirectionChanged,
-          ),
+        _SortMenu(
+          isReviewing: isReviewing,
+          sortKey: sortKey,
+          direction: sortDirection,
+          onSortKeyChanged: onSortKeyChanged,
+          onDirectionChanged: onSortDirectionChanged,
+        ),
         ?filter,
         _LayoutMenu(
           shape: layoutShape,
@@ -287,12 +287,14 @@ class _SelectionToolbar extends StatelessWidget {
 
 class _SortMenu extends StatelessWidget {
   const _SortMenu({
+    required this.isReviewing,
     required this.sortKey,
     required this.direction,
     required this.onSortKeyChanged,
     required this.onDirectionChanged,
   });
 
+  final bool isReviewing;
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection direction;
   final ValueChanged<LibraryGallerySortKey> onSortKeyChanged;
@@ -301,11 +303,12 @@ class _SortMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AmePopupMenuButton<_SortMenuAction>(
-      labels: const [
+      labels: [
         LibraryStrings.captureDate,
         LibraryStrings.createdDate,
         LibraryStrings.modifiedDate,
         LibraryStrings.fileName,
+        if (isReviewing) LibraryStrings.newestAddedFirst,
         LibraryStrings.ascending,
         LibraryStrings.descending,
       ],
@@ -335,19 +338,28 @@ class _SortMenu extends StatelessWidget {
           icon: Symbols.text_fields_rounded,
           isSelected: sortKey == LibraryGallerySortKey.fileName,
         ),
-        const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
-        _menuChoice(
-          value: _SortMenuAction.ascending,
-          label: LibraryStrings.ascending,
-          icon: Symbols.arrow_upward_rounded,
-          isSelected: direction == LibraryGallerySortDirection.ascending,
-        ),
-        _menuChoice(
-          value: _SortMenuAction.descending,
-          label: LibraryStrings.descending,
-          icon: Symbols.arrow_downward_rounded,
-          isSelected: direction == LibraryGallerySortDirection.descending,
-        ),
+        if (isReviewing)
+          _menuChoice(
+            value: _SortMenuAction.libraryAdmission,
+            label: LibraryStrings.newestAddedFirst,
+            icon: Symbols.new_releases_rounded,
+            isSelected: sortKey == LibraryGallerySortKey.libraryAdmission,
+          ),
+        if (sortKey != LibraryGallerySortKey.libraryAdmission) ...[
+          const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
+          _menuChoice(
+            value: _SortMenuAction.ascending,
+            label: LibraryStrings.ascending,
+            icon: Symbols.arrow_upward_rounded,
+            isSelected: direction == LibraryGallerySortDirection.ascending,
+          ),
+          _menuChoice(
+            value: _SortMenuAction.descending,
+            label: LibraryStrings.descending,
+            icon: Symbols.arrow_downward_rounded,
+            isSelected: direction == LibraryGallerySortDirection.descending,
+          ),
+        ],
       ],
       onSelected: (action) {
         switch (action) {
@@ -359,6 +371,8 @@ class _SortMenu extends StatelessWidget {
             onSortKeyChanged(LibraryGallerySortKey.modifiedTime);
           case _SortMenuAction.fileName:
             onSortKeyChanged(LibraryGallerySortKey.fileName);
+          case _SortMenuAction.libraryAdmission:
+            onSortKeyChanged(LibraryGallerySortKey.libraryAdmission);
           case _SortMenuAction.ascending:
             onDirectionChanged(LibraryGallerySortDirection.ascending);
           case _SortMenuAction.descending:
@@ -572,6 +586,7 @@ PopupMenuItem<T> _menuChoice<T>({
 }
 
 enum _SortMenuAction {
+  libraryAdmission,
   captureTime,
   createdTime,
   modifiedTime,

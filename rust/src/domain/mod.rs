@@ -436,6 +436,7 @@ pub enum GallerySortKey {
     CreatedTime,
     ModifiedTime,
     FileName,
+    LibraryAdmission,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -494,7 +495,7 @@ impl GalleryQuery {
     }
 
     pub(crate) fn order_direction(&self) -> &GallerySortDirection {
-        if self.organization_queue.is_some() {
+        if self.sort_key == GallerySortKey::LibraryAdmission {
             &GallerySortDirection::Descending
         } else {
             &self.sort_direction

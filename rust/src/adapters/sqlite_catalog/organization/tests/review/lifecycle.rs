@@ -56,7 +56,7 @@ fn advancing_past_a_deferred_group_cannot_return_its_new_representative() {
             }),
         )
         .unwrap();
-    let result = catalog.load_organization_continuation().unwrap();
+    let result = catalog.load_organization_continuation(None).unwrap();
     assert_eq!(result.status, Status::EndOfQueue);
     assert!(result.target.is_none());
 }
@@ -94,7 +94,7 @@ fn parent_consolidation_preserves_the_saved_physical_folder_scope() {
         .unwrap();
     transaction.commit().unwrap();
     catalog.unregister_root("root-a").unwrap();
-    let continuation = catalog.load_organization_continuation().unwrap();
+    let continuation = catalog.load_organization_continuation(None).unwrap();
     let scope = continuation.query.unwrap();
     assert_eq!(scope.root_id.as_deref(), Some("parent"));
     assert_eq!(scope.folder_relative_path.as_deref(), Some("Fixture"));

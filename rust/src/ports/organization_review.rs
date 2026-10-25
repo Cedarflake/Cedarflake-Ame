@@ -20,7 +20,10 @@ pub(crate) trait OrganizationReviewRepository {
         selection: &OrganizationSelection,
     ) -> Result<OrganizationReviewSession, ScanError>;
 
-    fn load_organization_continuation(&self) -> Result<OrganizationContinuation, ScanError>;
+    fn load_organization_continuation(
+        &self,
+        query: Option<&GalleryQuery>,
+    ) -> Result<OrganizationContinuation, ScanError>;
 
     fn change_current_organization_review(
         &mut self,

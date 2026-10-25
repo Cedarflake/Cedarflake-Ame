@@ -70,6 +70,7 @@ abstract final class LibraryStrings {
   static const createdDate = "创建日期";
   static const modifiedDate = "修改日期";
   static const fileName = "名称";
+  static const newestAddedFirst = "新加入优先";
   static const ascending = "升序";
   static const descending = "降序";
   static const equalHeight = "等高";

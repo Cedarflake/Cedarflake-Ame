@@ -46,8 +46,10 @@ pub(super) fn session(connection: &Connection) -> Result<Session, ScanError> {
 pub(super) fn bookmark(connection: &Connection) -> Result<Option<Bookmark>, ScanError> {
     connection
         .query_row(
-            "SELECT record_id, admission_id, root_id, location_id, after_current
-             FROM organization_review_bookmark WHERE singleton = 1",
+            "SELECT record_id, admission_id, root_id, location_id, after_current,
+               primary_missing, primary_text, primary_number
+             FROM organization_review_bookmark JOIN organization_review_cursor USING(singleton)
+             WHERE singleton = 1",
             [],
             |row| {
                 Ok(Bookmark {
@@ -56,6 +58,9 @@ pub(super) fn bookmark(connection: &Connection) -> Result<Option<Bookmark>, Scan
                         admission_id: row.get(1)?,
                         root_id: row.get(2)?,
                         location_id: row.get(3)?,
+                        primary_missing: row.get(5)?,
+                        primary_text: row.get(6)?,
+                        primary_number: row.get(7)?,
                     },
                     after_current: row.get(4)?,
                 })
@@ -123,6 +128,7 @@ pub(super) fn save(
             ],
         )
         .map_err(database_error)?;
+    super::ordering::save_cursor(connection, &candidate.boundary)?;
     connection
         .execute(
             "UPDATE organization_review_session

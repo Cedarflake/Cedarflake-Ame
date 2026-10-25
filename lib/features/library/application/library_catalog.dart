@@ -485,6 +485,8 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
       LibraryGallerySortKey.modifiedTime =>
         rust_domain.GallerySortKey.modifiedTime,
       LibraryGallerySortKey.fileName => rust_domain.GallerySortKey.fileName,
+      LibraryGallerySortKey.libraryAdmission =>
+        rust_domain.GallerySortKey.libraryAdmission,
     },
     sortDirection: switch (query.sortDirection) {
       LibraryGallerySortDirection.ascending =>

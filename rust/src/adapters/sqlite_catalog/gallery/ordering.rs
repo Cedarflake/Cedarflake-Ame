@@ -11,16 +11,7 @@ pub(super) struct GalleryOrderExpressions {
 }
 
 pub(super) fn gallery_order_expressions(query: &GalleryQuery) -> GalleryOrderExpressions {
-    if query.organization_queue.is_some() {
-        return GalleryOrderExpressions {
-            missing: "CAST(0 AS INTEGER)",
-            text: "CAST('' AS TEXT)",
-            number: Cow::Owned(super::organization_queue::admission_expression("locations")),
-            date: None,
-            month: None,
-        };
-    }
-    match query.sort_key {
+    let mut order = match query.sort_key {
         GallerySortKey::CaptureTime => GalleryOrderExpressions {
             missing: "(COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL)",
             text: "IFNULL(COALESCE(locations.capture_local_time, locations.file_local_time), '')",
@@ -71,5 +62,17 @@ pub(super) fn gallery_order_expressions(query: &GalleryQuery) -> GalleryOrderExp
             date: None,
             month: None,
         },
+        GallerySortKey::LibraryAdmission => GalleryOrderExpressions {
+            missing: "CAST(0 AS INTEGER)",
+            text: "CAST('' AS TEXT)",
+            number: Cow::Owned(super::organization_queue::admission_expression("locations")),
+            date: None,
+            month: None,
+        },
+    };
+    if query.organization_queue.is_some() {
+        order.date = None;
+        order.month = None;
     }
+    order
 }

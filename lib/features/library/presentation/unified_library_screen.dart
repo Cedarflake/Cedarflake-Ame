@@ -1335,7 +1335,12 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   }
 
   void _changeSortKey(LibraryState state, LibraryGallerySortKey value) {
-    final query = state.query.copyWith(sortKey: value);
+    final query = state.query.copyWith(
+      sortKey: value,
+      sortDirection: value == LibraryGallerySortKey.libraryAdmission
+          ? LibraryGallerySortDirection.descending
+          : state.query.sortDirection,
+    );
     unawaited(_applyQuery(query));
     unawaited(_persistViewPreferences(query: query));
   }

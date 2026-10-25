@@ -7,7 +7,7 @@ use crate::domain::ScanError;
 use super::{error, io_error, records};
 
 pub(super) const FORMAT: &str = "ame-organization-archive";
-pub(super) const VERSION: u32 = 2;
+pub(super) const VERSION: u32 = 3;
 pub(super) const MAX_LINE_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -167,9 +167,7 @@ pub(super) fn read_records(
                     return Err(invalid());
                 }
                 validate_values(&records::KINDS[index], &values, header.version)?;
-                if header.version == 1 && kind == "version_evidence" {
-                    values.push(Cell::Integer(0));
-                }
+                compatibility::upgrade(&kind, &mut values, header.version);
                 accept(index, &values)?;
                 counts[index] = counts[index].checked_add(1).ok_or_else(invalid)?;
                 total = total.checked_add(1).ok_or_else(invalid)?;
@@ -240,11 +238,7 @@ fn validate_values(
     values: &[Cell],
     version: u32,
 ) -> Result<(), ScanError> {
-    let fields = if version == 1 && kind.name == "version_evidence" {
-        &kind.fields[..kind.fields.len() - 1]
-    } else {
-        kind.fields
-    };
+    let fields = compatibility::fields(kind, version);
     if fields.len() != values.len()
         || !fields
             .iter()
@@ -253,7 +247,7 @@ fn validate_values(
     {
         return Err(invalid());
     }
-    if version == 2
+    if version >= 2
         && kind.name == "version_evidence"
         && !matches!(values.last(), Some(Cell::Integer(count)) if *count > 0)
     {
@@ -271,3 +265,5 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 mod tests;
+
+mod compatibility;

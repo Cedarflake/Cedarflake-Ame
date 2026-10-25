@@ -1,7 +1,8 @@
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::adapters::sqlite_catalog::gallery::review::{ReviewRead, candidate};
-use crate::domain::{GalleryQuery, ScanError};
+use crate::adapters::sqlite_catalog::organization::review::{ordering, scope};
+use crate::domain::ScanError;
 
 use super::super::super::database_error;
 
@@ -42,6 +43,17 @@ pub(super) fn restore(connection: &Connection, archive_id: &str) -> Result<(), S
          JOIN temp.organization_restore_identifiers AS location
            ON location.kind = 'location' AND location.original_id = bookmark.location_id", [archive_id],
     ).map_err(database_error)?;
+    connection.execute_batch(
+        "INSERT INTO organization_review_sort
+         SELECT 'bookmark', sort_key, sort_direction FROM recovery.archive_review_scope
+         WHERE EXISTS(SELECT 1 FROM organization_review_bookmark)
+         ON CONFLICT(scope_slot) DO UPDATE SET sort_key = excluded.sort_key, sort_direction = excluded.sort_direction;
+         INSERT INTO organization_review_cursor
+         SELECT 1, source.primary_missing, source.primary_text,
+           CASE WHEN sort.sort_key = 'library_admission' THEN bookmark.admission_id ELSE source.primary_number END
+         FROM recovery.archive_bookmark AS source, organization_review_bookmark AS bookmark
+         JOIN organization_review_sort AS sort ON sort.scope_slot = 'bookmark';",
+    ).map_err(database_error)?;
     Ok(())
 }
 
@@ -55,17 +67,15 @@ pub(super) fn refresh(connection: &Connection) -> Result<(), ScanError> {
         .optional()
         .map_err(database_error)?;
     let Some(record) = record else { return Ok(()) };
-    let Some(current) = candidate(
-        connection,
-        &GalleryQuery::default(),
-        ReviewRead::Current(&record),
-    )?
-    else {
+    let mut query = scope::load(connection, "bookmark")?
+        .ok_or_else(crate::domain::organization_review::stale_session)?;
+    query.organization_queue = None;
+    let Some(current) = candidate(connection, &query, ReviewRead::Current(&record))? else {
         return Ok(());
     };
     connection.execute(
         "UPDATE organization_review_bookmark SET admission_id = ?1, root_id = ?2, location_id = ?3 WHERE singleton = 1",
         params![current.boundary.admission_id, current.boundary.root_id, current.boundary.location_id],
     ).map_err(database_error)?;
-    Ok(())
+    ordering::save_cursor(connection, &current.boundary)
 }

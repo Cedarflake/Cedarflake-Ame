@@ -89,14 +89,17 @@ pub(super) const KINDS: &[RecordKind] = &[
                 ORDER BY operation_id, record_id, field",
     },
     RecordKind {
-        name: "review_scope", fields: &[T, NT, NT, NT, I, T, T],
+        name: "review_scope", fields: &[T, NT, NT, NT, I, T, T, T, T],
         query: "SELECT collection, album_id, root_id, folder_relative_path, include_descendants,
-                       search_text, queue FROM organization_review_scopes WHERE slot = 'bookmark'",
+                       search_text, queue, sort_key, sort_direction FROM organization_review_scopes
+                JOIN organization_review_sort ON scope_slot = slot WHERE slot = 'bookmark'",
     },
     RecordKind {
-        name: "bookmark", fields: &[T, I, T, T, I, I],
-        query: "SELECT record_id, admission_id, root_id, location_id, after_current, updated_unix_ms
-                FROM organization_review_bookmark WHERE singleton = 1",
+        name: "bookmark", fields: &[T, I, T, T, I, I, I, T, I],
+        query: "SELECT record_id, admission_id, root_id, location_id, after_current, updated_unix_ms,
+                       primary_missing, primary_text, primary_number
+                FROM organization_review_bookmark JOIN organization_review_cursor USING(singleton)
+                WHERE singleton = 1",
     },
     RecordKind {
         name: "review_operation", fields: &[T, T, I, I],

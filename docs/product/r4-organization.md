@@ -148,23 +148,25 @@ to that source/folder and the selected descendant policy. Favorites and albums r
 browsing collections. Scope filters choose which groups are presented; commands still apply to the
 whole duplicate group, including its copies in other folders.
 
-Organization is continuous work, not a frozen batch that excludes later imports. Newly discovered
-independent groups enter the front of the pending queue, including groups found during startup
-synchronization. Newness is based on admission to the library, not the image's capture date. Newly
-identified copies of an existing group reuse its progress instead of creating another task.
+Organization is continuous work, not a frozen batch that excludes later imports. Entering the mode
+inherits the ordinary gallery's sort and retains its sort controls. Pending, deferred and ignored
+queues follow the selected capture time, creation time, modification time or natural-name order.
+The organization-only `新加入优先` option puts newly admitted independent groups first, including
+groups found during startup synchronization. This option uses library admission, not capture date.
+Newly identified copies of an existing group reuse its progress instead of creating another task.
 
 Keep handled-group state separate from the saved continuation position. Persist the owning scope,
 queue order, stable logical anchor, and progress; an ordinal such as "image 800" is insufficient.
 New arrivals, duplicate folding, sorting, and representative changes preserve the current image and
-browsing anchor. Ordinary gallery sorting remains the user's chosen sort; the organization queue
-does not silently replace it.
+browsing anchor. Changing the organization sort updates continuation and next-image order while
+leaving the retained ordinary browsing preference intact.
 
 `继续整理` requires previous organization activity and a resumable position in the current
 source/folder scope. A saved position in a different scope is not offered here and cannot silently
 change the selected folder or narrow the all-source view. Merely having pending images does not
 make it appear. It returns to the saved logical position rather than jumping to
 new arrivals at the queue head. If that item has already been handled, continue with the next
-eligible item in the retained scope. An unavailable item keeps its record and issue state while
+eligible item in the retained scope and selected sort. An unavailable item keeps its record and issue state while
 the user can continue with other items; unavailability is not completion.
 
 Album operations in ordinary mode update shared progress without replacing the saved organization
@@ -236,7 +238,7 @@ R4 delivery must demonstrate the following behavior through its eventual impleme
   restart and repeated analysis preserve the conflict until a valid choice resolves it;
 - content changes retain unchanged group members, detach obsolete inherited membership, and apply
   either a compatible destination group's decision or the new group's pending state;
-- new groups join the front without moving the current image, duplicate copies do not add work,
+- new groups follow the selected sort and join the front under `新加入优先`, duplicate copies do not add work,
   and continuation restores a logical position after insertion, regrouping, and restart;
 - first-use mode entry, the bottom controls, contextual actions, keyboard/focus behavior, empty
   queues, unavailable images, and save failures work in the existing desktop gallery and viewer;

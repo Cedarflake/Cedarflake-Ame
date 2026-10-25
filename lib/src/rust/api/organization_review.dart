@@ -30,10 +30,10 @@ Future<OrganizationReviewSession> checkpointOrganizationReview({
       selection: selection,
     );
 
-Future<OrganizationContinuation> loadOrganizationContinuation() => RustLib
-    .instance
-    .api
-    .crateApiOrganizationReviewLoadOrganizationContinuation();
+Future<OrganizationContinuation> loadOrganizationContinuation({
+  GalleryQuery? query,
+}) => RustLib.instance.api
+    .crateApiOrganizationReviewLoadOrganizationContinuation(query: query);
 
 Future<OrganizationReviewWriteReceipt> changeCurrentOrganizationReview({
   required String operationId,

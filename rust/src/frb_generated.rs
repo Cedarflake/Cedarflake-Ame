@@ -2402,11 +2402,12 @@ fn wire__crate__api__organization_review__load_organization_continuation_impl(
             };
             let mut deserializer =
                 flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_query = <Option<crate::domain::GalleryQuery>>::sse_decode(&mut deserializer);
             deserializer.end();
             move |context| {
                 transform_result_sse::<_, crate::domain::ScanError>((move || {
                     let output_ok =
-                        crate::api::organization_review::load_organization_continuation()?;
+                        crate::api::organization_review::load_organization_continuation(api_query)?;
                     Ok(output_ok)
                 })())
             }
@@ -4399,6 +4400,7 @@ impl SseDecode for crate::domain::GallerySortKey {
             1 => crate::domain::GallerySortKey::CreatedTime,
             2 => crate::domain::GallerySortKey::ModifiedTime,
             3 => crate::domain::GallerySortKey::FileName,
+            4 => crate::domain::GallerySortKey::LibraryAdmission,
             _ => unreachable!("Invalid variant for GallerySortKey: {}", inner),
         };
     }
@@ -8234,6 +8236,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::GallerySortKey {
             Self::CreatedTime => 1.into_dart(),
             Self::ModifiedTime => 2.into_dart(),
             Self::FileName => 3.into_dart(),
+            Self::LibraryAdmission => 4.into_dart(),
             _ => unreachable!(),
         }
     }
@@ -11124,6 +11127,7 @@ impl SseEncode for crate::domain::GallerySortKey {
                 crate::domain::GallerySortKey::CreatedTime => 1,
                 crate::domain::GallerySortKey::ModifiedTime => 2,
                 crate::domain::GallerySortKey::FileName => 3,
+                crate::domain::GallerySortKey::LibraryAdmission => 4,
                 _ => {
                     unimplemented!("");
                 }

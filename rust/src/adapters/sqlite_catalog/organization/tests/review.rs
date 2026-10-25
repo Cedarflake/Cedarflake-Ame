@@ -10,10 +10,12 @@ use super::transitions::{change, create_album};
 use super::*;
 
 mod lifecycle;
+mod sorting;
 
 fn pending() -> GalleryQuery {
     GalleryQuery {
         organization_queue: Some(OrganizationQueue::Pending),
+        sort_key: crate::domain::GallerySortKey::LibraryAdmission,
         ..GalleryQuery::default()
     }
 }
@@ -35,7 +37,7 @@ fn checkpoint(
 
 fn target(catalog: &SqliteCatalog) -> Option<String> {
     catalog
-        .load_organization_continuation()
+        .load_organization_continuation(None)
         .unwrap()
         .target
         .map(|value| value.location_id)
@@ -45,12 +47,12 @@ fn target(catalog: &SqliteCatalog) -> Option<String> {
 fn mode_entry_does_not_create_activity_or_replace_saved_work() {
     let (directory, mut catalog) = fixture();
     assert_eq!(
-        catalog.load_organization_continuation().unwrap().status,
+        catalog.load_organization_continuation(None).unwrap().status,
         Status::NoActivity
     );
     let session = catalog.begin_organization_review(&pending()).unwrap();
     assert_eq!(
-        catalog.load_organization_continuation().unwrap().status,
+        catalog.load_organization_continuation(None).unwrap().status,
         Status::NoActivity
     );
     checkpoint(&mut catalog, &session, 1, "b");
@@ -315,7 +317,7 @@ fn independent_changed_content_cannot_inherit_the_saved_anchor() {
     checkpoint(&mut catalog, &session, 1, "c");
     invalidate(&mut catalog, "c");
     publish_batch(&mut catalog, &["c"], 'b');
-    let result = catalog.load_organization_continuation().unwrap();
+    let result = catalog.load_organization_continuation(None).unwrap();
     assert_eq!(result.status, Status::AnchorUnavailable);
     assert_eq!(result.target.unwrap().location_id, "b");
     assert_eq!(
@@ -336,7 +338,7 @@ fn unassociated_work_is_retained_and_empty_scopes_differ_from_exhausted_suffixes
         .connection
         .execute("DELETE FROM asset_locations WHERE location_id = 'c'", [])
         .unwrap();
-    let result = catalog.load_organization_continuation().unwrap();
+    let result = catalog.load_organization_continuation(None).unwrap();
     assert_eq!(result.status, Status::AnchorUnavailable);
     assert_eq!(result.target.unwrap().location_id, "b");
     assert_eq!(
@@ -351,7 +353,7 @@ fn unassociated_work_is_retained_and_empty_scopes_differ_from_exhausted_suffixes
         OrganizationAction::Ignore,
     );
     assert_eq!(
-        catalog.load_organization_continuation().unwrap().status,
+        catalog.load_organization_continuation(None).unwrap().status,
         Status::EndOfQueue
     );
     change(
@@ -361,7 +363,7 @@ fn unassociated_work_is_retained_and_empty_scopes_differ_from_exhausted_suffixes
         OrganizationAction::Ignore,
     );
     assert_eq!(
-        catalog.load_organization_continuation().unwrap().status,
+        catalog.load_organization_continuation(None).unwrap().status,
         Status::EmptyScope
     );
 }
@@ -390,7 +392,7 @@ fn scoped_checkpoints_reject_hidden_items_without_materializing_or_advancing_the
     checkpoint(&mut catalog, &session, 1, "c");
     catalog.unregister_root("root-c").unwrap();
     assert_eq!(
-        catalog.load_organization_continuation().unwrap().status,
+        catalog.load_organization_continuation(None).unwrap().status,
         Status::NoActivity
     );
     assert_eq!(
@@ -412,7 +414,7 @@ fn removing_one_source_preserves_a_global_shared_group_bookmark() {
     assert_eq!(target(&catalog).as_deref(), Some("a"));
     catalog.unregister_root("root-a").unwrap();
     assert_eq!(
-        catalog.load_organization_continuation().unwrap().status,
+        catalog.load_organization_continuation(None).unwrap().status,
         Status::NoActivity
     );
 }

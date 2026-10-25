@@ -179,10 +179,11 @@ Unpublished fingerprints and staged versions cannot supply an earlier position. 
 physical representative and source-folder scope do not replace the global group's admission order.
 
 Keep the queue selector alongside the existing collection and physical scope in the typed gallery
-query. Queues always fold logical groups, including provisional asset versions, and order admissions
-descending with the existing deterministic tie breaker. Ordinary gallery sort preferences remain
+query. Queues always fold logical groups, including provisional asset versions, and share the
+ordinary gallery's selected ordering expressions and deterministic tie breaker. Library-admission
+descending remains the explicit `新加入优先` choice. Ordinary gallery sort preferences remain
 separate. Queue results have no chronological date buckets. Pages, layout and anchor resolution use
-the same ordering expressions; query identity distinguishes each queue from ordinary browsing.
+the same ordering expressions; query identity includes the queue, sort key and direction.
 
 Read all four progress counts within the page/timeline snapshot. Counts cover each logical group
 once within the retained collection, folder and search scope, independently of the selected queue.
@@ -195,10 +196,13 @@ scope. Entering a session replaces active save authority without replacing the b
 activity. An explicit image-position checkpoint establishes activity; opening the mode alone does
 not. A checkpoint may materialize the current pending lineage without completing it.
 
-The bookmark stores a stable lineage reference and the admission/root/location ordering boundary,
-not an ordinal into the current page. Resolve a still-eligible lineage through its current canonical
-group and scoped representative. If already handled, continue after the retained boundary, excluding
-new arrivals ahead of it. An unassociated anchor stays recorded and returns a distinct issue with an
+Schema 57 persists each scope's sort and the bookmark's missing/text/number/root/location boundary
+alongside its admission reference. Existing bookmarks migrate to library-admission descending.
+The bookmark stores a stable lineage reference, not an ordinal into the current page. Resolve a
+still-eligible lineage through its current canonical group and scoped representative. If already
+handled, resolve its current ordering boundary and continue after it. A current same-scope request
+can override the saved sort; an unavailable anchor cannot supply a boundary for a different sort.
+An unassociated anchor stays recorded and returns a distinct issue with an
 optional next eligible target. Empty scopes and exhausted suffixes have distinct results. Catalog
 association does not establish filesystem availability; the existing viewer source checks retain
 their authority and a failed open does not complete or discard work.

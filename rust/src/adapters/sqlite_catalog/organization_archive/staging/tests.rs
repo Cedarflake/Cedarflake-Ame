@@ -65,6 +65,13 @@ fn organization_archive_inspection_upgrades_v1_native_copy_evidence_without_chan
         .unwrap();
     let mut rows = entries(&archive);
     rows[0]["header"]["version"] = json!(1);
+    for row in &mut rows {
+        match row["kind"].as_str() {
+            Some("review_scope") => row["values"].as_array_mut().unwrap().truncate(7),
+            Some("bookmark") => row["values"].as_array_mut().unwrap().truncate(6),
+            _ => {}
+        }
+    }
     let index = rows
         .iter()
         .position(|row| row["kind"] == "version_evidence")
@@ -96,14 +103,14 @@ fn organization_archive_inspection_upgrades_v1_native_copy_evidence_without_chan
 }
 
 #[test]
-fn organization_archive_inspection_rejects_unproven_v2_native_copy_counts() {
+fn organization_archive_inspection_rejects_unproven_native_copy_counts() {
     let (directory, catalog) = fixture();
     let archive = directory.path().join("version-two.ame-backup");
     catalog
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
     let original = entries(&archive);
-    assert_eq!(original[0]["header"]["version"], 2);
+    assert_eq!(original[0]["header"]["version"], 3);
     for copies in [json!(0), json!(-1), Value::Null] {
         let mut rows = original.clone();
         rows.iter_mut()
@@ -119,6 +126,36 @@ fn organization_archive_inspection_rejects_unproven_v2_native_copy_counts() {
         );
         assert_no_scratch(directory.path());
     }
+}
+
+#[test]
+fn organization_archive_inspection_upgrades_v2_ordering_without_rewriting_input() {
+    let (directory, catalog) = fixture();
+    let archive = directory.path().join("version-two.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let mut rows = entries(&archive);
+    rows[0]["header"]["version"] = json!(2);
+    for row in &mut rows {
+        match row["kind"].as_str() {
+            Some("review_scope") => row["values"].as_array_mut().unwrap().truncate(7),
+            Some("bookmark") => row["values"].as_array_mut().unwrap().truncate(6),
+            _ => {}
+        }
+    }
+    write_archive(&archive, &rows);
+    let before = fs::read(&archive).unwrap();
+    let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
+    let restored: (String, String, bool) = staged.connection.query_row(
+        "SELECT sort_key, sort_direction, primary_number = admission_id FROM archive_review_scope, archive_bookmark",
+        [], |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
+    ).unwrap();
+    assert_eq!(
+        restored,
+        ("library_admission".into(), "descending".into(), true)
+    );
+    assert_eq!(fs::read(&archive).unwrap(), before);
 }
 
 #[test]

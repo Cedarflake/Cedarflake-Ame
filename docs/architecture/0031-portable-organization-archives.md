@@ -14,7 +14,7 @@ is a portable identity or authority to overwrite a newer decision.
 ## Decision
 
 Use an Ame-owned UTF-8 JSON Lines format, identified by `ame-organization-archive` and an integer
-format version. Version 2 contains a header, ordered records and a completion footer. Record kinds,
+format version. Version 3 contains a header, ordered records and a completion footer. Record kinds,
 field order and scalar types are explicit adapter contracts, independent of SQLite schema discovery.
 The header records an opaque archive identifier, creation time and source schema version for
 provenance. The footer contains record counts and a BLAKE3 digest of all preceding bytes, including
@@ -25,6 +25,11 @@ unknown kinds, incompatible fields, oversized lines, trailing data, missing comp
 or count mismatches. Format validation does not authorize restoration: relational integrity,
 association evidence, revision reconciliation and atomic application remain separate restore checks.
 Never accept SQL, scripts or serialized engine objects from an archive.
+
+Version 3 appends the chosen sort to review scopes and the generic ordering boundary to bookmarks.
+Versions 1 and 2 remain readable and expand to library-admission descending with their saved
+admission boundary. Admission remapping changes that boundary only for admission sorting; dates
+and natural-name keys retain their meaning. Current associated anchors refresh under the saved sort.
 
 Export includes album definitions and retirements, lineage decisions, group mappings, bindings,
 source ownership, conflicts, operation/undo provenance, the committed bookmark and its scope,

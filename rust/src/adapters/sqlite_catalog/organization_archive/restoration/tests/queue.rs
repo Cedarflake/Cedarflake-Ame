@@ -1,9 +1,9 @@
 use crate::adapters::sqlite_catalog::{
     exact_duplicates::read_unsigned, organization, tests::publish_gallery_fixture,
 };
-use crate::domain::GalleryQuery;
 use crate::domain::organization::{OrganizationAction, OrganizationSelection};
 use crate::domain::organization_queue::OrganizationQueue;
+use crate::domain::{GalleryQuery, GallerySortKey};
 use crate::ports::CatalogRepository;
 use crate::ports::organization::OrganizationRepository;
 use crate::ports::organization_review::OrganizationReviewRepository;
@@ -59,6 +59,7 @@ fn pending(catalog: &mut SqliteCatalog) -> Vec<String> {
             20,
             &GalleryQuery {
                 organization_queue: Some(OrganizationQueue::Pending),
+                sort_key: GallerySortKey::LibraryAdmission,
                 ..GalleryQuery::default()
             },
             "restored-queue",
@@ -71,6 +72,39 @@ fn pending(catalog: &mut SqliteCatalog) -> Vec<String> {
         .into_iter()
         .map(|asset| asset.location_id)
         .collect()
+}
+
+#[test]
+fn organization_archive_restores_selected_sort_and_missing_anchor_boundary() {
+    let (directory, source) = source();
+    source.connection.execute_batch(
+        "UPDATE organization_review_sort SET sort_key = 'file_name', sort_direction = 'ascending';
+         UPDATE organization_review_cursor SET primary_text = 'retained-name', primary_number = 0;",
+    ).unwrap();
+    let target = SqliteCatalog::open(directory.path().join("target.sqlite3")).unwrap();
+    let (archive, staged) = attach_archive(&target, &source, directory.path());
+    apply(&target, &archive).unwrap();
+    let restored: (String, String, String, i64) = target
+        .connection
+        .query_row(
+            "SELECT sort_key, sort_direction, primary_text, primary_number
+         FROM organization_review_sort, organization_review_cursor WHERE scope_slot = 'bookmark'",
+            [],
+            |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?, row.get(3)?)),
+        )
+        .unwrap();
+    assert_eq!(
+        restored,
+        (
+            "file_name".into(),
+            "ascending".into(),
+            "retained-name".into(),
+            0
+        )
+    );
+    detach(&target, staged);
+    drop(target);
+    SqliteCatalog::open(directory.path().join("target.sqlite3")).unwrap();
 }
 
 pub(super) fn detach(catalog: &SqliteCatalog, staged: staging::StagedArchive) {
@@ -209,6 +243,7 @@ fn organization_archive_queue_continues_after_the_same_group_when_restoration_re
     let mut session = target
         .begin_organization_review(&GalleryQuery {
             organization_queue: Some(OrganizationQueue::Pending),
+            sort_key: GallerySortKey::LibraryAdmission,
             ..GalleryQuery::default()
         })
         .unwrap();
@@ -227,7 +262,7 @@ fn organization_archive_queue_continues_after_the_same_group_when_restoration_re
         .unwrap();
     assert_eq!(
         target
-            .load_organization_continuation()
+            .load_organization_continuation(None)
             .unwrap()
             .target
             .unwrap()
@@ -239,7 +274,7 @@ fn organization_archive_queue_continues_after_the_same_group_when_restoration_re
     assert_eq!(pending(&mut target), ["current-c", "current-a"]);
     assert_eq!(
         target
-            .load_organization_continuation()
+            .load_organization_continuation(None)
             .unwrap()
             .target
             .unwrap()
@@ -251,7 +286,7 @@ fn organization_archive_queue_continues_after_the_same_group_when_restoration_re
     let reopened = SqliteCatalog::open(path).unwrap();
     assert_eq!(
         reopened
-            .load_organization_continuation()
+            .load_organization_continuation(None)
             .unwrap()
             .target
             .unwrap()

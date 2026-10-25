@@ -207,6 +207,7 @@ class LibraryGalleryLayoutEntry {
       case LibraryGallerySortKey.modifiedTime:
         return _unixDateKey(asset.modifiedUnixMs);
       case LibraryGallerySortKey.fileName:
+      case LibraryGallerySortKey.libraryAdmission:
         return null;
     }
   }

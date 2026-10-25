@@ -147,7 +147,20 @@ class LibraryOrganizationMode extends ChangeNotifier
       final query = requested.copyWith(
         organizationQueue: requested.organizationQueue ?? queue,
       );
-      if (!await surface.showReviewQuery(query) || _disposed) return;
+      final browse = surface.captureBrowse();
+      final onlyOrderingChanged =
+          browse.query.copyWith(
+            sortKey: query.sortKey,
+            sortDirection: query.sortDirection,
+          ) ==
+          query;
+      if (!await surface.showReviewQuery(
+            query,
+            position: onlyOrderingChanged ? browse.position : null,
+          ) ||
+          _disposed) {
+        return;
+      }
       applied = true;
       await _replaceSession(query);
       await refreshContinuation();
@@ -223,7 +236,9 @@ class LibraryOrganizationMode extends ChangeNotifier
       while (isActive && !_disposed) {
         final read = _read;
         try {
-          final result = await service.continuation();
+          final result = await service.continuation(
+            query: surface.library.query,
+          );
           if (_disposed || !isActive) return;
           if (read != _read) continue;
           _continuation = result;
@@ -242,7 +257,7 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> resume() => _run(() async {
     if (!isActive) return;
-    final saved = await service.continuation();
+    final saved = await service.continuation(query: surface.library.query);
     if (_disposed) return;
     final result = saved.forScope(surface.library.query);
     _continuation = result;
@@ -252,7 +267,7 @@ class LibraryOrganizationMode extends ChangeNotifier
   Future<void> afterSave(LibraryReviewEntry entry) => _run(() async {
     final session = _session;
     if (session == null || !session.owns(entry) || !entry.committed) return;
-    final saved = await service.continuation();
+    final saved = await service.continuation(query: surface.library.query);
     if (_disposed || !session.owns(entry)) return;
     final result = saved.forScope(surface.library.query);
     _continuation = result;
