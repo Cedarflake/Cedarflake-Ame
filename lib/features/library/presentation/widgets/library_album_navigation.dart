@@ -78,7 +78,7 @@ class _LibraryAlbumNavigationState
                           LibraryAlbumEditKind.create,
                           page.value!.revision,
                         ),
-                  icon: const Icon(Symbols.add_rounded, size: 20),
+                  icon: const Icon(Symbols.add_rounded),
                 ),
               ),
             ],
@@ -136,7 +136,7 @@ class _LibraryAlbumNavigationState
                       message: "更多",
                       child: IconButton(
                         onPressed: busy ? null : openMenu,
-                        icon: const Icon(Symbols.more_vert_rounded, size: 20),
+                        icon: const Icon(Symbols.more_vert_rounded),
                       ),
                     ),
                   ),

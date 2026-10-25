@@ -2395,3 +2395,10 @@ The screen/header composition owners contain 1,883/587 production lines. Header-
 toolbar, scroll surface, annotated rail and viewport contain 106/93/148/454/61 lines, with no inline
 tests. Dedicated scroll/interaction/sidebar/header-motion/overlay/review/unified tests contain
 98/247/147/90/113/482/312 lines. No schema, bridge, dependency or source-policy changes are introduced.
+
+## Sidebar action icon consistency - 2026-10-25
+
+Album creation and More actions use the same themed icon size as source navigation, removing their
+separate 20-pixel overrides. Scoped formatting, strict analysis and the Windows Debug build pass.
+The retained isolated client shows the aligned action icons and opens the album More menu correctly;
+no album membership, source files or navigation behavior changes.
