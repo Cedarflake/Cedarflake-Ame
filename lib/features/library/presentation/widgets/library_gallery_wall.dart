@@ -500,12 +500,7 @@ class LibraryGalleryWall extends StatelessWidget {
             layoutShape,
             thumbnailSize,
           ),
-          geometryIdentity: (
-            availableWidth,
-            constraints.maxHeight,
-            layoutShape,
-            thumbnailSize,
-          ),
+          geometryIdentity: (availableWidth, layoutShape, thumbnailSize),
           scrollController: scrollController,
           scrollOffsetCorrection: layoutCorrection?.delta ?? 0,
           child: content,
@@ -1037,7 +1032,7 @@ class _ManifestLibraryGalleryWallState
             widget.layoutShape,
             widget.thumbnailSize,
           ),
-          geometryIdentity: (snapshot.availableWidth, _publishedViewportExtent),
+          geometryIdentity: snapshot.availableWidth,
           scrollController: widget.scrollController,
           scrollOffsetCorrection: _layoutCorrection?.delta ?? 0,
           child: content,
@@ -1051,7 +1046,6 @@ class _ManifestLibraryGalleryWallState
     double viewportExtent,
   ) {
     final current = _snapshot;
-    final publishedViewportExtent = _publishedViewportExtent;
     if (current != null &&
         current.matches(
           otherManifest: widget.manifest,
@@ -1061,9 +1055,25 @@ class _ManifestLibraryGalleryWallState
           otherLayoutShape: widget.layoutShape,
           otherSortKey: widget.state.query.sortKey,
           otherGrouping: LibraryGalleryGrouping.forQuery(widget.state.query),
-        ) &&
-        publishedViewportExtent != null &&
-        (publishedViewportExtent - viewportExtent).abs() < 0.01) {
+        )) {
+      // Header motion changes the viewport height without changing any photo row.
+      // Preserve the existing anchor in this layout, without a deferred row animation.
+      final previousExtent = _publishedViewportExtent;
+      if (previousExtent != null &&
+          (previousExtent - viewportExtent).abs() >= 0.01) {
+        final target = _captureViewportAnchor(
+          current,
+          viewportFraction: 0.5,
+        )?.scrollOffsetFor(current, viewportExtent);
+        if (target != null && widget.scrollController.hasClients) {
+          _layoutCorrection = LibraryExactExtentLayoutCorrection(
+            generation: ++_layoutCorrectionGeneration,
+            delta: target - widget.scrollController.position.pixels,
+          );
+        }
+      }
+      _publishedViewportExtent = viewportExtent;
+      _pendingReflow = null;
       return current;
     }
     if (current != null &&

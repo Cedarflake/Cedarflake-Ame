@@ -317,9 +317,10 @@ owning read/write paths before integrated performance acceptance; retain the com
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication
-and remaining read/write waits separate from these backend measurements. Continue with jumps and
-frame stalls during publication, organization entry/exit and sidebar transitions while preserving
-the accepted controls.
+and remaining read/write waits separate from these backend measurements. Header-height changes now
+preserve the viewport anchor in the current frame without repeatedly restarting photo reflow;
+focused and Windows Profile component checks pass. Retained-library publication/frame-time
+measurements and full client interaction remain open while preserving the accepted controls.
 Sort-driven date, name and current-entry arrival-range rails have focused regression and build
 coverage; their final native interaction check remains pending after desktop activation failed.
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a

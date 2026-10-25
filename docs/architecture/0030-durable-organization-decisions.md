@@ -395,7 +395,10 @@ query/selection admission rules, so obsolete all-matching selections cannot auth
 reduced-motion behavior. `LibraryGalleryHeaderRows` measures four bounded cells and interpolates
 the complete header geometry, aligning title/count with their corresponding action rows and
 avoiding a minimum-height plateau before gallery movement. Narrow desktop layouts retain stacked
-information and horizontally scrollable actions. The retiring row loses pointer, keyboard and
+information and horizontally scrollable actions. Height-only viewport changes reuse existing photo
+rows and apply the established viewport anchor in the same layout frame. They neither queue another
+geometry publication nor restart photo reflow; width and row-layout changes retain their existing
+motion ownership. The retiring row loses pointer, keyboard and
 semantic input immediately. `ameMenuChoice` supplies the same dot marker and exclusive-selection
 semantics to sorting, layout and organization menus. Material buttons and popup items retain
 focus, selection and accessible names. The pinned SDK's `AbsorbPointer` removes pointer-related semantic

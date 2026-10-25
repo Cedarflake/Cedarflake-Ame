@@ -2539,3 +2539,33 @@ The batch facade/staging owners contain 268/203 production lines. Record/selecti
 contain 224/250/176 lines; reconciliation/change/Favorite/association owners contain 161/152/93/199
 lines. They contain no inline test modules; batch, mutation, refresh and retained-profile suites
 contain 261/279/123/318 dedicated test lines. The cache remains connection-scoped and bounded.
+
+## Header and photo motion continuity - 2026-10-26
+
+Height-only header changes previously queued a second gallery geometry publication and restarted
+the 180-ms photo animation during the header's 260-ms transition. The reproduction exposed a
+remaining photo ticker after the header finished and delayed scroll corrections. Height changes
+now reuse the existing rows and apply the established viewport-center anchor during the current
+layout. The loaded-window renderer retains its existing scroll offset. Width changes keep their
+separate row reflow, and query/publication authority is unchanged.
+
+The focused Flutter checks pass: header entry/reversal/exit (2), header-to-photo frame continuity
+(4), layout motion (4), query-wide resize/anchor preservation (20), and sidebar transition (3).
+The new cases exercise repeated reversal in both gallery renderers with normal and reduced motion,
+checking each frame's photo geometry, scroll anchor, completed ticker lifetime and absent paging.
+The original viewport-center resize assertions remain unchanged and pass.
+
+All four frame-continuity cases also pass on the Windows Profile engine through
+`integration_test/gallery_header_motion_test.dart`, using the same bounded synthetic component
+fixture. The VM driver collects the results with the installed SDK's
+`INTEGRATION_TEST_SHOULD_REPORT_RESULTS_TO_NATIVE=false` configuration; no native instrumentation
+plugin is required by that driver. An earlier launch was rejected by the existing single-instance
+lock until the owned empty test process was retired. Scoped formatting and strict Dart analysis pass.
+The normal Debug entrypoint also builds, and the prior isolated recovery profile is restored with
+its 10,000 physical files and 72 folded groups visible in the gallery.
+This verifies native component movement, not retained-library frame-time performance or the full
+R4 organization workflow. It does not close the remaining publication/read latency measurements.
+
+The gallery wall contains 1,542 production lines and no inline tests. The added frame-continuity
+suite contains 131 lines and its native entrypoint 9 lines. The change corrects the existing layout
+invalidation boundary without adding a controller, animation, dependency, schema or source read.
