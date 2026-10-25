@@ -1010,14 +1010,15 @@ workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 The existing count row contains the total, `已整理`, and `待整理` counts on one line. A floating toolbar
 attached to the bottom of the gallery content area contains `待整理`, `稍后整理`, and `已忽略` selectors,
 each with its corresponding inbox, clock, or hidden-image icon beside the text.
-`继续整理` is a separate button beside that toolbar, on the same row and with the same height. Reserve
+`退出整理模式` is a separate button to the toolbar's left, and `继续整理` is a separate button to its
+right. Both share the toolbar's row and height. Reserve
 content space so the dock does not obscure the last images or their actions, and keep it reachable
 by keyboard at supported desktop widths and text scales.
 
 Match the accepted sketch's padded, rounded floating surface: each queue has its own rounded
 selection background, with space between choices and no joined outline or dividers. Use the theme's
-tonal selected color. The separate continuation button has a leading forward arrow and a tonal
-background, with the same height and elevation as the queue container.
+tonal selected color. The separate exit button has a leading close icon; continuation has a forward
+arrow. Both use a tonal background with the same height and elevation as the queue container.
 
 Hide `继续整理` and any saved-position marker before organization has begun or when no resumable
 position exists in the current source/folder scope. A saved position from another folder, all-source

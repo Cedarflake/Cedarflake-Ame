@@ -282,6 +282,12 @@ void main() {
         final resume = tester.getRect(
           find.byKey(const Key("library-review-resume")),
         );
+        final exit = tester.getRect(
+          find.byKey(const Key("library-review-exit")),
+        );
+        expect(exit.right, lessThan(queue.left));
+        expect(queue.center.dy, closeTo(exit.center.dy, .1));
+        expect(queue.height, closeTo(exit.height, .1));
         expect(queue.center.dy, closeTo(resume.center.dy, .1));
         expect(queue.height, closeTo(resume.height, .1));
         await tester.ensureVisible(find.text("稍后整理"));
@@ -296,6 +302,15 @@ void main() {
         );
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
         expect(FocusManager.instance.primaryFocus?.context, isNotNull);
+        final ordinary = mode.ordinaryBrowse;
+        final exitButton = find.byKey(const Key("library-review-exit"));
+        await tester.ensureVisible(exitButton);
+        await tester.tap(exitButton);
+        await tester.pumpAndSettle();
+        expect(mode.isActive, isFalse);
+        expect(surface.restored, same(ordinary));
+        expect(surface.library.query, ordinary!.query);
+        expect(review.writes, isEmpty);
         expect(tester.takeException(), isNull);
       },
     );

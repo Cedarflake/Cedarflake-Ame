@@ -2188,3 +2188,20 @@ unmatched groups after choosing all records inside the same dialog. Escape close
 returns to the single entry. Read-only inspection retains the same six records, two albums, restore
 receipt and operation counts. No native cleanup is executed; cleanup publication/reimport remains
 the separate pending recovery check. Hosted verification follows this implementation commit.
+
+## Separate organization exit in the bottom dock - 2026-10-25
+
+The bottom dock now places `退出整理模式` independently to the left of the queue surface,
+using the existing tonal button style and the existing mode-exit owner. The overflow-menu exit
+remains available, and the continuation button retains its separate right-hand position and
+saved-position visibility rule. No new progress write or navigation policy is introduced.
+
+All 13 review-widget cases pass, including equal heights and vertical alignment at 1.0 and 2.0
+text scales, queue switching and restoring the captured ordinary-browsing context through the
+new button without a progress write. Formatting and strict analysis pass. The production dock
+has 147 lines and no inline tests; its dedicated widget suite has 374 lines.
+
+The rebuilt isolated Windows client shows the separate left-hand button beside the empty queues.
+Clicking it removes the dock and title mode indicator and restores the ordinary Library controls.
+The test uses the existing empty recovery profile and does not import, modify or clean up media
+or unmatched records. Hosted verification follows publication on the existing R4 branch.

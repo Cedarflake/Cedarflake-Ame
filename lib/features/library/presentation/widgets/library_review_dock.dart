@@ -56,6 +56,14 @@ class LibraryReviewDock extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    FilledButton.tonalIcon(
+                      key: const Key("library-review-exit"),
+                      style: style,
+                      onPressed: mode.busy ? null : mode.exit,
+                      icon: const Icon(Symbols.close_rounded, size: 20),
+                      label: const Text("退出整理模式"),
+                    ),
+                    const SizedBox(width: 12),
                     Material(
                       key: const Key("library-review-queues"),
                       elevation: 3,
