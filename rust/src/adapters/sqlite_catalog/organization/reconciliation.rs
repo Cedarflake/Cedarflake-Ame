@@ -22,30 +22,48 @@ pub(super) fn resolve_members(
     prepare_groups(connection)?;
     // Temporary membership sets have no persistent planner statistics. Keep their bounded rows
     // ahead of durable history so each published copy uses point lookups rather than history scans.
-    connection.execute(
+    let groups_sql =
         "INSERT OR IGNORE INTO temp.organization_merge_groups
          SELECT mapping.group_id FROM temp.organization_command_members AS member
          CROSS JOIN organization_bindings AS binding
            ON member.asset_id = binding.asset_id AND member.source_generation = binding.source_generation
-         CROSS JOIN organization_record_groups AS mapping ON mapping.record_id = binding.record_id", [],
-    ).map_err(database_error)?;
+         CROSS JOIN organization_record_groups AS mapping ON mapping.record_id = binding.record_id";
+    connection
+        .prepare_cached(groups_sql)
+        .map_err(database_error)?
+        .execute([])
+        .map_err(database_error)?;
     let preferred: Option<String> = match key {
-        OrganizationGroupKey::Confirmed { digest, byte_length } => connection.query_row(
+        OrganizationGroupKey::Confirmed {
+            digest,
+            byte_length,
+        } => {
+            let preferred_sql =
             "SELECT mapping.group_id FROM organization_bindings AS binding
              JOIN organization_record_groups AS mapping ON mapping.record_id = binding.record_id
              WHERE binding.fingerprint_scheme = ?1 AND binding.digest = ?2 AND binding.byte_length = ?3
-             LIMIT 1",
-            params![EXACT_FINGERPRINT_SCHEME, digest, sqlite_integer(*byte_length, "content byte length")?],
-            |row| row.get(0),
-        ).optional().map_err(database_error)?,
+             LIMIT 1";
+            connection
+                .prepare_cached(preferred_sql)
+                .map_err(database_error)?
+                .query_row(
+                    params![
+                        EXACT_FINGERPRINT_SCHEME,
+                        digest,
+                        sqlite_integer(*byte_length, "content byte length")?
+                    ],
+                    |row| row.get(0),
+                )
+                .optional()
+                .map_err(database_error)?
+        }
         OrganizationGroupKey::Provisional { .. } => None,
     };
     if let Some(record_id) = &preferred {
         connection
-            .execute(
-                "INSERT OR IGNORE INTO temp.organization_merge_groups VALUES (?1)",
-                [record_id],
-            )
+            .prepare_cached("INSERT OR IGNORE INTO temp.organization_merge_groups VALUES (?1)")
+            .map_err(database_error)?
+            .execute([record_id])
             .map_err(database_error)?;
     }
     merge(connection, preferred.as_deref())
@@ -53,13 +71,20 @@ pub(super) fn resolve_members(
 
 pub(super) fn prepare_groups(connection: &Connection) -> Result<(), ScanError> {
     connection
-        .execute_batch(
+        .prepare_cached(
             "CREATE TEMP TABLE IF NOT EXISTS organization_merge_groups (
            group_id TEXT PRIMARY KEY NOT NULL
-         ) WITHOUT ROWID;
-         DELETE FROM temp.organization_merge_groups;",
+         ) WITHOUT ROWID",
         )
-        .map_err(database_error)
+        .map_err(database_error)?
+        .execute([])
+        .map_err(database_error)?;
+    connection
+        .prepare_cached("DELETE FROM temp.organization_merge_groups")
+        .map_err(database_error)?
+        .execute([])
+        .map_err(database_error)?;
+    Ok(())
 }
 
 pub(super) fn merge(
@@ -67,24 +92,22 @@ pub(super) fn merge(
     preferred: Option<&str>,
 ) -> Result<Option<ResolvedRecord>, ScanError> {
     let record_id: Option<String> = connection
-        .query_row(
+        .prepare_cached(
             "SELECT record.record_id FROM temp.organization_merge_groups AS selected
          CROSS JOIN organization_records AS record ON selected.group_id = record.record_id
          ORDER BY record.record_id = ?1 DESC, record.created_unix_ms, record.record_id LIMIT 1",
-            [preferred],
-            |row| row.get(0),
         )
+        .map_err(database_error)?
+        .query_row([preferred], |row| row.get(0))
         .optional()
         .map_err(database_error)?;
     let Some(record_id) = record_id else {
         return Ok(None);
     };
     let multiple: bool = connection
-        .query_row(
-            "SELECT COUNT(*) > 1 FROM temp.organization_merge_groups",
-            [],
-            |row| row.get(0),
-        )
+        .prepare_cached("SELECT COUNT(*) > 1 FROM temp.organization_merge_groups")
+        .map_err(database_error)?
+        .query_row([], |row| row.get(0))
         .map_err(database_error)?;
     if multiple {
         decision::merge(connection, &record_id)?;

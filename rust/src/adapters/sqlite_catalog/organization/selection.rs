@@ -160,13 +160,25 @@ pub(super) fn target(
         byte_length,
     } = key
     {
-        let pending: bool = connection.query_row(&format!(
+        let pending_sql = format!(
             "SELECT EXISTS(SELECT 1 FROM {CURRENT_LOCATIONS}
              JOIN gallery_retained_fingerprints AS retained ON retained.source_generation = l.source_generation AND retained.scheme = ?1
              JOIN content_fingerprints AS old ON old.source_generation = retained.evidence_source_generation AND old.scheme = ?1
              LEFT JOIN content_fingerprints AS f ON {COMPATIBLE_FINGERPRINT}
              WHERE old.digest = ?2 AND old.byte_length = ?3 AND f.source_generation IS NULL)"
-        ), params![EXACT_FINGERPRINT_SCHEME, digest, sqlite_integer(*byte_length, "content length")?], |row| row.get(0)).map_err(database_error)?;
+        );
+        let pending: bool = connection
+            .prepare_cached(&pending_sql)
+            .map_err(database_error)?
+            .query_row(
+                params![
+                    EXACT_FINGERPRINT_SCHEME,
+                    digest,
+                    sqlite_integer(*byte_length, "content length")?
+                ],
+                |row| row.get(0),
+            )
+            .map_err(database_error)?;
         if pending {
             return Err(pending_evidence());
         }
@@ -180,7 +192,7 @@ pub(super) fn target(
          FROM {} {DECISION_JOIN} WHERE {} ORDER BY l.location_id",
         query.from, query.predicate
     );
-    let mut statement = connection.prepare(&sql).map_err(database_error)?;
+    let mut statement = connection.prepare_cached(&sql).map_err(database_error)?;
     let mut rows = statement
         .query(params_from_iter(query.values))
         .map_err(database_error)?;

@@ -76,7 +76,7 @@ pub(super) fn materialize(
     loop {
         let window = {
             let mut statement = connection
-                .prepare(
+                .prepare_cached(
                     "SELECT asset_id, location_id, source_generation
                  FROM temp.organization_batch_locations WHERE location_id > ?1
                  ORDER BY location_id LIMIT 256",
@@ -110,17 +110,18 @@ pub(super) fn materialize(
                 } => (String::new(), 0, asset_id, source_generation),
             };
             connection
-                .execute(
+                .prepare_cached(
                     "INSERT OR IGNORE INTO temp.organization_batch_groups
                        (digest, byte_length, asset_id, source_generation)
                      VALUES (?1, ?2, ?3, ?4)",
-                    params![
-                        digest,
-                        sqlite_integer(byte_length, "byte length")?,
-                        asset_id,
-                        sqlite_integer(generation, "source generation")?,
-                    ],
                 )
+                .map_err(database_error)?
+                .execute(params![
+                    digest,
+                    sqlite_integer(byte_length, "byte length")?,
+                    asset_id,
+                    sqlite_integer(generation, "source generation")?,
+                ])
                 .map_err(database_error)?;
         }
     }
@@ -129,7 +130,7 @@ pub(super) fn materialize(
 
 pub(super) fn groups(connection: &Connection, after: i64) -> Result<Vec<StagedGroup>, ScanError> {
     let mut statement = connection
-        .prepare(
+        .prepare_cached(
             "SELECT sequence, digest, byte_length, asset_id, source_generation,
                 representative_asset, representative_location, representative_generation,
                 location_count, membership_authority
@@ -180,11 +181,14 @@ pub(super) fn retain_target(
     target: &OrganizationGroupTarget,
 ) -> Result<(), ScanError> {
     connection
-        .execute(
+        .prepare_cached(
             "UPDATE temp.organization_batch_groups
              SET representative_asset = ?1, representative_location = ?2, representative_generation = ?3,
                  location_count = ?4, membership_authority = ?5
              WHERE sequence = ?6",
+        )
+        .map_err(database_error)?
+        .execute(
             params![
                 target.representative.asset_id,
                 target.representative.location_id,

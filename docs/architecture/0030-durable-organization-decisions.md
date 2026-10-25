@@ -354,6 +354,12 @@ operation; receipt replay remains independent of later catalog changes. Progress
 are session-owned, and closing or dropping a session releases its temporary data. Pending selections
 are disposable; albums, decisions, history and saved continuation remain durable.
 
+The batch connection retains at most 64 compiled statements for repeated group inspection,
+membership staging and decision writes. Every execution rebinds current parameters and reads current
+transaction state; only SQLite's compiled program is reused. Temporary membership/group tables are
+cleared between targets. Schema changes, stale authority, cancellation and rollback retain their
+existing checks and transaction ownership.
+
 Creating a destination inside the picker may refresh a ready batch's authority without rerunning
 its gallery query. Recheck the frozen group set against current representatives, content/membership
 evidence, effective decisions, canonical record IDs and field revisions in one read snapshot.

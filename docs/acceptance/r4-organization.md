@@ -2498,3 +2498,44 @@ changes carry the new typed sections and read-only admission-boundary operation.
 The unchanged availability facade has 2,629 lines before its 3,386-line inline test module; this
 change only extends that test module's exact source inventory. Its separate topology suite is
 459 lines. No availability implementation is changed.
+
+## Batch statement reuse - 2026-10-26
+
+Repeated group inspection, membership staging and writes now reuse SQLite's compiled parameterized
+statements. The batch connection retains at most 64 statements. Every execution still reads current
+records, checks membership and decision authority, and uses the existing atomic transaction,
+cancellation and undo path. There is no schema, bridge, dependency or source-media change.
+
+The unchanged release-mode retained-catalog workload ran before and after the modification against
+the same pre-organization input: 63,077 physical files and 47,833 groups. Each run used fresh
+connections and a disposable database backup; the OS cache was not flushed. This is a paired
+local measurement, not a constrained-device or UI timing result.
+
+| Operation | Before | After |
+| --- | ---: | ---: |
+| Prepare full-library album assignment | 13,176 ms | 3,569 ms |
+| Commit full-library album assignment | 62,648 ms | 32,430 ms |
+| Prepare album-wide Favorite | 15,513 ms | 5,099 ms |
+| Commit album-wide Favorite | 38,202 ms | 13,554 ms |
+
+Both runs verify all 47,833 assignments and Favorites, reopen the catalog, check bounded collection
+pages/counts and the exhausted pending queue, then unfavorite one group and verify publication.
+The input SHA-256 remains
+`93DB288E598B601FB478D39FF598777A1D5F1615F152C15889BDDC6FA7AECBFD`.
+Reports are retained in ignored `build/test/derived/r4-batch-speed/before.jsonl` and
+`organization-profile.jsonl`; neither run opens source media. Sampled process peak working sets
+were 98,299,904 bytes before and 98,598,912 bytes after; these are observations during the workload,
+not continuous resource acceptance. Album/Favorite snapshots still take about three seconds, and
+this batch improvement does not close read/publication latency or native cancellation acceptance.
+
+The 144 applicable organization tests pass; two separately invoked retained profiles are ignored
+by the ordinary suite. Coverage includes stale authority, mixed membership, cross-root merging,
+injected later-group failure with complete rollback and retry, cancellation after a record write,
+undo, source removal and historical migrations. The retained query benchmark also passes. Final
+Rust formatting and library Clippy with warnings denied pass; the subsequent readability change
+only names unchanged SQL and expands call chains.
+
+The batch facade/staging owners contain 268/203 production lines. Record/selection/inspection owners
+contain 224/250/176 lines; reconciliation/change/Favorite/association owners contain 161/152/93/199
+lines. They contain no inline test modules; batch, mutation, refresh and retained-profile suites
+contain 261/279/123/318 dedicated test lines. The cache remains connection-scoped and bounded.

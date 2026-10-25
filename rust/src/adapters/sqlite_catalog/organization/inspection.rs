@@ -75,7 +75,7 @@ pub(super) fn inspect_group(
         });
     };
     connection
-        .query_row(
+        .prepare_cached(
             "SELECT record.favorite, record.disposition,
                     album.album_id, album.name, album.revision,
                     EXISTS(
@@ -85,39 +85,39 @@ pub(super) fn inspect_group(
              FROM organization_records AS record
              LEFT JOIN organization_albums AS album ON album.album_id = record.album_id
              WHERE record.record_id = ?1",
-            [&record_id],
-            |row| {
-                let disposition = match row.get::<_, String>(1)?.as_str() {
-                    "pending" => OrganizationDisposition::Pending,
-                    "deferred" => OrganizationDisposition::Deferred,
-                    "organized" => OrganizationDisposition::Organized,
-                    "ignored" => OrganizationDisposition::Ignored,
-                    _ => return Err(rusqlite::Error::InvalidQuery),
-                };
-                let album = match row.get::<_, Option<String>>(2)? {
-                    Some(album_id) => Some(OrganizationAlbum {
-                        album_id,
-                        name: row.get(3)?,
-                        revision: read_unsigned(row, 4)?,
-                    }),
-                    None => None,
-                };
-                Ok(InspectedGroup {
-                    version: Some(GroupDecisionVersion {
-                        record_id: record_id.clone(),
-                        organization_revision: read_unsigned(row, 6)?,
-                        favorite_revision: read_unsigned(row, 7)?,
-                    }),
-                    decision: OrganizationGroupDecision {
-                        key: key.clone(),
-                        favorite: row.get(0)?,
-                        disposition,
-                        album,
-                        has_conflict: row.get(5)?,
-                    },
-                })
-            },
         )
+        .map_err(database_error)?
+        .query_row([&record_id], |row| {
+            let disposition = match row.get::<_, String>(1)?.as_str() {
+                "pending" => OrganizationDisposition::Pending,
+                "deferred" => OrganizationDisposition::Deferred,
+                "organized" => OrganizationDisposition::Organized,
+                "ignored" => OrganizationDisposition::Ignored,
+                _ => return Err(rusqlite::Error::InvalidQuery),
+            };
+            let album = match row.get::<_, Option<String>>(2)? {
+                Some(album_id) => Some(OrganizationAlbum {
+                    album_id,
+                    name: row.get(3)?,
+                    revision: read_unsigned(row, 4)?,
+                }),
+                None => None,
+            };
+            Ok(InspectedGroup {
+                version: Some(GroupDecisionVersion {
+                    record_id: record_id.clone(),
+                    organization_revision: read_unsigned(row, 6)?,
+                    favorite_revision: read_unsigned(row, 7)?,
+                }),
+                decision: OrganizationGroupDecision {
+                    key: key.clone(),
+                    favorite: row.get(0)?,
+                    disposition,
+                    album,
+                    has_conflict: row.get(5)?,
+                },
+            })
+        })
         .map_err(database_error)
 }
 
@@ -155,7 +155,7 @@ fn record(
         ]);
     }
     let mut statement = connection
-        .prepare(&format!("SELECT DISTINCT group_id FROM ({sql}) LIMIT 2"))
+        .prepare_cached(&format!("SELECT DISTINCT group_id FROM ({sql}) LIMIT 2"))
         .map_err(database_error)?;
     let mut rows = statement
         .query(params_from_iter(values))

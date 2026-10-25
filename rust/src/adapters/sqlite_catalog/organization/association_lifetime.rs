@@ -33,16 +33,15 @@ pub(super) fn restore_generation(
 pub(super) fn restore_group(connection: &Connection, record_id: &str) -> Result<(), ScanError> {
     let members = unassociated_members(connection)?;
     connection
-        .execute(
-            &format!(
-                "UPDATE organization_records SET unassociated_since_unix_ms = NULL
+        .prepare_cached(&format!(
+            "UPDATE organization_records SET unassociated_since_unix_ms = NULL
          WHERE unassociated_since_unix_ms IS NOT NULL AND record_id IN (
            SELECT related.record_id FROM organization_record_groups AS own
            JOIN {members} AS related ON related.group_id = own.group_id
            WHERE own.record_id = ?1)"
-            ),
-            [record_id],
-        )
+        ))
+        .map_err(database_error)?
+        .execute([record_id])
         .map_err(database_error)?;
     Ok(())
 }
@@ -186,7 +185,9 @@ pub(in crate::adapters::sqlite_catalog) fn refresh_groups(
 
 fn unassociated_members(connection: &Connection) -> Result<&'static str, ScanError> {
     let version: i64 = connection
-        .query_row("SELECT version FROM schema_info", [], |row| row.get(0))
+        .prepare_cached("SELECT version FROM schema_info")
+        .map_err(database_error)?
+        .query_row([], |row| row.get(0))
         .map_err(database_error)?;
     // Historical organization migrations publish before the lookup is installed. Current
     // catalogs must use the maintained lookup; a missing current table remains an error.

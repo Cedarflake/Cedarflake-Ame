@@ -59,6 +59,8 @@ impl SqliteOrganizationBatch {
     ) -> Result<Self, ScanError> {
         gallery::validate_gallery_query(&query)?;
         control.check()?;
+        // Retain the fixed group-command statements for the lifetime of this batch connection.
+        catalog.connection.set_prepared_statement_cache_capacity(64);
         staging::initialize(&catalog.connection)?;
         let cancellation = Arc::clone(&control);
         catalog

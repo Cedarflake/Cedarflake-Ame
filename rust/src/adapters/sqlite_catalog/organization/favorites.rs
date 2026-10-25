@@ -59,23 +59,33 @@ pub(super) fn apply_group(
     favorite: bool,
 ) -> Result<GroupWrite, ScanError> {
     let reconciled = records::materialize(connection, key)?;
-    let changed = connection.execute(&format!(
+    let changes_sql = format!(
             "INSERT INTO organization_operation_changes(operation_id, record_id, field, previous_favorite, applied_revision)
              SELECT ?1, member.record_id, 'favorite', canonical.favorite, ?2
              FROM organization_record_groups AS member
              JOIN organization_records AS canonical ON canonical.record_id = member.group_id
              WHERE member.record_id IN ({}) AND canonical.favorite <> ?3", records::CURRENT_RECORDS
-        ), params![operation_id, next_revision, favorite]).map_err(database_error)?;
+    );
+    let changed = connection
+        .prepare_cached(&changes_sql)
+        .map_err(database_error)?
+        .execute(params![operation_id, next_revision, favorite])
+        .map_err(database_error)?;
     if changed == 0 {
         return Ok(GroupWrite {
             changed: false,
             reconciled,
         });
     }
-    connection.execute(&format!(
+    let update_sql = format!(
             "UPDATE organization_records SET favorite = ?1, favorite_revision = ?2, updated_unix_ms = ?3
              WHERE record_id IN ({})", records::CURRENT_RECORDS
-        ), params![favorite, next_revision, unix_time_ms()]).map_err(database_error)?;
+    );
+    connection
+        .prepare_cached(&update_sql)
+        .map_err(database_error)?
+        .execute(params![favorite, next_revision, unix_time_ms()])
+        .map_err(database_error)?;
     Ok(GroupWrite {
         changed: true,
         reconciled,
