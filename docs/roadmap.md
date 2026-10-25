@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-24
+Last planning update: 2026-10-25
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -124,9 +124,11 @@ passes through product commit `7e11d8a7`. Deferred/ignored controls expose state
 gallery selection, detailed viewing and the album tray, with native removal/undo evidence in the
 R4 acceptance record.
 Owning-query repairs reduce retained-library album, Favorite and organization-queue read costs.
-The complete Debug client now verifies populated collections, single-group Favorite publication,
-new arrivals and an empty deferred queue on a full catalog copy. Optimized-client timings, remaining
-query/write waits and constrained-device resource acceptance are still open.
+The complete Debug client verifies populated collections, single-group Favorite publication,
+new arrivals and an empty deferred queue on a full catalog copy. Optimized-client timing now covers
+collection reads, committed-save publication, empty queues and saved continuation. During a full
+organization write, the requested album becomes visible only after the write finishes; this blocked
+read, other query/publication waits and constrained-device resource acceptance remain open.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -304,18 +306,20 @@ Indexed representative evidence, bounded connection caches, non-repeated group s
 published-source query plans reduce retained album and Favorite reads from over twelve seconds to
 2.8–3.0 seconds, with unchanged query results and measured resource use. Continuation reads take
 about 1.4 seconds; empty queues still take 2.4–2.5 seconds. Focused query regressions and the
-retained-catalog workload pass; hosted verification of the published-source query change is pending.
+retained-catalog workload pass; hosted verification includes the published-source query change and
+retained cancellation case with all applicable jobs passing.
 The full Debug client preserves 47,833 organized groups while startup
 synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
-and empty deferred-queue interactions pass with sampled resources. Optimized-client response times,
-remaining read/write waits and constrained-device performance acceptance are still open.
+and empty deferred-queue interactions pass with sampled resources. Optimized-client measurements
+now locate additional waits in collection reads, saved continuation and committed-list publication.
+Opening an album during the full organization write waits for that write to finish. Repair these
+owning read/write paths before integrated performance acceptance; retain the completed measurements.
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
-47,833-group write, with all durable records unchanged after reopen. Native response timings and
-the remaining recovery confirmation still require client verification.
-The optimized client timing entrypoint has passed static checks and its Profile build, including
-saved continuation and browsing during an organization batch write; it has not run. Native timing
-and cleanup await the existing window/cleanup confirmations. Constrained-device work also awaits
-confirmation of cloud-primary's changed saved device identity.
+47,833-group write, with all durable records unchanged after reopen. Client operation timings are
+recorded; native cancellation interaction and cleanup publication remain open.
+The timing client has exited, and the original recovery profile and pending cleanup confirmation
+are restored with their records intact. Cleanup still awaits its existing action-time confirmation;
+constrained-device work awaits confirmation of cloud-primary's changed saved device identity.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

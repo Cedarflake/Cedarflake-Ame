@@ -2049,7 +2049,8 @@ the earlier full-client Debug observation remains separate. Hosted run
 passes its completed jobs but is superseded while Catalog is still running. Current verification
 includes this source change and the retained cancellation case at `c69f7adb` in
 [CI run 40137916874](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40137916874), which is
-still running. The superseded run is cancelled rather than recorded as a complete pass.
+complete with all applicable jobs passing. The superseded run is cancelled rather than recorded
+as a complete pass.
 
 ## Retained-catalog batch cancellation - 2026-10-25
 
@@ -2085,3 +2086,78 @@ completion record and original input hash are verified without rerunning the wor
 case is retained as a 200-line dedicated test owner; its existing snapshot/profiling owner has 318
 test/support lines and no production changes. Compilation of the ignored manual case belongs to
 ordinary CI; its retained input remains local and is never sent to hosted runners.
+
+## Full-catalog Profile client timing - 2026-10-25
+
+The native client uses the same complete local-primary snapshot: 63,077 physical files, 47,833
+organized and favorited groups, and one album. Each attempt receives a fresh derived catalog and
+preview cache. The final copy takes 4.851 seconds, outside the measured client lifetime. The OS
+file cache is not flushed. Visible previews may read original media through the existing guarded
+preview path; directory synchronization and exact-duplicate analysis are disabled. There is no
+source enumeration, full-library media hashing or placeholder hydration in this workload.
+
+This is Flutter Profile with an optimized Rust library retaining debug assertions and isolation
+diagnostics, not the ordinary Release artifact. The native library SHA-256 is
+`8e7e2c4cfa8876a8ab1855d5c4a598fce97e6b9a1d4494f1383f7199787e2a4e`.
+The frontend includes the three existing local copy/layout edits; the measurements describe this
+working-tree diagnostic. Product code is otherwise unchanged from the published query repair.
+
+Three album/Favorite reads complete in an earlier attempt before a later test-driver failure.
+Those valid segments are retained without rerunning the three-read sequence. The final attempt
+passes the remaining functional workflow and exits with code zero. Each operation below has one
+sample unless explicitly marked otherwise; these ranges are not percentile estimates.
+
+| Client operation | Observed time |
+| --- | ---: |
+| Initial catalog visible, from catalog load | 6.256 s |
+| First visible preview, from the same start | 6.271 s |
+| Album catalog visible, three reads | 4.708–5.360 s |
+| First album preview, same three reads | 4.716–5.383 s |
+| Favorite catalog visible, three reads | 4.743–4.894 s |
+| First Favorite preview, same three reads | 4.748–4.905 s |
+| Single unfavorite button feedback | 0.166 s |
+| Updated Favorite count/list after returning from the viewer, from the same click | 10.697 s |
+| Enter empty pending queue | 4.436 s |
+| Empty deferred queue, including the prior mode-read wait before its button enables | 6.556 s |
+| Continue saved work: viewer actions ready | 5.515 s |
+| Continue saved work: original image visible | 5.525 s |
+| Prepare all 47,832 remaining Favorites | 21.868 s |
+| Commit removal of all 47,832 Favorites | 38.862 s |
+| Album visible after a click during that write | 38.857 s |
+| First album preview after that click | 38.867 s |
+| Empty Favorites visible after commit and publication refresh | 10.291 s |
+
+Initial timing starts after native/storage initialization and is not process-launch-to-ready time.
+Single-group save timing includes the real viewer action and return to the updated collection.
+Continuation is checked after leaving and reentering organization mode in the same process: the
+saved group matches the reopened viewer, including its actual image. This does not add a new
+cross-process continuation result.
+
+The concurrent write uses the production organization batch service while real sidebar navigation
+requests the album. Saving has completed 17 of 47,832 groups when navigation begins. Both catalog
+and preview become visible only after saving has finished. Final membership and counts are correct,
+but the 38.9-second blocked read leaves usable concurrent browsing unverified. This workload does
+not represent directory synchronization or duplicate-analysis contention, and its functional pass
+does not close that performance gap. The cause of the serialized client wait still needs diagnosis.
+
+The final driver lifetime is 151.935 seconds, with 281.094 client CPU seconds. Across 279 samples at
+500 ms, peak working set/private memory is 395.402/512.719 MiB. In-process observation records peak
+RSS of 401.820 MiB and at most 500 retained assets, matching the configured 500-asset window. Across
+5,988 frames, build/raster P95 is 0.859/1.448 ms. These frame statistics coexist with the measured
+query waits and do not establish prompt navigation or low-end-device acceptance.
+
+Local evidence is retained in ignored `build/test/derived/r4-client-measure`: the final timing,
+resource and driver reports, and the earlier three-read segment in `attempt-03-key-simulation`.
+Earlier attempts preserve their partial results and failures: Windows binary-path launch, equivalent
+path separator comparison, Profile key simulation, popup mounting, disabled queue input and a card
+corner tap that did not open the viewer. The final harness uses the absolute binary, filesystem
+identity, visible return button, enabled-control checks and card-center taps. No product guard,
+timeout or result assertion is removed to obtain the passing run.
+
+Every attempt preserves the retained input SHA-256, and the final diagnostic client exits. Before
+reopening the original recovery profile, its closed catalog SHA-256 still matches the pre-measurement
+baseline. The restored native window again shows the pending cleanup confirmation for six unmatched
+groups: five album memberships, one Favorite and six progress records. Read-only inspection confirms
+the same record summaries, two album definitions, restore receipt and operation counts. No cleanup
+is executed. Cleanup publication/reimport and the constrained-device identity confirmation remain
+outside this measurement result.
