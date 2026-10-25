@@ -2161,3 +2161,30 @@ groups: five album memberships, one Favorite and six progress records. Read-only
 the same record summaries, two album definitions, restore receipt and operation counts. No cleanup
 is executed. Cleanup publication/reimport and the constrained-device identity confirmation remain
 outside this measurement result.
+
+## Cleanup range inside the confirmation dialog - 2026-10-25
+
+Settings now has one `查看并清理` entry. The dialog owns range selection and fresh inspection,
+including empty results and inspection retry. Changing range clears the prior confirmation authority;
+only the current nonempty `LibraryCleanupReady` can be returned to the unchanged application apply
+guard. Closing the dialog requests cancellation of an unfinished inspection and cannot reopen it
+when a late result arrives. Uncertain apply failures retain the existing operation-identity retry.
+
+The implementation reuses the shared `SettingsChoice` and Material
+[AlertDialog](https://api.flutter.dev/flutter/material/AlertDialog-class.html), whose scrollable
+content and separate actions cover the filter, affected counts and explicit confirmation. The
+[Material dialog reference](https://m3.material.io/components/dialogs/overview) is script-dependent;
+the installed Flutter 3.44.9 source confirms `showDialog` result delivery, modal dismissal and closed
+focus traversal. No custom dialog, popup, focus or persistence mechanism is introduced.
+
+All five cleanup-row cases and 15 settings cases pass, including 1.4 text scaling, empty-to-populated
+range changes, failed inspection retry, cancellation with late completion and confirmation using the
+new inspection. Formatting and strict analysis pass. Production row/dialog owners have 117/153 lines
+with no inline tests; dedicated row tests have 213 lines. The existing 1,198-line settings suite only
+changes its control inventory. No schema, bridge, source or backend cleanup policy changes.
+
+The rebuilt isolated Windows client shows one settings entry, an empty 90-day result, then all six
+unmatched groups after choosing all records inside the same dialog. Escape closes the dialog and
+returns to the single entry. Read-only inspection retains the same six records, two albums, restore
+receipt and operation counts. No native cleanup is executed; cleanup publication/reimport remains
+the separate pending recovery check. Hosted verification follows this implementation commit.

@@ -200,8 +200,10 @@ selected cleanup. Revalidate eligibility when applying it so records that have b
 are preserved. Cleanup is separate from thumbnail cleanup, does not delete original media, and
 requires an explicit user action rather than automatic age-based expiration.
 
-The settings control defaults to records unassociated for more than 90 days, with 30-day and all-record
-choices. These are manual inspection filters, not retention deadlines. Confirmation shows the oldest
+Settings exposes one `查看并清理` entry. Its dialog contains the inspection range, defaulting to
+records unassociated for more than 90 days, with 30-day and all-record choices. Changing the range
+inspects it again before cleanup can be confirmed; an empty result keeps the range selector available.
+These are manual inspection filters, not retention deadlines. Confirmation shows the oldest
 and newest unassociated duration, canonical group counts and affected album, Favorite, progress and
 unresolved duplicate-choice counts. A group is counted once even when several provenance records
 contribute to it. Cleanup keeps album definitions and original images. It has no ordinary undo;

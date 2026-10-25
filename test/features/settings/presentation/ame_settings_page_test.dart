@@ -63,7 +63,8 @@ void main() {
     expect(find.text("图库数据位置"), findsOneWidget);
     expect(find.text("缩略图位置"), findsOneWidget);
     expect(find.text("清理未关联记录"), findsOneWidget);
-    expect(find.byKey(const Key("settings-cleanup-age")), findsOneWidget);
+    expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
+    expect(find.text("查看并清理"), findsOneWidget);
     expect(find.text("已有图库时不可更改"), findsOneWidget);
     expect(find.textContaining("Settings file"), findsNothing);
     expect(
@@ -73,11 +74,11 @@ void main() {
     expect(find.textContaining(r"\\?\C:\AmeData"), findsNothing);
     expect(
       find.byWidgetPredicate((widget) => widget is SettingsChoice<Object?>),
-      findsNWidgets(6),
+      findsNWidgets(5),
     );
     expect(
       find.byWidgetPredicate((widget) => widget is AmePopupMenuButton<Object?>),
-      findsNWidgets(6),
+      findsNWidgets(5),
     );
     expect(find.byType(MenuAnchor), findsNothing);
     expect(
@@ -91,7 +92,7 @@ void main() {
         ),
         matching: find.byIcon(Symbols.arrow_drop_down_rounded),
       ),
-      findsNWidgets(6),
+      findsNWidgets(5),
     );
     expect(
       find.descendant(

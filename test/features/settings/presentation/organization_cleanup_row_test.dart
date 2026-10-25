@@ -47,8 +47,18 @@ void main() {
     "inspection shows affected decisions and cancellation performs no cleanup",
     (tester) async {
       await host(tester);
+      expect(find.text("查看并清理"), findsOneWidget);
+      expect(find.text("检查"), findsNothing);
+      expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
       await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
       await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byType(AlertDialog),
+          matching: find.byKey(const Key("settings-cleanup-age")),
+        ),
+        findsOneWidget,
+      );
       service.tasks.single.events.add(
         LibraryCleanupInspected(cleanupInspection()),
       );
@@ -69,6 +79,8 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(service.tasks, hasLength(1));
+      expect(find.text("查看并清理"), findsOneWidget);
+      expect(find.byKey(const Key("settings-cleanup-age")), findsNothing);
       expect(
         container.read(libraryCleanupControllerProvider),
         isA<LibraryCleanupReady>(),
@@ -100,8 +112,102 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text("没有符合条件的未关联记录"), findsOneWidget);
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(find.text("查看并清理"), findsNothing);
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const Key("organization-cleanup-confirm")),
+            )
+            .onPressed,
+        isNull,
+      );
     },
   );
+
+  testWidgets("changing the dialog range requires its new inspection", (
+    tester,
+  ) async {
+    await host(tester);
+    await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
+    await tester.pump();
+    expect(service.tasks.single.cutoffUnixMs, isNotNull);
+    service.tasks.single.events.add(
+      LibraryCleanupInspected(cleanupInspection(groups: 0)),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key("settings-cleanup-age")));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey("settings-choice-option-0")));
+    await tester.pump();
+    expect(service.tasks, hasLength(2));
+    expect(service.tasks.last.cutoffUnixMs, isNull);
+    expect(
+      tester
+          .widget<FilledButton>(
+            find.byKey(const Key("organization-cleanup-confirm")),
+          )
+          .onPressed,
+      isNull,
+    );
+    expect(find.text("没有符合条件的未关联记录"), findsNothing);
+    final current = cleanupInspection(groups: 6);
+    service.tasks.last.events.add(LibraryCleanupInspected(current));
+    await tester.pumpAndSettle();
+    expect(find.text("相册归属 6 组"), findsOneWidget);
+    await tester.tap(find.byKey(const Key("organization-cleanup-confirm")));
+    await tester.pump();
+    expect(service.tasks, hasLength(3));
+    expect(service.tasks.last.inspection, same(current));
+    service.tasks.last.events.add(
+      LibraryCleanupCompleted(service.tasks.last.operationId!, 6),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("已清理 6 项记录"), findsOneWidget);
+  });
+
+  testWidgets("closing a pending inspection prevents late confirmation", (
+    tester,
+  ) async {
+    await host(tester);
+    await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
+    await tester.pump();
+    await tester.tap(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text("取消")),
+    );
+    await tester.pump();
+    expect(service.tasks.single.cancellations, 1);
+    service.tasks.single.events.add(
+      LibraryCleanupInspected(cleanupInspection()),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(service.tasks.single.operationId, isNull);
+    expect(find.text("查看并清理"), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets("failed inspection retries inside the same dialog", (
+    tester,
+  ) async {
+    await host(tester);
+    await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
+    await tester.pump();
+    final cutoff = service.tasks.single.cutoffUnixMs;
+    service.tasks.single.events.addError(
+      const LibraryCleanupFailure("read_failed", "Inspection failed"),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text("未能完成检查，请重试。"), findsWidgets);
+    await tester.tap(find.byKey(const Key("organization-cleanup-retry")));
+    await tester.pump();
+    expect(service.tasks.last.cutoffUnixMs, cutoff);
+    service.tasks.last.events.add(
+      LibraryCleanupInspected(cleanupInspection(groups: 0)),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.text("没有符合条件的未关联记录"), findsOneWidget);
+    expect(find.byKey(const Key("organization-cleanup-retry")), findsNothing);
+    expect(service.tasks.every((task) => task.operationId == null), isTrue);
+  });
 }

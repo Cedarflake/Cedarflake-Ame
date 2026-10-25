@@ -10,100 +10,58 @@ import "../../../library/domain/library_organization_cleanup.dart";
 import "organization_cleanup_confirmation.dart";
 import "settings_section.dart";
 
-class OrganizationCleanupRow extends ConsumerStatefulWidget {
+class OrganizationCleanupRow extends ConsumerWidget {
   const OrganizationCleanupRow({super.key});
-  @override
-  ConsumerState<OrganizationCleanupRow> createState() =>
-      _OrganizationCleanupRowState();
-}
 
-class _OrganizationCleanupRowState
-    extends ConsumerState<OrganizationCleanupRow> {
-  int _minimumAgeDays = 90;
-
-  Future<void> _inspect() async {
-    await ref
-        .read(libraryCleanupControllerProvider.notifier)
-        .inspect(_minimumAgeDays == 0 ? null : _minimumAgeDays);
-    if (mounted) await _confirm();
-  }
-
-  Future<void> _confirm() async {
-    final ready = ref.read(libraryCleanupControllerProvider);
-    if (ready is! LibraryCleanupReady || ready.inspection.total == 0) {
-      return;
-    }
+  Future<void> _inspect(BuildContext context, WidgetRef ref) async {
+    final state = ref.read(libraryCleanupControllerProvider);
+    final minimumAgeDays = switch (state) {
+      LibraryCleanupReady(:final minimumAgeDays) => minimumAgeDays ?? 0,
+      LibraryCleanupFailed(:final request) => request.minimumAgeDays ?? 0,
+      _ => 90,
+    };
     final confirmed = await showOrganizationCleanupConfirmation(
       context,
-      ready.inspection,
+      minimumAgeDays: minimumAgeDays,
     );
-    if (mounted && confirmed) {
-      await ref.read(libraryCleanupControllerProvider.notifier).apply(ready);
+    if (context.mounted && confirmed != null) {
+      await ref
+          .read(libraryCleanupControllerProvider.notifier)
+          .apply(confirmed);
     }
   }
 
-  Future<void> _retry() async {
-    await ref.read(libraryCleanupControllerProvider.notifier).retry();
-    if (mounted) await _confirm();
-  }
-
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final state = ref.watch(libraryCleanupControllerProvider);
     final busy = state is LibraryCleanupWorking;
-    final selectedAge = switch (state) {
-      LibraryCleanupReady(:final minimumAgeDays) => minimumAgeDays ?? 0,
-      LibraryCleanupWorking(:final request) ||
-      LibraryCleanupFailed(:final request) => request.minimumAgeDays ?? 0,
-      _ => _minimumAgeDays,
-    };
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SettingsRow(
           icon: Symbols.cleaning_services_rounded,
           title: "清理未关联记录",
-          subtitle: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text("检查无法关联图片的相册、收藏和整理记录"),
-              const SizedBox(height: 12),
-              SettingsChoice<int>(
-                key: const Key("settings-cleanup-age"),
-                value: selectedAge,
-                width: 200,
-                enabled: !busy,
-                entries: const [
-                  SettingsChoiceEntry(value: 90, label: "未关联超过 90 天"),
-                  SettingsChoiceEntry(value: 30, label: "未关联超过 30 天"),
-                  SettingsChoiceEntry(value: 0, label: "全部未关联记录"),
-                ],
-                onSelected: (value) {
-                  if (value == null) return;
-                  ref.read(libraryCleanupControllerProvider.notifier).dismiss();
-                  setState(() => _minimumAgeDays = value);
-                },
-              ),
-            ],
-          ),
+          subtitle: const Text("检查无法关联图片的相册、收藏和整理记录"),
           trailing: FilledButton.tonal(
             key: const Key("settings-cleanup-inspect"),
-            onPressed: busy
-                ? null
-                : () {
-                    _minimumAgeDays = selectedAge;
-                    unawaited(_inspect());
-                  },
-            child: const Text("检查"),
+            onPressed: busy ? null : () => unawaited(_inspect(context, ref)),
+            child: const Text("查看并清理"),
           ),
         ),
-        if (state is! LibraryCleanupIdle)
-          Padding(padding: const EdgeInsets.all(20), child: _feedback(state)),
+        if (state is! LibraryCleanupIdle && state is! LibraryCleanupReady)
+          Padding(
+            padding: const EdgeInsets.all(20),
+            child: _feedback(context, ref, state),
+          ),
       ],
     );
   }
 
-  Widget _feedback(LibraryCleanupState state) {
+  Widget _feedback(
+    BuildContext context,
+    WidgetRef ref,
+    LibraryCleanupState state,
+  ) {
     final controller = ref.read(libraryCleanupControllerProvider.notifier);
     return switch (state) {
       LibraryCleanupWorking() => Column(
@@ -120,28 +78,18 @@ class _OrganizationCleanupRowState
           ),
         ],
       ),
-      LibraryCleanupReady(:final inspection) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            inspection.total == 0
-                ? "没有符合条件的未关联记录"
-                : "${inspection.total} 项记录可以清理",
-          ),
-          if (inspection.total > 0)
-            TextButton(
-              onPressed: () => unawaited(_confirm()),
-              child: const Text("查看并清理"),
-            ),
-        ],
-      ),
       LibraryCleanupFailed() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(_failureMessage(state)),
           TextButton(
             key: const Key("settings-cleanup-retry"),
-            onPressed: () => unawaited(_retry()),
+            onPressed: () => unawaited(
+              state.failure.requiresInspection ||
+                      state.request is LibraryCleanupInspect
+                  ? _inspect(context, ref)
+                  : controller.retry(),
+            ),
             child: Text(state.failure.requiresInspection ? "重新检查" : "重试"),
           ),
         ],
@@ -149,7 +97,7 @@ class _OrganizationCleanupRowState
       LibraryCleanupFinished(:final cancelled, :final removedRecords) => Text(
         cancelled ? "已取消" : "已清理 $removedRecords 项记录",
       ),
-      LibraryCleanupIdle() => const SizedBox.shrink(),
+      LibraryCleanupIdle() || LibraryCleanupReady() => const SizedBox.shrink(),
     };
   }
 

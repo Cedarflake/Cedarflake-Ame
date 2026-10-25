@@ -317,8 +317,9 @@ owning read/write paths before integrated performance acceptance; retain the com
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
 47,833-group write, with all durable records unchanged after reopen. Client operation timings are
 recorded; native cancellation interaction and cleanup publication remain open.
-The timing client has exited, and the original recovery profile and pending cleanup confirmation
-are restored with their records intact. Cleanup still awaits its existing action-time confirmation;
+The timing client has exited and the original recovery profile remains intact. Native inspection and
+cancellation now use one settings entry with range selection inside the dialog. Cleanup publication
+still awaits its existing action-time confirmation;
 constrained-device work awaits confirmation of cloud-primary's changed saved device identity.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
