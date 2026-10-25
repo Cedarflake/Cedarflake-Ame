@@ -298,9 +298,17 @@ void main() {
         );
         expect(exit.right, lessThan(queue.left));
         expect(queue.center.dy, closeTo(exit.center.dy, .1));
-        expect(queue.height, closeTo(exit.height, .1));
+        expect(exit.size, const Size(40, 40));
+        expect(exit.height, lessThan(queue.height));
         expect(queue.center.dy, closeTo(resume.center.dy, .1));
-        expect(queue.height, closeTo(resume.height, .1));
+        expect(resume.size, exit.size);
+        for (final key in ["library-review-exit", "library-review-resume"]) {
+          final icon = find.descendant(
+            of: find.byKey(Key(key)),
+            matching: find.byType(Icon),
+          );
+          expect(tester.getSize(icon), const Size(20, 20));
+        }
         final deferred = find.byKey(
           const ValueKey("library-review-queue-deferred"),
         );

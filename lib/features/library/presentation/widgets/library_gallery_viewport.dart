@@ -12,6 +12,7 @@ class LibraryGalleryViewport extends StatelessWidget {
     required this.isLoading,
     this.failure,
     this.footer,
+    this.notice,
     this.loadingDelay = Duration.zero,
     super.key,
   });
@@ -20,46 +21,52 @@ class LibraryGalleryViewport extends StatelessWidget {
   final Widget body;
   final Widget? failure;
   final Widget? footer;
+  final Widget? notice;
   final bool isEmpty;
   final bool isLoading;
   final Duration loadingDelay;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Stack(
+      fit: StackFit.expand,
       children: [
-        Expanded(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (isEmpty)
-                Positioned.fill(
-                  child: Semantics(
-                    sortKey: const OrdinalSortKey(1),
-                    child: LibrarySidebarContent(
-                      alignment: Alignment.topCenter,
-                      child: body,
-                    ),
-                  ),
-                ),
-              Column(
-                children: [
-                  Semantics(sortKey: const OrdinalSortKey(0), child: header),
-                  ?failure,
-                  Expanded(
-                    child: LibraryGalleryLoadingRegion(
-                      isLoading: isLoading,
-                      delay: loadingDelay,
-                      child: isEmpty ? const SizedBox.shrink() : body,
-                    ),
-                  ),
-                ],
+        if (isEmpty)
+          Positioned.fill(
+            child: Semantics(
+              sortKey: const OrdinalSortKey(1),
+              child: LibrarySidebarContent(
+                alignment: Alignment.topCenter,
+                child: body,
               ),
-            ],
+            ),
           ),
+        Column(
+          children: [
+            Semantics(sortKey: const OrdinalSortKey(0), child: header),
+            ?failure,
+            Expanded(
+              child: LibraryGalleryLoadingRegion(
+                isLoading: isLoading,
+                delay: loadingDelay,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [if (!isEmpty) body, ?notice],
+                ),
+              ),
+            ),
+          ],
         ),
         if (footer case final content?)
-          LibrarySidebarContent(alignment: Alignment.topCenter, child: content),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: LibrarySidebarContent(
+              alignment: Alignment.topCenter,
+              child: content,
+            ),
+          ),
       ],
     );
   }

@@ -48,12 +48,12 @@ import "library_synchronization_refresh.dart";
 import "library_search_availability.dart";
 import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
-import "widgets/annotated_time_rail.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_album_navigation.dart";
 import "widgets/library_albums_sidebar.dart";
 import "widgets/library_collection_navigation.dart";
 import "widgets/library_review_dock.dart";
+import "widgets/library_review_mode_notice.dart";
 import "widgets/library_viewer_organization_controls.dart";
 import "widgets/library_gallery_activity.dart";
 import "widgets/library_gallery_header.dart";
@@ -62,6 +62,7 @@ import "widgets/library_gallery_filter.dart";
 import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
 import "widgets/library_gallery_viewport.dart";
+import "widgets/library_gallery_scroll_surface.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
 import "widgets/library_global_bar.dart";
@@ -858,6 +859,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                   counts: state.organizationCounts,
                 )
               : null,
+          notice: _destination == LibraryWorkspace.gallery
+              ? LibraryReviewModeNotice(mode: _review)
+              : null,
           isEmpty: state.assets.isEmpty,
           loadingDelay: state.isRefreshingQuery || _review.busy
               ? const Duration(milliseconds: 250)
@@ -901,72 +905,66 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         onImport: controller.chooseDirectoryAndScan,
       );
     }
-    return Row(
-      children: [
-        Expanded(
-          child: LibraryGalleryWall(
-            state: state,
-            controller: controller,
-            scrollController: _galleryScrollController,
-            layoutShape: _layoutShape,
-            thumbnailSize: _thumbnailSize,
-            selection: _selection,
-            isSelecting: _isSelecting,
-            isSidebarResizing: _isSidebarResizing,
-            onOpen: _openAsset,
-            onToggleSelection: _toggleSelection,
-            onViewInformation: _showAssetInformation,
-            onCopyPath: _copyAssetPath,
-            onRevealFile: _revealAsset,
-            onVisiblePositionChanged: (position) {
-              if (_galleryLayoutTransition == null &&
-                  _queryTransition.pendingPosition == null) {
-                _visibleGalleryPosition = position;
-              }
-            },
-            onVisibleRangeChanged: _dimensionPublication.updateVisibleRange,
-            onLoadPrevious: () =>
-                _loadPreviousPagePreservingPosition(controller),
-            onLayoutChanged: _handleGalleryLayoutChanged,
-            layoutManifest: layoutManifest,
-            initialQueryWidePosition: _initialQueryWidePosition(state),
-            layoutTransition: _galleryLayoutTransition,
-            onLayoutTransitionApplied: _completeGalleryLayoutTransition,
-            positionResolver: _galleryPositionResolver,
-          ),
-        ),
-        SizedBox(
-          width: AnnotatedTimeRail.width,
-          child: _viewer.assetId == null
-              ? ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
-                  valueListenable: _galleryLayoutSnapshot,
-                  builder: (context, snapshot, child) {
-                    final activeSnapshot = snapshot?.matches(state) ?? false
-                        ? snapshot
-                        : null;
-                    return LibraryTimeNavigation(
-                      key: ValueKey<int>(_timelineSemanticsGeneration),
-                      isLoading: state.isLoadingTimeline,
-                      scrollController: _galleryScrollController,
-                      layoutMetrics: activeSnapshot?.metrics,
-                      timeline: state.timeline,
-                      resolvedTimeAnchor: state.activeTimeAnchor,
-                      layoutShape: _layoutShape,
-                      virtualGeometry: activeSnapshot?.virtualGeometry,
-                      windowStartItemOffset: state.windowStartItemOffset,
-                      loadedItemCount: state.assets.length,
-                      onSeek: (bucket, itemOffset) =>
-                          _seekTimeline(controller, bucket, itemOffset),
-                      onBeginNavigation: _beginTimelineNavigation,
-                      onCancelSeek: controller.cancelTimeNavigation,
-                      onPrefetch: (bucket, itemOffset) => controller
-                          .prefetchTime(bucket, itemOffset: itemOffset),
-                    );
-                  },
-                )
-              : null,
-        ),
-      ],
+    return LibraryGalleryScrollSurface(
+      controller: _galleryScrollController,
+      isOrganizing: state.query.organizationQueue != null,
+      gallery: LibraryGalleryWall(
+        state: state,
+        controller: controller,
+        scrollController: _galleryScrollController,
+        layoutShape: _layoutShape,
+        thumbnailSize: _thumbnailSize,
+        selection: _selection,
+        isSelecting: _isSelecting,
+        isSidebarResizing: _isSidebarResizing,
+        onOpen: _openAsset,
+        onToggleSelection: _toggleSelection,
+        onViewInformation: _showAssetInformation,
+        onCopyPath: _copyAssetPath,
+        onRevealFile: _revealAsset,
+        onVisiblePositionChanged: (position) {
+          if (_galleryLayoutTransition == null &&
+              _queryTransition.pendingPosition == null) {
+            _visibleGalleryPosition = position;
+          }
+        },
+        onVisibleRangeChanged: _dimensionPublication.updateVisibleRange,
+        onLoadPrevious: () => _loadPreviousPagePreservingPosition(controller),
+        onLayoutChanged: _handleGalleryLayoutChanged,
+        layoutManifest: layoutManifest,
+        initialQueryWidePosition: _initialQueryWidePosition(state),
+        layoutTransition: _galleryLayoutTransition,
+        onLayoutTransitionApplied: _completeGalleryLayoutTransition,
+        positionResolver: _galleryPositionResolver,
+      ),
+      timeNavigation: _viewer.assetId == null
+          ? ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
+              valueListenable: _galleryLayoutSnapshot,
+              builder: (context, snapshot, child) {
+                final activeSnapshot = snapshot?.matches(state) ?? false
+                    ? snapshot
+                    : null;
+                return LibraryTimeNavigation(
+                  key: ValueKey<int>(_timelineSemanticsGeneration),
+                  isLoading: state.isLoadingTimeline,
+                  scrollController: _galleryScrollController,
+                  layoutMetrics: activeSnapshot?.metrics,
+                  timeline: state.timeline,
+                  resolvedTimeAnchor: state.activeTimeAnchor,
+                  layoutShape: _layoutShape,
+                  virtualGeometry: activeSnapshot?.virtualGeometry,
+                  windowStartItemOffset: state.windowStartItemOffset,
+                  loadedItemCount: state.assets.length,
+                  onSeek: (bucket, itemOffset) =>
+                      _seekTimeline(controller, bucket, itemOffset),
+                  onBeginNavigation: _beginTimelineNavigation,
+                  onCancelSeek: controller.cancelTimeNavigation,
+                  onPrefetch: (bucket, itemOffset) =>
+                      controller.prefetchTime(bucket, itemOffset: itemOffset),
+                );
+              },
+            )
+          : null,
     );
   }
 

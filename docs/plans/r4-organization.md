@@ -199,8 +199,10 @@ Work in this order within the slice:
 4. Put total, organized, pending and ignored counts in the existing count row. Dock icon-only
    `待整理`, `稍后整理` and `已忽略` selectors at the bottom of the content area, with names and counts
    in tooltips and accessibility labels. Place separate exit and continuation icon buttons to the
-   toolbar's left and right, on the same row and height. Hide continuation until prior activity and
-   a resumable position both exist. Retain content and control appearance during short query changes.
+   toolbar's left and right, centered on the same row with smaller backgrounds. Hide continuation
+   until prior activity and a resumable position both exist. Retain content and control appearance
+   during short query changes. Float the dock over the images without a full-width background or
+   passive text above it, and provide a right-side scrollbar for organization queues.
 5. Put defer and album actions on the same contextual action row. Successful album assignment
    completes work; the organization-mode viewer advances only after commit. Add the accepted ignore
    actions without adding manual completion or a separate new-items tab. Keep chronological undo and

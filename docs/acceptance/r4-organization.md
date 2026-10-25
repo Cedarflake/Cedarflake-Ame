@@ -2263,3 +2263,33 @@ changes. Dedicated review-widget, empty-feedback and unified-review suites have 
 the affected unavailable-image integration owner has 95. No schema, bridge, dependency or source
 policy changes are introduced. Publication remains on the existing R4 branch. Its pushes have no
 automatic workflow trigger without a pull request; no hosted run covers this checkpoint yet.
+
+## Floating review dock and queue scrollbar - 2026-10-25
+
+The independent exit and continuation buttons use 40-by-40 logical-pixel surfaces instead of 52,
+with their 20-by-20 icons unchanged and centered against the existing queue surface. The dock floats
+over the full photo viewport without a reserved footer row or full-width background. Transparent
+space passes input to the gallery, and existing trailing scroll padding clears the last images.
+Passive continuation text is omitted; mode failures retain retry through the shared top notice.
+Organization queues use an interactive right-side Material scrollbar on the existing controller;
+ordinary browsing keeps its time navigation. Tooltips, continuation admission, command guards and
+bounded loading are unchanged.
+
+All 46 focused cases pass: 24 gallery interactions, 14 review widgets, three sidebar-motion cases,
+two overlay cases, two unified-review cases and one loading-geometry case. These cover 1.0/2.0 text
+scales, unchanged icon bounds, control alignment, pointer passage outside the dock, top-notice retry,
+and scrollbar dragging to distant content and back with both gallery layouts and manifest modes.
+Scoped formatting, strict analysis of the ten affected Dart files and the Windows Debug build pass.
+
+The rebuilt isolated client uses the retained mixed test library. Native inspection confirms photos
+behind the compact dock, no passive text above it and a draggable right scrollbar. Dragging to the
+queue's end loads the visible images after release and leaves the last row clear of the controls.
+Dragging back near the top also succeeds. The final top gesture was interrupted by detected user
+input; the subsequent observed top view contains loaded images. Automated drag coverage remains
+separate from that interrupted native gesture. The window remains open in organization mode.
+
+Production owners contain 1,877 lines in the screen (composition changes only), 73 in the viewport,
+45 in the scroll surface, 23 in dock placement, 141 in dock controls, 29 in the mode notice and 53 in
+viewer organization controls, with no inline tests. Dedicated interaction, review-widget and overlay
+suites contain 237, 445 and 105 lines. No schema, bridge, dependency or source-policy changes are
+introduced. Publication stays on the existing R4 branch; its push alone has no hosted workflow trigger.

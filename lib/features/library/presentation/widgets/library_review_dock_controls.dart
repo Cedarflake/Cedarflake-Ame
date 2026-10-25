@@ -13,8 +13,8 @@ class LibraryReviewDockControls extends StatelessWidget {
   final LibraryOrganizationCounts? counts;
 
   static const _buttonStyle = ButtonStyle(
-    minimumSize: WidgetStatePropertyAll(Size(52, 52)),
-    padding: WidgetStatePropertyAll(EdgeInsets.all(12)),
+    minimumSize: WidgetStatePropertyAll(Size(40, 40)),
+    padding: WidgetStatePropertyAll(EdgeInsets.all(10)),
     elevation: WidgetStatePropertyAll(3),
     shape: WidgetStatePropertyAll(StadiumBorder()),
     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -35,7 +35,7 @@ class LibraryReviewDockControls extends StatelessWidget {
           child: IntrinsicHeight(
             child: Row(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 AmeTooltip(
                   message: "退出整理",

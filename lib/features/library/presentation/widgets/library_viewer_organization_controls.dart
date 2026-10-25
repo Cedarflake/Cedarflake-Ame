@@ -1,6 +1,5 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/library_organization_actions.dart";
 import "../../domain/library_organization.dart";
@@ -9,7 +8,7 @@ import "library_album_viewer_action.dart";
 import "library_favorite_button.dart";
 import "library_organization_feedback.dart";
 import "library_review_actions.dart";
-import "library_viewer_notice.dart";
+import "library_review_mode_notice.dart";
 
 class LibraryViewerOrganizationControls extends ConsumerWidget {
   const LibraryViewerOrganizationControls({
@@ -45,12 +44,7 @@ class LibraryViewerOrganizationNotice extends ConsumerWidget {
     final notice = ref.watch(libraryOrganizationNoticeProvider);
     final saving = ref.watch(libraryOrganizationActionsProvider).saving;
     if (mode.isActive && mode.problem != null) {
-      return LibraryViewerNotice(
-        icon: Symbols.error_rounded,
-        message: mode.problem!,
-        actionLabel: "重试",
-        onAction: mode.busy || saving ? null : mode.retry,
-      );
+      return LibraryReviewModeNotice(mode: mode, enabled: !saving);
     }
     return notice == null
         ? const SizedBox.shrink()

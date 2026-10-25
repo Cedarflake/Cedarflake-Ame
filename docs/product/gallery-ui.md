@@ -1015,14 +1015,20 @@ attached to the bottom of the gallery content area contains `待整理`, `稍后
 using only their corresponding inbox, clock, or hidden-image icons. Tooltips and accessible names
 provide each queue's name and current count.
 `退出整理` is a separate icon button to the toolbar's left, and `继续整理` is a separate icon button to its
-right. Both share the toolbar's row and height. Reserve
-content space so the dock does not obscure the last images or their actions, and keep it reachable
-by keyboard at supported desktop widths and text scales.
+right. Both remain vertically centered on the toolbar's row. Float these controls over the gallery
+without a full-width background or a reserved footer row. Images continue behind the dock; its
+surrounding transparent space passes pointer input to the gallery. Retain trailing scroll padding
+so the last images can be brought above the controls, and keep the dock reachable by keyboard at
+supported desktop widths and text scales.
 
 Match the accepted sketch's padded, rounded floating surface: each queue has its own rounded
 selection background, with space between choices and no joined outline or dividers. Use the theme's
 tonal selected color. The separate exit button uses a close icon; continuation uses a forward arrow.
-Both have named tooltips and a tonal background with the same height and elevation as the queue container.
+Both use compact 40-pixel tonal buttons with unchanged 20-pixel icons, named tooltips and the
+queue container's elevation. Their backgrounds are smaller than the central queue surface.
+Omit passive continuation messages above the dock. An operation failure uses the existing top
+notice with retry. Organization queues have an interactive scrollbar on the right, using the same
+gallery position and bounded loading; ordinary chronological browsing retains its time navigation.
 
 Mode entry, queue changes and exit retain published content while the replacement query loads.
 An existing empty result does not flash a loading page or an hourglass, and the dock keeps its

@@ -65,11 +65,14 @@ The photo viewport separately follows the moving left boundary through a left-al
 inside a right-anchored clip. Its toolbar and time rail remain outside that content motion.
 The title/count block consumes the same leading offset through Transform.translate, without
 changing the toolbar's layout or right alignment.
-`LibrarySidebarContent` also accepts centered alignment for the gallery's empty-state and footer
+`LibrarySidebarContent` also accepts centered alignment for the gallery's empty-state and floating dock
 slots and the Albums landing surface. Its outer width remains the destination width; the clipped
 visible width follows the same sidebar progress, and the inner destination-width content centers
 within it. `OverflowBoxFit.deferToChild` preserves a footer's intrinsic height. The pinned SDK owns
-layout and hit testing, with no second animation clock or per-frame catalog reflow.
+layout and hit testing, with no second animation clock or per-frame catalog reflow. The viewport
+overlays the dock at the bottom without shrinking the photo viewport. Only its controls capture
+input; transparent space remains part of the gallery. The existing trailing scroll padding clears
+the final row above the compact dock.
 `LibraryGalleryLayoutMotion` owns a bounded registry of mounted sliver items and interpolates their
 rectangles for sidebar and window-size changes. The installed SDK's AnimatedBuilder, Transform and
 OverflowBox retain the existing scroll, input and semantic primitives; AnimatedSize alone cannot

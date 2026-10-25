@@ -1,8 +1,10 @@
 import "package:cedarflake_ame/app/presentation/ame_scroll_motion.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
+import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_selection.dart";
 import "package:cedarflake_ame/features/library/presentation/gallery_view_options.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_wall.dart";
+import "package:cedarflake_ame/features/library/presentation/widgets/library_gallery_scroll_surface.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_virtual_gallery_geometry.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
@@ -76,6 +78,52 @@ void main() {
         },
       );
 
+      testWidgets(
+        "review scrollbar drags to the end and returns to the top ($withManifest, $shape)",
+        (tester) async {
+          final fixture = await _mountWall(
+            tester,
+            withManifest,
+            shape,
+            showScrollbar: true,
+            state: _state().copyWith(
+              query: const LibraryGalleryQuery(
+                organizationQueue: LibraryOrganizationQueue.pending,
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+          final bounds = tester.getRect(
+            find.byKey(const Key("library-gallery-scrollbar")),
+          );
+          final start = Offset(bounds.right - 12, bounds.top + 20);
+          final gesture = await tester.startGesture(
+            start,
+            kind: PointerDeviceKind.mouse,
+          );
+          await gesture.moveTo(Offset(start.dx, bounds.bottom - 20));
+          await tester.pumpAndSettle();
+          expect(
+            fixture.scroll.offset,
+            greaterThan(fixture.scroll.position.maxScrollExtent * .7),
+          );
+          if (withManifest || shape == GalleryLayoutShape.square) {
+            expect(fixture.controller.visibleRangeRequests, isNotEmpty);
+            expect(
+              fixture.controller.visibleRangeRequests.last.start,
+              greaterThan(700),
+            );
+          } else {
+            expect(fixture.controller.nextPageRequests, greaterThan(0));
+          }
+          await gesture.moveTo(start);
+          await gesture.up();
+          await tester.pumpAndSettle();
+          expect(fixture.scroll.offset, closeTo(0, 1));
+          expect(tester.takeException(), isNull);
+        },
+      );
+
       for (final blocked in ["loading-next", "loading-previous", "errors"]) {
         testWidgets(
           "wheel keeps moving without automatic retry during $blocked ($withManifest, $shape)",
@@ -137,6 +185,7 @@ Future<_WallFixture> _mountWall(
   bool withManifest,
   GalleryLayoutShape shape, {
   LibraryState? state,
+  bool showScrollbar = false,
 }) async {
   final fixture = _WallFixture();
   final currentState = state ?? _state();
@@ -146,24 +195,28 @@ Future<_WallFixture> _mountWall(
       child: MaterialApp(
         home: MediaQuery(
           data: const MediaQueryData(disableAnimations: true),
-          child: LibraryGalleryWall(
-            state: currentState,
-            controller: fixture.controller,
-            scrollController: fixture.scroll,
-            layoutShape: shape,
-            thumbnailSize: GalleryThumbnailSize.medium,
-            selection: GallerySelection.empty(currentState.queryId),
-            isSelecting: false,
-            layoutManifest: withManifest ? galleryManifest(1000) : null,
-            onOpen: (_) {},
-            onToggleSelection: (_) {},
-            onViewInformation: (_) {},
-            onCopyPath: (_) {},
-            onRevealFile: (_) {},
-            onVisiblePositionChanged: fixture.positions.add,
-            onVisibleRangeChanged: fixture.ranges.add,
-            onLoadPrevious: fixture.controller.loadPreviousPage,
-            onLayoutChanged: (_, geometry) => fixture.geometry = geometry,
+          child: LibraryGalleryScrollSurface(
+            controller: fixture.scroll,
+            isOrganizing: showScrollbar,
+            gallery: LibraryGalleryWall(
+              state: currentState,
+              controller: fixture.controller,
+              scrollController: fixture.scroll,
+              layoutShape: shape,
+              thumbnailSize: GalleryThumbnailSize.medium,
+              selection: GallerySelection.empty(currentState.queryId),
+              isSelecting: false,
+              layoutManifest: withManifest ? galleryManifest(1000) : null,
+              onOpen: (_) {},
+              onToggleSelection: (_) {},
+              onViewInformation: (_) {},
+              onCopyPath: (_) {},
+              onRevealFile: (_) {},
+              onVisiblePositionChanged: fixture.positions.add,
+              onVisibleRangeChanged: fixture.ranges.add,
+              onLoadPrevious: fixture.controller.loadPreviousPage,
+              onLayoutChanged: (_, geometry) => fixture.geometry = geometry,
+            ),
           ),
         ),
       ),
