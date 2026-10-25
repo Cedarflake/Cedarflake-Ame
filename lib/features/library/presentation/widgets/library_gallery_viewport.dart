@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:flutter/semantics.dart";
 
 import "library_gallery_loading_region.dart";
+import "library_sidebar_content.dart";
 
 class LibraryGalleryViewport extends StatelessWidget {
   const LibraryGalleryViewport({
@@ -33,7 +34,10 @@ class LibraryGalleryViewport extends StatelessWidget {
                 Positioned.fill(
                   child: Semantics(
                     sortKey: const OrdinalSortKey(1),
-                    child: body,
+                    child: LibrarySidebarContent(
+                      alignment: Alignment.topCenter,
+                      child: body,
+                    ),
                   ),
                 ),
               Column(
@@ -51,7 +55,8 @@ class LibraryGalleryViewport extends StatelessWidget {
             ],
           ),
         ),
-        ?footer,
+        if (footer case final content?)
+          LibrarySidebarContent(alignment: Alignment.topCenter, child: content),
       ],
     );
   }

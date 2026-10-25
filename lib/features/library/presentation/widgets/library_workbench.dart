@@ -12,6 +12,7 @@ import "../library_strings.dart";
 import "../library_workbench_strings.dart";
 import "library_main_surface.dart";
 import "library_navigation_resize_handle.dart";
+import "library_sidebar_content.dart";
 import "library_sidebar_transition.dart";
 import "library_workbench_metrics.dart";
 
@@ -147,7 +148,10 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
                   ),
                   if (workspace == LibraryWorkspace.albums &&
                       widget.albumLanding != null)
-                    widget.albumLanding!,
+                    LibrarySidebarContent(
+                      alignment: Alignment.topCenter,
+                      child: widget.albumLanding!,
+                    ),
                 ],
               ),
             ),

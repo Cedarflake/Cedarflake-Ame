@@ -1,4 +1,5 @@
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 
 class LibrarySidebarMotion extends InheritedWidget {
   const LibrarySidebarMotion({
@@ -45,41 +46,51 @@ class LibrarySidebarLeading extends StatelessWidget {
 
 /// Moves content with the sidebar while retaining its destination layout width.
 class LibrarySidebarContent extends StatelessWidget {
-  const LibrarySidebarContent({required this.child, super.key});
+  const LibrarySidebarContent({
+    required this.child,
+    this.alignment = Alignment.topLeft,
+    super.key,
+  });
 
   final Widget child;
+  final Alignment alignment;
 
   @override
   Widget build(BuildContext context) {
     final motion = context
         .dependOnInheritedWidgetOfExactType<LibrarySidebarMotion>();
     return LayoutBuilder(
-      builder: (context, constraints) => AnimatedBuilder(
-        animation: motion?.progress ?? const AlwaysStoppedAnimation(1.0),
-        child: child,
-        builder: (context, content) {
-          final delta = motion?.leadingOffset ?? 0;
-          final visibleWidth = (constraints.maxWidth - delta).clamp(
-            0.0,
-            double.infinity,
-          );
-          return OverflowBox(
-            alignment: Alignment.topRight,
-            minWidth: visibleWidth,
-            maxWidth: visibleWidth,
-            child: SizedBox(
-              width: visibleWidth,
-              child: ClipRect(
-                child: OverflowBox(
-                  alignment: Alignment.topLeft,
-                  minWidth: constraints.maxWidth,
-                  maxWidth: constraints.maxWidth,
-                  child: content,
+      builder: (context, constraints) => SizedBox(
+        width: constraints.maxWidth,
+        child: AnimatedBuilder(
+          animation: motion?.progress ?? const AlwaysStoppedAnimation(1.0),
+          child: child,
+          builder: (context, content) {
+            final delta = motion?.leadingOffset ?? 0;
+            final visibleWidth = (constraints.maxWidth - delta).clamp(
+              0.0,
+              double.infinity,
+            );
+            return OverflowBox(
+              alignment: Alignment.topRight,
+              fit: OverflowBoxFit.deferToChild,
+              minWidth: visibleWidth,
+              maxWidth: visibleWidth,
+              child: SizedBox(
+                width: visibleWidth,
+                child: ClipRect(
+                  child: OverflowBox(
+                    alignment: alignment,
+                    fit: OverflowBoxFit.deferToChild,
+                    minWidth: constraints.maxWidth,
+                    maxWidth: constraints.maxWidth,
+                    child: content,
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }

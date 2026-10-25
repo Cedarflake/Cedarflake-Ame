@@ -126,6 +126,9 @@ remains visible while the secondary sidebar can collapse. Its toggle
 stays in the function rail immediately above Settings while either is active, with `收起侧栏` and
 `展开侧栏` tooltips. Animate the sidebar boundary and photo content's left edge together over a short
 transition. The gallery title and count follow that same left edge independently of the toolbar.
+Empty, loading and no-result content, the bottom organization dock and the Albums landing content
+follow the visible content area's center throughout the same transition. Their shared containers
+own this placement so later content does not require another sidebar animation.
 Smoothly move and resize visible photos when sidebar or window dimensions change,
 including maximize/restore, while retaining the current browsing anchor.
 Keep the gallery's right edge, toolbar and time rail anchored to the window; the toolbar

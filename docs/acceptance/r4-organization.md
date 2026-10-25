@@ -2205,3 +2205,26 @@ The rebuilt isolated Windows client shows the separate left-hand button beside t
 Clicking it removes the dock and title mode indicator and restores the ordinary Library controls.
 The test uses the existing empty recovery profile and does not import, modify or clean up media
 or unmatched records. Hosted verification follows publication on the existing R4 branch.
+
+## Centered content during sidebar motion - 2026-10-25
+
+The gallery viewport's empty-state and footer slots and the Albums landing surface now consume
+the existing sidebar animation with centered alignment. The content retains its destination width;
+the visible center follows the moving boundary. The footer retains its intrinsic height through
+the pinned SDK's [OverflowBox fit](https://api.flutter.dev/flutter/widgets/OverflowBox/fit.html).
+No new animation clock, catalog request or intermediate photo-wall layout is introduced.
+
+Sixteen focused widget cases pass across the content, sidebar, right-edge and photo-layout suites.
+They cover intermediate frames, rapid reversal, 1.0/2.0 text scaling, immediate reduced-motion
+placement, bounded destination-width layouts, final hit testing and stationary right-edge controls.
+The first regression exposed an unconstrained footer width that cancelled the center offset;
+the shared owner now reserves the destination width before applying the visible-width alignment.
+Formatting and strict analysis pass. Production content/viewport/workbench owners have 97/63/310
+lines and no inline tests; the new dedicated regression has 142 lines.
+
+The rebuilt isolated Windows client verifies collapse and expansion while organization mode stays
+active, with the empty-library content and bottom dock centered in each visible area. Existing
+unavailable-position feedback and queue selection remain present. Native inspection covers the
+interaction and final geometry; deterministic widget checks cover the animation's intermediate
+frames. Source media and recovery records remain untouched. Queue-change loading feedback is a
+separate reported follow-up.
