@@ -12,6 +12,7 @@ pub(super) fn load_name_sections(
 ) -> Result<Vec<GalleryScrollSection>, ScanError> {
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     let scope = if clauses.is_empty() {
         "1".to_owned()
@@ -30,7 +31,6 @@ pub(super) fn load_name_sections(
          {source} WHERE {scope}
          GROUP BY section_key
          ORDER BY MIN(locations.natural_name_key) {direction}",
-        source = gallery_source(query),
         direction = gallery_direction_sql(query.order_direction()),
     );
     let mut statement = transaction.prepare(&sql).map_err(database_error)?;
@@ -73,6 +73,7 @@ pub(super) fn load_arrival_sections(
     } else {
         "0".to_owned()
     };
+    let source = gallery_source(query, &mut parameters);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     let scope = if clauses.is_empty() {
         "1".to_owned()
@@ -82,7 +83,6 @@ pub(super) fn load_arrival_sections(
     let sql = format!(
         "SELECT {admission} AS is_new, COUNT(*) {source} WHERE {scope}
          GROUP BY is_new ORDER BY is_new DESC",
-        source = gallery_source(query),
     );
     let mut statement = transaction.prepare(&sql).map_err(database_error)?;
     let rows = statement

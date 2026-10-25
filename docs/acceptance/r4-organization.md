@@ -2590,7 +2590,7 @@ copy of the existing derived client catalog, its 47,832-group album takes 1,141�
 samples on one connection with the OS cache retained; they do not establish a new speedup. The
 manual `profile_retained_organization_read_stages` check passes in Release, opens the input read-only,
 uses a disposable database copy and reads no source media. Its report is
-`build/test/derived/r4-client-measure/profile/catalog/organization-read-stages.jsonl`.
+`build/test/derived/r4-client-measure/profile/catalog/organization-read-stages-before-presence.jsonl`.
 
 Source inspection also identifies a separate publication wait: after the page is read, its preview
 last-use update enters the normal blocking writer admission. A held external write reproduces a
@@ -2631,3 +2631,49 @@ historical upgrades, rollback, idempotent reopening, and preservation of organiz
 the saved continuation cursor. Rust formatting passes. The compatibility owner remains 109 production
 lines with no inline test body and 56 dedicated test lines. Exact-head hosted verification follows
 publication; the earlier failed run and retained-client acceptance gaps remain recorded.
+
+## Empty collection and queue reads - 2026-10-26
+
+Empty collection queries previously resolved published locations and group evidence before proving
+that no matching decisions existed. The shared gallery source now begins album, Favorite, deferred
+and ignored reads with a one-row durable-record presence relation. An empty relation skips location
+and group traversal. Existing matches still pass all source, folder, search, binding, representative
+and ordering checks in the same read snapshot. Pending queues retain unrecorded groups, and progress
+counts still cover the complete scoped library. No schema, result cache, bridge or source read is added.
+
+The unchanged read-stage workload and its added deferred/ignored cases pass in Release on the same
+47,832-group derived album snapshot. Two samples use one fresh connection with the OS cache retained.
+The empty Favorite page plus timeline changes from 2,319–2,333 ms to 5.8–9.7 ms. Empty deferred and
+ignored page/timeline reads take 6.9–7.3 ms; their separate shared counts take 636–646 ms, giving
+643–653 ms overall. Populated-album reads remain about 2.8 seconds and the one-item pending queue
+about 2.4 seconds including counts. These are backend timings, not desktop or constrained-device
+acceptance. Native save-to-visible and frame-time checks remain open.
+
+The earlier source-index probe compared identical returned IDs and order. Forcing the composite
+primary key increased the populated album page from 1,140 to 1,216 ms and saved only 61–85 ms for
+the empty Favorite and one-item pending pages, so that change was discarded. Its report remains in
+ignored
+`build/test/derived/r4-client-measure/profile/catalog/organization-read-index-probe.jsonl`.
+The before/after presence reports are `organization-read-stages-before-presence.jsonl` and
+`organization-read-stages.jsonl` in the same directory. Each run reads the input catalog read-only,
+uses a disposable database copy and reads no source media. The input SHA-256 remains
+`FEADB9DBF60BB7F26F61277DD53E049356B09D979728FF22339B2F68AA69ACB7`.
+
+All 26 collection/queue regressions and 15 batch regressions pass, as do Rust formatting and Clippy
+with warnings denied. New coverage places 25,000 additional locations in the published source and
+keeps empty pages, date/name/admission rails and layout reads below the existing 20,000 SQLite-step
+ceiling. A separate transition check covers empty-to-populated-to-empty reads, physical scope, search,
+admission parameters and independent Favorite changes. Existing tests retain concurrent-save snapshot
+consistency, hidden-member anchors, pending unrecorded groups, content evolution, historical evidence,
+batch cancellation, rollback and undo.
+
+The normal Windows Debug entrypoint builds in 39.6 seconds and restores the existing isolated
+profile, with 10,000 physical images and 72 groups visible. The repository formatting check reports
+an existing uncommitted formatting difference in `library_gallery_states.dart`; its read-only check
+does not rewrite that unrelated file. The owned Rust formatting check passes. Interactive verification
+remains open after window activation fails; reading the restored window confirms its profile only.
+
+The gallery query/source/organization owners contain 398/89/212 production lines, with timeline and
+scroll-section owners at 150/111. They contain no inline test bodies. The dedicated empty-scope suite
+has 117 lines and the retained read-stage diagnostic 99. Exact-head hosted verification follows
+publication.

@@ -155,6 +155,11 @@ organization-group representatives are selected. Page, layout and continuation r
 scoped result without repeating the same membership predicates outside it. Shared progress counts
 aggregate canonical groups directly: every member of a group has the same disposition, so counting
 does not depend on preferred-copy selection or its decision table.
+Album, Favorite, deferred and ignored page/layout/timeline reads first test for a matching durable
+record through a one-row relation in the same SQL snapshot. Its absence avoids location traversal;
+its presence retains the complete scoped membership and representative checks. Pending queues
+continue to include unrecorded groups. This proof is recomputed for each read, without a result cache
+or changes to shared progress counts.
 These reads use catalog data only and never load the membership graph into presentation.
 
 ### Queue admission and continuation

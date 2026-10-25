@@ -4,16 +4,28 @@ use crate::domain::{GalleryCollection, GalleryQuery};
 
 use super::{duplicates, normalize_relative_folder, organization, organization_queue};
 
-pub(super) fn gallery_source(query: &GalleryQuery) -> &'static str {
+pub(super) fn gallery_source(query: &GalleryQuery, parameters: &mut Vec<Value>) -> String {
     if query.organization_queue.is_some() || query.collection != GalleryCollection::Library {
+        let roots = if let Some(condition) = organization::presence_condition(query, parameters) {
+            // An empty decision scope needs no location or group work.
+            // The one-row relation preserves multiplicity when matching records do exist.
+            format!(
+                "FROM (SELECT 1 FROM organization_records AS record WHERE {condition} LIMIT 1)
+                   AS organization_presence CROSS JOIN library_roots AS roots"
+            )
+        } else {
+            "FROM library_roots AS roots".to_owned()
+        };
         // Resolve organization predicates only inside published sources. Otherwise SQLite may
         // walk historical locations in display order before checking their active scan.
-        "FROM library_roots AS roots
-         CROSS JOIN asset_locations AS locations
-           ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id"
+        format!(
+            "{roots} CROSS JOIN asset_locations AS locations
+               ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id"
+        )
     } else {
         "FROM library_roots AS roots
          JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id"
+            .to_owned()
     }
 }
 

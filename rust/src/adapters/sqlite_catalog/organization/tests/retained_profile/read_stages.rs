@@ -32,6 +32,16 @@ fn profile_retained_organization_read_stages() {
             GalleryCollection::Library,
             Some(OrganizationQueue::Pending),
         ),
+        (
+            "deferred",
+            GalleryCollection::Library,
+            Some(OrganizationQueue::Deferred),
+        ),
+        (
+            "ignored",
+            GalleryCollection::Library,
+            Some(OrganizationQueue::Ignored),
+        ),
     ] {
         let query = GalleryQuery {
             collection,

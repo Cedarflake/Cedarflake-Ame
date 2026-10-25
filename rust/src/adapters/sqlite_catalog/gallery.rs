@@ -87,6 +87,7 @@ pub(super) fn build_gallery_asset_query(
     let tie_direction = if is_backward { "DESC" } else { "ASC" };
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     if let Some(anchor) = anchor {
         push_time_anchor_filter(query, anchor, &order, &mut clauses, &mut parameters)?;
@@ -139,7 +140,6 @@ pub(super) fn build_gallery_asset_query(
                       locations.root_id {tie_direction},
                       locations.location_id {tie_direction}
              LIMIT ?",
-            source = gallery_source(query),
             missing = order.missing,
             text = order.text,
             number = order.number,
@@ -159,6 +159,7 @@ pub(super) fn build_gallery_layout_manifest_query(
     let order = gallery_order_expressions(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     if let Some(cursor) = after {
         push_cursor_filter(
@@ -192,7 +193,6 @@ pub(super) fn build_gallery_layout_manifest_query(
                       {number} {primary_direction},
                       locations.root_id, locations.location_id
              LIMIT ?",
-            source = gallery_source(query),
             missing = order.missing,
             text = order.text,
             number = order.number,
@@ -204,6 +204,7 @@ pub(super) fn build_gallery_layout_manifest_query(
 pub(super) fn build_gallery_count_query(query: &GalleryQuery) -> BuiltGalleryQuery {
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     let where_clause = if clauses.is_empty() {
         String::new()
@@ -215,7 +216,6 @@ pub(super) fn build_gallery_count_query(query: &GalleryQuery) -> BuiltGalleryQue
             "SELECT COUNT(*)
              {source}
              {where_clause}",
-            source = gallery_source(query),
         ),
         parameters,
     }

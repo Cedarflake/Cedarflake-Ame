@@ -94,6 +94,7 @@ fn load_source_count(
 ) -> Result<u64, ScanError> {
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
     push_source_filters(query, &mut clauses, &mut parameters);
     let where_clause = if clauses.is_empty() {
         String::new()
@@ -106,7 +107,6 @@ fn load_source_count(
                 "SELECT COUNT(*)
              {source}
              {where_clause}",
-                source = gallery_source(query),
             ),
             params_from_iter(parameters.iter()),
             |row| row.get(0),
@@ -119,6 +119,7 @@ fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
     let order = gallery_order_expressions(query);
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
     push_gallery_filters(query, &mut clauses, &mut parameters);
     let where_clause = if clauses.is_empty() {
         String::new()
@@ -143,7 +144,6 @@ fn build_gallery_timeline_query(query: &GalleryQuery) -> BuiltGalleryQuery {
              {where_clause}
              GROUP BY {month}
              ORDER BY (month_key IS NULL), month_key {direction}",
-            source = gallery_source(query),
         ),
         parameters,
     }

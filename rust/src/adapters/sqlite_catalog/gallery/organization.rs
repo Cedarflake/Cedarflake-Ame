@@ -3,6 +3,7 @@ use rusqlite::{Connection, Transaction, params_from_iter};
 
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
 use crate::domain::organization::validate_identifier;
+use crate::domain::organization_queue::OrganizationQueue;
 use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 
 use super::super::database_error;
@@ -101,19 +102,44 @@ pub(super) fn push_collection_filter(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
-    let condition = match &query.collection {
-        GalleryCollection::Library => return,
-        GalleryCollection::Favorites => "record.favorite = 1",
-        GalleryCollection::Album { album_id } => {
-            parameters.push(Value::Text(album_id.clone()));
-            "record.album_id = ? AND record.disposition = 'organized'"
-        }
+    let Some(condition) = collection_condition(&query.collection, parameters) else {
+        return;
     };
     let group = record_expression("locations");
     clauses.push(format!(
         "EXISTS(SELECT 1 FROM organization_records AS record
          WHERE record.record_id = {group} AND {condition})"
     ));
+}
+
+pub(super) fn presence_condition(
+    query: &GalleryQuery,
+    parameters: &mut Vec<Value>,
+) -> Option<&'static str> {
+    if let Some(condition) = collection_condition(&query.collection, parameters) {
+        return Some(condition);
+    }
+    let queue = query.organization_queue?;
+    if queue == OrganizationQueue::Pending {
+        // Unrecorded groups are pending, so absent decisions cannot prove an empty queue.
+        return None;
+    }
+    parameters.push(Value::Text(queue.disposition().stored().to_owned()));
+    Some("record.disposition = ?")
+}
+
+fn collection_condition(
+    collection: &GalleryCollection,
+    parameters: &mut Vec<Value>,
+) -> Option<&'static str> {
+    match collection {
+        GalleryCollection::Library => None,
+        GalleryCollection::Favorites => Some("record.favorite = 1"),
+        GalleryCollection::Album { album_id } => {
+            parameters.push(Value::Text(album_id.clone()));
+            Some("record.album_id = ? AND record.disposition = 'organized'")
+        }
+    }
 }
 
 pub(super) fn push_group_filter(

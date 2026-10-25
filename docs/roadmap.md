@@ -313,8 +313,10 @@ synchronization admits 12 new pending groups. Its populated album/Favorite, sing
 and empty deferred-queue interactions pass with sampled resources. Optimized-client measurements
 locate additional waits in collection reads, saved continuation and committed-list publication.
 Preview last-use publication now yields immediately to an active organization writer, with bounded
-read/write-contention regressions. Verify the resulting retained-client publication timing and repair
-remaining query costs before integrated performance acceptance; retain the completed measurements.
+read/write-contention regressions. Empty album, Favorite, deferred and ignored reads now avoid
+location traversal when no matching decisions exist, with focused and retained-catalog checks passing.
+Verify the resulting retained-client publication timing and repair remaining populated-query costs
+before integrated performance acceptance; retain the completed measurements.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication
