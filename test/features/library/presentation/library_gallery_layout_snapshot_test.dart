@@ -12,81 +12,92 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   for (final queue in LibraryOrganizationQueue.values) {
-    for (final shape in GalleryLayoutShape.values) {
-      test("$queue uses continuous $shape rows despite retained date sort", () {
-        final grouping = LibraryGalleryGrouping.forQuery(
-          LibraryGalleryQuery(organizationQueue: queue),
-        );
-        final manifest = _manifest(
-          locationIds: ["first", "second", "third"],
-          aspectRatios: [1, 1, 1],
-          dateKeys: [null, "2026-10-24", "2025-01-01"],
-        );
-        final snapshot = LibraryGalleryLayoutSnapshot.build(
-          manifest: manifest,
-          availableWidth: 900,
-          thumbnailSize: GalleryThumbnailSize.small,
-          layoutShape: shape,
-          sortKey: LibraryGallerySortKey.captureTime,
-          grouping: grouping,
-        );
-        expect(snapshot.metrics.dateAnchors, isEmpty);
-        expect(
-          snapshot.entries.where((entry) => entry.isPhotoRow),
-          hasLength(1),
-        );
-        expect(
-          snapshot.entries.where((entry) => entry.headerLabel != null),
-          isEmpty,
-        );
-        expect(
-          snapshot.entries.singleWhere((entry) => entry.isPhotoRow).itemCount,
-          3,
-        );
-        expect(
-          snapshot.matchesInputs(
-            otherManifest: manifest,
-            otherThumbnailSize: GalleryThumbnailSize.small,
-            otherLayoutShape: shape,
-            otherSortKey: LibraryGallerySortKey.captureTime,
-          ),
-          isFalse,
-        );
-        final assets = [
-          for (var index = 0; index < 3; index++)
-            LibraryAsset(
-              assetId: "asset-$index",
-              locationId: "location-$index",
-              rootId: "root",
-              activeScanId: "scan",
-              sourcePath: "C:\\Fixtures\\$index.png",
-              displayPath: "C:\\Fixtures\\$index.png",
-              relativePath: "$index.png",
-              previewPath: "C:\\Missing\\$index.jpg",
-              fileSize: BigInt.one,
-              modifiedUnixMs: index * 86400000,
-              sourceRevision: null,
-              sourceGeneration: BigInt.one,
-              width: 100,
-              height: 100,
+    for (final sortKey in LibraryGallerySortKey.values) {
+      for (final shape in GalleryLayoutShape.values) {
+        test("$queue uses sort-specific $shape rows for $sortKey", () {
+          final query = LibraryGalleryQuery(
+            organizationQueue: queue,
+            sortKey: sortKey,
+          );
+          final grouping = LibraryGalleryGrouping.forQuery(query);
+          final manifest = _manifest(
+            locationIds: ["first", "second", "third"],
+            aspectRatios: [1, 1, 1],
+            dateKeys: [null, "2026-10-24", "2025-01-01"],
+          );
+          final snapshot = LibraryGalleryLayoutSnapshot.build(
+            manifest: manifest,
+            availableWidth: 900,
+            thumbnailSize: GalleryThumbnailSize.small,
+            layoutShape: shape,
+            sortKey: sortKey,
+            grouping: grouping,
+          );
+          expect(
+            snapshot.metrics.dateAnchors.map((anchor) => anchor.year),
+            query.isChronological ? [null, 2026, 2025] : isEmpty,
+          );
+          expect(
+            snapshot.entries
+                .where((entry) => entry.isPhotoRow)
+                .map((entry) => entry.itemCount),
+            query.isChronological ? [1, 1, 1] : [3],
+          );
+          expect(
+            snapshot.entries.where((entry) => entry.headerLabel != null),
+            hasLength(query.isChronological ? 3 : 0),
+          );
+          expect(
+            snapshot.matchesInputs(
+              otherManifest: manifest,
+              otherThumbnailSize: GalleryThumbnailSize.small,
+              otherLayoutShape: shape,
+              otherSortKey: sortKey,
             ),
-        ];
-        final loaded = LibraryGalleryLayoutEntry.build(
-          assets: assets,
-          availableWidth: 900,
-          layoutShape: shape,
-          thumbnailSize: GalleryThumbnailSize.small,
-          sortKey: LibraryGallerySortKey.modifiedTime,
-          grouping: grouping,
-        );
-        final loadedRows = loaded.where((entry) => entry.cells.isNotEmpty);
-        expect(loadedRows, hasLength(1));
-        expect(loaded.where((entry) => entry.headerLabel != null), isEmpty);
-        expect(
-          loadedRows.single.cells.map((cell) => cell.asset.locationId),
-          assets.map((asset) => asset.locationId),
-        );
-      });
+            isTrue,
+          );
+          final assets = [
+            for (var index = 0; index < 3; index++)
+              LibraryAsset(
+                assetId: "asset-$index",
+                locationId: "location-$index",
+                rootId: "root",
+                activeScanId: "scan",
+                sourcePath: "C:\\Fixtures\\$index.png",
+                displayPath: "C:\\Fixtures\\$index.png",
+                relativePath: "$index.png",
+                previewPath: "C:\\Missing\\$index.jpg",
+                fileSize: BigInt.one,
+                createdUnixMs: index * 86400000,
+                modifiedUnixMs: index * 86400000,
+                sourceRevision: null,
+                sourceGeneration: BigInt.one,
+                width: 100,
+                height: 100,
+              ),
+          ];
+          final loaded = LibraryGalleryLayoutEntry.build(
+            assets: assets,
+            availableWidth: 900,
+            layoutShape: shape,
+            thumbnailSize: GalleryThumbnailSize.small,
+            sortKey: sortKey,
+            grouping: grouping,
+          );
+          final loadedRows = loaded.where((entry) => entry.cells.isNotEmpty);
+          expect(loadedRows, hasLength(query.isChronological ? 3 : 1));
+          expect(
+            loaded.where((entry) => entry.headerLabel != null),
+            hasLength(query.isChronological ? 3 : 0),
+          );
+          expect(
+            loadedRows
+                .expand((row) => row.cells)
+                .map((cell) => cell.asset.locationId),
+            assets.map((asset) => asset.locationId),
+          );
+        });
+      }
     }
   }
 

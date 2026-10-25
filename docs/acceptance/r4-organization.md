@@ -2569,3 +2569,13 @@ R4 organization workflow. It does not close the remaining publication/read laten
 The gallery wall contains 1,542 production lines and no inline tests. The added frame-continuity
 suite contains 131 lines and its native entrypoint 9 lines. The change corrects the existing layout
 invalidation boundary without adding a controller, animation, dependency, schema or source read.
+
+## Sort-layout assertion alignment - 2026-10-26
+
+Hosted run `40222442645` on `b3ddbec1` found six stale layout assertions requiring every organization
+queue to remain ungrouped under date sorting. Those assertions predated the accepted shared
+sort-driven layout and rail contract. The suite now checks all three queues, five sort keys and two
+card shapes: chronological rows keep date anchors/headings; name and admission rows remain continuous.
+Both manifest and loaded-window packing, item order and layout-input identity are checked. All 38
+layout snapshot cases and three rail-projection cases pass locally, along with strict Dart analysis.
+The earlier run's failed Flutter result remains a failure; the correction needs its own hosted head.
