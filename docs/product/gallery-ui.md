@@ -1017,11 +1017,16 @@ or selection actions. The second contains one mode dropdown showing the current 
 name, followed by `退出整理` and `继续整理`. Its menu offers `待整理`, `稍后整理`, and `已忽略`, marks the
 current choice and includes queue counts. Exit and continuation use a close
 icon and forward arrow with their text labels. Both rows remain available during selection and use
-the header's horizontal scrolling at constrained desktop widths or enlarged text scales.
+the header's horizontal scrolling at constrained desktop widths or enlarged text scales. Counts
+also retain a single horizontally scrollable line when enlarged text exceeds their available width.
 
-Reuse the existing checked popup menu and text-button styles. Reveal and collapse the second row
-with a 180 ms height and opacity transition, retaining its content until exit finishes and retiring
-input on exit. Reversing the transition preserves its current progress; reduced motion is immediate.
+Reuse the existing popup menu's small dot selection marker and text-button styles. At desktop widths
+with side-by-side information and actions, align the title with the first action row and the count
+with the second. Reveal and collapse the second row over 260 ms, moving both information rows,
+actions and the photo area's upper boundary together while fading the secondary actions. Interpolate
+the complete collapsed and expanded geometry so minimum header space cannot delay the photo area's
+movement. Retain the secondary content until exit finishes and retire its input immediately.
+Reversing the transition preserves its current progress; reduced motion is immediate.
 Keep these controls in the header without a bottom
 dock or passive continuation messages. Bottom notifications retain their existing placement.
 An operation failure uses the existing top notice with retry. Organization reuses the gallery's

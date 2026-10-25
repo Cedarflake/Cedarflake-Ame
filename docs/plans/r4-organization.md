@@ -200,8 +200,9 @@ Work in this order within the slice:
 4. Put total, organized, pending and ignored counts in the existing count row. Use two rows in the
    upper-right operation area: existing browsing/selection actions above, then one dropdown with
    the current queue's icon and name, followed by exit and continuation buttons with icons and labels.
-   The checked menu offers `待整理`, `稍后整理` and `已忽略` with counts. Animate row entry and exit,
-   respecting reduced motion. Hide continuation
+   The menu offers `待整理`, `稍后整理` and `已忽略` with counts and the shared dot selection marker.
+   Align the title and count with the corresponding action rows. Animate their geometry together
+   on entry and exit, respecting reduced motion. Hide continuation
    until prior activity and a resumable position both exist. Retain content and control appearance
    during short query changes. Preserve bottom notification placement and reuse the right-side
    time rail as a positional scroll control without date annotations for organization queues and

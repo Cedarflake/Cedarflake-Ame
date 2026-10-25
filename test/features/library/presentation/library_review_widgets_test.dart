@@ -294,9 +294,8 @@ void main() {
         }
         expect(
           tester
-              .widget<CheckedPopupMenuItem<LibraryOrganizationQueue>>(
-                find.byKey(const ValueKey("library-review-queue-pending")),
-              )
+              .widget<Semantics>(find.byKey(const ValueKey("menu-choice-待整理")))
+              .properties
               .checked,
           isTrue,
         );

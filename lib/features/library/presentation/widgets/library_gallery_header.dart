@@ -2,7 +2,9 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../domain/library_models.dart";
 import "../gallery_view_options.dart";
 import "../library_strings.dart";
@@ -83,38 +85,38 @@ class LibraryGalleryHeader extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
           child: LayoutBuilder(
             builder: (context, constraints) {
-              final titleText = Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+              final titleText = Wrap(
+                spacing: 12,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
-                  Wrap(
-                    spacing: 12,
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: [
-                      Text(
-                        title,
-                        key: const Key("library-gallery-title"),
-                        style: Theme.of(context).textTheme.headlineSmall,
-                      ),
-                      if (isReviewing)
-                        Text(
-                          "整理模式",
-                          style: Theme.of(context).textTheme.bodyMedium
-                              ?.copyWith(
-                                color: Theme.of(context).colorScheme.primary,
-                              ),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
                   Text(
-                    subtitle,
-                    key: const Key("library-summary"),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    title,
+                    key: const Key("library-gallery-title"),
+                    style: Theme.of(context).textTheme.headlineSmall,
+                  ),
+                  if (isReviewing)
+                    Text(
+                      "整理模式",
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                    ),
+                ],
+              );
+              final summary = LibrarySidebarLeading(
+                child: AmeScrollMotion(
+                  scrollDirection: Axis.horizontal,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Text(
+                      subtitle,
+                      key: const Key("library-summary"),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ),
-                ],
+                ),
               );
               final titleBlock = LibrarySidebarLeading(
                 child: Row(
@@ -151,6 +153,8 @@ class LibraryGalleryHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     titleBlock,
+                    const SizedBox(height: 4),
+                    summary,
                     const SizedBox(height: 12),
                     Align(
                       alignment: Alignment.centerRight,
@@ -162,18 +166,11 @@ class LibraryGalleryHeader extends StatelessWidget {
                   ],
                 );
               }
-              return Row(
-                children: [
-                  titleBlock,
-                  const SizedBox(width: 24),
-                  Expanded(
-                    child: LibraryGalleryHeaderActions(
-                      primary: toolbar,
-                      secondary: reviewToolbar,
-                      minimumWidth: constraints.maxWidth - 210,
-                    ),
-                  ),
-                ],
+              return LibraryGalleryHeaderActions(
+                title: titleBlock,
+                summary: summary,
+                primary: toolbar,
+                secondary: reviewToolbar,
               );
             },
           ),
@@ -301,32 +298,32 @@ class _SortMenu extends StatelessWidget {
       ],
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
       items: [
-        _menuChoice(
+        ameMenuChoice(
           value: _SortMenuAction.captureTime,
           label: LibraryStrings.captureDate,
           icon: Symbols.calendar_month_rounded,
           isSelected: sortKey == LibraryGallerySortKey.captureTime,
         ),
-        _menuChoice(
+        ameMenuChoice(
           value: _SortMenuAction.createdTime,
           label: LibraryStrings.createdDate,
           icon: Symbols.create_new_folder_rounded,
           isSelected: sortKey == LibraryGallerySortKey.createdTime,
         ),
-        _menuChoice(
+        ameMenuChoice(
           value: _SortMenuAction.modifiedTime,
           label: LibraryStrings.modifiedDate,
           icon: Symbols.edit_calendar_rounded,
           isSelected: sortKey == LibraryGallerySortKey.modifiedTime,
         ),
-        _menuChoice(
+        ameMenuChoice(
           value: _SortMenuAction.fileName,
           label: LibraryStrings.fileName,
           icon: Symbols.text_fields_rounded,
           isSelected: sortKey == LibraryGallerySortKey.fileName,
         ),
         if (isReviewing)
-          _menuChoice(
+          ameMenuChoice(
             value: _SortMenuAction.libraryAdmission,
             label: LibraryStrings.newestAddedFirst,
             icon: Symbols.new_releases_rounded,
@@ -334,13 +331,13 @@ class _SortMenu extends StatelessWidget {
           ),
         if (sortKey != LibraryGallerySortKey.libraryAdmission) ...[
           const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
-          _menuChoice(
+          ameMenuChoice(
             value: _SortMenuAction.ascending,
             label: LibraryStrings.ascending,
             icon: Symbols.arrow_upward_rounded,
             isSelected: direction == LibraryGallerySortDirection.ascending,
           ),
-          _menuChoice(
+          ameMenuChoice(
             value: _SortMenuAction.descending,
             label: LibraryStrings.descending,
             icon: Symbols.arrow_downward_rounded,
@@ -409,32 +406,32 @@ class _LayoutMenu extends StatelessWidget {
       ],
       leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
       items: [
-        _menuChoice(
+        ameMenuChoice(
           value: _LayoutMenuAction.equalHeight,
           label: LibraryStrings.equalHeight,
           icon: Symbols.view_quilt_rounded,
           isSelected: shape == GalleryLayoutShape.equalHeight,
         ),
-        _menuChoice(
+        ameMenuChoice(
           value: _LayoutMenuAction.square,
           label: LibraryStrings.square,
           icon: Symbols.grid_view_rounded,
           isSelected: shape == GalleryLayoutShape.square,
         ),
         const PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
-        _menuChoice(
+        ameMenuChoice(
           value: _LayoutMenuAction.small,
           label: LibraryStrings.small,
           icon: Symbols.grid_4x4_rounded,
           isSelected: size == GalleryThumbnailSize.small,
         ),
-        _menuChoice(
+        ameMenuChoice(
           value: _LayoutMenuAction.medium,
           label: LibraryStrings.medium,
           icon: Symbols.grid_view_rounded,
           isSelected: size == GalleryThumbnailSize.medium,
         ),
-        _menuChoice(
+        ameMenuChoice(
           value: _LayoutMenuAction.large,
           label: LibraryStrings.large,
           icon: Symbols.crop_square_rounded,
@@ -530,46 +527,6 @@ class _MoreMenu extends StatelessWidget {
       ),
     );
   }
-}
-
-PopupMenuItem<T> _menuChoice<T>({
-  required T value,
-  required String label,
-  required IconData icon,
-  required bool isSelected,
-}) {
-  return PopupMenuItem<T>(
-    value: value,
-    child: Semantics(
-      key: ValueKey("menu-choice-$label"),
-      checked: isSelected,
-      inMutuallyExclusiveGroup: true,
-      child: Row(
-        children: [
-          SizedBox(
-            width: AmeMenuMetrics.selectionIndicatorSlotWidth,
-            child: isSelected
-                ? const ExcludeSemantics(
-                    child: Icon(
-                      Symbols.circle_rounded,
-                      size: AmeMenuMetrics.selectionIndicatorSize,
-                      fill: 1,
-                    ),
-                  )
-                : null,
-          ),
-          const SizedBox(width: AmeMenuMetrics.iconLabelGap),
-          Expanded(
-            child: AmeMenuItemContent(
-              icon: icon,
-              label: label,
-              isSelected: isSelected,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
 }
 
 enum _SortMenuAction {

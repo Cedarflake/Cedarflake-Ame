@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_organization_queue.dart";
 import "../library_organization_mode.dart";
@@ -21,17 +22,15 @@ class LibraryReviewToolbar extends StatelessWidget {
       children: [
         AmePopupMenuButton<LibraryOrganizationQueue>(
           labels: LibraryOrganizationQueue.values.map(_label),
-          leadingIconWidth: kMinInteractiveDimension,
+          leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
           items: [
             for (final queue in LibraryOrganizationQueue.values)
-              CheckedPopupMenuItem(
+              ameMenuChoice(
                 key: ValueKey("library-review-queue-${queue.name}"),
                 value: queue,
-                checked: queue == mode.queue,
-                child: AmeMenuItemContent(
-                  icon: _icon(queue),
-                  label: _label(queue),
-                ),
+                isSelected: queue == mode.queue,
+                icon: _icon(queue),
+                label: _label(queue),
               ),
           ],
           onSelected: mode.selectQueue,

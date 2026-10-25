@@ -2402,3 +2402,43 @@ Album creation and More actions use the same themed icon size as source navigati
 separate 20-pixel overrides. Scoped formatting, strict analysis and the Windows Debug build pass.
 The retained isolated client shows the aligned action icons and opens the album More menu correctly;
 no album membership, source files or navigation behavior changes.
+
+## Header alignment and continuous geometry - 2026-10-25
+
+The organization dropdown now shares the sorting/layout menus' dot marker and exclusive-selection
+semantics. The wide header aligns the title with browsing/selection actions and the counts with
+organization actions. Both sides and the gallery boundary interpolate their measured geometry over
+260 ms. This replaces the previous minimum-height plateau, during which controls expanded before
+the gallery began moving. Enlarged count text stays on one horizontally scrollable line instead of
+changing the header height on mode entry. Exit immediately retires secondary input; interrupted
+transitions start from the displayed progress, and reduced motion remains immediate.
+
+The installed Flutter 3.44.9 implementation and official
+[Table](https://api.flutter.dev/flutter/widgets/Table-class.html) and
+[CustomMultiChildLayout](https://api.flutter.dev/flutter/rendering/MultiChildLayoutDelegate-class.html)
+contracts were checked. Table supplies static content-sized rows, while a multi-child delegate
+cannot derive its own height from its children. The four-cell header render owner supplies only
+measured layout interpolation; existing Material buttons, popup routes, scroll views, focus,
+semantics and animation controllers retain their framework ownership. The Material menu reference
+remains the [official component](https://m3.material.io/components/menus/overview); its page requires
+JavaScript, so capability evidence comes from the installed SDK and existing shared menu owner.
+
+All 30 focused Flutter cases pass: header motion (2), actual-header alignment (2), review widgets
+(14), sidebar/right-edge geometry (6), unified review (2), and gallery counts (4). The alignment
+cases cover the real count wording at normal and doubled text scale, early gallery movement,
+rebuilds during entry, interrupted reversal and return to the original height. Strict analysis and
+formatting of seven owned Dart files pass. The repository-wide format check still reports only the
+pre-existing unrelated edit in `library_gallery_states.dart`; that file remains outside this change.
+
+The final Windows Debug build passes. In the retained generated-library client, the corresponding
+header rows align during ordinary organization and selection; collapsing and expanding the sidebar
+preserve the right action edge. The mode menu displays the dot and complete labels/counts, and
+switching to deferred updates the selected mode. Entering and exiting organization returns to the
+appropriate header and gallery geometry. Frame timing and interrupted reversal are verified by the
+focused widget tests, not inferred from still screenshots. The original 72 groups and progress counts
+remain unchanged; no organization decisions or original media were modified.
+
+The header, animation, measured-row, shared menu-choice and review-toolbar owners contain
+544/153/125/44/92 production lines, with no inline tests. Their dedicated alignment/motion/review
+tests contain 128/90/481 lines. No schema, bridge, dependency, source-policy or queue-order change
+is introduced.

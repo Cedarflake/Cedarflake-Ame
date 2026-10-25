@@ -376,9 +376,13 @@ can supply the header and review controls. Exiting restores the retained browsin
 query/selection admission rules, so obsolete all-matching selections cannot authorize new writes.
 
 `LibraryReviewToolbar` owns the current-queue dropdown and labeled exit/continuation controls.
-`LibraryGalleryHeaderActions` positions the two action rows and owns the retained secondary row's
-height/opacity transition, reversible progress and reduced-motion behavior. The retiring row loses
-pointer, keyboard and semantic input immediately. Material buttons and checked popup items retain
+`LibraryGalleryHeaderActions` owns the retained secondary row, shared animation progress and
+reduced-motion behavior. `LibraryGalleryHeaderRows` measures four bounded cells and interpolates
+the complete header geometry, aligning title/count with their corresponding action rows and
+avoiding a minimum-height plateau before gallery movement. Narrow desktop layouts retain stacked
+information and horizontally scrollable actions. The retiring row loses pointer, keyboard and
+semantic input immediately. `ameMenuChoice` supplies the same dot marker and exclusive-selection
+semantics to sorting, layout and organization menus. Material buttons and popup items retain
 focus, selection and accessible names. The pinned SDK's `AbsorbPointer` removes pointer-related semantic
 actions during a mode operation without repainting the controls as disabled; the existing mode
 guard also rejects repeated keyboard commands. Published empty content remains mounted during
