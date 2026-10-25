@@ -238,7 +238,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey("source-title-other")));
     await tester.pump();
     expect(fixture.state.isRefreshingQuery, isTrue);
-    expect(find.byKey(const Key("library-top-loading")), findsOneWidget);
+    final loading = find.byKey(const Key("library-top-loading"));
+    expect(loading, findsNothing);
     expect(find.byType(LibraryTaskSurface), findsNothing);
     final updateSurface = find.byKey(const Key("library-update-task-surface"));
     expect(updateSurface, findsOneWidget);
@@ -249,6 +250,12 @@ void main() {
       ),
       findsOneWidget,
     );
+    await tester.pump(const Duration(milliseconds: 249));
+    expect(loading, findsNothing);
+    expect(updateSurface, findsOneWidget);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(loading, findsOneWidget);
+    expect(updateSurface, findsOneWidget);
     pending.complete(
       fixture.catalog.snapshot(const LibraryGalleryQuery(rootId: "other")),
     );
@@ -256,6 +263,7 @@ void main() {
     await tester.pump();
     expect(fixture.state.query.rootId, "other");
     expect(fixture.state.isRefreshingQuery, isFalse);
+    expect(loading, findsNothing);
     expect(find.byType(LibraryTaskSurface), findsNothing);
     expect(updateSurface, findsOneWidget);
     expect(fixture.scanner.startedRoots, ["C:\\Other"]);

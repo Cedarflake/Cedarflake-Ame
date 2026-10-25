@@ -2677,3 +2677,13 @@ The gallery query/source/organization owners contain 398/89/212 production lines
 scroll-section owners at 150/111. They contain no inline test bodies. The dedicated empty-scope suite
 has 117 lines and the retained read-stage diagnostic 99. Exact-head hosted verification follows
 publication.
+
+## Retained-update loading assertion - 2026-10-26
+
+Run `40224571118` on `e56bbc05` reports one Flutter failure in the retained-scan interaction suite.
+The test expected a query-loading line on the first frame, despite the accepted 250-ms feedback delay.
+It now checks no line through 249 ms, the line at 250 ms, and removal when the read completes.
+The other root's update surface and Cancel action retain their assertions throughout the query.
+The production loading behavior is unchanged; direct scrolling and positioning retain immediate
+feedback. All eight retained-scan interaction tests pass, along with scoped Dart formatting and
+strict analysis. The earlier hosted failure remains recorded; the corrected head needs its own CI.
