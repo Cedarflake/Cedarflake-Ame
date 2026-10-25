@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-25
+Last planning update: 2026-10-26
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -314,6 +314,11 @@ and empty deferred-queue interactions pass with sampled resources. Optimized-cli
 now locate additional waits in collection reads, saved continuation and committed-list publication.
 Opening an album during the full organization write waits for that write to finish. Repair these
 owning read/write paths before integrated performance acceptance; retain the completed measurements.
+Prioritize batch assignment, movement/removal, Favorite and queue-state latency, measuring preparation,
+commit and visible publication separately. Then address measured jumps and frame stalls during
+publication, organization entry/exit and sidebar transitions while preserving the accepted controls.
+Sort-driven date, name and current-entry arrival-range rails have focused regression and build
+coverage; their final native interaction check remains pending after desktop activation failed.
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
 47,833-group write, with all durable records unchanged after reopen. Client operation timings are
 recorded; native cancellation interaction and cleanup publication remain open.

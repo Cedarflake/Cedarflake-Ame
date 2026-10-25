@@ -2464,3 +2464,37 @@ counts remain unchanged, and the isolated client remains open in organization mo
 The rail and extracted tick/marker owners contain 458/67 production lines with no inline tests;
 their affected surface/tick suites contain 104/42 lines. No source, schema, query, scrollbar gesture
 or queue-order policy changes are introduced.
+
+## Sort-driven scroll sections - 2026-10-26
+
+Date sorting now retains the same time buckets and navigation in ordinary and organization views.
+Name sorting publishes bounded contiguous letter, numeric and symbol sections. New-first ordering
+marks groups admitted after the current organization-mode entry, retaining that boundary across
+sort/queue changes, continuation and workspace visits. Re-entry captures a fresh boundary, and a
+new duplicate copy retains its group's earliest admission. The boundary is ephemeral query state;
+there is no schema migration or original-media access.
+
+The query snapshot aggregates at most 29 name sections or two admission sections. Presentation maps
+their ordinals to measured query-wide row offsets, with a proportional fallback before geometry is
+available. Passive labels and range decoration share the existing continuous Material Slider and
+scroll-position drag lifecycle.
+
+All 24 organization query tests pass, including date parity, both name directions, scoped counts,
+arrival boundaries and duplicate-copy admission. The 55 focused Flutter cases cover organization
+queries and mode lifetime, projection, rail interaction/layout/motion, the scroll surface and review
+integration. Both source-module inventory cases pass. Scoped Dart analysis/formatting, Rust format,
+Clippy with warnings denied, the Windows Debug build and all 17 bridge contracts pass.
+
+The rebuilt isolated Windows client opens successfully. The final native name/date/arrival-range
+interaction remains unverified: input activation returned `failed to activate captured window`,
+including after acquiring the current window again. No input was sent after that repeated failure.
+The earlier positional-rail client result above does not establish these new annotations.
+
+The Dart model/catalog/screen/mode owners contain 559/607/1,889/387 production lines, with no inline
+tests. Their new projection/range owners contain 63/62 lines; section SQL owns 111 lines behind the
+150-line timeline facade. The Rust domain facade contains 825 lines with separate test modules.
+Affected mode/projection/section suites contain 490/129/177 dedicated test lines. Generated bridge
+changes carry the new typed sections and read-only admission-boundary operation.
+The unchanged availability facade has 2,629 lines before its 3,386-line inline test module; this
+change only extends that test module's exact source inventory. Its separate topology suite is
+459 lines. No availability implementation is changed.

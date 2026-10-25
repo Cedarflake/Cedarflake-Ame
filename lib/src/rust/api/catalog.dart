@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../domain/gallery_query_snapshot.dart';
+import '../domain/gallery_scroll_section.dart';
 import '../domain/gallery_time_snapshot.dart';
 import '../domain/organization_queue.dart';
 import '../frb_generated.dart';

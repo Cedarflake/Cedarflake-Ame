@@ -101,8 +101,11 @@ class LibraryOrganizationMode extends ChangeNotifier
   Future<void> enter() => _run(() async {
     if (isActive || !canEnter) return;
     final saved = surface.captureBrowse();
+    final boundary = await service.admissionBoundary();
+    if (_disposed || surface.library.query != saved.query) return;
     final query = saved.query.copyWith(
       organizationQueue: LibraryOrganizationQueue.pending,
+      newSinceAdmission: boundary,
     );
     if (!await surface.showReviewQuery(query) || _disposed) return;
     _ordinary = saved;
@@ -146,6 +149,7 @@ class LibraryOrganizationMode extends ChangeNotifier
       if (!isActive || requested.collection is! LibraryAllCollection) return;
       final query = requested.copyWith(
         organizationQueue: requested.organizationQueue ?? queue,
+        newSinceAdmission: surface.library.query.newSinceAdmission,
       );
       final browse = surface.captureBrowse();
       final onlyOrderingChanged =
@@ -174,8 +178,13 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> showConflicts() => _run(() async {
     final saved = _ordinary ?? surface.captureBrowse();
-    const query = LibraryGalleryQuery(
+    final boundary = isActive
+        ? surface.library.query.newSinceAdmission
+        : await service.admissionBoundary();
+    if (_disposed) return;
+    final query = LibraryGalleryQuery(
       organizationQueue: LibraryOrganizationQueue.deferred,
+      newSinceAdmission: boundary,
     );
     if (!await surface.showReviewQuery(query) || _disposed) return;
     surface.closeReviewImage();
@@ -281,7 +290,9 @@ class LibraryOrganizationMode extends ChangeNotifier
 
   Future<void> _showContinuation(LibraryReviewContinuation result) async {
     final intent = _viewerIntent;
-    final query = result.query!;
+    final query = result.query!.copyWith(
+      newSinceAdmission: surface.library.query.newSinceAdmission,
+    );
     final target = result.target!;
     if (!await surface.showReviewQuery(query, target: target) || _disposed) {
       throw StateError("The review query could not be restored");

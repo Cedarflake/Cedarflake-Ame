@@ -7,6 +7,8 @@ use crate::domain::organization_review::{
 use crate::domain::{GalleryQuery, ScanError};
 
 pub(crate) trait OrganizationReviewRepository {
+    fn load_organization_admission_boundary(&self) -> Result<u64, ScanError>;
+
     fn begin_organization_review(
         &mut self,
         query: &GalleryQuery,

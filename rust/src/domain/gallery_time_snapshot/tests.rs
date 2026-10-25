@@ -34,6 +34,7 @@ fn timeline(direction: &GallerySortDirection, unknown: bool) -> GalleryTimeline 
         query_id: "query".to_owned(),
         total_items: if unknown { 12 } else { 10 },
         total_source_items: if unknown { 12 } else { 10 },
+        scroll_sections: vec![],
         buckets,
     }
 }
@@ -137,6 +138,7 @@ fn current_time_intent_has_no_anchor_for_empty_results() {
         query_id: "query".to_owned(),
         total_items: 0,
         total_source_items: 0,
+        scroll_sections: vec![],
         buckets: vec![],
     };
     let intent = GalleryTimeIntent {

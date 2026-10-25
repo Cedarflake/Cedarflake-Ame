@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 import "../../../src/rust/api/catalog.dart" as rust_api;
 import "../../../src/rust/domain.dart" as rust_domain;
 import "../../../src/rust/domain/gallery_query_snapshot.dart" as rust_query;
+import "../../../src/rust/domain/gallery_scroll_section.dart" as rust_scroll;
 import "../../../src/rust/domain/gallery_time_snapshot.dart" as rust_time;
 import "../../../src/rust/domain/organization_queue.dart" as rust_organization;
 import "../domain/library_folder_models.dart";
@@ -389,6 +390,22 @@ class RustLibraryCatalog
       queryId: timeline.queryId,
       totalItems: timeline.totalItems.toInt(),
       totalSourceItems: timeline.totalSourceItems.toInt(),
+      scrollSections: List.unmodifiable([
+        for (final section in timeline.scrollSections)
+          LibraryScrollSection(
+            kind: switch (section.kind) {
+              rust_scroll.GalleryScrollSectionKind.name =>
+                LibraryScrollSectionKind.name,
+              rust_scroll.GalleryScrollSectionKind.newArrivals =>
+                LibraryScrollSectionKind.newArrivals,
+              rust_scroll.GalleryScrollSectionKind.earlier =>
+                LibraryScrollSectionKind.earlier,
+            },
+            key: section.key,
+            startOrdinal: section.startOrdinal.toInt(),
+            itemCount: section.itemCount.toInt(),
+          ),
+      ]),
       buckets: List.unmodifiable(
         timeline.buckets.map(
           (bucket) => LibraryTimeBucket(
@@ -474,6 +491,7 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
         rust_organization.OrganizationQueue.ignored,
     },
     rootId: query.rootId,
+    newSinceAdmission: query.newSinceAdmission,
     folderRelativePath: query.folderRelativePath,
     includeDescendants: query.includeDescendants,
     searchText: query.searchText,

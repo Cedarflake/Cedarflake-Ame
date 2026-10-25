@@ -10,6 +10,9 @@ import '../domain/organization_review.dart';
 import '../frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
+Future<BigInt> loadOrganizationAdmissionBoundary() => RustLib.instance.api
+    .crateApiOrganizationReviewLoadOrganizationAdmissionBoundary();
+
 Future<OrganizationReviewSession> beginOrganizationReview({
   required GalleryQuery query,
 }) => RustLib.instance.api.crateApiOrganizationReviewBeginOrganizationReview(

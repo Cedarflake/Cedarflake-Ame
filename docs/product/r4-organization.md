@@ -156,6 +156,12 @@ The organization-only `新加入优先` option puts newly admitted independent g
 groups found during startup synchronization. This option uses library admission, not capture date.
 Newly identified copies of an existing group reuse its progress instead of creating another task.
 
+Both modes share one scroll rail selected by sorting: chronological sorts retain the original
+year/month navigation, and natural-name sorting shows letter ranges. `新加入优先` highlights only
+groups first admitted after entering the current organization mode. Retain this entry boundary
+through sorting, queue and workspace changes; capture a new boundary after exit and re-entry.
+This display boundary does not mark images handled or replace saved continuation.
+
 Keep handled-group state separate from the saved continuation position. Persist the owning scope,
 queue order, stable logical anchor, and progress; an ordinal such as "image 800" is insufficient.
 New arrivals, duplicate folding, sorting, and representative changes preserve the current image and

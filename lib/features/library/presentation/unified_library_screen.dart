@@ -63,6 +63,7 @@ import "widgets/library_gallery_layout.dart";
 import "widgets/library_gallery_prepend_compensation.dart";
 import "widgets/library_gallery_viewport.dart";
 import "widgets/library_gallery_scroll_surface.dart";
+import "widgets/library_sort_rail_projection.dart";
 import "widgets/library_gallery_states.dart";
 import "widgets/library_gallery_wall.dart";
 import "widgets/library_global_bar.dart";
@@ -905,11 +906,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         onImport: controller.chooseDirectoryAndScan,
       );
     }
-    return LibraryGalleryScrollSurface(
-      controller: _galleryScrollController,
-      usePositionRail: !state.query.isChronological,
-      scrollIdentity: state.query,
-      gallery: LibraryGalleryWall(
+    return ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
+      valueListenable: _galleryLayoutSnapshot,
+      child: LibraryGalleryWall(
         state: state,
         controller: controller,
         scrollController: _galleryScrollController,
@@ -938,14 +937,21 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         onLayoutTransitionApplied: _completeGalleryLayoutTransition,
         positionResolver: _galleryPositionResolver,
       ),
-      timeNavigation: _viewer.assetId == null
-          ? ValueListenableBuilder<_LibraryGalleryLayoutSnapshot?>(
-              valueListenable: _galleryLayoutSnapshot,
-              builder: (context, snapshot, child) {
-                final activeSnapshot = snapshot?.matches(state) ?? false
-                    ? snapshot
-                    : null;
-                return LibraryTimeNavigation(
+      builder: (context, snapshot, gallery) {
+        final activeSnapshot = snapshot?.matches(state) ?? false
+            ? snapshot
+            : null;
+        return LibraryGalleryScrollSurface(
+          controller: _galleryScrollController,
+          usePositionRail: !state.query.isChronological,
+          scrollIdentity: state.query,
+          gallery: gallery!,
+          sortProjection: LibrarySortRailProjection(
+            timeline: state.timeline,
+            metrics: activeSnapshot?.metrics,
+          ),
+          timeNavigation: _viewer.assetId == null && state.query.isChronological
+              ? LibraryTimeNavigation(
                   key: ValueKey<int>(_timelineSemanticsGeneration),
                   isLoading: state.isLoadingTimeline,
                   scrollController: _galleryScrollController,
@@ -962,10 +968,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                   onCancelSeek: controller.cancelTimeNavigation,
                   onPrefetch: (bucket, itemOffset) =>
                       controller.prefetchTime(bucket, itemOffset: itemOffset),
-                );
-              },
-            )
-          : null,
+                )
+              : null,
+        );
+      },
     );
   }
 

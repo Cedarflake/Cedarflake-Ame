@@ -7,6 +7,7 @@ import "timeline_rail_layout.dart";
 import "timeline_rail_model.dart";
 import "timeline_rail_motion.dart";
 import "timeline_rail_ticks.dart";
+import "timeline_rail_ranges.dart";
 import "vertical_material_timeline_slider.dart";
 
 export "timeline_rail_model.dart"
@@ -89,7 +90,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
           children: [
             _buildStepButton(
               key: const Key("timeline-previous"),
-              tooltip: anchors.isEmpty ? "向上滚动" : "向较新的内容移动一行",
+              tooltip: "向上滚动",
               icon: Symbols.arrow_drop_up_rounded,
               direction: -1,
             ),
@@ -132,6 +133,15 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
                       child: Stack(
                         clipBehavior: Clip.none,
                         children: [
+                          Positioned.fill(
+                            child: TimelineRailRanges(
+                              anchors: anchors,
+                              projection: projection,
+                              geometry: geometry,
+                              endpointInset: _endpointInset,
+                              isInteracting: _isDragging,
+                            ),
+                          ),
                           Positioned(
                             top: 0,
                             right: 0,
@@ -216,7 +226,7 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
             ),
             _buildStepButton(
               key: const Key("timeline-next"),
-              tooltip: anchors.isEmpty ? "向下滚动" : "向较早的内容移动一行",
+              tooltip: "向下滚动",
               icon: Symbols.arrow_drop_down_rounded,
               direction: 1,
             ),
@@ -295,7 +305,8 @@ class _AnnotatedTimeRailState extends State<AnnotatedTimeRail> {
           child: Align(
             alignment: Alignment.centerRight,
             child: Text(
-              anchor.bucket.isUnknown ? "未知" : "${anchor.bucket.year}",
+              anchor.bucket.axisLabel ??
+                  (anchor.bucket.isUnknown ? "未知" : "${anchor.bucket.year}"),
               style: Theme.of(context).textTheme.labelMedium?.copyWith(
                 color: isCurrent ? Theme.of(context).colorScheme.primary : null,
                 fontWeight: isCurrent ? FontWeight.w700 : null,

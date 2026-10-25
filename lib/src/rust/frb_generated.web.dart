@@ -26,6 +26,7 @@ import 'domain.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
 import 'domain/gallery_query_snapshot.dart';
+import 'domain/gallery_scroll_section.dart';
 import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
@@ -484,6 +485,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GalleryQuerySnapshot dco_decode_gallery_query_snapshot(dynamic raw);
 
   @protected
+  GalleryScrollSection dco_decode_gallery_scroll_section(dynamic raw);
+
+  @protected
+  GalleryScrollSectionKind dco_decode_gallery_scroll_section_kind(dynamic raw);
+
+  @protected
   GallerySortDirection dco_decode_gallery_sort_direction(dynamic raw);
 
   @protected
@@ -590,6 +597,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<GalleryLayoutDateGroup> dco_decode_list_gallery_layout_date_group(
+    dynamic raw,
+  );
+
+  @protected
+  List<GalleryScrollSection> dco_decode_list_gallery_scroll_section(
     dynamic raw,
   );
 
@@ -1490,6 +1502,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  GalleryScrollSection sse_decode_gallery_scroll_section(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryScrollSectionKind sse_decode_gallery_scroll_section_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   GallerySortDirection sse_decode_gallery_sort_direction(
     SseDeserializer deserializer,
   );
@@ -1620,6 +1642,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<GalleryLayoutDateGroup> sse_decode_list_gallery_layout_date_group(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<GalleryScrollSection> sse_decode_list_gallery_scroll_section(
     SseDeserializer deserializer,
   );
 
@@ -2703,6 +2730,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_gallery_scroll_section(
+    GalleryScrollSection self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_scroll_section_kind(
+    GalleryScrollSectionKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_gallery_sort_direction(
     GallerySortDirection self,
     SseSerializer serializer,
@@ -2867,6 +2906,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_gallery_layout_date_group(
     List<GalleryLayoutDateGroup> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_gallery_scroll_section(
+    List<GalleryScrollSection> self,
     SseSerializer serializer,
   );
 

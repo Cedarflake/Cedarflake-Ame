@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
+import 'gallery_scroll_section.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
 class GalleryTimeIntent {

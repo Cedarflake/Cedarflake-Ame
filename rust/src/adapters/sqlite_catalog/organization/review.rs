@@ -19,6 +19,20 @@ pub(in super::super) mod scope;
 pub(super) use scope::{forget_source, transfer_source};
 
 impl OrganizationReviewRepository for SqliteCatalog {
+    fn load_organization_admission_boundary(&self) -> Result<u64, ScanError> {
+        let boundary: i64 = self
+            .connection
+            .query_row(
+                "SELECT COALESCE(MAX(value), 0) FROM (
+               SELECT seq AS value FROM sqlite_sequence WHERE name = 'organization_admissions'
+               UNION ALL SELECT MAX(admission_id) FROM organization_recovery_admissions)",
+                [],
+                |row| row.get(0),
+            )
+            .map_err(database_error)?;
+        super::super::sqlite_unsigned(boundary, "new-arrival boundary")
+    }
+
     fn begin_organization_review(
         &mut self,
         query: &GalleryQuery,

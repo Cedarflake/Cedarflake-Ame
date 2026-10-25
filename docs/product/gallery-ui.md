@@ -469,7 +469,7 @@ The compact sort action opens two independent choice groups:
 
 The initial default is `拍摄日期 + 降序`. A capture-time sort keeps missing evidence in an explicit
 unknown section rather than substituting another timestamp. Date headers use the selected date
-source. Name sorting does not retain false date headers or a chronological time rail.
+source. Name sorting uses letter annotations on the shared scroll rail and omits date headers.
 
 R2 UI fixtures show this confirmed menu. Production options become visible only with a bounded,
 revision-safe backend query for the corresponding key and direction; sorting a partial Flutter
@@ -1029,13 +1029,16 @@ movement. Retain the secondary content until exit finishes and retire its input 
 Reversing the transition preserves its current progress; reduced motion is immediate.
 Keep these controls in the header without a bottom
 dock or passive continuation messages. Bottom notifications retain their existing placement.
-An operation failure uses the existing top notice with retry. Organization reuses the gallery's
-right-side time rail, including its track, dot ticks, position line, arrows and drag interaction,
-without date labels or date seeking. Positional ticks use the timeline's existing dot size and color,
-mark evenly spaced scroll fractions, and thin out only when the track becomes too short. They do not
-snap scrolling to discrete positions. It scrolls the current sorted queue and retains bounded loading;
-ordinary chronological browsing retains its time navigation. Ordinary name sorting also uses the
-positional rail, so exiting organization never removes its scrolling control.
+An operation failure uses the existing top notice with retry. Ordinary browsing and organization
+share the same right-side rail, including its track, dots, position line, arrows and interaction.
+The selected sort determines its annotations: date sorting retains the complete year/month rail
+and time navigation in either mode; name sorting shows actual letter ranges, `0–9` for numeric names
+and `#` for other prefixes without changing natural-name order. `新加入优先` marks the range of groups
+first admitted after entering the current organization mode. Its boundary remains fixed across
+queue, sort and primary-sidebar switches; exiting and entering again captures a new boundary.
+New duplicate copies retain their group's earlier admission and do not create a new range.
+These range annotations follow the filtered query's actual layout, retain bounded loading, and do
+not add discrete Slider stops. Unannotated rails retain the existing decorative positional dots.
 
 Mode entry, queue changes and exit retain published content while the replacement query loads.
 An existing empty result does not flash a loading page or an hourglass, and the controls keep their

@@ -109,6 +109,7 @@ pub(in super::super::super) fn load(
                 Ok(GalleryQuery {
                     collection,
                     organization_queue: Some(queue),
+                    new_since_admission: None,
                     root_id: row.get(2)?,
                     folder_relative_path: row.get(3)?,
                     include_descendants: row.get(4)?,

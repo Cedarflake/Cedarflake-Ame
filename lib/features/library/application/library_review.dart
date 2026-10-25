@@ -12,6 +12,7 @@ import "library_catalog.dart";
 import "library_organization.dart";
 
 abstract interface class LibraryReview {
+  Future<BigInt> admissionBoundary();
   Future<LibraryReviewPosition> begin(LibraryGalleryQuery query);
   Future<void> end(String sessionId);
   Future<LibraryReviewPosition> checkpoint(
@@ -33,6 +34,10 @@ final libraryReviewProvider = Provider<LibraryReview>(
 
 class RustLibraryReview implements LibraryReview {
   const RustLibraryReview();
+
+  @override
+  Future<BigInt> admissionBoundary() =>
+      _call(api.loadOrganizationAdmissionBoundary);
 
   @override
   Future<LibraryReviewPosition> begin(LibraryGalleryQuery query) => _call(
@@ -164,6 +169,7 @@ class RustLibraryReview implements LibraryReview {
       queue.OrganizationQueue.ignored => LibraryOrganizationQueue.ignored,
     },
     rootId: value.rootId,
+    newSinceAdmission: value.newSinceAdmission,
     folderRelativePath: value.folderRelativePath,
     includeDescendants: value.includeDescendants,
     searchText: value.searchText,

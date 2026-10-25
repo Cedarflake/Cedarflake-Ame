@@ -10,6 +10,10 @@ use crate::ports::organization_review::OrganizationReviewRepository;
 
 use super::organization::open_catalog;
 
+pub(crate) fn admission_boundary() -> Result<u64, ScanError> {
+    open_catalog()?.load_organization_admission_boundary()
+}
+
 pub(crate) fn begin(query: GalleryQuery) -> Result<OrganizationReviewSession, ScanError> {
     open_catalog()?.begin_organization_review(&query)
 }

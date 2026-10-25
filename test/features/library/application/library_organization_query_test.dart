@@ -23,7 +23,7 @@ void main() {
       expect(queries.toSet(), hasLength(4));
       for (final query in queries.skip(1)) {
         expect(query.foldsDuplicates, isTrue);
-        expect(query.isChronological, isFalse);
+        expect(query.isChronological, isTrue);
         expect(
           query.copyWith(searchText: "image").organizationQueue,
           query.organizationQueue,

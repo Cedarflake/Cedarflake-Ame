@@ -2,6 +2,7 @@ import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 
 import "annotated_time_rail.dart";
+import "library_sort_rail_projection.dart";
 
 class LibraryGalleryScrollSurface extends StatefulWidget {
   const LibraryGalleryScrollSurface({
@@ -10,6 +11,7 @@ class LibraryGalleryScrollSurface extends StatefulWidget {
     required this.gallery,
     this.timeNavigation,
     this.scrollIdentity,
+    this.sortProjection = const LibrarySortRailProjection(timeline: null),
     super.key,
   });
 
@@ -18,6 +20,7 @@ class LibraryGalleryScrollSurface extends StatefulWidget {
   final Widget gallery;
   final Widget? timeNavigation;
   final Object? scrollIdentity;
+  final LibrarySortRailProjection sortProjection;
 
   @override
   State<LibraryGalleryScrollSurface> createState() =>
@@ -112,7 +115,7 @@ class _LibraryGalleryScrollSurfaceState
         interactionKey: ValueKey((identity, widget.controller)),
         value: value.clamp(0.0, 1.0),
         maximumScrollOffset: extent,
-        buckets: const [],
+        buckets: widget.sortProjection.buckets(extent),
         onChangeStart: extent > 0 ? (_) => _startSeek(identity) : null,
         onChanged: extent > 0 ? (value) => _seek(value, identity) : null,
         onChangeEnd: extent > 0

@@ -11,7 +11,7 @@ pub(super) struct GalleryOrderExpressions {
 }
 
 pub(super) fn gallery_order_expressions(query: &GalleryQuery) -> GalleryOrderExpressions {
-    let mut order = match query.sort_key {
+    match query.sort_key {
         GallerySortKey::CaptureTime => GalleryOrderExpressions {
             missing: "(COALESCE(locations.capture_local_time, locations.file_local_time) IS NULL)",
             text: "IFNULL(COALESCE(locations.capture_local_time, locations.file_local_time), '')",
@@ -69,10 +69,5 @@ pub(super) fn gallery_order_expressions(query: &GalleryQuery) -> GalleryOrderExp
             date: None,
             month: None,
         },
-    };
-    if query.organization_queue.is_some() {
-        order.date = None;
-        order.month = None;
     }
-    order
 }

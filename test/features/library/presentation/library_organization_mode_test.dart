@@ -21,6 +21,36 @@ void main() {
   tearDown(() => mode.dispose());
 
   test(
+    "arrival boundary lasts for the mode entry across sorting and queues",
+    () async {
+      service.arrivalBoundary = BigInt.from(10);
+      await mode.enter();
+      expect(surface.library.query.newSinceAdmission, BigInt.from(10));
+      service.arrivalBoundary = BigInt.from(20);
+      await mode.changeQuery(
+        surface.library.query.copyWith(
+          sortKey: LibraryGallerySortKey.libraryAdmission,
+        ),
+      );
+      await mode.selectQueue(LibraryOrganizationQueue.deferred);
+      expect(surface.library.query.newSinceAdmission, BigInt.from(10));
+      service.saved = LibraryReviewContinuation(
+        LibraryContinuationStatus.ready,
+        query: surface.library.query.copyWith(newSinceAdmission: null),
+        target: LibraryOrganizationTarget.fromAsset(
+          surface.library.assets.single,
+        ),
+      );
+      await mode.resume();
+      expect(surface.library.query.newSinceAdmission, BigInt.from(10));
+      await mode.exit();
+      expect(surface.library.query.newSinceAdmission, isNull);
+      await mode.enter();
+      expect(surface.library.query.newSinceAdmission, BigInt.from(20));
+    },
+  );
+
+  test(
     "review inherits sorting and preserves its visible anchor when reordered",
     () async {
       surface.library = surface.library.copyWith(
@@ -346,7 +376,10 @@ void main() {
       await mode.resume();
       await Future<void>.delayed(Duration.zero);
       expect(surface.targets.last, target);
-      expect(surface.library.query, savedScope);
+      expect(
+        surface.library.query,
+        savedScope.copyWith(newSinceAdmission: service.arrivalBoundary),
+      );
       expect(surface.opened.single.assetId, target.assetId);
       expect(service.checkpoints.single.target, target);
     },

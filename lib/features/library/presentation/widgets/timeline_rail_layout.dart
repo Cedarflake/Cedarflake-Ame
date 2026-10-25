@@ -13,7 +13,9 @@ class TimelineRailLayout {
     final labels = layoutTimelineAnnotations(
       [
         for (final anchor in anchors)
-          if (anchor.isYearStart || anchor.bucket.isUnknown)
+          if (anchor.isYearStart ||
+              anchor.bucket.isUnknown ||
+              anchor.bucket.axisLabel != null)
             TimelineAnnotationCandidate(
               id: anchor.bucket.id,
               value: anchor.value,

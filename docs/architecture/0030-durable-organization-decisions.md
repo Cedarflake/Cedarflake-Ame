@@ -182,8 +182,17 @@ Keep the queue selector alongside the existing collection and physical scope in 
 query. Queues always fold logical groups, including provisional asset versions, and share the
 ordinary gallery's selected ordering expressions and deterministic tie breaker. Library-admission
 descending remains the explicit `新加入优先` choice. Ordinary gallery sort preferences remain
-separate. Queue results have no chronological date buckets. Pages, layout and anchor resolution use
-the same ordering expressions; query identity includes the queue, sort key and direction.
+separate. Chronological queue results retain the same date buckets as ordinary browsing. Pages,
+layout and anchor resolution use the same ordering expressions; query identity includes the queue,
+sort key, direction and optional current-entry admission boundary.
+
+Name and admission sorts publish compact scroll sections in the same query snapshot. Name sections
+aggregate contiguous natural-key prefixes into letters, numeric prefixes and the symbol ranges
+before and after the alphabet. Admission sections compare each group's retained earliest admission
+with a read-only high-water mark captured on mode entry. This ephemeral boundary stays in the active
+browse query, survives workspace visits and continuation, and is not durable organization progress.
+It requires no schema migration or historical admission dates. Re-entry captures the current
+high-water mark; new copies of an older group remain outside the new-arrival range.
 
 Read all four progress counts within the page/timeline snapshot. Counts cover each logical group
 once within the retained collection, folder and search scope, independently of the selected queue.
@@ -391,11 +400,13 @@ timer when loading ends or the region is disposed. Query and mode composition se
 direct positioning remains immediate. These presentation changes do not alter query admission,
 progress publication or persistence authority.
 
-`LibraryGalleryScrollSurface` composes existing date navigation for chronological browsing and the
-same annotated rail without date buckets for non-chronological queries, including organization.
-`TimelineRailTicks` supplies at most 21 evenly spaced position markers, thinning shorter tracks;
-date and positional annotations share `TimelineRailMarker`. These decorative ticks have no input
-or semantic actions and do not add Slider divisions or synthetic date buckets.
+`LibraryGalleryScrollSurface` composes existing date navigation for any chronological query and the
+same annotated rail with compact sort sections for name and admission ordering. Organization mode
+does not choose a separate rail. `LibrarySortRailProjection` maps section ordinals through query-wide
+row geometry, with proportional positions before complete geometry is available. `TimelineRailRanges`
+paints the admitted range without owning input. Unannotated positions retain `TimelineRailTicks`;
+date and positional annotations share `TimelineRailMarker`. Decorative annotations have no input
+actions and do not add Slider divisions or synthetic date buckets.
 The existing Material Slider owns track hit testing and gestures; the surface translates its
 normalized values through the gallery's `ScrollPosition.drag` lifecycle. This preserves the drag
 notifications used by loaded-window pagination. Query/controller changes and disposal cancel the

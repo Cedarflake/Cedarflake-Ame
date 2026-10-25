@@ -17,6 +17,11 @@ typedef ReviewWrite = ({
 });
 
 class ReviewServiceFixture implements LibraryReview {
+  BigInt arrivalBoundary = BigInt.zero;
+
+  @override
+  Future<BigInt> admissionBoundary() async => arrivalBoundary;
+
   final starts = <LibraryGalleryQuery>[];
   final ends = <String>[];
   final continuationQueries = <LibraryGalleryQuery?>[];

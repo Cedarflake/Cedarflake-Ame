@@ -89,6 +89,7 @@ fn location_anchor_bounds_preserve_filtered_order_and_missing_dates() {
                 let query = GalleryQuery {
                     collection: crate::domain::GalleryCollection::Library,
                     organization_queue: None,
+                    new_since_admission: None,
                     root_id: Some("time-window-root".to_owned()),
                     folder_relative_path: folder.map(str::to_owned),
                     include_descendants: descendants,

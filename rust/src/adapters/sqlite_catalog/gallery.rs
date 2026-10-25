@@ -8,6 +8,7 @@ pub(super) mod organization;
 pub(super) mod organization_queue;
 pub(super) mod retained_membership;
 pub(super) mod review;
+mod scroll_sections;
 pub(super) mod selection;
 mod time_anchor;
 mod timeline;
@@ -42,6 +43,9 @@ pub(super) struct BuiltGalleryQuery {
 }
 
 pub(super) fn validate_gallery_query(query: &GalleryQuery) -> Result<(), ScanError> {
+    if let Some(boundary) = query.new_since_admission {
+        super::sqlite_integer(boundary, "new-arrival boundary")?;
+    }
     if query.search_text.chars().count() > 512 {
         return Err(ScanError::new(
             "catalog_search_invalid",

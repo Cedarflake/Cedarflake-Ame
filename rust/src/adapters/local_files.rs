@@ -4750,6 +4750,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "gallery_scroll_section",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "gallery_time_snapshot",
             visibility: "pub",
             attributes: &[],

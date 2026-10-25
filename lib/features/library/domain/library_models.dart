@@ -1,10 +1,12 @@
 import "library_gallery_collection.dart";
 import "library_organization_queue.dart";
 import "library_root_consolidation.dart";
+import "library_scroll_section.dart";
 
 export "library_gallery_collection.dart";
 export "library_organization_queue.dart";
 export "library_root_consolidation.dart";
+export "library_scroll_section.dart";
 
 class LibraryAsset {
   const LibraryAsset({
@@ -248,6 +250,7 @@ class LibraryGalleryQuery {
   const LibraryGalleryQuery({
     this.collection = const LibraryGalleryCollection.library(),
     this.organizationQueue,
+    this.newSinceAdmission,
     this.rootId,
     this.folderRelativePath,
     this.includeDescendants = true,
@@ -261,6 +264,7 @@ class LibraryGalleryQuery {
 
   final LibraryGalleryCollection collection;
   final LibraryOrganizationQueue? organizationQueue;
+  final BigInt? newSinceAdmission;
   final String? rootId;
   final String? folderRelativePath;
   final bool includeDescendants;
@@ -270,7 +274,6 @@ class LibraryGalleryQuery {
   final LibraryGalleryDuplicateMode duplicateMode;
 
   bool get isChronological =>
-      organizationQueue == null &&
       sortKey != LibraryGallerySortKey.fileName &&
       sortKey != LibraryGallerySortKey.libraryAdmission;
 
@@ -282,6 +285,7 @@ class LibraryGalleryQuery {
   LibraryGalleryQuery copyWith({
     LibraryGalleryCollection? collection,
     Object? organizationQueue = _unchanged,
+    Object? newSinceAdmission = _unchanged,
     Object? rootId = _unchanged,
     Object? folderRelativePath = _unchanged,
     bool? includeDescendants,
@@ -295,6 +299,9 @@ class LibraryGalleryQuery {
       organizationQueue: organizationQueue == _unchanged
           ? this.organizationQueue
           : organizationQueue as LibraryOrganizationQueue?,
+      newSinceAdmission: newSinceAdmission == _unchanged
+          ? this.newSinceAdmission
+          : newSinceAdmission as BigInt?,
       rootId: rootId == _unchanged ? this.rootId : rootId as String?,
       folderRelativePath: folderRelativePath == _unchanged
           ? this.folderRelativePath
@@ -311,6 +318,7 @@ class LibraryGalleryQuery {
   int get hashCode => Object.hash(
     collection,
     organizationQueue,
+    newSinceAdmission,
     rootId,
     folderRelativePath,
     includeDescendants,
@@ -326,6 +334,7 @@ class LibraryGalleryQuery {
         other is LibraryGalleryQuery &&
             collection == other.collection &&
             organizationQueue == other.organizationQueue &&
+            newSinceAdmission == other.newSinceAdmission &&
             rootId == other.rootId &&
             folderRelativePath == other.folderRelativePath &&
             includeDescendants == other.includeDescendants &&
@@ -357,6 +366,7 @@ class LibraryTimeline {
     required this.totalItems,
     int? totalSourceItems,
     required this.buckets,
+    this.scrollSections = const [],
   }) : totalSourceItems = totalSourceItems ?? totalItems;
 
   final BigInt revision;
@@ -364,6 +374,7 @@ class LibraryTimeline {
   final int totalItems;
   final int totalSourceItems;
   final List<LibraryTimeBucket> buckets;
+  final List<LibraryScrollSection> scrollSections;
 }
 
 class LibraryTimeAnchor {

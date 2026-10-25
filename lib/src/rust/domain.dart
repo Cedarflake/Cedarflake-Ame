@@ -3,6 +3,7 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'domain/gallery_scroll_section.dart';
 import 'domain/organization_queue.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -543,6 +544,7 @@ class GalleryLocationAnchorResolution {
 class GalleryQuery {
   final GalleryCollection collection;
   final OrganizationQueue? organizationQueue;
+  final BigInt? newSinceAdmission;
   final String? rootId;
   final String? folderRelativePath;
   final bool includeDescendants;
@@ -554,6 +556,7 @@ class GalleryQuery {
   const GalleryQuery({
     required this.collection,
     this.organizationQueue,
+    this.newSinceAdmission,
     this.rootId,
     this.folderRelativePath,
     required this.includeDescendants,
@@ -567,6 +570,7 @@ class GalleryQuery {
   int get hashCode =>
       collection.hashCode ^
       organizationQueue.hashCode ^
+      newSinceAdmission.hashCode ^
       rootId.hashCode ^
       folderRelativePath.hashCode ^
       includeDescendants.hashCode ^
@@ -582,6 +586,7 @@ class GalleryQuery {
           runtimeType == other.runtimeType &&
           collection == other.collection &&
           organizationQueue == other.organizationQueue &&
+          newSinceAdmission == other.newSinceAdmission &&
           rootId == other.rootId &&
           folderRelativePath == other.folderRelativePath &&
           includeDescendants == other.includeDescendants &&
@@ -663,6 +668,7 @@ class GalleryTimeline {
   final BigInt totalItems;
   final BigInt totalSourceItems;
   final List<GalleryTimeBucket> buckets;
+  final List<GalleryScrollSection> scrollSections;
 
   const GalleryTimeline({
     required this.revision,
@@ -670,6 +676,7 @@ class GalleryTimeline {
     required this.totalItems,
     required this.totalSourceItems,
     required this.buckets,
+    required this.scrollSections,
   });
 
   @override
@@ -678,7 +685,8 @@ class GalleryTimeline {
       queryId.hashCode ^
       totalItems.hashCode ^
       totalSourceItems.hashCode ^
-      buckets.hashCode;
+      buckets.hashCode ^
+      scrollSections.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -689,7 +697,8 @@ class GalleryTimeline {
           queryId == other.queryId &&
           totalItems == other.totalItems &&
           totalSourceItems == other.totalSourceItems &&
-          buckets == other.buckets;
+          buckets == other.buckets &&
+          scrollSections == other.scrollSections;
 }
 
 class LibraryFolderCursor {

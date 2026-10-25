@@ -14,6 +14,46 @@ pub(crate) fn load_gallery_timeline(
     query_id: &str,
     revision: u64,
 ) -> Result<GalleryTimeline, ScanError> {
+    let scroll_sections = match query.sort_key {
+        GallerySortKey::FileName => super::scroll_sections::load_name_sections(transaction, query)?,
+        GallerySortKey::LibraryAdmission => {
+            super::scroll_sections::load_arrival_sections(transaction, query)?
+        }
+        _ => Vec::new(),
+    };
+    let (buckets, total_items) = if matches!(
+        query.sort_key,
+        GallerySortKey::FileName | GallerySortKey::LibraryAdmission
+    ) {
+        (
+            Vec::new(),
+            scroll_sections
+                .iter()
+                .map(|section| section.item_count)
+                .sum(),
+        )
+    } else {
+        load_time_buckets(transaction, query)?
+    };
+    let total_source_items = if !query.folds_duplicates() {
+        total_items
+    } else {
+        load_source_count(transaction, query)?
+    };
+    Ok(GalleryTimeline {
+        revision,
+        query_id: query_id.to_owned(),
+        total_items,
+        total_source_items,
+        buckets,
+        scroll_sections,
+    })
+}
+
+fn load_time_buckets(
+    transaction: &Transaction<'_>,
+    query: &GalleryQuery,
+) -> Result<(Vec<GalleryTimeBucket>, u64), ScanError> {
     let built = build_gallery_timeline_query(query);
     let mut statement = transaction.prepare(&built.sql).map_err(database_error)?;
     let rows = statement
@@ -38,32 +78,14 @@ pub(crate) fn load_gallery_timeline(
                 "The gallery timeline item count exceeds the supported range",
             )
         })?;
-        if query.organization_queue.is_none()
-            && !matches!(
-                query.sort_key,
-                GallerySortKey::FileName | GallerySortKey::LibraryAdmission
-            )
-        {
-            buckets.push(GalleryTimeBucket {
-                month_key,
-                item_count,
-                aspect_ratio_milli_sum,
-            });
-        }
+        buckets.push(GalleryTimeBucket {
+            month_key,
+            item_count,
+            aspect_ratio_milli_sum,
+        });
     }
     drop(statement);
-    let total_source_items = if !query.folds_duplicates() {
-        total_items
-    } else {
-        load_source_count(transaction, query)?
-    };
-    Ok(GalleryTimeline {
-        revision,
-        query_id: query_id.to_owned(),
-        total_items,
-        total_source_items,
-        buckets,
-    })
+    Ok((buckets, total_items))
 }
 
 fn load_source_count(

@@ -19,6 +19,7 @@ mod journal_scope_recovery;
 pub use journal_scope_recovery::JournalScopeRecoveryOutcome;
 
 pub mod gallery_query_snapshot;
+pub mod gallery_scroll_section;
 pub use gallery_query_snapshot::{GalleryQueryAnchor, GalleryQuerySnapshot};
 pub mod gallery_time_snapshot;
 pub use gallery_time_snapshot::{GalleryTimeIntent, GalleryTimeSnapshot};
@@ -462,6 +463,7 @@ pub enum GalleryCollection {
 pub struct GalleryQuery {
     pub collection: GalleryCollection,
     pub organization_queue: Option<organization_queue::OrganizationQueue>,
+    pub new_since_admission: Option<u64>,
     pub root_id: Option<String>,
     pub folder_relative_path: Option<String>,
     pub include_descendants: bool,
@@ -476,6 +478,7 @@ impl Default for GalleryQuery {
         Self {
             collection: GalleryCollection::Library,
             organization_queue: None,
+            new_since_admission: None,
             root_id: None,
             folder_relative_path: None,
             include_descendants: true,
@@ -517,6 +520,7 @@ pub struct GalleryTimeline {
     pub total_items: u64,
     pub total_source_items: u64,
     pub buckets: Vec<GalleryTimeBucket>,
+    pub scroll_sections: Vec<gallery_scroll_section::GalleryScrollSection>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]

@@ -205,8 +205,9 @@ Work in this order within the slice:
    on entry and exit, respecting reduced motion. Hide continuation
    until prior activity and a resumable position both exist. Retain content and control appearance
    during short query changes. Preserve bottom notification placement and reuse the right-side
-   time rail as a positional scroll control without date annotations for organization queues and
-   ordinary non-chronological browsing.
+   scroll rail in both modes. Date sorts keep the complete time annotations and navigation; name
+   sorting supplies letter ranges. `新加入优先` marks the range first admitted after the current
+   mode entry, retaining that boundary until exit.
 5. Put defer and album actions on the same contextual action row. Successful album assignment
    completes work; the organization-mode viewer advances only after commit. Add the accepted ignore
    actions without adding manual completion or a separate new-items tab. Keep chronological undo and

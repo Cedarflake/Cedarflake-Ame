@@ -6,6 +6,10 @@ use crate::domain::organization_review::{
 };
 use crate::domain::{GalleryQuery, ScanError};
 
+pub fn load_organization_admission_boundary() -> Result<u64, ScanError> {
+    crate::application::organization_review::admission_boundary()
+}
+
 pub fn begin_organization_review(
     query: GalleryQuery,
 ) -> Result<OrganizationReviewSession, ScanError> {

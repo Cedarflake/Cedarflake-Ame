@@ -8,6 +8,8 @@ class TimelineRailBucket {
     required this.year,
     this.scrollOffset,
     this.isUnknown = false,
+    this.axisLabel,
+    this.highlighted = false,
   });
 
   final String id;
@@ -16,6 +18,8 @@ class TimelineRailBucket {
   final double? scrollOffset;
   final int? year;
   final bool isUnknown;
+  final String? axisLabel;
+  final bool highlighted;
 }
 
 class TimelineRailAnchor {

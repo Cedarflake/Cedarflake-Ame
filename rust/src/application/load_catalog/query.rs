@@ -3,6 +3,9 @@ use crate::domain::{GalleryCollection, GalleryQuery, GallerySortDirection, Galle
 
 pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
     query.search_text = query.search_text.trim().to_owned();
+    if query.organization_queue.is_none() {
+        query.new_since_admission = None;
+    }
     query.folder_relative_path = query
         .folder_relative_path
         .map(|folder| normalize_relative_folder(&folder));
@@ -24,6 +27,10 @@ pub(super) fn normalize_relative_folder(folder: &str) -> String {
 pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
     let mut hasher = blake3::Hasher::new();
     hasher.update(b"ame-gallery-query-v4\0");
+    if let Some(boundary) = query.new_since_admission {
+        hasher.update(b"arrivals\0");
+        hasher.update(&boundary.to_le_bytes());
+    }
     hasher.update(&[match query.organization_queue {
         None => 0,
         Some(OrganizationQueue::Pending) => 1,
