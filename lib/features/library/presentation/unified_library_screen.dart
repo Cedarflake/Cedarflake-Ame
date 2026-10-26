@@ -20,7 +20,6 @@ import "../application/library_layout_manifest_catalog.dart";
 import "../application/library_organization_actions.dart";
 import "../application/library_organization_publication.dart";
 import "../application/library_organization_conflicts.dart";
-import "../application/library_organization_outcome.dart";
 import "../application/library_review.dart";
 import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
@@ -46,7 +45,6 @@ import "library_strings.dart";
 import "library_synchronization_notifications.dart";
 import "library_synchronization_refresh.dart";
 import "library_search_availability.dart";
-import "library_task_surface_selection.dart";
 import "library_viewer_session.dart";
 import "widgets/library_asset_information_sheet.dart";
 import "widgets/library_album_navigation.dart";
@@ -74,7 +72,7 @@ import "widgets/library_navigation.dart";
 import "widgets/library_workbench.dart";
 import "widgets/library_exact_duplicates_page.dart";
 import "widgets/library_query_failure_banner.dart";
-import "widgets/library_task_feedback.dart";
+import "widgets/library_bottom_feedback.dart";
 import "widgets/library_time_navigation.dart";
 import "widgets/library_viewer_transition.dart";
 import "widgets/library_update_dialog.dart";
@@ -433,12 +431,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     );
     final amePreferences = ref.watch(amePreferencesControllerProvider);
     final controller = _libraryController;
-    final taskSurfaces = LibraryTaskSurfaceSelection(state, updateState);
-    final hasLibraryTaskSurface = taskSurfaces.hasPrimary;
-    final showsLibraryTaskSurface = taskSurfaces.showPrimary;
-    final showsUpdateTaskSurface = taskSurfaces.showUpdates;
-    final organizationOutcome = ref.watch(libraryOrganizationOutcomeProvider);
-    final currentNotification = notifications.current ?? organizationOutcome;
     final catalogRevision = state.catalogRevision;
     final manifestRequest = catalogRevision != null && state.queryId.isNotEmpty
         ? LibraryGalleryLayoutManifestRequest(
@@ -579,41 +571,11 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
                         },
                       ),
               ),
-              if (viewerCatalogAsset == null &&
-                  (showsLibraryTaskSurface || showsUpdateTaskSurface))
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      bottom: _review.isActive ? 104 : 24,
-                    ),
-                    child: LibraryTaskFeedback(
-                      onRetryPrimary: _retryLibraryTask,
-                    ),
-                  ),
-                ),
-              if (viewerCatalogAsset == null &&
-                  !hasLibraryTaskSurface &&
-                  !updateState.hasFeedback &&
-                  currentNotification != null)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: Padding(
-                    padding: EdgeInsets.only(
-                      bottom: _review.isActive ? 104 : 24,
-                    ),
-                    child: AmeNotificationSurface(
-                      key: ValueKey(currentNotification.id),
-                      notification: currentNotification,
-                      onAction: _handleNotificationAction,
-                      onDismiss: (id) {
-                        _notificationController.dismiss(id);
-                        ref
-                            .read(libraryOrganizationOutcomeProvider.notifier)
-                            .dismiss(id);
-                      },
-                    ),
-                  ),
+              if (viewerCatalogAsset == null)
+                LibraryBottomFeedback(
+                  bottomInset: _review.isActive ? 104 : 24,
+                  onRetryPrimary: _retryLibraryTask,
+                  onNotificationAction: _handleNotificationAction,
                 ),
             ],
           ),

@@ -1,3 +1,4 @@
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/library/application/library_archive_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_archive_state.dart";
@@ -6,6 +7,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/domain/library_organization_archive.dart";
 import "package:cedarflake_ame/features/settings/application/organization_archive_picker.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/organization_archive_section.dart";
+import "package:cedarflake_ame/features/settings/presentation/widgets/organization_record_feedback.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -42,8 +44,22 @@ void main() {
               ).copyWith(textScaler: TextScaler.linear(scale)),
               child: child!,
             ),
-            home: const Scaffold(
-              body: SingleChildScrollView(child: OrganizationArchiveSection()),
+            home: Scaffold(
+              body: Stack(
+                children: [
+                  const SingleChildScrollView(
+                    child: OrganizationArchiveSection(),
+                  ),
+                  Consumer(
+                    builder: (context, ref, _) => Align(
+                      alignment: Alignment.bottomCenter,
+                      child:
+                          buildOrganizationRecordFeedback(context, ref) ??
+                          const SizedBox.shrink(),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -65,6 +81,7 @@ void main() {
     "native picker cancellation starts no task and inspection requires confirmation",
     (tester) async {
       await host(tester);
+      final cleanupPosition = tester.getTopLeft(find.text("清理未关联记录"));
       picker.selected = null;
       await tester.tap(find.byKey(const Key("settings-archive-export")));
       await tester.pumpAndSettle();
@@ -93,17 +110,63 @@ void main() {
       final task = service.tasks.last;
       task.events.add(LibraryArchiveRestored(task.operationId!));
       await tester.pumpAndSettle();
-      expect(find.text("整理记录已恢复"), findsOneWidget);
+      expect(find.text("整理记录已恢复"), findsNothing);
+      expect(find.text("关闭"), findsNothing);
+      expect(tester.getTopLeft(find.text("清理未关联记录")), cleanupPosition);
+      expect(
+        container.read(ameNotificationControllerProvider).current?.title,
+        "整理记录已恢复",
+      );
       expect(tester.takeException(), isNull);
     },
   );
+
+  testWidgets("returning after inspection uses the existing restore entry", (
+    tester,
+  ) async {
+    await host(tester);
+    final cleanupPosition = tester.getTopLeft(find.text("清理未关联记录"));
+    await tester.tap(find.byKey(const Key("settings-archive-inspect")));
+    await tester.pump();
+    await tester.pumpWidget(const SizedBox.shrink());
+    service.tasks.single.events.add(
+      LibraryArchiveInspected(archiveInspection()),
+    );
+    await tester.pumpAndSettle();
+    await host(tester);
+    await tester.pumpAndSettle();
+    expect(find.textContaining("已检查"), findsNothing);
+    expect(find.text("查看备份"), findsOneWidget);
+    expect(tester.getTopLeft(find.text("清理未关联记录")), cleanupPosition);
+    await tester.tap(find.byKey(const Key("settings-archive-inspect")));
+    await tester.pumpAndSettle();
+    expect(
+      find.byKey(const Key("organization-archive-confirmation")),
+      findsOneWidget,
+    );
+    expect(service.tasks, hasLength(1));
+    await tester.tap(find.text("取消"));
+    await tester.pumpAndSettle();
+    expect(find.text("选择文件"), findsOneWidget);
+    expect(find.text("查看备份"), findsNothing);
+  });
 
   testWidgets(
     "cancel remains stopping until the worker confirms cancellation",
     (tester) async {
       await host(tester);
+      final cleanupPosition = tester.getTopLeft(find.text("清理未关联记录"));
       await tester.tap(find.byKey(const Key("settings-archive-export")));
       await tester.pump();
+      expect(tester.getTopLeft(find.text("清理未关联记录")), cleanupPosition);
+      expect(
+        tester
+            .getTopLeft(find.byKey(const Key("organization-record-feedback")))
+            .dy,
+        greaterThan(
+          tester.getBottomLeft(find.byType(OrganizationArchiveSection)).dy,
+        ),
+      );
       await tester.tap(find.byKey(const Key("settings-archive-cancel")));
       await tester.pump();
       expect(find.text("正在停止"), findsOneWidget);
@@ -122,7 +185,9 @@ void main() {
         isA<LibraryArchiveFinished>(),
       );
       await tester.pumpAndSettle();
-      expect(find.text("已停止导出"), findsOneWidget);
+      expect(find.text("已停止导出"), findsNothing);
+      expect(find.text("关闭"), findsNothing);
+      expect(tester.getTopLeft(find.text("清理未关联记录")), cleanupPosition);
       expect(
         tester
             .widget<FilledButton>(
@@ -138,6 +203,7 @@ void main() {
     tester,
   ) async {
     await host(tester);
+    final cleanupPosition = tester.getTopLeft(find.text("清理未关联记录"));
     await inspect(tester);
     await tester.tap(
       find.byKey(const Key("organization-archive-restore-confirm")),
@@ -151,6 +217,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text("重新检查"), findsOneWidget);
+    expect(tester.getTopLeft(find.text("清理未关联记录")), cleanupPosition);
     await tester.tap(find.byKey(const Key("settings-archive-retry")));
     await tester.pump();
     expect(service.tasks.last.kind, "inspect");

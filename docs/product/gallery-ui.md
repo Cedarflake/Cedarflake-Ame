@@ -956,7 +956,13 @@ absent until R4 connects the complete album workflow.
 
 The R4 record controls use the [persistence and recovery contract](r4-organization.md#persistence-removal-and-recovery).
 Export and restore describe that they carry favorites, album decisions, and progress rather than
-original images. `清理未关联记录` shows the number and age of records whose images cannot be reliably
+original images. Export, restore and cleanup progress, cancellation, retry and completion use the
+shared bottom feedback area. Do not insert status rows, progress bars or additional actions beneath
+the settings entries; these entries keep their position throughout the operation.
+Inspection results belong in their confirmation dialog. A completed backup inspection remains
+reachable through the existing restore row rather than a separate status/action row; cleanup
+inspection progress and retry stay inside its dialog.
+`清理未关联记录` shows the number and age of records whose images cannot be reliably
 associated, explains which saved decisions will be removed, and requires confirmation of the
 chosen cleanup. Matching again before confirmation preserves the recovered record. This is not
 thumbnail cleanup or an automatic age-based purge. Keep the controls absent until their workflows

@@ -1,3 +1,4 @@
+import "package:cedarflake_ame/app/notifications/ame_notification_controller.dart";
 import "package:cedarflake_ame/app/presentation/ame_theme.dart";
 import "package:cedarflake_ame/features/library/application/library_cleanup_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_cleanup_state.dart";
@@ -5,6 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_controller.d
 import "package:cedarflake_ame/features/library/application/library_organization_cleanup.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_cleanup.dart";
 import "package:cedarflake_ame/features/settings/presentation/widgets/organization_cleanup_row.dart";
+import "package:cedarflake_ame/features/settings/presentation/widgets/organization_record_feedback.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -36,8 +38,20 @@ void main() {
           ).copyWith(textScaler: const TextScaler.linear(1.4)),
           child: child ?? const SizedBox.shrink(),
         ),
-        home: const Scaffold(
-          body: SingleChildScrollView(child: OrganizationCleanupRow()),
+        home: Scaffold(
+          body: Stack(
+            children: [
+              const SingleChildScrollView(child: OrganizationCleanupRow()),
+              Consumer(
+                builder: (context, ref, _) => Align(
+                  alignment: Alignment.bottomCenter,
+                  child:
+                      buildOrganizationRecordFeedback(context, ref) ??
+                      const SizedBox.shrink(),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     ),
@@ -92,6 +106,7 @@ void main() {
     "cleanup starts only after confirmation and empty inspections have no delete action",
     (tester) async {
       await host(tester);
+      final idleSize = tester.getSize(find.byType(OrganizationCleanupRow));
       await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
       await tester.pump();
       service.tasks.last.events.add(
@@ -102,9 +117,16 @@ void main() {
       await tester.pump();
       final applying = service.tasks.last;
       expect(applying.operationId, isNotNull);
+      expect(tester.getSize(find.byType(OrganizationCleanupRow)), idleSize);
+      expect(find.byKey(const Key("settings-cleanup-cancel")), findsOneWidget);
       applying.events.add(LibraryCleanupCompleted(applying.operationId!, 4));
       await tester.pumpAndSettle();
-      expect(find.text("已清理 4 项记录"), findsOneWidget);
+      expect(find.text("已清理 4 项记录"), findsNothing);
+      expect(tester.getSize(find.byType(OrganizationCleanupRow)), idleSize);
+      expect(
+        container.read(ameNotificationControllerProvider).current?.message,
+        "已清理 4 项记录。原图片和相册均已保留。",
+      );
       await tester.tap(find.byKey(const Key("settings-cleanup-inspect")));
       await tester.pump();
       service.tasks.last.events.add(
@@ -162,7 +184,11 @@ void main() {
       LibraryCleanupCompleted(service.tasks.last.operationId!, 6),
     );
     await tester.pumpAndSettle();
-    expect(find.text("已清理 6 项记录"), findsOneWidget);
+    expect(find.text("已清理 6 项记录"), findsNothing);
+    expect(
+      container.read(ameNotificationControllerProvider).current?.message,
+      "已清理 6 项记录。原图片和相册均已保留。",
+    );
   });
 
   testWidgets("closing a pending inspection prevents late confirmation", (
@@ -197,7 +223,7 @@ void main() {
       const LibraryCleanupFailure("read_failed", "Inspection failed"),
     );
     await tester.pumpAndSettle();
-    expect(find.text("未能完成检查，请重试。"), findsWidgets);
+    expect(find.text("未能完成检查，请重试。"), findsOneWidget);
     await tester.tap(find.byKey(const Key("organization-cleanup-retry")));
     await tester.pump();
     expect(service.tasks.last.cutoffUnixMs, cutoff);

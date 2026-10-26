@@ -4,9 +4,9 @@ import "package:material_symbols_icons/symbols.dart";
 import "../notifications/ame_notification_controller.dart";
 import "../notifications/ame_notification_strings.dart";
 import "ame_menu.dart";
+import "ame_feedback_card.dart";
 import "ame_notification_lifetime.dart";
 import "ame_overlay_semantics.dart";
-import "ame_theme.dart";
 import "ame_notification_time.dart";
 
 export "ame_notification_details.dart" show showAmeNotificationDetails;
@@ -116,68 +116,49 @@ class AmeNotificationSurface extends StatelessWidget {
     return AmeNotificationLifetime(
       notification: notification,
       onDismiss: onDismiss,
-      child: Material(
+      child: AmeFeedbackCard(
         key: const Key("ame-notification-surface"),
-        elevation: ameNotificationElevation,
-        color: colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(ameNotificationRadius),
-        child: ConstrainedBox(
-          constraints: const BoxConstraints.tightFor(
-            width: ameNotificationWidth,
-          ),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Icon(
-                    _severityIcon(notification.severity),
-                    color: _severityColor(colorScheme, notification.severity),
-                    size: 20,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        notification.title,
-                        style: Theme.of(context).textTheme.titleSmall,
-                      ),
-                      if (notification.message.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(notification.message),
-                      ],
-                      if (notification.detail case final detail?) ...[
-                        const SizedBox(height: 4),
-                        Text(
-                          detail,
-                          style: Theme.of(context).textTheme.bodySmall
-                              ?.copyWith(color: colorScheme.onSurfaceVariant),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                if (notification.actionLabel case final actionLabel?)
-                  TextButton(
-                    key: const Key("notification-primary-action"),
-                    onPressed: () => onAction(notification),
-                    child: Text(actionLabel),
-                  ),
-                TextButton(
-                  key: const Key("notification-dismiss-button"),
-                  onPressed: () => onDismiss(notification.id),
-                  child: const Text(AmeNotificationStrings.acknowledge),
-                ),
-              ],
-            ),
-          ),
+        leading: Icon(
+          _severityIcon(notification.severity),
+          color: _severityColor(colorScheme, notification.severity),
+          size: 20,
         ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              notification.title,
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (notification.message.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Text(notification.message),
+            ],
+            if (notification.detail case final detail?) ...[
+              const SizedBox(height: 4),
+              Text(
+                detail,
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ],
+        ),
+        actions: [
+          if (notification.actionLabel case final actionLabel?)
+            TextButton(
+              key: const Key("notification-primary-action"),
+              onPressed: () => onAction(notification),
+              child: Text(actionLabel),
+            ),
+          TextButton(
+            key: const Key("notification-dismiss-button"),
+            onPressed: () => onDismiss(notification.id),
+            child: const Text(AmeNotificationStrings.acknowledge),
+          ),
+        ],
       ),
     );
   }

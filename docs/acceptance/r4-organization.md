@@ -2955,3 +2955,34 @@ The active isolated window returns to 10,000 physical images, 72 groups and `已
 The affected production owners contain 74/128/63/122/69 lines for sort projection, annotation
 visibility, rail layout, rail model and range drawing respectively, with no inline tests. The
 extended sort-projection suite contains 186 dedicated test lines.
+
+## Record feedback outside the settings list - 2026-10-26
+
+Archive and cleanup status previously inserted extra settings rows during execution, failure and
+completion. A completion-only removal still retained the in-flight layout change. The complete
+correction removes those rows: one bottom feedback owner selects record operations, existing library
+tasks and notifications. Record progress, cancellation and retry share the existing notification
+card geometry. Confirmation and retry entrypoints are shared with the original settings controls;
+completed backup inspection remains reachable from the restore row. Cleanup inspection stays in
+its existing dialog, and picker failures use the notification owner. Application transactions,
+cancellation admission, history and source access are unchanged.
+
+All 41 focused checks pass: archive settings (5), cleanup settings (5), shared notifications (7),
+synchronization feedback (23) and the connected album/undo workflow (1). They cover unchanged
+settings geometry during work and failure, bottom cancellation/retry, retained inspection after
+leaving Settings, fresh confirmation, enlarged text, notification lifetime and existing actions.
+Strict analysis passes, and the final Windows Debug build takes 25.5 seconds. Read-only repository
+formatting still identifies only the unrelated `library_gallery_states.dart` edit; owned files are
+formatted and both unrelated presentation edits remain untouched.
+
+The rebuilt native client uses the independent source-free recovery profile. Opening an invalid
+owned test archive displays the error and Retry at the bottom, with unchanged settings positions;
+Retry repeats validation and leaves the same actionable error. Opening the retained valid backup
+displays inspection progress and Cancel in the bottom card, followed by the existing confirmation.
+Restoration completes and the settings list remains at its original height. No cleanup is executed;
+native cleanup publication and post-cleanup reimport remain outstanding.
+
+The screen composition owner now contains 1,851 production lines and no inline tests. The extracted
+bottom selector, record actions, record projection and shared card contain 60/51/121/50 production
+lines respectively, with no inline tests; the modified archive/cleanup suites contain 268/239
+dedicated test lines. Settings archive and cleanup widgets contain 100/32 production lines.

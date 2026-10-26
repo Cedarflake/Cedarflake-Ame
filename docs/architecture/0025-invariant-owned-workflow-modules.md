@@ -797,6 +797,13 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   changing source admission, cancellation or the copy-completion release boundary.
 - Menus, loading feedback, task live regions, and startup orchestration use repository-owned shared
   components so one defect fix does not create a second interaction contract.
+- `library_bottom_feedback.dart` owns the single bottom feedback position and admission between
+  record operations, existing library tasks and notifications. `organization_record_feedback.dart`
+  projects archive and cleanup task state without inserting rows into Settings; active work precedes
+  retained failures. `organization_record_actions.dart` owns confirmation and retry entrypoints shared
+  by Settings and this feedback. Application controllers retain cancellation, result admission and
+  publication. `AmeFeedbackCard` supplies the existing notification geometry to both task feedback
+  and notifications; notification lifetime and history remain with their existing owners.
 - `library_gallery_loading_region.dart` owns stable gallery loading-feedback geometry. It composes
   the existing Material linear indicator above the unchanged child viewport with framework Stack
   layout and pointer passthrough. The screen supplies the existing loading projection; neither
