@@ -2986,3 +2986,24 @@ The screen composition owner now contains 1,851 production lines and no inline t
 bottom selector, record actions, record projection and shared card contain 60/51/121/50 production
 lines respectively, with no inline tests; the modified archive/cleanup suites contain 268/239
 dedicated test lines. Settings archive and cleanup widgets contain 100/32 production lines.
+
+## Desktop header resizing - 2026-10-26
+
+The gallery header's 760-pixel fallback moved all actions below the title and counts when the
+secondary sidebar reduced the content width. The header now consistently uses its existing
+two-column layout and horizontally scrollable action area. Only organization mode supplies the
+animated second action row; ordinary resizing no longer switches the header composition.
+
+All 10 focused Flutter checks pass: alignment and resizing (4), entry/reversal/reduced motion (2)
+and viewport-preserving reflow (4). Resizing covers widths of 900, 806, 780 and 600 logical pixels
+at normal and doubled text scale, with stable ordinary-header height and aligned title/action
+centers. Strict analysis passes, and the Windows Debug build completes in 23.8 seconds.
+Read-only repository formatting still flags only the existing unrelated gallery-state edit;
+the changed header and regression are formatted, and both unrelated edits remain untouched.
+
+The rebuilt native client restores the original controlled profile after verifying its retained
+catalog checksum. At a 1,127-by-678 window size, opening and closing the secondary sidebar keeps
+ordinary actions beside the title. Entering organization mode displays the accepted second row;
+exiting restores the single action row. The retained corpus shows 10,000 physical images and
+72 groups, with no source mutation or cleanup. The header contains 526 production lines and no
+inline tests; the modified alignment suite contains 162 dedicated test lines.

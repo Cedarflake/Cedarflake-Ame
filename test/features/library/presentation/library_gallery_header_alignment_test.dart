@@ -7,6 +7,40 @@ import "package:flutter_test/flutter_test.dart";
 
 void main() {
   for (final scale in [1.0, 2.0]) {
+    testWidgets(
+      "desktop header keeps its columns while resizing at scale $scale",
+      (tester) async {
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final review = ValueNotifier(false);
+        addTearDown(review.dispose);
+        double? initialHeight;
+        for (final width in [900.0, 806.0, 780.0, 600.0]) {
+          await tester.binding.setSurfaceSize(Size(width, 600));
+          await tester.pumpWidget(_app(review, scale: scale));
+          await tester.pumpAndSettle();
+          final title = tester.getRect(
+            find.byKey(const Key("library-gallery-title")),
+          );
+          final summary = tester.getRect(
+            find.byKey(const Key("library-summary")),
+          );
+          final primary = tester.getRect(
+            find.byKey(const Key("library-browsing-toolbar")),
+          );
+          final height = tester
+              .getSize(find.byKey(const Key("library-gallery-header")))
+              .height;
+          initialHeight ??= height;
+          expect(
+            primary.center.dy,
+            closeTo(title.expandToInclude(summary).center.dy, 0.01),
+          );
+          expect(height, initialHeight);
+          expect(tester.takeException(), isNull);
+        }
+      },
+    );
+
     testWidgets("header aligns corresponding rows at text scale $scale", (
       tester,
     ) async {

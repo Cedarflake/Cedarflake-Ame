@@ -354,6 +354,9 @@ Selection state:
 
 The normal toolbar is replaced rather than nested when selection begins. Selection is keyed by
 stable Ame asset identity and survives lazy item disposal and scrolling.
+Desktop width changes retain the title/count column and the right action column. Do not move the
+entire action area below the title at a fixed width breakpoint; use the existing horizontal action
+scrolling when space is constrained. Organization mode retains its explicit animated second action row.
 
 `加入相册` becomes visible only after R4 connects durable album membership. It is an action in this
 upper-right selection-specific area, while entries under the sidebar's `相册` section are navigation

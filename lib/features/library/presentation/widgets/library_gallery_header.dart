@@ -83,8 +83,8 @@ class LibraryGalleryHeader extends StatelessWidget {
         constraints: const BoxConstraints(minHeight: 104),
         child: Padding(
           padding: const EdgeInsets.fromLTRB(28, 18, 20, 16),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
+          child: Builder(
+            builder: (context) {
               final titleText = Wrap(
                 spacing: 12,
                 crossAxisAlignment: WrapCrossAlignment.center,
@@ -148,24 +148,6 @@ class LibraryGalleryHeader extends StatelessWidget {
                       onSortKeyChanged: onSortKeyChanged,
                       onSortDirectionChanged: onSortDirectionChanged,
                     );
-              if (constraints.maxWidth < 760) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    titleBlock,
-                    const SizedBox(height: 4),
-                    summary,
-                    const SizedBox(height: 12),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: LibraryGalleryHeaderActions(
-                        primary: toolbar,
-                        secondary: reviewToolbar,
-                      ),
-                    ),
-                  ],
-                );
-              }
               return LibraryGalleryHeaderActions(
                 title: titleBlock,
                 summary: summary,
