@@ -418,8 +418,8 @@ query/selection admission rules, so obsolete all-matching selections cannot auth
 `LibraryGalleryHeaderActions` owns the retained secondary row, shared animation progress and
 reduced-motion behavior. `LibraryGalleryHeaderRows` measures four bounded cells and interpolates
 the complete header geometry, aligning title/count with their corresponding action rows and
-avoiding a minimum-height plateau before gallery movement. Narrow desktop layouts retain stacked
-information and horizontally scrollable actions. Height-only viewport changes reuse existing photo
+avoiding a minimum-height plateau before gallery movement. Desktop layouts retain title/count and
+action columns with horizontally scrollable actions when constrained. Height-only viewport changes reuse existing photo
 rows and apply the established viewport anchor in the same layout frame. They neither queue another
 geometry publication nor restart photo reflow; width and row-layout changes retain their existing
 motion ownership. The retiring row loses pointer, keyboard and

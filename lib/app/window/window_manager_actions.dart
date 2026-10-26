@@ -10,8 +10,6 @@ import "ame_window_placement.dart";
 import "ame_window_fullscreen.dart";
 import "ame_shutdown_coordinator.dart";
 
-const _minimumWindowSize = Size(800, 560);
-
 class WindowManagerActions
     with WindowListener
     implements AmeWindowActions, AmeFullscreenHost {
@@ -259,15 +257,20 @@ Future<WindowManagerActions> initializeAmeWindow(
     savedPlacement = null;
   }
   final visibleBounds = await _loadVisibleScreenBounds();
+  final minimumSize = resolveAmeMinimumWindowSize(
+    savedPlacement,
+    visibleScreenBounds: visibleBounds,
+  );
   final restoredPlacement = normalizeAmeWindowPlacement(
     savedPlacement,
     visibleScreenBounds: visibleBounds,
-    minimumSize: _minimumWindowSize,
+    minimumSize: minimumSize,
   );
   final initialNormalPlacement = await prepareAmeWindowBeforeShow(
     window: const _WindowManagerBootstrapActions(),
     restoredPlacement: restoredPlacement,
     shouldMaximize: savedPlacement?.isMaximized ?? false,
+    minimumSize: minimumSize,
   );
   final actions = WindowManagerActions(
     preferenceStore,
@@ -329,12 +332,13 @@ Future<AmeWindowPlacement> prepareAmeWindowBeforeShow({
   required AmeWindowBootstrapActions window,
   required AmeWindowPlacement? restoredPlacement,
   required bool shouldMaximize,
+  Size minimumSize = ameMinimumWindowSize,
 }) async {
   final options = WindowOptions(
     size: restoredPlacement == null
         ? null
         : Size(restoredPlacement.width, restoredPlacement.height),
-    minimumSize: _minimumWindowSize,
+    minimumSize: minimumSize,
     backgroundColor: Colors.transparent,
     title: "Cedarflake Ame",
     titleBarStyle: TitleBarStyle.hidden,

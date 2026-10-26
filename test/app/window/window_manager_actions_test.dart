@@ -32,7 +32,7 @@ void main() {
       "maximize",
     ]);
     expect(window.options?.size, const Size(1440, 900));
-    expect(window.options?.minimumSize, const Size(800, 560));
+    expect(window.options?.minimumSize, const Size(1100, 700));
     expect(window.position, const Offset(120, 80));
     expect(normalPlacement.bounds, const Rect.fromLTWH(120, 80, 1440, 900));
     expect(normalPlacement.isMaximized, isFalse);

@@ -52,6 +52,9 @@ bounds or maximized preference. Viewer close restores the window; full screen is
 Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
 
 - The Windows bootstrap selects `TitleBarStyle.hidden` and hides system caption buttons.
+- The desktop window has a 1,100-by-700 logical-pixel minimum. The placement owner caps it by the
+  selected monitor's work area and uses the same effective minimum for restored bounds and native
+  resize constraints. Older small placements expand while the window is still hidden.
 - The normal library window uses one 64-pixel global bar. Its application identity, search,
   draggable empty regions, and minimize, maximize or restore, and close controls share that surface.
   Import remains owned by the Library row in the sidebar and Settings is pinned to the sidebar
@@ -138,7 +141,7 @@ Admit `window_manager` 0.5.2 behind `AmeWindowActions`.
 - a Windows Release build completes with the generated plugin registration;
 - runtime inspection confirms there is no native blue title bar, the app-drawn drag region works,
   double-click toggles maximize, all three Material controls work, and resize borders and shadow remain;
-- constrained-width inspection confirms the fused bar remains usable at the 800-pixel minimum width
+- constrained-width inspection confirms the fused bar and gallery actions remain usable at the desktop minimum
   and caption controls never overlap search.
 
 The decision becomes Accepted after runtime interaction and visual inspection pass. A compile-only

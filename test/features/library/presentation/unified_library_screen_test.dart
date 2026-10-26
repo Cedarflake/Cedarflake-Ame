@@ -242,10 +242,10 @@ void main() {
     expect(preferenceStore.saved.last.sidebarWidth, closeTo(380, 1));
   });
 
-  testWidgets("keeps the fused window bar usable at minimum width", (
+  testWidgets("keeps the gallery actions visible at the desktop minimum", (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(800, 560);
+    tester.view.physicalSize = const Size(1100, 700);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -254,13 +254,10 @@ void main() {
     await tester.pump();
 
     expect(tester.takeException(), isNull);
-    expect(find.text("Cedarflake Ame"), findsNothing);
+    expect(find.text("Cedarflake Ame"), findsOneWidget);
     expect(find.text("Ame"), findsNothing);
     expect(find.byKey(const Key("library-search")), findsOneWidget);
     expect(find.byKey(const Key("library-import-button")), findsNothing);
-    expect(find.byKey(const Key("library-sidebar-import")), findsNothing);
-    await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
-    await tester.pumpAndSettle();
     expect(find.byKey(const Key("library-sidebar-import")), findsOneWidget);
     expect(find.byKey(const Key("library-sidebar-settings")), findsOneWidget);
     expect(find.byKey(const Key("window-minimize")), findsOneWidget);
@@ -277,7 +274,15 @@ void main() {
       find.byKey(const Key("library-sidebar-toggle")),
     );
     expect(galleryHeader.left, closeTo(sidebar.right, 0.1));
-    expect(galleryHeader.right, 800);
+    expect(galleryHeader.right, 1100);
+    for (final key in const [
+      Key("library-select-button"),
+      Key("library-sort-menu"),
+      Key("library-layout-menu"),
+      Key("library-more-menu"),
+    ]) {
+      expect(find.byKey(key).hitTestable(), findsOneWidget);
+    }
     expect(galleryTitle.left, closeTo(galleryHeader.left + 28, 0.1));
     final settings = tester.getRect(
       find.byKey(const Key("library-sidebar-settings")),

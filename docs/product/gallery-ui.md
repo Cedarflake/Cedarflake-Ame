@@ -122,7 +122,9 @@ and evidence; this product contract does not duplicate that inventory or record 
 
 The workbench has three regions in Library and Albums: a narrow function rail, a contextual sidebar,
 and the photo wall. Library shows sources and Favorites; Albums shows Favorites and the album list. The rail
-remains visible while the secondary sidebar can collapse. Its toggle
+remains visible while the secondary sidebar can collapse. The normal desktop window has a
+1,100-by-700 logical-pixel minimum, capped by the selected monitor's available work area. Restoring
+an older smaller window expands it to that minimum before showing it. The sidebar toggle
 stays in the function rail immediately above Settings while either is active, with `收起侧栏` and
 `展开侧栏` tooltips. Animate the sidebar boundary and photo content's left edge together over a short
 transition. The gallery title and count follow that same left edge independently of the toolbar.
@@ -131,8 +133,8 @@ follow the visible content area's center throughout the same transition. Their s
 own this placement so later content does not require another sidebar animation.
 Smoothly move and resize visible photos when sidebar or window dimensions change,
 including maximize/restore, while retaining the current browsing anchor.
-Keep the gallery's right edge, toolbar and time rail anchored to the window; the toolbar
-also stays right-aligned when it wraps below the title. The gallery lays out once at its destination
+Keep the gallery's right edge, toolbar and time rail anchored to the window. Ordinary actions remain
+beside the title instead of moving below it at a fixed width. The gallery lays out once at its destination
 width, keeping its state and preview ownership. Respect
 reduced motion and reverse an interrupted toggle from the current boundary. Remember the
 preference, selected source and folder expansion when switching workspaces. Primary-sidebar switches

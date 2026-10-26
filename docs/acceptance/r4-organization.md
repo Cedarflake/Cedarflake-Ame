@@ -3007,3 +3007,20 @@ ordinary actions beside the title. Entering organization mode displays the accep
 exiting restores the single action row. The retained corpus shows 10,000 physical images and
 72 groups, with no source mutation or cleanup. The header contains 526 production lines and no
 inline tests; the modified alignment suite contains 162 dedicated test lines.
+
+## Desktop window minimum - 2026-10-26
+
+The normal window minimum increases from 800 by 560 to 1,100 by 700 logical pixels. The placement
+owner selects the same monitor for restored bounds and native minimum constraints, limiting the
+minimum to that monitor's available work area. An older smaller saved window expands before it is
+shown. Caption behavior, sidebar rules, catalog data and source files are unchanged.
+
+All 15 focused placement, bootstrap and gallery-shell checks pass, including an older small
+placement, a smaller secondary monitor, enlarged normal bounds and reachable gallery controls.
+Strict analysis passes, and the Windows Debug build takes 23.8 seconds. Native Windows system-menu
+resizing reaches the new width and height limits; the captured client area is 1,089 by 694 pixels,
+excluding the native frame. The expanded test sidebar leaves Select, Sort, Filter, Layout and More
+visible beside the title at that limit. The original 10,000-image test profile remains open.
+
+Placement and native action owners contain 132/402 production lines and no inline tests. Their
+dedicated suites contain 114/171 lines; the gallery-shell suite contains 308 lines.

@@ -4,6 +4,54 @@ import "package:cedarflake_ame/app/window/ame_window_placement.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
+  test("expands an older small window to the desktop minimum", () {
+    const placement = AmeWindowPlacement(
+      left: 300,
+      top: 150,
+      width: 800,
+      height: 560,
+      isMaximized: false,
+    );
+    const screens = [Rect.fromLTWH(0, 0, 1920, 1040)];
+    final minimumSize = resolveAmeMinimumWindowSize(
+      placement,
+      visibleScreenBounds: screens,
+    );
+    final result = normalizeAmeWindowPlacement(
+      placement,
+      visibleScreenBounds: screens,
+      minimumSize: minimumSize,
+    );
+
+    expect(result?.bounds, const Rect.fromLTWH(300, 150, 1100, 700));
+  });
+
+  test("limits the minimum to the selected monitor work area", () {
+    const placement = AmeWindowPlacement(
+      left: -1000,
+      top: 40,
+      width: 800,
+      height: 560,
+      isMaximized: false,
+    );
+    const screens = [
+      Rect.fromLTWH(0, 0, 1920, 1040),
+      Rect.fromLTWH(-1024, 0, 1024, 640),
+    ];
+    final minimumSize = resolveAmeMinimumWindowSize(
+      placement,
+      visibleScreenBounds: screens,
+    );
+    final result = normalizeAmeWindowPlacement(
+      placement,
+      visibleScreenBounds: screens,
+      minimumSize: minimumSize,
+    );
+
+    expect(minimumSize, const Size(1024, 640));
+    expect(result?.bounds, screens.last);
+  });
+
   test("keeps a valid placement on its original monitor", () {
     const placement = AmeWindowPlacement(
       left: -1600,

@@ -1,4 +1,7 @@
+import "dart:math" as math;
 import "dart:ui";
+
+const ameMinimumWindowSize = Size(1100, 700);
 
 class AmeWindowPlacement {
   const AmeWindowPlacement({
@@ -40,6 +43,18 @@ abstract interface class AmeWindowPreferenceStore {
   Future<void> saveWindowPlacement(AmeWindowPlacement placement);
 }
 
+Size resolveAmeMinimumWindowSize(
+  AmeWindowPlacement? placement, {
+  required List<Rect> visibleScreenBounds,
+}) {
+  if (visibleScreenBounds.isEmpty) return ameMinimumWindowSize;
+  final screen = _placementScreen(placement, visibleScreenBounds);
+  return Size(
+    math.min(ameMinimumWindowSize.width, screen.width),
+    math.min(ameMinimumWindowSize.height, screen.height),
+  );
+}
+
 AmeWindowPlacement? normalizeAmeWindowPlacement(
   AmeWindowPlacement? placement, {
   required List<Rect> visibleScreenBounds,
@@ -51,20 +66,7 @@ AmeWindowPlacement? normalizeAmeWindowPlacement(
     return null;
   }
 
-  final savedBounds = placement.bounds;
-  var targetScreen = visibleScreenBounds.first;
-  var largestIntersection = -1.0;
-  for (final screen in visibleScreenBounds) {
-    final intersection = savedBounds.intersect(screen);
-    final area = intersection.isEmpty
-        ? 0.0
-        : intersection.width * intersection.height;
-    if (area > largestIntersection) {
-      targetScreen = screen;
-      largestIntersection = area;
-    }
-  }
-
+  final targetScreen = _placementScreen(placement, visibleScreenBounds);
   final width = _constrainDimension(
     placement.width,
     minimumSize.width,
@@ -93,6 +95,26 @@ AmeWindowPlacement? normalizeAmeWindowPlacement(
     height: height,
     isMaximized: placement.isMaximized,
   );
+}
+
+Rect _placementScreen(
+  AmeWindowPlacement? placement,
+  List<Rect> visibleScreenBounds,
+) {
+  var targetScreen = visibleScreenBounds.first;
+  if (placement == null || !_isFinitePlacement(placement)) return targetScreen;
+  var largestIntersection = -1.0;
+  for (final screen in visibleScreenBounds) {
+    final intersection = placement.bounds.intersect(screen);
+    final area = intersection.isEmpty
+        ? 0.0
+        : intersection.width * intersection.height;
+    if (area > largestIntersection) {
+      targetScreen = screen;
+      largestIntersection = area;
+    }
+  }
+  return targetScreen;
 }
 
 bool _isFinitePlacement(AmeWindowPlacement placement) {
