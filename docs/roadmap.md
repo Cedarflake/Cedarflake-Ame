@@ -337,8 +337,9 @@ focused and Windows Profile component checks pass. The current complete client r
 with build/raster P95 of 0.993/1.502 ms and at most 500 retained assets. These aggregate frame results
 do not close the measured publication waits or constrained-device acceptance.
 Sort-driven date, name and current-entry arrival-range rails have focused regression and build
-coverage. Native interaction has resumed: date years/ticks, numeric name sections and near-top-to-top
-dragging display correctly. Current-entry arrival-range interaction remains open. Schema-57 recovery
+coverage. Native interaction verifies date years/ticks, numeric name sections, near-top-to-top
+dragging and current-entry arrival ranges. Single-image ranges remain visible when new and earlier
+images share a row, and re-entry resets the arrival boundary. Schema-57 recovery
 admission passes focused repair, rejection, upgrade and hosted checks.
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
 47,833-group write, with all durable records unchanged after reopen. Client operation timings are

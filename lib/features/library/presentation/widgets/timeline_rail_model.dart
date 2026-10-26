@@ -73,7 +73,18 @@ TimelineRailAnchor timelineRailBucketAtValue(
       upper = middle - 1;
     }
   }
-  return anchors[upper.clamp(0, anchors.length - 1)];
+  final index = upper.clamp(0, anchors.length - 1);
+  final selected = anchors[index];
+  if (selected.value == value) {
+    // New and earlier items can share a row. Keep its highlighted boundary
+    // discoverable without extending that choice to later scroll positions.
+    for (var candidate = index; candidate >= 0; candidate--) {
+      final anchor = anchors[candidate];
+      if (anchor.value != selected.value) break;
+      if (anchor.bucket.highlighted) return anchor;
+    }
+  }
+  return selected;
 }
 
 double timelineRailValueForBucket(

@@ -20,6 +20,7 @@ class TimelineRailLayout {
               id: anchor.bucket.id,
               value: anchor.value,
               extent: labelExtent,
+              priority: anchor.bucket.highlighted ? 1 : 0,
             ),
       ],
       railExtent: railExtent,

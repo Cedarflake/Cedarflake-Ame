@@ -3,11 +3,13 @@ class TimelineAnnotationCandidate {
     required this.id,
     required this.value,
     required this.extent,
+    this.priority = 0,
   });
 
   final String id;
   final double value;
   final double extent;
+  final int priority;
 }
 
 class TimelineAnnotationPlacement {
@@ -85,7 +87,10 @@ Set<String> visibleTimelineAnnotationIds(
       continue;
     }
     final shouldKeepFirst = index == 0 && lowerIndex < placements.length - 1;
-    if (shouldKeepFirst) {
+    final priority = current.candidate.priority.compareTo(
+      lower.candidate.priority,
+    );
+    if (priority > 0 || (priority == 0 && shouldKeepFirst)) {
       visibleIndices[visibleIndices.length - 1] = index;
     }
   }

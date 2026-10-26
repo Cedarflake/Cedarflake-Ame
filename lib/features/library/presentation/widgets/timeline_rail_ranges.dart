@@ -28,6 +28,23 @@ class TimelineRailRanges extends StatelessWidget {
           0.0,
           double.infinity,
         );
+        Rect rangeRect(TimelineRailAnchor anchor) {
+          final end = projection.offsetToValue(
+            (anchor.bucket.scrollOffset ?? 0) + anchor.bucket.contentExtent,
+          );
+          final height = ((end - anchor.value) * extent).clamp(
+            3.0.clamp(0.0, extent),
+            extent,
+          );
+          final top = (anchor.value * extent).clamp(0.0, extent - height);
+          return Rect.fromLTWH(
+            constraints.maxWidth - 5,
+            endpointInset + top,
+            3,
+            height,
+          );
+        }
+
         return Stack(
           children: [
             for (final anchor in anchors)
@@ -36,17 +53,7 @@ class TimelineRailRanges extends StatelessWidget {
                   key: ValueKey("rail-range-${anchor.bucket.id}"),
                   geometry: geometry,
                   isInteracting: isInteracting,
-                  rect: Rect.fromLTWH(
-                    constraints.maxWidth - 5,
-                    endpointInset + anchor.value * extent,
-                    3,
-                    (projection.offsetToValue(
-                              (anchor.bucket.scrollOffset ?? 0) +
-                                  anchor.bucket.contentExtent,
-                            ) -
-                            anchor.value) *
-                        extent,
-                  ),
+                  rect: rangeRect(anchor),
                   child: DecoratedBox(
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.primary,

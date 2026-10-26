@@ -869,6 +869,11 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   A released date-navigation request retains its alignment through its resulting publication.
   Cancellation carries the old intent generation, so its deferred notification cannot retire a
   newer interaction.
+- `library_sort_rail_projection.dart` maps admitted sections to actual gallery rows; an arrival
+  range covers every row containing new items, including a row shared with earlier items. The
+  annotation visibility owner gives highlighted labels precedence only during a collision,
+  preserving the existing equal-priority date policy. Range drawing retains a bounded minimum
+  stroke without moving the navigation anchors or adding Slider stops.
 
 ### Native verification boundaries
 

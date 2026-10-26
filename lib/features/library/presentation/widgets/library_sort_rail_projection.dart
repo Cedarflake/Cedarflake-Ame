@@ -29,6 +29,19 @@ class LibrarySortRailProjection {
       return ordinal / summary.totalItems * maximumOffset;
     }
 
+    double sectionEnd(LibraryScrollSection section) {
+      final endOrdinal = section.startOrdinal + section.itemCount;
+      final layout = metrics;
+      if (section.kind == LibraryScrollSectionKind.newArrivals &&
+          section.itemCount > 0 &&
+          layout != null &&
+          layout.isQueryWide) {
+        final rowEnd = layout.rowEndGlobalItemIndexExclusive(endOrdinal - 1);
+        if (rowEnd != null) return offset(rowEnd);
+      }
+      return offset(endOrdinal);
+    }
+
     return [
       for (final section in sections)
         TimelineRailBucket(
@@ -47,10 +60,8 @@ class LibrarySortRailProjection {
           highlighted: section.kind == LibraryScrollSectionKind.newArrivals,
           year: null,
           scrollOffset: offset(section.startOrdinal),
-          contentExtent:
-              (offset(section.startOrdinal + section.itemCount) -
-                      offset(section.startOrdinal))
-                  .clamp(0.0, double.infinity),
+          contentExtent: (sectionEnd(section) - offset(section.startOrdinal))
+              .clamp(0.0, double.infinity),
         ),
     ];
   }

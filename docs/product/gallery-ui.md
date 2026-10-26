@@ -1039,6 +1039,9 @@ queue, sort and primary-sidebar switches; exiting and entering again captures a 
 New duplicate copies retain their group's earlier admission and do not create a new range.
 These range annotations follow the filtered query's actual layout, retain bounded loading, and do
 not add discrete Slider stops. Unannotated rails retain the existing decorative positional dots.
+A new-arrival range includes the displayed rows containing its images, even when the last row
+also contains earlier images. Keep a visible range stroke at small scales, and prefer its label
+when it collides with the earlier-range label; annotation positions and scroll targets stay exact.
 
 Mode entry, queue changes and exit retain published content while the replacement query loads.
 An existing empty result does not flash a loading page or an hourglass, and the controls keep their

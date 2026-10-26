@@ -2919,3 +2919,39 @@ preserved.
 The normal Debug entrypoint rebuilds in 40.2 seconds. The unchanged recovery profile is restored;
 native readback shows the synchronized 10,000-image, 72-group gallery. Owned Rust formatting and
 whitespace checks pass. The two unrelated presentation edits remain outside the delivery.
+
+## Narrow new-arrival ranges - 2026-10-26
+
+Native arrival verification on the isolated 10,000-image recovery profile exposes a zero-height
+range when a single new image shares its first row with earlier images. Both section anchors map
+to the same row start; the previous range ends there and the equal-priority collision policy keeps
+only the earlier label. The current-entry boundary and new count are correct.
+
+The sort projection now includes the complete last row containing new items. Navigation anchors
+remain at their exact row offsets. Highlighted annotations take precedence during label collisions;
+equal-priority date/name behavior is unchanged. Range drawing retains a three-pixel minimum stroke
+inside the track. At an exactly shared boundary the semantic label identifies the new range; later
+positions retain the earlier range. The shared Material Slider, input lifecycle and motion owner
+are unchanged. No schema, source-reading or dependency change is introduced.
+
+Both added regressions fail before the correction with a zero rather than 200-pixel row extent.
+All 22 focused Flutter checks then pass: sort projection (5), annotation visibility (5), rail layout
+(3) and annotated rail interaction (9). They include a one-million-pixel scroll range, colliding
+sections, preserved exact anchors, visible minimum stroke and continuous Slider input. Strict
+analysis finds no issues. The normal Windows Debug entrypoint builds in 24.8 seconds. The read-only
+repository formatting check still identifies only the unrelated `library_gallery_states.dart` edit;
+all owned files are formatted, and the two unrelated presentation edits remain untouched.
+
+The rebuilt native client enters organization mode with 73 groups, including the earlier controlled
+fixture. Adding one distinct generated PNG inside the reusable test source increases the total to
+74 and pending to 67 while displaying `新加入 · 1 张` and its visible range. The new image shares its
+row with the pre-entry image, which is correctly excluded from the new count. Dragging from near
+the top back to the top shows both images without persistent placeholders. Exit restores the date
+rail and years; a new mode entry followed by new-first sorting has no new-range label or highlight,
+confirming that the entry boundary resets. The two explicitly owned test files are then removed
+after exact path, reparse and SHA-256 checks; no original media or existing corpus file is modified.
+The active isolated window returns to 10,000 physical images, 72 groups and `已同步`.
+
+The affected production owners contain 74/128/63/122/69 lines for sort projection, annotation
+visibility, rail layout, rail model and range drawing respectively, with no inline tests. The
+extended sort-projection suite contains 186 dedicated test lines.
