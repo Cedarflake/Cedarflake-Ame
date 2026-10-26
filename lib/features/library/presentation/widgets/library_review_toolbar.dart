@@ -10,6 +10,10 @@ import "../library_organization_mode.dart";
 class LibraryReviewToolbar extends StatelessWidget {
   const LibraryReviewToolbar({required this.mode, this.counts, super.key});
 
+  static const _actionStyle = ButtonStyle(
+    padding: WidgetStatePropertyAll(EdgeInsets.all(8)),
+  );
+
   final LibraryOrganizationMode mode;
   final LibraryOrganizationCounts? counts;
 
@@ -21,7 +25,7 @@ class LibraryReviewToolbar extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         AmePopupMenuButton<LibraryOrganizationQueue>(
-          labels: LibraryOrganizationQueue.values.map(_label),
+          labels: LibraryOrganizationQueue.values.map(_name),
           leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
           items: [
             for (final queue in LibraryOrganizationQueue.values)
@@ -30,32 +34,36 @@ class LibraryReviewToolbar extends StatelessWidget {
                 value: queue,
                 isSelected: queue == mode.queue,
                 icon: _icon(queue),
-                label: _label(queue),
+                label: _name(queue),
               ),
           ],
           onSelected: mode.selectQueue,
           builder: (context, openMenu) => AmeTooltip(
             message: _label(mode.queue),
-            child: TextButton.icon(
+            child: IconButton(
               key: const Key("library-review-queues"),
+              color: Theme.of(context).colorScheme.primary,
               onPressed: () {
                 if (!mode.busy) openMenu();
               },
-              icon: Icon(_icon(mode.queue), size: 20),
-              label: Row(
+              icon: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(_name(mode.queue), semanticsLabel: _label(mode.queue)),
-                  const SizedBox(width: 4),
-                  const Icon(Symbols.arrow_drop_down_rounded, size: 20),
+                  Icon(
+                    _icon(mode.queue),
+                    size: 20,
+                    semanticLabel: _label(mode.queue),
+                  ),
+                  const Icon(Symbols.arrow_drop_down_rounded, size: 18),
                 ],
               ),
             ),
           ),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 4),
         TextButton.icon(
           key: const Key("library-review-exit"),
+          style: _actionStyle,
           onPressed: mode.exit,
           icon: const Icon(Symbols.close_rounded, size: 20),
           label: const Text("退出整理"),
@@ -64,6 +72,7 @@ class LibraryReviewToolbar extends StatelessWidget {
           const SizedBox(width: 4),
           TextButton.icon(
             key: const Key("library-review-resume"),
+            style: _actionStyle,
             onPressed: mode.resume,
             icon: const Icon(Symbols.arrow_forward_rounded, size: 20),
             label: const Text("继续整理"),

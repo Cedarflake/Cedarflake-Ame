@@ -6,6 +6,8 @@ import "package:flutter/widgets.dart";
 
 /// Aligns measured header cells while the header moves between one and two action rows.
 class LibraryGalleryHeaderRows extends MultiChildRenderObjectWidget {
+  static const rowSpacing = 4.0;
+
   LibraryGalleryHeaderRows({
     required Widget title,
     required Widget summary,
@@ -76,7 +78,10 @@ class RenderLibraryGalleryHeaderRows extends RenderBox
     );
     final firstRowHeight = math.max(titleHeight, primary.size.height);
     final secondRowHeight = math.max(summaryHeight, secondary.size.height);
-    final expandedHeight = math.max(70.0, firstRowHeight + 8 + secondRowHeight);
+    final expandedHeight = math.max(
+      70.0,
+      firstRowHeight + LibraryGalleryHeaderRows.rowSpacing + secondRowHeight,
+    );
     final height = lerpDouble(collapsedHeight, expandedHeight, _progress)!;
     size = constraints.constrain(Size(width, height));
 
@@ -86,7 +91,9 @@ class RenderLibraryGalleryHeaderRows extends RenderBox
       summary,
       0,
       collapsedTitleTop + titleHeight + 4,
-      firstRowHeight + 8 + (secondRowHeight - summaryHeight) / 2,
+      firstRowHeight +
+          LibraryGalleryHeaderRows.rowSpacing +
+          (secondRowHeight - summaryHeight) / 2,
     );
     _position(
       primary,
@@ -98,7 +105,9 @@ class RenderLibraryGalleryHeaderRows extends RenderBox
       secondary,
       width - actionWidth,
       collapsedHeight - secondary.size.height,
-      firstRowHeight + 8 + (secondRowHeight - secondary.size.height) / 2,
+      firstRowHeight +
+          LibraryGalleryHeaderRows.rowSpacing +
+          (secondRowHeight - secondary.size.height) / 2,
     );
   }
 

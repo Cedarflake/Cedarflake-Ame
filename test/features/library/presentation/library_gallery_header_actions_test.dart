@@ -48,23 +48,23 @@ void main() {
         reviewing.value = true;
         await tester.pump();
         if (reducedMotion) {
-          expect(galleryTop(), 88);
+          expect(galleryTop(), 84);
         } else {
           expect(galleryTop(), 40);
           await tester.pump(const Duration(milliseconds: 90));
-          expect(galleryTop(), inExclusiveRange(40, 88));
+          expect(galleryTop(), inExclusiveRange(40, 84));
         }
         await tester.pumpAndSettle();
-        expect(galleryTop(), 88);
+        expect(galleryTop(), 84);
         await tester.tap(find.text("退出整理"));
         expect(presses, 1);
         reviewing.value = false;
         await tester.pump();
         if (!reducedMotion) {
-          expect(galleryTop(), 88);
+          expect(galleryTop(), 84);
           await tester.pump(const Duration(milliseconds: 60));
           final reversingTop = galleryTop();
-          expect(reversingTop, inExclusiveRange(40, 88));
+          expect(reversingTop, inExclusiveRange(40, 84));
           final fade = tester.widget<FadeTransition>(
             find.descendant(
               of: find.byType(LibraryGalleryHeaderActions),
@@ -76,7 +76,7 @@ void main() {
           await tester.pump();
           expect(galleryTop(), reversingTop);
           await tester.pumpAndSettle();
-          expect(galleryTop(), 88);
+          expect(galleryTop(), 84);
           reviewing.value = false;
           await tester.pump();
         }

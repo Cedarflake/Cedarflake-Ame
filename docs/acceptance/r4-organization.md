@@ -3044,3 +3044,26 @@ the rendered longest label now leaves only the standard right padding. Native in
 the narrower popup with all four labels visible and unchanged dot/disabled styles. Strict analysis
 passes, and the Debug build takes 28.8 seconds. The shared menu facade and filter contain 371/88
 production lines, with no inline tests; the updated filter suite contains 201 dedicated test lines.
+
+## Compact organization queue controls - 2026-10-26
+
+The queue trigger uses the existing Material icon-button and popup owners, retaining the queue icon
+and dropdown chevron without a visible name. Menu entries retain their names, icons and shared dot
+without counts; the trigger's tooltip and accessible name still include the count. Exit and resume
+retain their labels and 20-pixel icons, with four-pixel button gaps and eight-pixel padding.
+Both header compositions share a four-pixel gap between action rows, preserving title/count alignment
+and the existing reversible transition.
+
+All 24 focused widget, header and connected-screen checks pass, covering normal and doubled text scale,
+resizing, transition reversal, reduced motion, menu switching, busy admission, conditional continuation
+and unchanged header counts. Strict analysis and repository formatting pass. The final Windows Debug
+build takes 38.0 seconds. Native
+inspection verifies the compact action row and menu without numeric suffixes; switching to the
+deferred queue updates its icon. Windows accessibility retains the pending count in the button name.
+The existing controlled profile remains open, with source media unchanged. The delivery also includes
+the existing gallery and duplicate empty-state wording edits.
+
+The toolbar contains 101 production lines and no inline tests. Its updated widget and overlay suites
+contain 511/113 dedicated test lines; the connected-screen suite contains 312 lines.
+The header-row and action owners contain 134/155 production lines and no inline tests; the action
+and alignment suites contain 90/162 dedicated test lines.

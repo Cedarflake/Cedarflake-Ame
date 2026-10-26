@@ -20,7 +20,7 @@ abstract final class LibraryDuplicateStrings {
   static const pause = "暂停查重";
   static const resume = "继续查重";
   static const pauseSaveFailed = "无法保存查重设置";
-  static const emptyBeforeAnalysis = "查找后，可以查看相同图片保存在哪些文件夹。";
+  static const emptyBeforeAnalysis = "查找由此查看相同图片保存在哪些文件夹。";
   static const emptyAfterAnalysis = "已检查的图片中没有发现重复项";
   static const waitingForResults = "找到的重复图片会显示在这里。";
   static const emptyLocations = "该组某些图片的位置已发生变化";

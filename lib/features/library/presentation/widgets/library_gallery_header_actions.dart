@@ -141,7 +141,9 @@ class _LibraryGalleryHeaderActionsState
                 sizeFactor: _controller,
                 alignment: Alignment.topRight,
                 child: Padding(
-                  padding: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.only(
+                    top: LibraryGalleryHeaderRows.rowSpacing,
+                  ),
                   child: controls,
                 ),
               ),

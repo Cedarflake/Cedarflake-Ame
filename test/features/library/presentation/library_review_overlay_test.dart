@@ -62,7 +62,7 @@ void main() {
           of: find.byKey(const Key("library-review-toolbar")),
           matching: find.byType(Text),
         ),
-        findsNWidgets(2),
+        findsOneWidget,
       );
       await tester.tapAt(Offset(gallery.left + 32, gallery.bottom - 32));
       expect(imageTaps, 1);

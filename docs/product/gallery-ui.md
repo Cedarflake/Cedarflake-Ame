@@ -1026,16 +1026,18 @@ workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 
 The existing count row contains the total, `已整理`, `待整理`, and `已忽略` counts on one line. During
 organization, the upper-right operation area has two right-aligned rows. The first retains browsing
-or selection actions. The second contains one mode dropdown showing the current queue's icon and
-name, followed by `退出整理` and `继续整理`. Its menu offers `待整理`, `稍后整理`, and `已忽略`, marks the
-current choice and includes queue counts. Exit and continuation use a close
-icon and forward arrow with their text labels. Both rows remain available during selection and use
-the header's horizontal scrolling at constrained desktop widths or enlarged text scales. Counts
+or selection actions. The second contains one icon-only mode dropdown showing the current queue's
+icon and a dropdown chevron, followed by `退出整理` and `继续整理`. Omit the visible queue name;
+its tooltip and accessible name retain the queue name and count. Its menu offers `待整理`, `稍后整理`, and `已忽略`,
+marks the current choice and omits queue counts. Exit and continuation use a close
+icon and forward arrow with their text labels. Use compact shared button spacing and horizontal
+padding in this row, with four pixels between the action rows. Both rows remain available during
+selection and use the header's horizontal scrolling at constrained desktop widths or enlarged text scales. Counts
 also retain a single horizontally scrollable line when enlarged text exceeds their available width.
 
-Reuse the existing popup menu's small dot selection marker and text-button styles. At desktop widths
-with side-by-side information and actions, align the title with the first action row and the count
-with the second. Reveal and collapse the second row over 260 ms, moving both information rows,
+Reuse the existing popup menu's small dot selection marker and icon/text-button styles. At desktop
+widths with side-by-side information and actions, align the title with the first action row and
+the count with the second. Reveal and collapse the second row over 260 ms, moving both information rows,
 actions and the photo area's upper boundary together while fading the secondary actions. Interpolate
 the complete collapsed and expanded geometry so minimum header space cannot delay the photo area's
 movement. Retain the secondary content until exit finishes and retire its input immediately.

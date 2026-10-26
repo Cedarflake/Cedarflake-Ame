@@ -14,6 +14,7 @@ import "package:flutter/rendering.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../support/library_organization_fixture.dart";
 import "../support/library_review_fixture.dart";
@@ -271,7 +272,25 @@ void main() {
       (tester) async {
         await host(tester, scale: scale);
         final queueMenu = find.byKey(const Key("library-review-queues"));
-        expect(find.text("待整理"), findsOneWidget);
+        expect(find.text("待整理"), findsNothing);
+        expect(
+          tester
+              .widget<Icon>(
+                find.descendant(
+                  of: queueMenu,
+                  matching: find.byIcon(Symbols.inbox_rounded),
+                ),
+              )
+              .semanticLabel,
+          "待整理",
+        );
+        expect(
+          find.descendant(
+            of: queueMenu,
+            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+          ),
+          findsOneWidget,
+        );
         expect(
           find.byKey(const ValueKey("library-review-queue-deferred")),
           findsNothing,
@@ -343,8 +362,19 @@ void main() {
         await tester.pumpAndSettle();
         expect(mode.queue, LibraryOrganizationQueue.deferred);
         expect(
-          find.descendant(of: queueMenu, matching: find.text("稍后整理")),
-          findsOneWidget,
+          tester
+              .widget<Icon>(
+                find.descendant(
+                  of: queueMenu,
+                  matching: find.byIcon(Symbols.schedule_rounded),
+                ),
+              )
+              .semanticLabel,
+          "稍后整理",
+        );
+        expect(
+          find.descendant(of: queueMenu, matching: find.byType(Text)),
+          findsNothing,
         );
         expect(deferred, findsNothing);
         await tester.sendKeyEvent(LogicalKeyboardKey.tab);
@@ -384,7 +414,7 @@ void main() {
         await tester.pumpAndSettle();
         expect(mode.busy, isTrue);
         expect(tester.getRect(pending), originalBounds);
-        expect(tester.widget<TextButton>(pending).onPressed, isNotNull);
+        expect(tester.widget<IconButton>(pending).onPressed, isNotNull);
         expect(tester.widget<TextButton>(exit).onPressed, isNotNull);
         expect(
           tester
@@ -396,7 +426,7 @@ void main() {
         await tester.tapAt(tester.getCenter(exit));
         await tester.tapAt(tester.getCenter(pending));
         tester.widget<TextButton>(exit).onPressed!();
-        tester.widget<TextButton>(pending).onPressed!();
+        tester.widget<IconButton>(pending).onPressed!();
         await tester.pump();
         expect(surface.queries.length, countBefore + 1);
         expect(mode.isActive, isTrue);
