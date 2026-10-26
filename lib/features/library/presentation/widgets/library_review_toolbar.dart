@@ -40,20 +40,18 @@ class LibraryReviewToolbar extends StatelessWidget {
           onSelected: mode.selectQueue,
           builder: (context, openMenu) => AmeTooltip(
             message: _label(mode.queue),
-            child: IconButton(
+            child: TextButton.icon(
               key: const Key("library-review-queues"),
-              color: Theme.of(context).colorScheme.primary,
+              style: _actionStyle,
               onPressed: () {
                 if (!mode.busy) openMenu();
               },
-              icon: Row(
+              icon: Icon(_icon(mode.queue), size: 20),
+              label: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(
-                    _icon(mode.queue),
-                    size: 20,
-                    semanticLabel: _label(mode.queue),
-                  ),
+                  Text(_name(mode.queue), semanticsLabel: _label(mode.queue)),
+                  const SizedBox(width: 4),
                   const Icon(Symbols.arrow_drop_down_rounded, size: 18),
                 ],
               ),

@@ -1026,8 +1026,8 @@ workspace, mobile layout, or `返回全部图片` action duplicating mode exit.
 
 The existing count row contains the total, `已整理`, `待整理`, and `已忽略` counts on one line. During
 organization, the upper-right operation area has two right-aligned rows. The first retains browsing
-or selection actions. The second contains one icon-only mode dropdown showing the current queue's
-icon and a dropdown chevron, followed by `退出整理` and `继续整理`. Omit the visible queue name;
+or selection actions. The second contains one mode dropdown showing the current queue's icon, name
+and dropdown chevron, followed by `退出整理` and `继续整理`. The trigger's visible label omits counts;
 its tooltip and accessible name retain the queue name and count. Its menu offers `待整理`, `稍后整理`, and `已忽略`,
 marks the current choice and omits queue counts. Exit and continuation use a close
 icon and forward arrow with their text labels. Use compact shared button spacing and horizontal

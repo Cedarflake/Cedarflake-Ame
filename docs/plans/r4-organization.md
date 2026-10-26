@@ -199,7 +199,7 @@ Work in this order within the slice:
    browsing position. Offer continuation only for a saved position matching the current source scope.
 4. Put total, organized, pending and ignored counts in the existing count row. Use two rows in the
    upper-right operation area: existing browsing/selection actions above, then one dropdown with
-   the current queue's icon and a chevron, followed by exit and continuation buttons with icons
+   the current queue's icon, name and a chevron, followed by exit and continuation buttons with icons
    and labels.
    Retain the queue name and count in the trigger's tooltip and accessible name.
    The menu offers `待整理`, `稍后整理` and `已忽略` without counts, with the shared dot selection marker.
