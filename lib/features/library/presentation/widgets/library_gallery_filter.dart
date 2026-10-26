@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
+import "../../../../app/presentation/ame_menu_choice.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../domain/library_models.dart";
 import "../library_duplicate_strings.dart";
@@ -77,10 +78,10 @@ class LibraryGalleryFilter extends StatelessWidget {
     String label,
     bool selected, {
     bool enabled = true,
-  }) => CheckedPopupMenuItem(
+  }) => ameMenuChoice(
     value: choice,
-    checked: selected,
+    isSelected: selected,
     enabled: enabled,
-    child: Text(label),
+    label: label,
   );
 }

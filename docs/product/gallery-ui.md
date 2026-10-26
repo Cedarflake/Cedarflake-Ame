@@ -462,6 +462,8 @@ shortcuts continue to use `Shortcuts` and `Actions` behavior.
 
 Menus opened beside a window edge retain the shared viewport margin. Labels and shortcut hints use
 bounded flexible layout so narrow windows and platform font metrics cannot paint outside the menu.
+Exclusive choices in Sort, Layout, Filter and the organization queue menu use the same small filled
+dot. Disabled filter choices retain their selected marker and disabled styling.
 
 ## Sort behavior
 

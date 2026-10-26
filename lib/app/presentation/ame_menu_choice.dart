@@ -6,12 +6,14 @@ import "ame_menu.dart";
 PopupMenuItem<T> ameMenuChoice<T>({
   required T value,
   required String label,
-  required IconData icon,
+  IconData? icon,
   required bool isSelected,
+  bool enabled = true,
   Key? key,
 }) => PopupMenuItem<T>(
   key: key,
   value: value,
+  enabled: enabled,
   child: Semantics(
     key: ValueKey("menu-choice-$label"),
     checked: isSelected,
@@ -32,11 +34,13 @@ PopupMenuItem<T> ameMenuChoice<T>({
         ),
         const SizedBox(width: AmeMenuMetrics.iconLabelGap),
         Expanded(
-          child: AmeMenuItemContent(
-            icon: icon,
-            label: label,
-            isSelected: isSelected,
-          ),
+          child: icon == null
+              ? Text(label)
+              : AmeMenuItemContent(
+                  icon: icon,
+                  label: label,
+                  isSelected: isSelected,
+                ),
         ),
       ],
     ),

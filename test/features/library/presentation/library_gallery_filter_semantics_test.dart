@@ -9,6 +9,7 @@ import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../../support/duplicate_review_fixtures.dart";
 import "../../../support/semantics/retained_semantics_update_harness.dart";
@@ -45,11 +46,16 @@ void main() {
           RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
             trace: "filter-open-$selection",
           );
+          expect(find.byIcon(Symbols.circle_rounded), findsNWidgets(2));
+          expect(
+            find.byWidgetPredicate((widget) => widget is CheckedPopupMenuItem),
+            findsNothing,
+          );
           await tester.tap(
             find.ancestor(
               of: find.text(selection),
               matching: find.byWidgetPredicate(
-                (widget) => widget is CheckedPopupMenuItem,
+                (widget) => widget is PopupMenuItem,
               ),
             ),
           );

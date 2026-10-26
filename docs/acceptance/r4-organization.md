@@ -3024,3 +3024,15 @@ visible beside the title at that limit. The original 10,000-image test profile r
 
 Placement and native action owners contain 132/402 production lines and no inline tests. Their
 dedicated suites contain 114/171 lines; the gallery-shell suite contains 308 lines.
+
+## Shared filter selection marker - 2026-10-26
+
+The gallery filter now uses the shared exclusive-choice component for its small filled-dot marker.
+The component accepts iconless and disabled choices, preserving the filter's existing labels,
+availability and query commands. All six focused asynchronous filter-semantics and query-navigation
+checks pass, including existing sort-choice semantics. Strict analysis passes; the Debug build takes
+31.3 seconds. Native inspection shows dots for both the disabled descendant choice and the active
+duplicate mode. Switching to all 10,000 images moves the marker to that option; switching back restores
+the 72-group merged view. No source media is changed. Read-only formatting flags only the pre-existing
+unrelated gallery-state edit. The shared choice and filter contain 48/87 production lines and no
+inline tests; the updated semantics suite contains 185 dedicated test lines.
