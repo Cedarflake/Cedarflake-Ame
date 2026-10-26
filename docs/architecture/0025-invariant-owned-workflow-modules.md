@@ -285,12 +285,14 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   complete asset validation. Capture/creation dates add equivalent bounds on the existing ordered
   date expression; unknown dates retain their NULL rule. Month bounds narrow database work without
   granting source access, changing schema or weakening revision/query admission in the read facade.
-- `sqlite_catalog/gallery/location_anchor.rs` owns preferred-location and stable-asset resolution,
-  surviving-ordinal fallback and the centered window's predecessor inside the caller's read
-  transaction. A known capture/creation date excludes missing dates from its preceding range and
-  adds an inclusive ordered-date bound; the complete cursor predicate still decides exact ties.
-  Unknown-date and other ordering policies remain distinct. The gallery facade shares query filters
-  and order expressions rather than duplicating anchor fallback or source-access policy.
+- `sqlite_catalog/gallery/location_anchor.rs` owns preferred-location and stable-asset resolution.
+  `anchor_position.rs` owns surviving-ordinal fallback, clamping and the centered window's
+  predecessor inside the caller's read transaction. A successful ordinal read retains its proven
+  position; counting is needed only for an identity-resolved position or an out-of-range fallback.
+  A known capture/creation date excludes missing dates from its preceding range and adds an
+  inclusive ordered-date bound; the complete cursor predicate still decides exact ties.
+  Unknown-date and other ordering policies remain distinct. Both owners share query filters,
+  published sources and order expressions rather than duplicating membership or source policy.
 - `sqlite_catalog/gallery/organization_groups.rs` owns scoped organization-group selection,
   preferred representatives and group-anchor resolution. Its group query retains physical member
   counts for chronological timeline aggregation; page filters and continuation reuse the same

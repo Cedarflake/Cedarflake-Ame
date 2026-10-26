@@ -56,6 +56,7 @@ pub(super) fn representative_for_anchor(
 ) -> Result<Option<String>, ScanError> {
     let mut scope = Vec::new();
     let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
     push_source_filters(query, &mut scope, &mut parameters);
     parameters.push(Value::Text(location_id.to_owned()));
     let asset_guard = if let Some(asset_id) = asset_id {
@@ -78,10 +79,7 @@ pub(super) fn representative_for_anchor(
         .query_row(
             &format!(
                 "SELECT {representative}
-                 FROM library_roots AS roots
-                 CROSS JOIN asset_locations AS locations
-                   ON locations.root_id = roots.id AND locations.scan_id = roots.active_scan_id
-                 {joins}
+                 {source} {joins}
                  WHERE {}",
                 scope.join(" AND ")
             ),

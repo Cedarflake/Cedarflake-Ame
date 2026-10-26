@@ -21,6 +21,7 @@ use crate::ports::organization_review::OrganizationReviewRepository;
 use super::transitions::create_album;
 use super::*;
 
+mod anchor_stages;
 mod cancellation;
 mod read_stages;
 

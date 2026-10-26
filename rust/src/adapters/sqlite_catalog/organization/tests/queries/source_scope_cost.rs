@@ -76,6 +76,33 @@ fn collection_and_queue_reads_skip_unpublished_source_history() {
         assert_eq!(actual_ids, expected_ids);
         assert_eq!(snapshot.timeline.total_items, expected_ids.len() as u64);
         assert_eq!(snapshot.timeline.total_source_items, physical);
+        let target = selected(&catalog, "a");
+        let anchored = bounded_read(&mut catalog, |catalog| {
+            catalog.load_snapshot_around_asset(
+                10,
+                &query,
+                "published-scope",
+                "a",
+                &target.asset_id,
+                0,
+            )
+        });
+        assert_eq!(
+            anchored
+                .assets
+                .iter()
+                .map(|asset| asset.location_id.as_str())
+                .collect::<Vec<_>>(),
+            expected_ids,
+        );
+        assert_eq!(
+            anchored
+                .query_anchor_resolution
+                .unwrap()
+                .location_id
+                .as_deref(),
+            expected_ids.first().copied(),
+        );
         let layout = bounded_read(&mut catalog, |catalog| {
             catalog.load_gallery_layout_manifest_chunk(10, &query, "published-scope", None)
         });

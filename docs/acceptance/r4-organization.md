@@ -2794,9 +2794,72 @@ not establish that the measured query waits or constrained-device behavior are a
 The input SHA-256 remains
 `4AE81C622C784EFA43542858D7819665822463D97FF747824EB328924221C15D`.
 The original recovery profile's closed database hash also matches its pre-measurement value. Reports
-remain in ignored `build/test/derived/r4-client-measure`; the earlier complete client reports and
+remain in ignored `build/test/derived/r4-client-measure/attempt-09-before-anchor`; the earlier complete client reports and
 read-stage diagnostics are preserved in `attempt-07-before-timeline`. No original catalog or source
 media is modified. The normal Debug entrypoint rebuilds in 47.4 seconds, restores the original profile
 and activates successfully. Native readback shows `已同步`, 10,000 physical images and 72 groups.
 The recovery profile now contains associated records, so its old six-record cleanup confirmation is
 stale; a fresh eligible restore fixture is required for that remaining native check.
+
+## Position-preserving refresh reads - 2026-10-26
+
+The retained Favorite comparison separates ordinary entry, a still-present anchor and an anchor
+removed by a committed unfavorite. The old fallback counted all matching groups before selecting
+the retained ordinal, then counted its predecessors again. It also bypassed the shared published-
+source and empty-decision relation in several anchor reads.
+
+`gallery/anchor_position.rs` now owns ordinal fallback, clamping and centered-window positioning.
+A successful ordered read carries its proven ordinal inside the same read transaction. Out-of-range
+requests still count and clamp to the last surviving result, including `u64::MAX`; an empty scope
+retains its empty resolution. Preferred-copy and stable-asset lookup keep their precedence in
+`location_anchor.rs`. Group representative and position reads share the existing source/filter
+owner. No schema, bridge, cache, dependency or source-access policy changes are introduced.
+
+The manual Release diagnostic clones the same schema-56 input with 63,077 physical files and
+47,833 Favorite groups, upgrades only the copy and reads bounded 128-item pages. Both runs retain
+populated OS caches and perform no source-media reads. The removed-anchor samples validate the next
+location, ordinal zero, centered start, decremented count and returned-page bound.
+
+| Read | Before | After |
+| --- | ---: | ---: |
+| No anchor | 2,369.8 ms | 2,386.6 ms |
+| Original anchor retained, two samples | 3,698.3–3,704.7 ms | 3,749.5–3,797.6 ms |
+| Original anchor removed, two samples | 7,804.9–7,858.4 ms | 5,899.6–5,980.8 ms |
+
+Reports are `organization-anchor-before.jsonl` and `organization-anchor-profile.jsonl` under
+ignored `build/test/derived/r4-retained-indexed`. Input SHA-256 remains
+`4AE81C622C784EFA43542858D7819665822463D97FF747824EB328924221C15D`.
+These are catalog-port timings; client publication is measured separately.
+
+Focused diagnostics pass 8 anchor, 28 organization-query and 3 coherent-snapshot tests. Added
+coverage checks ascending/descending fallback windows, exact/end/overflow positions, empty search
+results and anchor reads amid 25,000 unrelated published or unpublished locations. Existing tests
+retain date NULL/tie ordering, renamed assets, representative changes and concurrent publication.
+
+The affected production owners contain 179 lines in `location_anchor.rs`, 224 in
+`anchor_position.rs` and 108 in `organization_groups.rs`, with no inline tests. Dedicated anchor
+tests contain 492 plus 94 lines; affected empty/source cost tests contain 132 and 115 lines, and
+the manual retained diagnostic contains 62 lines. The extracted boundary owns position proof and
+window selection rather than forwarding the previous SQL through a second facade.
+
+The affected Windows Profile workflow then repeats the same three album/Favorite entry pairs and
+single-group unfavorite/return sequence on a fresh copy. It omits the already-recorded concurrent
+bulk operation. The optimized diagnostic DLL SHA-256 is
+`1E753AEB0CF9544863A9EF50D56B929C058B0B8F5BDB2CF2434EC07791182F76`; the same two unrelated Dart
+presentation edits remain present and uncommitted. All interaction/count assertions pass and the
+client exits with code zero. Single unfavorite feedback takes 125.2 ms and the updated Favorite
+list appears after 8,461.6 ms, compared with 108.0/9,715.0 ms previously. Ordinary album and Favorite
+reads take 4.07–4.20 and 4.19–4.22 seconds respectively. One client sample does not establish a latency
+percentile; the remaining refresh wait still needs diagnosis.
+
+Driver lifetime is 56.639 seconds with 100.984 process CPU seconds. Across 97 samples, peak working
+set/private memory is 420.590/561.539 MiB. The retained window remains at most 500 assets, and 1,623
+frames have build/raster P95 of 1.079/1.589 ms. Reports remain under ignored
+`build/test/derived/r4-client-measure`; the previous complete client evidence is preserved in
+`attempt-09-before-anchor`. The retained input and closed recovery-profile database hashes remain
+unchanged. Original media and the original catalog are not modified.
+
+The normal Debug entrypoint rebuilds in 47.3 seconds and restores the original isolated profile;
+native readback shows `已同步`, 10,000 physical images and 72 groups. Rust formatting and owned
+whitespace checks pass. The non-mutating repository format check reports only the pre-existing,
+unrelated `library_gallery_states.dart` edit; it is excluded from this change and remains untouched.

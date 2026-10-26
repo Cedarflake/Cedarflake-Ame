@@ -53,6 +53,21 @@ fn empty_decision_scopes_do_not_walk_unrelated_published_locations() {
                 catalog.load_snapshot(10, &query, "empty", None, None, None)
             });
             assert!(snapshot.assets.is_empty());
+            let target = selected(&catalog, "a");
+            for fallback in [0, u64::MAX] {
+                let anchored = bounded_read(&mut catalog, |catalog| {
+                    catalog.load_snapshot_around_asset(
+                        10,
+                        &query,
+                        "empty",
+                        "a",
+                        &target.asset_id,
+                        fallback,
+                    )
+                });
+                assert!(anchored.assets.is_empty());
+                assert_eq!(anchored.query_anchor_resolution.unwrap().location_id, None);
+            }
             let timeline = bounded_read(&mut catalog, |catalog| {
                 catalog.load_gallery_timeline(&query, "empty")
             });

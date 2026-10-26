@@ -8,6 +8,8 @@ use crate::domain::{GallerySortDirection, GallerySortKey};
 
 use crate::adapters::sqlite_catalog::*;
 
+mod fallback_position;
+
 #[test]
 fn gallery_location_anchor_resolves_name_order_and_direction() {
     let directory = tempdir().expect("temporary directory");

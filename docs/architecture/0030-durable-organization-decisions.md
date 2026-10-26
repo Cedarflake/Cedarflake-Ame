@@ -161,12 +161,18 @@ membership and the physical total, preserving existing membership semantics acro
 buckets reuse that result instead of resolving membership a second time. Page, continuation and
 timeline reads share the group-selection owner; name/admission sections and unfolded Favorite
 counts retain their existing paths.
-Album, Favorite, deferred and ignored page/layout/timeline reads first test for a matching durable
-record through a one-row relation in the same SQL snapshot. Its absence avoids location traversal;
+Album, Favorite, deferred and ignored reads, including location anchors, first test for a matching
+durable record through a one-row relation in the same SQL snapshot. Its absence avoids location traversal;
 its presence retains the complete scoped membership and representative checks. Pending queues
 continue to include unrecorded groups. This proof is recomputed for each read, without a result cache
 or changes to shared progress counts.
 These reads use catalog data only and never load the membership graph into presentation.
+
+Position-preserving refresh resolves the requested physical copy, then its stable asset, before
+falling back to the retained ordinal. The fallback reads that ordered position directly and carries
+its proven ordinal into the centered window. Only an out-of-range request requires a total count
+and clamping to the last eligible item. Identity resolution, fallback and page publication share
+one transaction, scope and ordering; retained ordinals are not authority across transactions.
 
 ### Queue admission and continuation
 
