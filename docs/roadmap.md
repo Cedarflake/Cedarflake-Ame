@@ -320,12 +320,14 @@ read/write-contention regressions. Empty album, Favorite, deferred and ignored r
 location traversal when no matching decisions exist, with focused and retained-catalog checks passing.
 Chronological timelines reuse one scoped group relation for representatives and physical counts.
 The retained Profile client completes the measured workflow; concurrent album publication takes
-4.05 seconds while the writer remains active. The subsequent position-retention repair reuses a
-proven fallback ordinal and the shared source scope. Its retained catalog comparison reduces
-removed-anchor reads from 7.8 to 5.9–6.0 seconds, and the affected client refresh falls from 9.72 to
-8.46 seconds. Continue diagnosing the remaining position-preserving read and publication wait.
-The final empty-Favorite refresh previously took 6.09 seconds and has no new complete-client timing.
-Retain completed measurements and keep collection entry separate from anchored refresh.
+4.05 seconds while the writer remains active. Position-preserving reads now reuse proven fallback
+ordinals and reject ineligible anchor membership before expanding scoped groups. The retained
+catalog comparison reduces removed-anchor reads from 7.8 to 3.54–3.58 seconds; the affected client
+refresh falls from 9.72 to 5.72 seconds, with unchanged position and count assertions. Collection
+entry remains 3.9–4.8 seconds in the latest sample, and the final empty-Favorite refresh previously
+took 6.09 seconds with no new complete-client timing. Carry these measured waits into integrated
+resource acceptance while completing the remaining native workflows; keep collection entry,
+anchored refresh and writer timing separate.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication

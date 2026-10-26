@@ -50,8 +50,7 @@ pub(super) fn push_source_filters(
     clauses: &mut Vec<String>,
     parameters: &mut Vec<Value>,
 ) {
-    organization::push_collection_filter(query, clauses, parameters);
-    organization_queue::push_filter(query, clauses, parameters);
+    push_membership_filters(query, clauses, parameters);
     if let Some(root_id) = &query.root_id {
         clauses.push("locations.root_id = ?".to_owned());
         parameters.push(Value::Text(root_id.clone()));
@@ -86,4 +85,35 @@ pub(super) fn push_source_filters(
             Value::Text(search.to_owned()),
         ]);
     }
+}
+
+pub(super) fn push_membership_filters(
+    query: &GalleryQuery,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
+    organization::push_collection_filter(query, clauses, parameters);
+    organization_queue::push_filter(query, clauses, parameters);
+}
+
+pub(super) fn push_anchor_filters(
+    query: &GalleryQuery,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
+    if !organization_groups::uses_grouped_organization(query) {
+        push_gallery_filters(query, clauses, parameters);
+        return;
+    }
+    let mut membership = Vec::new();
+    push_membership_filters(query, &mut membership, parameters);
+    let mut group = Vec::new();
+    organization_groups::push_group_filter(query, &mut group, parameters);
+    // CASE keeps a rejected point lookup from materializing every eligible group.
+    // Group selection still owns the physical scope and preferred representative.
+    clauses.push(format!(
+        "CASE WHEN {} THEN ({}) ELSE 0 END",
+        membership.join(" AND "),
+        group.join(" AND "),
+    ));
 }

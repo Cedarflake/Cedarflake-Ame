@@ -174,6 +174,13 @@ its proven ordinal into the centered window. Only an out-of-range request requir
 and clamping to the last eligible item. Identity resolution, fallback and page publication share
 one transaction, scope and ordering; retained ordinals are not authority across transactions.
 
+Point-anchor reads establish logical collection/queue membership before expanding the complete
+scoped group relation. Conditional SQL retains that evaluation order when a location or asset is
+already ineligible. Representative lookup checks the requested active copy's logical membership
+without requiring that physical copy to pass the folder/search filter; the final group selection
+still chooses a qualifying member inside the complete physical scope. These eligibility reads reuse
+the published-source and empty-decision relation and share the enclosing read transaction.
+
 ### Queue admission and continuation
 
 Allocate a monotonic queue-admission ordinal when a source version becomes part of a published

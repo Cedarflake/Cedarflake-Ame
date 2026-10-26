@@ -4,7 +4,8 @@ use rusqlite::{OptionalExtension, Transaction, params_from_iter};
 use crate::domain::{CatalogCursor, GalleryLocationAnchorResolution, GalleryQuery, ScanError};
 
 use super::anchor_position::{self, GalleryAnchorPosition};
-use super::{database_error, gallery_order_expressions, gallery_source, push_gallery_filters};
+use super::filters::push_anchor_filters;
+use super::{database_error, gallery_order_expressions, gallery_source};
 
 struct GalleryAnchorRequest<'a> {
     requested_location_id: &'a str,
@@ -108,7 +109,7 @@ fn resolve_gallery_anchor(
     let mut anchor_clauses = Vec::new();
     let mut anchor_parameters = Vec::new();
     let source = gallery_source(query, &mut anchor_parameters);
-    push_gallery_filters(query, &mut anchor_clauses, &mut anchor_parameters);
+    push_anchor_filters(query, &mut anchor_clauses, &mut anchor_parameters);
     anchor_clauses.push(format!("{} = ?", request.anchor_column));
     anchor_parameters.push(Value::Text(anchor_value.to_owned()));
     if let Some(asset_id) = request

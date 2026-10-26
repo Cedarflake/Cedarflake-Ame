@@ -5,6 +5,7 @@ use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 
 use super::super::exact_duplicate_review::representative_expression;
 use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
+use super::filters::push_membership_filters;
 use super::organization::{compatible_binding, group_expression};
 use super::{BuiltGalleryQuery, database_error, gallery_source, push_source_filters};
 
@@ -75,18 +76,48 @@ pub(super) fn representative_for_anchor(
     ));
     let joins = representative_joins();
     let representative = representative_expression("locations");
+    let eligibility = requested_membership(query, location_id, asset_id);
+    let mut guarded_parameters = eligibility.parameters;
+    guarded_parameters.extend(parameters);
     transaction
         .query_row(
             &format!(
-                "SELECT {representative}
+                "SELECT CASE WHEN ({eligibility}) THEN (
+                 SELECT {representative}
                  {source} {joins}
-                 WHERE {}",
-                scope.join(" AND ")
+                 WHERE {scope}) END",
+                eligibility = eligibility.sql,
+                scope = scope.join(" AND "),
             ),
-            params_from_iter(parameters),
+            params_from_iter(guarded_parameters),
             |row| row.get(0),
         )
         .map_err(database_error)
+}
+
+fn requested_membership(
+    query: &GalleryQuery,
+    location_id: &str,
+    asset_id: Option<&str>,
+) -> BuiltGalleryQuery {
+    let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
+    let mut clauses = vec!["locations.location_id = ?".to_owned()];
+    parameters.push(Value::Text(location_id.to_owned()));
+    if let Some(asset_id) = asset_id {
+        clauses.push("locations.asset_id = ?".to_owned());
+        parameters.push(Value::Text(asset_id.to_owned()));
+    }
+    // A group has one organization decision even when its requested copy is outside
+    // the physical query scope; a qualifying copy is selected by the outer read.
+    push_membership_filters(query, &mut clauses, &mut parameters);
+    BuiltGalleryQuery {
+        sql: format!(
+            "SELECT EXISTS(SELECT 1 {source} WHERE {})",
+            clauses.join(" AND "),
+        ),
+        parameters,
+    }
 }
 
 fn representative_joins() -> String {

@@ -2826,7 +2826,7 @@ location, ordinal zero, centered start, decremented count and returned-page boun
 | Original anchor retained, two samples | 3,698.3–3,704.7 ms | 3,749.5–3,797.6 ms |
 | Original anchor removed, two samples | 7,804.9–7,858.4 ms | 5,899.6–5,980.8 ms |
 
-Reports are `organization-anchor-before.jsonl` and `organization-anchor-profile.jsonl` under
+Reports are `organization-anchor-before.jsonl` and `organization-anchor-ordinal-only.jsonl` under
 ignored `build/test/derived/r4-retained-indexed`. Input SHA-256 remains
 `4AE81C622C784EFA43542858D7819665822463D97FF747824EB328924221C15D`.
 These are catalog-port timings; client publication is measured separately.
@@ -2855,7 +2855,7 @@ percentile; the remaining refresh wait still needs diagnosis.
 Driver lifetime is 56.639 seconds with 100.984 process CPU seconds. Across 97 samples, peak working
 set/private memory is 420.590/561.539 MiB. The retained window remains at most 500 assets, and 1,623
 frames have build/raster P95 of 1.079/1.589 ms. Reports remain under ignored
-`build/test/derived/r4-client-measure`; the previous complete client evidence is preserved in
+`build/test/derived/r4-client-measure/attempt-10-before-membership`; the previous complete client evidence is preserved in
 `attempt-09-before-anchor`. The retained input and closed recovery-profile database hashes remain
 unchanged. Original media and the original catalog are not modified.
 
@@ -2863,3 +2863,59 @@ The normal Debug entrypoint rebuilds in 47.3 seconds and restores the original i
 native readback shows `已同步`, 10,000 physical images and 72 groups. Rust formatting and owned
 whitespace checks pass. The non-mutating repository format check reports only the pre-existing,
 unrelated `library_gallery_states.dart` edit; it is excluded from this change and remains untouched.
+
+## Eligibility before anchor group selection - 2026-10-26
+
+A read-only SQL comparison isolates three remaining costs after unfavoriting: finding the scoped
+representative, looking up the old location and trying the stable asset. All three can expand the
+whole collection even though that group's current decision already excludes it.
+
+The shared filter owner now distinguishes logical membership from physical scope. Point lookups
+use conditional SQL to test membership before expanding eligible groups. Representative lookup
+first checks the requested active copy's decision, then retains the complete physical scope and
+preferred-copy policy. The eligibility query reuses the shared published-source and empty-decision
+relation. An eligible group can still resolve through another copy outside the requested copy's
+source or search match. No result cache, schema, bridge or source access is added.
+
+The new non-empty-scope cost regression fails on `ac3ec565` at 5,227,600 SQLite steps for one excluded
+anchor amid 25,000 unrelated published locations. The corrected implementation passes the unchanged
+20,000-step bound for albums, Favorites, pending, deferred and ignored scopes. An intermediate
+eligibility read bypassed the empty-decision relation and failed the existing empty-scope bound at
+130,400 steps; reusing the shared source owner preserves that guard. A separate regression verifies
+that a requested copy outside the source/search scope resolves to its eligible cross-root copy.
+
+Focused diagnostics pass 30 organization-query, 8 anchor and 3 coherent-snapshot tests. The affected
+production owners contain 119 lines in `filters.rs`, 180 in `location_anchor.rs` and 139 in
+`organization_groups.rs`, with no inline tests. The query suite parent contains 309 dedicated test
+lines and the new membership-cost suite contains 117. Collection and queue disposition predicates
+remain in their existing owners; the new code composes those rules without duplicating them.
+
+The final Release build passes both new membership-cost regressions. The unchanged retained-catalog
+diagnostic then passes on another copy of the same input: ordinary entry takes 2,369.2 ms,
+retained-anchor reads take 3,815.1–3,923.5 ms and removed-anchor reads take 3,540.2–3,577.9 ms.
+The last case previously took 5,899.6–5,980.8 ms after ordinal reuse alone and
+7,804.9–7,858.4 ms before either change. Both removed-anchor samples retain the next eligible
+location, ordinal zero, bounded page and correct decremented total. Input SHA-256 is unchanged
+and no source media is read. Reports remain in `organization-anchor-profile.jsonl`, with the
+preceding result preserved as `organization-anchor-ordinal-only.jsonl` under the same ignored
+`build/test/derived/r4-retained-indexed` directory.
+
+The affected Profile client repeats the preceding three collection-read pairs and single unfavorite
+workflow using the same frontend (`app.so` SHA-256
+`E60701FBFFA00A71781A4897AF89ABA12F2965DC12B0948B386D9236C793D6B7`) and a rebuilt optimized Rust
+diagnostic DLL (`B4D59EB20E908DB7565E1BE0862C2C6A9D98B36CE4941F3BF158D37EBD332F3D`). All assertions
+pass and the client exits successfully. Feedback takes 111.9 ms; the updated Favorite list is
+visible after 5,720.7 ms, down from 8,461.6 ms after ordinal reuse alone and 9,715.0 ms originally.
+Album/Favorite entry remains 3.98–4.82/3.89–4.32 seconds across three samples. This comparison does
+not rerun the previously measured bulk writer or establish constrained-device acceptance.
+
+Driver lifetime is 53.748 seconds with 97.844 process CPU seconds. Across 91 samples, peak working
+set/private memory is 425.598/560.605 MiB. At most 500 assets are retained; 1,502 frames have
+build/raster P95 of 1.078/1.527 ms. Reports remain in ignored `build/test/derived/r4-client-measure`;
+the preceding client comparison is preserved in `attempt-10-before-membership`. Input and closed
+recovery-profile hashes remain unchanged. The source-media read policy and original catalogs are
+preserved.
+
+The normal Debug entrypoint rebuilds in 40.2 seconds. The unchanged recovery profile is restored;
+native readback shows the synchronized 10,000-image, 72-group gallery. Owned Rust formatting and
+whitespace checks pass. The two unrelated presentation edits remain outside the delivery.

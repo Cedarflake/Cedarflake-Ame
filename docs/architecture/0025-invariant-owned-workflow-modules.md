@@ -293,6 +293,11 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   inclusive ordered-date bound; the complete cursor predicate still decides exact ties.
   Unknown-date and other ordering policies remain distinct. Both owners share query filters,
   published sources and order expressions rather than duplicating membership or source policy.
+- `sqlite_catalog/gallery/filters.rs` distinguishes logical organization membership from physical
+  source/folder/search scope. Point-anchor filters establish membership before expanding eligible
+  groups. `organization_groups.rs` applies the same membership proof to the requested active copy
+  before selecting its scoped representative; a copy outside the physical scope can still resolve
+  through another member. Eligibility retains the shared empty-decision and published-source relation.
 - `sqlite_catalog/gallery/organization_groups.rs` owns scoped organization-group selection,
   preferred representatives and group-anchor resolution. Its group query retains physical member
   counts for chronological timeline aggregation; page filters and continuation reuse the same

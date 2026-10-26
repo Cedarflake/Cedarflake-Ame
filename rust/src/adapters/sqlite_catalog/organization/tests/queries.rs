@@ -7,6 +7,7 @@ use crate::ports::GalleryQueryRepository;
 use super::transitions::{change, create_album};
 use super::*;
 
+mod anchor_membership_cost;
 mod empty_scope_cost;
 pub(super) mod evolution;
 mod fingerprint_cost;
