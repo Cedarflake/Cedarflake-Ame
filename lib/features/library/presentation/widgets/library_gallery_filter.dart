@@ -27,6 +27,7 @@ class LibraryGalleryFilter extends StatelessWidget {
       LibraryDuplicateStrings.allImages,
       LibraryDuplicateStrings.mergeDuplicates,
     ],
+    hasContentIcon: false,
     leadingIconWidth: AmeMenuMetrics.selectionIndicatorSlotWidth,
     items: [
       _choice(

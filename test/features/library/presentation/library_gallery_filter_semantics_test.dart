@@ -1,12 +1,14 @@
 import "dart:typed_data";
 
 import "package:cedarflake_ame/app/ame_app.dart";
+import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
 import "package:cedarflake_ame/features/library/application/library_layout_manifest_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/gallery_layout_manifest.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_state.dart";
 import "package:flutter/material.dart";
+import "package:flutter/rendering.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 import "package:material_symbols_icons/symbols.dart";
@@ -47,6 +49,20 @@ void main() {
             trace: "filter-open-$selection",
           );
           expect(find.byIcon(Symbols.circle_rounded), findsNWidgets(2));
+          final longestLabel = find.text("合并重复图片");
+          final paragraph = tester.renderObject<RenderParagraph>(longestLabel);
+          final labelBoxes = paragraph.getBoxesForSelection(
+            const TextSelection(baseOffset: 0, extentOffset: 6),
+          );
+          final labelRight =
+              tester.getTopLeft(longestLabel).dx + labelBoxes.last.right;
+          final menu = find
+              .ancestor(of: longestLabel, matching: find.byType(Material))
+              .first;
+          expect(
+            tester.getRect(menu).right - labelRight,
+            closeTo(AmeMenuMetrics.horizontalPadding, 1),
+          );
           expect(
             find.byWidgetPredicate((widget) => widget is CheckedPopupMenuItem),
             findsNothing,

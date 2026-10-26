@@ -105,6 +105,7 @@ class AmePopupMenuButton<T> extends StatefulWidget {
     this.shortcuts = const [],
     this.menuWidth,
     this.maximumHeight,
+    this.hasContentIcon = true,
     this.leadingIconWidth = 0,
     this.verticalGap = 4,
     this.openAboveAnchor = false,
@@ -122,6 +123,7 @@ class AmePopupMenuButton<T> extends StatefulWidget {
   final AmePopupMenuButtonBuilder builder;
   final double? menuWidth;
   final double? maximumHeight;
+  final bool hasContentIcon;
   final double leadingIconWidth;
   final double verticalGap;
   final bool openAboveAnchor;
@@ -204,6 +206,7 @@ class _AmePopupMenuButtonState<T> extends State<AmePopupMenuButton<T>> {
         shortcuts: widget.shortcuts,
         items: widget.items,
         menuWidth: widget.menuWidth,
+        hasContentIcon: widget.hasContentIcon,
         maximumHeight: above == null
             ? widget.maximumHeight
             : (widget.maximumHeight ?? above.maximumHeight)
@@ -338,6 +341,7 @@ Future<T?> showAmePopupMenu<T>({
   required List<PopupMenuEntry<T>> items,
   double? menuWidth,
   double? maximumHeight,
+  bool hasContentIcon = true,
   double leadingIconWidth = 0,
   T? initialValue,
 }) {
@@ -347,6 +351,7 @@ Future<T?> showAmePopupMenu<T>({
         context: context,
         labels: labels,
         shortcuts: shortcuts,
+        hasContentIcon: hasContentIcon,
         leadingIconWidth: leadingIconWidth,
       );
   return showMenu<T>(

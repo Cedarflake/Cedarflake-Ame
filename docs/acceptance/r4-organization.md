@@ -3036,3 +3036,11 @@ duplicate mode. Switching to all 10,000 images moves the marker to that option; 
 the 72-group merged view. No source media is changed. Read-only formatting flags only the pre-existing
 unrelated gallery-state edit. The shared choice and filter contain 48/87 production lines and no
 inline tests; the updated semantics suite contains 185 dedicated test lines.
+
+The subsequent width correction forwards the existing content-icon measurement option through the
+shared popup facade. The iconless filter no longer reserves an unused 24-pixel content icon and
+12-pixel gap in addition to its dot. Sixteen focused shared-menu and filter-semantics checks pass;
+the rendered longest label now leaves only the standard right padding. Native inspection confirms
+the narrower popup with all four labels visible and unchanged dot/disabled styles. Strict analysis
+passes, and the Debug build takes 28.8 seconds. The shared menu facade and filter contain 371/88
+production lines, with no inline tests; the updated filter suite contains 201 dedicated test lines.
