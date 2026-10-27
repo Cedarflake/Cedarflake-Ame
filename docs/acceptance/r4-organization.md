@@ -3378,8 +3378,10 @@ membership/anchor suite has 264 lines; the reused ordinary-anchor suite has 492 
 
 Hosted run [40532762417](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40532762417)
 passes all 14 applicable jobs and the aggregate gate on `6cb414ce7570a57eb5717b18ea4b8341b3e1977a`.
-This covers the preceding shared-surface and sidebar-edge changes. The scoped-anchor implementation
-is the later product commit `2ebc233b` and has its own hosted run.
+This covers the preceding shared-surface and sidebar-edge changes. Hosted run
+[40539236330](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40539236330) passes all 14
+applicable jobs and the aggregate gate on the scoped-anchor implementation
+`2ebc233bb959317243a02083b85fe3b37cc9c3bf`.
 
 ## Collection membership reuse - 2026-10-28
 
@@ -3427,5 +3429,99 @@ the unchanged input snapshot remain available.
 
 The filter, membership-expression and grouping owners contain 127, 129 and 178 production lines,
 respectively, with no inline tests. The new dedicated boundary suite has 111 lines; its existing
-query-test facade has 310. Formatting and owned diff checks pass. Hosted verification is required
-for the new implementation commit; the earlier passing head is not its completion evidence.
+query-test facade has 310. Formatting and owned diff checks pass. Hosted run
+[40543943764](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40543943764) passes all 14
+applicable jobs and the aggregate gate on `b2348b0817793836a448380115780917c0587f5f`.
+
+## Cloud transition attribution - 2026-10-28
+
+The next cloud-primary probe separates menu opening/dismissal, repeated viewer entry/return,
+organization entry, queue selection and exit. It retains the reconciled 12,007-file/11,985-group
+profile, all 12 decoded visible previews, a 1,264-by-681 client area, scale 1, paused synchronization
+and exact analysis, and the same optimized native baseline. The Dart source is `b2348b08`.
+Each interaction window includes a 500 ms settling period; its wall duration is not the exact time
+until the image or command becomes usable.
+
+The uninstrumented baseline completes in 34.206 seconds, using 29.078 CPU seconds, peak working set
+238,010,368 bytes and peak private memory 222,355,456 bytes. Static gallery raster P95 is 3.132 ms.
+A candidate outer `RepaintBoundary` and a separate saved-layer clip both produce mixed results
+and are reverted:
+
+| Interaction | Baseline raster P95 | Extra boundary raster P95 | Saved-layer clip raster P95 |
+| --- | --- | --- | --- |
+| Repeated More menu opening | 74.423 ms | 55.102 ms | 59.943 ms |
+| Repeated viewer opening | 80.825 ms | 91.195 ms | 69.461 ms |
+| Organization entry | 103.384 ms | 111.397 ms | 104.028 ms |
+| First deferred-queue selection | 92.026 ms | 88.640 ms | 84.094 ms |
+| Organization exit | 66.198 ms | 86.447 ms | 98.501 ms |
+
+The saved-layer candidate completes in 34.141 seconds with 31.453 CPU seconds, peak working set
+277,667,840 bytes and peak private memory 261,271,552 bytes. Its increased memory and exit cost
+do not justify the improvements in individual interactions. Neither candidate changes the product.
+
+Windowed engine tracing then distinguishes display-list recording from Windows compositor rendering.
+The first trace covers only 3.093 seconds of startup and cannot explain the later interactions.
+A subsequent 14.823-second capture contains 299 complete raster draws with a 78.890 ms P95, while
+layer-tree recording takes 0.256 ms P95. The compositor capture retains a 2.522-second interval with
+69 complete raster draws: raster P95 is 64.539 ms, external-view rendering 63.567 ms, GPU flush
+37.726 ms and window presentation 46.995 ms. These nested or overlapping statistics must not be
+added together or treated as complete-workflow percentiles. Tracing is attribution evidence, not
+a performance comparison. The pinned engine's Windows compositor replays the recorded display list,
+flushes it and presents the backing surface after the layer-tree recording interval.
+
+All completed clients exit successfully and preserve the original catalog/WAL hashes. One trace
+result transfer is interrupted; a separate read verifies its completion, resource report and saved
+trace before closing the owned terminal. The trace parser retains original ordering for events
+with identical timestamps. Reports remain under ignored `r4-render-attribution-737e35c9` on
+cloud-primary; local diagnostic sources remain under `build/test/derived/r4-client-measure`.
+
+### Actual device and alternate renderer
+
+A temporary Windows runner probe uses Flutter's public `GetGraphicsAdapter` API and releases the
+returned COM interfaces. The active adapter is `Microsoft Basic Render Driver`, vendor `0x1414`,
+device `0x008c`, with zero dedicated video memory. Its reported software flag is unset; this does
+not establish hardware acceleration, because Microsoft's
+[DXGI documentation](https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/d3d10-graphics-programming-guide-dxgi)
+describes a primary Basic Render adapter without that flag. The corresponding
+[BasicRender driver](https://learn.microsoft.com/en-us/windows-hardware/drivers/display/microsoft-basic-display-driver)
+exposes WARP. WMI lists only virtual remote-display and Hyper-V display adapters.
+
+The same probe repeats the unchanged interaction script first with default Skia, then with
+process-scoped `enable-impeller=true`. Startup output confirms Impeller OpenGL in the latter run.
+Both use the same actual adapter, 1,264-by-681 client area, scale 1 and current independent profile.
+Both complete and preserve the original catalog/WAL hashes. These are raw timing observations;
+the subsequent interactive Impeller probe displays a black window, so the lower numbers cannot
+establish a usable performance improvement:
+
+| Interaction | Default Skia raster P95 | Impeller raster P95 |
+| --- | --- | --- |
+| Repeated More menu opening | 71.529 ms | 2.642 ms |
+| Repeated viewer opening | 69.037 ms | 22.002 ms |
+| Organization entry | 111.649 ms | 5.604 ms |
+| First deferred-queue selection | 65.873 ms | 2.625 ms |
+| Organization exit | 80.240 ms | 3.316 ms |
+
+Skia uses 34.061 seconds wall time, 31.688 CPU seconds, peak working set 233,324,544 bytes and
+peak private memory 214,511,616 bytes. Impeller uses 33.404 seconds wall time, 17.781 CPU seconds,
+peak working set 396,546,048 bytes and peak private memory 373,092,352 bytes. Fixed settling waits
+limit the meaning of total wall time. The lower recorded raster cost comes with approximately
+163 MB higher peak working set and lacks visual validity. Catalog query latency is not addressed
+by this renderer comparison.
+
+The runner probe is removed immediately after its diagnostic build. Its executable SHA-256 is
+`4B696FEA80CF94A80C29AD3D8D46893E3854FA494D0A28BB687E5B8C1FEE43AB`; the common Dart payload remains
+`E8639426F2514380A92B1C1923B3954B13613F5D8128C6472C3AB9AEED11C56F`.
+The pinned Flutter 3.44 Windows Impeller path is classified as experimental in Flutter's
+[support matrix](https://github.com/flutter/flutter/blob/master/engine/src/flutter/impeller/README.md).
+The production SDK and renderer remain unchanged. A separate interactive payload reuses the real
+gallery and independent profile without the automated test driver. With Impeller, its client area
+remains black across observations 20 seconds apart. The same executable, native library, Dart payload
+and profile display the gallery, text and loaded thumbnails under default Skia. The visual payload
+SHA-256 is `D7F986B6E030AA361DF4178CA36FD4531F2F12BE2CDE2DF7BCE8A302A6D0A314`.
+The More menu also opens and renders under Skia. Both visual clients close normally and preserve
+the original catalog/WAL hashes; their logs contain no Dart startup exception. The original local
+controlled Debug window remains open throughout this comparison.
+This rejects the current experimental renderer for delivery and invalidates the apparent performance
+benefit. Logical widget state and frame timings alone did not detect the missing visible output.
+Renderer admission requires visual correctness, compatibility evidence and a supported-toolchain
+decision; a future SDK evaluation must repeat the valid comparison.

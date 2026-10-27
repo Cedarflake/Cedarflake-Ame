@@ -378,6 +378,13 @@ viewer transitions remain costly. The geometry owner now retains the gallery's s
 through sidebar reflow, with focused and native verification. Continue diagnosis of remaining
 transition and collection-read costs before responsiveness acceptance. Original catalogs remain
 unchanged and the normal local controlled test window has been restored.
+The cloud renderer probe identifies Microsoft's Basic Render adapter. Impeller reports lower raster
+cost but its separate interactive probe displays a black window; those timings do not establish a
+usable performance improvement. Flutter 3.44 classifies that Windows path as experimental. Keep the
+production renderer unchanged: the identical interactive payload displays the gallery correctly
+under Skia. A supported-toolchain evaluation is a separate scope decision and cannot rely on the
+invalid Impeller timing improvement. The R4 acceptance record owns the evidence; retained-library
+query latency remains open.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,
