@@ -138,11 +138,35 @@ void main() {
     expect(scaffold.backgroundColor, colorScheme.surfaceContainerLow);
     expect(globalSurface.color, colorScheme.surfaceContainerHigh);
     expect(navigationSurface.color, colorScheme.surfaceContainerLow);
-    expect(mainSurface.color, colorScheme.surfaceContainerLowest);
-    expect(mainSurface.clipBehavior, Clip.antiAlias);
+    expect(mainSurface.type, MaterialType.transparency);
+    expect(mainSurface.clipBehavior, Clip.none);
+    final backgrounds = find.ancestor(
+      of: find.byKey(const Key("library-main-surface")),
+      matching: find.byType(DecoratedBox),
+    );
+    final backgroundBox = tester.widget<DecoratedBox>(backgrounds.first);
+    final background = backgroundBox.decoration as BoxDecoration;
+    expect(background.color, colorScheme.surfaceContainerLowest);
+    expect(background.borderRadius, LibraryMainSurface.borderRadius);
+    final galleryClips = find.ancestor(
+      of: find.byKey(const Key("library-main-surface")),
+      matching: find.byType(ClipRRect),
+    );
+    expect(galleryClips, findsOneWidget);
     expect(
-      (mainSurface.shape as RoundedRectangleBorder).borderRadius,
+      tester.widget<ClipRRect>(galleryClips).borderRadius,
       LibraryMainSurface.borderRadius,
+    );
+    expect(
+      tester
+          .widgetList<Material>(
+            find.ancestor(
+              of: find.byKey(const Key("library-main-surface")),
+              matching: find.byType(Material),
+            ),
+          )
+          .every((surface) => surface.clipBehavior == Clip.none),
+      isTrue,
     );
     expect(
       find.ancestor(

@@ -115,7 +115,6 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
         final gallery = Material(
           color: Theme.of(context).colorScheme.surfaceContainerLow,
           borderRadius: LibraryMainSurface.borderRadius,
-          clipBehavior: Clip.antiAlias,
           child: LibrarySidebarTransition(
             expanded: expanded,
             sidebarWidth: sidebarWidth,
@@ -135,25 +134,23 @@ class _LibraryWorkbenchState extends ConsumerState<LibraryWorkbench> {
                   ),
               ],
             ),
-            gallery: LibraryMainSurface(
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  _retainedWorkspace(
-                    workspace: LibraryWorkspace.gallery,
-                    visible:
-                        workspace != LibraryWorkspace.albums ||
-                        widget.albumLanding == null,
-                    child: widget.galleryBuilder(context),
+            gallery: Stack(
+              fit: StackFit.expand,
+              children: [
+                _retainedWorkspace(
+                  workspace: LibraryWorkspace.gallery,
+                  visible:
+                      workspace != LibraryWorkspace.albums ||
+                      widget.albumLanding == null,
+                  child: widget.galleryBuilder(context),
+                ),
+                if (workspace == LibraryWorkspace.albums &&
+                    widget.albumLanding != null)
+                  LibrarySidebarContent(
+                    alignment: Alignment.topCenter,
+                    child: widget.albumLanding!,
                   ),
-                  if (workspace == LibraryWorkspace.albums &&
-                      widget.albumLanding != null)
-                    LibrarySidebarContent(
-                      alignment: Alignment.topCenter,
-                      child: widget.albumLanding!,
-                    ),
-                ],
-              ),
+              ],
             ),
             resizeHandle: LibraryNavigationResizeHandle(
               width: sidebarWidth,

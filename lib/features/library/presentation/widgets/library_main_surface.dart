@@ -9,12 +9,19 @@ class LibraryMainSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      key: const Key("library-main-surface"),
-      color: Theme.of(context).colorScheme.surfaceContainerLowest,
-      shape: const RoundedRectangleBorder(borderRadius: borderRadius),
-      clipBehavior: Clip.antiAlias,
-      child: child,
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerLowest,
+        borderRadius: borderRadius,
+      ),
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: Material(
+          key: const Key("library-main-surface"),
+          type: MaterialType.transparency,
+          child: child,
+        ),
+      ),
     );
   }
 }

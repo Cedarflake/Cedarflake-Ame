@@ -97,7 +97,8 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
                 top: 0,
                 bottom: 0,
                 width: extent,
-                child: ClipRect(
+                child: ClipRRect(
+                  borderRadius: LibraryMainSurface.borderRadius,
                   child: OverflowBox(
                     alignment: Alignment.topLeft,
                     minWidth: widget.sidebarWidth,
@@ -121,19 +122,15 @@ class _LibrarySidebarTransitionState extends State<LibrarySidebarTransition>
                 right: 0,
                 top: 0,
                 bottom: 0,
-                child: ClipRRect(
+                child: LibraryMainSurface(
                   key: const Key("library-gallery-transition"),
-                  borderRadius: LibraryMainSurface.borderRadius,
-                  child: ColoredBox(
-                    color: Theme.of(context).colorScheme.surfaceContainerLowest,
-                    // Keep right-edge controls stationary as the left clip moves.
-                    // Reflowing the gallery at every intermediate width is costly.
-                    child: OverflowBox(
-                      alignment: Alignment.topRight,
-                      minWidth: galleryWidth,
-                      maxWidth: galleryWidth,
-                      child: gallery,
-                    ),
+                  // Keep right-edge controls stationary as the left clip moves.
+                  // Reflowing the gallery at every intermediate width is costly.
+                  child: OverflowBox(
+                    alignment: Alignment.topRight,
+                    minWidth: galleryWidth,
+                    maxWidth: galleryWidth,
+                    child: gallery,
                   ),
                 ),
               ),

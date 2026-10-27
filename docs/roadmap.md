@@ -133,7 +133,10 @@ client displays an album in 4.05 seconds during the write, before saving finishe
 resource acceptance remain open. The subsequent same-package cloud run completes its 12,007-file,
 11,985-group workflow after production metadata reconciliation. It saves 11,984 Favorite changes in
 7.895 seconds while opening an album in 1.505 seconds, with at most 500 retained assets. Its
-build/raster P95 of 20.019/73.751 ms leaves constrained-device rendering diagnosis open.
+build/raster P95 of 20.019/73.751 ms leaves constrained-device rendering diagnosis open. Per-interaction
+measurement supports a shared-surface clipping repair, with lower sidebar and mode-entry costs;
+queue/viewer transitions and retained-library read waits remain open. Native checking also identifies
+a top-position shift after closing and reopening the sidebar; diagnose its geometry owner next.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -362,9 +365,11 @@ album/Favorite preparation and writes, but the first preview fails its 90-second
 and stale records under an absent subdirectory. Production synchronization reconciles a fresh copy
 to 12,007 files and 11,985 groups in 146.332 seconds; the unchanged package then completes the client
 workflow. Album/Favorite entry takes 1.86–2.98 seconds, and saved continuation displays its image in
-2.05 seconds. Build/raster P95 is 20.019/73.751 ms: isolate the costly interactions before accepting
-constrained-device responsiveness. Original catalogs remain unchanged and the normal local
-controlled test window has been restored.
+2.05 seconds. Per-interaction diagnosis now isolates unnecessary full-surface clipping and background
+work. Its shared-surface repair lowers measured sidebar and mode-entry raster costs, while queue and
+viewer transitions remain costly. Before further responsiveness acceptance, repair the observed
+gallery-top position shift on sidebar reopening at its geometry owner. Original catalogs remain
+unchanged and the normal local controlled test window has been restored.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

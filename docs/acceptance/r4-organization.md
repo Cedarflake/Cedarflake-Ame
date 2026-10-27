@@ -3216,3 +3216,78 @@ that R4-07 boundary open.
 
 The normal Debug entrypoint is rebuilt in 26.4 seconds and the original controlled recovery profile
 is reopened. Native inspection shows its 10,000 files, 72 merged groups and working previews.
+
+## Constrained-client surface rendering - 2026-10-27
+
+The next Profile probe separates rendering from catalog reads on the same reconciled cloud-primary
+copy. It waits for all 12 visible previews, then records static frames, six sidebar toggles, viewer
+entry/return, organization entry, an empty deferred queue and mode exit. Startup synchronization and
+exact analysis remain paused. The native client area is 1,264 by 681 physical pixels at scale 1;
+the measurement binding uses fully live frames. Frame intervals use raster-completion timestamps.
+The probe's native diagnostic caption is not evidence for normal window-chrome acceptance.
+
+Warm static gallery frames have a 6.354 ms raster P95, while sidebar transitions reach 106.844 ms
+and organization entry reaches 122.795 ms. Controlled animation of the same decoded images identifies
+full-surface rounded clipping and its enclosed background as additional raster work. Replacing only
+the path clip with a rounded-rectangle clip does not improve that control. Removing duplicate clips
+alone also lacks a consistent interaction-level gain: sidebar P95 is 98.753 ms, but organization
+entry and queue switching reach 132.534 and 111.379 ms.
+
+A separate comparison preserves the same rounded content boundary while moving its background
+outside that boundary. These are three-second animated controls after warm-up, not full workflow
+timings or an achieved responsiveness target:
+
+| Control | Raster P50 / P95 |
+| --- | --- |
+| Images without a surrounding clip | 1.188 / 27.723 ms |
+| Antialiased rounded clip with background inside | 20.898 / 56.191 ms |
+| Rounded clip with an extra saved layer | 31.975 / 53.805 ms |
+| Hard-edge rounded clip | 21.969 / 46.779 ms |
+| Rectangular clip | 3.985 / 33.147 ms |
+| Antialiased rounded clip with background outside | 12.334 / 39.714 ms |
+
+`LibraryMainSurface` now paints its rounded background before clipping its transparent Material
+content. The sidebar transition owns that surface; the workbench no longer clips the complete
+gallery again, and the sidebar retains its own rounded boundary. Existing corner radius,
+antialiasing, colors, image sampling, animation timing, input and destination-width layout remain.
+No cache, renderer, package, schema or bridge change is introduced.
+
+The final complete interaction probe exits successfully in 33.527 seconds. Its comparison with the
+warm baseline is mixed rather than a general rendering pass:
+
+| Interaction | Baseline raster P95 | Changed raster P95 |
+| --- | --- | --- |
+| Static gallery | 6.354 ms | 7.122 ms |
+| Sidebar transitions | 106.844 ms | 84.401 ms |
+| Viewer opening | 65.354 ms | 78.080 ms |
+| Viewer return | 45.874 ms | 43.650 ms |
+| Organization entry | 122.795 ms | 78.365 ms |
+| Organization queue switch | 93.950 ms | 100.625 ms |
+| Organization exit | 93.126 ms | 76.520 ms |
+
+The changed run records 27.766 CPU seconds, peak working set of 225,488,896 bytes and private memory
+of 207,273,984 bytes. Its original database and WAL hashes remain unchanged. The measurements support
+the narrower surface change; queue switching and viewer transition costs remain unresolved, and
+neither these samples nor the synthetic controls establish smooth constrained-device rendering.
+The original retained-library collection/publication waits also remain separate open work.
+
+The baseline uses product commit `737e35c97542dcfd353a365a1f99397e6fb0ce33`; the changed Dart build
+uses `f7cc6ae4` plus this surface patch. Both use the same optimized native library and isolation
+guard. The final transferred archive SHA-256 is
+`CB1270FE3A32F4149D6EA01B4B40EB14DE2E04F0102DD28FD2B03269C4407152`, and its verified `app.so` is
+`521C179119A402B707C074D19B167B60166FB87049E12AD120D243F977628310`.
+The harness's `source_commit` field identifies the unchanged native-library baseline, not the Dart
+patch. Reports remain in the isolated `warm-previews`, `clip-controls`, `surface-clips`, `aa-controls`
+and `backdrop` diagnostic evidence directories.
+
+All 17 focused sidebar-motion, right-edge, transition and connected-screen checks pass. The surface
+regression checks a single rounded content clip and the external tonal background. The normal Debug
+build completes in 24.2 seconds. Native inspection verifies gallery, Albums, Duplicates and Settings
+corners, visible previews and stationary right-edge controls with the original controlled profile.
+A separate position defect is observed: collapsing and reopening the sidebar at the gallery's top
+leaves the first row partly above the viewport. Returning through primary navigation resets it;
+its geometry owner remains to be diagnosed. The normal test window is left open at the gallery top.
+
+The main surface, sidebar transition and workbench contain 27, 151 and 307 production lines, with no
+inline tests. The changed connected-screen suite has 332 dedicated test lines; the three reused
+motion/edge/transition suites contain 147, 152 and 116 lines.

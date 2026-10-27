@@ -61,6 +61,10 @@ together; the destination-width gallery remains right-aligned inside that clip. 
 would translate its right-edge controls while the clip and child have different widths. The toolbar
 also remains right-aligned below the title in narrow layouts. The gallery receives only its final
 width for each toggle; its query-wide geometry must not reflow at every animation frame.
+The moving boundary owns the gallery's only rounded clip through `LibraryMainSurface`. This surface
+paints its rounded tonal background outside the content clip and supplies a transparent Material for
+ink and text. The workbench backdrop does not clip the photo wall again; the sidebar clips only its
+own bounds. Standalone Duplicates and Settings reuse the same surface and own their content clipping.
 The photo viewport separately follows the moving left boundary through a left-aligned OverflowBox
 inside a right-anchored clip. Its toolbar and time rail remain outside that content motion.
 The title/count block consumes the same leading offset through Transform.translate, without
