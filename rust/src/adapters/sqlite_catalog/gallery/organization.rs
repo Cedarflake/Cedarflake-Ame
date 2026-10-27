@@ -37,19 +37,26 @@ pub(in super::super) fn validate_collection(
 // Retained display evidence preserves browsing during verification, but cannot
 // admit commands. The organization command owner still requires current evidence.
 pub(in super::super) fn record_expression(location: &str) -> String {
-    let compatible = compatible_fingerprint(location);
     let bound = compatible_binding(location);
+    let content_record = content_record_expression(location);
     format!(
         "COALESCE(
           (SELECT mapping.group_id FROM organization_bindings AS binding
            JOIN organization_record_groups AS mapping ON mapping.record_id = binding.record_id
            WHERE {bound}),
-          (SELECT mapping.group_id FROM {DISPLAY_FINGERPRINTS}
+          {content_record})"
+    )
+}
+
+pub(super) fn content_record_expression(location: &str) -> String {
+    let compatible = compatible_fingerprint(location);
+    format!(
+        "(SELECT mapping.group_id FROM {DISPLAY_FINGERPRINTS}
            CROSS JOIN organization_bindings AS binding
              ON binding.fingerprint_scheme = f.scheme AND binding.digest = f.digest
                AND binding.byte_length = f.byte_length
            CROSS JOIN organization_record_groups AS mapping ON mapping.record_id = binding.record_id
-           WHERE {compatible} AND binding.digest IS NOT NULL LIMIT 1))"
+           WHERE {compatible} AND binding.digest IS NOT NULL LIMIT 1)"
     )
 }
 
@@ -107,7 +114,7 @@ pub(super) fn presence_condition(
     Some("record.disposition = ?")
 }
 
-fn collection_condition(
+pub(super) fn collection_condition(
     collection: &GalleryCollection,
     parameters: &mut Vec<Value>,
 ) -> Option<&'static str> {

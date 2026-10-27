@@ -51,6 +51,14 @@ pub(super) fn push_source_filters(
     parameters: &mut Vec<Value>,
 ) {
     push_membership_filters(query, clauses, parameters);
+    push_location_filters(query, clauses, parameters);
+}
+
+pub(super) fn push_location_filters(
+    query: &GalleryQuery,
+    clauses: &mut Vec<String>,
+    parameters: &mut Vec<Value>,
+) {
     if let Some(root_id) = &query.root_id {
         clauses.push("locations.root_id = ?".to_owned());
         parameters.push(Value::Text(root_id.clone()));

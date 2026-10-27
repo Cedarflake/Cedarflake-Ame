@@ -8,6 +8,7 @@ use super::transitions::{change, create_album};
 use super::*;
 
 mod anchor_membership_cost;
+mod collection_groups;
 mod empty_scope_cost;
 pub(super) mod evolution;
 mod fingerprint_cost;

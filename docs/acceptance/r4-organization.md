@@ -3375,3 +3375,57 @@ the input snapshot.
 
 The location-anchor owner has 186 production lines and no inline tests. Its changed dedicated
 membership/anchor suite has 264 lines; the reused ordinary-anchor suite has 492 lines.
+
+Hosted run [40532762417](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40532762417)
+passes all 14 applicable jobs and the aggregate gate on `6cb414ce7570a57eb5717b18ea4b8341b3e1977a`.
+This covers the preceding shared-surface and sidebar-edge changes. The scoped-anchor implementation
+is the later product commit `2ebc233b` and has its own hosted run.
+
+## Collection membership reuse - 2026-10-28
+
+Temporary native timing separates the remaining retained-album refresh on `2ebc233b`: reader setup
+takes 26 ms, anchor resolution 1,385 ms, page retrieval approximately 2,680 ms and timeline retrieval
+2,923 ms. The complete native query takes 7,046 ms; preview health and usage publication take 7 ms.
+Only one anchored refresh is observed. This identifies catalog work as the remaining wait in this
+flow. Timing additions are removed from source immediately after their diagnostic build.
+
+Folded album and Favorite queries now resolve a compatible binding's canonical record once and use
+it for membership and grouping. Copies without a direct binding retain the same indexed content
+fallback. Preferred-copy evidence follows membership resolution, and physical scope still limits
+the grouped members. Library queues retain their provisional group keys; unfolded Favorites retain
+their existing path. No schema, bridge, dependency, cache budget or source authority changes.
+
+A read-only SQL comparison on the isolated current catalog returns identical representative IDs
+and physical counts. Album grouping takes 0.967–0.977 seconds before and 0.773–0.776 seconds after;
+Favorite grouping takes 0.965–0.971 and 0.783–0.786 seconds. These measurements isolate grouping and
+do not include the complete native refresh. The first new-test compilation rejects a `u64` SQLite
+parameter; its checked signed conversion is corrected without changing production behavior.
+All 35 collection-query and 15 batch regressions pass in Release. New cases cover an unbound
+cross-root copy, rejection after content changes, canonical aliases and independent queue/Favorite
+membership. Existing cases retain preferred representatives, stale anchors, shared IDs, concurrent
+snapshot publication, cancellation, rollback and bounded historical-evidence reads.
+
+The native candidate repeats the earlier first-image unfavorite-and-return flow against a fresh
+copy of the same 63,077-file/47,833-group input. The unchanged Flutter Profile UI, paused background
+synchronization/analysis and native diagnostic isolation are retained. Save feedback takes 161 ms;
+the new catalog revision and decoded album frame appear in 6.710 seconds, compared with 7.182 seconds
+in the preceding uninstrumented baseline and 7.236 seconds in the attribution run. This is a modest
+single-run reduction of about half a second, with substantial read latency still open.
+Position, album count, a 500-asset retention bound and normal exit all pass.
+
+The candidate records 33.871 seconds wall time, 46.703 CPU seconds, peak working set 367,722,496 bytes
+and peak private memory 478,662,656 bytes. Normal preview generation reads available source images;
+all writes remain inside the isolated profile. The original catalog/WAL checks pass, and the retained
+input SHA-256 remains `4AE81C622C784EFA43542858D7819665822463D97FF747824EB328924221C15D`.
+Reports remain under ignored `r4-refresh-attribution`, with the candidate in its own subdirectory.
+The common `app.so` digest remains the scoped-anchor comparison's value. The candidate native digest
+is `7F1173C3287CEC4C1B22A2E3F2097220E8A8D7F1169F9129596EC5D9FCE07593`.
+The normal Debug build completes in 36.8 seconds and reopens the original controlled profile with
+10,000 files, 72 groups and loaded previews. After both measurement processes retire, their two
+catalog/profile copies and two runtimes are removed, reclaiming 2,069,954,254 bytes. Reports and
+the unchanged input snapshot remain available.
+
+The filter, membership-expression and grouping owners contain 127, 129 and 178 production lines,
+respectively, with no inline tests. The new dedicated boundary suite has 111 lines; its existing
+query-test facade has 310. Formatting and owned diff checks pass. Hosted verification is required
+for the new implementation commit; the earlier passing head is not its completion evidence.

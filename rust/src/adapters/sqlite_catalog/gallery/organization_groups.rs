@@ -5,8 +5,10 @@ use crate::domain::{GalleryCollection, GalleryQuery, ScanError};
 
 use super::super::exact_duplicate_review::representative_expression;
 use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
-use super::filters::push_membership_filters;
-use super::organization::{compatible_binding, group_expression};
+use super::filters::{push_location_filters, push_membership_filters};
+use super::organization::{
+    collection_condition, compatible_binding, content_record_expression, group_expression,
+};
 use super::{BuiltGalleryQuery, database_error, gallery_source, push_source_filters};
 
 pub(super) fn uses_grouped_organization(query: &GalleryQuery) -> bool {
@@ -15,6 +17,9 @@ pub(super) fn uses_grouped_organization(query: &GalleryQuery) -> bool {
 }
 
 pub(super) fn build_group_query(query: &GalleryQuery) -> BuiltGalleryQuery {
+    if let Some(grouped) = build_collection_group_query(query) {
+        return grouped;
+    }
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     let source = gallery_source(query, &mut parameters);
@@ -34,6 +39,36 @@ pub(super) fn build_group_query(query: &GalleryQuery) -> BuiltGalleryQuery {
         ),
         parameters,
     }
+}
+
+fn build_collection_group_query(query: &GalleryQuery) -> Option<BuiltGalleryQuery> {
+    let mut parameters = Vec::new();
+    let source = gallery_source(query, &mut parameters);
+    let condition = collection_condition(&query.collection, &mut parameters)?;
+    let mut clauses = vec![condition.to_owned()];
+    super::organization_queue::push_filter(query, &mut clauses, &mut parameters);
+    push_location_filters(query, &mut clauses, &mut parameters);
+    let representative = representative_expression("locations");
+    let bound = compatible_binding("locations");
+    let joins = representative_fingerprint_joins();
+    let content_record = content_record_expression("locations");
+    // Collection members always resolve to a durable record. Reuse that resolved
+    // canonical record for both membership and grouping, including unbound copies.
+    Some(BuiltGalleryQuery {
+        sql: format!(
+            "SELECT {representative} AS location_id, COUNT(*) AS source_items
+             {source}
+             LEFT JOIN organization_bindings AS binding ON {bound}
+             LEFT JOIN organization_record_groups AS direct_group
+               ON direct_group.record_id = binding.record_id
+             LEFT JOIN organization_records AS record
+               ON record.record_id = COALESCE(direct_group.group_id, {content_record})
+             {joins}
+             WHERE {scope} GROUP BY record.record_id",
+            scope = clauses.join(" AND "),
+        ),
+        parameters,
+    })
 }
 
 pub(super) fn push_group_filter(
@@ -122,12 +157,16 @@ fn requested_membership(
 
 fn representative_joins() -> String {
     let bound = compatible_binding("locations");
+    let fingerprints = representative_fingerprint_joins();
+    format!("LEFT JOIN organization_bindings AS binding ON {bound} {fingerprints}")
+}
+
+fn representative_fingerprint_joins() -> String {
     let compatible = compatible_fingerprint("locations");
     // Joining the union view materializes all historical fingerprints. Resolve the
     // compatible evidence version first so the optional join remains a point lookup.
     format!(
-        "LEFT JOIN organization_bindings AS binding ON {bound}
-         LEFT JOIN content_fingerprints AS f
+        "LEFT JOIN content_fingerprints AS f
            ON f.source_generation = (
              SELECT f.evidence_source_generation FROM {DISPLAY_FINGERPRINTS} WHERE {compatible})
            AND f.scheme = '{EXACT_FINGERPRINT_SCHEME}'

@@ -150,6 +150,11 @@ honor the existing preferred copy within the physical query scope, then its smal
 Representative selection resolves the compatible display evidence generation before joining its
 stored fingerprint, avoiding materialization of unrelated historical evidence. Current and retained
 display authority continue to use the same compatibility predicate.
+Folded album and Favorite queries join each compatible binding to its canonical record once,
+retaining the indexed content fallback for copies without a direct binding. That record supplies
+both collection membership and the group key. Preferred-copy evidence is joined after membership
+resolution; source/folder/search predicates still constrain the members before grouping. Library
+queues retain their provisional content/version keys for groups without organization records.
 The gallery filter owner applies source, folder, search, collection and queue constraints before
 organization-group representatives are selected. Page, layout and continuation reads reuse that
 scoped result without repeating the same membership predicates outside it. Shared progress counts
