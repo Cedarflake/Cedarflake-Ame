@@ -247,8 +247,9 @@ R4 delivery must demonstrate the following behavior through its eventual impleme
   either a compatible destination group's decision or the new group's pending state;
 - new groups follow the selected sort and join the front under `新加入优先`, duplicate copies do not add work,
   and continuation restores a logical position after insertion, regrouping, and restart;
-- first-use mode entry, the bottom controls, contextual actions, keyboard/focus behavior, empty
-  queues, unavailable images, and save failures work in the existing desktop gallery and viewer;
+- first-use mode entry, the upper-right organization controls, contextual actions, keyboard/focus
+  behavior, empty queues, unavailable images, and save failures work in the existing desktop gallery
+  and viewer;
 - committed album and progress changes survive interruption together; retry and stale undo cannot
   overwrite newer decisions or attach old decisions to changed content;
 - temporary source loss preserves data, explicit source removal cleans its records, shared groups

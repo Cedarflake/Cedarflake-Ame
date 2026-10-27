@@ -130,7 +130,10 @@ collection reads, committed-save publication, empty queues and saved continuatio
 publication now yields to an active writer, with focused contention checks passing. The current Profile
 client displays an album in 4.05 seconds during the write, before saving finishes, and prepares/saves
 47,832 Favorite changes in 27.00 seconds. Remaining query/publication waits and constrained-device
-resource acceptance remain open.
+resource acceptance remain open. The subsequent same-package cloud run completes its 12,007-file,
+11,985-group workflow after production metadata reconciliation. It saves 11,984 Favorite changes in
+7.895 seconds while opening an album in 1.505 seconds, with at most 500 retained assets. Its
+build/raster P95 of 20.019/73.751 ms leaves constrained-device rendering diagnosis open.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -324,18 +327,18 @@ The retained Profile client completes the measured workflow; concurrent album pu
 4.05 seconds while the writer remains active. Position-preserving reads now reuse proven fallback
 ordinals and reject ineligible anchor membership before expanding scoped groups. The retained
 catalog comparison reduces removed-anchor reads from 7.8 to 3.54–3.58 seconds; the affected client
-refresh falls from 9.72 to 5.72 seconds, with unchanged position and count assertions. Collection
-entry remains 3.9–4.8 seconds in the latest sample, and the final empty-Favorite refresh previously
-took 6.09 seconds with no new complete-client timing. Carry these measured waits into integrated
-resource acceptance while completing the remaining native workflows; keep collection entry,
-anchored refresh and writer timing separate.
+refresh falls from 9.72 to 5.72 seconds, with unchanged position and count assertions. The current
+standalone client completes the retained workflow with collection entries of 3.46–4.59 seconds,
+single-group saved-action feedback of 72 ms, committed-list publication of 5.63 seconds and final
+empty-Favorite publication of 6.39 seconds. Carry these measured waits into integrated resource
+acceptance; keep collection entry, anchored refresh and writer timing separate.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication
 and remaining read/write waits separate from these backend measurements. Header-height changes now
 preserve the viewport anchor in the current frame without repeatedly restarting photo reflow;
-focused and Windows Profile component checks pass. The current complete client records 5,063 frames
-with build/raster P95 of 0.993/1.502 ms and at most 500 retained assets. These aggregate frame results
+focused and Windows Profile component checks pass. The current complete client records 5,254 frames
+with build/raster P95 of 0.818/1.475 ms and at most 500 retained assets. These aggregate frame results
 do not close the measured publication waits or constrained-device acceptance.
 Sort-driven date, name and current-entry arrival-range rails have focused regression and build
 coverage. Native interaction verifies date years/ticks, numeric name sections, near-top-to-top
@@ -347,13 +350,21 @@ Full-catalog cancellation verifies prompt return during preparation and halfway 
 in-flight save cancellation now also preserve all durable organization tables across restart.
 The native check exposed a post-commit form wait: successful actions now return their receipt
 without waiting for the independently owned gallery refresh. Focused and native checks cover the
-commit, cancellation and refresh-retry boundary; exact-head hosted verification follows publication.
+commit, cancellation and refresh-retry boundary. Exact-head hosted run `40515066782` passes all
+14 applicable jobs and the aggregate Windows Gate on `737e35c9`.
 The original recovery profile remains intact. Native inspection and cancellation use one settings
 entry with range selection inside the dialog. Authorized cleanup in an independent restore fixture
 now verifies bottom-notification publication and non-resurrection after reimport and restart.
-The user has confirmed cloud-primary's changed device identity and the connection is verified.
-Its existing checkout contains older uncommitted work; preserve it while preparing an isolated
-current-version test within the available storage and pinned-toolchain constraints.
+The user-confirmed cloud-primary connection is verified. A manifest-verified standalone package
+preserves its older checkout and installed SDK. The independent catalog completes 19,006-group
+album/Favorite preparation and writes, but the first preview fails its 90-second deadline with
+`preview_source_missing` before decoding. Metadata checks find available year-based source files
+and stale records under an absent subdirectory. Production synchronization reconciles a fresh copy
+to 12,007 files and 11,985 groups in 146.332 seconds; the unchanged package then completes the client
+workflow. Album/Favorite entry takes 1.86–2.98 seconds, and saved continuation displays its image in
+2.05 seconds. Build/raster P95 is 20.019/73.751 ms: isolate the costly interactions before accepting
+constrained-device responsiveness. Original catalogs remain unchanged and the normal local
+controlled test window has been restored.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

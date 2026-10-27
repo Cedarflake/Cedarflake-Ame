@@ -3130,14 +3130,89 @@ All 75 focused tests pass across action outcomes, serialized publication, album 
 selection cancellation and organization-mode continuation. The first test run exposed one assertion
 that still assumed awaiting a save also completed its refresh; it now settles the separate
 publication before checking that read. Strict analysis passes, and the native Debug rebuild takes
-23.5 seconds. Hosted verification is pending for the new implementation commit.
+23.5 seconds. Product commit `737e35c97542dcfd353a365a1f99397e6fb0ce33` passes
+[hosted run 40515066782](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40515066782):
+all 14 applicable jobs and the aggregate Windows Gate succeed; the three protected signing/release
+jobs are skipped.
 
 The action owner contains 197 production lines, the unchanged publication owner 130, and the
 unchanged picker 423, with no inline tests. Their action, publication and album-widget suites contain
 330, 181 and 339 dedicated test lines; the shared fixture contains 260 lines.
 
-The user-confirmed cloud-primary connection now verifies successfully with two logical processors
-and 7.95 GiB memory. Its retained checkout is an older product revision with uncommitted changes,
-and its installed Flutter SDK differs from the pinned version. Current-version isolated client
-preparation and constrained-device resource measurements remain open; connection recovery alone
-does not establish those results.
+The user-confirmed cloud-primary connection verifies successfully with two logical processors
+and 7.95 GiB memory. Its retained checkout has older uncommitted work, which remains untouched.
+The current client is transferred as a standalone package built with the installed Flutter 3.44.9
+SDK and the optimized Rust library with isolation diagnostics. All 28 packaged files match their
+manifest hashes on the remote host; the cloud SDK is not used or changed.
+
+## Standalone retained-client measurements - 2026-10-27
+
+The package contains product commit `737e35c97542dcfd353a365a1f99397e6fb0ce33` and the existing
+isolated client measurement entrypoint. Startup synchronization and exact analysis remain paused;
+previews may read available source media. The original catalogs remain unchanged. Both runs use
+independently copied catalogs and separate preview caches, with memory sampled every 500 ms.
+
+The local-primary copy contains 63,077 files and 47,833 groups. The complete workflow passes in
+125.16 seconds. The initial 13.579-second catalog result includes cold catalog admission and schema
+migration; its first preview is visible at 13.588 seconds. Later collection entries use the admitted
+catalog and newly populated preview cache.
+
+| Interaction | Elapsed time |
+| --- | --- |
+| Album entry, three samples | 3.709 / 4.334 / 4.513 s |
+| Favorites entry, three samples | 3.462 / 4.203 / 4.589 s |
+| Single-group unfavorite feedback | 71.898 ms |
+| Committed unfavorite visible in the list | 5.626 s |
+| Empty pending / deferred queue | 3.567 / 4.934 s |
+| Saved continuation actions / image | 4.613 / 4.625 s |
+| Prepare / save all 47,832 remaining Favorites | 8.059 / 23.090 s |
+| Album visible during that write | 5.054 s, writer still active |
+| Empty Favorites visible after the write | 6.394 s |
+
+The retained catalog window never exceeds 500 assets. Across 5,254 sampled frames, build and raster
+95th percentiles are 818 and 1,475 microseconds. Process sampling records peak working set of
+426,672,128 bytes, private memory of 554,569,728 bytes and 242.22 CPU seconds. The independent
+in-client RSS sample peaks at 438,992,896 bytes. The original catalog SHA-256 is unchanged.
+Collection entry and committed-list publication remain multi-second waits; the result separates
+those reads from the prompt saved-action feedback and continued rendering.
+
+The first cloud-primary attempt prepares all 19,006 groups through real album and Favorite commands.
+Preparation takes 0.986 / 1.347 seconds, and the respective saves take 9.208 / 6.080 seconds.
+After preparation, catalog publication takes 1.793 seconds. No first preview appears within the
+90-second condition deadline, so the run fails before collection, continuation and concurrent-write
+measurements. Preview diagnostics report `preview_source_missing` before decoding starts. That
+attempt fails the retained-source availability precondition and supplies no complete client timing.
+Read-only metadata comparison confirms the recorded root still exists. Eight of 12 sampled paths
+exist at their recorded locations; four paths under an absent subdirectory are missing. The sampled
+existing files are in the current year-based directories. A fresh catalog copy completes production
+metadata synchronization in 146.332 seconds, reaching synchronized state with zero pending changes
+and zero unknown freshness records. Its resulting 12,007 files and 11,985 groups form the second
+measurement fixture. This preparation is outside the client timing interval.
+The failed run retains its logs and isolated profile; original database and WAL hashes are unchanged.
+
+The unchanged package then completes the cloud-primary workflow in 68.78 seconds. The initial
+catalog and first preview appear at 3.650 / 3.675 seconds after fixture preparation. The two hosts
+use their respective retained libraries, whose different sizes are recorded above.
+
+| Cloud-primary interaction | Elapsed time |
+| --- | --- |
+| Album entry, three samples | 1.857 / 2.215 / 2.503 s |
+| Favorites entry, three samples | 1.910 / 2.982 / 2.883 s |
+| Viewer actions ready | 1.822 s |
+| Single-group unfavorite feedback / list publication | 1.159 / 3.198 s |
+| Empty pending / deferred queue | 3.123 / 1.239 s |
+| Saved continuation actions / image | 1.955 / 2.054 s |
+| Prepare / save all 11,984 remaining Favorites | 2.682 / 7.895 s |
+| Album visible / preview during that write | 1.505 / 1.578 s, writer still active |
+| Empty Favorites visible after the write | 2.113 s |
+
+The cloud client retains at most 500 assets. Process sampling records peak working set of
+258,744,320 bytes, private memory of 242,827,264 bytes and 81.48 CPU seconds. The independent
+in-client RSS sample peaks at 307,388,416 bytes. The run exits successfully, and original database
+and WAL hashes remain unchanged. Across 925 sampled frames, build and raster 95th percentiles are
+20.019 and 73.751 milliseconds. These aggregate frame costs require per-interaction diagnosis before
+constrained-device responsiveness can be accepted; successful workflow completion alone leaves
+that R4-07 boundary open.
+
+The normal Debug entrypoint is rebuilt in 26.4 seconds and the original controlled recovery profile
+is reopened. Native inspection shows its 10,000 files, 72 merged groups and working previews.
