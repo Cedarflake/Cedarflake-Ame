@@ -3291,3 +3291,29 @@ its geometry owner remains to be diagnosed. The normal test window is left open 
 The main surface, sidebar transition and workbench contain 27, 151 and 307 production lines, with no
 inline tests. The changed connected-screen suite has 332 dedicated test lines; the three reused
 motion/edge/transition suites contain 147, 152 and 116 lines.
+
+## Sidebar reflow edge retention - 2026-10-27
+
+Automatic viewport-anchor capture retained an image fraction without retaining whether the view
+was at its start or end. Unlike explicit card-size transitions, sidebar and window-width reflows
+therefore moved an edge-bound gallery to keep a center image in place. The reflow owner now captures
+the edge from its published layout range, sharing the existing edge policy used by scroll positions.
+Interior-image anchors and intervening-scroll invalidation remain unchanged. No gallery-controller,
+catalog or source operation is added.
+
+New connected sidebar-toggle checks reproduce three failures before the repair: the equal-height
+bottom moves 198 pixels away from the end, while the square top/bottom move 12.818/10.885 pixels.
+After the repair, all 89 focused continuity, layout, resizing and card-size checks pass. They include
+repeated sidebar toggles at both edges in both layouts, deep anchors, short galleries, recovered
+dimensions and user scrolling before queued reflow. Owned formatting and diff checks pass.
+
+The normal Debug build completes in 22.0 seconds. In the retained 10,000-file/72-group native profile,
+collapsing and reopening the sidebar at the top now preserves the date heading and complete first
+row at their original vertical positions. Repeating at the end preserves the final image and bottom
+padding. Dragging the existing time rail back to the top restores loaded previews. The same isolated
+profile remains open; original media is unchanged.
+
+The reflow owner contains 311 production lines and no inline tests. The changed connected continuity
+suite contains 330 dedicated test lines; the reused resize, layout-snapshot and transition-continuity
+suites contain 1,315, 358 and 214 lines. This position repair closes the native reflow defect without
+claiming further improvement to the separate cloud rendering or collection-query timings.

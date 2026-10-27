@@ -135,8 +135,9 @@ resource acceptance remain open. The subsequent same-package cloud run completes
 7.895 seconds while opening an album in 1.505 seconds, with at most 500 retained assets. Its
 build/raster P95 of 20.019/73.751 ms leaves constrained-device rendering diagnosis open. Per-interaction
 measurement supports a shared-surface clipping repair, with lower sidebar and mode-entry costs;
-queue/viewer transitions and retained-library read waits remain open. Native checking also identifies
-a top-position shift after closing and reopening the sidebar; diagnose its geometry owner next.
+queue/viewer transitions and retained-library read waits remain open. The related sidebar-reflow
+edge-position repair passes focused and native checks; preserve that boundary while continuing
+constrained-device transition and read-latency work.
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -367,8 +368,9 @@ to 12,007 files and 11,985 groups in 146.332 seconds; the unchanged package then
 workflow. Album/Favorite entry takes 1.86–2.98 seconds, and saved continuation displays its image in
 2.05 seconds. Per-interaction diagnosis now isolates unnecessary full-surface clipping and background
 work. Its shared-surface repair lowers measured sidebar and mode-entry raster costs, while queue and
-viewer transitions remain costly. Before further responsiveness acceptance, repair the observed
-gallery-top position shift on sidebar reopening at its geometry owner. Original catalogs remain
+viewer transitions remain costly. The geometry owner now retains the gallery's start/end position
+through sidebar reflow, with focused and native verification. Continue diagnosis of remaining
+transition and collection-read costs before responsiveness acceptance. Original catalogs remain
 unchanged and the normal local controlled test window has been restored.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the

@@ -13,11 +13,23 @@ enum LibraryGalleryScrollEdge {
         !position.hasContentDimensions) {
       return null;
     }
+    return forOffset(
+      position.pixels,
+      minimum: position.minScrollExtent,
+      maximum: position.maxScrollExtent,
+    );
+  }
+
+  static LibraryGalleryScrollEdge? forOffset(
+    double offset, {
+    double minimum = 0,
+    required double maximum,
+  }) {
     // A non-scrollable gallery is at both edges; keep its first image visible.
-    if (position.pixels <= position.minScrollExtent) {
+    if (offset <= minimum) {
       return start;
     }
-    if (position.pixels >= position.maxScrollExtent) {
+    if (offset >= maximum) {
       return end;
     }
     return null;
@@ -111,6 +123,12 @@ class LibraryGalleryViewportAnchor {
       itemFraction: fractions.item,
       viewportFraction: fractions.viewport,
       monthKey: entry.monthKey,
+      scrollEdge: LibraryGalleryScrollEdge.forOffset(
+        scrollOffset,
+        maximum: (snapshot.metrics.contentExtent - viewportExtent)
+            .clamp(0, double.infinity)
+            .toDouble(),
+      ),
     );
   }
 

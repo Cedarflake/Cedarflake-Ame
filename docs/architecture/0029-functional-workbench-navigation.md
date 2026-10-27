@@ -85,6 +85,9 @@ Resize each tile with interpolated constraints rather than scaling its rendered 
 from the displayed rectangle, retire item records on unmount, and clear motion on query changes,
 direct scrolling or reduced motion. The existing geometry owner supplies its pending scroll
 correction so the first animated frame accounts for the sliver's later layout correction.
+Viewport anchors capture start/end position from the published layout's scroll range as well as
+the image fraction. Resizing or sidebar toggling retains that edge; an intervening user scroll
+recaptures the current position through the existing pending-reflow owner.
 A plain `AnimatedSize` around the sidebar would propagate intermediate
 widths into the photo wall. Retain both widget subtrees, disable collapsed-sidebar input, finish
 hidden or reduced-motion transitions immediately, and reverse rapid toggles from the current value.

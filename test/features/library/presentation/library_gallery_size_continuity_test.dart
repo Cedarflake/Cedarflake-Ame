@@ -89,6 +89,30 @@ void main() {
         },
       );
       for (final atEnd in [false, true]) {
+        if (queryWide) {
+          testWidgets("$shape sidebar toggles retain edge, end=$atEnd", (
+            tester,
+          ) async {
+            final scroll = await _openGallery(
+              tester,
+              shape: shape,
+              queryWide: true,
+            );
+            if (atEnd) {
+              scroll.jumpTo(scroll.maxScrollExtent);
+              await tester.pumpAndSettle();
+            }
+            for (var toggle = 0; toggle < 4; toggle++) {
+              await tester.tap(find.byKey(const Key("library-sidebar-toggle")));
+              await tester.pumpAndSettle();
+              expect(
+                scroll.pixels,
+                closeTo(atEnd ? scroll.maxScrollExtent : 0, 0.01),
+                reason: "Sidebar toggle $toggle",
+              );
+            }
+          });
+        }
         testWidgets("$shape retains edge, end=$atEnd, manifest=$queryWide", (
           tester,
         ) async {
