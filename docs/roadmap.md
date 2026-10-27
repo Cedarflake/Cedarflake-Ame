@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-27
+Last planning update: 2026-10-28
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -335,7 +335,10 @@ refresh falls from 9.72 to 5.72 seconds, with unchanged position and count asser
 standalone client completes the retained workflow with collection entries of 3.46–4.59 seconds,
 single-group saved-action feedback of 72 ms, committed-list publication of 5.63 seconds and final
 empty-Favorite publication of 6.39 seconds. Carry these measured waits into integrated resource
-acceptance; keep collection entry, anchored refresh and writer timing separate.
+acceptance; keep collection entry, anchored refresh and writer timing separate. Successful
+representative anchors now reuse their transaction-local group proof while retaining point scope
+checks. Focused and paired native verification pass, with lower retained-anchor and album-refresh
+costs; remaining publication and removed-anchor waits stay in the R4-07 queue.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication

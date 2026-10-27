@@ -115,3 +115,150 @@ fn anchor_membership_does_not_require_the_requested_copy_in_the_physical_scope()
         );
     }
 }
+
+#[test]
+fn resolved_anchor_keeps_preferred_copy_inside_the_complete_physical_scope() {
+    let (_directory, mut catalog, album) = grouped();
+    let prepared = prepare(&catalog, &["a"]);
+    catalog
+        .set_organization_favorite("favorite-group", &prepared, true)
+        .unwrap();
+    let preferred = selected(&catalog, "c");
+    catalog
+        .set_duplicate_preference(
+            &ExactDuplicateReviewKey {
+                digest: "a".repeat(64),
+                byte_length: 20,
+            },
+            Some(&ExactDuplicatePreference {
+                location_id: preferred.location_id,
+                asset_id: preferred.asset_id,
+                source_generation: preferred.source_generation,
+            }),
+        )
+        .unwrap();
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations SET relative_path = 'Album/c.png',
+               parent_relative_path = 'Album' WHERE location_id = 'c'",
+            [],
+        )
+        .unwrap();
+    for collection in [
+        GalleryCollection::Library,
+        album.collection,
+        GalleryCollection::Favorites,
+    ] {
+        let query = GalleryQuery {
+            collection,
+            duplicate_mode: GalleryDuplicateMode::Merged,
+            ..GalleryQuery::default()
+        };
+        for (scoped, expected) in [
+            (query.clone(), Some("c")),
+            (
+                GalleryQuery {
+                    root_id: Some("root-a".into()),
+                    ..query.clone()
+                },
+                Some("a"),
+            ),
+            (
+                GalleryQuery {
+                    root_id: Some("root-c".into()),
+                    folder_relative_path: Some("Album".into()),
+                    include_descendants: false,
+                    search_text: "c.png".into(),
+                    ..query.clone()
+                },
+                Some("c"),
+            ),
+            (
+                GalleryQuery {
+                    root_id: Some("root-c".into()),
+                    folder_relative_path: Some("Missing".into()),
+                    ..query.clone()
+                },
+                None,
+            ),
+            (
+                GalleryQuery {
+                    search_text: "b.png".into(),
+                    ..query
+                },
+                None,
+            ),
+        ] {
+            let snapshot = catalog
+                .load_snapshot_around_location(1, &scoped, "scoped-anchor", "a")
+                .unwrap();
+            let resolution = snapshot.query_anchor_resolution.unwrap();
+            assert_eq!(resolution.location_id.as_deref(), expected);
+        }
+    }
+}
+
+#[test]
+fn resolved_anchor_rechecks_asset_identity_and_changed_collection_membership() {
+    let (_directory, mut catalog, query) = grouped();
+    let original = selected(&catalog, "a");
+    let other = selected(&catalog, "b");
+    let snapshot = catalog
+        .load_snapshot_around_asset(1, &query, "changed-asset", "a", &other.asset_id, 0)
+        .unwrap();
+    let resolution = snapshot.query_anchor_resolution.unwrap();
+    assert_eq!(resolution.location_id.as_deref(), Some("b"));
+    assert_eq!(resolution.ordinal, Some(1));
+
+    change(
+        &mut catalog,
+        "remove-anchored-group",
+        &["a"],
+        OrganizationAction::RemoveAlbum,
+    );
+    let snapshot = catalog
+        .load_snapshot_around_asset(1, &query, "removed-anchor", "a", &original.asset_id, 0)
+        .unwrap();
+    let resolution = snapshot.query_anchor_resolution.unwrap();
+    assert_eq!(resolution.location_id.as_deref(), Some("b"));
+    assert_eq!(resolution.ordinal, Some(0));
+    assert_eq!(snapshot.assets[0].location_id, "b");
+}
+
+#[test]
+fn resolved_anchor_distinguishes_equal_location_ids_in_different_roots() {
+    let (_directory, mut catalog) = fixture();
+    crate::adapters::sqlite_catalog::tests::publish_gallery_fixture(
+        &mut catalog,
+        "scan-c-next",
+        "root-c",
+        "D:\\Fixture",
+        &[("c", None, 3), ("d", None, 2)],
+    );
+    publish_batch(&mut catalog, &["a", "c"], 'a');
+    let requested = selected(&catalog, "c");
+    catalog
+        .connection
+        .execute(
+            "UPDATE asset_locations SET location_id = 'a' WHERE root_id = 'root-c'
+               AND scan_id = 'scan-c-next' AND location_id = 'c'",
+            [],
+        )
+        .unwrap();
+    let query = GalleryQuery {
+        root_id: Some("root-c".into()),
+        duplicate_mode: GalleryDuplicateMode::Merged,
+        sort_key: GallerySortKey::ModifiedTime,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+    let snapshot = catalog
+        .load_snapshot_around_asset(1, &query, "shared-id", "a", &requested.asset_id, 0)
+        .unwrap();
+    let resolution = snapshot.query_anchor_resolution.unwrap();
+    assert_eq!(resolution.location_id.as_deref(), Some("a"));
+    assert_eq!(resolution.ordinal, Some(1));
+    assert_eq!(snapshot.assets[0].asset_id, requested.asset_id);
+    assert_eq!(snapshot.assets[0].root_id, "root-c");
+}

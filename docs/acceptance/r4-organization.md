@@ -3317,3 +3317,61 @@ The reflow owner contains 311 production lines and no inline tests. The changed 
 suite contains 330 dedicated test lines; the reused resize, layout-snapshot and transition-continuity
 suites contain 1,315, 358 and 214 lines. This position repair closes the native reflow defect without
 claiming further improvement to the separate cloud rendering or collection-query timings.
+
+## Scoped anchor reuse - 2026-10-28
+
+The location-anchor owner resolved a representative inside the complete collection and physical
+scope, then rebuilt the complete representative relation to read that location's cursor. Successful
+resolution now reuses its transaction-local proof. The cursor still applies point membership,
+source, folder and search filters; identical location IDs in different roots must not select another
+root's ordering values. Unresolved locations, stable-asset fallback, window ordering and page reads
+retain their existing checks. There is no schema, bridge, dependency or source-media change.
+
+The first candidate omitted point filters; review identified the cross-root identifier ambiguity
+before the native comparison. The final candidate retains those filters and adds the corresponding
+regression. Two new-fixture setup errors, a missing folder root and a private helper import, were
+corrected without changing product admission. All 33 collection-query regressions pass, including
+preferred/scoped copies, stale asset identity, removed membership and shared location identifiers.
+Eight existing ordinary anchor/fallback checks also pass. Rust formatting and owned diff checks pass.
+
+Release catalog-only measurements use the same isolated local-primary snapshot with 47,833 groups,
+fresh connections, a 128-item page and an unflushed OS cache. Both input copies remain unchanged:
+
+| Read | Before | Final scoped reuse |
+| --- | --- | --- |
+| Favorites without an anchor | 2.409 s | 2.394 s |
+| Retained anchor, two samples | 3.876 / 4.122 s | 2.827 / 2.798 s |
+| Removed anchor, two samples | 4.002 / 3.842 s | 4.074 / 3.644 s |
+
+The retained-anchor mean falls by about 30%. Removed-anchor timings remain variable and do not
+establish an improvement to that separate path. No source media is read by these catalog probes.
+The earlier unscoped candidate and its measurements remain separate diagnostic evidence.
+
+The native comparison uses one identical Flutter Profile UI build and separate fresh copies of the
+63,077-file/47,833-group catalog. It opens an album, opens its first image, cancels its Favorite and
+returns to the album. Completion requires a newer published catalog revision, unchanged album count,
+the same first location and a decoded preview. Both runs pass and retain at most 500 assets.
+Feedback takes 204/237 ms before/after; save-to-visible album refresh falls from 8.914 to 7.182 seconds.
+This single paired client observation supports the narrower change and still leaves substantial
+publication latency open. It does not replace the separate removed-Favorite or cloud-rendering runs.
+
+Before/after process sampling records peak working sets of 403,046,400/418,529,280 bytes, private
+memory of 512,937,984/530,878,464 bytes and 54.703/53.672 CPU seconds. Both clients exit successfully;
+the original catalog and WAL remain unchanged. Background synchronization and exact analysis are
+paused. Normal source acquisition is enabled for the preview/viewer checks, with all writes confined
+to the independent catalog and derived storage.
+
+The native baseline is `737e35c9`; the candidate is `6cb414ce` plus this scoped-anchor patch. Both
+use the same diagnostic isolation/assertion configuration. The common `app.so` SHA-256 is
+`D1CA4EAADB5667961FCF9E1DF76565408F38ACB1E40812BC503A714FB7171B04`; the before/after native library
+digests are `B4D59EB20E908DB7565E1BE0862C2C6A9D98B36CE4941F3BF158D37EBD332F3D` and
+`401AAD78C4FADF2BBED1FC6D10774366851B667F679066FE63CD98ACE1D14538`. Input, timing, completion and
+resource reports remain under the ignored `r4-anchor-reuse` diagnostic directory.
+
+The normal Debug build completes in 46.2 seconds, and the original controlled profile is restored
+with 10,000 files, 72 merged groups and loaded previews. Finished diagnostic catalogs and runtimes
+are removed after process/path checks, reclaiming 3,431,794,490 bytes while preserving reports and
+the input snapshot.
+
+The location-anchor owner has 186 production lines and no inline tests. Its changed dedicated
+membership/anchor suite has 264 lines; the reused ordinary-anchor suite has 492 lines.

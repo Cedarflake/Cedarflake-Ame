@@ -180,6 +180,11 @@ already ineligible. Representative lookup checks the requested active copy's log
 without requiring that physical copy to pass the folder/search filter; the final group selection
 still chooses a qualifying member inside the complete physical scope. These eligibility reads reuse
 the published-source and empty-decision relation and share the enclosing read transaction.
+When representative resolution succeeds, the cursor read retains the point scope, including root,
+folder and membership constraints, because different published roots can share a location ID. It
+does not repeat the complete representative relation. The proof remains local to the same read
+transaction; unresolved locations and stable-asset fallback still apply the full anchor filters.
+Window positioning and subsequent page reads retain their scoped ordering checks.
 
 ### Queue admission and continuation
 
