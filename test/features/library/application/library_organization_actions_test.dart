@@ -6,6 +6,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/application/library_organization_actions.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_history.dart";
 import "package:cedarflake_ame/features/library/application/library_organization_outcome.dart";
+import "package:cedarflake_ame/features/library/application/library_organization_requests.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization_history.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
@@ -65,6 +66,7 @@ void main() {
         container.read(libraryOrganizationActionsProvider).saving,
         isFalse,
       );
+      await settle();
       expect(library.refreshes, 1);
       expect(
         notice("organization.undo").actionContext,
@@ -78,6 +80,43 @@ void main() {
       expect(
         container.read(ameNotificationControllerProvider).hasUnread,
         isFalse,
+      );
+    },
+  );
+
+  test(
+    "a committed action returns while publication remains pending",
+    () async {
+      final refresh = Completer<bool>();
+      library.pendingRefresh = refresh;
+      LibraryOrganizationCommandResult? result;
+      final saving = actions
+          .submit(LibraryFavoriteRequest(organizationTarget("one"), true))
+          .then((value) => result = value);
+      await settle();
+      expect(result, isA<LibraryOrganizationSaved>());
+      expect(library.refreshes, 1);
+      expect(
+        container.read(libraryOrganizationActionsProvider).saving,
+        isFalse,
+      );
+      expect(
+        notice("organization.undo").actionContext,
+        service.writes.single.id,
+      );
+
+      refresh.complete(false);
+      await saving;
+      await settle();
+      final failedRefresh = notice("organization.refresh");
+      library.pendingRefresh = null;
+      actions.handleNotification(failedRefresh);
+      await settle();
+      expect(library.refreshes, 2);
+      expect(service.writes, hasLength(1));
+      expect(
+        container.read(ameNotificationControllerProvider).pendingIds,
+        isNot(contains(failedRefresh.id)),
       );
     },
   );
@@ -130,6 +169,7 @@ void main() {
     () async {
       library.refreshSucceeds = false;
       await actions.favorite(organizationTarget("one"), true);
+      await settle();
       final refresh = notice("organization.refresh");
       expect(refresh.title, "更改已保存");
       library.refreshSucceeds = true;

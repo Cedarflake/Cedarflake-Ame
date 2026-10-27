@@ -15,13 +15,15 @@ import "../support/library_organization_fixture.dart";
 
 void main() {
   late OrganizationServiceFixture service;
+  late OrganizationLibraryFixture library;
   late ProviderContainer container;
   setUp(() {
     service = OrganizationServiceFixture();
+    library = OrganizationLibraryFixture();
     container = ProviderContainer(
       overrides: [
         libraryOrganizationProvider.overrideWithValue(service),
-        libraryControllerProvider.overrideWith(OrganizationLibraryFixture.new),
+        libraryControllerProvider.overrideWith(() => library),
       ],
     );
   });
@@ -138,6 +140,45 @@ void main() {
       expect(find.byKey(const Key("library-album-picker")), findsNothing);
       expect(selected?.album?.id, "a");
       expect(service.memberships[1].id, service.memberships[0].id);
+    },
+  );
+
+  testWidgets(
+    "album tray closes at commit without waiting for gallery publication",
+    (tester) async {
+      const album = LibraryOrganizationAlbum("a", "Landscape");
+      service.albumItems = [album];
+      final committed = Completer<LibraryOrganizationReceipt>();
+      final refreshed = Completer<bool>();
+      service.saveMembership = (_) => committed.future;
+      library.pendingRefresh = refreshed;
+      LibraryAlbumChoice? selected;
+      await host(
+        tester,
+        (context) => () async {
+          selected = await showLibraryAlbumPicker(
+            context: context,
+            actionLabel: "加入相册",
+            membership: LibraryAlbumMembershipSession([
+              organizationTarget("one"),
+            ], isMove: false),
+          );
+        },
+      );
+      await tester.tap(find.byKey(const ValueKey("album-choice-a")));
+      await tester.pump();
+      await tester.tap(find.byKey(const Key("library-album-confirm")));
+      await tester.pump();
+      expect(find.text("正在保存"), findsOneWidget);
+      committed.complete(service.receipt(service.memberships.single.id));
+      await tester.pumpAndSettle();
+      expect(selected?.album, album);
+      expect(find.byKey(const Key("library-album-picker")), findsNothing);
+      expect(library.refreshes, 1);
+      expect(refreshed.isCompleted, isFalse);
+      refreshed.complete(true);
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
     },
   );
 

@@ -341,6 +341,8 @@ group publication returns an explicit unavailable decision instead of a default 
 Write preparation remains at the user action boundary. Unknown write outcomes retain their operation
 identifier and prepared authority for idempotent retry; confirmed stale authority requires a new
 preparation and operation identifier. Refresh failure after commit retries the read independently.
+The action returns its saved receipt when the write commits. Gallery publication continues under
+its serial owner, so a form's save and cancellation lifetime never includes the subsequent read.
 
 Presentation keeps one active organization write and retires pending preparation on disposal.
 The existing viewer notice renders results. A bounded organization outcome owner retains only the

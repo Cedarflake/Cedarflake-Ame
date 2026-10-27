@@ -3095,3 +3095,49 @@ Both contain 10,000 files and hash to
 `777371bb5c3f6f3fcb17af2c84cf17dc7f5ba2622a8fc89cb35469c4b3fdf349`.
 The cleanup/reimport/restart result closes the remaining native recovery workflow; it does not
 establish the separate full-library cancellation or constrained-device performance results.
+
+## Native cancellation and commit feedback - 2026-10-27
+
+The existing retained-catalog copy contains 63,077 files and 47,833 folded groups. A native Debug
+entrypoint mounts the normal Ame application, real catalog and organization adapters against this
+isolated copy, with startup synchronization and duplicate analysis paused. It loads the catalog
+before reading storage settings so schema admission completes first. Source media and the original
+retained catalog are not modified. This setup checks user interaction and durable cancellation;
+its Debug timings are not optimized-client performance acceptance.
+
+Native whole-library selection reaches preparation progress of 4,285/47,833. Cancelling from the
+existing toolbar retires preparation and returns to browsing. A separate save is cancelled 6.636
+seconds after confirmation; the next capture, 334 ms after the request, shows `正在停止`, followed
+by the closed tray with the selection retained. Read-only ordered row digests of all 38 organization
+and exact-decision tables match before and after each cancellation. They also match after closing
+and restarting the client following save cancellation. No partial membership or operation survives.
+
+A late cancellation attempt occurred after the transaction had committed. The 47,833-group receipt
+correctly survived, but the picker still displayed `正在保存` while awaiting the subsequent gallery
+refresh and briefly offered `正在停止`. The action facade now returns the committed receipt directly;
+the existing publication owner continues its serialized refresh, retired-album navigation and
+failure/retry handling independently. The picker closes when the saved result arrives. Unknown write
+outcomes still retry the original command, and an actual in-flight cancellation still waits for
+retirement. No schema, bridge, source mutation or new presentation surface is introduced.
+
+The rebuilt native client completes another 47,833-group album move and returns to the gallery
+with selection cleared. A read-only observer sees the committed operation at 24.00 seconds after
+confirmation; the tray is absent in the next captured state at 32.03 seconds. These spaced captures
+establish completion, not an exact dismissal latency. The held-refresh application/widget
+regressions separately prove that the saved result and closed tray do not wait for publication.
+
+All 75 focused tests pass across action outcomes, serialized publication, album forms/viewer,
+selection cancellation and organization-mode continuation. The first test run exposed one assertion
+that still assumed awaiting a save also completed its refresh; it now settles the separate
+publication before checking that read. Strict analysis passes, and the native Debug rebuild takes
+23.5 seconds. Hosted verification is pending for the new implementation commit.
+
+The action owner contains 197 production lines, the unchanged publication owner 130, and the
+unchanged picker 423, with no inline tests. Their action, publication and album-widget suites contain
+330, 181 and 339 dedicated test lines; the shared fixture contains 260 lines.
+
+The user-confirmed cloud-primary connection now verifies successfully with two logical processors
+and 7.95 GiB memory. Its retained checkout is an older product revision with uncommitted changes,
+and its installed Flutter SDK differs from the pinned version. Current-version isolated client
+preparation and constrained-device resource measurements remain open; connection recovery alone
+does not establish those results.

@@ -342,13 +342,18 @@ coverage. Native interaction verifies date years/ticks, numeric name sections, n
 dragging and current-entry arrival ranges. Single-image ranges remain visible when new and earlier
 images share a row, and re-entry resets the arrival boundary. Schema-57 recovery
 admission passes focused repair, rejection, upgrade and hosted checks.
-Full-catalog cancellation now verifies prompt return during preparation and halfway through a
-47,833-group write, with all durable records unchanged after reopen. Client operation timings are
-recorded; native cancellation interaction remains open.
+Full-catalog cancellation verifies prompt return during preparation and halfway through a
+47,833-group write, with all durable records unchanged after reopen. Native preparation and
+in-flight save cancellation now also preserve all durable organization tables across restart.
+The native check exposed a post-commit form wait: successful actions now return their receipt
+without waiting for the independently owned gallery refresh. Focused and native checks cover the
+commit, cancellation and refresh-retry boundary; exact-head hosted verification follows publication.
 The original recovery profile remains intact. Native inspection and cancellation use one settings
 entry with range selection inside the dialog. Authorized cleanup in an independent restore fixture
-now verifies bottom-notification publication and non-resurrection after reimport and restart;
-constrained-device work awaits confirmation of cloud-primary's changed saved device identity.
+now verifies bottom-notification publication and non-resurrection after reimport and restart.
+The user has confirmed cloud-primary's changed device identity and the connection is verified.
+Its existing checkout contains older uncommitted work; preserve it while preparing an isolated
+current-version test within the available storage and pinned-toolchain constraints.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,
@@ -377,8 +382,8 @@ do not postpone protection of existing user data. Requirements and accepted cont
 with their product owners rather than being re-decided during implementation.
 The [R4 evidence record](acceptance/r4-organization.md) covers internal boundaries and the connected
 desktop workflows. Recovery settings have native export and matched/unmatched restore evidence;
-cleanup and reimport also have native evidence. Integrated cancellation and retained-library resource
-verification remain outstanding.
+cleanup, reimport and integrated cancellation also have native evidence. Retained-library resource
+verification remains outstanding.
 
 ## Frozen R2c ownership
 

@@ -245,6 +245,7 @@ class OrganizationServiceFixture implements LibraryOrganization {
 class OrganizationLibraryFixture extends LibraryController {
   int refreshes = 0;
   bool refreshSucceeds = true;
+  Completer<bool>? pendingRefresh;
 
   @override
   LibraryState build() => LibraryState(catalogRevision: BigInt.one);
@@ -252,6 +253,8 @@ class OrganizationLibraryFixture extends LibraryController {
   @override
   Future<bool> refreshCurrentQuery() async {
     refreshes++;
+    final pending = pendingRefresh;
+    if (pending != null) return pending.future;
     return refreshSucceeds;
   }
 }

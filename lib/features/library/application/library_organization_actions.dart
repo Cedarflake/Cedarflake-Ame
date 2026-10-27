@@ -175,9 +175,9 @@ class LibraryOrganizationActions extends Notifier<LibraryOrganizationActivity> {
           message: request.successMessage,
           canUndo: request.canUndo(receipt),
         );
-    await ref
-        .read(libraryOrganizationPublicationProvider)
-        .refresh(request.change);
+    unawaited(
+      ref.read(libraryOrganizationPublicationProvider).refresh(request.change),
+    );
     return LibraryOrganizationSaved(receipt);
   }
 }
