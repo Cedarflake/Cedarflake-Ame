@@ -3067,3 +3067,31 @@ The toolbar contains 99 production lines and no inline tests. Its updated widget
 contain 489/113 dedicated test lines; the connected-screen suite contains 312 lines.
 The header-row and action owners contain 134/155 production lines and no inline tests; the action
 and alignment suites contain 90/162 dedicated test lines.
+
+## Native cleanup and reimport - 2026-10-27
+
+The unchanged product head `a080549f613634901737efa71d50ff8cd6ab024c` passes
+[hosted run 40258275243](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40258275243):
+all 14 applicable jobs and the aggregate Windows Gate succeed; the three protected signing/release
+jobs are skipped. This workflow uses the existing Debug build and an independent recovery-profile
+copy. The original recovery profile and the pre-cleanup catalog backup remain intact.
+
+In Settings, `查看并清理` opens the range selector inside the existing confirmation dialog.
+Selecting all unmatched records identifies six groups: five album memberships, one Favorite and
+six progress records. After action-time authorization, cleanup closes the dialog and publishes
+`已清理未关联记录` through the shared bottom notification. The settings layout remains unchanged.
+Read-only catalog inspection finds no organization records, two retained album definitions and one
+cleanup operation; existing restore receipts and operation history remain present.
+
+The native folder picker then reimports the existing controlled 10,000-file corpus. Directory import
+and exact analysis complete, and the gallery displays 72 folded groups. Both retained albums and
+Favorites are empty. Organization mode reports 72 pending, zero organized and zero ignored, without
+an old continuation action. All 10,000 fingerprints are present and no organization record has been
+recreated. After closing and reopening the same isolated profile, the gallery still contains 72
+groups and the catalog retains zero organization records with both album definitions intact.
+
+Before/after manifests cover every relative filename and file SHA-256 in the controlled source.
+Both contain 10,000 files and hash to
+`777371bb5c3f6f3fcb17af2c84cf17dc7f5ba2622a8fc89cb35469c4b3fdf349`.
+The cleanup/reimport/restart result closes the remaining native recovery workflow; it does not
+establish the separate full-library cancellation or constrained-device performance results.

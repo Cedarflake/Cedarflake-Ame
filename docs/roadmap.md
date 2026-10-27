@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-26
+Last planning update: 2026-10-27
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-06 recovery and cleanup in progress |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-07 integrated verification in progress |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -102,8 +102,8 @@ restart evidence.
 Manual unresolved-record inspection, guarded cleanup and settings confirmation are connected;
 focused boundary checks pass, and native age selection and confirmation counts are verified.
 Repeated native restore, unmatched-profile restart and late association after importing the
-retained test corpus now have controlled client evidence. Cleanup publication and post-cleanup
-reimport remain open.
+retained test corpus now have controlled client evidence. Native cleanup publication, post-cleanup
+reimport and restart leave cleared decisions absent while retaining album definitions and source media.
 The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
 read archive tables before their migration. Schema-aware local versus imported authority now passes
 focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
@@ -289,18 +289,19 @@ controlled client evidence. Gallery selection and the core
 organization-mode workflows and persistent conflict inspection/resolution are connected. Controlled
 desktop checks cover conflict discovery, cancellation, resolution, restart and unavailable-image
 navigation/retry without completing pending work. The corrected availability source inventory and
-native workflows have passed hosted verification. R4-06 is active with the versioned archive codec,
+native workflows have passed hosted verification. R4-06 implements the versioned archive codec,
 snapshot export, staged restoration validation and bounded association preview behind the typed
 bridge. Native-version reassociation is connected to the existing publication transaction, including
 cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
 are implemented through the application and typed bridge. Restored queue order and continuation,
-retained R3 choices and source-removal precedence have focused regression coverage. Continue with
-the remaining native settings verification. Native export, matched restore, restart of the matched
+retained R3 choices and source-removal precedence have focused regression coverage.
+Native export, matched restore, restart of the matched
 profile and unmatched restore into an empty profile now have controlled client evidence. Cleanup
 age selection and confirmation counts are verified. Repeated restoration preserves the same
 decisions, and reimport associates all retained test records without duplicate albums or groups;
-both unmatched and associated records survive restart. Cleanup publication and post-cleanup
-reimport remain open. Manual unresolved-record cleanup passes its focused boundary checks.
+both unmatched and associated records survive restart. Native cleanup publication, reimport and
+restart now verify that cleared decisions remain absent while album definitions and source media
+survive. Manual unresolved-record cleanup passes its focused boundary checks; R4-06 is verified.
 Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
 native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
 by the catalog-only baseline before integrated performance acceptance.
@@ -343,11 +344,10 @@ images share a row, and re-entry resets the arrival boundary. Schema-57 recovery
 admission passes focused repair, rejection, upgrade and hosted checks.
 Full-catalog cancellation now verifies prompt return during preparation and halfway through a
 47,833-group write, with all durable records unchanged after reopen. Client operation timings are
-recorded; native cancellation interaction and cleanup publication remain open.
-The timing client has exited and the original recovery profile remains intact. Native inspection and
-cancellation now use one settings entry with range selection inside the dialog. The original six
-unmatched records are now associated in that profile, so cleanup publication needs an eligible isolated
-restore fixture and fresh action-time confirmation;
+recorded; native cancellation interaction remains open.
+The original recovery profile remains intact. Native inspection and cancellation use one settings
+entry with range selection inside the dialog. Authorized cleanup in an independent restore fixture
+now verifies bottom-notification publication and non-resurrection after reimport and restart;
 constrained-device work awaits confirmation of cloud-primary's changed saved device identity.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
@@ -377,7 +377,8 @@ do not postpone protection of existing user data. Requirements and accepted cont
 with their product owners rather than being re-decided during implementation.
 The [R4 evidence record](acceptance/r4-organization.md) covers internal boundaries and the connected
 desktop workflows. Recovery settings have native export and matched/unmatched restore evidence;
-the remaining recovery/cleanup interactions and integrated retained-library verification are outstanding.
+cleanup and reimport also have native evidence. Integrated cancellation and retained-library resource
+verification remain outstanding.
 
 ## Frozen R2c ownership
 
