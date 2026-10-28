@@ -179,7 +179,8 @@ fn migrates_v6_previews_as_pending_when_source_revision_is_unknown() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (6);
                  CREATE TABLE library_roots (
-                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                   id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+                   active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
                  );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
@@ -227,7 +228,8 @@ fn migrates_v7_locations_as_unanalyzed_metadata() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (7);
                  CREATE TABLE library_roots (
-                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                   id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+                   active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
                  );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
@@ -281,7 +283,8 @@ fn migrates_v8_locations_with_unknown_file_identity() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (8);
                  CREATE TABLE library_roots (
-                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                   id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+                   active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
                  );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
@@ -335,7 +338,8 @@ fn migrates_v13_with_an_empty_preview_artifact_index() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
              INSERT INTO schema_info(version) VALUES (13);
              CREATE TABLE library_roots (
-               id TEXT PRIMARY KEY, active_scan_id TEXT
+               id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+               active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
              );
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
@@ -397,10 +401,12 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
              INSERT INTO schema_info(version) VALUES (14);
              CREATE TABLE library_roots (
-               id TEXT PRIMARY KEY, active_scan_id TEXT
+               id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+               active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
              );
              INSERT INTO library_roots VALUES
-               ('root-1', 'scan-1'), ('root-2', 'scan-2');
+               ('root-1', 'C:\\Pictures', 'scan-1', 20),
+               ('root-2', 'C:\\Photos', 'scan-2', 10);
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL, asset_id TEXT NOT NULL,
                location_id TEXT NOT NULL, root_id TEXT NOT NULL,
@@ -470,6 +476,33 @@ fn migrates_v14_preview_ownership_to_every_active_location() {
         .expect("ownership collection");
 
     assert_eq!(version, SCHEMA_VERSION);
+    let roots = catalog
+        .connection
+        .prepare(
+            "SELECT roots.id, roots.path, roots.active_scan_id, roots.created_unix_ms
+             FROM library_roots AS roots
+             JOIN library_sidebar_root_order AS ordering ON ordering.root_id = roots.id
+             ORDER BY ordering.position",
+        )
+        .expect("migrated root query")
+        .query_map([], |row| {
+            Ok((
+                row.get::<_, String>(0)?,
+                row.get::<_, String>(1)?,
+                row.get::<_, String>(2)?,
+                row.get::<_, i64>(3)?,
+            ))
+        })
+        .expect("migrated root rows")
+        .collect::<Result<Vec<_>, _>>()
+        .expect("migrated roots");
+    assert_eq!(
+        roots,
+        vec![
+            ("root-2".into(), "C:\\Photos".into(), "scan-2".into(), 10),
+            ("root-1".into(), "C:\\Pictures".into(), "scan-1".into(), 20),
+        ]
+    );
     assert!(locations.is_empty());
     assert_eq!(
         preview_lifecycle_state(&catalog, "shared-artifact"),
@@ -487,12 +520,13 @@ fn migrates_v15_by_reconciling_preview_ownership_with_active_locations() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
              INSERT INTO schema_info(version) VALUES (15);
              CREATE TABLE library_roots (
-               id TEXT PRIMARY KEY, active_scan_id TEXT
+               id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+               active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
              );
              INSERT INTO library_roots VALUES
-               ('root-1', 'scan-1'),
-               ('root-2', 'scan-2'),
-               ('root-retired', 'scan-current');
+               ('root-1', 'C:\\Pictures', 'scan-1', 20),
+               ('root-2', 'C:\\Photos', 'scan-2', 10),
+               ('root-retired', 'C:\\Retired', 'scan-current', 30);
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL,

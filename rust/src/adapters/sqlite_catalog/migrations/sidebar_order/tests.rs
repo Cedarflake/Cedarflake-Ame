@@ -8,7 +8,8 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog) {
     downgrade_to_v57_for_test(&catalog.connection);
     catalog.connection.execute_batch(
         "INSERT INTO organization_albums VALUES ('c', 'Third', 1, 1, 1), ('a', 'First', 1, 2, 2);
-         INSERT INTO library_roots VALUES ('c', 'C:\\Third', NULL, 2), ('a', 'C:\\First', NULL, 1);",
+         INSERT INTO library_roots VALUES
+           ('c', 'C:\\Third', NULL, 2), ('d', 'C:\\Second', NULL, 1), ('a', 'C:\\First', NULL, 1);",
     ).unwrap();
     (directory, catalog)
 }
@@ -18,9 +19,9 @@ fn upgrade_preserves_previous_positions_and_appends_new_items() {
     let (directory, mut catalog) = prior();
     migrate(&mut catalog.connection).unwrap();
     current_schema::validate_schema_version(&catalog.connection, 58).unwrap();
-    for (table, key) in [
-        ("library_sidebar_root_order", "root_id"),
-        ("organization_sidebar_album_order", "album_id"),
+    for (table, key, expected_order) in [
+        ("library_sidebar_root_order", "root_id", "a,d,c"),
+        ("organization_sidebar_album_order", "album_id", "a,c"),
     ] {
         let order: String = catalog
             .connection
@@ -32,7 +33,7 @@ fn upgrade_preserves_previous_positions_and_appends_new_items() {
                 |row| row.get(0),
             )
             .unwrap();
-        assert_eq!(order, "a,c");
+        assert_eq!(order, expected_order);
     }
     catalog
         .connection
@@ -50,7 +51,7 @@ fn upgrade_preserves_previous_positions_and_appends_new_items() {
             |row| Ok((row.get(0)?, row.get(1)?)),
         )
         .unwrap();
-    assert_eq!(positions, (2, 2));
+    assert_eq!(positions, (2, 3));
     drop(catalog);
     SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
 }

@@ -3676,6 +3676,30 @@ production and 3,391 inline-test lines, with only its exact module inventory cha
 Full automated gates remain assigned to the published commit. Sidebar multi-selection and batch
 management follow this ordering delivery in the roadmap.
 
+### Historical root fixtures
+
+Hosted run [40645242771](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40645242771)
+on `5c6e5025` completes with 13 applicable jobs passing and Rust / Catalog failing: 690 cases pass,
+11 fail and seven remain ignored. All failures reach schema 58 with a reduced historical
+`library_roots` fixture that omits `created_unix_ms`. The first committed schema at `6e28c925`
+and its v1 upgrade fixture already include the required source path and creation timestamp.
+The v4 failure reproduces locally before the fixture correction.
+
+The eleven v4-v15 fixtures now declare the historical four-column root table, retaining all scan,
+metadata, preview, ownership and index assertions. Populated fixtures supply explicit paths and
+timestamps. The v14 upgrade also checks preserved root metadata in migrated sidebar order; the
+schema-58 cases distinguish creation order from identifier and insertion order, cover timestamp
+ties and verify append behavior. Production migrations, schema versions and admission rules are
+unchanged.
+
+Under the repository tool lock, locked Release tests with all features pass all 25 historical
+migration cases in 27.82 seconds and all three sidebar migration cases in 2.27 seconds. Both runs
+have zero failures and zero ignored cases. Owned Rust formatting and whitespace checks pass;
+replacement hosted verification remains pending publication of this repair.
+
+Affected dedicated-test owners contain 553 lines for scan history, 626 for preview history and
+121 for sidebar migration. This repair changes no production or inline-test owner.
+
 ## Sidebar selection and batch management - 2026-10-28
 
 Leading icons initiate selection while retaining ordinary navigation after deselection. The shared
@@ -3902,6 +3926,6 @@ normally.
 Reports remain under ignored `r4-read-latency` locally and the current `r4-render-attribution-737e35c9`
 measurement directory on cloud-primary. The exact implementation/test head `5c6e5025` is assigned to
 hosted run [40645242771](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40645242771).
-Its static, native scan/accessibility and several Rust/synthetic jobs pass at this checkpoint;
-the complete gate is still running. Retained publication latency and constrained first-use frame
-peaks remain open in R4-07.
+The completed run has 13 passing applicable jobs and the Catalog fixture failure described under
+[historical root fixtures](#historical-root-fixtures). Retained publication latency and constrained
+first-use frame peaks remain open in R4-07.

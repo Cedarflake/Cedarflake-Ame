@@ -202,7 +202,8 @@ fn migrates_v4_tasks_without_inventing_a_missing_directory_frontier() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (4);
                  CREATE TABLE library_roots (
-                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                   id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+                   active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
                  );
                  CREATE TABLE scan_runs (
                    id TEXT PRIMARY KEY, root_id TEXT NOT NULL, status TEXT NOT NULL,
@@ -272,7 +273,8 @@ fn migrates_v5_tasks_without_inventing_a_missing_entry_snapshot() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (5);
                  CREATE TABLE library_roots (
-                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                   id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+                   active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
                  );
                  CREATE TABLE scan_runs (
                    id TEXT PRIMARY KEY, root_id TEXT NOT NULL, status TEXT NOT NULL,
@@ -358,7 +360,8 @@ fn migrates_v9_with_bounded_reconciliation_indexes() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (9);
                  CREATE TABLE library_roots (
-                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                   id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+                   active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
                  );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL,
@@ -435,7 +438,8 @@ fn migrates_v10_by_adding_the_gallery_time_index_without_rewriting_rows() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
                  INSERT INTO schema_info(version) VALUES (10);
                  CREATE TABLE library_roots (
-                   id TEXT PRIMARY KEY, active_scan_id TEXT
+                   id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+                   active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
                  );
                  CREATE TABLE asset_locations (
                    scan_id TEXT NOT NULL,
@@ -497,7 +501,8 @@ fn migrates_v12_by_materializing_the_file_time_fallback_key() {
             "CREATE TABLE schema_info (version INTEGER NOT NULL);
              INSERT INTO schema_info(version) VALUES (12);
              CREATE TABLE library_roots (
-               id TEXT PRIMARY KEY, active_scan_id TEXT
+               id TEXT PRIMARY KEY, path TEXT NOT NULL UNIQUE,
+               active_scan_id TEXT, created_unix_ms INTEGER NOT NULL
              );
              CREATE TABLE asset_locations (
                scan_id TEXT NOT NULL,

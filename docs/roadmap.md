@@ -370,7 +370,9 @@ The current Skia client also completes the retained cloud-primary transition wor
 original catalog unchanged. Most measured menu/queue frames are inexpensive, but first-viewer
 and organization-entry raster spikes remain. Continue the retained-read/publication work, then
 resolve these constrained-device peaks before R4-07 closure; preserve the accepted interface,
-full-resolution viewing and source-read lifetime. Exact-head hosted verification remains in progress.
+full-resolution viewing and source-read lifetime. Historical root fixtures now match the original
+schema; their upgrade and sidebar-order regressions pass. Hosted verification of the fixture repair
+remains pending.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication
