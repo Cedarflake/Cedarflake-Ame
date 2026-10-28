@@ -1,12 +1,13 @@
 import "dart:ui" show CheckedState;
 
-import "package:cedarflake_ame/app/presentation/ame_circular_checkbox.dart";
+import "package:cedarflake_ame/app/presentation/ame_selection_checkbox.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 void main() {
-  testWidgets("the full circular mark toggles with pointer and keyboard", (
+  testWidgets("the compact symbol retains pointer and keyboard selection", (
     tester,
   ) async {
     final semantics = tester.ensureSemantics();
@@ -18,9 +19,9 @@ void main() {
           home: Scaffold(
             body: Center(
               child: StatefulBuilder(
-                builder: (context, setState) => AmeCircularCheckbox(
+                builder: (context, setState) => AmeSelectionCheckbox(
                   value: selected,
-                  diameter: 40,
+                  markExtent: 28,
                   semanticLabel: "选择图片",
                   onChanged: (value) => setState(() {
                     selected = value!;
@@ -32,7 +33,7 @@ void main() {
           ),
         ),
       );
-      final control = find.byType(AmeCircularCheckbox);
+      final control = find.byType(AmeSelectionCheckbox);
       final checkbox = find.byType(Checkbox);
       final rect = tester.getRect(control);
       expect(rect.size, const Size.square(40));
@@ -41,6 +42,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(selected, isTrue);
       expect(changes, 1);
+      expect(find.byIcon(Symbols.check_rounded), findsOneWidget);
       expect(
         tester
             .getSemantics(checkbox)
@@ -54,6 +56,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(selected, isFalse);
       expect(changes, 2);
+      expect(find.byIcon(Symbols.check_rounded), findsNothing);
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();

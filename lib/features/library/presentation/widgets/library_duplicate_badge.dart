@@ -53,14 +53,13 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
             key: ValueKey("duplicate-badge-${widget.locationId}"),
             focusNode: _focus,
             style: IconButton.styleFrom(
-              backgroundColor: Theme.of(
-                context,
-              ).colorScheme.surface.withValues(alpha: 0.92),
               foregroundColor: Theme.of(context).colorScheme.onSurface,
               fixedSize: const Size.square(
                 LibraryGalleryCardMetrics.selectionExtent,
               ),
-              shape: const CircleBorder(),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(4),
+              ),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.standard,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -83,9 +82,20 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
                 _focus.requestFocus();
               }
             },
-            icon: const Icon(
-              Symbols.photo_library_rounded,
-              size: LibraryGalleryCardMetrics.duplicateIconExtent,
+            icon: Container(
+              width: LibraryGalleryCardMetrics.controlExtent,
+              height: LibraryGalleryCardMetrics.controlExtent,
+              decoration: BoxDecoration(
+                color: Theme.of(
+                  context,
+                ).colorScheme.surface.withValues(alpha: 0.92),
+                borderRadius: BorderRadius.circular(4),
+              ),
+              alignment: Alignment.center,
+              child: const Icon(
+                Symbols.photo_library_rounded,
+                size: LibraryGalleryCardMetrics.duplicateIconExtent,
+              ),
             ),
           ),
         ),

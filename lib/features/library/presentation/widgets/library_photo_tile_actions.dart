@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 
-import "../../../../app/presentation/ame_circular_checkbox.dart";
+import "../../../../app/presentation/ame_selection_checkbox.dart";
 import "library_duplicate_badge.dart";
 import "library_gallery_card_metrics.dart";
 
@@ -38,10 +38,11 @@ class LibraryPhotoTileActions extends StatelessWidget {
           SizedBox.square(
             dimension: LibraryGalleryCardMetrics.selectionExtent,
             child: isSelectionVisible
-                ? AmeCircularCheckbox(
+                ? AmeSelectionCheckbox(
                     key: ValueKey("select-$locationId"),
                     value: isSelected,
-                    diameter: LibraryGalleryCardMetrics.selectionExtent,
+                    markExtent: LibraryGalleryCardMetrics.controlExtent,
+                    tapTargetSize: LibraryGalleryCardMetrics.selectionExtent,
                     semanticLabel: "选择图片",
                     onChanged: (_) => onToggleSelection(),
                   )
