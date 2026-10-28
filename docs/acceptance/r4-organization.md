@@ -3602,3 +3602,25 @@ the next retained-query investigation; no additional source library is created. 
 runs, the two new runtimes, their archives and the retired baseline runtime are removed, reclaiming
 a further 221,882,623 bytes. Final observed free space is 10,839,429,120 bytes, with zero requested
 cleanup targets remaining and the original catalog/WAL still unchanged.
+
+## Selection Favorite activation
+
+The selection toolbar resolves Favorite intent through its existing bounded preparation on explicit
+activation. Uniform selections commit directly; mixed selections retain the two-choice menu and
+display `收藏/取消收藏` with the shared dropdown arrow. Closing that menu releases its command target
+while retaining the inspected button label. A changed selection or catalog revision clears that
+display state and retires unfinished preparation under the existing selection owner. Album preparation
+does not change the Favorite label or its bounds.
+
+On the Flutter 3.47.8 Debug client, the established isolated 10,000-file/72-group corpus verifies a
+mixed select-all menu, its trigger and dismissal, followed by direct Favorite and direct unfavorite
+on the same single group. The paired operations restore that group's initial Favorite value. Both
+successful writes use the ordinary transient notification, with no unread notification. Original
+media is unchanged; no new corpus, migration, dependency or bridge contract is introduced.
+
+The focused selection-actions suite passes 24 cases, including uniform and mixed actions, stale
+preparation, cancellation, menu dismissal, unchanged album-tray geometry and commit ownership. The
+shared gallery select-all test also passes. Owned Dart formatting and the native Debug build pass;
+full automated gates remain assigned to the exact pushed commit. The existing SDK `TextButton.icon`
+and shared popup own focus, disabled state and menu behavior. The selection owner has 408 production
+lines and no inline tests; its dedicated suite has 649 lines.

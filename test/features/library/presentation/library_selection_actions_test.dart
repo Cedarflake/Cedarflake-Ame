@@ -191,7 +191,7 @@ void main() {
   }
 
   for (final favorites in [0, 1, 3]) {
-    testWidgets("favorite menu reflects $favorites of three groups", (
+    testWidgets("favorite action reflects $favorites of three groups", (
       tester,
     ) async {
       batches.create = () => OrganizationBatchFixture()
@@ -202,15 +202,27 @@ void main() {
           conflicts: 0,
         );
       await host(tester);
+      expect(batches.selections, isEmpty);
       await tester.tap(find.byKey(const Key("library-selection-favorite")));
       await tester.pumpAndSettle();
-      expect(find.text("加入收藏夹"), favorites < 3 ? findsOneWidget : findsNothing);
-      expect(find.text("取消收藏"), favorites > 0 ? findsOneWidget : findsNothing);
-      if (favorites > 0) {
+      if (favorites == 1) {
+        expect(find.text("收藏/取消收藏"), findsOneWidget);
+        expect(find.text("加入收藏夹"), findsOneWidget);
+        expect(find.text("取消收藏"), findsOneWidget);
         expect(find.byIcon(Symbols.heart_minus_rounded), findsOneWidget);
+        expect(
+          find.descendant(
+            of: find.byKey(const Key("library-selection-favorite")),
+            matching: find.byIcon(Symbols.arrow_drop_down_rounded),
+          ),
+          findsOneWidget,
+        );
+        expect(batches.batches.single.writes, isEmpty);
+        await tester.tap(find.text("加入收藏夹"));
+        await tester.pumpAndSettle();
+      } else {
+        expect(find.byType(PopupMenuItem<bool>), findsNothing);
       }
-      await tester.tap(find.text(favorites == 3 ? "取消收藏" : "加入收藏夹"));
-      await tester.pumpAndSettle();
       expect(batches.batches, hasLength(1));
       expect(batches.batches.single.preparations, 1);
       expect(
@@ -220,6 +232,64 @@ void main() {
       );
     });
   }
+
+  testWidgets("a changed selection retires a pending direct favorite", (
+    tester,
+  ) async {
+    final earlier = OrganizationBatchFixture()
+      ..summary = const LibraryBatchSummary(
+        groups: 1,
+        favorites: 0,
+        assigned: 0,
+        conflicts: 0,
+      )
+      ..preparing = Completer<LibraryBatchSummary>();
+    batches.create = () => earlier;
+    await host(tester);
+    await tester.tap(find.byKey(const Key("library-selection-favorite")));
+    await tester.pump();
+    await host(tester);
+    earlier.preparing!.complete(earlier.summary);
+    await tester.pumpAndSettle();
+    expect(earlier.writes, isEmpty);
+    expect(earlier.closes, 1);
+    expect(find.text("收藏/取消收藏"), findsNothing);
+    expect(find.byType(PopupMenuItem<bool>), findsNothing);
+    expect(committed, 0);
+
+    final current = OrganizationBatchFixture()
+      ..summary = const LibraryBatchSummary(
+        groups: 1,
+        favorites: 1,
+        assigned: 0,
+        conflicts: 0,
+      );
+    batches.create = () => current;
+    await tester.tap(find.byKey(const Key("library-selection-favorite")));
+    await tester.pumpAndSettle();
+    expect(
+      (current.writes.single.action as LibraryBatchFavorite).favorite,
+      isFalse,
+    );
+    expect(committed, 1);
+  });
+
+  testWidgets("dismissed mixed menu keeps its label until selection changes", (
+    tester,
+  ) async {
+    await host(tester);
+    await tester.tap(find.byKey(const Key("library-selection-favorite")));
+    await tester.pumpAndSettle();
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text("收藏/取消收藏"), findsOneWidget);
+    expect(batches.batches.single.writes, isEmpty);
+    expect(batches.batches.single.closes, 1);
+    await host(tester);
+    expect(find.text("收藏/取消收藏"), findsNothing);
+    expect(find.text("收藏"), findsOneWidget);
+    expect(committed, 0);
+  });
 
   for (final assigned in [0, 1, 3]) {
     testWidgets("album tray reflects $assigned assigned groups", (
@@ -482,6 +552,12 @@ void main() {
     "cancel during preparation retires a late result without a notification",
     (tester) async {
       final batch = OrganizationBatchFixture()
+        ..summary = const LibraryBatchSummary(
+          groups: 3,
+          favorites: 0,
+          assigned: 0,
+          conflicts: 0,
+        )
         ..preparing = Completer<LibraryBatchSummary>();
       batches.create = () => batch;
       await host(tester);

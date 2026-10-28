@@ -57,6 +57,7 @@ class _LibrarySelectionActionsState
   Timer? _timer;
   bool _readingProgress = false;
   LibraryBatchProgress? _progress;
+  LibrarySelectionAvailability? _favoriteAvailability;
   String? _error;
 
   @override
@@ -68,9 +69,12 @@ class _LibrarySelectionActionsState
   @override
   void didUpdateWidget(LibrarySelectionActions oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.selection != widget.selection &&
-        !_dialogOwnsSession &&
-        _session?.hasCommitted != true) {
+    if (oldWidget.selection == widget.selection &&
+        oldWidget.catalogRevision == widget.catalogRevision) {
+      return;
+    }
+    _favoriteAvailability = null;
+    if (!_dialogOwnsSession && _session?.hasCommitted != true) {
       _retire();
     }
   }
@@ -138,16 +142,30 @@ class _LibrarySelectionActionsState
     }
   }
 
-  Future<void> _openFavorites(VoidCallback openMenu) async {
+  Future<void> _activateFavorite(VoidCallback openMenu) async {
     if (_working || !widget.enabled) return;
     final session = _start();
     try {
-      await session.prepare();
+      final summary = await session.prepare();
       if (!_owns(session)) return;
-      _timer?.cancel();
-      setState(() => _working = false);
-      await WidgetsBinding.instance.endOfFrame;
-      if (_owns(session) && widget.enabled) openMenu();
+      if (!widget.enabled) {
+        setState(_retire);
+        return;
+      }
+      final availability = LibrarySelectionAvailability(summary);
+      setState(() {
+        _working = false;
+        _favoriteAvailability = availability;
+      });
+      if (availability.canFavorite && availability.canUnfavorite) {
+        _timer?.cancel();
+        await WidgetsBinding.instance.endOfFrame;
+        if (_owns(session) && widget.enabled) openMenu();
+      } else if (availability.canFavorite || availability.canUnfavorite) {
+        await _setFavorite(availability.canFavorite);
+      } else {
+        _retire();
+      }
     } on Object catch (error) {
       if (!_owns(session)) return;
       _timer?.cancel();
@@ -278,9 +296,13 @@ class _LibrarySelectionActionsState
     );
     final enabled = widget.enabled && !busy && !_working;
     final summary = _session?.summary;
-    final availability = summary == null
-        ? null
-        : LibrarySelectionAvailability(summary);
+    final availability = _favoriteAvailability;
+    final mixedFavorites =
+        availability?.canFavorite == true &&
+        availability?.canUnfavorite == true;
+    final onlyFavorites =
+        availability?.canFavorite == false &&
+        availability?.canUnfavorite == true;
     final queue = widget.query.organizationQueue;
     final controls = queue == null
         ? null
@@ -321,9 +343,26 @@ class _LibrarySelectionActionsState
               ],
               builder: (context, openMenu) => TextButton.icon(
                 key: const Key("library-selection-favorite"),
-                onPressed: enabled ? () => _openFavorites(openMenu) : null,
-                icon: const Icon(Symbols.favorite_rounded),
-                label: const Text("收藏"),
+                onPressed: enabled ? () => _activateFavorite(openMenu) : null,
+                icon: Icon(
+                  onlyFavorites
+                      ? Symbols.heart_minus_rounded
+                      : Symbols.favorite_rounded,
+                ),
+                label: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(switch ((mixedFavorites, onlyFavorites)) {
+                      (true, _) => "收藏/取消收藏",
+                      (_, true) => "取消收藏",
+                      _ => "收藏",
+                    }),
+                    if (mixedFavorites) ...[
+                      const SizedBox(width: 4),
+                      const Icon(Symbols.arrow_drop_down_rounded, size: 20),
+                    ],
+                  ],
+                ),
               ),
             ),
             TextButton.icon(
