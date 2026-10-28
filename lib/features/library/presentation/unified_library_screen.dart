@@ -70,6 +70,7 @@ import "widgets/library_image_viewer.dart";
 import "widgets/library_viewer_filmstrip.dart";
 import "widgets/library_viewer_gallery_viewport.dart";
 import "widgets/library_navigation.dart";
+import "widgets/library_sidebar_root_removal_dialog.dart";
 import "widgets/library_workbench.dart";
 import "widgets/library_exact_duplicates_page.dart";
 import "widgets/library_query_failure_banner.dart";
@@ -743,6 +744,18 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         onOpenRoot: _openRoot,
         onOpenFolder: _openFolder,
         onRemoveRoot: _confirmRemoveRoot,
+        onRemoveRoots: (roots) async {
+          final removed = await showLibrarySidebarRootRemovalDialog(
+            context: context,
+            roots: roots,
+            controller: controller,
+            readState: () => ref.read(libraryControllerProvider),
+          );
+          if (mounted && removed.isNotEmpty) {
+            _publishSuccessNotification("已从 Ame 中移除 ${removed.length} 个文件夹");
+          }
+          return removed;
+        },
         onReorder: (move) => ref
             .read(librarySidebarOrderProvider)
             .move(LibrarySidebarKind.sourceFolders, move),

@@ -159,10 +159,12 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-The requested R4 sidebar-management follow-up first adds saved drag ordering for albums and imported
-top-level source folders, then icon-initiated multi-selection and batch album deletion/source removal.
+The requested R4 sidebar-management follow-up connects saved drag ordering for albums and imported
+top-level source folders, icon-initiated multi-selection and batch album deletion/source removal.
 Library and Albums use matching destination and section-heading rows, with creation/import at the
-heading's trailing edge. Child-folder ordering is unchanged. These requested controls precede the
+heading's trailing edge. Focused checks and controlled native batch interactions pass. The requested
+album and image-card context menus follow, reusing existing commands and current-state decisions.
+Child-folder ordering is unchanged. These requested controls precede the
 remaining retained-library performance work and retain the existing source-safety and recovery rules.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices

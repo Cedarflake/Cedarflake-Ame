@@ -6,6 +6,7 @@ import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_album_requests.dart";
 import "../../domain/library_organization.dart";
+import "library_sidebar_selection_icon.dart";
 
 class LibraryAlbumNavigationTile extends StatelessWidget {
   const LibraryAlbumNavigationTile({
@@ -13,6 +14,8 @@ class LibraryAlbumNavigationTile extends StatelessWidget {
     required this.selected,
     required this.onSelect,
     required this.onEdit,
+    this.checked = false,
+    this.onToggleSelection,
     super.key,
   });
 
@@ -20,6 +23,8 @@ class LibraryAlbumNavigationTile extends StatelessWidget {
   final bool selected;
   final VoidCallback? onSelect;
   final ValueChanged<LibraryAlbumEditKind>? onEdit;
+  final bool checked;
+  final VoidCallback? onToggleSelection;
 
   @override
   Widget build(BuildContext context) => ListTile(
@@ -27,12 +32,15 @@ class LibraryAlbumNavigationTile extends StatelessWidget {
     selected: selected,
     selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-    contentPadding: const EdgeInsets.only(left: 16, right: 4),
-    minLeadingWidth: 24,
-    horizontalTitleGap: 12,
-    leading: const SizedBox(
-      width: 24,
-      child: Icon(Symbols.photo_album_rounded),
+    contentPadding: const EdgeInsets.only(left: 8, right: 4),
+    minLeadingWidth: 40,
+    horizontalTitleGap: 4,
+    leading: LibrarySidebarSelectionIcon(
+      key: ValueKey("library-sidebar-select-album-${album.id}"),
+      icon: Symbols.photo_album_rounded,
+      name: album.name,
+      selected: checked,
+      onPressed: onToggleSelection,
     ),
     title: Text(
       album.name,

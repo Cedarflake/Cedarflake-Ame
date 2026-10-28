@@ -3675,3 +3675,31 @@ the new boundary. The catalog facade has 3,431 production lines; the availabilit
 production and 3,391 inline-test lines, with only its exact module inventory changed.
 Full automated gates remain assigned to the published commit. Sidebar multi-selection and batch
 management follow this ordering delivery in the roadmap.
+
+## Sidebar selection and batch management - 2026-10-28
+
+Leading icons initiate selection while retaining ordinary navigation after deselection. The shared
+heading shows selected count, partial/all checkbox, removal and plus. Child folders remain ordinary
+navigation; Select all and source removal include imported roots only. The typed removal queue
+serializes existing guarded commands, preserves partial commits and stops before the next item on
+failure, cancellation or disposal. Album retries preserve unknown command identities and renew only
+confirmed stale authority. No schema or source-file operation changes are included.
+
+Eight focused checks pass: four queue lifecycle/partial-result cases, two album retry/authority cases,
+root selection with expanded children and Escape, and album selection/confirmation/cancel/deletion.
+Twenty existing navigation/semantics checks also pass. The Escape check exposed missing pointer
+focus; the selection IconButton now explicitly requests its framework FocusNode. Scoped analysis
+with fatal infos and formatting pass. The native Debug build completes in 41.2 seconds.
+
+An independent copy of the existing controlled catalog verifies selecting, selecting all and
+deselecting albums, then authorized deletion of two albums with the third retained. Expanding the
+test source before Select all confirms that only two top-level roots are selected. Their authorized
+batch removal completes and displays the empty gallery. The retained original profile is reopened
+after the check; the disposable catalog copy is removed. Both checks reuse existing source fixtures
+without copying or changing images. Application and widget regressions retain cancellation and
+failure coverage; hosted gates are inspected after publication.
+
+Production owners have no inline tests: selection 27 lines, queue 73, album/root adapters 48/33,
+confirmation 126, selection icon 72, album navigation 224, source navigation 523, source tile 517
+and gallery composition facade 1,863. Four dedicated suites contain 71/106/77/110 lines. Existing
+transaction, gallery publication and root-removal ownership remain unchanged.

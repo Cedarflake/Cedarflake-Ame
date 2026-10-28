@@ -14,6 +14,7 @@ import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "../library_synchronization_feedback.dart";
 import "library_path_text.dart";
+import "library_sidebar_selection_icon.dart";
 
 class LibrarySourceNavigationTile extends StatefulWidget {
   const LibrarySourceNavigationTile({
@@ -33,6 +34,8 @@ class LibrarySourceNavigationTile extends StatefulWidget {
     required this.onOpen,
     required this.onRemove,
     this.focusNode,
+    this.checked = false,
+    this.onToggleSelection,
     super.key,
   });
 
@@ -52,6 +55,8 @@ class LibrarySourceNavigationTile extends StatefulWidget {
   final VoidCallback onOpen;
   final VoidCallback onRemove;
   final FocusNode? focusNode;
+  final bool checked;
+  final VoidCallback? onToggleSelection;
 
   @override
   State<LibrarySourceNavigationTile> createState() =>
@@ -131,6 +136,13 @@ class _LibrarySourceNavigationTileState
         : _ExpandedSourceTile(
             focusNode: _focusNode,
             icon: icon,
+            leading: LibrarySidebarSelectionIcon(
+              key: ValueKey("library-sidebar-select-root-${widget.root.id}"),
+              icon: icon,
+              name: librarySourceName(widget.root.displayPath),
+              selected: widget.checked,
+              onPressed: widget.onToggleSelection,
+            ),
             iconKey: ValueKey("source-icon-${widget.root.id}"),
             title: librarySourceName(widget.root.displayPath),
             path: widget.root.displayPath,
@@ -452,6 +464,7 @@ class _ExpandedSourceTile extends StatelessWidget {
     required this.path,
     required this.trailing,
     this.iconKey,
+    this.leading,
     this.titleKey,
     this.subtitle,
     this.isSelected = false,
@@ -462,6 +475,7 @@ class _ExpandedSourceTile extends StatelessWidget {
 
   final IconData icon;
   final Key? iconKey;
+  final Widget? leading;
   final String title;
   final String path;
   final Key? titleKey;
@@ -479,10 +493,14 @@ class _ExpandedSourceTile extends StatelessWidget {
       selectedTileColor: Theme.of(context).colorScheme.secondaryContainer,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       dense: true,
-      contentPadding: const EdgeInsets.only(left: 16, right: 4),
-      minLeadingWidth: 24,
-      horizontalTitleGap: 12,
-      leading: SizedBox(key: iconKey, width: 24, child: Icon(icon)),
+      contentPadding: EdgeInsets.only(left: leading == null ? 16 : 8, right: 4),
+      minLeadingWidth: leading == null ? 24 : 40,
+      horizontalTitleGap: leading == null ? 12 : 4,
+      leading: SizedBox(
+        key: iconKey,
+        width: leading == null ? 24 : 40,
+        child: leading ?? Icon(icon),
+      ),
       title: DefaultTextStyle.merge(
         style: TextStyle(
           fontWeight: isSelected ? ameFontWeightSemibold : ameFontWeightMedium,

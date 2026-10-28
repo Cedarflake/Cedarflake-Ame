@@ -40,6 +40,23 @@ retains current item identities through metadata updates, appends new items and 
 order on failure through the shared feedback surface. It does not reorder gallery images or mutate
 physical folders.
 
+Sidebar selection is a separate presentation owner. The installed Flutter 3.47.8 `IconButton`
+provides focus, toggled semantics and the original/selected icons; a 24-pixel filled circle with the
+existing Material Symbols check identifies a selected row inside its 40-pixel target. The section
+heading uses the framework tristate `Checkbox` for partial/all selection and existing buttons for
+removal and creation. Material's checkbox and icon-button component documentation was inspected;
+no replacement gesture, checkbox painter or package is needed. Selection disables reordering, and
+Escape clears it. Child folders never enter this selection set. Album selection remains on its
+bounded 64-entry page, with an explicit current-page accessible label when more albums exist.
+
+A typed removal queue serializes the existing guarded commands and records each committed item.
+One framework confirmation dialog lists the frozen selection before execution. Stopping or disposal
+prevents the next command; an in-flight commit remains valid. Failures retain the completed subset,
+and retries submit only remaining items, retaining unknown album-operation identities and renewing
+confirmed stale authority through the existing command owner. Album retirement uses its existing
+history, undo and publication; source removal retains its path admission, committed display projection
+and source-record cleanup. No new schema, source mutation or all-or-nothing batch guarantee is added.
+
 Use the existing Flutter Material 3 design system. The installed Flutter 3.44.9 SDK provides
 `NavigationRail` with destination selection, labels, focus, semantics and a bottom trailing action;
 `Visibility.maintainState`, `TickerMode` and `ExcludeFocus` retain inactive workspace state while

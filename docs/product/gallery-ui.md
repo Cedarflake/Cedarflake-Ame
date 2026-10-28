@@ -301,6 +301,10 @@ In sidebar multi-selection, an unselected row retains its original leading icon.
 a filled circular check from the existing icon library. The heading contains Select all and the
 selected count, with removal/deletion immediately left of the plus. Normal navigation resumes after
 selection is cleared; dragging is available outside multi-selection.
+Escape clears sidebar selection. Album Select all applies to the current page and names that scope
+when further pages exist; paging resumes after selection is cleared. A single confirmation lists
+the selected entries. Batch management preserves completed removals if stopped or interrupted by a
+failure, and retry processes only the remaining entries.
 
 `收藏夹` scopes the gallery by favorite state independently of album membership. Albums do not nest,
 and each current image group has at most one confirmed album assignment. A group can appear in
