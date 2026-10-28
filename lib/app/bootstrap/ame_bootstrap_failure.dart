@@ -7,6 +7,7 @@ import "../../features/settings/application/ame_preferences.dart";
 import "../presentation/ame_localizations.dart";
 import "../presentation/ame_system_theme.dart";
 import "../presentation/ame_theme.dart";
+import "../presentation/ame_transient_feedback.dart";
 import "../window/ame_window_frame.dart";
 
 class AmeBootstrapFailure extends StatelessWidget {
@@ -79,9 +80,11 @@ class AmeBootstrapFailure extends StatelessWidget {
     if (!context.mounted) {
       return;
     }
-    ScaffoldMessenger.of(
+    showAmeTransientFeedback(
       context,
-    ).showSnackBar(const SnackBar(content: Text("诊断信息已复制")));
+      message: "诊断信息已复制",
+      severity: AmeNotificationSeverity.success,
+    );
   }
 }
 

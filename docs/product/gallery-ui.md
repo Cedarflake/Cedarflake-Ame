@@ -806,14 +806,54 @@ An active import uses a bottom floating progress surface similar to the referenc
 进度条                                                       取消
 ```
 
-Completion changes the same surface to `导入完成`, retains the final checked, imported, and issue
-counts, removes the cancel action, and remains until the user chooses `知道了`. Cancellation and
-failure use action-specific messages. The completed result is dismissible task feedback, not a
+Completion changes the same surface to its completed result, retains the final checked, imported,
+and issue counts, and removes the cancel action. Eligible successful tasks dismiss after five
+seconds; hover, keyboard focus and accessible navigation retain the task for interaction. Paused,
+cancelled, failed, limited or unpublished results retain their existing recovery and dismissal rules.
+Cancellation and failure use action-specific messages. The completed result is dismissible task feedback, not a
 permanent validation card, status bar, task center, or generic task entry.
 
 Bottom notifications and import feedback share one Material surface contract for color, width,
 corner radius, elevation, and placement. The same event must not produce competing gray and white
 notification surfaces.
+
+### Feedback templates
+
+New feedback must use the template for its surface. Feature code supplies wording, severity,
+progress and connected callbacks; it does not create another Material shell, set visual overrides,
+add a separate status row, or introduce an independent dismissal timer.
+
+| Surface | Implementation entry | Permitted variation |
+| --- | --- | --- |
+| Bottom notification and operation result | [`AmeNotificationSurface`](../../lib/app/presentation/ame_notifications.dart) through the existing bottom host | Title, optional message/detail, severity, connected action and acknowledgement |
+| Bottom import, recovery and cleanup progress | [`AmeFeedbackCard`](../../lib/app/presentation/ame_feedback_card.dart) | The same text/action fields plus the existing progress indicator; `.tasks` admits the bounded multi-root list |
+| Short message using ScaffoldMessenger, including startup failure recovery | [`showAmeTransientFeedback`](../../lib/app/presentation/ame_transient_feedback.dart) | Message and severity; the helper owns the same card, acknowledgement and transient duration |
+| Image viewport's top notice | [`LibraryViewerNotice`](../../lib/features/library/presentation/widgets/library_viewer_notice.dart) | Icon, message and one optional action; no additional close button |
+
+[`ame_feedback_style.dart`](../../lib/app/presentation/ame_feedback_style.dart) owns the common
+surface, 680-pixel width bound, 16-pixel radius, elevation 3, 20-pixel icon and five-second transient
+duration. Both light and dark themes use `surfaceContainerHigh`. `AmeFeedbackAction` owns framework
+text-button construction, including disabled callbacks and action keys. Callers cannot supply custom
+button styles through the template.
+
+Bottom cards retain padding `(20, 14, 12, 12)`, a 12-pixel icon gap and a 10-pixel progress gap.
+Title, message and detail use `titleSmall`, `bodyMedium` and secondary `bodySmall`. A multi-root list
+is capped at 360 pixels and scrolls through the existing list owner. Bottom feedback stays centered
+24 pixels above the window edge in ordinary and organization modes; the upper organization toolbar
+does not add a bottom offset.
+
+Top notices retain the compact viewport layout: 16-pixel top/side inset, 48-pixel minimum height,
+8-pixel icon gap, `bodyMedium`, and the existing optional retry/undo action. Text wraps within the
+width bound without moving the image. Source and original-image recovery keep their current priority.
+The shared style does not merge notification history, task cancellation, source recovery or receipt
+ownership. Persistent failures do not acquire a transient timeout, and Favorite successes still
+leave notification history and unread state unchanged.
+
+Feature code must not construct `SnackBar` directly. The template regression checks this boundary
+and verifies the two themes, shared geometry, text wrapping and connected actions. The
+[verification map](../acceptance/quality-gates.md#ui-workflow-verification) owns the required checks.
+
+### Source status and notification ownership
 
 The sidebar keeps only compact per-source state such as `已同步`, `正在更新图库`, `更新受阻`, or
 `目录不可用`. Failure and reconciliation detail belongs to the bottom notification queue and

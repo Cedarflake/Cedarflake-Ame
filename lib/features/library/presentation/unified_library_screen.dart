@@ -573,7 +573,6 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
               ),
               if (viewerCatalogAsset == null)
                 LibraryBottomFeedback(
-                  bottomInset: _review.isActive ? 104 : 24,
                   onRetryPrimary: _retryLibraryTask,
                   onNotificationAction: _handleNotificationAction,
                 ),

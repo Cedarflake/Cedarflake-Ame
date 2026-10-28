@@ -206,6 +206,10 @@ Follow the [component implementation requirements](docs/product/gallery-ui.md#co
 for admission, pinned-SDK proof, framework ownership, bounded rendering and accessibility, and the
 [content/action rules](docs/product/gallery-ui.md#content-and-action-wording) for affected text.
 
+Bottom feedback and image-preview top notices follow the
+[feedback templates](docs/product/gallery-ui.md#feedback-templates), including their shared component
+owners and verification. Read this section before adding or changing notification UI.
+
 ## 10. Language and toolchain rules
 
 Read, write and create text as UTF-8, never relying on the system default. Apply framework defaults

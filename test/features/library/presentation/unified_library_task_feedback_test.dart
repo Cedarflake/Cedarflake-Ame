@@ -123,7 +123,12 @@ void main() {
       findsOneWidget,
     );
     final taskSurface = tester.widget<Material>(
-      find.byKey(const Key("library-task-surface")),
+      find
+          .descendant(
+            of: find.byKey(const Key("library-task-surface")),
+            matching: find.byType(Material),
+          )
+          .first,
     );
     final theme = Theme.of(
       tester.element(find.byKey(const Key("library-task-surface"))),

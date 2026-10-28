@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_exact_analysis_controller.dart";
 import "../../application/library_exact_analysis_scheduler.dart";
@@ -97,10 +98,10 @@ class LibraryExactAnalysisActions extends ConsumerWidget {
           .update(preferences.copyWith(exactAnalysisPaused: paused));
     } on Object {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(LibraryDuplicateStrings.pauseSaveFailed),
-          ),
+        showAmeTransientFeedback(
+          context,
+          message: LibraryDuplicateStrings.pauseSaveFailed,
+          severity: AmeNotificationSeverity.error,
         );
       }
     }

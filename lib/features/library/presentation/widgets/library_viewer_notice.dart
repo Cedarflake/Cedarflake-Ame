@@ -1,6 +1,6 @@
 import "package:flutter/material.dart";
 
-import "../../../../app/presentation/ame_theme.dart";
+import "../../../../app/presentation/ame_feedback_style.dart";
 
 class LibraryViewerNotice extends StatelessWidget {
   const LibraryViewerNotice({
@@ -20,9 +20,9 @@ class LibraryViewerNotice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Positioned(
-    left: 16,
-    right: 16,
-    top: 16,
+    left: ameViewerNoticeInset,
+    right: ameViewerNoticeInset,
+    top: ameViewerNoticeInset,
     child: Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(
@@ -31,24 +31,26 @@ class LibraryViewerNotice extends StatelessWidget {
         ),
         child: Semantics(
           liveRegion: true,
-          child: Material(
-            color: Theme.of(context).colorScheme.surfaceContainerHigh,
-            elevation: ameNotificationElevation,
-            borderRadius: BorderRadius.circular(ameNotificationRadius),
+          child: AmeFeedbackSurface(
             child: Padding(
               padding: const EdgeInsets.only(left: 14, right: 6),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(icon, size: 20),
+                  Icon(icon, size: ameNotificationIconSize),
                   const SizedBox(width: 8),
-                  Flexible(child: Text(message)),
+                  Flexible(
+                    child: Text(
+                      message,
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
                   if (actionLabel case final label?)
-                    TextButton(
+                    AmeFeedbackAction(
                       key: actionKey,
                       onPressed: onAction,
-                      child: Text(label),
-                    ),
+                      label: label,
+                    ).build(),
                 ],
               ),
             ),

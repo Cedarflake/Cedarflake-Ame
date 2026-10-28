@@ -4,6 +4,7 @@ import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_transient_feedback.dart";
 import "../../../settings/application/ame_preferences.dart";
 import "../../adapters/windows_library_platform_actions.dart";
 import "../../application/library_controller.dart";
@@ -60,8 +61,10 @@ class _LibraryDuplicateReviewViewerState
       }
     });
     if (asset == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(LibraryDuplicateStrings.loadFailed)),
+      showAmeTransientFeedback(
+        context,
+        message: LibraryDuplicateStrings.loadFailed,
+        severity: AmeNotificationSeverity.error,
       );
     }
     _library.updateViewerPreviewDemand(_asset);
@@ -94,8 +97,10 @@ class _LibraryDuplicateReviewViewerState
           .revealFile(_asset.displayPath);
     } on Object {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(LibraryDuplicateStrings.revealFailed)),
+        showAmeTransientFeedback(
+          context,
+          message: LibraryDuplicateStrings.revealFailed,
+          severity: AmeNotificationSeverity.error,
         );
       }
     }

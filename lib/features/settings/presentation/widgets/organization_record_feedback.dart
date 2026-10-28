@@ -2,8 +2,8 @@ import "dart:async";
 
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:material_symbols_icons/symbols.dart";
 
+import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../../library/application/library_archive_controller.dart";
 import "../../../library/application/library_archive_state.dart";
@@ -88,32 +88,19 @@ class _RecordFeedback extends StatelessWidget {
     liveRegion: true,
     child: AmeFeedbackCard(
       key: const Key("organization-record-feedback"),
-      leading: Icon(
-        working ? Symbols.info_rounded : Symbols.error_rounded,
-        color: working
-            ? Theme.of(context).colorScheme.primary
-            : Theme.of(context).colorScheme.error,
-        size: 20,
-      ),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(message, style: Theme.of(context).textTheme.titleSmall),
-          if (detail case final value?) ...[
-            const SizedBox(height: 4),
-            Text(value),
-          ],
-        ],
-      ),
+      title: message,
+      message: detail,
+      severity: working
+          ? AmeNotificationSeverity.info
+          : AmeNotificationSeverity.error,
       actions: [
-        TextButton(
+        AmeFeedbackAction(
           key: actionKey,
           onPressed: onAction,
-          child: Text(actionLabel),
+          label: actionLabel,
         ),
         if (onDismiss != null)
-          TextButton(onPressed: onDismiss, child: const Text("关闭")),
+          AmeFeedbackAction(onPressed: onDismiss, label: "关闭"),
       ],
       progress: working ? const LinearProgressIndicator() : null,
     ),

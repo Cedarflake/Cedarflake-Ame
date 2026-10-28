@@ -1,30 +1,52 @@
 import "package:flutter/material.dart";
 
-import "ame_theme.dart";
+import "../notifications/ame_notification_controller.dart";
+import "ame_feedback_style.dart";
+
+export "ame_feedback_style.dart" show AmeFeedbackAction;
 
 class AmeFeedbackCard extends StatelessWidget {
   const AmeFeedbackCard({
-    required this.leading,
-    required this.content,
+    required this.title,
+    required this.severity,
     required this.actions,
+    this.icon,
+    this.message,
+    this.detail,
     this.progress,
     super.key,
-  });
+  }) : items = null;
 
-  final Widget leading;
-  final Widget content;
-  final List<Widget> actions;
+  const AmeFeedbackCard.tasks({
+    required this.title,
+    required IconData this.icon,
+    required Widget this.items,
+    required this.actions,
+    super.key,
+  }) : severity = AmeNotificationSeverity.info,
+       message = null,
+       detail = null,
+       progress = null;
+
+  final String title;
+  final AmeNotificationSeverity severity;
+  final IconData? icon;
+  final String? message;
+  final String? detail;
+  final List<AmeFeedbackAction> actions;
   final Widget? progress;
+  final Widget? items;
 
   @override
-  Widget build(BuildContext context) => Material(
-    elevation: ameNotificationElevation,
-    color: Theme.of(context).colorScheme.surfaceContainerHigh,
-    borderRadius: BorderRadius.circular(ameNotificationRadius),
+  Widget build(BuildContext context) => AmeFeedbackSurface(
     child: ConstrainedBox(
-      constraints: const BoxConstraints.tightFor(width: ameNotificationWidth),
+      constraints: BoxConstraints(
+        minWidth: ameNotificationWidth,
+        maxWidth: ameNotificationWidth,
+        maxHeight: items == null ? double.infinity : 360,
+      ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
+        padding: ameFeedbackCardPadding,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -32,15 +54,59 @@ class AmeFeedbackCard extends StatelessWidget {
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Padding(padding: const EdgeInsets.only(top: 2), child: leading),
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    icon ?? ameNotificationIcon(severity),
+                    color: ameNotificationIconColor(
+                      Theme.of(context).colorScheme,
+                      severity,
+                    ),
+                    size: ameNotificationIconSize,
+                  ),
+                ),
                 const SizedBox(width: 12),
-                Expanded(child: content),
-                ...actions,
+                Expanded(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                      if (message case final value? when value.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          value,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                      if (detail case final value? when value.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(
+                          value,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                for (final action in actions) action.build(),
               ],
             ),
             if (progress case final indicator?) ...[
               const SizedBox(height: 10),
               indicator,
+            ],
+            if (items case final list?) ...[
+              const SizedBox(height: 8),
+              Flexible(child: list),
             ],
           ],
         ),

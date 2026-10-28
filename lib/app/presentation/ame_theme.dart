@@ -2,14 +2,13 @@ import "package:flutter/material.dart";
 
 import "../../features/settings/application/ame_preferences.dart";
 import "ame_menu.dart";
+import "ame_feedback_style.dart";
 import "ame_system_theme.dart";
 import "ame_typography.dart";
 
 export "ame_typography.dart";
-
-const ameNotificationWidth = 680.0;
-const ameNotificationElevation = 3.0;
-const ameNotificationRadius = 16.0;
+export "ame_feedback_style.dart"
+    show ameNotificationWidth, ameNotificationElevation, ameNotificationRadius;
 
 ThemeMode ameThemeMode(AmeThemePreference preference) => switch (preference) {
   AmeThemePreference.system => ThemeMode.system,
@@ -44,6 +43,12 @@ ThemeData buildAmeTheme({
       elevation: ameNotificationElevation,
       behavior: SnackBarBehavior.floating,
       width: ameNotificationWidth,
+      insetPadding: const EdgeInsets.fromLTRB(
+        16,
+        0,
+        16,
+        ameNotificationBottomInset,
+      ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(ameNotificationRadius),
       ),

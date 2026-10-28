@@ -1,9 +1,9 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_notification_lifetime.dart";
+import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../application/library_organization_actions.dart";
 import "../../application/library_organization_outcome.dart";
 import "library_viewer_notice.dart";
@@ -24,12 +24,7 @@ class LibraryOrganizationFeedback extends ConsumerWidget {
         ref.read(ameNotificationControllerProvider.notifier).dismiss(id);
       },
       child: LibraryViewerNotice(
-        icon: switch (notification.severity) {
-          AmeNotificationSeverity.success => Symbols.check_circle_rounded,
-          AmeNotificationSeverity.error => Symbols.error_rounded,
-          AmeNotificationSeverity.warning => Symbols.warning_rounded,
-          AmeNotificationSeverity.info => Symbols.info_rounded,
-        },
+        icon: ameNotificationIcon(notification.severity),
         message: notification.message.isEmpty
             ? notification.title
             : "${notification.title}：${notification.message}",

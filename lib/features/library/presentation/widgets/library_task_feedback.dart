@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
+import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_update_controller.dart";
 import "../../domain/library_state.dart";
@@ -69,7 +70,7 @@ class _LibraryTaskFeedbackState extends ConsumerState<LibraryTaskFeedback> {
     for (final completion in visible) {
       _dismissTimers.putIfAbsent(
         completion,
-        () => Timer(const Duration(seconds: 5), () {
+        () => Timer(ameNotificationDuration, () {
           _dismissTimers.remove(completion);
           if (!mounted || !_eligibleCompletions().contains(completion)) return;
           final rootId = completion.rootId;

@@ -3,6 +3,7 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../../app/notifications/ame_notification_controller.dart";
 import "../../../../app/presentation/ame_notifications.dart";
+import "../../../../app/presentation/ame_feedback_style.dart";
 import "../../../settings/presentation/widgets/organization_record_feedback.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_organization_outcome.dart";
@@ -12,13 +13,11 @@ import "library_task_feedback.dart";
 
 class LibraryBottomFeedback extends ConsumerWidget {
   const LibraryBottomFeedback({
-    required this.bottomInset,
     required this.onRetryPrimary,
     required this.onNotificationAction,
     super.key,
   });
 
-  final double bottomInset;
   final Future<void> Function() onRetryPrimary;
   final ValueChanged<AmeNotificationEntry> onNotificationAction;
 
@@ -52,7 +51,7 @@ class LibraryBottomFeedback extends ConsumerWidget {
     return Align(
       alignment: Alignment.bottomCenter,
       child: Padding(
-        padding: EdgeInsets.only(bottom: bottomInset),
+        padding: const EdgeInsets.only(bottom: ameNotificationBottomInset),
         child: feedback,
       ),
     );

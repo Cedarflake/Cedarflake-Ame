@@ -1,7 +1,7 @@
 import "package:flutter/material.dart";
-import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_theme.dart";
+import "../../../../app/notifications/ame_notification_controller.dart";
+import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../domain/library_state.dart";
 import "../library_primary_task_feedback.dart";
 import "library_task_live_region.dart";
@@ -31,104 +31,77 @@ class LibraryTaskSurface extends StatelessWidget {
     final feedback = LibraryPrimaryTaskFeedback(state);
     final title = feedback.title;
     final detail = feedback.detail;
-    final surface = Material(
+    final surface = AmeFeedbackCard(
       key: const Key("library-task-surface"),
-      elevation: ameNotificationElevation,
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(ameNotificationRadius),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints.tightFor(width: ameNotificationWidth),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Symbols.info_rounded, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(title)),
-                  if (state.status == LibraryStatus.scanning ||
-                      state.status == LibraryStatus.pausing) ...[
-                    if (state.status == LibraryStatus.scanning &&
-                        !feedback.isLibraryUpdate)
-                      TextButton(
-                        key: const Key("library-pause-button"),
-                        onPressed: onPause,
-                        child: const Text("暂停"),
-                      ),
-                    TextButton(
-                      key: const Key("library-cancel-button"),
-                      onPressed: onCancel,
-                      child: const Text("取消"),
-                    ),
-                  ] else if (state.status == LibraryStatus.paused) ...[
-                    TextButton(
-                      key: const Key("library-resume-button"),
-                      onPressed: onResume,
-                      child: const Text("继续"),
-                    ),
-                    TextButton(
-                      key: const Key("library-cancel-button"),
-                      onPressed: onCancel,
-                      child: const Text("取消"),
-                    ),
-                  ] else if (state.status == LibraryStatus.discarding) ...[
-                    const TextButton(onPressed: null, child: Text("继续")),
-                    const TextButton(onPressed: null, child: Text("取消")),
-                  ] else if (state.status == LibraryStatus.failed ||
-                      state.status == LibraryStatus.cancelled) ...[
-                    TextButton(
-                      key: const Key("library-retry-button"),
-                      onPressed: onRetry,
-                      child: Text(feedback.retryLabel),
-                    ),
-                    if (!state.isCommittedRemovalReloadPending &&
-                        !state.primaryScanSnapshot.hasUnresolvedPublication)
-                      TextButton(
-                        key: const Key("library-task-dismiss-button"),
-                        onPressed: onDismiss,
-                        child: const Text("关闭"),
-                      ),
-                  ] else if (state.status == LibraryStatus.stale)
-                    TextButton(
-                      key: const Key("library-retry-button"),
-                      onPressed: onRetry,
-                      child: Text(feedback.retryLabel),
-                    )
-                  else if (state.status == LibraryStatus.completed)
-                    TextButton(
-                      key: const Key("library-task-dismiss-button"),
-                      onPressed: onDismiss,
-                      child: const Text("关闭"),
-                    ),
-                ],
-              ),
-              if (detail != null) ...[
-                const SizedBox(height: 4),
-                Text(
-                  detail,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
-              ],
-              if (state.isTaskProcessing) ...[
-                const SizedBox(height: 10),
-                LinearProgressIndicator(
-                  value:
-                      state.status == LibraryStatus.scanning &&
-                          state.scanPhase == LibraryScanPhase.finalizing &&
-                          state.validationAssetCount > 0
-                      ? state.validatedAssetCount / state.validationAssetCount
-                      : null,
-                ),
-              ],
-            ],
+      title: title,
+      detail: detail,
+      severity: AmeNotificationSeverity.info,
+      actions: [
+        if (state.status == LibraryStatus.scanning ||
+            state.status == LibraryStatus.pausing) ...[
+          if (state.status == LibraryStatus.scanning &&
+              !feedback.isLibraryUpdate)
+            AmeFeedbackAction(
+              key: const Key("library-pause-button"),
+              onPressed: onPause,
+              label: "暂停",
+            ),
+          AmeFeedbackAction(
+            key: const Key("library-cancel-button"),
+            onPressed: onCancel,
+            label: "取消",
           ),
-        ),
-      ),
+        ] else if (state.status == LibraryStatus.paused) ...[
+          AmeFeedbackAction(
+            key: const Key("library-resume-button"),
+            onPressed: onResume,
+            label: "继续",
+          ),
+          AmeFeedbackAction(
+            key: const Key("library-cancel-button"),
+            onPressed: onCancel,
+            label: "取消",
+          ),
+        ] else if (state.status == LibraryStatus.discarding) ...[
+          const AmeFeedbackAction(onPressed: null, label: "继续"),
+          const AmeFeedbackAction(onPressed: null, label: "取消"),
+        ] else if (state.status == LibraryStatus.failed ||
+            state.status == LibraryStatus.cancelled) ...[
+          AmeFeedbackAction(
+            key: const Key("library-retry-button"),
+            onPressed: onRetry,
+            label: feedback.retryLabel,
+          ),
+          if (!state.isCommittedRemovalReloadPending &&
+              !state.primaryScanSnapshot.hasUnresolvedPublication)
+            AmeFeedbackAction(
+              key: const Key("library-task-dismiss-button"),
+              onPressed: onDismiss,
+              label: "关闭",
+            ),
+        ] else if (state.status == LibraryStatus.stale)
+          AmeFeedbackAction(
+            key: const Key("library-retry-button"),
+            onPressed: onRetry,
+            label: feedback.retryLabel,
+          )
+        else if (state.status == LibraryStatus.completed)
+          AmeFeedbackAction(
+            key: const Key("library-task-dismiss-button"),
+            onPressed: onDismiss,
+            label: "关闭",
+          ),
+      ],
+      progress: state.isTaskProcessing
+          ? LinearProgressIndicator(
+              value:
+                  state.status == LibraryStatus.scanning &&
+                      state.scanPhase == LibraryScanPhase.finalizing &&
+                      state.validationAssetCount > 0
+                  ? state.validatedAssetCount / state.validationAssetCount
+                  : null,
+            )
+          : null,
     );
     if (!feedback.isRootRemoval) {
       return surface;

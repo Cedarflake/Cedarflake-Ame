@@ -2,7 +2,7 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_scroll_motion.dart";
-import "../../../../app/presentation/ame_theme.dart";
+import "../../../../app/presentation/ame_feedback_card.dart";
 import "../../application/library_update_controller.dart";
 import "../library_update_feedback.dart";
 import "library_source_navigation_tile.dart";
@@ -39,58 +39,33 @@ class LibraryUpdateTaskSurface extends StatelessWidget {
       for (final task in tasks)
         "${librarySourceName(task.root.displayPath)}，${LibraryUpdateFeedback(task).progressSemanticsValue}",
     ].join("。 ");
-    final surface = Material(
+    final surface = AmeFeedbackCard.tasks(
       key: const Key("library-update-task-surface"),
-      elevation: ameNotificationElevation,
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
-      borderRadius: BorderRadius.circular(ameNotificationRadius),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(
-          minWidth: ameNotificationWidth,
-          maxWidth: ameNotificationWidth,
-          maxHeight: 360,
-        ),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 14, 12, 12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Row(
-                children: [
-                  const Icon(Symbols.sync_rounded, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(child: Text(title)),
-                  if (hasTerminalTasks)
-                    TextButton(
-                      key: const Key("library-update-dismiss-terminal"),
-                      onPressed: onDismissTerminalTasks,
-                      child: const Text("清除已结束任务"),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Flexible(
-                child: AmeScrollMotion(
-                  child: ListView.separated(
-                    shrinkWrap: true,
-                    itemCount: tasks.length,
-                    separatorBuilder: (_, _) => const Divider(height: 16),
-                    itemBuilder: (context, index) {
-                      final task = tasks[index];
-                      return _LibraryRootUpdateRow(
-                        key: ValueKey("library-update-task-${task.root.id}"),
-                        task: task,
-                        onCancel: () => onCancel(task.root.id),
-                        onRetry: () => onRetry(task.root.id),
-                        onDismiss: () => onDismiss(task.root.id),
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ],
+      title: title,
+      icon: Symbols.sync_rounded,
+      actions: [
+        if (hasTerminalTasks)
+          AmeFeedbackAction(
+            key: const Key("library-update-dismiss-terminal"),
+            onPressed: onDismissTerminalTasks,
+            label: "清除已结束任务",
           ),
+      ],
+      items: AmeScrollMotion(
+        child: ListView.separated(
+          shrinkWrap: true,
+          itemCount: tasks.length,
+          separatorBuilder: (_, _) => const Divider(height: 16),
+          itemBuilder: (context, index) {
+            final task = tasks[index];
+            return _LibraryRootUpdateRow(
+              key: ValueKey("library-update-task-${task.root.id}"),
+              task: task,
+              onCancel: () => onCancel(task.root.id),
+              onRetry: () => onRetry(task.root.id),
+              onDismiss: () => onDismiss(task.root.id),
+            );
+          },
         ),
       ),
     );

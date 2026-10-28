@@ -159,6 +159,11 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
+The requested notification maintenance standardizes bottom feedback and image-preview top notices
+through shared templates under the [gallery contract](product/gallery-ui.md#feedback-templates).
+Its [scoped verification](acceptance/notification-feedback.md) retains the affected checks and client
+evidence. This does not change R4's remaining performance order or stage boundary.
+
 The requested sidebar maintenance hides expansion for leaf roots and reserves source status for
 import and directory synchronization, independently of duplicate analysis. Its [scoped evidence](acceptance/library-sidebar.md) records the focused
 regressions and client checks; it does not start a new stage.

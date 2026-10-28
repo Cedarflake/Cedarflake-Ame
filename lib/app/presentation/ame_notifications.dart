@@ -5,6 +5,7 @@ import "../notifications/ame_notification_controller.dart";
 import "../notifications/ame_notification_strings.dart";
 import "ame_menu.dart";
 import "ame_feedback_card.dart";
+import "ame_feedback_style.dart";
 import "ame_notification_lifetime.dart";
 import "ame_overlay_semantics.dart";
 import "ame_notification_time.dart";
@@ -112,51 +113,26 @@ class AmeNotificationSurface extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return AmeNotificationLifetime(
       notification: notification,
       onDismiss: onDismiss,
       child: AmeFeedbackCard(
         key: const Key("ame-notification-surface"),
-        leading: Icon(
-          _severityIcon(notification.severity),
-          color: _severityColor(colorScheme, notification.severity),
-          size: 20,
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              notification.title,
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-            if (notification.message.isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(notification.message),
-            ],
-            if (notification.detail case final detail?) ...[
-              const SizedBox(height: 4),
-              Text(
-                detail,
-                style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ],
-        ),
+        title: notification.title,
+        message: notification.message,
+        detail: notification.detail,
+        severity: notification.severity,
         actions: [
           if (notification.actionLabel case final actionLabel?)
-            TextButton(
+            AmeFeedbackAction(
               key: const Key("notification-primary-action"),
               onPressed: () => onAction(notification),
-              child: Text(actionLabel),
+              label: actionLabel,
             ),
-          TextButton(
+          AmeFeedbackAction(
             key: const Key("notification-dismiss-button"),
             onPressed: () => onDismiss(notification.id),
-            child: const Text(AmeNotificationStrings.acknowledge),
+            label: AmeNotificationStrings.acknowledge,
           ),
         ],
       ),
@@ -178,8 +154,8 @@ class _NotificationHistoryItem extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
-            _severityIcon(notification.severity),
-            color: _severityColor(colorScheme, notification.severity),
+            ameNotificationIcon(notification.severity),
+            color: ameNotificationIconColor(colorScheme, notification.severity),
             size: 18,
           ),
           const SizedBox(width: 10),
@@ -230,25 +206,4 @@ class _NotificationHistoryItem extends StatelessWidget {
       ),
     );
   }
-}
-
-IconData _severityIcon(AmeNotificationSeverity severity) {
-  return switch (severity) {
-    AmeNotificationSeverity.info => Symbols.info_rounded,
-    AmeNotificationSeverity.success => Symbols.check_circle_rounded,
-    AmeNotificationSeverity.warning => Symbols.warning_rounded,
-    AmeNotificationSeverity.error => Symbols.error_rounded,
-  };
-}
-
-Color _severityColor(
-  ColorScheme colorScheme,
-  AmeNotificationSeverity severity,
-) {
-  return switch (severity) {
-    AmeNotificationSeverity.info => colorScheme.primary,
-    AmeNotificationSeverity.success => colorScheme.primary,
-    AmeNotificationSeverity.warning => colorScheme.tertiary,
-    AmeNotificationSeverity.error => colorScheme.error,
-  };
 }

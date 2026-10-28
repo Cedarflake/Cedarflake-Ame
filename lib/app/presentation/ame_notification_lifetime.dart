@@ -3,6 +3,7 @@ import "dart:async";
 import "package:flutter/widgets.dart";
 
 import "../notifications/ame_notification_controller.dart";
+import "ame_feedback_style.dart";
 
 class AmeNotificationLifetime extends StatefulWidget {
   const AmeNotificationLifetime({
@@ -50,7 +51,7 @@ class _AmeNotificationLifetimeState extends State<AmeNotificationLifetime> {
     _dismissTimer?.cancel();
     if (widget.notification.isPersistent) return;
     _dismissTimer = Timer(
-      const Duration(seconds: 5),
+      ameNotificationDuration,
       () => widget.onDismiss(widget.notification.id),
     );
   }
