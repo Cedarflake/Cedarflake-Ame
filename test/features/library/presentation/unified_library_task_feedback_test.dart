@@ -286,12 +286,19 @@ void main() {
     );
     await tester.pump();
 
-    final sourceIcon = find.byKey(const ValueKey("source-icon-root-1"));
-    final pendingIcon = find.byKey(const Key("pending-source-icon"));
+    final sourceIcon = find.descendant(
+      of: find.byKey(const ValueKey("source-icon-root-1")),
+      matching: find.byIcon(Symbols.folder_rounded),
+    );
+    final pendingIcon = find.descendant(
+      of: find.byKey(const Key("pending-source-icon")),
+      matching: find.byIcon(Symbols.folder_rounded),
+    );
     final sourceTitle = find.byKey(const ValueKey("source-title-root-1"));
     final pendingTitle = find.byKey(const Key("pending-source-title"));
     expect(sourceIcon, findsOneWidget);
     expect(pendingIcon, findsOneWidget);
+    expect(tester.getSize(sourceIcon), tester.getSize(pendingIcon));
     expect(find.byKey(const Key("pending-source-progress")), findsOneWidget);
     expect(
       tester.getTopLeft(sourceIcon).dx,

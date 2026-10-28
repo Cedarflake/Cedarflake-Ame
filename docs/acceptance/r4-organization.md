@@ -3837,3 +3837,10 @@ decisions and media remain in place; the retained measurement input hash is unch
 Production owners contain no inline tests: count query 66 lines, shared membership expressions
 145, queue filtering/admission 58 and scoped grouping 177. The dedicated aggregation suite contains
 168 lines. The transaction facade is unchanged. Formatting and owned diff checks pass.
+
+Hosted run `40641249476` passes the unsigned Release, static, native scan/accessibility, schema
+and queue, remaining Rust, synchronization and five synthetic workload jobs. Its Flutter job exposes
+an earlier sidebar assertion comparing a selectable 40-pixel hit target with a passive 24-pixel
+icon. The corrected test compares the actual folder glyphs, retaining equal glyph size and matching
+icon/title leading positions. All seven task-feedback cases pass in the focused rerun; product
+layout is unchanged. The catalog job was still running when the correction was prepared.
