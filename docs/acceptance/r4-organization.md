@@ -3844,3 +3844,64 @@ an earlier sidebar assertion comparing a selectable 40-pixel hit target with a p
 icon. The corrected test compares the actual folder glyphs, retaining equal glyph size and matching
 icon/title leading positions. All seven task-feedback cases pass in the focused rerun; product
 layout is unchanged. The catalog job was still running when the correction was prepared.
+
+## Current constrained-client measurement - 2026-10-28
+
+The current Flutter 3.47.8 Profile client uses explicit Skia and optimized native source `0e910c80`,
+including the schema-59 preferred-copy index and shared queue-count relation. Its native library
+SHA-256 is `4A2B46EA9BED7D2AC12610868C23EF8367D6948FE6E96608A6C3629EB2B17942`;
+the final measurement Dart payload is
+`BFA4C9E173636664EE502A4A074F5993E46A4ECC6EC3E12F95AE2296BAC21368`.
+No rendering implementation or accepted layout changes are included in this measurement.
+
+The diagnostic startup now follows production order: load and migrate the catalog, then inspect
+the active storage path, before mounting the real application. An earlier diagnostic called storage
+inspection against the old schema and stopped before gallery admission. Profile keyboard simulation
+also supplies the physical Escape key explicitly; debug-only key-name lookup is unavailable in this
+build mode. Queue assertions compare against the admitted snapshot rather than assuming deferred
+is empty. These repairs affect only the ignored measurement driver; no product guards are weakened.
+
+The local controlled copy completes menu opening/dismissal, two viewer round trips, mode entry,
+three queue changes and mode exit. Its one deferred group is preserved, and the independent input
+hash remains unchanged. The run takes 22.885 seconds, with 11.766 CPU seconds, peak working set
+237,936,640 bytes and peak private memory 292,302,848 bytes. The original controlled Debug profile
+is restored with 10,018 files, 90 groups and decoded previews. The finished local copy, seed and
+earlier runtime are removed after retaining their reports, reclaiming 230,294,373 bytes.
+
+Cloud-primary repeats the complete sequence on the retained 12,007-file/11,985-group independent
+profile. Its client area is 1,264 by 681 at scale 1, with all 12 initial visible previews decoded;
+synchronization and exact analysis are paused. The schema migration has already completed before
+this run. Each interaction retains a 500 ms settling interval; initial gallery admission includes
+a separate 2-second settling interval. Their elapsed times are therefore not exact usability latency.
+
+| Interaction | Elapsed interval | Raster P95 | Maximum raster frame |
+| --- | --- | --- | --- |
+| Static gallery, 59 frames | 1,901 ms | 2.387 ms | 4.011 ms |
+| First / second More opening | 541 / 539 ms | 21.415 / 2.290 ms | 29.899 / 2.500 ms |
+| First / second viewer opening | 1,526 / 1,386 ms | 12.077 / 22.520 ms | 624.645 / 95.051 ms |
+| Organization entry | 1,058 ms | 72.904 ms | 215.646 ms |
+| First deferred selection | 762 ms | 1.999 ms | 61.090 ms |
+| Organization exit | 810 ms | 3.143 ms | 6.075 ms |
+
+The full run takes 27.825 seconds with 30.000 CPU seconds, peak working set 297,181,184 bytes and
+peak private memory 305,229,824 bytes. It exits successfully, and the original cloud catalog/WAL
+hashes remain unchanged. Results belong to the retained current workload; they are not a paired
+rendering improvement claim against the earlier SDK comparison. The low steady-state percentiles
+coexist with isolated first-viewer and mode-entry stalls. The source image owner currently decodes
+original dimensions and releases the image on viewer retirement; frame/source attribution is still
+needed before changing that resource policy. Full-resolution zoom, cancellation and source-lifetime
+guards remain required.
+
+The finished cloud runtime and three incoming archives are removed after retaining their manifest,
+runner and reports, reclaiming 111,138,092 bytes. No requested cleanup target remains; the independent
+working profile is preserved and observed free space is 7,687,843,840 bytes. The initial cleanup
+connection closes without a result; a separate read confirms all targets still present and no Ame
+process, then the owned terminal is retired and the bounded cleanup completes. Its terminal closes
+normally.
+
+Reports remain under ignored `r4-read-latency` locally and the current `r4-render-attribution-737e35c9`
+measurement directory on cloud-primary. The exact implementation/test head `5c6e5025` is assigned to
+hosted run [40645242771](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40645242771).
+Its static, native scan/accessibility and several Rust/synthetic jobs pass at this checkpoint;
+the complete gate is still running. Retained publication latency and constrained first-use frame
+peaks remain open in R4-07.
