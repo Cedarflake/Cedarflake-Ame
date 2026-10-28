@@ -1,5 +1,4 @@
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../application/library_album_pages.dart";
@@ -15,6 +14,7 @@ import "library_album_navigation_tile.dart";
 import "library_sidebar_reorder_list.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_removal_dialog.dart";
+import "library_sidebar_selection_region.dart";
 
 class LibraryAlbumNavigation extends ConsumerStatefulWidget {
   const LibraryAlbumNavigation({
@@ -22,12 +22,14 @@ class LibraryAlbumNavigation extends ConsumerStatefulWidget {
     required this.enabled,
     required this.onSelect,
     required this.header,
+    this.isActive = true,
     super.key,
   });
   final LibraryGalleryCollection collection;
   final bool enabled;
   final ValueChanged<LibraryOrganizationAlbum> onSelect;
   final Widget header;
+  final bool isActive;
 
   @override
   ConsumerState<LibraryAlbumNavigation> createState() =>
@@ -40,6 +42,12 @@ class _LibraryAlbumNavigationState
   final List<String?> _previous = [];
   final _selection = LibrarySidebarSelection();
   bool _removing = false;
+
+  @override
+  void didUpdateWidget(LibraryAlbumNavigation oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (!widget.isActive) _selection.clear();
+  }
 
   Future<void> _removeSelected(LibraryOrganizationAlbumPage page) async {
     final albums = page.albums
@@ -117,12 +125,10 @@ class _LibraryAlbumNavigationState
     if (loaded != null && !_removing) {
       _selection.retain(loaded.albums.map((album) => album.id));
     }
-    return CallbackShortcuts(
-      bindings: {
-        if (_selection.isActive && !_removing)
-          const SingleActivator(LogicalKeyboardKey.escape): () =>
-              setState(_selection.clear),
-      },
+    return LibrarySidebarSelectionRegion(
+      onClear: _selection.isActive && !_removing
+          ? () => setState(_selection.clear)
+          : null,
       child: page.when(
         skipLoadingOnRefresh: true,
         data: (value) => LibrarySidebarReorderList<LibraryOrganizationAlbum>(

@@ -241,8 +241,9 @@ physical directory structure outside this change. Album paging must follow the s
 
 Use one shared section heading for `文件夹` and `相册`, below the Library and Favorites destinations.
 The trailing plus imports a source or creates an album. Follow with icon-initiated multi-selection:
-checkboxes and the selected count occupy the heading, and removal/deletion appears immediately left
-of plus. Reuse existing confirmation and feedback surfaces. Source removal and album deletion retain
+the selected count stays at the heading's left, with neutral square Select all, removal/deletion
+and plus grouped at the right. Primary-workspace switches clear secondary-sidebar selection.
+Reuse existing confirmation and feedback surfaces. Source removal and album deletion retain
 their distinct data effects, including surviving duplicate groups and deliberate-removal history.
 Source selection, Select all and batch removal include imported top-level folders only; expanded
 child folders retain ordinary browsing without selection checkboxes.

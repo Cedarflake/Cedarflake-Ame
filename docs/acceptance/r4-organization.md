@@ -3703,3 +3703,26 @@ Production owners have no inline tests: selection 27 lines, queue 73, album/root
 confirmation 126, selection icon 72, album navigation 224, source navigation 523, source tile 517
 and gallery composition facade 1,863. Four dedicated suites contain 71/106/77/110 lines. Existing
 transaction, gallery publication and root-removal ownership remain unchanged.
+
+## Compact selection controls and sidebar focus - 2026-10-28
+
+Card selection and duplicate controls return to 24-pixel circles with transparent 40-pixel targets.
+The sidebar heading places an unfilled neutral 18-pixel square checkbox before the 20-pixel delete
+and plus symbols; their 36-pixel targets retain the trailing alignment. Primary-workspace switches
+clear root/album selection without changing the retained organization-mode photo context.
+
+The earlier explicit selection-icon focus request left the enclosing row highlighted after a mouse
+click. A shared sidebar region now owns pointer focus and Escape outside the row decoration, while
+framework Tab/Space navigation retains visible control focus. Five focused checks pass for pointer
+leave, keyboard selection, Escape, mixed checkbox semantics, top-level-only selection and workspace
+departure. Owned formatting and scoped analysis with fatal infos pass. The Debug build completes in
+22.9 seconds. Native Library and Albums checks confirm that row highlights disappear after pointer
+departure, the neutral square changes from partial to all, and both selections clear on workspace
+round trips. Native card selection confirms the compact circular controls. The retained isolated
+profile and existing media remain intact.
+
+Production owners contain no inline tests: checkbox 88 lines, selection region 48, selection icon
+51, heading 94, source navigation 524, album navigation 230 and gallery facade 1,866. The focused
+selection/focus/checkbox suites contain 118/85/83/103 lines. Hosted gates remain assigned to the
+published head; the preceding batch-management run reports Windows accessibility and scan failures
+whose diagnostics are being followed separately.

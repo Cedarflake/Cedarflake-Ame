@@ -21,7 +21,7 @@ void main() {
               child: StatefulBuilder(
                 builder: (context, setState) => AmeSelectionCheckbox(
                   value: selected,
-                  markExtent: 28,
+                  markExtent: 24,
                   semanticLabel: "选择图片",
                   onChanged: (value) => setState(() {
                     selected = value!;
@@ -62,4 +62,42 @@ void main() {
       semantics.dispose();
     }
   });
+
+  testWidgets(
+    "partial selection keeps mixed semantics and the shared minus symbol",
+    (tester) async {
+      final semantics = tester.ensureSemantics();
+      try {
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: AmeSelectionCheckbox(
+                value: null,
+                tristate: true,
+                isOutlined: true,
+                markExtent: 24,
+                semanticLabel: "全选相册",
+                onChanged: (_) {},
+              ),
+            ),
+          ),
+        );
+        expect(find.byIcon(Symbols.remove_rounded), findsOneWidget);
+        expect(
+          tester.widget<Checkbox>(find.byType(Checkbox)).shape,
+          isA<CircleBorder>(),
+        );
+        expect(
+          tester
+              .getSemantics(find.byType(Checkbox))
+              .getSemanticsData()
+              .flagsCollection
+              .isChecked,
+          CheckedState.mixed,
+        );
+      } finally {
+        semantics.dispose();
+      }
+    },
+  );
 }

@@ -57,9 +57,7 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
               fixedSize: const Size.square(
                 LibraryGalleryCardMetrics.selectionExtent,
               ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(4),
-              ),
+              shape: const CircleBorder(),
               padding: EdgeInsets.zero,
               visualDensity: VisualDensity.standard,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
@@ -89,7 +87,7 @@ class _LibraryDuplicateBadgeState extends ConsumerState<LibraryDuplicateBadge> {
                 color: Theme.of(
                   context,
                 ).colorScheme.surface.withValues(alpha: 0.92),
-                borderRadius: BorderRadius.circular(4),
+                shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: const Icon(

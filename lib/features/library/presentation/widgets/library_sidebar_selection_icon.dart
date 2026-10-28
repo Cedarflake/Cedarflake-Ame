@@ -3,7 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 
-class LibrarySidebarSelectionIcon extends StatefulWidget {
+class LibrarySidebarSelectionIcon extends StatelessWidget {
   const LibrarySidebarSelectionIcon({
     required this.icon,
     required this.name,
@@ -18,40 +18,19 @@ class LibrarySidebarSelectionIcon extends StatefulWidget {
   final VoidCallback? onPressed;
 
   @override
-  State<LibrarySidebarSelectionIcon> createState() =>
-      _LibrarySidebarSelectionIconState();
-}
-
-class _LibrarySidebarSelectionIconState
-    extends State<LibrarySidebarSelectionIcon> {
-  final _focus = FocusNode(debugLabel: "Sidebar selection");
-
-  @override
-  void dispose() {
-    _focus.dispose();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
     return AmeTooltip(
-      message: widget.selected ? "取消选择${widget.name}" : "选择${widget.name}",
+      message: selected ? "取消选择$name" : "选择$name",
       child: IconButton(
-        focusNode: _focus,
-        isSelected: widget.selected,
-        onPressed: widget.onPressed == null
-            ? null
-            : () {
-                _focus.requestFocus();
-                widget.onPressed!();
-              },
+        isSelected: selected,
+        onPressed: onPressed,
         style: IconButton.styleFrom(
           minimumSize: const Size.square(40),
           maximumSize: const Size.square(40),
           padding: const EdgeInsets.all(8),
         ),
-        icon: Icon(widget.icon, size: 24),
+        icon: Icon(icon, size: 24),
         selectedIcon: DecoratedBox(
           decoration: BoxDecoration(
             color: colors.primary,

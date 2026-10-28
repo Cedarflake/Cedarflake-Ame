@@ -1,7 +1,6 @@
 import "dart:async";
 
 import "package:flutter/material.dart";
-import "package:flutter/services.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
@@ -18,6 +17,7 @@ import "library_folder_navigation_tile.dart";
 import "library_source_navigation_tile.dart";
 import "library_sidebar_section_header.dart";
 import "library_sidebar_reorder_list.dart";
+import "library_sidebar_selection_region.dart";
 
 export "library_source_navigation_tile.dart" show librarySourceName;
 
@@ -50,6 +50,7 @@ class LibraryNavigation extends StatefulWidget {
     required this.onOpenFolder,
     required this.onRemoveRoot,
     this.onRemoveRoots,
+    this.isActive = true,
     this.onReorder,
     this.collection = const LibraryGalleryCollection.library(),
     super.key,
@@ -85,6 +86,7 @@ class LibraryNavigation extends StatefulWidget {
   final void Function(LibraryRoot root, LibraryFolder folder) onOpenFolder;
   final ValueChanged<LibraryRoot> onRemoveRoot;
   final Future<Set<String>> Function(List<LibraryRoot> roots)? onRemoveRoots;
+  final bool isActive;
   final Future<void> Function(LibrarySidebarMove move)? onReorder;
   final LibraryGalleryCollection collection;
 
@@ -122,6 +124,7 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
   @override
   void didUpdateWidget(covariant LibraryNavigation oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (!widget.isActive) _selection.clear();
     final currentRootIds = widget.roots.map((root) => root.id).toSet();
     if (!_removing) _selection.retain(currentRootIds);
     if (widget.isCompact) _selection.clear();
@@ -192,12 +195,10 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
 
   @override
   Widget build(BuildContext context) {
-    return CallbackShortcuts(
-      bindings: {
-        if (_selection.isActive && !_removing)
-          const SingleActivator(LogicalKeyboardKey.escape): () =>
-              setState(_selection.clear),
-      },
+    return LibrarySidebarSelectionRegion(
+      onClear: _selection.isActive && !_removing
+          ? () => setState(_selection.clear)
+          : null,
       child: SizedBox(
         key: const Key("library-navigation"),
         width: widget.width,

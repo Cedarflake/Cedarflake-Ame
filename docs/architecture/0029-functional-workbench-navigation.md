@@ -43,10 +43,13 @@ physical folders.
 Sidebar selection is a separate presentation owner. The installed Flutter 3.47.8 `IconButton`
 provides focus, toggled semantics and the original/selected icons; a 24-pixel filled circle with the
 existing Material Symbols check identifies a selected row inside its 40-pixel target. The section
-heading uses the framework tristate `Checkbox` for partial/all selection and existing buttons for
-removal and creation. Material's checkbox and icon-button component documentation was inspected;
+heading groups Select all, removal and creation at the trailing edge. The shared framework tristate
+`Checkbox` uses an 18-pixel neutral square outline without fill; the other actions use 20-pixel
+symbols, all within 36-pixel targets. Material's checkbox and icon-button component documentation was inspected;
 no replacement gesture, checkbox painter or package is needed. Selection disables reordering, and
-Escape clears it. Child folders never enter this selection set. Album selection remains on its
+Escape clears it. A shared selection region owns pointer focus and the Escape shortcut outside row
+decoration; selection icons use framework keyboard focus without requesting it after mouse clicks.
+Primary-workspace departures clear secondary-sidebar selection. Child folders never enter this selection set. Album selection remains on its
 bounded 64-entry page, with an explicit current-page accessible label when more albums exist.
 
 A typed removal queue serializes the existing guarded commands and records each committed item.

@@ -649,6 +649,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     LibraryGalleryLayoutManifest? layoutManifest,
   ) {
     final folderTree = ref.watch(libraryFolderControllerProvider);
+    final workspace = ref.watch(libraryWorkbenchControllerProvider);
     final selection = _selection;
     final folderController = ref.read(libraryFolderControllerProvider.notifier);
     final collection = state.query.collection;
@@ -682,6 +683,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
       albumsNavigationBuilder: (width) => LibraryAlbumsSidebar(
         width: width,
         child: LibraryAlbumNavigation(
+          isActive: workspace == LibraryWorkspace.albums,
           header: favorites,
           collection: collection,
           enabled: LibraryBrowseAdmission(state).canBrowse,
@@ -698,6 +700,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         ),
       ),
       navigationBuilder: (width) => LibraryNavigation(
+        isActive: workspace == LibraryWorkspace.gallery,
         isCompact: false,
         width: width,
         roots: state.roots,

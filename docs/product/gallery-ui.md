@@ -172,6 +172,8 @@ join progressively, while changed identity/state or a different confirmed finger
 the affected old relationship. Retained display never skips content verification or authorizes a
 preferred-copy decision. Fresh items without prior evidence remain visible as ordinary images.
 
+Card duplicate and selection marks are 24-pixel circles inside separate transparent 40-pixel
+targets. Use the shared icon library for their marks, with no second visible background ring.
 Cards reserve at least 128 logical pixels of width for the duplicate icon, selection target and
 their padding. Counts no longer affect card width. Asynchronous badge arrival and hover do not
 resize cards. Both loaded-window and query-wide geometry use the same floor; square mode
@@ -298,9 +300,13 @@ Albums and imported top-level folders support saved drag order. Upgrade preserve
 new entries append, and renames, refreshes and restarts retain the arrangement. Child-folder ordering
 and physical paths are unchanged. Album pages follow the same saved order.
 In sidebar multi-selection, an unselected row retains its original leading icon. A selected row uses
-a filled circular check from the existing icon library. The heading contains Select all and the
-selected count, with removal/deletion immediately left of the plus. Normal navigation resumes after
-selection is cleared; dragging is available outside multi-selection.
+a filled circular check from the existing icon library. The heading keeps the selected count at
+the left and Select all, removal/deletion and plus at the right. Select all is an 18-pixel neutral
+outlined square with no selected color fill; deletion and plus use 20-pixel icons, with all three
+actions in 36-pixel targets. Normal navigation resumes after selection is cleared; dragging is
+available outside multi-selection. Pointer selection does not leave a row focus highlight after
+the pointer leaves; keyboard navigation retains visible focus. Primary-workspace switches clear
+secondary-sidebar selection independently of the organization-mode photo-selection rules.
 Escape clears sidebar selection. Album Select all applies to the current page and names that scope
 when further pages exist; paging resumes after selection is cleared. A single confirmation lists
 the selected entries. Batch management preserves completed removals if stopped or interrupted by a

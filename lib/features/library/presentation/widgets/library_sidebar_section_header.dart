@@ -3,6 +3,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
 import "../../../../app/presentation/ame_typography.dart";
+import "../../../../app/presentation/ame_selection_checkbox.dart";
 
 class LibrarySidebarSectionHeader extends StatelessWidget {
   const LibrarySidebarSectionHeader({
@@ -32,20 +33,9 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: EdgeInsets.fromLTRB(selectedCount > 0 ? 8 : 16, 8, 4, 0),
+    padding: const EdgeInsets.fromLTRB(16, 8, 6, 0),
     child: Row(
       children: [
-        if (selectedCount > 0)
-          SizedBox.square(
-            dimension: 40,
-            child: Checkbox(
-              key: const Key("library-sidebar-select-all"),
-              value: allSelected ? true : null,
-              tristate: true,
-              semanticLabel: selectAllLabel ?? "全选$title",
-              onChanged: onSelectAll == null ? null : (_) => onSelectAll!(),
-            ),
-          ),
         Expanded(
           child: Text(
             selectedCount > 0 ? "已选择 $selectedCount" : title,
@@ -56,10 +46,28 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
         ),
         if (selectedCount > 0)
           AmeTooltip(
+            message: allSelected ? "取消全选" : selectAllLabel ?? "全选$title",
+            child: AmeSelectionCheckbox(
+              key: const Key("library-sidebar-select-all"),
+              markExtent: 18,
+              tapTargetSize: 36,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(2),
+              ),
+              value: allSelected ? true : null,
+              tristate: true,
+              isOutlined: true,
+              semanticLabel: selectAllLabel ?? "全选$title",
+              onChanged: onSelectAll == null ? null : (_) => onSelectAll!(),
+            ),
+          ),
+        if (selectedCount > 0)
+          AmeTooltip(
             message: removeLabel ?? "删除",
             child: IconButton(
               key: const Key("library-sidebar-remove-selected"),
               onPressed: onRemove,
+              style: _actionStyle,
               icon: const Icon(Symbols.delete_rounded),
             ),
           ),
@@ -68,10 +76,19 @@ class LibrarySidebarSectionHeader extends StatelessWidget {
           child: IconButton(
             key: createKey,
             onPressed: onCreate,
+            style: _actionStyle,
             icon: const Icon(Symbols.add_rounded),
           ),
         ),
       ],
     ),
+  );
+
+  static final _actionStyle = IconButton.styleFrom(
+    iconSize: 20,
+    minimumSize: const Size.square(36),
+    maximumSize: const Size.square(36),
+    padding: const EdgeInsets.all(8),
+    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
   );
 }

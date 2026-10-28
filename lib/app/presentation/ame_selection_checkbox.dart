@@ -7,11 +7,17 @@ class AmeSelectionCheckbox extends StatelessWidget {
     required this.onChanged,
     required this.markExtent,
     this.tapTargetSize = 40,
+    this.tristate = false,
+    this.isOutlined = false,
+    this.shape = const CircleBorder(),
     this.semanticLabel,
     super.key,
   });
 
-  final bool value;
+  final bool? value;
+  final bool tristate;
+  final bool isOutlined;
+  final OutlinedBorder shape;
   final ValueChanged<bool?>? onChanged;
   final double markExtent;
   final double tapTargetSize;
@@ -20,6 +26,8 @@ class AmeSelectionCheckbox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
+    var markColor = onChanged == null ? colors.surface : colors.onPrimary;
+    if (isOutlined) markColor = colors.onSurfaceVariant;
     final scale = markExtent / Checkbox.width;
     // Retain Checkbox's input, focus and checked semantics while using the
     // shared symbol for its mark. The larger tap target has no background.
@@ -35,15 +43,15 @@ class AmeSelectionCheckbox extends StatelessWidget {
                 dimension: tapTargetSize / scale,
                 child: Checkbox(
                   value: value,
+                  tristate: tristate,
                   onChanged: onChanged,
                   semanticLabel: semanticLabel,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(4 / scale),
-                  ),
+                  shape: shape,
                   materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   checkColor: Colors.transparent,
                   splashRadius: tapTargetSize / scale / 2,
                   fillColor: WidgetStateProperty.resolveWith((states) {
+                    if (isOutlined) return Colors.transparent;
                     if (states.contains(WidgetState.selected) ||
                         states.contains(WidgetState.disabled)) {
                       return null;
@@ -51,7 +59,7 @@ class AmeSelectionCheckbox extends StatelessWidget {
                     return colors.surface.withValues(alpha: 0.92);
                   }),
                   side: WidgetStateBorderSide.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
+                    if (!isOutlined && states.contains(WidgetState.selected)) {
                       return BorderSide.none;
                     }
                     return BorderSide(
@@ -62,12 +70,14 @@ class AmeSelectionCheckbox extends StatelessWidget {
                 ),
               ),
             ),
-            if (value)
+            if (value != false)
               IgnorePointer(
                 child: Icon(
-                  Symbols.check_rounded,
-                  size: markExtent * 0.7,
-                  color: onChanged == null ? colors.surface : colors.onPrimary,
+                  value == null
+                      ? Symbols.remove_rounded
+                      : Symbols.check_rounded,
+                  size: markExtent * 0.75,
+                  color: markColor,
                 ),
               ),
           ],

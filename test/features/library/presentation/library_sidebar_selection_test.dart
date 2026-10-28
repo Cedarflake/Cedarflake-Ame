@@ -24,55 +24,55 @@ void main() {
             issueCount: 0,
           ),
       ];
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: LibraryNavigation(
-              isCompact: false,
-              width: 300,
-              roots: roots,
-              selectedRootId: null,
-              selectedFolderRelativePath: null,
-              transientSource: null,
-              folderTree: LibraryFolderTreeState(
-                branches: {
-                  const LibraryFolderBranchKey(
-                    rootId: "one",
-                    parentRelativePath: "",
-                  ): const LibraryFolderBranch(
-                    hasLoaded: true,
-                    folders: [
-                      LibraryFolder(
-                        rootId: "one",
-                        relativePath: "child",
-                        name: "Child",
-                        directAssetCount: 1,
-                        descendantAssetCount: 1,
-                      ),
-                    ],
-                  ),
-                },
-              ),
-              isBusy: false,
-              isBrowseDisabled: false,
-              onSelectLibrary: () {},
-              onSelectRoot: (root) => navigated = root.id,
-              onSelectFolder: (_, folder) => navigated = folder.relativePath,
-              onExpandFolder: (_, _) async {},
-              onLoadMoreFolders: (_, _) async {},
-              onAddSource: () {},
-              onUpdateRoot: (_) {},
-              onOpenRoot: (_) {},
-              onOpenFolder: (_, _) {},
-              onRemoveRoot: (_) {},
-              onRemoveRoots: (selected) async {
-                removed.addAll(selected.map((root) => root.id));
-                return {};
+      Widget view(bool active) => MaterialApp(
+        home: Scaffold(
+          body: LibraryNavigation(
+            isActive: active,
+            isCompact: false,
+            width: 300,
+            roots: roots,
+            selectedRootId: null,
+            selectedFolderRelativePath: null,
+            transientSource: null,
+            folderTree: LibraryFolderTreeState(
+              branches: {
+                const LibraryFolderBranchKey(
+                  rootId: "one",
+                  parentRelativePath: "",
+                ): const LibraryFolderBranch(
+                  hasLoaded: true,
+                  folders: [
+                    LibraryFolder(
+                      rootId: "one",
+                      relativePath: "child",
+                      name: "Child",
+                      directAssetCount: 1,
+                      descendantAssetCount: 1,
+                    ),
+                  ],
+                ),
               },
             ),
+            isBusy: false,
+            isBrowseDisabled: false,
+            onSelectLibrary: () {},
+            onSelectRoot: (root) => navigated = root.id,
+            onSelectFolder: (_, folder) => navigated = folder.relativePath,
+            onExpandFolder: (_, _) async {},
+            onLoadMoreFolders: (_, _) async {},
+            onAddSource: () {},
+            onUpdateRoot: (_) {},
+            onOpenRoot: (_) {},
+            onOpenFolder: (_, _) {},
+            onRemoveRoot: (_) {},
+            onRemoveRoots: (selected) async {
+              removed.addAll(selected.map((root) => root.id));
+              return {};
+            },
           ),
         ),
       );
+      await tester.pumpWidget(view(true));
       await tester.tap(find.byKey(const ValueKey("source-expand-one")));
       await tester.pumpAndSettle();
       expect(find.byType(LibrarySidebarSelectionIcon), findsNWidgets(2));
@@ -105,6 +105,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text("文件夹"), findsOneWidget);
       expect(tester.takeException(), isNull);
+      await tester.tap(
+        find.byKey(const ValueKey("library-sidebar-select-root-two")),
+      );
+      await tester.pumpAndSettle();
+      await tester.pumpWidget(view(false));
+      await tester.pumpWidget(view(true));
+      expect(find.text("文件夹"), findsOneWidget);
+      expect(find.text("已选择 1"), findsNothing);
     },
   );
 }

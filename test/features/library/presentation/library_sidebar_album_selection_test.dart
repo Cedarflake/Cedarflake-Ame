@@ -19,35 +19,43 @@ void main() {
           LibraryOrganizationAlbum("two", "Second"),
         ];
       var selected = "";
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            libraryOrganizationProvider.overrideWithValue(service),
-            libraryControllerProvider.overrideWith(
-              OrganizationLibraryFixture.new,
-            ),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              body: SizedBox(
-                width: 300,
-                child: LibraryAlbumNavigation(
-                  collection: const LibraryGalleryCollection.library(),
-                  enabled: true,
-                  onSelect: (album) => selected = album.id,
-                  header: const Text("收藏夹"),
-                ),
+      Widget view(bool active) => ProviderScope(
+        overrides: [
+          libraryOrganizationProvider.overrideWithValue(service),
+          libraryControllerProvider.overrideWith(
+            OrganizationLibraryFixture.new,
+          ),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 300,
+              child: LibraryAlbumNavigation(
+                isActive: active,
+                collection: const LibraryGalleryCollection.library(),
+                enabled: true,
+                onSelect: (album) => selected = album.id,
+                header: const Text("收藏夹"),
               ),
             ),
           ),
         ),
       );
+      await tester.pumpWidget(view(true));
       await tester.pumpAndSettle();
       await tester.tap(
         find.byKey(const ValueKey("library-sidebar-select-album-one")),
       );
       await tester.pumpAndSettle();
       expect(selected, isEmpty);
+      await tester.pumpWidget(view(false));
+      await tester.pumpWidget(view(true));
+      await tester.pumpAndSettle();
+      expect(find.text("已选择 1"), findsNothing);
+      await tester.tap(
+        find.byKey(const ValueKey("library-sidebar-select-album-one")),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const Key("library-sidebar-select-all")));
       await tester.pumpAndSettle();
       expect(find.text("已选择 2"), findsOneWidget);
