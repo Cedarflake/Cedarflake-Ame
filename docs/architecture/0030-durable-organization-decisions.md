@@ -150,6 +150,12 @@ honor the existing preferred copy within the physical query scope, then its smal
 Representative selection resolves the compatible display evidence generation before joining its
 stored fingerprint, avoiding materialization of unrelated historical evidence. Current and retained
 display authority continue to use the same compatibility predicate.
+Only locations named by an existing preferred-copy decision need that representative-evidence
+lookup. Candidate membership does not establish preference: the current content key and asset
+identity still have to match. The candidate set belongs to each SQL statement's read snapshot.
+Schema 59 adds a partial index over preferred location and asset identifiers. Point admission
+therefore remains independent of unrelated preference/ignore history, without storing another
+decision or changing its lifetime. Existing migration backup and atomic validation apply.
 Folded album and Favorite queries join each compatible binding to its canonical record once,
 retaining the indexed content fallback for copies without a direct binding. That record supplies
 both collection membership and the group key. Preferred-copy evidence is joined after membership

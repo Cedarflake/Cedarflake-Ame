@@ -3760,3 +3760,48 @@ Run `40634756804` passes the Windows scan and accessibility paths, but the integ
 test still assumes that an album row contains only one icon button. The helper now selects the
 stable More key after the current navigation settles. Its existing navigation, rename, deletion,
 undo and transient-notification assertions pass in the focused rerun. Production behavior is unchanged.
+
+## Preferred-copy lookup cost - 2026-10-28
+
+Grouped organization reads previously loaded current fingerprint evidence for every candidate,
+including locations that could not be the preferred copy. The query owner now checks the exact
+location/asset pair before that lookup. Existing content-key, asset, membership and representative
+guards retain their authority in the same read transaction. Schema 59 adds a partial preference
+index so unrelated decision history cannot turn this admission check into a scan. No source,
+bridge, UI or dependency changes are included.
+
+Thirty-seven focused organization-query tests pass, including changing/removed preferences,
+replaced assets, contradictory content, scoped anchors, cache retirement and 50,000 unrelated
+historical decisions under the existing SQLite instruction budget. Three new migration tests
+pass for choice preservation/reopen, transactional rollback/retry and rejected missing or altered
+index shapes. The three schema-58 sidebar migration tests also pass through the updated downgrade
+fixture. Owned formatting and diff checks pass.
+
+The retained catalog-only input contains 63,077 album files in 47,833 groups, 63,076 Favorite files
+in 47,832 groups and 12 pending files/groups. Separate optimized Rust runs change page-plus-timeline
+means from 2,024 to 1,699 ms for the album and 1,990 to 1,718 ms for Favorites. The pending result
+varies from 1,228 to 1,472 ms while unchanged count queries also rise by 11–14%; an alternating
+same-connection comparison therefore checks the affected relation separately. Three samples per
+variant give median grouping costs of 751/576 ms for the album, 797/625 ms for Favorites and
+523/533 ms for pending. Every representative identifier and physical count matches. This supports
+the collection improvement without attributing a queue improvement to this change. Source media
+reads are disabled for these catalog comparisons.
+
+The paired native run uses identical Flutter Profile code and identical isolated local-primary
+catalog input, with optimized Rust and test-storage diagnostics. Both variants include schema 59;
+only the representative lookup differs. The baseline query is from `c68c66c2`. Each run opens the
+retained album, decodes its first preview, unfavorites that group and returns to a newer published
+album revision with unchanged first position and counts. Both complete successfully and retain at
+most 500 assets. Saved feedback takes 139/169 ms and the committed album refresh takes
+3,802/3,507 ms. Sampled peak working sets are 413/410 MiB and private memory is 526/522 MiB.
+The initial migrated catalog display remains about 20.3/20.5 seconds and is recorded separately
+from steady-state publication. The original input catalog hashes remain unchanged. These are
+one paired desktop observation, not a constrained-device acceptance result.
+
+The normal isolated Debug client is restored with the final native library and its existing
+profile; native inspection confirms 10,018 files, 90 merged groups and decoded previews. Disposable
+measurement profiles are retired after preserving their compact result records. Production owners
+have no inline tests: grouped reads 183 lines, preferred index migration 52, current-schema validator
+348 and catalog facade 3,431. The migration dispatcher has 4,134 production and 2,289 inline-test
+lines; its change only composes the separate migration owner. Dedicated preference, collection and
+bounded-cost suites contain 85/163/175 lines. Hosted gates apply to the subsequently published head.

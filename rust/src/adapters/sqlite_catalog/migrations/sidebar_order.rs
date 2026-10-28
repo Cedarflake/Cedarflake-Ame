@@ -115,6 +115,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v57_for_test(connection: &Connection) {
+    super::preferred_copy_index::downgrade_to_v58_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 58 {
         for (kind, name, _) in OBJECTS.iter().rev() {
             connection

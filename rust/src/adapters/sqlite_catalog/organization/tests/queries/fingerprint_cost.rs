@@ -121,6 +121,30 @@ fn collection_and_queue_reads_do_not_expand_unrelated_fingerprints() {
     }
 }
 
+#[test]
+fn representative_candidates_do_not_scan_unrelated_preference_history() {
+    let (_directory, mut catalog, query) = grouped();
+    catalog
+        .connection
+        .execute_batch(
+            "WITH RECURSIVE sequence(value) AS (
+           VALUES(1000) UNION ALL SELECT value + 1 FROM sequence WHERE value < 50999
+         )
+         INSERT INTO exact_duplicate_decisions
+         SELECT 'blake3-256-full-v1', printf('%064x', value), 20,
+           CASE WHEN value % 2 = 0 THEN 'old-location-' || value END,
+           CASE WHEN value % 2 = 0 THEN 'old-asset-' || value END, 1, 1
+         FROM sequence;",
+        )
+        .unwrap();
+    let snapshot = bounded_read(&mut catalog, |catalog| {
+        catalog.load_query_snapshot(10, &query, "preference-history", None)
+    });
+    assert_eq!(snapshot.timeline.total_items, 2);
+    assert_eq!(snapshot.timeline.total_source_items, 3);
+    assert_eq!(snapshot.snapshot.assets[0].location_id, "a");
+}
+
 pub(super) fn bounded_read<T>(
     catalog: &mut SqliteCatalog,
     read: impl FnOnce(&mut SqliteCatalog) -> Result<T, ScanError>,

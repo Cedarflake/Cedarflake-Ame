@@ -203,6 +203,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 58 {
         super::sidebar_order::validate(connection)?;
     }
+    if schema_version >= 59 {
+        super::preferred_copy_index::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

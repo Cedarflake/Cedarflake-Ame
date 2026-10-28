@@ -163,12 +163,17 @@ fn representative_joins() -> String {
 
 fn representative_fingerprint_joins() -> String {
     let compatible = compatible_fingerprint("locations");
-    // Joining the union view materializes all historical fingerprints. Resolve the
-    // compatible evidence version first so the optional join remains a point lookup.
+    // Only a possible preferred copy needs evidence for representative selection.
+    // The point lookup and decision join still validate its current content.
     format!(
         "LEFT JOIN content_fingerprints AS f
-           ON f.source_generation = (
-             SELECT f.evidence_source_generation FROM {DISPLAY_FINGERPRINTS} WHERE {compatible})
+           ON f.source_generation = CASE WHEN EXISTS (
+             SELECT 1 FROM exact_duplicate_decisions AS preferred
+             WHERE preferred.preferred_location_id = locations.location_id
+               AND preferred.preferred_asset_id = locations.asset_id
+           ) THEN (
+             SELECT f.evidence_source_generation FROM {DISPLAY_FINGERPRINTS} WHERE {compatible}
+           ) END
            AND f.scheme = '{EXACT_FINGERPRINT_SCHEME}'
          LEFT JOIN exact_duplicate_decisions AS decision
            ON decision.scheme = COALESCE(f.scheme, binding.fingerprint_scheme)

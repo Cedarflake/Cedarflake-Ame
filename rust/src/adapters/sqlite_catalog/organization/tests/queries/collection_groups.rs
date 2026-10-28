@@ -109,3 +109,55 @@ fn favorite_groups_retain_canonical_aliases_and_independent_queue_membership() {
         }
     }
 }
+
+#[test]
+fn preferred_candidates_keep_content_authority_and_follow_later_decisions() {
+    let (_directory, mut catalog, album) = grouped();
+    let prepared = prepare(&catalog, &["c"]);
+    catalog
+        .set_organization_favorite("favorite", &prepared, true)
+        .unwrap();
+    let favorites = GalleryQuery {
+        collection: GalleryCollection::Favorites,
+        duplicate_mode: GalleryDuplicateMode::Merged,
+        sort_key: GallerySortKey::FileName,
+        sort_direction: GallerySortDirection::Ascending,
+        ..GalleryQuery::default()
+    };
+    let key = ExactDuplicateReviewKey {
+        digest: "a".repeat(64),
+        byte_length: 20,
+    };
+    let preferred = selected(&catalog, "c");
+    for choose in [false, true, false, true] {
+        let preference = choose.then(|| ExactDuplicatePreference {
+            location_id: preferred.location_id.clone(),
+            asset_id: preferred.asset_id.clone(),
+            source_generation: preferred.source_generation,
+        });
+        catalog
+            .set_duplicate_preference(&key, preference.as_ref())
+            .unwrap();
+        let expected = if choose { "c" } else { "a" };
+        assert_eq!(ids(&mut catalog, &favorites), [expected]);
+        let expected_album = if choose { ["b", "c"] } else { ["a", "b"] };
+        assert_eq!(ids(&mut catalog, &album), expected_album);
+    }
+    catalog
+        .connection
+        .execute(
+            "UPDATE exact_duplicate_decisions SET preferred_asset_id = 'replaced-asset'",
+            [],
+        )
+        .unwrap();
+    assert_eq!(ids(&mut catalog, &favorites), ["a"]);
+    catalog
+        .connection
+        .execute(
+            "UPDATE exact_duplicate_decisions SET preferred_asset_id = ?1, digest = ?2",
+            params![preferred.asset_id, "d".repeat(64)],
+        )
+        .unwrap();
+    assert_eq!(ids(&mut catalog, &favorites), ["a"]);
+    assert_eq!(ids(&mut catalog, &album), ["a", "b"]);
+}
