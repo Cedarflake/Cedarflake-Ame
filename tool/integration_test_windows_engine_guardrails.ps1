@@ -130,6 +130,10 @@ try {
                 Write-EngineFixtureFile $kernel ('x' * 600)
                 $outputs = @($kernel, $kernel)
                 if ($mode -ceq 'foreign-output') { $outputs += (Join-Path $fixture 'other.dill') }
+                if ($mode -ceq 'recorded-uses') { $outputs += (Join-Path $directory 'recorded_uses.json') }
+                if ($mode -ceq 'foreign-recorded-uses') { $outputs += (Join-Path $fixture 'recorded_uses.json') }
+                if ($mode -ceq 'missing-kernel') { $outputs = @((Join-Path $directory 'recorded_uses.json')) }
+                if ($mode -ceq 'relative-kernel') { $outputs = @('app.dill') }
                 Write-EngineFixtureFile (Join-Path $directory 'kernel_snapshot_program.stamp') (
                     @{ outputs = $outputs } | ConvertTo-Json -Depth 3)
                 if ($mode -ceq 'old-report') {
@@ -157,7 +161,14 @@ try {
             @($calls[2].Arguments | Where-Object { $_.StartsWith('-D') -and $_.Contains('\') }).Count -ne 0) {
             throw 'The real workflow escaped its no-op Debug package or emitted CMake path escapes'
         }
-        foreach ($scenario in @('dependency', 'foreign-output', 'old-report', 'missing-report', 'unretired')) {
+        $calls.Clear()
+        $mode = 'recorded-uses'
+        $recordedResult = Invoke-AmeWindowsEngineRetirement $repo
+        if ($recordedResult.status -cne 'passed' -or $calls.Count -ne 4) {
+            throw 'The SDK recorded-use output must preserve the exact kernel selection'
+        }
+        foreach ($scenario in @('dependency', 'foreign-output', 'foreign-recorded-uses',
+            'missing-kernel', 'relative-kernel', 'old-report', 'missing-report', 'unretired')) {
             $calls.Clear()
             $mode = $scenario
             Assert-EngineRejection { Invoke-AmeWindowsEngineRetirement $repo } $scenario

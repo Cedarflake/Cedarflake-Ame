@@ -512,95 +512,87 @@ void main() {
     });
   }
 
-  testWidgets(
-    "displays a same-path repair completed before the next frame",
-    (tester) async {
-      final directory = Directory.systemTemp.createTempSync(
-        "ame-preview-stream-",
-      );
-      addTearDown(() => directory.deleteSync(recursive: true));
-      final previewFile = File(
-        "${directory.path}${Platform.pathSeparator}preview.png",
-      );
-      previewFile.writeAsBytesSync(const [0xFF, 0xD8, 0xFF]);
-      final asset = _readyAsset(previewFile.path);
-      final snapshot = LibrarySnapshot(
-        catalogPath: "C:\\AmeData\\ame.sqlite3",
-        revision: BigInt.one,
-        queryId: "query-1",
-        roots: const [],
-        assets: [asset],
-      );
-      late final _ControlledRetryPreviewer previewer;
-      previewer = _ControlledRetryPreviewer(
-        onMaterialize: () {
-          previewFile.writeAsBytesSync(
-            base64Decode(
-              "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-            ),
-          );
-          previewer.complete(asset);
-        },
-      );
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            initialLibraryStateProvider.overrideWithValue(
-              LibraryState.fromSnapshot(snapshot),
-            ),
-            libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
-            libraryScannerProvider.overrideWithValue(const _FakeScanner()),
-            libraryPreviewerProvider.overrideWithValue(previewer),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              body: LibraryPhotoTile(
-                asset: asset,
-                width: 160,
-                height: 120,
-                isSelecting: false,
-                isSelected: false,
-                onOpen: (_) {},
-                onToggleSelection: (_) {},
-                onViewInformation: (_) {},
-                onCopyPath: (_) {},
-                onRevealFile: (_) {},
-              ),
+  testWidgets("displays a same-path repair completed before the next frame", (
+    tester,
+  ) async {
+    final directory = Directory.systemTemp.createTempSync(
+      "ame-preview-stream-",
+    );
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final previewFile = File(
+      "${directory.path}${Platform.pathSeparator}preview.png",
+    );
+    previewFile.writeAsBytesSync(const [0xFF, 0xD8, 0xFF]);
+    final asset = _readyAsset(previewFile.path);
+    final snapshot = LibrarySnapshot(
+      catalogPath: "C:\\AmeData\\ame.sqlite3",
+      revision: BigInt.one,
+      queryId: "query-1",
+      roots: const [],
+      assets: [asset],
+    );
+    late final _ControlledRetryPreviewer previewer;
+    previewer = _ControlledRetryPreviewer(
+      onMaterialize: () {
+        previewFile.writeAsBytesSync(
+          base64Decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+          ),
+        );
+        previewer.complete(asset);
+      },
+    );
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(snapshot),
+          ),
+          libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
+          libraryScannerProvider.overrideWithValue(const _FakeScanner()),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: LibraryPhotoTile(
+              asset: asset,
+              width: 160,
+              height: 120,
+              isSelecting: false,
+              isSelected: false,
+              onOpen: (_) {},
+              onToggleSelection: (_) {},
+              onViewInformation: (_) {},
+              onCopyPath: (_) {},
+              onRevealFile: (_) {},
             ),
           ),
         ),
-      );
-      for (var attempt = 0; attempt < 40; attempt++) {
-        await tester.runAsync(() async {
-          await Future<void>.delayed(const Duration(milliseconds: 25));
-        });
-        await tester.pump();
-        final pixels = tester.widgetList<RawImage>(find.byType(RawImage));
-        if (pixels.any((image) => image.image != null)) {
-          break;
-        }
-      }
-
-      expect(previewer.requests, ["location-ready"]);
-      expect(previewer.forceRequests, [true]);
-      final image = tester.widget<RawImage>(find.byType(RawImage));
-      expect(image.image, isNotNull);
-      expect(image.image!.width, greaterThan(0));
-      expect(
-        find.byKey(const Key("preview-retry-location-ready")),
-        findsNothing,
-      );
-      expect(find.text(LibraryStrings.retryingPreview), findsNothing);
-      expect(
-        tester.getSize(find.byType(LibraryPhotoTile)),
-        const Size(160, 120),
-      );
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
+      ),
+    );
+    for (var attempt = 0; attempt < 40; attempt++) {
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      });
       await tester.pump();
-    },
-    timeout: const Timeout(Duration(seconds: 30)),
-  );
+      final pixels = tester.widgetList<RawImage>(find.byType(RawImage));
+      if (pixels.any((image) => image.image != null)) {
+        break;
+      }
+    }
+
+    expect(previewer.requests, ["location-ready"]);
+    expect(previewer.forceRequests, [true]);
+    final image = tester.widget<RawImage>(find.byType(RawImage));
+    expect(image.image, isNotNull);
+    expect(image.image!.width, greaterThan(0));
+    expect(find.byKey(const Key("preview-retry-location-ready")), findsNothing);
+    expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+    expect(tester.getSize(find.byType(LibraryPhotoTile)), const Size(160, 120));
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  }, timeout: const Timeout(Duration(seconds: 30)));
 
   testWidgets(
     "one explicit retry does not rearm automatic repair when the root is unavailable",
@@ -715,97 +707,95 @@ void main() {
     timeout: const Timeout(Duration(seconds: 30)),
   );
 
-  testWidgets(
-    "shows automatic repair from the first failed-decode frame",
-    (tester) async {
-      final directory = Directory.systemTemp.createTempSync(
-        "ame-preview-repair-",
-      );
-      addTearDown(() => directory.deleteSync(recursive: true));
-      final previewFile = File(
-        "${directory.path}${Platform.pathSeparator}broken.jpg",
-      );
-      previewFile.writeAsBytesSync(const [0xFF, 0xD8, 0xFF]);
-      final asset = _readyAsset(previewFile.path);
-      final snapshot = LibrarySnapshot(
-        catalogPath: "C:\\AmeData\\ame.sqlite3",
-        revision: BigInt.one,
-        queryId: "query-1",
-        roots: const [],
-        assets: [asset],
-      );
-      final previewer = _ControlledRetryPreviewer();
+  testWidgets("shows automatic repair from the first failed-decode frame", (
+    tester,
+  ) async {
+    final directory = Directory.systemTemp.createTempSync(
+      "ame-preview-repair-",
+    );
+    addTearDown(() => directory.deleteSync(recursive: true));
+    final previewFile = File(
+      "${directory.path}${Platform.pathSeparator}broken.jpg",
+    );
+    previewFile.writeAsBytesSync(const [0xFF, 0xD8, 0xFF]);
+    final asset = _readyAsset(previewFile.path);
+    final snapshot = LibrarySnapshot(
+      catalogPath: "C:\\AmeData\\ame.sqlite3",
+      revision: BigInt.one,
+      queryId: "query-1",
+      roots: const [],
+      assets: [asset],
+    );
+    final previewer = _ControlledRetryPreviewer();
 
-      await tester.pumpWidget(
-        ProviderScope(
-          overrides: [
-            initialLibraryStateProvider.overrideWithValue(
-              LibraryState.fromSnapshot(snapshot),
-            ),
-            libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
-            libraryScannerProvider.overrideWithValue(const _FakeScanner()),
-            libraryPreviewerProvider.overrideWithValue(previewer),
-          ],
-          child: MaterialApp(
-            home: Scaffold(
-              body: LibraryPhotoTile(
-                asset: asset,
-                width: 160,
-                height: 120,
-                isSelecting: false,
-                isSelected: false,
-                onOpen: (_) {},
-                onToggleSelection: (_) {},
-                onViewInformation: (_) {},
-                onCopyPath: (_) {},
-                onRevealFile: (_) {},
-              ),
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(snapshot),
+          ),
+          libraryCatalogProvider.overrideWithValue(_FakeCatalog(snapshot)),
+          libraryScannerProvider.overrideWithValue(const _FakeScanner()),
+          libraryPreviewerProvider.overrideWithValue(previewer),
+        ],
+        child: MaterialApp(
+          home: Scaffold(
+            body: LibraryPhotoTile(
+              asset: asset,
+              width: 160,
+              height: 120,
+              isSelecting: false,
+              isSelected: false,
+              onOpen: (_) {},
+              onToggleSelection: (_) {},
+              onViewInformation: (_) {},
+              onCopyPath: (_) {},
+              onRevealFile: (_) {},
             ),
           ),
         ),
-      );
-      for (
-        var attempt = 0;
-        attempt < 20 && previewer.requests.isEmpty;
-        attempt++
-      ) {
-        await tester.runAsync(() async {
-          await Future<void>.delayed(const Duration(milliseconds: 25));
-        });
-        await tester.pump();
-        expect(
-          find.byKey(const Key("preview-retry-location-ready")),
-          findsNothing,
-        );
-      }
+      ),
+    );
+    for (
+      var attempt = 0;
+      attempt < 20 && previewer.requests.isEmpty;
+      attempt++
+    ) {
+      await tester.runAsync(() async {
+        await Future<void>.delayed(const Duration(milliseconds: 25));
+      });
       await tester.pump();
-
-      expect(previewer.requests, ["location-ready"]);
-      expect(previewer.forceRequests, [true]);
       expect(
-        find.byKey(const Key("preview-retry-progress-location-ready")),
-        findsOneWidget,
+        find.byKey(const Key("preview-retry-location-ready")),
+        findsNothing,
       );
-      previewer.complete(
-        asset.withPreview(
-          previewPath: asset.previewPath,
-          width: asset.width,
-          height: asset.height,
-          previewStatus: LibraryPreviewStatus.failed,
-          previewIssueCode: "preview_repair_failed",
-          previewIssueMessage: "Repair failed",
-        ),
-      );
-      await tester.pump();
-      await tester.pump();
-      expect(find.byKey(const Key("preview-retry-location-ready")), findsOne);
-      expect(previewer.requests, ["location-ready"]);
-      expect(find.text(LibraryStrings.retryingPreview), findsNothing);
-      await tester.pumpWidget(const SizedBox.shrink());
-      await tester.pump();
-    },
-    timeout: const Timeout(Duration(seconds: 30)),
-  );
+    }
+    await tester.pump();
+
+    expect(previewer.requests, ["location-ready"]);
+    expect(previewer.forceRequests, [true]);
+    expect(
+      find.byKey(const Key("preview-retry-progress-location-ready")),
+      findsOneWidget,
+    );
+    previewer.complete(
+      asset.withPreview(
+        previewPath: asset.previewPath,
+        width: asset.width,
+        height: asset.height,
+        previewStatus: LibraryPreviewStatus.failed,
+        previewIssueCode: "preview_repair_failed",
+        previewIssueMessage: "Repair failed",
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    expect(find.byKey(const Key("preview-retry-location-ready")), findsOne);
+    expect(previewer.requests, ["location-ready"]);
+    expect(find.text(LibraryStrings.retryingPreview), findsNothing);
+    await tester.pumpWidget(const SizedBox.shrink());
+    await tester.pump();
+  }, timeout: const Timeout(Duration(seconds: 30)));
 }
 
 LibraryAsset _readyAsset(String previewPath, {BigInt? sourceGeneration}) {

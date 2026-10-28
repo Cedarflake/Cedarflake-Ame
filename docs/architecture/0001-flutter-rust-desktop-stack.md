@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
+- Last amended: 2026-10-28
 
 ## Context
 
@@ -66,7 +67,37 @@ duplicate identity, or run media analysis directly.
 Bridge calls exchange bounded Ame-owned DTOs. Preview and full-media bytes do not cross FFI as
 unbounded buffers; the catalog returns identities, metadata, and paths to bounded derived previews.
 
-Dependency versions are selected and locked during scaffolding after the local toolchain is verified.
+Dependency versions are locked after the selected toolchain passes its applicable client and hosted
+checks. The admitted Windows SDK and renderer are specified below.
+
+## Windows SDK and renderer
+
+Pin Flutter stable 3.47.8 with Dart 3.13.7. The framework revision is
+`737ba8f885dc774b53b442759999a312c9461e4e`, and the matching engine revision is
+`cf636b1dfb818dd6a3ff16e390e93b1a036969c8`. Keep the hosted workflow pins, local toolchain and
+dependency lock consistent. Flutter retains its BSD-3-Clause license; this upgrade introduces no
+additional renderer dependency or source-media authority.
+
+Flutter 3.47 makes Windows Impeller available by default. Ame explicitly selects Skia using
+`DartProject::set_impeller_switch(ImpellerSwitch::Disabled)`. The matched stable SDK displays the
+gallery and viewer correctly on local-primary and cloud-primary, but Impeller increases measured
+transition cost and memory use on cloud-primary's Microsoft Basic Render adapter. Skia preserves
+the usable software-rendered path. There is no device-name heuristic, engine patch, new setting or
+automatic renderer retry.
+
+Complete engine, runner, Dart payload and assets must come from the same SDK and build mode. Retain
+real-pixel checks alongside timing and logical-state assertions: the previous experimental Windows
+Impeller probe recorded low frame costs while displaying a black client area. The
+[R4 evidence](../acceptance/r4-organization.md#stable-sdk-and-renderer-selection---2026-10-28)
+owns the actual comparisons, native-library provenance and verification coverage. Earlier ADR SDK
+version references identify the framework sources inspected for those decisions.
+
+The public switch is the renderer rollback boundary. A future measured improvement can remove the
+explicit disablement after the affected Windows clients pass. If the SDK itself regresses, restore
+the previous 3.44.9 pin and dependency lock together, remove the new public switch call, and rebuild
+the complete runtime; never mix engine DLLs and Dart payloads between SDK versions. The previous SDK
+revision remains available locally. Preserve the image I/O scheduling and native lifecycle checks
+when changing either path.
 
 ## Validation gates
 
@@ -133,6 +164,7 @@ without measured failure evidence.
 ## References
 
 - <https://docs.flutter.dev/platform-integration/desktop>
+- <https://docs.flutter.dev/perf/impeller#windows>
 - <https://docs.flutter.dev/cookbook/design/themes>
 - <https://api.flutter.dev/flutter/widgets/SliverGrid-class.html>
 - <https://github.com/fzyzcjy/flutter_rust_bridge>

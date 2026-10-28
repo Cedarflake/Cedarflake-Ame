@@ -50,133 +50,128 @@ void main() {
       holdsCommit: true,
     ),
   ]) {
-    testWidgets(
-      "peer removal preserves images and position: ${scenario.name}",
-      (tester) async {
-        tester.view.physicalSize = const Size(1280, 800);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        final directory = Directory.systemTemp.createTempSync(
-          "ame-removal-position-",
-        );
-        final preview = File("${directory.path}/preview.png")
-          ..writeAsBytesSync(
-            base64Decode(
-              "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-            ),
-          );
-        addTearDown(() {
-          preview.deleteSync();
-          directory.deleteSync();
-        });
-        final catalog = _Catalog(preview.path);
-        final scanner = ConcurrentLibraryScanner();
-        addTearDown(scanner.dispose);
-        final container = ProviderContainer(
-          overrides: [
-            libraryCatalogProvider.overrideWithValue(catalog),
-            libraryScannerProvider.overrideWithValue(scanner),
-            initialLibraryStateProvider.overrideWithValue(
-              LibraryState.fromSnapshot(
-                catalog.snapshot(),
-                query: _query,
-              ).copyWith(timeline: catalog.timeline()),
-            ),
-          ],
-        );
-        addTearDown(container.dispose);
-        await tester.pumpWidget(
-          UncontrolledProviderScope(
-            container: container,
-            child: const AmeApp(),
+    testWidgets("peer removal preserves images and position: ${scenario.name}", (
+      tester,
+    ) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final directory = Directory.systemTemp.createTempSync(
+        "ame-removal-position-",
+      );
+      final preview = File("${directory.path}/preview.png")
+        ..writeAsBytesSync(
+          base64Decode(
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
           ),
         );
-        await _pumpFrames(tester);
-        final controller = container.read(libraryControllerProvider.notifier);
-        expect(
-          await controller.jumpToTime(
-            catalog.timeline().buckets.single,
-            itemOffset: 480,
+      addTearDown(() {
+        preview.deleteSync();
+        directory.deleteSync();
+      });
+      final catalog = _Catalog(preview.path);
+      final scanner = ConcurrentLibraryScanner();
+      addTearDown(scanner.dispose);
+      final container = ProviderContainer(
+        overrides: [
+          libraryCatalogProvider.overrideWithValue(catalog),
+          libraryScannerProvider.overrideWithValue(scanner),
+          initialLibraryStateProvider.overrideWithValue(
+            LibraryState.fromSnapshot(
+              catalog.snapshot(),
+              query: _query,
+            ).copyWith(timeline: catalog.timeline()),
           ),
-          isTrue,
-        );
-        await _pumpFrames(tester);
-        expect(
-          container.read(libraryControllerProvider).windowStartItemOffset,
-          480,
-        );
-        var before = _visibleImages(tester);
-        expect(before.length, greaterThan(2));
+        ],
+      );
+      addTearDown(container.dispose);
+      await tester.pumpWidget(
+        UncontrolledProviderScope(container: container, child: const AmeApp()),
+      );
+      await _pumpFrames(tester);
+      final controller = container.read(libraryControllerProvider.notifier);
+      expect(
+        await controller.jumpToTime(
+          catalog.timeline().buckets.single,
+          itemOffset: 480,
+        ),
+        isTrue,
+      );
+      await _pumpFrames(tester);
+      expect(
+        container.read(libraryControllerProvider).windowStartItemOffset,
+        480,
+      );
+      var before = _visibleImages(tester);
+      expect(before.length, greaterThan(2));
 
-        final pendingRead = Completer<void>();
-        if (scenario.holdsCommit) {
-          catalog.pendingRemoval = pendingRead.future;
-        } else {
-          catalog.pendingRead = pendingRead.future;
-        }
-        if (scenario.fails) {
-          catalog.nextPageError = StateError("injected removal page failure");
-        }
-        final removal = container
-            .read(libraryControllerProvider.notifier)
-            .unregisterRoot(_removedRoot);
-        await _pumpFrames(tester);
-        try {
-          expect(
-            container.read(libraryControllerProvider).isRemovalCommitted,
-            !scenario.holdsCommit,
-          );
-          expect(
-            _visibleImages(tester),
-            before,
-            reason: "Pending removal refresh moved the peer gallery",
-          );
-          if (scenario.scrolls) {
-            await tester.drag(
-              find.byKey(const Key("library-photo-wall")),
-              const Offset(0, -144),
-            );
-            await _pumpFrames(tester);
-            final afterScroll = _visibleImages(tester);
-            expect(afterScroll, isNot(before));
-            before = afterScroll;
-          }
-        } finally {
-          pendingRead.complete();
-          await _pumpFrames(tester);
-          await removal;
-        }
-        if (scenario.fails && !scenario.scrolls) {
-          expect(
-            container.read(libraryControllerProvider).status,
-            LibraryStatus.failed,
-          );
-          expect(
-            container.read(libraryControllerProvider).isRemovalCommitted,
-            isTrue,
-          );
-          final retry = controller.retry();
-          await _pumpFrames(tester);
-          await retry;
-        }
+      final pendingRead = Completer<void>();
+      if (scenario.holdsCommit) {
+        catalog.pendingRemoval = pendingRead.future;
+      } else {
+        catalog.pendingRead = pendingRead.future;
+      }
+      if (scenario.fails) {
+        catalog.nextPageError = StateError("injected removal page failure");
+      }
+      final removal = container
+          .read(libraryControllerProvider.notifier)
+          .unregisterRoot(_removedRoot);
+      await _pumpFrames(tester);
+      try {
         expect(
-          container.read(libraryControllerProvider).status,
-          LibraryStatus.completed,
-          reason: container.read(libraryControllerProvider).errorMessage,
+          container.read(libraryControllerProvider).isRemovalCommitted,
+          !scenario.holdsCommit,
         );
         expect(
           _visibleImages(tester),
           before,
-          reason: "Completed removal refresh moved the peer gallery",
+          reason: "Pending removal refresh moved the peer gallery",
         );
-        expect(catalog.removalCount, 1);
-        expect(container.read(libraryControllerProvider).query, _query);
-        expect(tester.takeException(), isNull);
-        await tester.pumpWidget(const SizedBox.shrink());
-      },
-      variant: TargetPlatformVariant.only(TargetPlatform.windows),
-    );
+        if (scenario.scrolls) {
+          await tester.drag(
+            find.byKey(const Key("library-photo-wall")),
+            const Offset(0, -144),
+          );
+          await _pumpFrames(tester);
+          final afterScroll = _visibleImages(tester);
+          expect(afterScroll, isNot(before));
+          before = afterScroll;
+        }
+      } finally {
+        pendingRead.complete();
+        await _pumpFrames(tester);
+        await removal;
+      }
+      if (scenario.fails && !scenario.scrolls) {
+        expect(
+          container.read(libraryControllerProvider).status,
+          LibraryStatus.failed,
+        );
+        expect(
+          container.read(libraryControllerProvider).isRemovalCommitted,
+          isTrue,
+        );
+        final retry = controller.retry();
+        await _pumpFrames(tester);
+        await retry;
+      }
+      expect(
+        container.read(libraryControllerProvider).status,
+        LibraryStatus.completed,
+        reason: container.read(libraryControllerProvider).errorMessage,
+      );
+      expect(
+        _visibleImages(tester),
+        before,
+        reason: "Completed removal refresh moved the peer gallery",
+      );
+      expect(catalog.removalCount, 1);
+      expect(container.read(libraryControllerProvider).query, _query);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
   }
 }
 

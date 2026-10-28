@@ -3513,7 +3513,8 @@ The runner probe is removed immediately after its diagnostic build. Its executab
 `E8639426F2514380A92B1C1923B3954B13613F5D8128C6472C3AB9AEED11C56F`.
 The pinned Flutter 3.44 Windows Impeller path is classified as experimental in Flutter's
 [support matrix](https://github.com/flutter/flutter/blob/master/engine/src/flutter/impeller/README.md).
-The production SDK and renderer remain unchanged. A separate interactive payload reuses the real
+At this checkpoint the production SDK and renderer remain unchanged. A separate interactive payload
+reuses the real
 gallery and independent profile without the automated test driver. With Impeller, its client area
 remains black across observations 20 seconds apart. The same executable, native library, Dart payload
 and profile display the gallery, text and loaded thumbnails under default Skia. The visual payload
@@ -3525,3 +3526,79 @@ This rejects the current experimental renderer for delivery and invalidates the 
 benefit. Logical widget state and frame timings alone did not detect the missing visible output.
 Renderer admission requires visual correctness, compatibility evidence and a supported-toolchain
 decision; a future SDK evaluation must repeat the valid comparison.
+
+## Stable SDK and renderer selection - 2026-10-28
+
+The authorized SDK evaluation uses Flutter stable 3.47.8 / Dart 3.13.7, framework
+`737ba8f885dc774b53b442759999a312c9461e4e` and engine
+`cf636b1dfb818dd6a3ff16e390e93b1a036969c8`. Hosted pins and the dependency lock are updated together.
+Seven transitive package versions follow the SDK's constraints; seven test files receive only the
+new Dart formatter's layout changes. The renderer decision belongs to
+[ADR 0001](../architecture/0001-flutter-rust-desktop-stack.md#windows-sdk-and-renderer).
+
+Complete matched Release and Profile runtimes are built from product source `3d93566b` plus the SDK
+and lock changes. The interactive Release probe uses the production gallery and viewer with the
+existing isolated optimized native library, SHA-256
+`B4D59EB20E908DB7565E1BE0862C2C6A9D98B36CE4941F3BF158D37EBD332F3D`.
+Both local-primary and cloud-primary display real thumbnails, text, menus and the image viewer;
+cloud-primary also completes organization entry, the empty deferred queue and mode exit. Both close
+normally, with Impeller OpenGLESSDF confirmed in startup output. Peak working sets are 282,894,336
+and 349,040,640 bytes respectively. The local probe uses retained cached image content; cloud-primary
+also displays its available original image. The original local input snapshot and cloud catalog/WAL
+checks remain unchanged. The local 10,000-file/72-group controlled Debug window is restored afterward.
+
+The first local Release probe loads the production native library, whose test-storage override is
+intentionally disabled, and stops at its isolation assertion before loading the gallery. The
+successful runs use the existing native library compiled with debug assertions for isolation;
+production storage admission is unchanged. These renderer checks do not claim fresh validation of
+every native use case or of production synchronization through the diagnostic entrypoint.
+
+The paired cloud Profile runs use one reconciled 12,007-file/11,985-group profile, the same native
+library, a 1,264-by-681 client area, scale 1 and all 12 visible previews loaded. Synchronization and
+exact analysis remain paused. Process-scoped switches select Skia and Impeller in the same runtime.
+More and viewer rows pool the frames from both repeated openings; other rows cover one interaction.
+Each interaction includes its existing 500 ms settling interval.
+
+| Interaction | Skia raster P95 | Impeller raster P95 | Frames, Skia / Impeller |
+| --- | --- | --- | --- |
+| More menu opening | 57.127 ms | 127.469 ms | 39 / 15 |
+| Viewer opening | 82.588 ms | 228.339 ms | 157 / 51 |
+| Organization entry | 112.499 ms | 182.507 ms | 38 / 11 |
+| First deferred-queue selection | 72.705 ms | 152.237 ms | 28 / 12 |
+| Organization exit | 78.889 ms | 158.987 ms | 21 / 9 |
+
+Skia completes in 33.420 seconds with 30.500 CPU seconds, peak working set 242,667,520 bytes and peak
+private memory 224,108,544 bytes. Impeller completes in 40.719 seconds with 45.109 CPU seconds, peak
+working set 447,930,368 bytes and peak private memory 428,285,952 bytes. Both exit successfully and
+preserve the original cloud catalog/WAL. The stable renderer fixes the earlier black output, but the
+measured software-adapter cost supports retaining Skia. The Windows runner now selects it through
+Flutter's public `ImpellerSwitch::Disabled`; no engine patch or device-specific branch is introduced.
+These results measure frame rendering, not catalog-query latency or a guarantee across all adapters.
+
+The final production `lib/main.dart` Release build with explicit Skia completes in 17.1 seconds.
+Its complete package SHA-256 is
+`1CAD975B84E386CDC6B226E12C437933676BCE013F2B7EADA3FCBEF5C9F485FD`.
+The SDK upgrade also passes strict Dart analysis, formatting of all 598 Dart files, three native
+window cases and two real-engine lifecycle cases using the final explicit Skia selection. The latter
+independently confirm the named image I/O thread's normal priority, child-window retirement and COM
+lifetime. A sandbox-only telemetry
+write failure after formatting is resolved by rerunning the same check with SDK directory access;
+the successful run reports no formatting changes.
+
+The new SDK adds `recorded_uses.json` to its kernel target stamp. The native fixture now admits this
+optional metadata only beside the exact current `app.dill`, while copying only that kernel. Focused
+guardrails pass valid metadata and reject foreign metadata, missing kernels and relative paths,
+alongside the retained cases. The input owner has 119 production lines and no inline tests; its
+dedicated suite has 251 lines. The Windows entrypoint has 62 production lines and no inline tests;
+the dedicated real-engine C++ fixture has 180 lines.
+Hosted correctness, accessibility and unsigned-payload checks remain assigned to the exact pushed
+commit under the quality workflow.
+
+Cloud storage cleanup removes retired archives, test-profile copies and compilation intermediates.
+Free space increases from 5,026,066,432 to 10,963,648,512 bytes, reclaiming about 5.53 GiB while the
+original catalog/WAL and existing client executable hashes remain unchanged. Reports are retained
+separately from disposable runtime packages. The current independent profile remains available for
+the next retained-query investigation; no additional source library is created. After the paired
+runs, the two new runtimes, their archives and the retired baseline runtime are removed, reclaiming
+a further 221,882,623 bytes. Final observed free space is 10,839,429,120 bytes, with zero requested
+cleanup targets remaining and the original catalog/WAL still unchanged.

@@ -19,98 +19,96 @@ void main() {
   RetainedSemanticsUpdateBinding();
   setUp(RetainedSemanticsUpdateValidator.instance.reset);
 
-  testWidgets(
-    "retained Settings restores semantics after closing its menu",
-    (tester) async {
-      final semantics = tester.ensureSemantics();
-      final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
-      await mouse.addPointer();
-      try {
-        await tester.pumpWidget(
-          ProviderScope(
-            child: MaterialApp(
-              home: Scaffold(
-                body: LibraryWorkbench(
-                  albumsNavigationBuilder: (_) => const Text("Album list"),
-                  navigationBuilder: (width) =>
-                      SizedBox(width: width, child: const Text("Folders")),
-                  galleryBuilder: (_) => Column(
-                    children: [
-                      const Text("Gallery"),
-                      Expanded(
-                        child: Align(
-                          alignment: Alignment.centerRight,
-                          child: SizedBox(
-                            width: 48,
-                            child: VerticalMaterialTimelineSlider(
-                              value: 0.35,
-                              endpointInset: 24,
-                              onChanged: (_) {},
-                              onChangeStart: (_) {},
-                              onChangeEnd: (_) {},
-                              semanticLabelFor: (_) => "2026年3月",
-                            ),
+  testWidgets("retained Settings restores semantics after closing its menu", (
+    tester,
+  ) async {
+    final semantics = tester.ensureSemantics();
+    final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
+    await mouse.addPointer();
+    try {
+      await tester.pumpWidget(
+        ProviderScope(
+          child: MaterialApp(
+            home: Scaffold(
+              body: LibraryWorkbench(
+                albumsNavigationBuilder: (_) => const Text("Album list"),
+                navigationBuilder: (width) =>
+                    SizedBox(width: width, child: const Text("Folders")),
+                galleryBuilder: (_) => Column(
+                  children: [
+                    const Text("Gallery"),
+                    Expanded(
+                      child: Align(
+                        alignment: Alignment.centerRight,
+                        child: SizedBox(
+                          width: 48,
+                          child: VerticalMaterialTimelineSlider(
+                            value: 0.35,
+                            endpointInset: 24,
+                            onChanged: (_) {},
+                            onChangeStart: (_) {},
+                            onChangeEnd: (_) {},
+                            semanticLabelFor: (_) => "2026年3月",
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                  duplicatesBuilder: (_) => const Text("Duplicates"),
-                  settingsBuilder: (_) =>
-                      const AmeSettingsPage(hasLibraryRoots: false),
-                  onSidebarResizeChanged: (_) {},
-                  onPreferenceError: (_, error) => fail("$error"),
+                    ),
+                  ],
                 ),
+                duplicatesBuilder: (_) => const Text("Duplicates"),
+                settingsBuilder: (_) =>
+                    const AmeSettingsPage(hasLibraryRoots: false),
+                onSidebarResizeChanged: (_) {},
+                onPreferenceError: (_, error) => fail("$error"),
               ),
             ),
           ),
+        ),
+      );
+      final timelineState = tester.state(
+        find.byType(VerticalMaterialTimelineSlider),
+      );
+      for (var cycle = 0; cycle < 3; cycle += 1) {
+        final settings = find.byKey(const Key("library-sidebar-settings"));
+        await mouse.moveTo(tester.getCenter(settings));
+        await tester.pump(const Duration(milliseconds: 600));
+        await tester.tap(settings);
+        await tester.pumpAndSettle();
+        expect(find.byType(Slider, skipOffstage: false), findsNothing);
+        final themeChoice = find.descendant(
+          of: find.byType(SettingsChoice<AmeThemePreference>),
+          matching: find.byType(OutlinedButton),
         );
-        final timelineState = tester.state(
-          find.byType(VerticalMaterialTimelineSlider),
+        await mouse.moveTo(tester.getCenter(themeChoice));
+        await tester.tap(themeChoice);
+        await tester.pumpAndSettle();
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "settings-open-$cycle",
         );
-        for (var cycle = 0; cycle < 3; cycle += 1) {
-          final settings = find.byKey(const Key("library-sidebar-settings"));
-          await mouse.moveTo(tester.getCenter(settings));
-          await tester.pump(const Duration(milliseconds: 600));
-          await tester.tap(settings);
-          await tester.pumpAndSettle();
-          expect(find.byType(Slider, skipOffstage: false), findsNothing);
-          final themeChoice = find.descendant(
-            of: find.byType(SettingsChoice<AmeThemePreference>),
-            matching: find.byType(OutlinedButton),
-          );
-          await mouse.moveTo(tester.getCenter(themeChoice));
-          await tester.tap(themeChoice);
-          await tester.pumpAndSettle();
-          RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
-            trace: "settings-open-$cycle",
-          );
-          await tester.sendKeyEvent(LogicalKeyboardKey.escape);
-          await tester.pumpAndSettle();
-          RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
-            trace: "settings-closed-$cycle",
-          );
-          expect(
-            tester.semantics.simulatedAccessibilityTraversal().map(
-              (node) => node.getSemanticsData().label,
-            ),
-            contains("设置"),
-          );
-          await tester.tap(find.byKey(const Key("workbench-gallery")));
-          await tester.pumpAndSettle();
-          expect(
-            tester.state(find.byType(VerticalMaterialTimelineSlider)),
-            same(timelineState),
-          );
-          expect(tester.widget<Slider>(find.byType(Slider)).value, 0.65);
-        }
-      } finally {
-        await mouse.removePointer();
-        semantics.dispose();
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+        await tester.pumpAndSettle();
+        RetainedSemanticsUpdateValidator.instance.verifyLatestUpdate(
+          trace: "settings-closed-$cycle",
+        );
+        expect(
+          tester.semantics.simulatedAccessibilityTraversal().map(
+            (node) => node.getSemanticsData().label,
+          ),
+          contains("设置"),
+        );
+        await tester.tap(find.byKey(const Key("workbench-gallery")));
+        await tester.pumpAndSettle();
+        expect(
+          tester.state(find.byType(VerticalMaterialTimelineSlider)),
+          same(timelineState),
+        );
+        expect(tester.widget<Slider>(find.byType(Slider)).value, 0.65);
       }
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.windows),
-  );
+    } finally {
+      await mouse.removePointer();
+      semantics.dispose();
+    }
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 
   testWidgets(
     "gallery badges retain valid semantics when publication changes membership",

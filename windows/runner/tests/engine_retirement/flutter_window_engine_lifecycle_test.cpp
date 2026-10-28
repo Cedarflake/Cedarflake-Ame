@@ -132,6 +132,7 @@ int wmain(int argc, wchar_t** argv) {
   Require(window_observer != nullptr, "Natural message observation must be installed");
   {
     flutter::DartProject project(argv[2], argv[3], L"");
+    project.set_impeller_switch(flutter::ImpellerSwitch::Disabled);
     FlutterWindow window(project);
     Require(window.Create(L"Ame engine lifecycle fixture", Win32Window::Point(0, 0),
                           Win32Window::Size(100, 100)),

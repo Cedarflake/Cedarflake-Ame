@@ -5,15 +5,11 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
-  test(
-    "invalid paths are rejected before entering the Shell",
-    () async {
-      for (final path in ["", "C:\\fixture\\one.png\u0000two.png"]) {
-        await expectLater(revealWindowsShellItem(path), throwsArgumentError);
-      }
-    },
-    skip: !Platform.isWindows,
-  );
+  test("invalid paths are rejected before entering the Shell", () async {
+    for (final path in ["", "C:\\fixture\\one.png\u0000two.png"]) {
+      await expectLater(revealWindowsShellItem(path), throwsArgumentError);
+    }
+  }, skip: !Platform.isWindows);
 
   test(
     "a missing Shell item returns its native failure on repeated calls",

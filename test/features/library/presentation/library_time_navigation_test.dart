@@ -841,11 +841,9 @@ void main() {
       expect(scrollController.offset, closeTo(240, 0.01));
 
       await tester.pump(const Duration(milliseconds: 200));
-      expect(
-        requestedOffsets,
-        [6],
-        reason: "the aligned row must not require a second wheel-settle seek",
-      );
+      expect(requestedOffsets, [
+        6,
+      ], reason: "the aligned row must not require a second wheel-settle seek");
     },
   );
 }

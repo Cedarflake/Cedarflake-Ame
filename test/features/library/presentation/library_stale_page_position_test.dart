@@ -19,85 +19,79 @@ import "../support/concurrent_library_scanner.dart";
 import "../support/library_query_snapshot_fixture.dart";
 
 void main() {
-  testWidgets(
-    "busy synchronization preserves a recovering middle window",
-    (tester) async {
-      tester.view.physicalSize = const Size(1280, 800);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final directory = Directory.systemTemp.createTempSync(
-        "ame-page-position-",
-      );
-      final preview = File("${directory.path}/preview.png")
-        ..writeAsBytesSync(
-          base64Decode(
-            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
-          ),
-        );
-      addTearDown(() {
-        preview.deleteSync();
-        directory.deleteSync();
-      });
-      final catalog = _Catalog(preview.path);
-      final scanner = ConcurrentLibraryScanner();
-      final synchronization = _Synchronization();
-      addTearDown(scanner.dispose);
-      addTearDown(synchronization.dispose);
-      final container = ProviderContainer(
-        overrides: [
-          libraryCatalogProvider.overrideWithValue(catalog),
-          libraryScannerProvider.overrideWithValue(scanner),
-          librarySynchronizationProvider.overrideWithValue(synchronization),
-          initialLibraryStateProvider.overrideWithValue(
-            LibraryState.fromSnapshot(
-              catalog.snapshot(1, start: 4000),
-            ).copyWith(
-              timeline: catalog.timeline(1),
-              windowStartItemOffset: 4000,
-            ),
-          ),
-        ],
-      );
-      addTearDown(container.dispose);
-      await tester.pumpWidget(
-        UncontrolledProviderScope(container: container, child: const AmeApp()),
-      );
-      await _pumpFrames(tester, 24);
-      await tester.drag(
-        find.byKey(const Key("library-photo-wall")),
-        const Offset(0, -420),
-      );
-      await _pumpFrames(tester, 24);
-      final before = _visibleImages(tester);
-      expect(before.length, greaterThan(2));
-      final controller = container.read(libraryControllerProvider.notifier);
-      final loading = controller.loadPreviousPage();
-      catalog.page.completeError(
-        const LibraryCatalogFailure(
-          code: "catalog_cursor_stale",
-          message: "The loaded cursor predates preview metadata",
+  testWidgets("busy synchronization preserves a recovering middle window", (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(1280, 800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final directory = Directory.systemTemp.createTempSync("ame-page-position-");
+    final preview = File("${directory.path}/preview.png")
+      ..writeAsBytesSync(
+        base64Decode(
+          "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
         ),
       );
-      await _pumpFrames(tester, 4);
-      expect(catalog.anchors, hasLength(1));
-      expect(catalog.anchors.single, isNotNull);
-      synchronization.publish(BigInt.two);
-      await _pumpFrames(tester, 4);
-      expect(catalog.anchors, hasLength(1));
-      catalog.recovery.complete();
-      await _pumpFrames(tester, 8);
-      await loading;
-      expect(
-        container.read(libraryControllerProvider).catalogRevision,
-        BigInt.two,
-      );
-      expect(_visibleImages(tester), before);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox.shrink());
-    },
-    variant: TargetPlatformVariant.only(TargetPlatform.windows),
-  );
+    addTearDown(() {
+      preview.deleteSync();
+      directory.deleteSync();
+    });
+    final catalog = _Catalog(preview.path);
+    final scanner = ConcurrentLibraryScanner();
+    final synchronization = _Synchronization();
+    addTearDown(scanner.dispose);
+    addTearDown(synchronization.dispose);
+    final container = ProviderContainer(
+      overrides: [
+        libraryCatalogProvider.overrideWithValue(catalog),
+        libraryScannerProvider.overrideWithValue(scanner),
+        librarySynchronizationProvider.overrideWithValue(synchronization),
+        initialLibraryStateProvider.overrideWithValue(
+          LibraryState.fromSnapshot(catalog.snapshot(1, start: 4000)).copyWith(
+            timeline: catalog.timeline(1),
+            windowStartItemOffset: 4000,
+          ),
+        ),
+      ],
+    );
+    addTearDown(container.dispose);
+    await tester.pumpWidget(
+      UncontrolledProviderScope(container: container, child: const AmeApp()),
+    );
+    await _pumpFrames(tester, 24);
+    await tester.drag(
+      find.byKey(const Key("library-photo-wall")),
+      const Offset(0, -420),
+    );
+    await _pumpFrames(tester, 24);
+    final before = _visibleImages(tester);
+    expect(before.length, greaterThan(2));
+    final controller = container.read(libraryControllerProvider.notifier);
+    final loading = controller.loadPreviousPage();
+    catalog.page.completeError(
+      const LibraryCatalogFailure(
+        code: "catalog_cursor_stale",
+        message: "The loaded cursor predates preview metadata",
+      ),
+    );
+    await _pumpFrames(tester, 4);
+    expect(catalog.anchors, hasLength(1));
+    expect(catalog.anchors.single, isNotNull);
+    synchronization.publish(BigInt.two);
+    await _pumpFrames(tester, 4);
+    expect(catalog.anchors, hasLength(1));
+    catalog.recovery.complete();
+    await _pumpFrames(tester, 8);
+    await loading;
+    expect(
+      container.read(libraryControllerProvider).catalogRevision,
+      BigInt.two,
+    );
+    expect(_visibleImages(tester), before);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox.shrink());
+  }, variant: TargetPlatformVariant.only(TargetPlatform.windows));
 }
 
 Future<void> _pumpFrames(WidgetTester tester, int count) async {

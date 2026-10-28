@@ -291,7 +291,7 @@ result. Pull-request and merge-group runs still cancel a superseded run in their
 Each run remains evidence for its recorded source commit, never a later queued head.
 
 Every hosted job uses `windows-2025`. Daily components and the unsigned-build and signed-verifier
-release jobs install Flutter 3.44.9 and use the repository Rust toolchain; the protected signer and
+release jobs install Flutter 3.47.8 and use the repository Rust toolchain; the protected signer and
 published-artifact verifier do not. Static Daily, the unsigned-build job, and the signed-verifier job
 download actionlint 1.7.12, verify the official Windows x64 SHA-256, and validate every workflow through
 `./tool/quality_lint_workflows.ps1` before restoring project dependencies. External actions are
@@ -450,12 +450,15 @@ engine/Dart/SDK stamps, and existing compiler artifacts; missing or incompatible
 assembly rather than downloading replacements. It copies the dependency-free no-op package from
 `windows/runner/tests/engine_retirement` into fresh GUID storage under `build`, runs offline package
 resolution, requires the package configuration to contain only itself, and assembles
-`kernel_snapshot_program`. Only the current target stamp's single `app.dill` output is copied as
-`kernel_blob.bin`; duplicate entries naming that same output are deduplicated. The application
+`kernel_snapshot_program`. Only the current target stamp's `app.dill` output is copied as
+`kernel_blob.bin`; duplicate entries naming that same output are deduplicated. The SDK's optional
+`recorded_uses.json` in the same target directory is admitted as metadata and is never copied as the
+kernel. Missing kernels and outputs outside that exact pair are rejected. The application
 package and Release/ephemeral engine files are not inputs to this isolated Debug build.
 
-`engine_lifecycle_explicit_destroy` and `engine_lifecycle_scope_exit` each have a 30-second CTest
-deadline; their parent has a 75-second deadline and an owned kill-on-close Job Object. A separate
+`engine_lifecycle_explicit_destroy` and `engine_lifecycle_scope_exit` select Skia like the production
+Windows entrypoint. Each has a 30-second CTest deadline; their parent has a 75-second deadline and
+an owned kill-on-close Job Object. A separate
 fresh, at-most-1-MiB JUnit report must prove both cases executed, including real engine start, child
 destruction notification, completed scope exit, retired HWND, no access violation, no plugin
 registration, and COM release after window scope. Native process exit and Job closure must also be
@@ -551,7 +554,7 @@ jumps, repeatedly opens and closes on-demand photo menus, operates stable toolba
 changes the timeline and viewer Sliders, and returns from the viewer twice. The script retains the
 complete engine output under `build`, rejects any `Failed to update ui::AXTree` record even when the
 Dart assertions pass, and therefore exercises the platform `AccessibilityBridge` behavior that
-widget-test semantics models cannot reproduce. Flutter 3.44.9 exposes Windows device integration
+widget-test semantics models cannot reproduce. Flutter 3.47.8 exposes Windows device integration
 tests through its supported Debug test path; this canary does not claim Profile-mode coverage.
 
 The native probe loads only the fixed, strong-named Windows UI Automation assemblies through

@@ -378,13 +378,14 @@ viewer transitions remain costly. The geometry owner now retains the gallery's s
 through sidebar reflow, with focused and native verification. Continue diagnosis of remaining
 transition and collection-read costs before responsiveness acceptance. Original catalogs remain
 unchanged and the normal local controlled test window has been restored.
-The cloud renderer probe identifies Microsoft's Basic Render adapter. Impeller reports lower raster
-cost but its separate interactive probe displays a black window; those timings do not establish a
-usable performance improvement. Flutter 3.44 classifies that Windows path as experimental. Keep the
-production renderer unchanged: the identical interactive payload displays the gallery correctly
-under Skia. A supported-toolchain evaluation is a separate scope decision and cannot rely on the
-invalid Impeller timing improvement. The R4 acceptance record owns the evidence; retained-library
-query latency remains open.
+The authorized SDK upgrade pins Flutter stable 3.47.8 across local and hosted builds. Matched Release
+visual checks pass on local-primary and cloud-primary, including the latter's Microsoft Basic Render
+adapter. The stable Impeller path displays correctly but increases cloud transition cost and memory
+use in the matched comparison. Ame therefore explicitly retains Skia through Flutter's public API.
+SDK lifecycle, image I/O scheduling, analysis, formatting and the final Release build pass;
+exact-commit hosted checks remain in this delivery. Completed cloud runtime packages are retired;
+one working catalog/profile and compact reports remain. The R4 acceptance record owns measurements
+and provenance; retained-library query latency remains the next performance item.
 The requested primary Albums destination is connected under R4-05: Library, Albums and
 Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
 Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,

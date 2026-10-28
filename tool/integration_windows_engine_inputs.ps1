@@ -94,10 +94,21 @@ function Get-AmeWindowsEngineKernel {
     $stamp = [IO.File]::ReadAllText($stamps[0].FullName) | ConvertFrom-Json
     $outputs = @($stamp.outputs | Select-Object -Unique)
     $expected = Join-Path $stamps[0].DirectoryName "app.dill"
-    if ($outputs.Count -ne 1 -or -not ($outputs[0] -is [string]) -or
-        -not [IO.Path]::IsPathRooted($outputs[0]) -or
-        [IO.Path]::GetFullPath($outputs[0]) -ine [IO.Path]::GetFullPath($expected)) {
-        throw "The kernel stamp must identify only its current app.dill output: expected=$expected; outputs=$($outputs -join ',')"
+    $recordedUses = Join-Path $stamps[0].DirectoryName "recorded_uses.json"
+    $kernelDeclared = $false
+    foreach ($output in $outputs) {
+        if (-not ($output -is [string]) -or -not [IO.Path]::IsPathRooted($output)) {
+            throw "The kernel stamp contains an invalid output path"
+        }
+        $path = [IO.Path]::GetFullPath($output)
+        if ($path -ieq [IO.Path]::GetFullPath($expected)) {
+            $kernelDeclared = $true
+        } elseif ($path -ine [IO.Path]::GetFullPath($recordedUses)) {
+            throw "The kernel stamp contains an unexpected output: $output"
+        }
+    }
+    if (-not $kernelDeclared) {
+        throw "The kernel stamp must identify its current app.dill output"
     }
     $kernel = Get-Item -LiteralPath $expected -ErrorAction Stop
     if ($kernel.PSIsContainer -or $kernel.Length -eq 0 -or $kernel.Length -gt 1MB -or

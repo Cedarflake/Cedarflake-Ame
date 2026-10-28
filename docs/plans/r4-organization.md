@@ -282,7 +282,14 @@ Work:
 4. Verify the real desktop interactions under the existing UI verification map and the applicable
    hosted checks for the exact implementation commit. Record results and remaining gaps in an R4
    acceptance record when implementation evidence exists.
-5. Update the roadmap's exit decision only after the complete product contract is demonstrated.
+5. Upgrade the pinned Flutter toolchain to a stable release supporting Windows Impeller. Preserve the
+   previous SDK revision for rollback and keep local and hosted pins consistent. Build a complete
+   matched Release runtime; verify real pixels, gallery/viewer transitions, window lifecycle and
+   image I/O scheduling on local-primary and cloud-primary before comparing frame cost and memory.
+   Adopt Impeller after the stable Release candidate passes these checks; retain Skia when an
+   unresolved display, interaction or performance regression remains. Reuse prior catalog and source
+   safety evidence where inputs are unchanged.
+6. Update the roadmap's exit decision only after the complete product contract is demonstrated.
    Preserve the frozen R2c/R3 regressions without replaying unrelated milestone acceptance.
 
 ## Implementation handoff
