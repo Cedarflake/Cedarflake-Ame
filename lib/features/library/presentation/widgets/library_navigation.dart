@@ -4,9 +4,9 @@ import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_overlay_semantics.dart";
-import "../../../../app/presentation/ame_scroll_motion.dart";
 import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_folder_controller.dart";
+import "../../application/library_sidebar_order.dart";
 import "../../domain/library_folder_models.dart";
 import "../../domain/library_models.dart";
 import "../../domain/library_synchronization_models.dart";
@@ -14,6 +14,8 @@ import "../library_pending_source.dart";
 import "../library_strings.dart";
 import "library_folder_navigation_tile.dart";
 import "library_source_navigation_tile.dart";
+import "library_sidebar_section_header.dart";
+import "library_sidebar_reorder_list.dart";
 
 export "library_source_navigation_tile.dart" show librarySourceName;
 
@@ -45,6 +47,7 @@ class LibraryNavigation extends StatefulWidget {
     required this.onOpenRoot,
     required this.onOpenFolder,
     required this.onRemoveRoot,
+    this.onReorder,
     this.collection = const LibraryGalleryCollection.library(),
     super.key,
   });
@@ -78,6 +81,7 @@ class LibraryNavigation extends StatefulWidget {
   final ValueChanged<LibraryRoot> onOpenRoot;
   final void Function(LibraryRoot root, LibraryFolder folder) onOpenFolder;
   final ValueChanged<LibraryRoot> onRemoveRoot;
+  final Future<void> Function(LibrarySidebarMove move)? onReorder;
   final LibraryGalleryCollection collection;
 
   @override
@@ -172,9 +176,13 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
         child: Column(
           children: [
             Expanded(
-              child: AmeScrollMotion(
-                child: ListView(
-                  padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+              child: LibrarySidebarReorderList<LibraryRoot>(
+                items: widget.roots,
+                itemId: (root) => root.id,
+                onReorder: widget.onReorder,
+                enabled: !widget.isBusy && !widget.isBrowseDisabled,
+                header: (saving) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     if (widget.isCompact) ...[
                       AmeTooltip(
@@ -235,29 +243,24 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                                 widget.collection is LibraryAllCollection,
                           ),
                         ),
-                        trailing: SizedBox(
-                          width: 48,
-                          child: AmeTooltip(
-                            message:
-                                widget.addingSourceDisabledReason ??
-                                LibraryStrings.addFolder,
-                            child: IconButton(
-                              key: const Key("library-sidebar-import"),
-                              onPressed:
-                                  widget.isBusy || widget.isAddingSourceDisabled
-                                  ? null
-                                  : widget.onAddSource,
-                              icon: const Icon(
-                                Symbols.create_new_folder_rounded,
-                              ),
-                            ),
-                          ),
-                        ),
                         onTap: widget.isBrowseDisabled
                             ? null
                             : widget.onSelectLibrary,
                       ),
-                    const SizedBox(height: 12),
+                    if (!widget.isCompact)
+                      LibrarySidebarSectionHeader(
+                        title: "文件夹",
+                        createLabel:
+                            widget.addingSourceDisabledReason ??
+                            LibraryStrings.addFolder,
+                        createKey: const Key("library-sidebar-import"),
+                        onCreate:
+                            saving ||
+                                widget.isBusy ||
+                                widget.isAddingSourceDisabled
+                            ? null
+                            : widget.onAddSource,
+                      ),
                     if (widget.roots.isEmpty && widget.transientSource == null)
                       if (widget.isCompact)
                         const AmeTooltip(
@@ -272,8 +275,14 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                           leading: Icon(Symbols.folder_off_rounded),
                           title: Text(LibraryStrings.noFolder),
                         ),
-                    for (final root in widget.roots) ...[
-                      LibrarySourceNavigationTile(
+                  ],
+                ),
+                itemBuilder: (context, root, index, draggable) => Column(
+                  children: [
+                    ReorderableDragStartListener(
+                      index: index,
+                      enabled: draggable,
+                      child: LibrarySourceNavigationTile(
                         root: root,
                         synchronizationStatus:
                             widget.rootSynchronizationStatuses[root.id],
@@ -305,18 +314,22 @@ class _LibraryNavigationState extends State<LibraryNavigation> {
                         onOpen: () => widget.onOpenRoot(root),
                         onRemove: () => _requestRemoveRoot(root),
                       ),
-                      if (!widget.isCompact && _isExpanded(root.id, ""))
-                        ..._buildFolderBranch(root, "", 1),
-                      if (!widget.isCompact &&
-                          !_isExpanded(root.id, "") &&
-                          widget.folderTree.branch(root.id, "").errorMessage !=
-                              null)
-                        LibraryFolderErrorTile(
-                          depth: 1,
-                          onRetry: () =>
-                              unawaited(widget.onExpandFolder(root.id, "")),
-                        ),
-                    ],
+                    ),
+                    if (!widget.isCompact && _isExpanded(root.id, ""))
+                      ..._buildFolderBranch(root, "", 1),
+                    if (!widget.isCompact &&
+                        !_isExpanded(root.id, "") &&
+                        widget.folderTree.branch(root.id, "").errorMessage !=
+                            null)
+                      LibraryFolderErrorTile(
+                        depth: 1,
+                        onRetry: () =>
+                            unawaited(widget.onExpandFolder(root.id, "")),
+                      ),
+                  ],
+                ),
+                footer: (_) => Column(
+                  children: [
                     if (widget.transientSource case final source?)
                       PendingLibrarySourceTile(
                         source: source,

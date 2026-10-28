@@ -29,6 +29,7 @@ mod preview_performance_acceptance;
 mod preview_reclamation;
 mod preview_recovery;
 mod scan_library;
+pub(crate) mod sidebar_order;
 mod storage;
 pub(crate) mod viewer_source;
 

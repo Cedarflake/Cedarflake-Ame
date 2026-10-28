@@ -232,6 +232,22 @@ Exit conditions:
 - no pending UI action claims success, changes counts or advances before its transaction commits;
 - the real Windows client proves these paths with populated, empty, failed and unavailable states.
 
+### Sidebar management follow-up
+
+Deliver saved drag ordering for albums and imported top-level folders before batch management.
+Preserve the existing order on upgrade, append new items, retain order across renames and refreshes,
+and verify reopen, failed saves and concurrent item creation/removal. Keep child-folder ordering and
+physical directory structure outside this change. Album paging must follow the saved order.
+
+Use one shared section heading for `文件夹` and `相册`, below the Library and Favorites destinations.
+The trailing plus imports a source or creates an album. Follow with icon-initiated multi-selection:
+checkboxes and the selected count occupy the heading, and removal/deletion appears immediately left
+of plus. Reuse existing confirmation and feedback surfaces. Source removal and album deletion retain
+their distinct data effects, including surviving duplicate groups and deliberate-removal history.
+Source selection, Select all and batch removal include imported top-level folders only; expanded
+child folders retain ordinary browsing without selection checkboxes.
+Verify cancellation, partial/stale admission, disposal and normal navigation after selection ends.
+
 ## R4-06: Export, restoration and unresolved-record cleanup
 
 Depends on R4-01 through R4-05. Migration recovery was established in R4-01; this slice adds the

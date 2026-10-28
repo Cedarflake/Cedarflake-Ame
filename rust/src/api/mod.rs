@@ -9,6 +9,7 @@ pub mod organization_cleanup;
 pub mod organization_conflicts;
 pub mod organization_review;
 pub mod preview;
+pub mod sidebar_order;
 pub mod storage;
 pub mod synchronization;
 pub mod viewer_source;

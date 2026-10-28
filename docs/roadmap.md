@@ -159,6 +159,12 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
+The requested R4 sidebar-management follow-up first adds saved drag ordering for albums and imported
+top-level source folders, then icon-initiated multi-selection and batch album deletion/source removal.
+Library and Albums use matching destination and section-heading rows, with creation/import at the
+heading's trailing edge. Child-folder ordering is unchanged. These requested controls precede the
+remaining retained-library performance work and retain the existing source-safety and recovery rules.
+
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
 through shared templates under the [gallery contract](product/gallery-ui.md#feedback-templates).
 Its [scoped verification](acceptance/notification-feedback.md) retains the affected checks and client

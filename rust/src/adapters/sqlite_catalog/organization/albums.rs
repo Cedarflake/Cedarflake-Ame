@@ -55,9 +55,13 @@ pub(super) fn load(
         )
         .map_err(database_error)?;
     let mut statement = connection.prepare(
-        "SELECT album_id, name, revision FROM organization_albums AS album WHERE album_id > ?1
+        "SELECT album.album_id, album.name, album.revision
+         FROM organization_sidebar_album_order AS ordering
+         JOIN organization_albums AS album USING(album_id)
+         WHERE ordering.position > COALESCE(
+           (SELECT position FROM organization_sidebar_album_order WHERE album_id = ?1), -1)
          AND NOT EXISTS(SELECT 1 FROM organization_album_retirements WHERE album_id = album.album_id)
-         ORDER BY album_id LIMIT ?2"
+         ORDER BY ordering.position, album.album_id LIMIT ?2"
     ).map_err(database_error)?;
     let mut albums = statement
         .query_map(

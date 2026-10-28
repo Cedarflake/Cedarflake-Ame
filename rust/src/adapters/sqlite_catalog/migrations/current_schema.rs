@@ -102,6 +102,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     if schema_version >= 57 {
         super::organization_review_order::validate_rows(connection)?;
     }
+    if schema_version >= 58 {
+        super::sidebar_order::validate_rows(connection)?;
+    }
     source_revision_contract::validate_rows(connection)
 }
 
@@ -196,6 +199,9 @@ pub(super) fn validate_schema_structure(
     }
     if schema_version >= 57 {
         super::organization_review_order::validate(connection)?;
+    }
+    if schema_version >= 58 {
+        super::sidebar_order::validate(connection)?;
     }
     validate_existing_source_metadata_marker(connection)
 }

@@ -3638,3 +3638,40 @@ SDK's alpha rounding. Scoped formatting and analysis pass; the final Windows Deb
 in 24.2 seconds. The album navigation and menu owners have 193 and 375 production lines, with no
 inline tests; the menu suite has 735 lines. Source media, organization records and application
 contracts are unchanged; hosted checks remain assigned to the exact pushed commit.
+
+## Saved sidebar ordering - 2026-10-28
+
+Schema 58 preserves the previous source and album order, appends new definitions and saves relative
+drag moves in one prioritized transaction. Album retirement keeps its position for undo, while
+explicit source removal deletes its order entry. The typed ordering application and repository port
+own this independently of image-query revisions and organization decisions. The generated bridge
+was regenerated through `tool/bridge_generate.ps1`.
+
+Sixteen focused Rust checks pass: seven order/migration cases, three compatibility-repair admission
+cases, four historical index-migration cases and two exact module-loading admission/rejection cases.
+They cover upgrade and rollback, rename, reopening, 64-item album paging, missing anchors, failed
+writes, independent source order and removal/reimport. The new public domain module is explicitly
+included in the existing source-loading contract without relaxing its rejection cases.
+
+The Dart ordering owner serializes saves and reconciles concurrent arrivals/removals before rollback.
+The lazy framework list retires an active drag when the backing identities change, retaining its
+scroll controller; metadata-only refreshes keep the drag. Six focused ordering/controller checks and
+twenty existing navigation/semantics checks pass. The first drag test stopped before the final-row
+insertion threshold; its pointer movement was corrected to cross the actual target boundary.
+Scoped analysis with fatal infos and owned formatting pass.
+
+The final Flutter 3.47.8 Debug build completes in 24.3 seconds. In the retained isolated profile,
+native interaction moves the second album to the first position, creates a new album at the end,
+imports the existing 18-image landscape fixture alongside the retained 10,000-image corpus, and
+drags that top-level source above the original source. After closing and reopening the client, both
+saved orders and the new album remain in place. Ordinary album navigation, import and the shared
+section headings remain connected. Original media is unchanged; no new source corpus is generated.
+
+Production owners: ordering service 48 lines, ordering state 77, reorder list 113, shared heading 45,
+album row 71, album navigation 146, source navigation 456, SQL reorder 75, migration 131 and root views
+49; these contain no inline tests. The controller/widget suites contain 74/111 lines, and the SQL
+order/migration suites 177/120. The gallery facade retains 1,850 production lines and only composes
+the new boundary. The catalog facade has 3,431 production lines; the availability owner has 2,630
+production and 3,391 inline-test lines, with only its exact module inventory changed.
+Full automated gates remain assigned to the published commit. Sidebar multi-selection and batch
+management follow this ordering delivery in the roadmap.

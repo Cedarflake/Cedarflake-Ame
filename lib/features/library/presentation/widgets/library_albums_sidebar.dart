@@ -1,7 +1,6 @@
 import "package:flutter/material.dart";
 import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_scroll_motion.dart";
 import "library_gallery_message.dart";
 
 class LibraryAlbumsSidebar extends StatelessWidget {
@@ -18,12 +17,7 @@ class LibraryAlbumsSidebar extends StatelessWidget {
   Widget build(BuildContext context) => SizedBox(
     key: const Key("library-albums-navigation"),
     width: width,
-    child: AmeScrollMotion(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
-        children: [child],
-      ),
-    ),
+    child: child,
   );
 }
 

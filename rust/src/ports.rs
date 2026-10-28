@@ -12,6 +12,7 @@ pub(crate) mod organization_cleanup;
 pub(crate) mod organization_conflicts;
 pub(crate) mod organization_review;
 pub(crate) mod search_index;
+pub(crate) mod sidebar_order;
 pub use gallery_query::GalleryQueryRepository;
 mod source_reconciliation;
 pub(crate) use source_reconciliation::{

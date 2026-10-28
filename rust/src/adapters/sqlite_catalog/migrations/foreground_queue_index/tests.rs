@@ -92,6 +92,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "gallery_retained_fingerprints",
                 "library_metadata_fallbacks",
                 "organization_albums",
+                "organization_sidebar_album_order",
                 "organization_bindings",
                 "organization_conflicts",
                 "organization_operation_changes",
@@ -129,6 +130,10 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }
+            assert_eq!(
+                after.remove("library_sidebar_root_order"),
+                Some(vec![vec![Value::Text("root".into()), Value::Integer(0)]]),
+            );
             assert_eq!(
                 after.remove("organization_state"),
                 Some(vec![vec![Value::Integer(1), Value::Integer(0)]]),

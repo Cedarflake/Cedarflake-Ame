@@ -56,6 +56,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "organization_conflicts",
         "organization_queue",
         "organization_review",
+        "sidebar_order",
         "gallery_query_snapshot",
         "gallery_scroll_section",
         "gallery_time_snapshot",

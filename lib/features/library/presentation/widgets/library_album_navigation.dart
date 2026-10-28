@@ -1,27 +1,29 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_menu.dart";
-import "../../../../app/presentation/ame_overlay_semantics.dart";
-import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
+import "../../application/library_sidebar_order.dart";
 import "../../domain/library_gallery_collection.dart";
 import "../../domain/library_organization.dart";
 import "library_album_editor.dart";
+import "library_album_navigation_tile.dart";
+import "library_sidebar_reorder_list.dart";
+import "library_sidebar_section_header.dart";
 
 class LibraryAlbumNavigation extends ConsumerStatefulWidget {
   const LibraryAlbumNavigation({
     required this.collection,
     required this.enabled,
     required this.onSelect,
+    required this.header,
     super.key,
   });
   final LibraryGalleryCollection collection;
   final bool enabled;
   final ValueChanged<LibraryOrganizationAlbum> onSelect;
+  final Widget header;
 
   @override
   ConsumerState<LibraryAlbumNavigation> createState() =>
@@ -46,148 +48,99 @@ class _LibraryAlbumNavigationState
     );
   }
 
+  Widget _header(LibraryOrganizationAlbumPage? page, bool busy) => Column(
+    children: [
+      widget.header,
+      LibrarySidebarSectionHeader(
+        title: "相册",
+        createLabel: "新建相册",
+        createKey: const Key("library-sidebar-create-album"),
+        onCreate: !widget.enabled || busy || page == null
+            ? null
+            : () => _edit(LibraryAlbumEditKind.create, page.revision),
+      ),
+    ],
+  );
+
   @override
   Widget build(BuildContext context) {
     final page = ref.watch(libraryAlbumPageProvider(_after));
     final busy = ref.watch(
       libraryOrganizationActionsProvider.select((state) => state.saving),
     );
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 8, 4, 0),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  "相册",
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: ameFontWeightSemibold,
-                  ),
-                ),
+    return page.when(
+      skipLoadingOnRefresh: true,
+      data: (value) => LibrarySidebarReorderList<LibraryOrganizationAlbum>(
+        key: ValueKey(_after),
+        items: value.albums,
+        itemId: (album) => album.id,
+        enabled: widget.enabled && !busy,
+        onReorder: (move) => ref
+            .read(librarySidebarOrderProvider)
+            .move(LibrarySidebarKind.albums, move),
+        onSaved: () => ref.invalidate(libraryAlbumPageProvider),
+        header: (saving) => _header(value, busy || saving),
+        itemBuilder: (context, album, index, draggable) =>
+            ReorderableDragStartListener(
+              index: index,
+              enabled: draggable,
+              child: LibraryAlbumNavigationTile(
+                album: album,
+                selected:
+                    widget.collection ==
+                    LibraryGalleryCollection.album(album.id),
+                onSelect: widget.enabled ? () => widget.onSelect(album) : null,
+                onEdit: busy
+                    ? null
+                    : (kind) => _edit(kind, value.revision, album),
               ),
-              AmeTooltip(
-                message: "新建相册",
-                child: IconButton(
-                  key: const Key("library-sidebar-create-album"),
-                  onPressed:
-                      !widget.enabled ||
-                          busy ||
-                          page.isLoading ||
-                          page.value == null
-                      ? null
-                      : () => _edit(
-                          LibraryAlbumEditKind.create,
-                          page.value!.revision,
-                        ),
-                  icon: const Icon(Symbols.add_rounded),
-                ),
+            ),
+        footer: (saving) => _previous.isEmpty && value.nextAlbumId == null
+            ? const SizedBox.shrink()
+            : Row(
+                children: [
+                  TextButton(
+                    onPressed: saving || _previous.isEmpty
+                        ? null
+                        : () => setState(() => _after = _previous.removeLast()),
+                    child: const Text("上一页"),
+                  ),
+                  const Spacer(),
+                  TextButton(
+                    onPressed: saving || value.nextAlbumId == null
+                        ? null
+                        : () => setState(() {
+                            _previous.add(_after);
+                            _after = value.nextAlbumId;
+                          }),
+                    child: const Text("下一页"),
+                  ),
+                ],
               ),
-            ],
-          ),
-        ),
-        page.when(
-          skipLoadingOnRefresh: true,
-          data: (value) => Column(
-            children: [
-              for (final album in value.albums)
-                ListTile(
-                  key: ValueKey("library-sidebar-album-${album.id}"),
-                  selected:
-                      widget.collection ==
-                      LibraryGalleryCollection.album(album.id),
-                  selectedTileColor: Theme.of(
-                    context,
-                  ).colorScheme.secondaryContainer,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  contentPadding: const EdgeInsets.only(left: 16, right: 4),
-                  minLeadingWidth: 24,
-                  horizontalTitleGap: 12,
-                  leading: const SizedBox(
-                    width: 24,
-                    child: Icon(Symbols.photo_album_rounded),
-                  ),
-                  title: Text(
-                    album.name,
-                    style: TextStyle(
-                      fontWeight:
-                          widget.collection ==
-                              LibraryGalleryCollection.album(album.id)
-                          ? ameFontWeightSemibold
-                          : ameFontWeightMedium,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  onTap: widget.enabled ? () => widget.onSelect(album) : null,
-                  trailing: AmePopupMenuButton<LibraryAlbumEditKind>(
-                    labels: const ["重命名", "删除相册"],
-                    items: const [
-                      PopupMenuItem(
-                        value: LibraryAlbumEditKind.rename,
-                        child: AmeMenuItemContent(
-                          icon: Symbols.edit_rounded,
-                          label: "重命名",
-                        ),
-                      ),
-                      PopupMenuItem(
-                        value: LibraryAlbumEditKind.delete,
-                        child: AmeMenuItemContent(
-                          icon: Symbols.delete_rounded,
-                          label: "删除相册",
-                        ),
-                      ),
-                    ],
-                    onSelected: (kind) => _edit(kind, value.revision, album),
-                    builder: (context, openMenu) => AmeTooltip(
-                      message: "更多",
-                      child: IconButton(
-                        onPressed: busy ? null : openMenu,
-                        icon: const Icon(Symbols.more_vert_rounded),
-                      ),
-                    ),
-                  ),
-                ),
-              if (_previous.isNotEmpty || value.nextAlbumId != null)
-                Row(
-                  children: [
-                    TextButton(
-                      onPressed: _previous.isEmpty
-                          ? null
-                          : () =>
-                                setState(() => _after = _previous.removeLast()),
-                      child: const Text("上一页"),
-                    ),
-                    const Spacer(),
-                    TextButton(
-                      onPressed: value.nextAlbumId == null
-                          ? null
-                          : () => setState(() {
-                              _previous.add(_after);
-                              _after = value.nextAlbumId;
-                            }),
-                      child: const Text("下一页"),
-                    ),
-                  ],
-                ),
-            ],
-          ),
-          loading: () => const Padding(
+      ),
+      loading: () => ListView(
+        padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+        children: [
+          _header(null, true),
+          const Padding(
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: LinearProgressIndicator(),
           ),
-          error: (error, stack) => ListTile(
+        ],
+      ),
+      error: (error, stack) => ListView(
+        padding: const EdgeInsets.fromLTRB(8, 12, 8, 12),
+        children: [
+          _header(null, true),
+          ListTile(
             title: const Text("相册暂时无法加载"),
             trailing: TextButton(
               onPressed: () => ref.invalidate(libraryAlbumPageProvider(_after)),
               child: const Text("重试"),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }

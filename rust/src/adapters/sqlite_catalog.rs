@@ -16,9 +16,9 @@ use crate::domain::{
     ExpectedFileState, FileIdentityEvidence, GalleryLayoutDateGroup, GalleryLayoutManifestChunk,
     GalleryLayoutManifestCursor, GalleryQuery, GalleryTimeAnchor, GalleryTimeline,
     LibraryChangeLane, LibraryChangeQueuePolicy, LibraryFolderCursor, LibraryFolderPage,
-    LibraryRootAvailability, LibraryRootGeneration, LibraryRootView, PreviewArtifact,
-    PreviewReclamationCandidate, PreviewRequest, PreviewStatus, RecoverableScan, ScanCheckpoint,
-    ScanError, ScanIssue, ScanRequest, SourceRevisionEvidence,
+    LibraryRootGeneration, PreviewArtifact, PreviewReclamationCandidate, PreviewRequest,
+    PreviewStatus, RecoverableScan, ScanCheckpoint, ScanError, ScanIssue, ScanRequest,
+    SourceRevisionEvidence,
 };
 use crate::ports::CatalogRepository;
 
@@ -68,6 +68,8 @@ mod reusable_connection;
 #[cfg(windows)]
 mod root_location_recovery;
 mod root_unregistration;
+mod root_views;
+use root_views::load_root_views;
 mod scan_admission;
 mod scan_change_capture;
 mod scan_checkpoint;
@@ -82,6 +84,7 @@ mod scan_resumption;
 mod scan_staging;
 #[cfg(test)]
 mod session_open_diagnostics;
+mod sidebar_order;
 mod source_reconciliation;
 mod spool_retirement;
 mod write_admission;
@@ -127,7 +130,7 @@ pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
 #[cfg(test)]
 pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
-const SCHEMA_VERSION: i64 = 57;
+const SCHEMA_VERSION: i64 = 58;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
@@ -2822,47 +2825,6 @@ pub(super) fn establish_root_publication_namespace(
             .map_err(database_error)?;
     }
     Ok(())
-}
-
-fn load_root_views(transaction: &Transaction<'_>) -> Result<Vec<LibraryRootView>, ScanError> {
-    let mut statement = transaction
-        .prepare(
-            "SELECT roots.id, roots.path, roots.active_scan_id, roots.created_unix_ms,
-                    COALESCE(scans.asset_count, 0), COALESCE(scans.issue_count, 0)
-             FROM library_roots AS roots
-             LEFT JOIN scan_runs AS scans ON scans.id = roots.active_scan_id
-             ORDER BY roots.created_unix_ms, roots.id",
-        )
-        .map_err(database_error)?;
-    let rows = statement
-        .query_map([], |row| {
-            Ok((
-                row.get::<_, String>(0)?,
-                row.get::<_, String>(1)?,
-                row.get::<_, Option<String>>(2)?,
-                row.get::<_, i64>(3)?,
-                row.get::<_, i64>(4)?,
-                row.get::<_, i64>(5)?,
-            ))
-        })
-        .map_err(database_error)?;
-    let mut roots = Vec::new();
-    for row in rows {
-        let (root_id, path, active_scan_id, created_unix_ms, asset_count, issue_count) =
-            row.map_err(database_error)?;
-        roots.push(LibraryRootView {
-            root_id,
-            display_path: user_visible_path(&path),
-            path,
-            active_scan_id,
-            created_unix_ms,
-            asset_count: sqlite_unsigned(asset_count, "asset count")?,
-            issue_count: sqlite_unsigned(issue_count, "issue count")?,
-            availability: LibraryRootAvailability::Unknown,
-            availability_message: None,
-        });
-    }
-    Ok(roots)
 }
 
 fn normalize_relative_folder(value: &str) -> String {

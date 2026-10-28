@@ -18,6 +18,28 @@ Albums owns a separate flat album sidebar and uses the same photo wall.
 The other workspaces own their contextual controls without duplicating the catalog or viewer.
 The accepted interaction blueprint is in [the gallery contract](../product/gallery-ui.md#workbench-blueprint).
 
+Sidebar order belongs to a separate typed application/repository boundary. Schema 58 stores one
+position per imported root and album, preserving the previous visible order on upgrade. Creation
+appends, rename and catalog publication retain positions, and explicit removal retires the matching
+position. Album retirement retains its slot for undo. Relative moves revalidate both current items
+and update the affected interval in one prioritized user transaction, without reading source media
+or changing image-query revisions. Album keyset pages follow the saved positions.
+
+Navigation order is local presentation state. Normal reindexing retains the configured roots and
+album definitions and therefore their order. Catalog snapshots include it; portable organization
+archives retain their decision-recovery contract and append newly restored definitions to the local
+sidebar without overwriting an existing arrangement. A forward migration and verified pre-upgrade
+snapshot provide the existing upgrade/rollback boundary.
+
+Library and Albums use one section-heading component below their Library and Favorites entries.
+The heading's trailing plus imports a root or creates an album. Flutter 3.47.8's
+`ReorderableListView.builder`, `ReorderableDragStartListener` and `onReorderItem` provide lazy rows,
+drag geometry, scrolling and reorder semantics. Only the imported root row starts a folder drag;
+its expanded descendants remain ordinary navigation. The presentation order owner serializes saves,
+retains current item identities through metadata updates, appends new items and restores the prior
+order on failure through the shared feedback surface. It does not reorder gallery images or mutate
+physical folders.
+
 Use the existing Flutter Material 3 design system. The installed Flutter 3.44.9 SDK provides
 `NavigationRail` with destination selection, labels, focus, semantics and a bottom trailing action;
 `Visibility.maintainState`, `TickerMode` and `ExcludeFocus` retain inactive workspace state while

@@ -21,6 +21,7 @@ import "../application/library_organization_actions.dart";
 import "../application/library_organization_publication.dart";
 import "../application/library_organization_conflicts.dart";
 import "../application/library_review.dart";
+import "../application/library_sidebar_order.dart";
 import "../application/library_query_projection.dart";
 import "../application/library_synchronization.dart";
 import "../application/library_update_controller.dart";
@@ -679,24 +680,20 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           : null,
       albumsNavigationBuilder: (width) => LibraryAlbumsSidebar(
         width: width,
-        child: Column(
-          children: [
-            favorites,
-            LibraryAlbumNavigation(
-              collection: collection,
-              enabled: LibraryBrowseAdmission(state).canBrowse,
-              onSelect: (album) => unawaited(
-                _applyQuery(
-                  state.query.copyWith(
-                    collection: LibraryGalleryCollection.album(album.id),
-                    rootId: null,
-                    folderRelativePath: null,
-                  ),
-                  preserveGalleryPosition: false,
-                ),
+        child: LibraryAlbumNavigation(
+          header: favorites,
+          collection: collection,
+          enabled: LibraryBrowseAdmission(state).canBrowse,
+          onSelect: (album) => unawaited(
+            _applyQuery(
+              state.query.copyWith(
+                collection: LibraryGalleryCollection.album(album.id),
+                rootId: null,
+                folderRelativePath: null,
               ),
+              preserveGalleryPosition: false,
             ),
-          ],
+          ),
         ),
       ),
       navigationBuilder: (width) => LibraryNavigation(
@@ -746,6 +743,9 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
         onOpenRoot: _openRoot,
         onOpenFolder: _openFolder,
         onRemoveRoot: _confirmRemoveRoot,
+        onReorder: (move) => ref
+            .read(librarySidebarOrderProvider)
+            .move(LibrarySidebarKind.sourceFolders, move),
       ),
       galleryBuilder: (_) => LibraryGalleryActivity(
         controller: controller,

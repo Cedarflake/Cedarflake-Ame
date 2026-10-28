@@ -16,6 +16,7 @@ import 'api/organization_cleanup.dart';
 import 'api/organization_conflicts.dart';
 import 'api/organization_review.dart';
 import 'api/preview.dart';
+import 'api/sidebar_order.dart';
 import 'api/storage.dart';
 import 'api/synchronization.dart';
 import 'api/viewer_source.dart';
@@ -39,6 +40,7 @@ import 'domain/organization_conflicts.dart';
 import 'domain/organization_queue.dart';
 import 'domain/organization_review.dart';
 import 'domain/persistent_journal.dart';
+import 'domain/sidebar_order.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated_web.dart';
 
@@ -940,6 +942,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest dco_decode_scan_request(dynamic raw);
+
+  @protected
+  SidebarOrderKind dco_decode_sidebar_order_kind(dynamic raw);
+
+  @protected
+  SidebarOrderPlacement dco_decode_sidebar_order_placement(dynamic raw);
 
   @protected
   SourceRevisionEvidence dco_decode_source_revision_evidence(dynamic raw);
@@ -2065,6 +2073,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ScanRequest sse_decode_scan_request(SseDeserializer deserializer);
+
+  @protected
+  SidebarOrderKind sse_decode_sidebar_order_kind(SseDeserializer deserializer);
+
+  @protected
+  SidebarOrderPlacement sse_decode_sidebar_order_placement(
+    SseDeserializer deserializer,
+  );
 
   @protected
   SourceRevisionEvidence sse_decode_source_revision_evidence(
@@ -3421,6 +3437,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_scan_request(ScanRequest self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_sidebar_order_kind(
+    SidebarOrderKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_sidebar_order_placement(
+    SidebarOrderPlacement self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_source_revision_evidence(

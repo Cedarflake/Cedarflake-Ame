@@ -151,7 +151,9 @@ mode appends its displayed count, for example `10000 张图片 · 去重后 72 �
 Ordinary and not-yet-analysed images remain visible. Remember the user's display choice. Each
 confirmed duplicate card has a top-left stacked-image action only in `合并重复图片`; `全部图片`
 has no duplicate card action. The card action shows no count, and the top-right selection checkbox
-keeps its existing independent action. Clicking the duplicate action
+keeps its existing independent action. Both controls use compact 28-pixel rounded-square marks in
+transparent 40-pixel click targets, with the existing Material Symbols icons and no outer filled disc.
+Clicking the duplicate action
 opens a bottom sheet with separate filename and folder lines and a current-image marker;
 clicking a location reveals that file in File Explorer. Long filenames and paths wrap completely
 inside the sheet's continuously scrolling list, with bounded incremental reads and no pagination
@@ -271,7 +273,7 @@ behind each corner. Theme-derived tonal surfaces distinguish these levels withou
 
 The Library sidebar contains only navigation and source scope:
 
-- `图库` with a trailing folder-plus add-source action;
+- `图库` followed by a separate `文件夹` heading with the trailing import action;
 - imported folders in one aligned source list, without separating OneDrive and local folders into
   different navigation hierarchies;
 - expandable folder trees when functional.
@@ -287,6 +289,18 @@ resizing and transition remain shared.
 The album creation button and each album's More button share the same trailing alignment and inset.
 The album section heading uses semibold. Album names match Favorites and folder navigation: medium
 by default and semibold when selected, retaining the existing font sizes and selected-state colors.
+Library and Albums share the same sidebar structure: the Library/Favorites destination comes first,
+followed by a `文件夹`/`相册` section heading. The plus button on the right of that heading imports a
+source folder or creates an album. The Library destination itself has no trailing import action.
+Library sidebar multi-selection includes only imported top-level sources. Child-folder rows remain
+browsing destinations, with no selection control, and are excluded from Select all and batch removal.
+Albums and imported top-level folders support saved drag order. Upgrade preserves the existing order;
+new entries append, and renames, refreshes and restarts retain the arrangement. Child-folder ordering
+and physical paths are unchanged. Album pages follow the same saved order.
+In sidebar multi-selection, an unselected row retains its original leading icon. A selected row uses
+a filled circular check from the existing icon library. The heading contains Select all and the
+selected count, with removal/deletion immediately left of the plus. Normal navigation resumes after
+selection is cleared; dragging is available outside multi-selection.
 
 `收藏夹` scopes the gallery by favorite state independently of album membership. Albums do not nest,
 and each current image group has at most one confirmed album assignment. A group can appear in

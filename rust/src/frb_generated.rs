@@ -42,7 +42,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.12.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1358035394;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1076707641;
 
 // Section: executor
 
@@ -2862,6 +2862,50 @@ fn wire__crate__api__organization__rename_organization_album_impl(
                         api_expected_revision,
                         api_album_id,
                         api_name,
+                    )?;
+                    Ok(output_ok)
+                })())
+            }
+        },
+    )
+}
+fn wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_normal::<flutter_rust_bridge::for_generated::SseCodec, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "reorder_sidebar_entry",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_kind =
+                <crate::domain::sidebar_order::SidebarOrderKind>::sse_decode(&mut deserializer);
+            let api_entry_id = <String>::sse_decode(&mut deserializer);
+            let api_anchor_id = <String>::sse_decode(&mut deserializer);
+            let api_placement = <crate::domain::sidebar_order::SidebarOrderPlacement>::sse_decode(
+                &mut deserializer,
+            );
+            deserializer.end();
+            move |context| {
+                transform_result_sse::<_, crate::domain::ScanError>((move || {
+                    let output_ok = crate::api::sidebar_order::reorder_sidebar_entry(
+                        api_kind,
+                        api_entry_id,
+                        api_anchor_id,
+                        api_placement,
                     )?;
                     Ok(output_ok)
                 })())
@@ -6567,6 +6611,30 @@ impl SseDecode for crate::domain::ScanRequest {
     }
 }
 
+impl SseDecode for crate::domain::sidebar_order::SidebarOrderKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::sidebar_order::SidebarOrderKind::Albums,
+            1 => crate::domain::sidebar_order::SidebarOrderKind::SourceFolders,
+            _ => unreachable!("Invalid variant for SidebarOrderKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::sidebar_order::SidebarOrderPlacement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::sidebar_order::SidebarOrderPlacement::Before,
+            1 => crate::domain::sidebar_order::SidebarOrderPlacement::After,
+            _ => unreachable!("Invalid variant for SidebarOrderPlacement: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::domain::SourceRevisionEvidence {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -7061,71 +7129,77 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        73 => wire__crate__api__organization_archive__restore_organization_archive_impl(
+        71 => wire__crate__api__sidebar_order__reorder_sidebar_entry_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => {
+        74 => wire__crate__api__organization_archive__restore_organization_archive_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        75 => {
             wire__crate__api__catalog__resume_library_scan_impl(port, ptr, rust_vec_len, data_len)
         }
-        75 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
-        76 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
+        76 => wire__crate__api__catalog__scan_library_impl(port, ptr, rust_vec_len, data_len),
+        77 => wire__crate__api__exact_duplicate_review__seek_exact_duplicate_review_groups_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
+        78 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_ignored_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
+        79 => wire__crate__api__exact_duplicate_review__set_exact_duplicate_preference_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => wire__crate__api__organization__set_organization_favorite_impl(
+        80 => wire__crate__api__organization__set_organization_favorite_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
+        81 => wire__crate__api__storage__start_catalog_database_reclamation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        81 => wire__crate__api__synchronization__start_library_synchronization_impl(
+        82 => wire__crate__api__synchronization__start_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        82 => wire__crate__api__organization__step_organization_history_impl(
+        83 => wire__crate__api__organization__step_organization_history_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        83 => wire__crate__api__synchronization__stop_library_synchronization_impl(
+        84 => wire__crate__api__synchronization__stop_library_synchronization_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        85 => wire__crate__api__organization__undo_organization_operation_impl(
+        86 => wire__crate__api__organization__undo_organization_operation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        86 => wire__crate__api__storage__update_storage_settings_impl(
+        87 => wire__crate__api__storage__update_storage_settings_impl(
             port,
             ptr,
             rust_vec_len,
@@ -7170,17 +7244,17 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         65 => wire__crate__api__catalog__pause_library_scan_impl(ptr, rust_vec_len, data_len),
-        71 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
+        72 => wire__crate__api__synchronization__reserve_library_synchronization_start_ticket_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
+        73 => wire__crate__api__synchronization__reserve_library_synchronization_stop_fence_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        84 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
+        85 => wire__crate__api__catalog__suspend_library_scan_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -10375,6 +10449,48 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::ScanRequest> for crate::do
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::sidebar_order::SidebarOrderKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Albums => 0.into_dart(),
+            Self::SourceFolders => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::sidebar_order::SidebarOrderKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::sidebar_order::SidebarOrderKind>
+    for crate::domain::sidebar_order::SidebarOrderKind
+{
+    fn into_into_dart(self) -> crate::domain::sidebar_order::SidebarOrderKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::sidebar_order::SidebarOrderPlacement {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Before => 0.into_dart(),
+            Self::After => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::sidebar_order::SidebarOrderPlacement
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::sidebar_order::SidebarOrderPlacement>
+    for crate::domain::sidebar_order::SidebarOrderPlacement
+{
+    fn into_into_dart(self) -> crate::domain::sidebar_order::SidebarOrderPlacement {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::SourceRevisionEvidence {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -13009,6 +13125,38 @@ impl SseEncode for crate::domain::ScanRequest {
         <Option<u32>>::sse_encode(self.max_items, serializer);
         <Option<u32>>::sse_encode(self.max_entries, serializer);
         <u32>::sse_encode(self.preview_edge, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::sidebar_order::SidebarOrderKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::sidebar_order::SidebarOrderKind::Albums => 0,
+                crate::domain::sidebar_order::SidebarOrderKind::SourceFolders => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::sidebar_order::SidebarOrderPlacement {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::sidebar_order::SidebarOrderPlacement::Before => 0,
+                crate::domain::sidebar_order::SidebarOrderPlacement::After => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
     }
 }
 
