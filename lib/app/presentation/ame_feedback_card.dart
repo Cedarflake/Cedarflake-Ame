@@ -52,18 +52,15 @@ class AmeFeedbackCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Icon(
-                    icon ?? ameNotificationIcon(severity),
-                    color: ameNotificationIconColor(
-                      Theme.of(context).colorScheme,
-                      severity,
-                    ),
-                    size: ameNotificationIconSize,
+                Icon(
+                  icon ?? ameNotificationIcon(severity),
+                  color: ameNotificationIconColor(
+                    Theme.of(context).colorScheme,
+                    severity,
                   ),
+                  size: ameNotificationIconSize,
                 ),
                 const SizedBox(width: 12),
                 Expanded(

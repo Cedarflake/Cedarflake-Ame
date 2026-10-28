@@ -837,6 +837,8 @@ text-button construction, including disabled callbacks and action keys. Callers 
 button styles through the template.
 
 Bottom cards retain padding `(20, 14, 12, 12)`, a 12-pixel icon gap and a 10-pixel progress gap.
+The icon, text block and action labels share a vertical center. Single-line results align on one
+line; additional message/detail lines expand the text block without top-aligning it against buttons.
 Title, message and detail use `titleSmall`, `bodyMedium` and secondary `bodySmall`. A multi-root list
 is capped at 360 pixels and scrolls through the existing list owner. Bottom feedback stays centered
 24 pixels above the window edge in ordinary and organization modes; the upper organization toolbar

@@ -35,6 +35,10 @@ hover/focus/accessibility retention. The template test also rejects direct Snack
 outside the shared transport. An initial typography assertion compared an unresolved ThemeData style;
 it now checks the resolved MaterialApp theme without changing product typography.
 
+The alignment follow-up corrects the retained top-aligned bottom row. Its nine template checks pass,
+including explicit icon/text/action center comparisons for single-line results and multi-line text
+blocks in both themes. This adds the geometric assertion missing from the initial template checks.
+
 Scoped Dart analysis reports no issues. The final Windows Debug build succeeds. Hosted verification
 is owned by the exact delivery commit's Quality / CI run; these local results do not replace it.
 
@@ -53,10 +57,14 @@ current counts, progress and cancellation control, then the completed result for
 The source returns to its synchronized state and the result dismisses. Source media and the original
 catalog are not modified. This check adds no test corpus or second library copy.
 
+The alignment follow-up rebuild reproduces the single-line Favorite result in the same client:
+its icon, title, Undo and acknowledgement now share one vertical center. The test favorite is then
+removed through the viewer, restoring the group's previous value.
+
 ## Physical ownership
 
 All affected Dart production files have zero inline tests. The shared style/card/transport contain
-59/116/36 production lines; the top notice contains 62. The large composition owners remain narrow:
+59/113/36 production lines; the top notice contains 62. The large composition owners remain narrow:
 `unified_library_screen.dart` has 1,850 production lines with one obsolete argument removed;
 `library_image_viewer.dart` has 425 with two transient-message calls migrated. No new lifecycle is
-added to either. Dedicated template and task-surface regressions contain 158 and 364 lines.
+added to either. Dedicated template and task-surface regressions contain 202 and 364 lines.

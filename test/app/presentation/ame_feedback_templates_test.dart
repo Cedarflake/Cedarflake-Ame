@@ -33,6 +33,38 @@ void main() {
   });
 
   for (final brightness in Brightness.values) {
+    testWidgets(
+      "single-line feedback aligns content and actions in $brightness",
+      (tester) async {
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: buildAmeTheme(brightness: brightness),
+            home: Scaffold(
+              body: Center(
+                child: AmeFeedbackCard(
+                  title: "已加入收藏夹",
+                  severity: AmeNotificationSeverity.success,
+                  actions: [
+                    AmeFeedbackAction(label: "撤销", onPressed: () {}),
+                    AmeFeedbackAction(label: "知道了", onPressed: () {}),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+        final contentCenter = tester.getCenter(find.text("已加入收藏夹")).dy;
+        for (final element in [
+          find.byIcon(Symbols.check_circle_rounded),
+          find.text("撤销"),
+          find.text("知道了"),
+        ]) {
+          expect(tester.getCenter(element).dy, closeTo(contentCenter, 0.5));
+        }
+        expect(tester.takeException(), isNull);
+      },
+    );
+
     testWidgets("bottom card preserves layout and actions in $brightness", (
       tester,
     ) async {
@@ -75,6 +107,18 @@ void main() {
       expect(
         tester.getRect(find.byType(LinearProgressIndicator)).top,
         greaterThan(tester.getRect(find.text("已保留现有图片")).bottom),
+      );
+      final textBlockCenter =
+          (tester.getTopLeft(find.text("更新受阻")).dy +
+              tester.getBottomLeft(find.text("已保留现有图片")).dy) /
+          2;
+      expect(
+        tester.getCenter(find.byIcon(Symbols.error_rounded)).dy,
+        closeTo(textBlockCenter, 0.5),
+      );
+      expect(
+        tester.getCenter(find.text("重试")).dy,
+        closeTo(textBlockCenter, 0.5),
       );
       await tester.tap(find.text("重试"));
       expect(retries, 1);
