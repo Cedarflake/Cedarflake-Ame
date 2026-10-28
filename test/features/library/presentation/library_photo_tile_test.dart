@@ -5,6 +5,7 @@ import "dart:io";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:cedarflake_ame/features/library/application/library_preview_queue.dart";
 import "package:cedarflake_ame/features/library/application/library_previewer.dart";
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
@@ -19,6 +20,7 @@ import "package:flutter/services.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "../support/library_query_snapshot_fixture.dart";
+import "../support/library_organization_fixture.dart";
 
 void main() {
   for (final sample in [
@@ -135,6 +137,9 @@ void main() {
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
+          libraryOrganizationProvider.overrideWithValue(
+            OrganizationServiceFixture(),
+          ),
           initialLibraryStateProvider.overrideWithValue(
             LibraryState.fromSnapshot(snapshot),
           ),
@@ -172,7 +177,7 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(6));
     expect(find.byType(MenuAnchor), findsNothing);
 
     await tester.tap(find.text(LibraryStrings.copyPath));
@@ -186,7 +191,7 @@ void main() {
     await tester.sendKeyEvent(LogicalKeyboardKey.contextMenu);
     await tester.pumpAndSettle();
 
-    expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
+    expect(find.byType(AmeMenuItemContent), findsNWidgets(6));
     await tester.sendKeyEvent(LogicalKeyboardKey.escape);
     await tester.pumpAndSettle();
   });

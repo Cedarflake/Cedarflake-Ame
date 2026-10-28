@@ -162,8 +162,10 @@ R3's selected workflow are handled at their owning layer under the repository co
 The requested R4 sidebar-management follow-up connects saved drag ordering for albums and imported
 top-level source folders, icon-initiated multi-selection and batch album deletion/source removal.
 Library and Albums use matching destination and section-heading rows, with creation/import at the
-heading's trailing edge. Focused checks and controlled native batch interactions pass. The requested
-album and image-card context menus follow, reusing existing commands and current-state decisions.
+heading's trailing edge. Focused checks and controlled native batch interactions pass. Album and
+image-card context menus now reuse existing commands and current-state decisions, with focused and
+native checks for their connected entrypoints. Compact selection controls and primary-workspace
+selection reset retain their own verified boundary.
 Child-folder ordering is unchanged. These requested controls precede the
 remaining retained-library performance work and retain the existing source-safety and recovery rules.
 

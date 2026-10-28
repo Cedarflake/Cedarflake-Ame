@@ -60,6 +60,14 @@ confirmed stale authority through the existing command owner. Album retirement u
 history, undo and publication; source removal retains its path admission, committed display projection
 and source-record cleanup. No new schema, source mutation or all-or-nothing batch guarantee is added.
 
+Album More, secondary-click and keyboard menus share one Material popup owner and capture the album
+identity and callback when opened. A separate photo context-menu owner admits one bounded group
+inspection, freezes image identity/callbacks, rejects stale or disposed completions and reuses guarded
+Favorite and membership commands. The shared album sheet owns selection, errors and confirmation;
+direct membership removal uses the existing notice/retry path. Popup placement, keyboard navigation,
+focus return and dismissal remain in the installed SDK's existing Material menu route. No new
+overlay, database access, source operation or menu package is introduced.
+
 Use the existing Flutter Material 3 design system. The installed Flutter 3.44.9 SDK provides
 `NavigationRail` with destination selection, labels, focus, semantics and a bottom trailing action;
 `Visibility.maintainState`, `TickerMode` and `ExcludeFocus` retain inactive workspace state while

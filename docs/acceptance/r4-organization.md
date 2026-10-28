@@ -3732,4 +3732,26 @@ UIA probe sees the new selection tooltip merged into the source row; an explicit
 now keeps that action separate. The controlled scan workflow's album helper ambiguously matches the
 new selection and existing More buttons; it now addresses the stable More key and waits for admission.
 Twenty navigation/retained-semantics checks and the Windows pointer/keyboard/selection-semantics
-regression pass. The platform workflows remain assigned to the corrective published head.
+regression pass. Corrective run `40633437818` passes both Windows accessibility and scan jobs.
+
+## Album and photo context menus - 2026-10-28
+
+Album More, secondary-click and keyboard entrypoints share the existing edit choices. Photo menus
+read one group's current state on demand and expose the appropriate Favorite and album actions.
+The separate menu owner rejects late reads and callbacks after target replacement or disposal;
+normal photo selection is unchanged. Album assignment/movement use the shared bottom tray, and
+direct removal uses the existing guarded command with notice-based retry. No schema, source-file
+operation or dependency changes are included.
+
+Twenty-five focused checks pass: two album-menu cases, five photo-menu state/command/failure/stale
+cases, fourteen photo-tile cases, sidebar album selection and three integrated gallery-selection
+cases. Scoped analysis with fatal infos and owned formatting pass. The final Debug build completes
+in 24.6 seconds. The existing isolated native profile verifies Favorite/unfavorite through the
+photo menu, matching subsequent labels and shared transient feedback, unassigned and assigned
+bottom-tray entry/cancellation, and album secondary-click-to-rename/cancellation. Favorite state is
+restored and album assignments/names remain unchanged. Existing guarded membership and album-edit
+verification remains applicable; native deletion is not replayed for another entrypoint.
+
+Production owners have no inline tests: photo menu 196 lines, photo tile 427, album row/menu 156 and
+album requests 180. The new dedicated menu suites contain 189/84 lines. The gallery facade is
+unchanged. Hosted gates for the published menu head remain separate from preceding CI results.

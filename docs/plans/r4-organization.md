@@ -248,6 +248,9 @@ their distinct data effects, including surviving duplicate groups and deliberate
 Source selection, Select all and batch removal include imported top-level folders only; expanded
 child folders retain ordinary browsing without selection checkboxes.
 Verify cancellation, partial/stale admission, disposal and normal navigation after selection ends.
+Album rows also expose their existing edit menu through secondary click and keyboard gestures.
+Image-card menus use current group state for Favorite and album actions, retain existing selection,
+and reject delayed actions after target replacement. Reuse the album tray and guarded commands.
 
 ## R4-06: Export, restoration and unresolved-record cleanup
 

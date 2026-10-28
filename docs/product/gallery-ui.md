@@ -465,15 +465,23 @@ execution appears only when R9's implementation and safety gates are accepted.
 
 Every gallery item supports a Material context menu opened by secondary click or the platform
 keyboard context-menu gesture. It targets the item under the pointer without losing an existing
-multi-selection. R2b connects only actions with real non-mutating or catalog-only behavior:
+multi-selection. The connected actions are:
 
 - `打开`;
+- `加入收藏夹` or `取消收藏`, according to the current group's Favorite state;
+- `加入相册` for an unassigned group, or `移至其他相册` and `移出相册` for an assigned group;
 - `查看信息`;
 - `复制路径`;
 - `在文件资源管理器中打开`.
 
-Later stages may add `查看重复位置`, `加入相册`, and other accepted actions when their underlying use
-cases exist. Edit, print, share, move, copy-file, rename, and delete actions from Microsoft Photos
+Album conflicts expose `选择相册` through the existing resolution tray. Assignment and movement use
+the shared bottom album tray; direct removal and Favorite changes use existing commands and feedback.
+The menu freezes its opening image identity and callbacks; a replaced or retired target cannot receive
+a late action. Reading current organization state is bounded to that one group. Read failure leaves
+basic file-inspection actions available and reports reopening the menu as the recovery action.
+Album rows expose the same rename/delete menu through More, secondary click and keyboard gestures.
+An album replaced while its menu is open cannot receive the old action.
+Edit, print, share, move, copy-file, rename, and delete actions from Microsoft Photos
 are not copied as inert placeholders. Menu placement, focus, dismissal, keyboard navigation, and
 semantics use Flutter Material primitives rather than a hand-built overlay.
 

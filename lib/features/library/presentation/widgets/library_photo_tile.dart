@@ -4,19 +4,18 @@ import "dart:io";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
-import "package:material_symbols_icons/symbols.dart";
 
-import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_popup_menu_position.dart";
 import "../../application/library_controller.dart";
 import "../../application/library_preview_queue.dart";
 import "../../application/library_preview_store.dart";
 import "../../domain/library_models.dart";
-import "../library_strings.dart";
+import "../../domain/library_organization.dart";
 import "library_cover_preview_size.dart";
 import "library_conflict_label.dart";
 import "library_image_reveal.dart";
 import "library_photo_tile_actions.dart";
+import "library_photo_context_menu.dart";
 import "library_preview_feedback.dart";
 
 int libraryPreviewDecodeWidth(double logicalWidth, double devicePixelRatio) {
@@ -65,6 +64,7 @@ class LibraryPhotoTile extends ConsumerStatefulWidget {
 
 class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   final FocusNode _focusNode = FocusNode(debugLabel: "Library photo tile");
+  final _contextMenu = LibraryPhotoContextMenu();
   late final LibraryController _controller;
   late Stream<void> _previewChanges;
   LibraryPreviewSourceIdentity? _previewRepairSource;
@@ -101,6 +101,7 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   @override
   void dispose() {
     _retryGeneration++;
+    _contextMenu.dispose();
     _focusNode.dispose();
     super.dispose();
   }
@@ -403,62 +404,24 @@ class _LibraryPhotoTileState extends ConsumerState<LibraryPhotoTile> {
   }
 
   Future<void> _showContextMenu(RelativeRect position) async {
-    final action = await showAmePopupMenu<_LibraryPhotoMenuAction>(
-      context: context,
-      position: position,
-      labels: const [
-        LibraryStrings.open,
-        LibraryStrings.viewInformation,
-        LibraryStrings.copyPath,
-        LibraryStrings.openInExplorer,
-      ],
-      items: const [
-        PopupMenuItem(
-          value: _LibraryPhotoMenuAction.open,
-          child: AmeMenuItemContent(
-            icon: Symbols.open_in_full_rounded,
-            label: LibraryStrings.open,
-          ),
-        ),
-        PopupMenuItem(
-          value: _LibraryPhotoMenuAction.information,
-          child: AmeMenuItemContent(
-            icon: Symbols.info_rounded,
-            label: LibraryStrings.viewInformation,
-          ),
-        ),
-        PopupMenuDivider(height: AmeMenuMetrics.dividerHeight),
-        PopupMenuItem(
-          value: _LibraryPhotoMenuAction.copyPath,
-          child: AmeMenuItemContent(
-            icon: Symbols.content_copy_rounded,
-            label: LibraryStrings.copyPath,
-          ),
-        ),
-        PopupMenuItem(
-          value: _LibraryPhotoMenuAction.reveal,
-          child: AmeMenuItemContent(
-            icon: Symbols.folder_open_rounded,
-            label: LibraryStrings.openInExplorer,
-          ),
-        ),
-      ],
-    );
-    if (!mounted || action == null) {
-      return;
-    }
     final asset = widget.asset;
-    switch (action) {
-      case _LibraryPhotoMenuAction.open:
-        widget.onOpen(_controller.resolvePreview(asset));
-      case _LibraryPhotoMenuAction.information:
-        widget.onViewInformation(asset);
-      case _LibraryPhotoMenuAction.copyPath:
-        widget.onCopyPath(asset);
-      case _LibraryPhotoMenuAction.reveal:
-        widget.onRevealFile(asset);
-    }
+    final target = LibraryOrganizationTarget.fromAsset(asset);
+    final onOpen = widget.onOpen;
+    final onInformation = widget.onViewInformation;
+    final onCopyPath = widget.onCopyPath;
+    final onReveal = widget.onRevealFile;
+    await _contextMenu.open(
+      context: context,
+      ref: ref,
+      position: position,
+      target: target,
+      isCurrent: () =>
+          mounted &&
+          LibraryOrganizationTarget.fromAsset(widget.asset) == target,
+      onOpen: () => onOpen(_controller.resolvePreview(asset)),
+      onInformation: () => onInformation(asset),
+      onCopyPath: () => onCopyPath(asset),
+      onReveal: () => onReveal(asset),
+    );
   }
 }
-
-enum _LibraryPhotoMenuAction { open, information, copyPath, reveal }

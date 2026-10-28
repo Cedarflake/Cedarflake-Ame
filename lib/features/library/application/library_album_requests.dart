@@ -169,3 +169,12 @@ class LibraryAlbumMembershipRequest extends LibraryOrganizationRequest {
     _prepared = null;
   }
 }
+
+class LibraryAlbumRemovalRequest extends LibraryAlbumMembershipRequest {
+  LibraryAlbumRemovalRequest(LibraryOrganizationTarget target)
+    : super(targets: [target], isMove: true);
+
+  @override
+  LibraryOrganizationErrorSurface get errorSurface =>
+      LibraryOrganizationErrorSurface.notice;
+}

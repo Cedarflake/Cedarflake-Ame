@@ -1,12 +1,14 @@
 import "package:cedarflake_ame/app/ame_app.dart";
 import "package:cedarflake_ame/app/presentation/ame_menu.dart";
 import "package:cedarflake_ame/features/library/application/library_controller.dart";
+import "package:cedarflake_ame/features/library/application/library_organization.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
 
 import "support/library_screen_fixture.dart";
+import "../support/library_organization_fixture.dart";
 
 void main() {
   testWidgets("reveals a checkbox on hover and keeps selection visible", (
@@ -63,39 +65,45 @@ void main() {
     expect(find.byKey(const Key("library-browsing-toolbar")), findsOneWidget);
   });
 
-  testWidgets("opens the read-only photo context menu on secondary click", (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(1280, 800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
+  testWidgets(
+    "opens the photo context menu with organization actions on secondary click",
+    (tester) async {
+      tester.view.physicalSize = const Size(1280, 800);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
 
-    await tester.pumpWidget(
-      ProviderScope(
-        overrides: [
-          initialLibraryStateProvider.overrideWithValue(
-            populatedScreenState(totalItems: 1),
-          ),
-        ],
-        child: const AmeApp(),
-      ),
-    );
-    await tester.pump();
+      await tester.pumpWidget(
+        ProviderScope(
+          overrides: [
+            libraryOrganizationProvider.overrideWithValue(
+              OrganizationServiceFixture(),
+            ),
+            initialLibraryStateProvider.overrideWithValue(
+              populatedScreenState(totalItems: 1),
+            ),
+          ],
+          child: const AmeApp(),
+        ),
+      );
+      await tester.pump();
 
-    await tester.tap(
-      find.byKey(const ValueKey("location-1")),
-      buttons: kSecondaryMouseButton,
-    );
-    await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(const ValueKey("location-1")),
+        buttons: kSecondaryMouseButton,
+      );
+      await tester.pumpAndSettle();
 
-    expect(find.text("打开"), findsOneWidget);
-    expect(find.text("查看信息"), findsOneWidget);
-    expect(find.text("复制路径"), findsOneWidget);
-    expect(find.text("在文件资源管理器中打开"), findsOneWidget);
-    expect(find.text("删除"), findsNothing);
-    expect(find.byType(AmeMenuItemContent), findsNWidgets(4));
-  });
+      expect(find.text("打开"), findsOneWidget);
+      expect(find.text("查看信息"), findsOneWidget);
+      expect(find.text("复制路径"), findsOneWidget);
+      expect(find.text("在文件资源管理器中打开"), findsOneWidget);
+      expect(find.text("删除"), findsNothing);
+      expect(find.text("加入收藏夹"), findsOneWidget);
+      expect(find.text("加入相册"), findsOneWidget);
+      expect(find.byType(AmeMenuItemContent), findsNWidgets(6));
+    },
+  );
 
   testWidgets("select all covers the complete query instead of loaded tiles", (
     tester,
