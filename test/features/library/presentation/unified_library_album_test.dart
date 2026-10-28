@@ -82,9 +82,9 @@ void main() {
       );
 
       Future<void> openMenu() async {
-        await tester.tap(
-          find.descendant(of: albumTile, matching: find.byType(IconButton)),
-        );
+        final menu = find.byKey(const ValueKey("library-sidebar-album-menu-a"));
+        await tester.pumpAndSettle();
+        await tester.tap(menu);
         await tester.pumpAndSettle();
       }
 

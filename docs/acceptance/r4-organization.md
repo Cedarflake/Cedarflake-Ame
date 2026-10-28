@@ -3755,3 +3755,8 @@ verification remains applicable; native deletion is not replayed for another ent
 Production owners have no inline tests: photo menu 196 lines, photo tile 427, album row/menu 156 and
 album requests 180. The new dedicated menu suites contain 189/84 lines. The gallery facade is
 unchanged. Hosted gates for the published menu head remain separate from preceding CI results.
+
+Run `40634756804` passes the Windows scan and accessibility paths, but the integrated Flutter album
+test still assumes that an album row contains only one icon button. The helper now selects the
+stable More key after the current navigation settles. Its existing navigation, rename, deletion,
+undo and transient-notification assertions pass in the focused rerun. Production behavior is unchanged.
