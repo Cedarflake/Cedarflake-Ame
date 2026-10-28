@@ -1,5 +1,6 @@
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_selection_icon.dart";
 import "package:cedarflake_ame/features/library/presentation/widgets/library_sidebar_selection_region.dart";
+import "package:flutter/foundation.dart";
 import "package:flutter/gestures.dart";
 import "package:flutter/material.dart";
 import "package:flutter/services.dart";
@@ -11,6 +12,8 @@ void main() {
     "pointer selection clears row focus while keyboard and Esc work",
     (tester) async {
       final rowFocus = FocusNode();
+      final semantics = tester.ensureSemantics();
+      debugDefaultTargetPlatformOverride = TargetPlatform.windows;
       var selected = false;
       try {
         await tester.pumpWidget(
@@ -44,6 +47,9 @@ void main() {
           ),
         );
         final icon = find.byType(LibrarySidebarSelectionIcon);
+        final selectionSemantics = tester.getSemantics(icon).getSemanticsData();
+        expect(selectionSemantics.label, isEmpty);
+        expect(selectionSemantics.tooltip, "选择Folder");
         final pointer = await tester.createGesture(
           kind: PointerDeviceKind.mouse,
         );
@@ -77,6 +83,8 @@ void main() {
       } finally {
         await tester.pumpWidget(const SizedBox.shrink());
         rowFocus.dispose();
+        semantics.dispose();
+        debugDefaultTargetPlatformOverride = null;
       }
     },
   );

@@ -230,9 +230,13 @@ class _OrganizationWorkflow {
   }
 
   Future<void> openAlbumMenu() async {
-    await tester.tap(
-      find.descendant(of: albumTile, matching: find.byType(IconButton)),
+    final menu = find.byKey(ValueKey("library-sidebar-album-menu-${album.id}"));
+    await waitFor(
+      () =>
+          menu.evaluate().isNotEmpty &&
+          tester.widget<IconButton>(menu).onPressed != null,
     );
+    await tester.tap(menu);
     await tester.pumpAndSettle();
   }
 

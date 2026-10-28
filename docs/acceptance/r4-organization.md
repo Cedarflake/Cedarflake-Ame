@@ -3726,3 +3726,10 @@ Production owners contain no inline tests: checkbox 88 lines, selection region 4
 selection/focus/checkbox suites contain 118/85/83/103 lines. Hosted gates remain assigned to the
 published head; the preceding batch-management run reports Windows accessibility and scan failures
 whose diagnostics are being followed separately.
+
+The batch-management run `40630796470` exposes two navigation admission regressions. Its Windows
+UIA probe sees the new selection tooltip merged into the source row; an explicit semantic container
+now keeps that action separate. The controlled scan workflow's album helper ambiguously matches the
+new selection and existing More buttons; it now addresses the stable More key and waits for admission.
+Twenty navigation/retained-semantics checks and the Windows pointer/keyboard/selection-semantics
+regression pass. The platform workflows remain assigned to the corrective published head.

@@ -70,6 +70,7 @@ class LibraryAlbumNavigationTile extends StatelessWidget {
       builder: (context, openMenu) => AmeTooltip(
         message: "更多",
         child: IconButton(
+          key: ValueKey("library-sidebar-album-menu-${album.id}"),
           onPressed: onEdit == null ? null : openMenu,
           icon: const Icon(Symbols.more_vert_rounded),
         ),
