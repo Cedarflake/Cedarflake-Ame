@@ -68,3 +68,22 @@ Preview requests retain the existing 1024-pixel maximum and bounded scheduling/c
 aspect ratios or high-density displays can still exceed the detail available in that bucket. This
 client check establishes rendering and interactions, not a new low-end-device performance result.
 The normal push-triggered hosted workflow owns full lint, Daily, integration and Release verification.
+
+## Full-diameter card selection — 2026-10-28
+
+The card previously placed Flutter's 18-pixel circular Checkbox inside a separate 40-pixel Material
+circle. `AmeCircularCheckbox` now scales the framework mark, input and semantics into the retained
+40-pixel target without that outer background. Shape, fill, checked state, keyboard activation and
+focus remain owned by Checkbox. `FittedBox` and `ClipOval` provide sizing and clipping only.
+The pinned Flutter 3.47.8 source exposes `Checkbox.width` but no mark-size parameter; its
+[Checkbox API](https://api.flutter.dev/flutter/material/Checkbox-class.html) was checked alongside
+the [Material component entry](https://m3.material.io/components/checkbox/overview), whose content
+requires JavaScript. Replacing input or painting a separate checkbox was unnecessary.
+
+Scoped analysis passes. Five focused widget checks cover edge clicks, keyboard toggling, checked
+semantics, retained card bounds and duplicate-badge placement at 1x/2x text. The initial test used
+a deprecated semantics accessor and late handle cleanup; both were corrected before the passing run.
+The Windows Debug build completed in 50.7 seconds. The retained isolated test profile verifies
+selection entry, full-size unchecked circles, a filled checked circle, the selected count and
+deselection back to ordinary browsing. No original source media or user catalog was changed.
+Hosted checks remain owned by the published implementation commit.

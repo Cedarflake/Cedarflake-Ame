@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 
+import "../../../../app/presentation/ame_circular_checkbox.dart";
 import "library_duplicate_badge.dart";
 import "library_gallery_card_metrics.dart";
 
@@ -19,7 +20,6 @@ class LibraryPhotoTileActions extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
     return Padding(
       padding: const EdgeInsets.all(LibraryGalleryCardMetrics.overlayInset),
       child: Row(
@@ -38,18 +38,12 @@ class LibraryPhotoTileActions extends StatelessWidget {
           SizedBox.square(
             dimension: LibraryGalleryCardMetrics.selectionExtent,
             child: isSelectionVisible
-                ? Material(
-                    color: colorScheme.surface.withValues(alpha: 0.92),
-                    shape: const CircleBorder(),
-                    clipBehavior: Clip.antiAlias,
-                    child: Checkbox(
-                      key: ValueKey("select-$locationId"),
-                      value: isSelected,
-                      shape: const CircleBorder(),
-                      onChanged: (_) => onToggleSelection(),
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                      visualDensity: VisualDensity.compact,
-                    ),
+                ? AmeCircularCheckbox(
+                    key: ValueKey("select-$locationId"),
+                    value: isSelected,
+                    diameter: LibraryGalleryCardMetrics.selectionExtent,
+                    semanticLabel: "选择图片",
+                    onChanged: (_) => onToggleSelection(),
                   )
                 : null,
           ),
