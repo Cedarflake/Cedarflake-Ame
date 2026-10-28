@@ -7,7 +7,7 @@ use super::super::exact_duplicate_review::representative_expression;
 use super::duplicates::{DISPLAY_FINGERPRINTS, compatible_fingerprint};
 use super::filters::{push_location_filters, push_membership_filters};
 use super::organization::{
-    collection_condition, compatible_binding, content_record_expression, group_expression,
+    collection_condition, compatible_binding, group_expression, resolved_record_joins,
 };
 use super::{BuiltGalleryQuery, database_error, gallery_source, push_source_filters};
 
@@ -49,20 +49,14 @@ fn build_collection_group_query(query: &GalleryQuery) -> Option<BuiltGalleryQuer
     super::organization_queue::push_filter(query, &mut clauses, &mut parameters);
     push_location_filters(query, &mut clauses, &mut parameters);
     let representative = representative_expression("locations");
-    let bound = compatible_binding("locations");
+    let membership = resolved_record_joins("locations");
     let joins = representative_fingerprint_joins();
-    let content_record = content_record_expression("locations");
     // Collection members always resolve to a durable record. Reuse that resolved
     // canonical record for both membership and grouping, including unbound copies.
     Some(BuiltGalleryQuery {
         sql: format!(
             "SELECT {representative} AS location_id, COUNT(*) AS source_items
-             {source}
-             LEFT JOIN organization_bindings AS binding ON {bound}
-             LEFT JOIN organization_record_groups AS direct_group
-               ON direct_group.record_id = binding.record_id
-             LEFT JOIN organization_records AS record
-               ON record.record_id = COALESCE(direct_group.group_id, {content_record})
+             {source} {membership}
              {joins}
              WHERE {scope} GROUP BY record.record_id",
             scope = clauses.join(" AND "),

@@ -303,6 +303,10 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   counts for chronological timeline aggregation; page filters and continuation reuse the same
   scope and representative rules. Compatible bindings and canonical record expressions remain in
   `gallery/organization.rs`. All reads retain the caller's snapshot and published-source boundary.
+- `sqlite_catalog/gallery/organization_counts.rs` owns shared progress aggregation across queue
+  states inside the caller's collection and physical scope. It reuses canonical record joins for
+  both group identity and disposition without resolving a preferred representative. Queue filtering
+  and admission ordering remain in `organization_queue.rs`; read transaction ownership is unchanged.
 - `sqlite_catalog/persistent_journal.rs` remains the journal facade. Root-unregistration lineage and
   cleanup live in `persistent_journal/root_unregister.rs` so removal cannot accidentally discard a
   surviving root's cross-root rename evidence.

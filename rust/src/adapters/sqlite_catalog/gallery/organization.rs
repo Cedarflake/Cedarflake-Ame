@@ -62,6 +62,22 @@ pub(super) fn content_record_expression(location: &str) -> String {
 
 pub(super) fn group_expression(location: &str) -> String {
     let record = record_expression(location);
+    group_expression_for_record(location, &record)
+}
+
+pub(super) fn resolved_record_joins(location: &str) -> String {
+    let bound = compatible_binding(location);
+    let content_record = content_record_expression(location);
+    format!(
+        "LEFT JOIN organization_bindings AS binding ON {bound}
+         LEFT JOIN organization_record_groups AS direct_group
+           ON direct_group.record_id = binding.record_id
+         LEFT JOIN organization_records AS record
+           ON record.record_id = COALESCE(direct_group.group_id, {content_record})"
+    )
+}
+
+pub(super) fn group_expression_for_record(location: &str, record: &str) -> String {
     let compatible = compatible_fingerprint(location);
     format!(
         "COALESCE(

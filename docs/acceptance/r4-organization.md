@@ -3805,3 +3805,35 @@ have no inline tests: grouped reads 183 lines, preferred index migration 52, cur
 348 and catalog facade 3,431. The migration dispatcher has 4,134 production and 2,289 inline-test
 lines; its change only composes the separate migration owner. Dedicated preference, collection and
 bounded-cost suites contain 85/163/175 lines. Hosted gates apply to the subsequently published head.
+
+## Shared queue-count membership - 2026-10-28
+
+Progress aggregation repeated canonical-record resolution for grouping and disposition. A separate
+66-line count-query owner now resolves the compatible binding and canonical record once, reusing
+the collection-read membership join. It keeps root, folder, search and collection filters while
+spanning all queue states. Unbound copies still use published content evidence; an unrecorded or
+changed independent image remains pending. Preferred-copy choice is irrelevant to these counts.
+The query keeps the existing read transaction, failure propagation and bounded scalar result;
+there is no schema, bridge, dependency or source-media change.
+
+All 38 focused query regressions pass. The added case checks an unbound duplicate in a selected
+folder across Library, Favorites and album scope, then changes its content identity and verifies
+pending versus absent membership. Existing cases cover physical scope, aliases, unknown evidence,
+cache retirement, unrelated history, concurrent save publication and denied preferred-copy reads.
+
+On the unchanged retained input, alternating same-connection count queries reduce the median
+from 809 to 503 ms. The complete Rust read-stage workload passes with 47,845 total groups,
+12 pending and 47,833 organized; pending/deferred/ignored shared count means change from
+760/736/727 ms to 538/555/536 ms. Pages and timeline results remain unchanged. This isolates the
+count-query improvement from the remaining page, anchor and publication work. Catalog-only
+measurements read no source media and retire their working copy automatically.
+
+The normal isolated Debug client loads the optimized native library and verifies pending,
+deferred and ignored navigation. Its shared header remains 90 groups/10 organized/78 pending/
+1 ignored, and the deferred and ignored selectors each report one group with the matching decoded
+image. Returning to ordinary mode restores 10,018 files/90 merged groups. The original profile,
+decisions and media remain in place; the retained measurement input hash is unchanged.
+
+Production owners contain no inline tests: count query 66 lines, shared membership expressions
+145, queue filtering/admission 58 and scoped grouping 177. The dedicated aggregation suite contains
+168 lines. The transaction facade is unchanged. Formatting and owned diff checks pass.

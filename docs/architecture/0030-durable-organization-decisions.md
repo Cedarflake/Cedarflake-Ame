@@ -178,6 +178,10 @@ its presence retains the complete scoped membership and representative checks. P
 continue to include unrecorded groups. This proof is recomputed for each read, without a result cache
 or changes to shared progress counts.
 These reads use catalog data only and never load the membership graph into presentation.
+Shared progress counts resolve compatible bindings and canonical records once for both group
+identity and disposition. Unbound copies retain the published-content fallback; unrecorded groups
+remain pending. Counts keep the collection, root, folder and search scope while spanning all queue
+states in the same read snapshot. This aggregation does not consult preferred-copy choices.
 
 Position-preserving refresh resolves the requested physical copy, then its stable asset, before
 falling back to the retained ordinal. The fallback reads that ordered position directly and carries
