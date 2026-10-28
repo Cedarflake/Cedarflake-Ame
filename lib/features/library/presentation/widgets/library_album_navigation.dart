@@ -4,6 +4,7 @@ import "package:material_symbols_icons/symbols.dart";
 
 import "../../../../app/presentation/ame_menu.dart";
 import "../../../../app/presentation/ame_overlay_semantics.dart";
+import "../../../../app/presentation/ame_typography.dart";
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
 import "../../application/library_organization_actions.dart";
@@ -55,13 +56,15 @@ class _LibraryAlbumNavigationState
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Padding(
-          padding: const EdgeInsets.only(left: 16, top: 8),
+          padding: const EdgeInsets.fromLTRB(16, 8, 4, 0),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   "相册",
-                  style: Theme.of(context).textTheme.titleSmall,
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                    fontWeight: ameFontWeightSemibold,
+                  ),
                 ),
               ),
               AmeTooltip(
@@ -109,6 +112,13 @@ class _LibraryAlbumNavigationState
                   ),
                   title: Text(
                     album.name,
+                    style: TextStyle(
+                      fontWeight:
+                          widget.collection ==
+                              LibraryGalleryCollection.album(album.id)
+                          ? ameFontWeightSemibold
+                          : ameFontWeightMedium,
+                    ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                   ),

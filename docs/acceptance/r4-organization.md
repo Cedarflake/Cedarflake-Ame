@@ -3624,3 +3624,17 @@ shared gallery select-all test also passes. Owned Dart formatting and the native
 full automated gates remain assigned to the exact pushed commit. The existing SDK `TextButton.icon`
 and shared popup own focus, disabled state and menu behavior. The selection owner has 408 production
 lines and no inline tests; its dedicated suite has 649 lines.
+
+## Sidebar alignment, typography and menu colors - 2026-10-28
+
+The Flutter 3.47.8 Debug client, built from `1dae2b7d` with this sidebar change, verifies the shared
+trailing center for album creation and row menus in the retained isolated profile. Selecting an album
+shows semibold text beside medium-weight unselected names; the section heading is also semibold.
+The selected album opens and its More menu remains reachable. Its menu icons and the source-folder
+menu use the same neutral color, independently of the selected row's accent. The shared menu's 17
+focused checks pass, including light/dark selected anchors, disabled-icon opacity, activation and
+keyboard dismissal. The opacity assertion compares rendered eight-bit channels to account for the
+SDK's alpha rounding. Scoped formatting and analysis pass; the final Windows Debug build completes
+in 24.2 seconds. The album navigation and menu owners have 193 and 375 production lines, with no
+inline tests; the menu suite has 735 lines. Source media, organization records and application
+contracts are unchanged; hosted checks remain assigned to the exact pushed commit.

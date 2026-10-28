@@ -247,6 +247,74 @@ void main() {
     expect(labelRect.left - iconRect.right, AmeMenuMetrics.iconLabelGap);
   });
 
+  for (final brightness in Brightness.values) {
+    testWidgets("menu icons ignore selected row color in $brightness", (
+      tester,
+    ) async {
+      final theme = buildAmeTheme(brightness: brightness);
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: theme,
+          home: Scaffold(
+            body: ListTile(
+              selected: true,
+              title: const Text("相册"),
+              trailing: AmePopupMenuButton<int>(
+                labels: const ["重命名", "删除相册"],
+                items: const [
+                  PopupMenuItem(
+                    value: 1,
+                    child: AmeMenuItemContent(
+                      icon: Symbols.edit_rounded,
+                      label: "重命名",
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: 2,
+                    enabled: false,
+                    child: AmeMenuItemContent(
+                      icon: Symbols.delete_rounded,
+                      label: "删除相册",
+                    ),
+                  ),
+                ],
+                onSelected: (_) {},
+                builder: (context, openMenu) => IconButton(
+                  onPressed: openMenu,
+                  icon: const Icon(Symbols.more_vert_rounded),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(
+        _renderedIconColor(tester, Symbols.more_vert_rounded),
+        theme.colorScheme.primary,
+      );
+      await tester.tap(find.byIcon(Symbols.more_vert_rounded));
+      await tester.pumpAndSettle();
+
+      final menuColor = _require(theme.iconTheme.color, "menu icon color");
+      expect(_renderedIconColor(tester, Symbols.edit_rounded), menuColor);
+      expect(
+        _renderedIconColor(tester, Symbols.delete_rounded)?.toARGB32(),
+        menuColor
+            .withValues(
+              alpha: menuColor.a * (brightness == Brightness.dark ? 0.5 : 0.38),
+            )
+            .toARGB32(),
+      );
+      await tester.tap(find.text("删除相册"));
+      await tester.pumpAndSettle();
+      expect(find.text("重命名"), findsOneWidget);
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pumpAndSettle();
+      expect(find.text("重命名"), findsNothing);
+    });
+  }
+
   testWidgets("emphasizes selected menu choices without flattening labels", (
     tester,
   ) async {
@@ -633,6 +701,13 @@ void main() {
     expect(longWidth, greaterThan(shortWidth));
     expect(cappedWidth, AmeMenuMetrics.maximumWidth);
   });
+}
+
+Color? _renderedIconColor(WidgetTester tester, IconData icon) {
+  final glyph = tester.widget<RichText>(
+    find.descendant(of: find.byIcon(icon), matching: find.byType(RichText)),
+  );
+  return glyph.text.style?.color;
 }
 
 T _require<T>(T? value, String description) {

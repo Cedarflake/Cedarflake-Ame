@@ -246,7 +246,11 @@ class AmeMenuItemContent extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: AmeMenuMetrics.iconSize),
+        Icon(
+          icon,
+          size: AmeMenuMetrics.iconSize,
+          color: Theme.of(context).iconTheme.color,
+        ),
         const SizedBox(width: AmeMenuMetrics.iconLabelGap),
         Flexible(
           child: ConstrainedBox(

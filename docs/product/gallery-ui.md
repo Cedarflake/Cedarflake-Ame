@@ -284,6 +284,9 @@ the sidebar. Each browsing destination retains its own query. Primary-sidebar sw
 position and selection; an organizing Library retains its mode, queue, position and selection across
 Albums, Duplicates and Settings visits. The accepted narrow-window sidebar rule, tonal surfaces,
 resizing and transition remain shared.
+The album creation button and each album's More button share the same trailing alignment and inset.
+The album section heading uses semibold. Album names match Favorites and folder navigation: medium
+by default and semibold when selected, retaining the existing font sizes and selected-state colors.
 
 `收藏夹` scopes the gallery by favorite state independently of album membership. Albums do not nest,
 and each current image group has at most one confirmed album assignment. A group can appear in
@@ -464,6 +467,8 @@ shortcuts continue to use `Shortcuts` and `Actions` behavior.
 
 Menus opened beside a window edge retain the shared viewport margin. Labels and shortcut hints use
 bounded flexible layout so narrow windows and platform font metrics cannot paint outside the menu.
+Menu icons use the shared neutral icon color, independent of the anchor's selected color; disabled
+entries retain the framework's reduced opacity.
 Exclusive choices in Sort, Layout, Filter and the organization queue menu use the same small filled
 dot. Disabled filter choices retain their selected marker and disabled styling.
 
