@@ -3948,7 +3948,7 @@ The generated bridge builds in Release. Locked all-feature Rust organization che
 cases with four manual retained-profile cases ignored. Focused Dart checks pass 21 cases across
 actions, publication, album navigation and creation undo. The new widget fixture initially used
 an absent tooltip locator; using the existing sidebar key resolves that test setup failure.
-The extended native flow and complete gates remain assigned to exact-commit hosted verification.
+The extended native flow and complete hosted gates pass in the combined repair verification below.
 
 Production/inline-test line counts are: receipt projection 26/0, history 176/0, undo 167/0,
 SQLite organization facade 211/0, application facade 122/0, API 94/0 and repository port 82/0;
@@ -3973,7 +3973,8 @@ intentional wait is active, rather than waiting for its loading animation to set
 
 Production/inline-test line counts are: exclusive transition 35/0, organization mode 408/0 and
 workspace navigation 149/0. Dedicated mode and workspace tests contain 490 and 321 lines; the
-widget interaction contains 92 lines. Exact-commit hosted verification owns the complete gate.
+widget interaction contains 92 lines. The complete hosted gate passes in the combined repair
+verification below.
 
 ## Arrival ranges across archive restoration - 2026-10-29
 
@@ -3993,7 +3994,7 @@ Locked Release checks with all features pass three migration cases, nine restore
 three scroll-section cases and the historical table-inventory upgrade case: 16 passed, none failed
 or ignored. The first test compilation exposed a private-module trait import; the fixture now uses
 the port's public re-export. Full historical migration, native client and release verification
-remain assigned to the exact implementation commit's hosted gate.
+pass in the combined repair verification below.
 
 Production/inline-test line counts are: boundary adapter 57/0, review facade 107/0, restore ordering
 111/0, scroll sections 110/0, current-schema validator 354/0 and compatibility shape 109/0.
@@ -4002,3 +4003,17 @@ belongs to the dedicated clock migration. The catalog facade remains 3,431/0 wit
 constant changed. Clock migration contains 61 production and 14 test-only helper/module lines;
 dedicated migration tests contain 101, arrival-restore tests 109, existing queue tests 375 and the
 updated historical inventory regression 283.
+
+## Combined repair verification
+
+On 2026-10-29, implementation commit `e019a419b93e1e58248895cd3b77fddb0b3dc663` passes
+[hosted run 40881673112](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40881673112):
+all 14 applicable jobs and the aggregate Windows Gate succeed. Coverage includes static analysis,
+the complete Rust and Flutter suites, historical schema upgrades, controlled Windows scan and
+organization interactions, accessibility, all five synthetic workloads and unsigned Windows Release
+verification. The three signing/release-only jobs are skipped by this gate's selected scope.
+
+The three repairs are committed on `codex/r4-organization` as `7385f88b`, `637db3be` and `e019a419`.
+The two earlier branch runs are superseded by this final implementation head; their partial results
+are not used for its acceptance. This closes these correctness repairs. Retained-library publication
+latency and constrained-device frame peaks remain in R4-07 under the roadmap's existing order.

@@ -373,9 +373,9 @@ resolve these constrained-device peaks before R4-07 closure; preserve the accept
 full-resolution viewing and source-read lifetime. Historical root fixtures now match the original
 schema; their upgrade, sidebar-order and exact-commit hosted checks pass. Notification undo now
 publishes album retirement, workspace switching serializes mode entry, and schema 60 preserves
-the mode-entry arrival boundary across archive restoration. Their focused regressions pass;
-complete hosted verification remains in progress. Resume the retained-read work after these
-correctness repairs clear the applicable gate, then address the constrained-device frame peaks.
+the mode-entry arrival boundary across archive restoration. Their focused regressions and complete
+exact-commit hosted verification pass. Continue the retained-read work, then address the
+constrained-device frame peaks in the existing order.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication
