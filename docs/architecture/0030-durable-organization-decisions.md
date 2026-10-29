@@ -235,8 +235,19 @@ aggregate contiguous natural-key prefixes into letters, numeric prefixes and the
 before and after the alphabet. Admission sections compare each group's retained earliest admission
 with a read-only high-water mark captured on mode entry. This ephemeral boundary stays in the active
 browse query, survives workspace visits and continuation, and is not durable organization progress.
-It requires no schema migration or historical admission dates. Re-entry captures the current
-high-water mark; new copies of an older group remain outside the new-arrival range.
+Re-entry captures the current high-water mark; new copies of an older group remain outside the
+new-arrival range. Historical admission dates are not required.
+
+Schema 60 adds a singleton admission clock with the cumulative prefix inserted by archive restores.
+Entry reads subtract this prefix from the sequence high-water mark; scroll-section reads translate
+the retained boundary back into current ordering coordinates inside their query snapshot. Every
+archive prepend updates order and clock in the same transaction. Replay without new archive
+admissions leaves both unchanged. Existing images keep their arrival classification while genuine
+post-entry admissions remain new, including across repeated restoration and retained workspaces.
+The clock is local catalog bookkeeping, so portable archive format and desktop query types remain
+unchanged. Migration initializes zero without rewriting admissions, decisions or history; canonical
+structure and bounded scalar state validation run under the existing upgrade backup and rollback
+rules. Restoration cancellation or failure rolls back the prefix with the rest of the restore.
 
 Read all four progress counts within the page/timeline snapshot. Counts cover each logical group
 once within the retained collection, folder and search scope, independently of the selected queue.

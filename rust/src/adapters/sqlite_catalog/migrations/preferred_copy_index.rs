@@ -38,6 +38,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v58_for_test(connection: &Connection) {
+    super::organization_admission_clock::downgrade_to_v59_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 59 {
         connection
             .execute_batch(

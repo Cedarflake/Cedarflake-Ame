@@ -64,6 +64,7 @@ mod organization_review_order;
 mod organization_transitions;
 #[cfg(test)]
 pub(super) use organization::downgrade_to_v46_for_test;
+mod organization_admission_clock;
 mod persistent_journal_baseline;
 mod persistent_journal_range_history;
 mod preferred_copy_index;
@@ -154,6 +155,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         organization_review_order::migrate_transaction(&transaction)?;
         sidebar_order::migrate_transaction(&transaction)?;
         preferred_copy_index::migrate_transaction(&transaction)?;
+        organization_admission_clock::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -252,6 +254,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             56 => organization_review_order::migrate(connection)?,
             57 => sidebar_order::migrate(connection)?,
             58 => preferred_copy_index::migrate(connection)?,
+            59 => organization_admission_clock::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

@@ -106,5 +106,6 @@ fn prepend(connection: &Connection, count: i64) -> Result<(), ScanError> {
             )
             .map_err(database_error)?;
     }
+    super::super::super::super::organization::admission_boundary::prepend(connection, count)?;
     Ok(())
 }

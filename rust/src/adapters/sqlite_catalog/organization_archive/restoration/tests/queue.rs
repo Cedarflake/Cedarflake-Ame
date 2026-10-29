@@ -10,6 +10,8 @@ use crate::ports::organization_review::OrganizationReviewRepository;
 
 use super::*;
 
+mod arrivals;
+
 fn source() -> (tempfile::TempDir, SqliteCatalog) {
     let (directory, mut catalog) = fixture();
     publish_gallery_fixture(
@@ -328,6 +330,18 @@ fn organization_archive_queue_shift_failure_rolls_back_existing_order_and_bookma
         )
         .unwrap();
     assert!(apply(&target, &archive).is_err());
+    assert_eq!(target.load_organization_admission_boundary().unwrap(), 1);
+    assert_eq!(
+        target
+            .connection
+            .query_row(
+                "SELECT restored_prefix FROM organization_admission_clock",
+                [],
+                |row| row.get::<_, i64>(0)
+            )
+            .unwrap(),
+        0
+    );
     assert_eq!(
         target
             .connection

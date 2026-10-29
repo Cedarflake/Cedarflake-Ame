@@ -3,7 +3,7 @@ use rusqlite::{Transaction, params_from_iter, types::Value};
 use crate::domain::gallery_scroll_section::{GalleryScrollSection, GalleryScrollSectionKind};
 use crate::domain::{GalleryQuery, ScanError};
 
-use super::super::{database_error, sqlite_integer, sqlite_unsigned};
+use super::super::{database_error, sqlite_unsigned};
 use super::{gallery_direction_sql, gallery_source, push_gallery_filters};
 
 pub(super) fn load_name_sections(
@@ -62,10 +62,9 @@ pub(super) fn load_arrival_sections(
     let mut clauses = Vec::new();
     let mut parameters = Vec::new();
     let admission = if let Some(boundary) = query.new_since_admission {
-        parameters.push(Value::Integer(sqlite_integer(
-            boundary,
-            "new-arrival boundary",
-        )?));
+        parameters.push(Value::Integer(
+            super::super::organization::admission_boundary::resolve(transaction, boundary)?,
+        ));
         format!(
             "{} > ?",
             super::organization_queue::admission_expression("locations")

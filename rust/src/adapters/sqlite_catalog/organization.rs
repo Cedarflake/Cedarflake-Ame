@@ -10,6 +10,7 @@ use crate::ports::organization::OrganizationRepository;
 use super::{SqliteCatalog, database_error};
 
 pub(super) mod admission;
+pub(super) mod admission_boundary;
 mod album_membership;
 mod albums;
 pub(super) mod association_lifetime;

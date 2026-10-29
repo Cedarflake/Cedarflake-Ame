@@ -139,6 +139,10 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 Some(vec![vec![Value::Integer(1), Value::Integer(0)]]),
             );
             assert_eq!(
+                after.remove("organization_admission_clock"),
+                Some(vec![vec![Value::Integer(1), Value::Integer(0)]]),
+            );
+            assert_eq!(
                 after.remove("organization_history_state"),
                 Some(vec![vec![
                     Value::Integer(1),

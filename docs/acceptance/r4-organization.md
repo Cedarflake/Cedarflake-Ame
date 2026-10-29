@@ -3974,3 +3974,31 @@ intentional wait is active, rather than waiting for its loading animation to set
 Production/inline-test line counts are: exclusive transition 35/0, organization mode 408/0 and
 workspace navigation 149/0. Dedicated mode and workspace tests contain 490 and 321 lines; the
 widget interaction contains 92 lines. Exact-commit hosted verification owns the complete gate.
+
+## Arrival ranges across archive restoration - 2026-10-29
+
+Schema 60 records the cumulative restored admission prefix separately from queue ordering.
+Mode-entry boundaries use stable coordinates; the SQLite query adapter resolves them in the same
+snapshot as scroll-section membership. Restore shifts ordering and the prefix atomically, preserving
+active and retained frontend queries without recapturing their boundary. Repeated archive replay
+without missing admissions does not advance the clock. Portable backups and bridge types are unchanged.
+
+The new migration owner validates its singleton shape and range, seeds zero without rewriting
+existing admissions or user records, and uses the existing migration backup path. Dedicated cases
+cover preserved albums, Favorites, ignored state and history, failed migration/retry, damaged state,
+restoration replay, multiple prefix shifts, genuine new imports, scoped ranges and reopen. The
+existing restore failure case also checks the clock rolls back with admissions and the bookmark.
+
+Locked Release checks with all features pass three migration cases, nine restore/queue cases,
+three scroll-section cases and the historical table-inventory upgrade case: 16 passed, none failed
+or ignored. The first test compilation exposed a private-module trait import; the fixture now uses
+the port's public re-export. Full historical migration, native client and release verification
+remain assigned to the exact implementation commit's hosted gate.
+
+Production/inline-test line counts are: boundary adapter 57/0, review facade 107/0, restore ordering
+111/0, scroll sections 110/0, current-schema validator 354/0 and compatibility shape 109/0.
+The migration dispatcher remains 4,136 production and 2,290 inline-test lines; its new behavior
+belongs to the dedicated clock migration. The catalog facade remains 3,431/0 with only its version
+constant changed. Clock migration contains 61 production and 14 test-only helper/module lines;
+dedicated migration tests contain 101, arrival-restore tests 109, existing queue tests 375 and the
+updated historical inventory regression 283.
