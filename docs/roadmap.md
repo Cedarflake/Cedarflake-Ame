@@ -379,8 +379,11 @@ collection entry around 2 seconds, single-group feedback at 66 ms, committed-lis
 3.09 seconds and a 500-asset client window, including browsing during the full-library writer.
 The read-plan alternative regressed dense collection timelines and was discarded; retain the
 published-source-first implementation and its expanded historical-location regression. Continue
-with constrained-device frame peaks before final R4-07 closure. The reported album-title loading
-flash is repaired, with delayed-query widget and native frame checks passing. The
+with constrained-device frame peaks before final R4-07 closure. The
+[first-use rendering evidence](acceptance/r4-organization.md#constrained-device-first-use-rendering---2026-10-30)
+narrows this gap to viewer and mode-entry graphics upload/synchronization; the warm-up, motion and
+cache experiments provide no adopted repair. The reported album-title loading flash is repaired,
+with delayed-query widget, native frame and complete hosted checks passing. The
 [retained closeout](acceptance/r4-organization.md#retained-collection-closeout---2026-10-30)
 records the current native measurements and resource bounds.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to

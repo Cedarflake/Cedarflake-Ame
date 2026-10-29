@@ -4045,8 +4045,8 @@ gain, the production read-stage workload doubles dense collection timeline cost 
 to 2.7 seconds and the native refresh regresses. Published-source-first access remains unchanged.
 The source-history regression now also includes an unpublished row sharing a current location ID,
 covering pages, anchors, layout, timeline totals and source counts. Its dedicated owner is 122 lines;
-this closeout changes no production code, schema, bridge or dependencies. Exact-commit hosted
-verification follows publication of this test and record.
+this closeout changes no production code, schema, bridge or dependencies. The complete hosted run
+recorded under album heading continuity also covers this regression.
 
 ## Album heading continuity - 2026-10-30
 
@@ -4070,4 +4070,65 @@ injected read delay, not a performance benchmark.
 The new heading owner contains 23 production lines and no inline tests; its dedicated widget test
 contains 101 lines. The screen facade contains 1,874 production lines and no inline tests, with only
 selection seeding and heading resolution added there. Schema, bridge, dependencies and source-media
-behavior are unchanged. Final exact-commit hosted verification remains part of R4 closeout.
+behavior are unchanged.
+
+Implementation commit `17c16c7dac21700a3f89081ee8c9bbd6e9f19a7b` passes
+[hosted run 40914823543](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40914823543):
+all 14 applicable jobs and the aggregate Windows Gate succeed. This includes the heading regression,
+historical-location boundary, prior audit repairs, native organization flows and unsigned Release.
+The three signing/release-only jobs are skipped by the selected gate scope. The branch includes
+`main` through `27cac9ef810abc60f54fc1971b46ed69692eb6b1`.
+
+After all local measurement clients retire, the three disposable closeout profiles, two copied
+runtimes, two native variants, standalone SQL profile and comparison database are removed. This
+reclaims 3,987,640,086 bytes. Compact reports and the hash-verified retained input snapshot remain;
+the original library/profile is unchanged.
+
+## Constrained-device first-use rendering - 2026-10-30
+
+The current Skia Profile client completes the retained cloud-primary workflow on two cores and
+8 GiB RAM, using the Microsoft Basic Render adapter. The isolated catalog has 12,007 files and
+11,985 groups; the 1,264-by-681 viewport at scale 1 contains 12 decoded previews before interaction.
+Synchronization and exact analysis are paused. Menus, two viewer visits, mode entry, queue changes
+and exit pass their state, count, decoded-image and completion assertions. All eight diagnostic runs
+exit successfully and preserve the original catalog hash; original media remains read-only.
+
+The unchanged native runtime and Rust library retain the verified `93965639` bundle with Flutter
+3.47.8; subsequent diagnostic Dart payloads are built from `17c16c7d`. Payload hashes accompany each
+transfer. These entries add measurement and isolated experimental overrides, not product behavior.
+The compact report archive has SHA-256
+`531c21c1bc816c5478b474e67a07c6a843c677ba6aeed81d784ef9871117e983`.
+
+| Diagnostic condition | First viewer maximum raster frame | Mode-entry maximum raster frame |
+| --- | ---: | ---: |
+| Unchanged behavior, first comparison | 719.762 ms | 255.837 ms |
+| Offscreen glyph warm-up | 697.980 ms | 249.408 ms |
+| Unchanged behavior, second comparison | 685.090 ms | 299.339 ms |
+| System reduced-motion override | 707.985 ms | 276.574 ms |
+| Onscreen glyph warm-up | 715.889 ms | 259.543 ms |
+| 128-MiB Skia resource cache | 760.843 ms | 240.939 ms |
+
+None of these variants removes the first-use peak, so none is adopted. The isolated onscreen text
+scene itself takes at most 16.998 ms. The two unchanged runs have static-gallery raster P95 of
+2.231/2.338 ms, second-viewer maxima of 89.949/88.546 ms and mode-exit maxima of 3.178/3.200 ms.
+Measured interaction intervals include a fixed 500-ms settling period; raster durations are not
+end-to-end image-opening times. The original-image resolution and accepted animation remain intact.
+
+Per-interaction engine tracing locates 642.511 ms of the first-viewer frame inside glyph-atlas
+`GrGpu::writePixels`, with overlapping image upload. Mode entry contains 256.306/236.938-ms atlas
+writes without an overlapping image upload. Shader compilation, Dart painting and presentation are
+small in that trace. This identifies the graphics upload/synchronization boundary, but does not
+distinguish driver waiting from work flushed by the call. A separate process-thread sampler preserves
+the result but exposes unnamed threads and too few samples for that attribution; its timings are
+not used as a matched performance comparison.
+
+Detailed tracing peaks at 320,184,320 working-set bytes and 332,025,856 private bytes. The ordinary
+comparison runs peak below those values. Compact timings, traces, source-preservation results and
+diagnostic scripts remain in ignored `r4-closeout-render` storage. The first-viewer and mode-entry
+peaks remain the specific R4-07 performance gap; the passing functional and hosted results above
+remain valid.
+
+After process retirement and report transfer/hash verification, the dedicated runtime, compiled
+probe payloads and incoming archives are removed through exact-path, containment and reparse checks.
+This reclaims 155,436,493 bytes on cloud-primary and another 176,588,205 bytes locally. The reusable
+cloud test profile and compact reports remain; the original catalog hash is unchanged after cleanup.
