@@ -32,7 +32,7 @@ pub(crate) trait OrganizationRepository {
         operation_id: &str,
         original_id: &str,
         expected_revision: u64,
-    ) -> Result<OrganizationWriteReceipt, ScanError>;
+    ) -> Result<OrganizationHistoryReceipt, ScanError>;
 
     fn prepare_organization_selection(
         &self,

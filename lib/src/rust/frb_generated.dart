@@ -513,7 +513,7 @@ abstract class RustLibApi extends BaseApi {
 
   bool crateApiCatalogSuspendLibraryScan({required String scanId});
 
-  Future<OrganizationWriteReceipt>
+  Future<OrganizationHistoryReceipt>
   crateApiOrganizationUndoOrganizationOperation({
     required String operationId,
     required String originalId,
@@ -3679,7 +3679,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
-  Future<OrganizationWriteReceipt>
+  Future<OrganizationHistoryReceipt>
   crateApiOrganizationUndoOrganizationOperation({
     required String operationId,
     required String originalId,
@@ -3700,7 +3700,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           );
         },
         codec: SseCodec(
-          decodeSuccessData: sse_decode_organization_write_receipt,
+          decodeSuccessData: sse_decode_organization_history_receipt,
           decodeErrorData: sse_decode_scan_error,
         ),
         constMeta: kCrateApiOrganizationUndoOrganizationOperationConstMeta,

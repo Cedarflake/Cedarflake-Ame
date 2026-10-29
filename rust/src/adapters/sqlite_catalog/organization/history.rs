@@ -63,20 +63,7 @@ pub(super) fn step(
                 undo::restore(connection, operation_id, original_id, revision)?
             }
         };
-    let retired_album_id = connection
-        .query_row(
-            "SELECT change.album_id FROM organization_album_operation_changes AS change
-         JOIN organization_album_retirements AS retirement ON retirement.album_id = change.album_id
-         WHERE change.operation_id = ?1",
-            [operation_id],
-            |row| row.get(0),
-        )
-        .optional()
-        .map_err(database_error)?;
-    Ok(OrganizationHistoryReceipt {
-        operation,
-        retired_album_id,
-    })
+    super::history_receipt::load(connection, operation)
 }
 
 pub(super) fn record(connection: &Connection, operation_id: &str) -> Result<(), ScanError> {

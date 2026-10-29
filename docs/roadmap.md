@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-28
+Last planning update: 2026-10-29
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -371,8 +371,9 @@ original catalog unchanged. Most measured menu/queue frames are inexpensive, but
 and organization-entry raster spikes remain. Continue the retained-read/publication work, then
 resolve these constrained-device peaks before R4-07 closure; preserve the accepted interface,
 full-resolution viewing and source-read lifetime. Historical root fixtures now match the original
-schema; their upgrade and sidebar-order regressions pass. Hosted verification of the fixture repair
-remains pending.
+schema; their upgrade, sidebar-order and exact-commit hosted checks pass. Before resuming the
+retained-read work, repair notification-undo album retirement, pending organization entry during
+workspace switching, and the new-arrival boundary across archive restoration, in that order.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication

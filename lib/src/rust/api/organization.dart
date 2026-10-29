@@ -29,7 +29,7 @@ Future<OrganizationHistoryReceipt> stepOrganizationHistory({
   expectedRevision: expectedRevision,
 );
 
-Future<OrganizationWriteReceipt> undoOrganizationOperation({
+Future<OrganizationHistoryReceipt> undoOrganizationOperation({
   required String operationId,
   required String originalId,
   required BigInt expectedRevision,

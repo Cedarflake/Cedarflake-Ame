@@ -43,7 +43,7 @@ pub(crate) fn undo(
     operation_id: String,
     original_id: String,
     expected_revision: u64,
-) -> Result<OrganizationWriteReceipt, ScanError> {
+) -> Result<OrganizationHistoryReceipt, ScanError> {
     validate_identifier(&operation_id)?;
     validate_identifier(&original_id)?;
     open_catalog()?.undo_organization_operation(&operation_id, &original_id, expected_revision)

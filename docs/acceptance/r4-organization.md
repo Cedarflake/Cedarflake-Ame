@@ -3695,7 +3695,9 @@ unchanged.
 Under the repository tool lock, locked Release tests with all features pass all 25 historical
 migration cases in 27.82 seconds and all three sidebar migration cases in 2.27 seconds. Both runs
 have zero failures and zero ignored cases. Owned Rust formatting and whitespace checks pass;
-replacement hosted verification remains pending publication of this repair.
+hosted run [40660970924](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40660970924)
+on `9eec30be` passes all 14 applicable jobs and the aggregate Windows Gate. The three conditional
+signing/release jobs are skipped.
 
 Affected dedicated-test owners contain 553 lines for scan history, 626 for preview history and
 121 for sidebar migration. This repair changes no production or inline-test owner.
@@ -3929,3 +3931,26 @@ hosted run [40645242771](https://github.com/Cedarflake/Cedarflake-Ame/actions/ru
 The completed run has 13 passing applicable jobs and the Catalog fixture failure described under
 [historical root fixtures](#historical-root-fixtures). Retained publication latency and constrained
 first-use frame peaks remain open in R4-07.
+
+## Notification undo and album publication - 2026-10-29
+
+Direct notification undo now returns the same typed retirement receipt as chronological history.
+The shared SQLite receipt owner reads current album retirement within the committing transaction,
+including replay, without changing affected-field authority or history ordering. The Dart request
+forwards this retirement to the existing publication owner so active and retained album scopes
+are invalidated before gallery refresh. Schema, dependencies and source files are unchanged.
+
+The regression cases cover creation undo, reopen/replay, replay after restoration, and notification
+undo from both the active album and another workspace. The controlled native organization flow
+also exercises both navigation paths through the generated bridge.
+
+The generated bridge builds in Release. Locked all-feature Rust organization checks pass 159
+cases with four manual retained-profile cases ignored. Focused Dart checks pass 21 cases across
+actions, publication, album navigation and creation undo. The new widget fixture initially used
+an absent tooltip locator; using the existing sidebar key resolves that test setup failure.
+The extended native flow and complete gates remain assigned to exact-commit hosted verification.
+
+Production/inline-test line counts are: receipt projection 26/0, history 176/0, undo 167/0,
+SQLite organization facade 211/0, application facade 122/0, API 94/0 and repository port 82/0;
+Dart service 357/0 and request owner 103/0. Dedicated undo tests contain 264 lines, the new widget
+regression 107 and the extended native workflow 331. Generated bridge files remain generated.

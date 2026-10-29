@@ -31,7 +31,9 @@ fn undo(
     catalog: &mut SqliteCatalog,
     original: &str,
 ) -> Result<OrganizationWriteReceipt, ScanError> {
-    catalog.undo_organization_operation(&format!("undo-{original}"), original, revision(catalog))
+    catalog
+        .undo_organization_operation(&format!("undo-{original}"), original, revision(catalog))
+        .map(|receipt| receipt.operation)
 }
 
 fn conflict_fixture() -> (tempfile::TempDir, SqliteCatalog, String, String) {

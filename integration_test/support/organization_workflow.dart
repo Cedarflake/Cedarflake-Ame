@@ -17,6 +17,7 @@ Future<void> verifyOrganizationWorkflow(
   await workflow.verifyKeyboardSelection();
   await workflow.verifyViewerChanges();
   await workflow.verifyAlbumManagement();
+  await workflow.verifyCreationUndo();
   expect(tester.takeException(), isNull);
   debugPrint("AME_ORGANIZATION_NATIVE_WORKFLOW_PASSED");
 }
@@ -197,6 +198,43 @@ class _OrganizationWorkflow {
       albumId: album.id,
     );
     await waitFor(() => albumTile.evaluate().isNotEmpty);
+  }
+
+  Future<void> verifyCreationUndo() async {
+    for (final leaveAlbum in [false, true]) {
+      await tapKey("library-sidebar-create-album");
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const Key("library-album-name")),
+        "Temporary album",
+      );
+      await tapKey("library-album-save");
+      await waitFor(
+        () => find.byKey(const Key("library-album-editor")).evaluate().isEmpty,
+      );
+      final temporary = (await service.albums()).albums.singleWhere(
+        (value) => value.name == "Temporary album",
+      );
+      final tile = find.byKey(
+        ValueKey("library-sidebar-album-${temporary.id}"),
+      );
+      await waitFor(() => tile.evaluate().isNotEmpty);
+      await tester.tap(tile);
+      await tester.pumpAndSettle();
+      if (leaveAlbum) {
+        await tapKey("workbench-gallery");
+        await tester.pumpAndSettle();
+      }
+      await undo(viewer: false);
+      expect(await service.findAlbum(temporary.id), isNull);
+      if (leaveAlbum) {
+        await tapKey("workbench-albums");
+        await tester.pumpAndSettle();
+      }
+      expect(tile, findsNothing);
+      expect(find.text("选择相册"), findsOneWidget);
+      expect(find.text("图库尚未刷新，请重试。"), findsNothing);
+    }
   }
 
   IconButton? get favoriteButton {

@@ -7,6 +7,7 @@ import "package:cedarflake_ame/features/library/application/library_organization
 import "package:cedarflake_ame/features/library/application/library_scanner.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/features/library/domain/library_organization.dart";
+import "package:cedarflake_ame/features/library/domain/library_organization_history.dart";
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 import "package:flutter_test/flutter_test.dart";
@@ -119,7 +120,9 @@ void main() {
       final deletionId = service.albumWrites.last.id;
       service.undoResult = (id) async {
         service.albumItems = [const LibraryOrganizationAlbum("a", "Renamed")];
-        return service.receipt(id);
+        return LibraryOrganizationHistoryReceipt(
+          operation: service.receipt(id),
+        );
       };
       await tester.tap(find.byKey(const Key("notification-primary-action")));
       await tester.pumpAndSettle();

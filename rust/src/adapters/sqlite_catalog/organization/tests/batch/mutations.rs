@@ -217,7 +217,7 @@ fn batch_album_assignment_and_undo_preserve_independent_favorites() {
     let undone = catalog
         .undo_organization_operation("undo-batch", "assign-every-group", revision)
         .unwrap();
-    assert_eq!(undone.changed_groups, 3);
+    assert_eq!(undone.operation.changed_groups, 3);
     for id in ["a", "b", "c"] {
         assert_eq!(decision(&catalog, id), (None, "pending".into(), id != "a"));
     }

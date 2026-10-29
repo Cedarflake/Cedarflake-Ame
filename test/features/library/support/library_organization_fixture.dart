@@ -96,7 +96,7 @@ class OrganizationServiceFixture implements LibraryOrganization {
   inspectTarget;
   Completer<LibraryOrganizationPrepared>? preparing;
   Future<LibraryOrganizationReceipt> Function(String)? save;
-  Future<LibraryOrganizationReceipt> Function(String)? undoResult;
+  Future<LibraryOrganizationHistoryReceipt> Function(String)? undoResult;
   final albumWrites =
       <({String id, BigInt revision, String? albumId, String? name})>[];
   final memberships =
@@ -228,7 +228,7 @@ class OrganizationServiceFixture implements LibraryOrganization {
   }
 
   @override
-  Future<LibraryOrganizationReceipt> undo(
+  Future<LibraryOrganizationHistoryReceipt> undo(
     String operationId,
     String originalId,
     BigInt revision,
@@ -236,7 +236,11 @@ class OrganizationServiceFixture implements LibraryOrganization {
     undos.add((id: operationId, originalId: originalId, revision: revision));
     final result =
         await (undoResult?.call(operationId) ??
-            Future.value(receipt(operationId)));
+            Future.value(
+              LibraryOrganizationHistoryReceipt(
+                operation: receipt(operationId),
+              ),
+            ));
     isFavorite = !isFavorite;
     return result;
   }

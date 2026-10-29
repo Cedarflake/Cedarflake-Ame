@@ -21,6 +21,7 @@ mod cleanup;
 mod conflicts;
 mod favorites;
 pub(super) mod history;
+mod history_receipt;
 mod inspection;
 pub(super) mod lifecycle;
 mod native_recovery;
@@ -87,7 +88,7 @@ impl OrganizationRepository for SqliteCatalog {
         operation_id: &str,
         original_id: &str,
         expected_revision: u64,
-    ) -> Result<OrganizationWriteReceipt, ScanError> {
+    ) -> Result<OrganizationHistoryReceipt, ScanError> {
         validate_identifier(operation_id)?;
         validate_identifier(original_id)?;
         let transaction = self.begin_user_interactive_write()?;

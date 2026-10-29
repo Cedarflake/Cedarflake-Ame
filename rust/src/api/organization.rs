@@ -34,7 +34,7 @@ pub fn undo_organization_operation(
     operation_id: String,
     original_id: String,
     expected_revision: u64,
-) -> Result<OrganizationWriteReceipt, ScanError> {
+) -> Result<OrganizationHistoryReceipt, ScanError> {
     crate::application::organization::undo(operation_id, original_id, expected_revision)
 }
 

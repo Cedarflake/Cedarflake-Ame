@@ -420,6 +420,10 @@ picker opens, that dialog owns the batch independently of toolbar publication; c
 cannot retire its own pending assignment. The shared picker exposes save cancellation only when
 its membership command supports it, waits for retirement, and preserves a commit that wins the race.
 Ordinary favorite and unfavorite successes use the same transient receipt and undo path as the viewer.
+Direct notification undo and chronological history steps both return the committed operation and
+any currently retired album. Their shared receipt projection runs inside the write transaction,
+including operation replay. Publication clears active and retained scopes for that album before
+refreshing gallery results; a later album restoration prevents stale replay from retiring it again.
 
 Organization mode has a typed presentation owner for its retained ordinary query, selection and
 visible anchor. It composes the existing query transition and viewer rather than adding another

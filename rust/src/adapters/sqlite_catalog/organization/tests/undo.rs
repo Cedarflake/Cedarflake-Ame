@@ -12,7 +12,9 @@ fn undo(
     catalog: &mut SqliteCatalog,
     original: &str,
 ) -> Result<OrganizationWriteReceipt, ScanError> {
-    catalog.undo_organization_operation(&format!("undo-{original}"), original, revision(catalog))
+    catalog
+        .undo_organization_operation(&format!("undo-{original}"), original, revision(catalog))
+        .map(|receipt| receipt.operation)
 }
 
 #[test]
@@ -42,7 +44,8 @@ fn undo_restores_only_the_affected_field_and_survives_reopen_and_retry() {
     assert_eq!(
         catalog
             .undo_organization_operation("undo-assign", "assign", expected_revision)
-            .unwrap(),
+            .unwrap()
+            .operation,
         receipt
     );
     assert_eq!(
@@ -54,6 +57,36 @@ fn undo_restores_only_the_affected_field_and_survives_reopen_and_retry() {
     );
     undo(&mut catalog, "favorite").unwrap();
     assert_eq!(decision(&catalog, "c"), (None, "pending".into(), false));
+}
+
+#[test]
+fn direct_undo_publishes_album_retirement_on_commit_and_replay() {
+    let (directory, mut catalog) = fixture();
+    let album = create_album(&mut catalog, "Temporary");
+    let expected_revision = revision(&catalog);
+    let receipt = catalog
+        .undo_organization_operation("undo-create", "create-Temporary", expected_revision)
+        .unwrap();
+    assert_eq!(receipt.retired_album_id.as_deref(), Some(album.as_str()));
+    assert_eq!(receipt.operation.changed_groups, 0);
+    assert!(catalog.find_organization_album(&album).unwrap().is_none());
+    drop(catalog);
+    let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
+    assert_eq!(
+        catalog
+            .undo_organization_operation("undo-create", "create-Temporary", expected_revision)
+            .unwrap(),
+        receipt
+    );
+    let restored = catalog
+        .undo_organization_operation("restore-album", "undo-create", revision(&catalog))
+        .unwrap();
+    assert_eq!(restored.retired_album_id, None);
+    assert!(catalog.find_organization_album(&album).unwrap().is_some());
+    let replay = catalog
+        .undo_organization_operation("undo-create", "create-Temporary", expected_revision)
+        .unwrap();
+    assert_eq!(replay.retired_album_id, None);
 }
 
 #[test]

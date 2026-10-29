@@ -2,7 +2,7 @@ use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::domain::ScanError;
 use crate::domain::exact_duplicates::EXACT_FINGERPRINT_SCHEME;
-use crate::domain::organization::OrganizationWriteReceipt;
+use crate::domain::organization::{OrganizationHistoryReceipt, OrganizationWriteReceipt};
 
 use super::super::exact_duplicates::queries::{COMPATIBLE_FINGERPRINT, CURRENT_LOCATIONS};
 use super::super::exact_duplicates::read_unsigned;
@@ -16,14 +16,16 @@ pub(super) fn apply(
     operation_id: &str,
     original_id: &str,
     expected_revision: u64,
-) -> Result<OrganizationWriteReceipt, ScanError> {
+) -> Result<OrganizationHistoryReceipt, ScanError> {
     let digest = operations::request_digest("undo", expected_revision, &[original_id]);
-    let revision =
+    let operation =
         match operations::admit(connection, operation_id, &digest, "undo", expected_revision)? {
-            Admission::Replayed(receipt) => return Ok(receipt),
-            Admission::New { revision } => revision,
+            Admission::Replayed(receipt) => receipt,
+            Admission::New { revision } => {
+                restore(connection, operation_id, original_id, revision)?
+            }
         };
-    restore(connection, operation_id, original_id, revision)
+    super::history_receipt::load(connection, operation)
 }
 
 pub(super) fn restore(

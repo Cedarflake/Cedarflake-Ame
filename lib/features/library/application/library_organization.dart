@@ -59,7 +59,7 @@ abstract interface class LibraryOrganization {
     String operationId,
     LibraryOrganizationPrepared prepared,
   );
-  Future<LibraryOrganizationReceipt> undo(
+  Future<LibraryOrganizationHistoryReceipt> undo(
     String operationId,
     String originalId,
     BigInt revision,
@@ -320,19 +320,21 @@ class RustLibraryOrganization implements LibraryOrganization {
   });
 
   @override
-  Future<LibraryOrganizationReceipt> undo(
+  Future<LibraryOrganizationHistoryReceipt> undo(
     String operationId,
     String originalId,
     BigInt revision,
-  ) => _call(
-    () async => _receipt(
-      await api.undoOrganizationOperation(
-        operationId: operationId,
-        originalId: originalId,
-        expectedRevision: revision,
-      ),
-    ),
-  );
+  ) => _call(() async {
+    final value = await api.undoOrganizationOperation(
+      operationId: operationId,
+      originalId: originalId,
+      expectedRevision: revision,
+    );
+    return LibraryOrganizationHistoryReceipt(
+      operation: _receipt(value.operation),
+      retiredAlbumId: value.retiredAlbumId,
+    );
+  });
 
   LibraryOrganizationReceipt _receipt(
     dto.OrganizationWriteReceipt value, {

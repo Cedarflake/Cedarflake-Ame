@@ -67,6 +67,16 @@ class LibraryOrganizationUndoRequest extends LibraryOrganizationRequest {
   LibraryOrganizationUndoRequest(this.originalId);
   final String originalId;
   BigInt? _revision;
+  String? _retiredAlbumId;
+
+  @override
+  LibraryOrganizationChange get change {
+    final albumId = _retiredAlbumId;
+    return albumId == null
+        ? const LibraryOrganizationChange.records()
+        : LibraryOrganizationChange.albumRetired(albumId);
+  }
+
   @override
   String get successMessage => "已撤销";
   @override
@@ -80,7 +90,9 @@ class LibraryOrganizationUndoRequest extends LibraryOrganizationRequest {
   ) async {
     final revision = _revision ??= await service.revision();
     requireActive();
-    return service.undo(id, originalId, revision);
+    final result = await service.undo(id, originalId, revision);
+    _retiredAlbumId = result.retiredAlbumId;
+    return result.operation;
   }
 
   @override
