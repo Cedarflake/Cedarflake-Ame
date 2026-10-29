@@ -319,6 +319,9 @@ gallery without moving, copying, renaming, or deleting source files. The
 [R4 requirements](r4-organization.md#albums-favorites-and-duplicate-groups) own group normalization,
 late folding, independent favorites, and assignment rules.
 
+Selecting an album immediately displays its known name in the content heading. Asynchronous
+metadata loading retains that name; a confirmed rename or removal updates it when the result arrives.
+
 When R5 is functional, the same `相册` navigation area also contains a distinct `智能相册` subsection.
 Its result groups are derived from `EffectiveCategory`, not ordinary album membership. Users cannot
 create, delete, rename, directly add, or directly remove their images, and smart albums never appear

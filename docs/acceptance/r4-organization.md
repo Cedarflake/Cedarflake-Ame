@@ -4047,3 +4047,27 @@ The source-history regression now also includes an unpublished row sharing a cur
 covering pages, anchors, layout, timeline totals and source counts. Its dedicated owner is 122 lines;
 this closeout changes no production code, schema, bridge or dependencies. Exact-commit hosted
 verification follows publication of this test and record.
+
+## Album heading continuity - 2026-10-30
+
+Album selection previously rendered the generic heading until its separate metadata query returned,
+despite the sidebar already knowing the name. The presentation now retains the selected album's
+metadata during that read. Confirmed renames and removal remain authoritative; late results for a
+previous selection cannot replace the current label.
+
+The new widget regression fails before the repair and passes afterward. It covers delayed reads,
+rapid selection of two albums, a late first response, rename publication, primary-workspace return
+and confirmed absence. The existing album navigation, rename, deletion and undo regression also
+passes. Scoped Dart analysis and formatting pass.
+
+A Windows Profile integration client uses the real Rust catalog and adds a one-second delay only
+to album-detail lookup. It checks 70 successive frames on first selection and another 70 after
+returning from Library: every heading matches the selected album. The real collection and decoded
+image become available, and both native checks pass. The independent profile exits normally after
+20.378 seconds; the original catalog hash is unchanged. This is functional verification with an
+injected read delay, not a performance benchmark.
+
+The new heading owner contains 23 production lines and no inline tests; its dedicated widget test
+contains 101 lines. The screen facade contains 1,874 production lines and no inline tests, with only
+selection seeding and heading resolution added there. Schema, bridge, dependencies and source-media
+behavior are unchanged. Final exact-commit hosted verification remains part of R4 closeout.

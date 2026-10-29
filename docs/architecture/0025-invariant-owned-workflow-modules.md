@@ -679,6 +679,9 @@ acceptance wrapper and its process/path guardrails; R2c-H is historical evidence
   remain scoped to current demand. Request completion carries the actual attempted size; failure
   is never successful size verification. Changed demand/source, explicit retry or authority reset
   releases failed attempts. Root availability retains its separate root-failure owner's cooldown.
+- `library_album_heading.dart` retains one selected album's display metadata while its asynchronous
+  details load. Confirmed metadata replaces that label, including renames and removal. It grants no
+  query, membership or command authority, and another album's late result cannot replace the selection.
 - `LibraryQueryActivity` is a sealed idle/loading/failed projection owned by the viewport. Failure
   retains its requested query separately from the still-visible gallery and primary task error.
   Primary scan publication separately distinguishes uncommitted work, committed display reload,

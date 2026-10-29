@@ -34,6 +34,7 @@ import "../domain/library_organization.dart";
 import "../domain/library_state.dart";
 import "../domain/library_synchronization_models.dart";
 import "gallery_selection.dart";
+import "library_album_heading.dart";
 import "library_browse_workspaces.dart";
 import "library_gallery_dimension_publication.dart";
 import "library_gallery_layout_continuity.dart";
@@ -104,6 +105,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
   late final LibraryViewerSession _viewer;
   late final LibraryOrganizationMode _review;
   late final LibraryBrowseWorkspaces _browseWorkspaces;
+  final _albumHeading = LibraryAlbumHeading();
   late final LibraryOrganizationPublication _organizationPublication;
   late final LibraryOrganizationProjectionRegistration _organizationProjection;
   late final LibraryConflictNotifications _conflictNotifications;
@@ -670,7 +672,10 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
             ),
     );
     final albumName = collection is LibraryAlbumCollection
-        ? ref.watch(libraryAlbumProvider(collection.albumId)).value?.name
+        ? _albumHeading.resolve(
+            collection.albumId,
+            ref.watch(libraryAlbumProvider(collection.albumId)),
+          )
         : null;
     return LibraryWorkbench(
       onWorkspaceSelected: (workspace) {
@@ -687,16 +692,19 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
           header: favorites,
           collection: collection,
           enabled: LibraryBrowseAdmission(state).canBrowse,
-          onSelect: (album) => unawaited(
-            _applyQuery(
-              state.query.copyWith(
-                collection: LibraryGalleryCollection.album(album.id),
-                rootId: null,
-                folderRelativePath: null,
+          onSelect: (album) {
+            _albumHeading.select(album);
+            unawaited(
+              _applyQuery(
+                state.query.copyWith(
+                  collection: LibraryGalleryCollection.album(album.id),
+                  rootId: null,
+                  folderRelativePath: null,
+                ),
+                preserveGalleryPosition: false,
               ),
-              preserveGalleryPosition: false,
-            ),
-          ),
+            );
+          },
         ),
       ),
       navigationBuilder: (width) => LibraryNavigation(
