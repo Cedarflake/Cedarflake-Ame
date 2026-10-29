@@ -4017,3 +4017,33 @@ The three repairs are committed on `codex/r4-organization` as `7385f88b`, `637db
 The two earlier branch runs are superseded by this final implementation head; their partial results
 are not used for its acceptance. This closes these correctness repairs. Retained-library publication
 latency and constrained-device frame peaks remain in R4-07 under the roadmap's existing order.
+
+## Retained collection closeout - 2026-10-30
+
+The unchanged product at `93965639` completes the full local-primary Profile workflow on an
+independent 63,077-file/47,833-group catalog copy. Album and Favorite entry, original-image viewing,
+unfavorite, pending/deferred queues, saved continuation and concurrent bulk publication all pass
+their identity, count, decoded-image and terminal-state assertions. The source catalog hash remains
+`4ae81c622c784efa43542858d7819665822463d97ff747824eb328924221c15d`; original media is not modified.
+
+Three album entries take 1.969–2.034 seconds and three Favorite entries 2.023–2.158 seconds.
+Single-group unfavorite feedback takes 66 ms and its committed list appears in 3.092 seconds.
+Pending/deferred entry takes 2.157/3.518 seconds; saved continuation displays its image in 3.021
+seconds. Preparing 47,832 Favorite changes takes 5.328 seconds and saving takes 14.756 seconds.
+During that write, album content and decoded previews remain available after 2.202/2.212 seconds;
+the writer is still active at both observations. Final empty-Favorite publication takes 2.213 seconds.
+These are observed intervals, not new performance thresholds. Fresh-copy startup includes schema
+56-to-60 migration and preview admission, so its 28.966 seconds is not a warm startup measurement.
+
+The run lasts 97.791 seconds with 158.688 CPU seconds, sampled working/private peaks of
+368,312,320/561,258,496 bytes and at most 500 retained assets. Across 3,274 frames, build/raster P95
+is 0.946/1.423 ms. These checks establish bounded, responsive retained-library operation; they do
+not replace the separate cloud-primary first-use rendering check.
+
+A proposed representative-first outer location join is rejected: despite a small standalone SQL
+gain, the production read-stage workload doubles dense collection timeline cost from about 1.4
+to 2.7 seconds and the native refresh regresses. Published-source-first access remains unchanged.
+The source-history regression now also includes an unpublished row sharing a current location ID,
+covering pages, anchors, layout, timeline totals and source counts. Its dedicated owner is 122 lines;
+this closeout changes no production code, schema, bridge or dependencies. Exact-commit hosted
+verification follows publication of this test and record.

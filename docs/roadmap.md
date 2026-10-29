@@ -374,8 +374,14 @@ full-resolution viewing and source-read lifetime. Historical root fixtures now m
 schema; their upgrade, sidebar-order and exact-commit hosted checks pass. Notification undo now
 publishes album retirement, workspace switching serializes mode entry, and schema 60 preserves
 the mode-entry arrival boundary across archive restoration. Their focused regressions and complete
-exact-commit hosted verification pass. Continue the retained-read work, then address the
-constrained-device frame peaks in the existing order.
+exact-commit hosted verification pass. The current retained-scale native workflow passes with
+collection entry around 2 seconds, single-group feedback at 66 ms, committed-list publication at
+3.09 seconds and a 500-asset client window, including browsing during the full-library writer.
+The read-plan alternative regressed dense collection timelines and was discarded; retain the
+published-source-first implementation and its expanded historical-location regression. Continue
+with the reported album-title loading flash and constrained-device frame peaks before final R4-07
+closure; the [retained closeout](acceptance/r4-organization.md#retained-collection-closeout---2026-10-30)
+records the current native measurements and resource bounds.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication

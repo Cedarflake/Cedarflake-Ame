@@ -25,7 +25,14 @@ fn collection_and_queue_reads_skip_unpublished_source_history() {
                current.absolute_path, current.relative_path, '', current.file_size, 0,
                40, 50, 'pending', current.source_generation
              FROM sequence CROSS JOIN asset_locations AS current
-             WHERE current.scan_id = 'scan-a' AND current.location_id = 'a';",
+             WHERE current.scan_id = 'scan-a' AND current.location_id = 'a';
+             INSERT INTO asset_locations(scan_id, asset_id, location_id, root_id,
+               absolute_path, relative_path, preview_path, file_size, modified_unix_ms,
+               width, height, preview_status, source_generation)
+             SELECT 'unpublished-history', asset_id, location_id, root_id,
+               absolute_path, relative_path, '', file_size, 0,
+               40, 50, 'pending', source_generation
+             FROM asset_locations WHERE scan_id = 'scan-a' AND location_id = 'a';",
         )
         .unwrap();
     for (query, expected_ids, physical) in [
