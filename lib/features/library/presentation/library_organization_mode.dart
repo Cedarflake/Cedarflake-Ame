@@ -10,6 +10,7 @@ import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "../domain/library_state.dart";
 import "gallery_selection.dart";
+import "library_organization_transition.dart";
 import "widgets/library_gallery_position.dart";
 
 class LibraryReviewBrowseState {
@@ -47,7 +48,7 @@ class LibraryOrganizationMode extends ChangeNotifier
   LibraryReviewBrowseState? _ordinary;
   LibraryReviewSession? _session;
   LibraryReviewContinuation? _continuation;
-  bool _busy = false;
+  final _transition = LibraryOrganizationTransition();
   bool _disposed = false;
   int _read = 0;
   Future<void>? _continuationRead;
@@ -58,7 +59,7 @@ class LibraryOrganizationMode extends ChangeNotifier
   bool get canEnter => surface.library.query.collection is LibraryAllCollection;
   LibraryGalleryQuery? get ordinaryQuery => _ordinary?.query;
   LibraryReviewBrowseState? get ordinaryBrowse => _ordinary;
-  bool get busy => _busy;
+  bool get busy => _transition.busy;
   String? get problem => _problem?.message;
   LibraryReviewSession? get session => _session;
   LibraryReviewEntry? get current => _session?.current;
@@ -113,7 +114,9 @@ class LibraryOrganizationMode extends ChangeNotifier
     await refreshContinuation();
   });
 
-  Future<void> exit() => _run(() async {
+  Future<void> exit() => _run(_exit);
+
+  Future<void> _exit() async {
     final saved = _ordinary;
     if (saved == null) return;
     if (!await surface.showReviewQuery(saved.query, position: saved.position) ||
@@ -124,12 +127,27 @@ class LibraryOrganizationMode extends ChangeNotifier
     _ordinary = null;
     _continuation = null;
     surface.restoreReviewBrowse(saved);
-  });
+  }
+
+  Future<void> switchWorkspace(Future<void> Function() navigate) async {
+    if (_disposed) return;
+    await _transition.navigate(() async {
+      if (_disposed) return;
+      notifyListeners();
+      await navigate();
+    });
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> leaveWorkspace() {
+    assert(_transition.isNavigating && !_transition.isRunning);
+    return _guard(_exit);
+  }
 
   bool restoreWorkspace(LibraryReviewBrowseState ordinary) {
     final query = surface.library.query;
     if (_disposed ||
-        _busy ||
+        _transition.isRunning ||
         isActive ||
         !canEnter ||
         query.organizationQueue == null) {
@@ -355,8 +373,12 @@ class LibraryOrganizationMode extends ChangeNotifier
   }
 
   Future<void> _run(Future<void> Function() operation) async {
-    if (_disposed || _busy) return;
-    _busy = true;
+    if (_disposed || busy) return;
+    await _transition.run(() => _guard(operation));
+    if (!_disposed) notifyListeners();
+  }
+
+  Future<void> _guard(Future<void> Function() operation) async {
     _problem = null;
     notifyListeners();
     try {
@@ -367,7 +389,6 @@ class LibraryOrganizationMode extends ChangeNotifier
       }
     } finally {
       if (!_disposed) {
-        _busy = false;
         notifyListeners();
       }
     }

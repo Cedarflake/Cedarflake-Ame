@@ -3954,3 +3954,23 @@ Production/inline-test line counts are: receipt projection 26/0, history 176/0, 
 SQLite organization facade 211/0, application facade 122/0, API 94/0 and repository port 82/0;
 Dart service 357/0 and request owner 103/0. Dedicated undo tests contain 264 lines, the new widget
 regression 107 and the extended native workflow 331. Generated bridge files remain generated.
+
+## Workspace navigation during mode entry - 2026-10-29
+
+The presentation transition owner admits one mode change or workspace transition at a time.
+Workspace navigation waits for pending entry, then captures the completed organizing Library,
+leaves its active session before showing Albums, and restores it on return. Navigation excludes
+new mode entry while a saved destination is being restored. Failed entry does not create a saved
+review snapshot, and disposal still retires navigation publication. Existing layout and controls
+are unchanged.
+
+The focused mode, workspace and album-undo suites pass 42 cases. They cover both awaited entry
+boundaries, entry failure, reverse overlap, retained position/selection, rapid destination changes,
+retired albums and disposal. A separate widget interaction uses the primary sidebar while entry
+is pending, then opens an album and Favorites and returns to the retained Library review; it passes,
+bringing the focused total to 43. The delayed-read fixture uses a bounded frame pump while the
+intentional wait is active, rather than waiting for its loading animation to settle.
+
+Production/inline-test line counts are: exclusive transition 35/0, organization mode 408/0 and
+workspace navigation 149/0. Dedicated mode and workspace tests contain 490 and 321 lines; the
+widget interaction contains 92 lines. Exact-commit hosted verification owns the complete gate.

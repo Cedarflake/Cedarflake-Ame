@@ -372,8 +372,9 @@ and organization-entry raster spikes remain. Continue the retained-read/publicat
 resolve these constrained-device peaks before R4-07 closure; preserve the accepted interface,
 full-resolution viewing and source-read lifetime. Historical root fixtures now match the original
 schema; their upgrade, sidebar-order and exact-commit hosted checks pass. Before resuming the
-retained-read work, repair notification-undo album retirement, pending organization entry during
-workspace switching, and the new-arrival boundary across archive restoration, in that order.
+retained-read work, finish the new-arrival boundary repair across archive restoration. Notification
+undo now publishes album retirement and workspace switching serializes mode entry; their focused
+regressions pass, with complete hosted verification in progress.
 Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
 3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
 same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication

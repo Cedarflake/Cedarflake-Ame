@@ -436,6 +436,10 @@ Workspace navigation retains an organizing Library's active browse snapshot and 
 context while Albums uses the gallery. Query restoration precedes review-session reactivation on
 return. Duplicates and Settings retain the active organization session behind their surfaces;
 returning to an ordinary gallery resets selection and position across all primary destinations.
+Mode changes and workspace navigation share an exclusive transition owner. Navigation waits for
+an admitted mode change before capturing its state, blocks new mode commands during restoration,
+and leaves the review session under its own navigation authority. A pending entry therefore cannot
+activate behind an already published Albums workspace. Disposal retires destination publication.
 Progress counts carry their query identity and catalog revision; only a matching snapshot
 can supply the header and review controls. Exiting restores the retained browsing context through the existing
 query/selection admission rules, so obsolete all-matching selections cannot authorize new writes.

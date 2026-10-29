@@ -38,7 +38,9 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
       while (!_disposed && _requested != null) {
         final next = _requested!;
         _requested = null;
-        await _show(next);
+        await review.switchWorkspace(
+          () => _disposed ? Future.value() : _show(next),
+        );
       }
     } finally {
       _switching = null;
@@ -60,7 +62,7 @@ class LibraryBrowseWorkspaces implements LibraryOrganizationProjection {
     }
     final leaving = _captureBrowse();
     if (review.isActive) {
-      await review.exit();
+      await review.leaveWorkspace();
       if (_disposed) return;
       if (review.isActive) {
         final ordinary = review.ordinaryQuery;

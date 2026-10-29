@@ -13,10 +13,12 @@ void main() {
   late LibraryOrganizationMode review;
   late LibraryBrowseWorkspaces navigation;
   late LibraryWorkspace visible;
+  late _EntryService service;
 
   setUp(() {
     surface = ReviewSurfaceFixture();
-    review = LibraryOrganizationMode(ReviewServiceFixture(), surface);
+    service = _EntryService();
+    review = LibraryOrganizationMode(service, surface);
     visible = LibraryWorkspace.gallery;
     navigation = LibraryBrowseWorkspaces(
       surface: surface,
@@ -38,6 +40,92 @@ void main() {
       ),
     );
   }
+
+  for (final waitingOnBoundary in [true, false]) {
+    test(
+      "workspace switching waits for ${waitingOnBoundary ? 'boundary' : 'first queue'} admission",
+      () async {
+        final boundary = Completer<BigInt>();
+        final query = Completer<bool>();
+        if (waitingOnBoundary) {
+          service.boundary = boundary.future;
+        } else {
+          surface.publishing = () => query.future;
+        }
+        final entering = review.enter();
+        await Future<void>.delayed(Duration.zero);
+        final switching = navigation.select(LibraryWorkspace.albums);
+        expect(visible, LibraryWorkspace.gallery);
+        if (waitingOnBoundary) {
+          boundary.complete(BigInt.from(7));
+        } else {
+          surface.publishing = null;
+          query.complete(true);
+        }
+        await entering;
+        await switching;
+        expect(visible, LibraryWorkspace.albums);
+        expect(review.isActive, isFalse);
+        expect(review.busy, isFalse);
+        expect(surface.library.query.organizationQueue, isNull);
+        for (final collection in [
+          const LibraryGalleryCollection.album("a"),
+          const LibraryGalleryCollection.favorites(),
+        ]) {
+          expect(
+            await surface.showReviewQuery(
+              surface.library.query.copyWith(collection: collection),
+            ),
+            isTrue,
+          );
+          expect(surface.library.query.collection, collection);
+        }
+        await navigation.select(LibraryWorkspace.gallery);
+        expect(review.isActive, isTrue);
+        expect(surface.restored!.isSelecting, isTrue);
+        expect(surface.positions.last!.globalItemIndex, 23);
+      },
+    );
+  }
+
+  test(
+    "a workspace restoration excludes new mode entry until it publishes",
+    () async {
+      await visitAlbum();
+      await navigation.select(LibraryWorkspace.gallery);
+      final query = Completer<bool>();
+      surface.publishing = () => query.future;
+      final switching = navigation.select(LibraryWorkspace.albums);
+      expect(review.busy, isTrue);
+      await review.enter();
+      query.complete(true);
+      await switching;
+      expect(visible, LibraryWorkspace.albums);
+      expect(review.isActive, isFalse);
+      expect(
+        surface.library.query.collection,
+        const LibraryGalleryCollection.album("a"),
+      );
+    },
+  );
+
+  test(
+    "failed entry releases navigation without creating a review snapshot",
+    () async {
+      final boundary = Completer<BigInt>();
+      service.boundary = boundary.future;
+      final entering = review.enter();
+      final switching = navigation.select(LibraryWorkspace.albums);
+      boundary.completeError(StateError("boundary unavailable"));
+      await entering;
+      await switching;
+      expect(visible, LibraryWorkspace.albums);
+      expect(review.isActive, isFalse);
+      await navigation.select(LibraryWorkspace.gallery);
+      expect(review.isActive, isFalse);
+      expect(surface.restored!.isSelecting, isFalse);
+    },
+  );
 
   test(
     "ordinary destination switches retain scope and reset position and selection",
@@ -223,4 +311,11 @@ void main() {
     await switching;
     expect(visible, LibraryWorkspace.albums);
   });
+}
+
+class _EntryService extends ReviewServiceFixture {
+  Future<BigInt>? boundary;
+
+  @override
+  Future<BigInt> admissionBoundary() => boundary ?? super.admissionBoundary();
 }
