@@ -80,6 +80,21 @@ impl Embedding {
         &self.0
     }
 
+    pub(crate) fn from_normalized_values(values: Vec<f32>) -> Result<Self, ClassificationError> {
+        if values.is_empty() || values.len() > 4096 || values.iter().any(|value| !value.is_finite())
+        {
+            return Err(ClassificationError::InvalidEmbedding);
+        }
+        let squared_norm = values
+            .iter()
+            .map(|value| f64::from(*value).powi(2))
+            .sum::<f64>();
+        if (squared_norm - 1.0).abs() > 0.00001 {
+            return Err(ClassificationError::InvalidEmbedding);
+        }
+        Ok(Self(values.into_boxed_slice()))
+    }
+
     pub(crate) fn cosine(&self, other: &Self) -> Result<f32, ClassificationError> {
         if self.0.len() != other.0.len() {
             return Err(ClassificationError::InvalidEmbedding);

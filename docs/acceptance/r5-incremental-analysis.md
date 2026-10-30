@@ -33,10 +33,10 @@ the library check. The full root test compile also exhausted compiler memory and
 execution result. Hosted exact-commit checks own the new runtime and migration regressions; no
 workload or assertion was removed. Formatting and whitespace checks passed.
 
-This storage implementation is not yet connected to the desktop dispatcher. Feature storage,
-foreground admission, model setup and shared progress remain part of the same R5-04 workflow.
-The guarded verification connection is recorded below. No background classification is enabled
-by these internal operations.
+This storage implementation is not yet connected to the desktop dispatcher. Foreground admission,
+model setup and shared progress remain part of the same R5-04 workflow. The guarded verification
+and feature-storage connections are recorded below. No background classification is enabled by
+these internal operations.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -82,3 +82,36 @@ The failed run did not execute the database regressions; their results require t
 | Source verification transaction | 132 | 0 | Shared verification scenarios |
 | Exact fingerprint publication | 122 | 0 | Existing source-identity and publication suites |
 | Shared gallery membership / organization publication | 129 / 71 | 0 | Existing batch, grouping and recovery suites |
+
+## Compatible feature reuse
+
+The native classification facade now exposes a separate SQLite feature cache and the description
+preparation use case. Independent image/text identities and exact content/description keys allow
+rule-only rematching without another image inference. Text preparation retains completed entries
+after cancellation, releases its text encoder on success or failure, and preserves a warm image
+encoder when all descriptions are already cached. No model is loaded by opening or cleaning the cache.
+
+The cache uses the existing pinned-directory capability and held file identity. Initialization
+publishes a complete temporary database without replacing another creator's file. Raw header
+identity/version checks precede SQLite write access to an existing file. Integrity checks cover
+the key and payload; normalized values are restored without a second normalization. Recency and
+accounting update atomically, with indexed eviction and bounded cleanup under ADR 0034's limits.
+
+Twelve added Rust scenarios cover restart and exact-vector preservation, independent encoder
+invalidation, content/description changes, recency eviction, rollback after eviction, corrupt values,
+bounded cleanup, unrelated/newer database preservation, Windows namespace lifetime, rule-only
+rematching, interrupted description reuse, failed-description retirement and warm-image retention.
+Their execution belongs to the exact-commit hosted gate. A local library Clippy attempt identified
+integer-decoding and facade-export errors, which were corrected, but compilation then exhausted
+memory; it supplies no passing Clippy result. No further full-root test build was attempted.
+
+A focused SQLite check executed the production schema with `trusted_schema=OFF`: 260 insertions
+accounted for 68,640 bytes, bounded cleanup left four entries, rollback restored all 260, and the
+eviction query used `feature_recency`. Formatting and whitespace checks pass. This check covers SQL
+accounting and query shape, not the Rust adapter or Windows file capability. Source decoding,
+the integrated dispatcher and desktop enablement remain pending R5-04 work.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Feature-cache adapter / storage / schema | 272 / 179 / 26 | 0 | 322 |
+| Description preparation / repository port | 76 / 41 | 0 | 307 |

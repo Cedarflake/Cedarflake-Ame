@@ -1,4 +1,6 @@
+pub use crate::adapters::SqliteClassificationFeatureCache;
 pub use crate::application::classification_decisions::plan_classification_change;
+pub use crate::application::classification_features::prepare_classification_matcher;
 pub use crate::application::classification_matching::{
     CategoryMatcher, CategoryScore, RankedPrediction,
 };
@@ -36,6 +38,9 @@ pub use crate::domain::classification_review::{
 pub use crate::ports::classification::ClassificationRepository;
 pub use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
+};
+pub use crate::ports::classification_features::{
+    ClassificationFeatureCacheStats, ClassificationFeatureRepository,
 };
 pub use crate::ports::classification_review::ClassificationReviewRepository;
 pub use crate::ports::classification_work::ClassificationWorkRepository;

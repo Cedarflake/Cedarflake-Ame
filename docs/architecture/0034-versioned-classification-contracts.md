@@ -54,6 +54,30 @@ boundaries: a new taxonomy can match retained compatible image features and reus
 features. A display rename or reorder preserves the rules revision. Semantic edits or a changed
 active set change the matching revision while preserving the independent image-pipeline revision.
 
+### Rebuildable feature storage
+
+A separate versioned SQLite feature cache stores normalized F32 vectors outside the catalog and
+source trees. Image keys bind exact content scheme/digest/length, embedding space, image pipeline
+and dimensions. Text keys bind description revision, embedding space, text pipeline and dimensions.
+Neither key includes a run ID, display label, whole taxonomy revision or the other encoder's pipeline.
+Each payload has an integrity digest over its key and exact bytes; loading preserves those bytes
+instead of normalizing the vector again. Invalid entries produce a structured cache error.
+
+The initial cache budget is 256 MiB for vectors and a fixed per-entry allowance; the database has
+an independent 544 MiB page limit and a 2 MiB SQLite page cache. Indexed recency eviction removes at
+most 64 entries per insertion. Explicit cleanup removes at most 256 entries and reclaims at most
+256 free pages per call. SQLite transactions cover only cache reads/writes, never encoding.
+The cache namespace is pinned through the existing directory capability, and its fixed-name file
+has a separate application identity and schema version. An existing unrelated or newer database is
+rejected before SQLite opens it for writes. New caches are initialized in owned temporary storage
+and published without replacing an existing file, so interrupted setup does not expose a partial schema.
+
+Description preparation reuses compatible entries, encodes only missing descriptions and releases
+the text worker after the batch, including failure/cancellation. Completed description entries survive
+an interrupted batch. Cache loss or eviction does not change queue checkpoints, immutable predictions,
+human choices or stopped-run intent; missing vectors are recomputed only for admitted analysis work.
+Source identity and claim checks still authorize image-feature publication and prediction publication.
+
 The initial ranking uses L2-normalized vectors and maximum description cosine per category, retaining
 the comparison's measured aggregation rather than introducing an unvalidated averaging rule.
 Ties have stable category-ID ordering and zero separation. A single-category scheme has no runner-up
@@ -182,8 +206,8 @@ Comparing raw unversioned arrays is rejected because dimensions alone do not est
 Mean/prototype aggregation showed no consistent advantage in the retained diagnostic and would
 require a new scoring revision and calibration before adoption. GPU acceleration remains optional.
 
-This contract adds no schema or bridge change. Persistence and worker adapters can use the same
-validated inputs without depending on each other's engine types. The 256 × 8 description limit
+The feature cache has its own schema; it adds no catalog or desktop bridge schema. Persistence and
+worker adapters use the same validated inputs without depending on each other's engine types. The 256 × 8 description limit
 bounds matching storage; future increases need resource evidence, not new category semantics.
 
 ## Validation and replacement
