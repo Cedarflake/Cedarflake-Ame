@@ -11,7 +11,7 @@ use crate::ports::classification_analysis::{
 
 use super::super::super::{SqliteCatalog, database_error, exact_duplicates};
 use super::super::predictions;
-use super::{completion, invalid, leases, queue};
+use super::{completion, invalid, leases, queue, sources};
 
 impl ClassificationAnalysisRepository for SqliteCatalog {
     fn prepare_classification_analysis(
@@ -65,20 +65,16 @@ impl ClassificationAnalysisRepository for SqliteCatalog {
 }
 
 fn current(connection: &Connection, lease: &ClassificationWorkLease) -> Result<bool, ScanError> {
-    if leases::current(connection, lease)?.is_none() {
+    let Some(work) = leases::current(connection, lease)? else {
         return Ok(false);
-    }
+    };
     let ClassificationWorkTarget::AnalyzeContent { source, content } = &lease.target else {
         return Err(invalid());
     };
     if queue::verified_content(connection, source)?.as_ref() == Some(content) {
         return Ok(true);
     }
-    let phase = if queue::content_source(connection, content)?.is_some() {
-        "queued"
-    } else {
-        "retired"
-    };
+    let phase = sources::choose(connection, &work)?.pending_phase();
     leases::checkpoint(connection, lease.work_id, phase)?;
     Ok(false)
 }

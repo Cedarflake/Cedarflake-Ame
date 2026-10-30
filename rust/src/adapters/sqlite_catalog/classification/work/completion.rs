@@ -9,7 +9,7 @@ use crate::domain::classification::{ClassificationRecordId, PredictionEvidence};
 
 use super::super::super::{database_error, sqlite_integer};
 use super::super::{codec, predictions};
-use super::{control, invalid, leases, queue};
+use super::{control, invalid, leases, queue, sources};
 
 pub(super) fn verified(
     connection: &Connection,
@@ -22,11 +22,7 @@ pub(super) fn verified(
         return Err(invalid());
     };
     let Some(content) = queue::verified_content(connection, source)? else {
-        let phase = if queue::current_source(connection, source.source_generation)?.is_some() {
-            "queued"
-        } else {
-            "retired"
-        };
+        let phase = sources::choose(connection, &work)?.pending_phase();
         leases::checkpoint(connection, work.id, phase)?;
         return Ok(false);
     };
@@ -51,7 +47,9 @@ pub(super) fn verified(
             codec::digest(&content.digest), sqlite_integer(content.byte_length, "content length")?,
             queue::stored_priority(work.priority), phase, sqlite_integer(work.ready_unix_ms, "work ready time")?],
     ).map_err(database_error)?;
+    sources::wake_content(connection, &run, &content, work.ready_unix_ms)?;
     leases::checkpoint(connection, work.id, "done")?;
+    sources::clear(connection, work.id)?;
     Ok(true)
 }
 
@@ -70,16 +68,13 @@ pub(super) fn publish(
         return Err(invalid());
     }
     if queue::verified_content(connection, source)?.as_ref() != Some(content) {
-        let phase = if queue::content_source(connection, content)?.is_some() {
-            "queued"
-        } else {
-            "retired"
-        };
+        let phase = sources::choose(connection, &work)?.pending_phase();
         leases::checkpoint(connection, work.id, phase)?;
         return Ok(false);
     }
     predictions::publish(connection, source, evidence)?;
     leases::checkpoint(connection, work.id, "done")?;
+    sources::clear(connection, work.id)?;
     Ok(true)
 }
 
@@ -104,14 +99,23 @@ pub(super) fn fail(
         return Ok(false);
     };
     let (phase, count_failure) = match issue.kind {
-        ClassificationWorkFailure::Unavailable => ("waiting", false),
+        ClassificationWorkFailure::Unavailable => {
+            let source = match &lease.target {
+                ClassificationWorkTarget::VerifySource(source)
+                | ClassificationWorkTarget::AnalyzeContent { source, .. } => source,
+            };
+            (
+                sources::unavailable(connection, &work, source)?.pending_phase(),
+                false,
+            )
+        }
         ClassificationWorkFailure::Transient => ("queued", true),
         ClassificationWorkFailure::Permanent => ("failed", true),
     };
     connection
         .execute(
             "UPDATE classification_work_items SET
-             phase = CASE WHEN ?1 = 'queued' AND failure_count >= 2 THEN 'failed' ELSE ?1 END,
+             phase = CASE WHEN ?1 = 'queued' AND ?2 AND failure_count >= 2 THEN 'failed' ELSE ?1 END,
              failure_count = min(failure_count + ?2, 3), ready_unix_ms = ?3, issue_code = ?4,
              lease_id = NULL, lease_epoch = NULL, lease_asset_id = NULL,
              lease_location_id = NULL, lease_source_generation = NULL
@@ -119,7 +123,7 @@ pub(super) fn fail(
             params![
                 phase,
                 count_failure,
-                sqlite_integer(issue.retry_unix_ms, "retry time")?,
+                if count_failure { sqlite_integer(issue.retry_unix_ms, "retry time")? } else { 0 },
                 issue.code,
                 sqlite_integer(work.id, "work identity")?
             ],
@@ -135,6 +139,14 @@ pub(super) fn retry(
 ) -> Result<u64, ScanError> {
     let dispatch = control::session(connection, session)?;
     let run = control::run(connection, &dispatch)?;
+    connection
+        .execute(
+            "DELETE FROM classification_unavailable_sources WHERE work_id IN (
+             SELECT work_id FROM classification_work_items
+             WHERE configuration_revision = ?1 AND phase IN ('waiting', 'failed'))",
+            [codec::revision(run.configuration())],
+        )
+        .map_err(database_error)?;
     let changed = connection.execute(
         "UPDATE classification_work_items SET phase = 'queued', failure_count = 0, issue_code = NULL, ready_unix_ms = ?1
          WHERE configuration_revision = ?2 AND phase IN ('waiting', 'failed')",

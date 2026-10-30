@@ -5,9 +5,8 @@ use std::time::Duration;
 use crate::adapters::classification_runtime::LocalClassificationEncoderFactory;
 use crate::adapters::{SqliteCatalog, SqliteClassificationFeatureCache};
 use crate::domain::classification::work::{
-    ClassificationAnalysisResult, ClassificationDispatchCommand, ClassificationDispatchState,
-    ClassificationVerificationResult, ClassificationWorkFailure, ClassificationWorkLease,
-    ClassificationWorkTarget,
+    ClassificationAnalysisResult, ClassificationVerificationResult, ClassificationWorkFailure,
+    ClassificationWorkLease, ClassificationWorkTarget,
 };
 use crate::domain::classification::{ClassificationAnalysisSetup, ClassificationRecordId};
 use crate::domain::{LibraryChangeLane, ScanError};
@@ -26,9 +25,11 @@ use super::classification_screening::ScreeningClassifier;
 use super::classification_verification::verify_classification_source;
 
 mod admitted_text;
+mod control;
 mod ownership;
 mod setup;
 use admitted_text::AdmittedTextFactory;
+pub use control::ClassificationRuntimeControl;
 
 pub struct ClassificationRuntimePaths {
     pub database: PathBuf,
@@ -36,45 +37,6 @@ pub struct ClassificationRuntimePaths {
     pub worker: PathBuf,
     pub models: PathBuf,
     pub runtime: PathBuf,
-}
-
-#[derive(Clone)]
-pub struct ClassificationRuntimeControl {
-    database: PathBuf,
-    session: ClassificationRecordId,
-    signals: ClassificationDispatchSignals,
-}
-
-impl ClassificationRuntimeControl {
-    pub fn signals(&self) -> ClassificationDispatchSignals {
-        self.signals.clone()
-    }
-
-    pub fn change(
-        &self,
-        expected_revision: u64,
-        command: &ClassificationDispatchCommand,
-    ) -> Result<ClassificationDispatchState, ScanError> {
-        self.signals.dispatch_changed()?;
-        let mut catalog =
-            super::catalog_session::open_catalog(&self.database, LibraryChangeLane::Recovery)?;
-        let state = catalog.classification_dispatch_state()?;
-        if state.session_id.as_ref() != Some(&self.session) {
-            return Err(setup::mismatch());
-        }
-        let result = catalog.change_classification_dispatch(expected_revision, command);
-        // A wake before the transaction cannot stand in for the committed intent change.
-        self.signals.dispatch_changed()?;
-        result
-    }
-
-    pub fn retry(&self) -> Result<u64, ScanError> {
-        let mut catalog =
-            super::catalog_session::open_catalog(&self.database, LibraryChangeLane::Recovery)?;
-        let count = catalog.retry_classification_work(&self.session, self.signals.unix_ms())?;
-        self.signals.dispatch_changed()?;
-        Ok(count)
-    }
 }
 
 pub struct NativeClassificationRuntime {
@@ -100,11 +62,11 @@ impl NativeClassificationRuntime {
                 "The saved analysis settings are incomplete; choose an analysis configuration",
             )
         })?;
-        let control = ClassificationRuntimeControl {
-            database: paths.database.clone(),
-            session: session.clone(),
-            signals: signals.clone(),
-        };
+        let control = ClassificationRuntimeControl::new(
+            paths.database.clone(),
+            session.clone(),
+            signals.clone(),
+        );
         let executor = NativeExecutor {
             database: paths.database,
             cache_path: paths.feature_cache,
@@ -143,7 +105,7 @@ impl NativeClassificationRuntime {
 impl Drop for NativeClassificationRuntime {
     fn drop(&mut self) {
         self.ownership.require_retirement();
-        let _ = self.control.signals.close();
+        let _ = self.control.signals().close();
         if self.dispatcher.retire().is_ok() {
             self.ownership.confirm_retirement();
         }

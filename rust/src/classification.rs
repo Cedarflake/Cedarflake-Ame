@@ -23,7 +23,8 @@ pub use crate::application::classification_screening::{
 pub use crate::application::classification_verification::verify_classification_source;
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,
-    ClassificationDispatchMode, ClassificationDispatchState, ClassificationVerificationResult,
+    ClassificationDispatchMode, ClassificationDispatchState, ClassificationRecoveryCursor,
+    ClassificationRecoveryPage, ClassificationRecoveryRoot, ClassificationVerificationResult,
     ClassificationWorkFailure, ClassificationWorkIssue, ClassificationWorkLease,
     ClassificationWorkPriority, ClassificationWorkTarget,
 };
@@ -47,6 +48,7 @@ pub use crate::domain::classification_review::{
     ClassificationReviewReceipt, ClassificationReviewScope, ClassificationReviewSession,
 };
 pub use crate::ports::classification::ClassificationRepository;
+pub use crate::ports::classification_availability::ClassificationAvailabilityRepository;
 pub use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
 };

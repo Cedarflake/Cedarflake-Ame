@@ -102,9 +102,11 @@ durable task admission under [ADR 0036](architecture/0036-durable-classification
 feature reuse and guarded content execution now have native owners. Native image input has a frozen-policy
 comparison, and per-file background admission is shared with exact analysis. A native dispatch loop
 now connects demand loading, quiet admission, foreground yielding, retries and idle retirement.
-Complete setup restoration and separately checkpointed new-content admission are now connected to
-the native runtime. Desktop ownership/signals and scoped availability wakeups remain in R5-04
-integration, with full database regressions still owned by the current-head hosted gate.
+Complete setup restoration, separately checkpointed new-content admission and scoped availability
+recovery are connected to the native runtime. Unavailable copies can yield to another verified copy;
+root/source recovery retains pause, stop and source-generation guards. Desktop ownership, committed
+publication and availability signals remain in R5-04 integration, with full database regressions
+still owned by the current-head hosted gate.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference

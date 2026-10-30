@@ -14,7 +14,7 @@ use crate::ports::classification_source::{
 };
 
 use super::super::super::{SqliteCatalog, database_error, exact_duplicates, sqlite_integer};
-use super::{completion, invalid, leases, queue};
+use super::{completion, invalid, leases, sources};
 
 impl ClassificationSourceRepository for SqliteCatalog {
     fn prepare_classification_source(
@@ -31,12 +31,8 @@ impl ClassificationSourceRepository for SqliteCatalog {
         }
         let Some(candidate) = exact_duplicates::queries::load_selected(&transaction, source)?
         else {
-            let phase = if queue::current_source(&transaction, source.source_generation)?.is_some()
-            {
-                "queued"
-            } else {
-                "retired"
-            };
+            let work = leases::current(&transaction, lease)?.ok_or_else(invalid)?;
+            let phase = sources::choose(&transaction, &work)?.pending_phase();
             leases::checkpoint(&transaction, lease.work_id, phase)?;
             transaction.commit().map_err(database_error)?;
             return Ok(ClassificationSourcePreparation::Superseded);

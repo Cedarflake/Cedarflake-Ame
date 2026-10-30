@@ -12,10 +12,13 @@ use super::super::{SqliteCatalog, database_error};
 mod admission;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
 mod analysis;
+mod availability;
+pub(in crate::adapters::sqlite_catalog) use availability::source_removed;
 mod completion;
 pub(super) mod control;
 mod leases;
 mod queue;
+mod sources;
 mod verification;
 
 impl ClassificationWorkRepository for SqliteCatalog {

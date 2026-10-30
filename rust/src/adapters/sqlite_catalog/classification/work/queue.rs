@@ -11,7 +11,7 @@ use crate::domain::organization::{OrganizationSelection, validate_selections};
 
 use super::super::super::{database_error, exact_duplicates, sqlite_integer};
 use super::super::codec;
-use super::{changed, control, invalid};
+use super::{changed, control, invalid, sources};
 
 pub(super) fn request(
     connection: &Connection,
@@ -20,9 +20,27 @@ pub(super) fn request(
     priority: ClassificationWorkPriority,
     now_unix_ms: u64,
 ) -> Result<u64, ScanError> {
-    validate_selections(selections)?;
     let dispatch = control::session(connection, session)?;
     let run = control::run(connection, &dispatch)?;
+    let sources = requested_sources(connection, selections)?;
+    let mut queued = 0;
+    for source in sources {
+        queued += enqueue_source(
+            connection,
+            &run,
+            source.source_generation,
+            priority,
+            now_unix_ms,
+        )?;
+    }
+    Ok(queued)
+}
+
+pub(super) fn requested_sources(
+    connection: &Connection,
+    selections: &[OrganizationSelection],
+) -> Result<Vec<OrganizationSelection>, ScanError> {
+    validate_selections(selections)?;
     let unique: BTreeSet<_> = selections.iter().cloned().collect();
     let tuples: Vec<_> = unique
         .iter()
@@ -44,17 +62,7 @@ pub(super) fn request(
     if sources.len() != unique.len() {
         return Err(changed());
     }
-    let mut queued = 0;
-    for source in sources {
-        queued += enqueue_source(
-            connection,
-            &run,
-            source.source_generation,
-            priority,
-            now_unix_ms,
-        )?;
-    }
-    Ok(queued)
+    Ok(sources)
 }
 
 pub(super) fn enqueue_source(
@@ -79,53 +87,8 @@ pub(super) fn enqueue_source(
         params![run.id().as_str(), codec::revision(run.configuration()), sqlite_integer(generation, "source generation")?,
                 stored_priority(priority), sqlite_integer(now_unix_ms, "work ready time")?],
     ).map_err(database_error)?;
-    Ok(changed as u64)
-}
-
-pub(super) fn current_source(
-    connection: &Connection,
-    generation: u64,
-) -> Result<Option<OrganizationSelection>, ScanError> {
-    let sql = format!(
-        "SELECT l.asset_id, l.location_id, l.source_generation FROM {}
-        WHERE l.source_generation = ?1 ORDER BY l.location_id LIMIT 1",
-        exact_duplicates::queries::CURRENT_LOCATIONS
-    );
-    connection
-        .query_row(
-            &sql,
-            [sqlite_integer(generation, "source generation")?],
-            selection,
-        )
-        .optional()
-        .map_err(database_error)
-}
-
-pub(super) fn content_source(
-    connection: &Connection,
-    content: &ClassificationContent,
-) -> Result<Option<OrganizationSelection>, ScanError> {
-    let sql = format!(
-        "SELECT l.asset_id, l.location_id, l.source_generation FROM {}
-        JOIN content_fingerprints AS f ON {} WHERE f.digest = ?2 AND f.byte_length = ?3
-        AND EXISTS(SELECT 1 FROM gallery_content_fingerprints AS published
-            WHERE published.source_generation = f.source_generation AND published.scheme = f.scheme)
-        ORDER BY l.location_id LIMIT 1",
-        exact_duplicates::queries::CURRENT_LOCATIONS,
-        exact_duplicates::queries::COMPATIBLE_FINGERPRINT
-    );
-    connection
-        .query_row(
-            &sql,
-            params![
-                content.scheme.as_str(),
-                codec::digest(&content.digest),
-                sqlite_integer(content.byte_length, "content length")?
-            ],
-            selection,
-        )
-        .optional()
-        .map_err(database_error)
+    let resumed = sources::wake_generation(connection, run, generation, now_unix_ms)?;
+    Ok(u64::from(changed != 0 || resumed))
 }
 
 pub(super) fn verified_content(

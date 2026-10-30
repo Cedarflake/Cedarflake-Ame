@@ -1,4 +1,5 @@
 use super::{ClassificationContent, ClassificationRecordId};
+use crate::domain::LibraryRootGeneration;
 use crate::domain::organization::OrganizationSelection;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -74,6 +75,27 @@ pub struct ClassificationBacklogPage {
     pub visited_sources: u32,
     pub queued_sources: u32,
     pub has_more: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClassificationRecoveryRoot {
+    pub id: String,
+    pub generation: LibraryRootGeneration,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClassificationRecoveryCursor {
+    pub root: ClassificationRecoveryRoot,
+    pub run_id: ClassificationRecordId,
+    pub after_failure_id: u64,
+    pub through_failure_id: u64,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClassificationRecoveryPage {
+    pub released_sources: u32,
+    pub resumed_tasks: u32,
+    pub next: Option<ClassificationRecoveryCursor>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]

@@ -122,6 +122,23 @@ per lane. A source or worker transient failure permits at most three failed atte
 sources wait for a relevant availability signal or explicit retry, and permanent failures require
 changed content or explicit retry. Cancellation/yield at a completed checkpoint consumes no attempt.
 
+Schema 68 records an unavailable physical copy against its work identity, source generation and
+root generation. Source selection skips those observations and can immediately try another current,
+compatible copy without spending the transient-failure budget. A newly verified copy can wake the
+same waiting content task. Successful completion clears its negative observations. Source removal
+reconsiders affected waiting work in the removal transaction; the next claim checks the remaining
+membership before selecting, waiting or retiring it.
+
+Availability recovery accepts current source selections or a current root generation. Source batches
+retain the 256-selection bound and address only the corresponding source and compatible content
+tasks. Root recovery processes at most 64 observations per transaction under a fixed failure-identity
+boundary. A later negative observation receives a new identity, so an earlier recovery page cannot
+erase it. Recovery preserves manual pause, does nothing while disabled or stopped, and never retries
+permanent failures or resets the failure budget. Native controls signal committed queue changes
+without cancelling unrelated active inference. These observations remain derived execution data,
+outside portable human archives. Migration requeues legacy waiting work once because schema 67 did
+not retain the failed-copy identity; it preserves durable mode and opens no source files.
+
 ## Validation and replacement
 
 Migration checks preserve prior human records and prove atomic rollback. Repository tests exercise

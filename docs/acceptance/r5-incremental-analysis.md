@@ -276,3 +276,34 @@ Schema and Queue were still running at the last read.
 | Source admission / dispatch control / queue lookup | 121 / 270 / 184 | 0 | 158 arrivals plus retained work suites |
 | Setup migration | 83 | 14 downgrade-fixture support | 180 migration plus retained historical preservation |
 | Native runtime / matcher preparation | 288 / 46 | 0 | Existing error policy and setup restart case |
+
+## Unavailable-copy selection and scoped recovery
+
+Schema 68 retains negative observations for individual physical copies. Claims try another current
+copy without consuming the transient retry budget; a later verified copy wakes the existing content
+task. Source and root recovery preserve manual intent and permanent failures. Root pages are limited
+to 64 observations and a fixed failure-identity boundary; later failures survive an earlier recovery.
+Removing a root retires its observations and schedules affected waiting work for membership
+revalidation. The native control owner connects these transactions to the existing dispatch signals.
+
+Eleven catalog/migration regressions compile with the classification-worker feature and warnings
+denied. They cover alternate and late copies, hard-link aliases, paused restart, source/root guards,
+transaction rollback, bounded recovery, post-boundary failures, stop/disable/permanent failure,
+removal and legacy migration with retained Favorites. Full execution belongs to the current-head
+hosted catalog/schema gates. A focused SQLite probe using the production SQL passes migration
+rollback, retained pause/retry budget, copy selection, scoped recovery, monotonic failure identities,
+source guards and removal cascades. It uses only in-memory fixture tables and does not establish
+desktop or integrated model acceptance. The initial compile found two callers of the moved source
+queries and two unsigned SQLite fixture parameters; both are corrected without suppressions.
+
+Desktop lifecycle and committed-publication/availability signals remain the next integration work.
+In particular, publication must admit a source even when its generation was allocated before a
+previous admission cursor but committed afterward. These native recovery methods do not by
+themselves connect that event path or enable classification in the desktop UI.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Availability recovery / source selection | 220 / 219 | 0 | 299 source; 240 root |
+| Queue admission / completion / leases | 147 / 156 / 280 | 0 | Retained work suites and availability cases |
+| Native runtime / control | 250 / 90 | 0 | Retained runtime suites |
+| Availability migration | 83 | 12 downgrade-fixture support | 159 |

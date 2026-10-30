@@ -10,7 +10,7 @@ use crate::domain::organization::OrganizationSelection;
 
 use super::super::super::{database_error, exact_duplicates::read_unsigned, sqlite_integer};
 use super::super::{codec, configuration};
-use super::{control, invalid, queue};
+use super::{control, invalid, queue, sources};
 
 const PRIORITIES: [ClassificationWorkPriority; 7] = [
     ClassificationWorkPriority::Requested,
@@ -94,19 +94,13 @@ pub(super) fn claim(
         let Some((slot, work)) = selected else {
             return Ok(None);
         };
-        let source = match (&work.content, work.generation) {
-            (Some(content), None) => queue::content_source(connection, content)?,
-            (None, Some(generation)) => queue::current_source(connection, generation)?,
-            _ => return Err(invalid()),
-        };
-        let Some(source) = source else {
-            connection
-                .execute(
-                    "UPDATE classification_work_items SET phase = 'retired' WHERE work_id = ?1",
-                    [sqlite_integer(work.id, "work identity")?],
-                )
-                .map_err(database_error)?;
-            continue;
+        let choice = sources::choose(connection, &work)?;
+        let source = match choice {
+            sources::SourceChoice::Available(source) => source,
+            unavailable => {
+                checkpoint(connection, work.id, unavailable.pending_phase())?;
+                continue;
+            }
         };
         let lease_id = dispatch.lease_clock.checked_add(1).ok_or_else(invalid)?;
         connection.execute(
@@ -236,6 +230,13 @@ pub(super) fn checkpoint(
         )
         .map_err(database_error)?;
     Ok(())
+}
+
+pub(super) fn waiting(connection: &Connection, work_id: u64) -> Result<Option<Work>, ScanError> {
+    connection.query_row(
+        &format!("SELECT {COLUMNS} FROM classification_work_items WHERE work_id = ?1 AND phase = 'waiting'"),
+        [sqlite_integer(work_id, "work identity")?], read,
+    ).optional().map_err(database_error)?.transpose()
 }
 
 fn read(row: &rusqlite::Row<'_>) -> rusqlite::Result<Result<Work, ScanError>> {

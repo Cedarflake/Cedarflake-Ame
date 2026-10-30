@@ -98,6 +98,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             );
             for table in [
                 "classification_analysis_setups",
+                "classification_unavailable_sources",
                 "classification_categories",
                 "classification_category_versions",
                 "classification_decisions",

@@ -6,6 +6,7 @@ use super::*;
 
 mod analysis;
 mod arrival;
+mod availability;
 mod dispatch;
 mod recovery;
 mod verification;
