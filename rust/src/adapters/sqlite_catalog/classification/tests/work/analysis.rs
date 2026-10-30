@@ -11,7 +11,7 @@ use crate::application::classification_residency::{
     ClassificationEncoderResidency, MonotonicResidencyClock,
 };
 use crate::application::classification_screening::ScreeningClassifier;
-use crate::domain::classification::{Embedding, ImageFeature, TextFeature};
+use crate::domain::classification::{ClassificationContent, Embedding, ImageFeature, TextFeature};
 use crate::domain::exact_duplicates::FingerprintCandidate;
 use crate::ports::classification_analysis::{ClassificationImageLease, ClassificationImageReader};
 use crate::ports::classification_encoder::{
