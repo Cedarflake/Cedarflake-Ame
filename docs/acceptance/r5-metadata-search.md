@@ -202,9 +202,8 @@ scope. Returning and clearing search restored both images. The source completed 
 camera make/model remained present, and both original fixture SHA-256 values matched after closure.
 No user profile or original library was used. Exact-commit hosted verification remains outstanding.
 
-The previous camera head's completed Catalog partition exposed eight duplicate-review failures:
-its extra review fields still used offsets from the pre-camera projection. That separate decoder
-repair remains required after this compact-index delivery; it is not covered by the search checks.
+The previous camera head's completed Catalog partition exposed eight duplicate-review failures.
+Their separate decoder repair is recorded below; the compact-index checks do not cover that path.
 
 ### Compact-index ownership and reviewability
 
@@ -224,3 +223,28 @@ identity/index rebuilding and literal-candidate construction have separate owner
 `local_files.rs` retains its 2,629-line runtime section, including pre-existing conditional test
 hooks, and its 3,398-line inline test module. This change adds only six module-contract test lines;
 its dedicated module-loading suite is 461 lines. No filesystem behavior or admission guard changes.
+
+## Duplicate-review camera projection - 2026-10-30
+
+Hosted Catalog job 123912239183 reported eight failures after camera columns extended the shared
+candidate projection. Duplicate review appended group/decision fields but still read them at the
+old fixed offsets, interpreting namespace identity text as group byte length. The existing group
+query now aliases these appended fields and reads those names, retaining unsigned-value checks,
+source admission, count/page snapshot consistency, preference and ignore semantics.
+
+Focused diagnosis passed nine review/seek checks and the group/member boundary-page check. The
+preferred-copy restart test now carries non-empty camera make/model and verifies the representative,
+group digest/length, physical/location counts and saved decision together. This covers all eight
+reported failures and retains stale-decision, no-op revision, invalidated-evidence, ignored-list,
+empty-list and direct-position behavior. Rust formatting and diff checks pass.
+
+The affected production owner `exact_duplicate_review/groups.rs` is 154 lines with no inline tests;
+the existing dedicated review and seek suites are 389 and 139 lines. The query/decoder remains in
+its existing cohesive owner. No schema, bridge, model dependency or source mutation changes.
+The rebuilt Windows Debug client used the existing isolated metadata profile plus one exact copy
+of its controlled JPEG fixture. The Library showed three images and two merged items. Duplicate
+review displayed one group with two locations and opened both members. Setting the original JPEG
+as preferred changed its control to `取消首选`; returning to the group list displayed that JPEG as
+the representative with unchanged group/location counts. Both original fixture hashes and the
+copy's hash remained unchanged. No original library or user profile was used. Exact-commit hosted
+checks remain pending.
