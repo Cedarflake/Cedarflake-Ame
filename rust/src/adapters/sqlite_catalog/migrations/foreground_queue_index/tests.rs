@@ -75,7 +75,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                     .expect("new index definition")
             );
             let mut after = retained_rows(&catalog.connection);
-            assert_eq!(after.remove("gallery_search_documents"), Some(Vec::new()));
+            assert!(!after.contains_key("gallery_search_documents"));
             assert_eq!(after.remove("gallery_search_terms"), Some(Vec::new()));
             catalog.connection.execute_batch(
                 "INSERT INTO gallery_search_terms(gallery_search_terms) VALUES ('integrity-check');",

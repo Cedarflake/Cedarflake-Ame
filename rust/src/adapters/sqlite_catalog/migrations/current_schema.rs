@@ -60,6 +60,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     // reaches this full proof; ordinary connections retain bounded identity/schema checks.
     validate_pre_live_gap_schema_contract(connection, schema_version)?;
     live_gap_contract::validate(connection)?;
+    if schema_version >= 63 {
+        super::compact_gallery_search::validate_rows(connection)?;
+    }
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_rows(connection)?;
     }
@@ -212,7 +215,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 60 {
         super::organization_admission_clock::validate(connection)?;
     }
-    if schema_version >= 61 {
+    if schema_version >= 63 {
+        super::compact_gallery_search::validate(connection)?;
+    } else if schema_version >= 61 {
         super::gallery_search::validate(connection)?;
     }
     if schema_version >= 62 {

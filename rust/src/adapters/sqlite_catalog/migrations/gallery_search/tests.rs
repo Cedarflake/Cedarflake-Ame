@@ -148,6 +148,7 @@ fn selective_search_reduces_work_after_catalog_only_backfill() {
     let upgrade_ms = upgrade_start.elapsed().as_millis();
     let added_bytes = bytes(&catalog.connection) - before_bytes;
     super::super::camera_metadata::migrate(&mut catalog.connection).unwrap();
+    super::super::compact_gallery_search::migrate(&mut catalog.connection).unwrap();
 
     let query = gallery::build_gallery_asset_query(
         &GalleryQuery {

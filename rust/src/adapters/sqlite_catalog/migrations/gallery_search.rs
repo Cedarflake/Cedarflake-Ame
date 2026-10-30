@@ -13,7 +13,7 @@ const DOCUMENTS: &str = "CREATE TABLE gallery_search_documents (
       ON UPDATE CASCADE ON DELETE CASCADE
 )";
 
-const TERMS: &str = "CREATE VIRTUAL TABLE gallery_search_terms USING fts5(
+pub(super) const TERMS: &str = "CREATE VIRTUAL TABLE gallery_search_terms USING fts5(
     absolute_path, relative_path, tokenize='trigram', content='', contentless_delete=1
 )";
 
@@ -45,7 +45,7 @@ BEFORE DELETE ON asset_locations BEGIN
     DELETE FROM gallery_search_documents WHERE scan_id = OLD.scan_id AND location_id = OLD.location_id;
 END";
 
-const OBJECTS: [(&str, &str, &str); 5] = [
+pub(super) const OBJECTS: [(&str, &str, &str); 5] = [
     ("table", "gallery_search_documents", DOCUMENTS),
     ("table", "gallery_search_terms", TERMS),
     ("trigger", "gallery_search_insert", INSERT_TRIGGER),

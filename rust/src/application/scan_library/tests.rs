@@ -31,6 +31,8 @@ mod finalization_live;
 mod phase_cost;
 #[cfg(windows)]
 mod staging_cleanup;
+#[cfg(windows)]
+mod storage_cost;
 
 fn load_test_snapshot(storage: &StoragePaths) -> crate::domain::CatalogSnapshot {
     SqliteCatalog::open(storage.catalog_path.clone())
@@ -3455,6 +3457,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
         resume_elapsed.as_millis(),
         cancellation_elapsed.as_millis(),
     );
+    storage_cost::print(&connection);
 
     assert_eq!(active_locations, FILE_COUNT as i64);
     assert_eq!(all_locations, FILE_COUNT as i64);

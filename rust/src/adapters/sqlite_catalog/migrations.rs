@@ -16,6 +16,7 @@ mod camera_metadata;
 mod catch_up_contract;
 mod catch_up_repair;
 mod change_lane_contract;
+mod compact_gallery_search;
 mod compatibility_repair_shape;
 mod current_recovery_state;
 mod current_schema;
@@ -161,6 +162,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         organization_admission_clock::migrate_transaction(&transaction)?;
         gallery_search::migrate_transaction(&transaction)?;
         camera_metadata::migrate_transaction(&transaction)?;
+        compact_gallery_search::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -262,6 +264,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             59 => organization_admission_clock::migrate(connection)?,
             60 => gallery_search::migrate(connection)?,
             61 => camera_metadata::migrate(connection)?,
+            62 => compact_gallery_search::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

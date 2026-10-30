@@ -18,23 +18,36 @@ or VACUUM can renumber rows without an integer primary-key alias.
 ## Decision
 
 Use the bundled SQLite FTS5 trigram tokenizer to reduce candidates for literal searches of at least
-three Unicode characters. Quote and bind the complete search string as an FTS phrase, then apply
-the existing substring predicate to those candidates. This preserves SQLite's existing case rules
-and the gallery's selected order. One- and two-character searches, and strings containing NUL,
+three Unicode characters. Bind a conjunction of quoted three-character terms, then apply
+the existing substring predicate to those candidates. Select at most 64 evenly spaced terms,
+including both ends of the query, and remove repeated terms. Every retained term is necessary for
+a literal match; the residual predicate rejects wrong ordering, gaps, or terms split between paths.
+This preserves SQLite's existing case rules and the gallery's selected order. One- and
+two-character searches, and strings containing NUL,
 retain the literal predicate because the tokenizer cannot faithfully represent them.
 
 Schema version 61 adds a rebuildable `gallery_search_documents` mapping with an integer primary key
-and a unique `(scan_id, location_id)` association. `gallery_search_terms` is a contentless-delete
-FTS5 table with full token positions. The catalog remains the only stored path-text authority;
-the index does not duplicate path columns as stored FTS content. The mapping key survives VACUUM.
+and a unique `(scan_id, location_id)` association. Version 63 moves those stable integer keys onto
+`asset_locations.gallery_search_id`, with a unique integer index, and retires the mapping table.
+This removes its duplicated long composite keys without rebuilding the source table or changing
+application identities. `gallery_search_terms` is a contentless-delete FTS5 table. Version 63 also
+replaces its original full-position index with `detail=none`, retaining only
+term-to-document membership. Column-size tracking remains enabled because contentless-delete
+requires it. The catalog remains the only stored path-text authority; the index does not duplicate
+path columns as stored FTS content. The explicit integer value survives VACUUM.
 
-Location insert, path/identity update and delete triggers maintain both projections in the same
-catalog transaction. Unchanged path updates do not rewrite tokens. Queries match both scan and
-location identities, while the existing source joins retain publication and availability authority.
+Location insert, path update and delete triggers maintain the index in the same catalog transaction.
+Inserts allocate the next positive integer through the unique index; upserts preserve the assigned
+key. A guard rejects reassignment after allocation. Unchanged path updates do not rewrite tokens.
+Queries resolve the integer key to its location, while the existing source joins retain publication
+and availability authority. Keys can be reused only after their previous row and terms are removed.
 An uncommitted or retired scan cannot become visible merely because it has index terms.
 
 The migration streams existing catalog rows through SQL in one transaction under the existing
 migration backup and admission policy. It reads no source media and preserves user decisions.
+Version 63 retains the integer document keys, backfills the internal column and rebuilds the term
+index. Failed backfill or missing identity evidence rolls back the transaction. Freed pages remain
+available for catalog reuse; the migration does not add an automatic blocking VACUUM.
 Table/trigger definitions participate in schema validation. Routine connections do not run a full
 FTS integrity check or reconstruct the index.
 
@@ -57,23 +70,30 @@ being necessary. Continuing only the existing predicate would retain whole-scope
 ## Consequences and validation
 
 Index construction adds catalog-only upgrade time and disk usage. Inserts and path changes incur
-token-index writes; token positions are necessary for arbitrary-length phrase matching. Broad and
+token-index writes. The original full-position index exceeded the existing 64-MiB catalog bound
+in the 10,000-image cold/warm workload. Positionless terms alone still exceeded that bound; the
+mapping table duplicated long identities during overlapping scan versions. Inline integer identity
+removes that duplication. Positionless candidates avoid storing phrase evidence already checked
+by the literal residual; the query bound limits FTS expression size even for long
+input. The original storage limit remains the validation requirement. Broad and
 short searches can still inspect many catalog rows. SQLite performs candidate handling, ordering
 and bounded result windows; Flutter never collects all hits to filter or sort.
 
 Validation must cover literal punctuation and quotes, Chinese short/long searches, unchanged case
 rules, composite identities, scan publication, rename/delete, transaction rollback, VACUUM, migration
-rollback/reopen and preserved organization history. Query-plan evidence must show the FTS candidate
-lookup. Existing group/count/layout/selection/anchor regressions remain applicable. Measure upgrade
+rollback/reopen and preserved organization history. Include reordered/repeated terms, terms split
+across path columns, and long queries whose last terms disambiguate a shared prefix. Query-plan
+evidence must show the FTS candidate lookup. Existing group/count/layout/selection/anchor regressions
+remain applicable. Measure upgrade
 and mutation cost on a synthetic catalog before accepting the storage/performance tradeoff; exact-head
 CI and the affected desktop search workflow own integration acceptance.
 
 ## Replacement and rollback
 
 The index contains only derived catalog text. A future forward migration can drop its triggers,
-terms and mapping, then rebuild them from `asset_locations` without rescanning media or discarding
+terms and internal integer identity, then rebuild them from `asset_locations` without rescanning media or discarding
 organization decisions. During replacement the application can use the literal predicate. Do not
-downgrade a published database in place; a failed version-61 migration rolls back atomically and can
+downgrade a published database in place; a failed index migration rolls back atomically and can
 be retried, while application rollback uses the existing pre-migration catalog backup.
 
 Replace this design if the measured indexing/storage cost interferes with scan publication or if

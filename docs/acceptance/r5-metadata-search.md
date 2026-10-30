@@ -139,3 +139,88 @@ dedicated owners. The existing transaction, generation and source-revalidation b
 The Dart facades retain compatible exports: `library_models.dart` is 425 lines and
 `library_catalog.dart` is 551 lines. Their new camera behavior lives in the asset value/mapping
 owners, without extending unrelated scan or workspace policies.
+
+## Compact text index - 2026-10-30
+
+Scope: schema 62 to 63 retains each search document's integer identity directly on its catalog
+location and retires the duplicate composite-key mapping. A unique integer index and transactional
+triggers own allocation, path updates and deletion. The positionless term index stores no phrase
+positions; at most 64 quoted trigrams reduce candidates before the existing literal predicate.
+Source identity, camera evidence, organization decisions and history retain their authority.
+The migration reads catalog rows only, rolls back incomplete identity backfill, and adds no VACUUM.
+
+### Diagnosis and retained limits
+
+The first positionless-only candidate retained the mapping table. Its optimized 10,000-image
+cold/warm workload used 73,822,208 catalog bytes, exceeding the unchanged 64-MiB assertion.
+A focused unoptimized run reported 73,035,776 allocated bytes, including 18,751,488 free bytes;
+active search objects occupied about 3.2 MiB. Mapping rows duplicated long scan/location keys during
+scan replacement, while existing gallery indexes retained partially occupied pages after retirement.
+No existing gallery index, storage assertion or source check was removed.
+
+After replacing the mapping with an indexed integer column, the same long temporary-base setup
+used 69,480,448 bytes, including 17,002,496 free bytes. The terms occupied 1,269,760 bytes, document
+sizes 143,360 bytes and the integer index 122,880 bytes. That run still failed the 64-MiB assertion:
+fixture 10,201 ms, cold 26,769 ms, warm 19,418 ms, pause 20 ms, resume 24,455 ms and cancel 112 ms.
+The resumed catalog occupied 38,940,672 bytes. Source-preservation assertions after the size check
+were not reached in either failing workload.
+
+The long diagnostic temporary base was explicitly redirected into workspace storage. Reusing the
+same compiled test with the normal 37-character Windows temporary base passed every assertion:
+66,310,144 catalog bytes (63.24 MiB), 37,404,672 resumed bytes, fixture 10,347 ms, cold 42,431 ms,
+warm 23,813 ms, pause 17 ms, resume 39,991 ms and cancel 87 ms. Final active/all location and asset
+counts were 10,000, cancelled rows were absent, both sampled source bytes matched and all 10,000
+source entries remained. The retained absolute paths and their tokens explain part of the difference:
+location pages were 5,881,856 bytes and term pages 696,320 bytes in this setup, versus 6,856,704 and
+1,269,760 in the long-base run. No assertion or workload changed between these runs. The longer-base
+failure remains recorded; the fixed 64-MiB synthetic assertion is not a universal limit for arbitrary
+path lengths. These unoptimized diagnostics do not replace the optimized hosted resource gate.
+
+### Boundary verification
+
+Focused local diagnosis passed five compact-index migration checks and seven shared text-query
+checks. Coverage includes stable keys, rejected reassignment, delete/reuse without old tokens,
+upsert, transaction rollback, VACUUM, missing-identity rollback, retry/reopen, retained camera and
+organization evidence, literal ordering/repetition, cross-path false positives, long-query suffixes,
+Unicode/punctuation, scan publication and coherent page/count/layout reads.
+
+Four original search migration checks and four camera migration checks also passed. The selective
+fixture's current-schema result used 113 VM steps versus 110,021 for the literal count query, with
+one hit in each; updating 10,000 paths took 185 ms. Its 140-ms upgrade and 2,146,304-byte increase
+measure only the historical version-61 backfill, not the current compact schema.
+
+Hosted run 41009578733 on `a30f1e37` also exposed two old version-36 fixtures that retained new camera
+columns and two exact-module checks missing the admitted `media_metadata` declaration. The fixtures
+now remove later columns through the existing downgrade chain, and the source guard lists the exact
+new public module. Two version-36, four foreground-index migration and three module-contract checks
+pass, including rejection of alternate/broader module loading. Production admission is unchanged.
+The version-33 retained-row comparison accounts for retirement of the derived mapping table.
+
+The rebuilt Windows Debug client upgraded the retained two-image isolated catalog from schema 62
+to 63. Searching `jpg` displayed the one matching JPEG, and opening it retained a `1 / 1` viewer
+scope. Returning and clearing search restored both images. The source completed synchronization,
+camera make/model remained present, and both original fixture SHA-256 values matched after closure.
+No user profile or original library was used. Exact-commit hosted verification remains outstanding.
+
+The previous camera head's completed Catalog partition exposed eight duplicate-review failures:
+its extra review fields still used offsets from the pre-camera projection. That separate decoder
+repair remains required after this compact-index delivery; it is not covered by the search checks.
+
+### Compact-index ownership and reviewability
+
+Physical counts include blank lines. Existing facades register and validate the migration; integer
+identity/index rebuilding and literal-candidate construction have separate owners.
+
+| Affected owner | Production | Inline test-only | Dedicated tests |
+| --- | ---: | ---: | --- |
+| `sqlite_catalog.rs` | 2,889 | 442 | Existing catalog test tree retained |
+| `migrations.rs` | 4,087 | 2,349 | Existing migration modules retained |
+| `migrations/current_schema.rs` | 336 | 29 | Existing schema tests retained |
+| `migrations/gallery_search.rs` | 95 | 19 | 200 lines |
+| `migrations/compact_gallery_search.rs` | 138 | 27 | 224 lines |
+| `gallery/search.rs` | 54 | 0 | Shared text-query tests: 274 lines |
+| `scan_library/tests.rs` | 0 | 5,527 | New page/object accounting: 32 lines |
+
+`local_files.rs` retains its 2,629-line runtime section, including pre-existing conditional test
+hooks, and its 3,398-line inline test module. This change adds only six module-contract test lines;
+its dedicated module-loading suite is 461 lines. No filesystem behavior or admission guard changes.

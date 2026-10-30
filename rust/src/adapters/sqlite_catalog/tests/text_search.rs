@@ -90,7 +90,7 @@ fn paths_and_document_keys_follow_transactional_changes_and_vacuum() {
         .connection
         .query_row(
             "SELECT (SELECT COUNT(*) FROM asset_locations),
-                (SELECT COUNT(*) FROM gallery_search_documents),
+                (SELECT COUNT(DISTINCT gallery_search_id) FROM asset_locations),
                 (SELECT COUNT(*) FROM gallery_search_terms)",
             [],
             |row| Ok((row.get(0)?, row.get(1)?, row.get(2)?)),
@@ -202,4 +202,73 @@ fn gallery_plan_uses_fts_candidates_for_long_text() {
         ),
         "{plan:?}"
     );
+}
+
+#[test]
+fn compact_candidates_preserve_literal_order_repetition_and_path_boundaries() {
+    let (_directory, mut catalog) = fixture();
+    catalog
+        .connection
+        .execute_batch(
+            "UPDATE asset_locations SET absolute_path = 'C:/abc_bcd_cde_def.png',
+                 relative_path = 'abc_bcd_cde_def.png' WHERE location_id = 'landscape';
+             UPDATE asset_locations SET absolute_path = 'C:/defcdebcda.png',
+                 relative_path = 'defcdebcda.png' WHERE location_id = 'photo';
+             UPDATE asset_locations SET absolute_path = 'C:/abc_bcd.png',
+                 relative_path = 'cde_def.png' WHERE location_id = 'literal';
+             UPDATE asset_locations SET absolute_path = 'C:/aaa.png',
+                 relative_path = 'aaa.png' WHERE location_id = 'quote';
+             UPDATE asset_locations SET absolute_path = 'C:/abcdef_aaaa.png',
+                 relative_path = 'abcdef_aaaa.png' WHERE location_id = 'unicode';",
+        )
+        .unwrap();
+    assert_eq!(ids(&mut catalog, "abcdef"), ["unicode"]);
+    assert_eq!(ids(&mut catalog, "aaaa"), ["unicode"]);
+}
+
+#[test]
+fn long_literal_queries_keep_exact_suffixes_with_bounded_index_expressions() {
+    use rusqlite::types::Value;
+
+    let (_directory, mut catalog) = fixture();
+    let prefix = (0..60)
+        .map(|index| format!("part{index:03}/"))
+        .collect::<String>();
+    let path = format!("{prefix}目标风景.png");
+    for (id, value) in [
+        ("photo", path.clone()),
+        ("landscape", format!("{prefix}other.png")),
+    ] {
+        catalog
+            .connection
+            .execute(
+                "UPDATE asset_locations SET absolute_path = ?1, relative_path = ?1
+                 WHERE location_id = ?2",
+                [value.as_str(), id],
+            )
+            .unwrap();
+    }
+    assert_eq!(ids(&mut catalog, &path), ["photo"]);
+    let query = gallery::build_gallery_asset_query(
+        &GalleryQuery {
+            search_text: path,
+            ..GalleryQuery::default()
+        },
+        None,
+        None,
+        None,
+        20,
+    )
+    .unwrap();
+    let expressions: Vec<_> = query
+        .parameters
+        .iter()
+        .filter_map(|value| match value {
+            Value::Text(text) if text.starts_with('"') && text.contains(" AND ") => Some(text),
+            _ => None,
+        })
+        .collect();
+    assert_eq!(expressions.len(), 1);
+    assert!(expressions[0].split(" AND ").count() <= 64);
+    assert!(expressions[0].contains("\"png\""));
 }

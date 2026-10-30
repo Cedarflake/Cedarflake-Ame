@@ -65,6 +65,7 @@ pub(super) fn validate(connection: &Connection) -> Result<(), ScanError> {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v61_for_test(connection: &Connection) {
+    super::compact_gallery_search::downgrade_to_v62_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 62 {
         for table in TABLES {
             connection
