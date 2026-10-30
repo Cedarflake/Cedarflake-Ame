@@ -17,6 +17,8 @@ pub(in crate::adapters::sqlite_catalog) use availability::source_removed;
 mod completion;
 pub(super) mod control;
 mod leases;
+mod publications;
+pub(in crate::adapters::sqlite_catalog) use publications::root_published;
 mod queue;
 mod sources;
 mod verification;

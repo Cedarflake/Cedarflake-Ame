@@ -99,6 +99,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             for table in [
                 "classification_analysis_setups",
                 "classification_unavailable_sources",
+                "classification_source_publications",
                 "classification_categories",
                 "classification_category_versions",
                 "classification_decisions",
@@ -224,17 +225,19 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             let sequences = after
                 .get_mut("sqlite_sequence")
                 .expect("retained sequences");
-            let admission_sequence = sequences
-                .iter()
-                .position(|row| row.first() == Some(&Value::Text("organization_admissions".into())))
-                .expect("new admission sequence");
-            assert_eq!(
-                sequences.remove(admission_sequence),
-                vec![
-                    Value::Text("organization_admissions".into()),
-                    Value::Integer(0)
-                ],
-            );
+            for name in [
+                "organization_admissions",
+                "classification_source_publications",
+            ] {
+                let sequence = sequences
+                    .iter()
+                    .position(|row| row.first() == Some(&Value::Text(name.into())))
+                    .expect("new admission sequence");
+                assert_eq!(
+                    sequences.remove(sequence),
+                    vec![Value::Text(name.into()), Value::Integer(0)],
+                );
+            }
             assert_eq!(after, before);
         }
     }

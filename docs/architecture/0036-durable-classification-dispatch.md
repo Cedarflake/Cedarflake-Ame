@@ -45,6 +45,20 @@ Independent arrival and backlog cursors admit at most 64 sources per turn. While
 up to 32 places go to arrivals and the remaining places go to backlog. A new source therefore does
 not wait for the complete old catalog walk before entering its priority lane.
 
+Schema 69 also records a root's published scan and generation in the same transaction as gallery
+publication. Source generations can be allocated during staging and become visible after admission
+has passed their number. One coalesced receipt per root retains that handoff across restart, without
+inserting an entire scan into the work queue in the publication transaction. A root/scan/generation
+index supports bounded distinct-source seeks; renaming a path cannot move its generation behind the
+receipt's cursor. The dispatcher considers only ranges already passed by the ordinary cursors,
+reserving at most half the new-content budget for these receipts and retaining the 64-source total.
+Existing source work keeps its priority, failure state and checkpoint. New queue entries and receipt
+advancement commit together. A newer published scan replaces the old receipt; stale namespaces are
+discarded and root removal cascades its receipt. Run replacement resets admission over the currently
+published catalog, so it clears the superseded receipts. Migration records existing published roots
+without changing dispatch intent or reading media. Receipts and this derived index are excluded from
+portable human decisions.
+
 Stopping records the run identity permanently. Cache misses, process restart and ordinary automatic
 dispatch cannot restart it. Explicit enablement supplies a new run; compatible committed evidence
 and features remain reusable. A semantic rule change may replace an active run while preserving a

@@ -6,7 +6,7 @@ use crate::domain::classification::work::{ClassificationBacklogPage, Classificat
 use crate::domain::organization::OrganizationSelection;
 
 use super::super::super::{database_error, exact_duplicates, sqlite_integer};
-use super::{control, queue};
+use super::{control, publications, queue};
 
 const SOURCE_WINDOW: usize = 64;
 
@@ -27,19 +27,20 @@ pub(super) fn seed(
     } else {
         SOURCE_WINDOW
     };
+    let published = publications::admit(connection, &run, &dispatch, new_budget / 2, now_unix_ms)?;
     let arrivals = read_sources(
         connection,
         dispatch.arrival_cursor,
         i64::MAX as u64,
-        new_budget,
+        new_budget - published.visited,
     )?;
     let backlog = read_sources(
         connection,
         dispatch.source_cursor,
         dispatch.backlog_ceiling,
-        SOURCE_WINDOW - arrivals.sources.len(),
+        SOURCE_WINDOW - published.visited - arrivals.sources.len(),
     )?;
-    let mut queued = 0;
+    let mut queued = published.queued;
     for (page, priority) in [
         (&arrivals, ClassificationWorkPriority::NewContent),
         (&backlog, ClassificationWorkPriority::Backlog),
@@ -75,9 +76,10 @@ pub(super) fn seed(
         ).map_err(database_error)?;
     }
     Ok(ClassificationBacklogPage {
-        visited_sources: (arrivals.sources.len() + backlog.sources.len()) as u32,
+        visited_sources: (published.visited + arrivals.sources.len() + backlog.sources.len())
+            as u32,
         queued_sources: queued as u32,
-        has_more: arrivals.has_more || backlog.has_more,
+        has_more: published.has_more || arrivals.has_more || backlog.has_more,
     })
 }
 

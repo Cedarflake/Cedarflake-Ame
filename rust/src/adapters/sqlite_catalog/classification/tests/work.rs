@@ -8,6 +8,7 @@ mod analysis;
 mod arrival;
 mod availability;
 mod dispatch;
+mod publications;
 mod recovery;
 mod verification;
 

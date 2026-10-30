@@ -251,7 +251,8 @@ fn save(
                 "UPDATE classification_dispatch_admission SET
                 backlog_ceiling = (SELECT next_source_generation - 1 FROM catalog_state),
                 arrival_cursor = (SELECT next_source_generation - 1 FROM catalog_state)
-             WHERE singleton = 1;",
+             WHERE singleton = 1;
+             DELETE FROM classification_source_publications;",
             )
             .map_err(database_error)?;
     }

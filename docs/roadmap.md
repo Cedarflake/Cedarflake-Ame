@@ -104,8 +104,9 @@ comparison, and per-file background admission is shared with exact analysis. A n
 now connects demand loading, quiet admission, foreground yielding, retries and idle retirement.
 Complete setup restoration, separately checkpointed new-content admission and scoped availability
 recovery are connected to the native runtime. Unavailable copies can yield to another verified copy;
-root/source recovery retains pause, stop and source-generation guards. Desktop ownership, committed
-publication and availability signals remain in R5-04 integration, with full database regressions
+root/source recovery retains pause, stop and source-generation guards. Durable scan-publication
+receipts admit sources whose generations became visible after an admission cursor had passed them.
+Desktop ownership and publication/availability wakeups remain in R5-04 integration, with full database regressions
 still owned by the current-head hosted gate.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the

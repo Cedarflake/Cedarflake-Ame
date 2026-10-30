@@ -296,10 +296,9 @@ source guards and removal cascades. It uses only in-memory fixture tables and do
 desktop or integrated model acceptance. The initial compile found two callers of the moved source
 queries and two unsigned SQLite fixture parameters; both are corrected without suppressions.
 
-Desktop lifecycle and committed-publication/availability signals remain the next integration work.
-In particular, publication must admit a source even when its generation was allocated before a
-previous admission cursor but committed afterward. These native recovery methods do not by
-themselves connect that event path or enable classification in the desktop UI.
+Desktop lifecycle and publication/availability wakeups remain integration work. The committed
+late-generation handoff is recorded below; these native recovery methods do not enable
+classification in the desktop UI.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -307,3 +306,33 @@ themselves connect that event path or enable classification in the desktop UI.
 | Queue admission / completion / leases | 147 / 156 / 280 | 0 | Retained work suites and availability cases |
 | Native runtime / control | 250 / 90 | 0 | Retained runtime suites |
 | Availability migration | 83 | 12 downgrade-fixture support | 159 |
+
+## Committed scan-publication admission
+
+Schema 69 connects scan publication to durable, coalesced root receipts. The background dispatcher
+pages only source-generation ranges already passed by its ordinary admission cursors. Late first
+imports and staged arrivals therefore enter the new-content lane after publication, within the
+existing 64-source turn bound. The receipt and work checkpoint commit atomically; unchanged work
+keeps its priority and failure state. Root removal, namespace replacement, pause and restart retain
+their existing authority. A covering root/scan/source-generation index avoids a whole-catalog sort
+or scan for each receipt page. Its integrated storage and scan costs remain covered by hosted workloads.
+
+Nine new catalog/migration regressions compile with the classification-worker feature and warnings
+denied. They cover late backlog and arrival publication, bounded paused restart, publication and
+cursor rollback, source removal while stopped, unchanged-work priority, migration preservation and
+rollback, and indexed paging. The historical all-row migration assertion also accounts for the new
+empty table and sequence. Test-enabled Clippy passed in 13.32 seconds after the final assertion update;
+full regression execution remains with the current-head hosted gate.
+
+A focused in-memory SQLite probe using production SQL passes migration rollback, receipt/gallery
+transaction rollback, bounded indexed pages, cursor/work rollback, retained pause, receipt replacement
+and removal. This checks the changed SQL rather than establishing a desktop or real-model result.
+No model artifacts or original media were read. The previously recorded root-test compilation memory
+failure was not retried.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Published-source admission | 214 | 0 | 271 |
+| Publication migration | 80 | 14 downgrade-fixture support | 85 |
+| Source admission / dispatch control | 123 / 271 | 0 | Retained arrival and work suites |
+| Scan publication transaction | 245 | 0 | Retained scan-publication tests plus new rollback case |

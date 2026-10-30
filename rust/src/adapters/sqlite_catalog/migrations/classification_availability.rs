@@ -83,6 +83,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v67_for_test(connection: &Connection) {
+    super::classification_publications::downgrade_to_v68_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() != 68 {
         return;
     }
