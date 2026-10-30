@@ -414,7 +414,8 @@ microtask and the test observes callback state before asserting it outside the p
 
 The preceding `25562604` Windows Accessibility job failed before its application-ready assertions:
 the UIA probe exceeded its eight-second parent deadline while its last progress record identified
-system assembly loading. That failure remains unresolved; it is not a classification-function pass.
+system assembly loading. Its cause was not established by that run; later gate results are recorded
+below separately from classification-function verification.
 Its Rust Remaining job completed 1,037 cases successfully, with two source-contract failures caused
 by the missing exact declaration for the new classification installation module. The loading
 contract now records that declaration and the configuration domain module, with rejection cases
@@ -430,3 +431,52 @@ scope, and no original-media files were changed by this implementation or its fo
 | Version-bound screening candidate | 130 | 0 | 136 |
 | Desktop lifecycle | 247 | 0 | 362 |
 | Local-files availability contract | 2,629 | 3,464 | 532 (module topology) |
+
+## Real-model Windows client verification
+
+The configuration path now records the existing `configure` operation kind accepted by the durable
+operation schema. The first implementation used a new unchecked string and would fail the database
+constraint. The feature-cache composition now passes an explicitly named directory, keeping the
+adapter's fixed SQLite filename inside it; the earlier composition named that directory as a file.
+Neither repair changes catalog schema, source files or the admitted model.
+
+The opt-in `integration_test_classification.ps1` runs the actual Debug desktop executable and its
+packaged worker with the retained SigLIP 2 FP16-image/INT8-text installation. It starts the same
+production synchronization owner required for first-import continuity, then imports three existing
+small synthetic files with two distinct contents. Configuration goes through the production Dart
+controller, generated bridge and native persistence/runtime. A bounded read-only observer inspects
+only the GUID-isolated derived databases; all three source files and their bytes remain unchanged.
+
+The complete client case passes in 62 seconds after a 53.7-second incremental build. It verifies:
+
+- Saving categories before installation retains disabled mode; installation selection does not
+  enable classification.
+- Holding foreground source-read ownership for four seconds prevents both predictions and feature
+  creation, exceeding the configured initial quiet interval.
+- Manual pause survives joined session closure and reopening; releasing foreground ownership does
+  not resume that pause. Explicit continuation publishes two predictions for the three files.
+- Display-only renaming preserves the run, both predictions and all cached features. Changing one
+  description creates a new immutable run and two compatible predictions, retaining the original
+  50 feature values and adding one text feature. No work issues remain.
+- Stop survives joined closure and reopening without producing another prediction. The complete
+  test closes its synchronization/classification owners and the runner retires its owned Job Object.
+
+The observed waits from continuation/new-run opening to complete publication are 24,652 ms and
+11,539 ms. They include quiet admission, encoder startup, description preparation and observation
+intervals; they are not per-image throughput or a low-resource benchmark. Feature retention is
+observed directly; the existing encoder-call regressions own the assertion that rule-only rematching
+does not invoke image inference. This case does not establish image classification accuracy.
+
+The first harness run omitted synchronization startup and reached the first-import continuity
+deadline; the second inspected the cache directory as a database file. Both were corrected before
+the complete pass. Final test-enabled Clippy passes with warnings denied in 13.53 seconds, and Dart
+analysis plus PowerShell/Python syntax checks pass. The separate `48e85d93` hosted Windows
+Accessibility and Windows Scan jobs pass; this does not retroactively explain the earlier UIA timeout.
+Operating-system suspend/resume, integrated resource/foreground measurements and the later visible
+classification controls retain their existing R5-04/R5-06 scope.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Native runtime / desktop composition | 258 / 183 | 0 | 58 / 137 |
+| Atomic configuration | 132 | 0 | 234 |
+| Local client runner / read-only observer | 76 / 54 | 0 | 196 + 98 (client and support) |

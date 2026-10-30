@@ -80,12 +80,7 @@ fn apply(
             }
         }
     };
-    let revision = operations::begin(
-        connection,
-        &change.operation_id,
-        &digest,
-        "configure_analysis",
-    )?;
+    let revision = operations::begin(connection, &change.operation_id, &digest, "configure")?;
     let metadata_changed = configuration::apply_rules(
         connection,
         &before.catalog,

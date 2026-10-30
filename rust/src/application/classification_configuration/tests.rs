@@ -49,7 +49,7 @@ fn categories_can_be_saved_without_models_but_enablement_requires_verified_insta
     assert!(
         !storage
             .catalog_path
-            .with_file_name("classification-features.sqlite3")
+            .with_file_name("classification-features")
             .exists()
     );
 }

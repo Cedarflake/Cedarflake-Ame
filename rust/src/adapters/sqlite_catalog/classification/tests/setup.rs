@@ -353,7 +353,7 @@ fn native_restart_restores_paused_setup_without_starting_a_worker() {
     for session in ["process-one", "process-two"] {
         let paths = ClassificationRuntimePaths {
             database: directory.path().join("catalog.sqlite3"),
-            feature_cache: directory.path().join("unused-features.sqlite3"),
+            feature_cache_directory: directory.path().join("unused-features"),
             worker: directory.path().join("unavailable-worker.exe"),
             models: directory.path().join("unavailable-models"),
             runtime: directory.path().join("unavailable-runtime"),

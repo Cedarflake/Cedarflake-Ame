@@ -82,9 +82,9 @@ fn open_with_storage(
     let runtime = NativeClassificationRuntime::open(
         ClassificationRuntimePaths {
             database: storage.catalog_path.clone(),
-            feature_cache: storage
+            feature_cache_directory: storage
                 .catalog_path
-                .with_file_name("classification-features.sqlite3"),
+                .with_file_name("classification-features"),
             worker,
             models: installation.models,
             runtime: installation.runtime,

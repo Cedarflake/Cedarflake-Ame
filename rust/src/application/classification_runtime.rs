@@ -40,7 +40,7 @@ pub(crate) fn while_retired<T>(
 
 pub struct ClassificationRuntimePaths {
     pub database: PathBuf,
-    pub feature_cache: PathBuf,
+    pub feature_cache_directory: PathBuf,
     pub worker: PathBuf,
     pub models: PathBuf,
     pub runtime: PathBuf,
@@ -76,7 +76,7 @@ impl NativeClassificationRuntime {
         );
         let executor = NativeExecutor {
             database: paths.database,
-            cache_path: paths.feature_cache,
+            cache_directory: paths.feature_cache_directory,
             cache: None,
             setup,
             classifier: None,
@@ -121,7 +121,7 @@ impl Drop for NativeClassificationRuntime {
 
 struct NativeExecutor {
     database: PathBuf,
-    cache_path: PathBuf,
+    cache_directory: PathBuf,
     cache: Option<SqliteClassificationFeatureCache>,
     setup: ClassificationAnalysisSetup,
     classifier: Option<ScreeningClassifier>,
@@ -138,7 +138,9 @@ impl NativeExecutor {
         cancelled: &AtomicBool,
     ) -> Result<ClassificationAnalysisResult, ScanError> {
         if self.cache.is_none() {
-            self.cache = Some(SqliteClassificationFeatureCache::open(&self.cache_path)?);
+            self.cache = Some(SqliteClassificationFeatureCache::open(
+                &self.cache_directory,
+            )?);
         }
         let cache = self.cache.as_mut().expect("the feature cache is owned");
         if self.classifier.is_none() {

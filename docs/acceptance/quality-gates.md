@@ -1368,6 +1368,13 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   fixture storage is retained rather than recursively deleted without cleanup authority.
   `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
   in lint, including original-failure precedence and independent environment restoration.
+- `./tool/integration_test_classification.ps1 -ModelDirectory <verified-models>
+  -RuntimeDirectory <verified-runtime> -PythonPath <uv-python>` runs the explicit local Windows
+  classification client workflow with existing admitted artifacts and an existing three-file,
+  two-content fixture under `build/test` (`-FixturePath` overrides `build/test/metadata`). It uses
+  the repository lock, an owned process tree and fresh isolated Debug storage. Its bounded Python
+  observer reads only that derived storage; source bytes are compared before and after. Logs and
+  catalogs remain outside the fixture. This opt-in model workflow adds no hosted model download.
 - `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
   cases and two real Debug-engine retirement cases, using an explicit `-CMakePath` or the current
   Flutter CMake cache. The latter require prepared, matching SDK artifacts and assemble only an

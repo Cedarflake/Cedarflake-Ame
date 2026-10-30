@@ -21,7 +21,7 @@ fn disabled_startup_does_not_require_or_create_model_installation() {
     assert!(
         !storage
             .catalog_path
-            .with_file_name("classification-features.sqlite3")
+            .with_file_name("classification-features")
             .exists()
     );
 }
@@ -118,7 +118,7 @@ fn paused_startup_close_before_run_and_joined_shutdown_preserve_intent_without_l
     assert!(
         !storage
             .catalog_path
-            .with_file_name("classification-features.sqlite3")
+            .with_file_name("classification-features")
             .exists()
     );
 }
