@@ -42,14 +42,14 @@ impl Encoder {
             EncoderKind::Text => GraphOptimizationLevel::Level3,
         };
         let session = (|| -> ort::Result<Session> {
-            Ok(Session::builder(&environment)?
+            Session::builder(&environment)?
                 .with_intra_threads(1)?
                 .with_inter_threads(1)?
                 .with_parallel_execution(false)?
                 .with_optimization_level(level)?
                 .with_config_entry("session.intra_op.allow_spinning", "0")?
                 .with_config_entry("session.inter_op.allow_spinning", "0")?
-                .commit_from_file(&artifacts.graph)?)
+                .commit_from_file(&artifacts.graph)
         })()
         .map_err(|_| RuntimeError::RuntimeUnavailable)?;
         let tokenizer = artifacts

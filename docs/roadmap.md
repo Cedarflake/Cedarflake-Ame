@@ -276,7 +276,11 @@ contracts in [ADR 0034](architecture/0034-versioned-classification-contracts.md)
 [runtime and boundary evidence](acceptance/r5-runtime-admission.md). The native worker now provides
 verified local artifacts, bounded inference, cancellation and versioned process communication;
 explicit model installation is admitted with upstream/conversion provenance under that ADR.
-Purpose-aware calibration remains the R5-02 focus. Model setup and application scheduling retain
+Purpose-aware calibration remains the R5-02 focus. The
+[first separated calibration](acceptance/r5-calibration.md) retains a once-only held-out comparison:
+bounded re-screening preserves overall agreement but does not yet justify a default confidence/review
+profile. Version-bound one-pass refinement is implemented without enabling those candidate cutoffs.
+Model setup and application scheduling retain
 their R5-04 scope; the native adapter does not enable background classification or establish a
 confidence threshold.
 R4 classification-independent decisions remain the baseline. Model quality and dependency admission

@@ -12,6 +12,14 @@ pub struct CategoryMatcher {
 }
 
 impl CategoryMatcher {
+    pub(crate) fn taxonomy(&self) -> &Taxonomy {
+        &self.taxonomy
+    }
+
+    pub(crate) fn model(&self) -> ModelCompatibility {
+        self.model
+    }
+
     pub fn new(
         taxonomy: Taxonomy,
         model: ModelCompatibility,
