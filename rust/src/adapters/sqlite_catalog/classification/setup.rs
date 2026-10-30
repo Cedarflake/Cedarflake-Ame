@@ -48,7 +48,7 @@ impl ClassificationSetupRepository for SqliteCatalog {
     }
 }
 
-fn activate(
+pub(super) fn activate(
     connection: &Connection,
     expected_catalog_revision: u64,
     expected_dispatch_revision: u64,

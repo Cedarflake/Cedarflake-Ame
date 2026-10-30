@@ -21,21 +21,32 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
   final LibraryForegroundReads _foregroundReads;
   LibraryClassificationSession? _session;
   Future<void>? _lifetime;
+  Future<LibraryClassificationSession?>? _opening;
   Future<void>? _recovery;
   Future<void>? _closing;
+  Future<void>? _configurationChange;
   final Map<String, BigInt> _pendingRoots = {};
   Map<String, BigInt> _availableRoots = const {};
   BigInt? _catalogRevision;
   bool _importing = true;
   bool _suspended = false;
   bool _isClosing = false;
+  bool _isChangingConfiguration = false;
   Timer? _pressureCooldown;
   Object? _error;
 
   Object? get error => _error;
 
+  Future<void> waitUntilOpened() async {
+    try {
+      await _opening;
+    } on Object catch (error, stackTrace) {
+      _reportError(error, stackTrace);
+    }
+  }
+
   void startInBackground() {
-    if (_lifetime != null || _isClosing) {
+    if (_lifetime != null || _isClosing || _isChangingConfiguration) {
       return;
     }
     _lifetime = _run();
@@ -43,16 +54,18 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
   }
 
   Future<void> _run() async {
-    final session = await _classification.open();
+    _opening = _classification.open();
+    final session = await _opening;
     if (session == null) {
       return;
     }
     try {
-      if (_isClosing) {
+      if (_isClosing || _isChangingConfiguration) {
         session.requestClose();
         return;
       }
       _session = session;
+      _pendingRoots.addAll(_availableRoots);
       _foregroundChanged();
       session.catalogChanged();
       session.browsingActivity();
@@ -67,6 +80,45 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
         await session.close();
       }
     }
+  }
+
+  Future<T> changeConfiguration<T>(Future<T> Function() change) {
+    if (_isClosing ||
+        _configurationChange != null ||
+        _isChangingConfiguration) {
+      return Future.error(
+        StateError("Classification configuration is unavailable"),
+      );
+    }
+    _isChangingConfiguration = true;
+    final operation =
+        Future<T>.microtask(() async {
+          _session?.requestClose();
+          try {
+            await _lifetime;
+          } on Object catch (error, stackTrace) {
+            // Native admission separately proves retirement before accepting configuration.
+            _reportError(error, stackTrace);
+          }
+          if (_isClosing) {
+            throw StateError("Classification is closing");
+          }
+          return change();
+        }).whenComplete(() async {
+          _lifetime = null;
+          _isChangingConfiguration = false;
+          startInBackground();
+          try {
+            await waitUntilOpened();
+          } finally {
+            _configurationChange = null;
+          }
+        });
+    _configurationChange = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return operation;
   }
 
   void updateCatalog({
@@ -141,6 +193,7 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
   void _recoverRoots() {
     final session = _session;
     if (_isClosing ||
+        _isChangingConfiguration ||
         session == null ||
         _recovery != null ||
         _pendingRoots.isEmpty) {
@@ -155,6 +208,7 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
 
   Future<void> _drainRoots(LibraryClassificationSession session) async {
     while (!_isClosing &&
+        !_isChangingConfiguration &&
         identical(_session, session) &&
         _pendingRoots.isNotEmpty) {
       final root = _pendingRoots.entries.first;
@@ -179,6 +233,7 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
     _pendingRoots.clear();
     _closing = Future<void>.sync(() async {
       _session?.requestClose();
+      await _configurationChange;
       await _lifetime;
     });
     return _closing!;

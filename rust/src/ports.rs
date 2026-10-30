@@ -6,6 +6,7 @@ pub(crate) mod classification;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
 pub(crate) mod classification_analysis;
 pub(crate) mod classification_availability;
+pub(crate) mod classification_configuration;
 pub(crate) mod classification_encoder;
 pub(crate) mod classification_execution;
 pub(crate) mod classification_features;

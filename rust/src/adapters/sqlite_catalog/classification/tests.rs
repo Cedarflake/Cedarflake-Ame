@@ -12,6 +12,7 @@ mod archives;
 mod authority;
 mod lifecycle;
 mod review;
+mod settings;
 mod setup;
 mod work;
 

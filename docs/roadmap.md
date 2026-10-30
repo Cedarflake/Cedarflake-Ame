@@ -107,9 +107,11 @@ recovery are connected to the native runtime. Unavailable copies can yield to an
 root/source recovery retains pause, stop and source-generation guards. Durable scan-publication
 receipts admit sources whose generations became visible after an admission cursor had passed them.
 Desktop startup, foreground reads, catalog/availability wakeups and joined shutdown are wired through
-an opaque native session. Model-backed desktop verification, operating-system suspend/resume and
-integrated resource measurements remain in R5-04, with full database regressions owned by the
-current-head hosted gate.
+an opaque native session. Typed configuration entrypoints connect local installation, editable
+categories, explicit enablement and manual controls; category/run replacement commits atomically and
+desktop reconfiguration joins the old session before reopening. Model-backed desktop verification,
+operating-system suspend/resume and integrated resource measurements remain in R5-04, with full
+database regressions owned by the current-head hosted gate.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference

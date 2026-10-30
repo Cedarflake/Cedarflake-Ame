@@ -36,7 +36,7 @@ pub(super) const PROVIDER: Artifact = Artifact {
     digest: "8cea20be64259950cda8643af0ed42c2a424400fc3bb9bb29f9a35cee6b3419f",
 };
 
-pub(super) fn compatibility() -> ModelCompatibility {
+pub(crate) fn compatibility() -> ModelCompatibility {
     let space = ClassificationRevision::derive(
         "ame.classification.embedding-space.v1",
         [IMAGE.digest.as_bytes(), TEXT.digest.as_bytes()],

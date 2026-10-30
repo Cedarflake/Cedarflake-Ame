@@ -21,6 +21,10 @@ class AmeAsyncBridgeContract {
 
 function Get-AmeAsyncBridgeContracts {
     $rows = @(
+        @("classification_settings", "load_classification_settings", "loadClassificationSettings", "crateApiClassificationSettingsLoadClassificationSettings", "ClassificationSettings", ""),
+        @("classification_settings", "initial_classification_categories", "initialClassificationCategories", "crateApiClassificationSettingsInitialClassificationCategories", "List<ClassificationCategoryInput>", ""),
+        @("classification_settings", "save_classification_settings", "saveClassificationSettings", "crateApiClassificationSettingsSaveClassificationSettings", "ClassificationSettings", ""),
+        @("classification_settings", "change_classification_control", "changeClassificationControl", "crateApiClassificationSettingsChangeClassificationControl", "ClassificationSettings", ""),
         @("classification", "open_classification_session", "openClassificationSession", "crateApiClassificationOpenClassificationSession", "DesktopClassificationSession?", ""),
         @("classification", "select_classification_installation", "selectClassificationInstallation", "crateApiClassificationSelectClassificationInstallation", "void", ""),
         @("classification", "run", "run", "crateApiClassificationDesktopClassificationSessionRun", "void", "DesktopClassificationSession"),

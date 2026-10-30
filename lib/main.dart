@@ -11,6 +11,8 @@ import "app/window/ame_shutdown_coordinator.dart";
 import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
 import "features/library/adapters/rust_library_classification.dart";
+import "features/library/adapters/rust_library_classification_configuration.dart";
+import "features/library/application/library_classification_configuration.dart";
 import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
 import "features/library/application/library_exact_analysis_controller.dart";
@@ -75,8 +77,15 @@ Future<void> main() async {
       foregroundReads: libraryForegroundReads,
     );
     shutdownCoordinator.register(classificationLifecycle.close);
+    final classificationConfiguration = LibraryClassificationConfiguration(
+      const RustLibraryClassificationConfiguration(),
+      classificationLifecycle,
+    );
     application = ProviderScope(
       overrides: [
+        libraryClassificationConfigurationProvider.overrideWithValue(
+          classificationConfiguration,
+        ),
         libraryClassificationLifecycleProvider.overrideWithValue(
           classificationLifecycle,
         ),

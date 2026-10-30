@@ -36,6 +36,14 @@ Run creation, setup storage and dispatch activation commit together under separa
 dispatch revision guards. Repeating an already committed activation preserves subsequent pause,
 disable or stop intent. Continuing a paused run remains a separate command.
 
+The configuration application boundary reads category and dispatch state in one snapshot. A guarded,
+idempotent settings command saves definitions and any replacement setup in one transaction. Saving
+definitions while disabled or stopped preserves that mode; explicit enablement is a separate action.
+Semantic changes in an enabled or paused configuration replace its run while retaining the selected
+mode. Display-only edits preserve the run, feature compatibility and dispatch cursor. A failure while
+creating the replacement rolls back the definition edit as well. Replaying a settings operation
+returns the current snapshot without undoing a later pause, stop or configuration change.
+
 Activation also captures the catalog's source-generation high-water mark. Committed sources at or
 below that mark enter the backlog lane; later new or changed generations enter the new-content lane.
 The mark survives pause and restart and resets when a new run starts. Existing schema-66 queues
@@ -136,6 +144,15 @@ reuse the existing desktop owners. Paused/detached application lifecycle states 
 ordinary focus loss or a minimized window does not. A memory-pressure event retires resources and holds admission for
 one minute before trying the normal quiet interval; the integrated resource check owns that interval's
 measurement. These signals never overwrite manual pause or revive a stopped run.
+
+Configuration and model-installation changes retire the owned desktop session before entering the
+native configuration boundary. Native admission independently rejects changes while a runtime still
+owns resources. Only one desktop configuration change may be outstanding. A late opening is closed
+without running, shutdown joins a committed in-flight change, and a failed write reopens the prior
+saved setup. After a successful write, opening the replacement settles before the settings controller
+reloads its snapshot; session startup advances the dispatch revision, so the pre-start receipt is not
+reused as the next command's authority. An initially disabled desktop can enable analysis through
+this same lifecycle without restarting the application.
 
 One native runtime may own model resources in an application process. A replacement cannot acquire
 ownership until the old runtime has retired and dropped its executor. Unproven retirement retains

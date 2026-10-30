@@ -218,9 +218,12 @@ its own compatibility identity and cannot relabel prior cached image features.
 
 ## Application boundary
 
-The application exposes version-bound profiles, cached-feature first-pass/refinement evidence and
-uncalibrated/low-separation/routine-sampling recommendations. There is no built-in numerical profile,
-background enablement, human confirmation, catalog write or R4 organization change in this boundary.
+The screening application boundary exposes version-bound profiles, cached-feature first-pass/refinement
+evidence and uncalibrated/low-separation/routine-sampling recommendations. Its original focused checks
+cover no background enablement, human confirmation, catalog write or R4 organization change.
+The subsequent [configuration integration](r5-incremental-analysis.md#classification-configuration-and-activation)
+selects the frozen category-aware candidate only for its exact descriptions and native pipeline
+revisions. That integration reuses the measurements above and does not add a new quality claim.
 The domain profile owner is 184 lines and the application screening owner is 141 lines. Dedicated
 tests occupy 360 lines for common screening and 145 for category profiles; neither production owner
 embeds test bodies. The existing matching owner is

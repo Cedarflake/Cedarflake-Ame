@@ -31,6 +31,13 @@ mod setup;
 use admitted_text::AdmittedTextFactory;
 pub use control::ClassificationRuntimeControl;
 
+pub(crate) fn while_retired<T>(
+    change: impl FnOnce() -> Result<T, ScanError>,
+) -> Result<T, ScanError> {
+    let _ownership = ownership::acquire()?;
+    change()
+}
+
 pub struct ClassificationRuntimePaths {
     pub database: PathBuf,
     pub feature_cache: PathBuf,

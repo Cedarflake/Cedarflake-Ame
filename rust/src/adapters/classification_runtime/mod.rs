@@ -23,6 +23,8 @@ use std::process::ExitCode;
 #[cfg(windows)]
 pub use factory::LocalClassificationEncoderFactory;
 #[cfg(windows)]
+pub(crate) use manifest::compatibility as selected_model_compatibility;
+#[cfg(windows)]
 pub use process::{WorkerConfiguration, WorkerSession};
 
 #[cfg(windows)]

@@ -79,6 +79,16 @@ pub(super) fn configure(
     operations::require_revision(connection, expected_revision)?;
     let previous = load(connection)?;
     let revision = operations::begin(connection, id, &digest, "configure")?;
+    let changed = apply_rules(connection, &previous, taxonomy, revision)?;
+    operations::finish(connection, id, revision, 0, changed)
+}
+
+pub(super) fn apply_rules(
+    connection: &Connection,
+    previous: &ClassificationCatalogState,
+    taxonomy: &Taxonomy,
+    revision: i64,
+) -> Result<bool, ScanError> {
     let changed = previous.taxonomy.as_ref() != Some(taxonomy);
     if changed {
         save_rules(connection, taxonomy, revision, true)?;
@@ -93,7 +103,7 @@ pub(super) fn configure(
             )
             .map_err(database_error)?;
     }
-    operations::finish(connection, id, revision, 0, changed)
+    Ok(changed)
 }
 
 pub(super) fn save_rules(

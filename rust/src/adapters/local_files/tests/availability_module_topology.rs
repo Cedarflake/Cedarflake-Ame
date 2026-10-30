@@ -51,6 +51,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     for module_name in [
         "classification",
         "classification_catalog",
+        "classification_configuration",
         "classification_review",
         "exact_duplicate_review",
         "organization_archive",
@@ -336,6 +337,12 @@ fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loadi
         (
             "domain",
             DOMAIN_SOURCE,
+            "pub mod classification_configuration;",
+            "pub(crate) mod classification_configuration;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
             "pub mod classification_review;",
             "pub(crate) mod classification_review;",
         ),
@@ -482,12 +489,13 @@ fn root_availability_classification_adapters_retain_exact_loading_boundaries() {
     for declaration in [
         "mod classification_feature_cache;",
         "#[cfg(all(windows, any(feature = \"classification-worker\", test)))]\npub(crate) mod classification_image_input;",
+        "#[cfg(any(all(windows, feature = \"classification-worker\"), test))]\nmod classification_installation;",
     ] {
         assert!(source.contains(declaration));
-        let broader = if declaration.starts_with("mod ") {
-            format!("pub {declaration}")
-        } else {
+        let broader = if declaration.contains("pub(crate)") {
             declaration.replace("pub(crate)", "pub")
+        } else {
+            declaration.replace("mod ", "pub mod ")
         };
         for replacement in [
             String::new(),

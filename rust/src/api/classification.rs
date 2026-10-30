@@ -136,7 +136,7 @@ impl DesktopClassificationSession {
 }
 
 #[cfg(not(all(windows, feature = "classification-worker")))]
-fn unsupported() -> ScanError {
+pub(super) fn unsupported() -> ScanError {
     ScanError::new(
         "classification_unsupported",
         "Local classification requires the Windows worker",

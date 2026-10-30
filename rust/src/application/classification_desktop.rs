@@ -29,8 +29,10 @@ pub(crate) fn save_installation(models: String, runtime: String) -> Result<(), S
         models: PathBuf::from(models),
         runtime: PathBuf::from(runtime),
     };
-    verify_local_installation(&installation.models, &installation.runtime)?;
-    ClassificationInstallationStore::save(&installation_path(&storage_paths()?), &installation)
+    super::classification_runtime::while_retired(|| {
+        verify_local_installation(&installation.models, &installation.runtime)?;
+        ClassificationInstallationStore::save(&installation_path(&storage_paths()?), &installation)
+    })
 }
 
 pub(crate) fn open() -> Result<Option<ClassificationDesktopSession>, ScanError> {
@@ -97,7 +99,7 @@ fn open_with_storage(
     }))
 }
 
-fn installation_path(storage: &StoragePaths) -> PathBuf {
+pub(super) fn installation_path(storage: &StoragePaths) -> PathBuf {
     storage
         .settings_path
         .with_file_name("classification.sqlite3")

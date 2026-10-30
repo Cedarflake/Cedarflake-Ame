@@ -5,6 +5,7 @@
 
 import 'api/catalog.dart';
 import 'api/classification.dart';
+import 'api/classification_settings.dart';
 import 'api/exact_duplicate_review.dart';
 import 'api/exact_duplicates.dart';
 import 'api/organization.dart';
@@ -23,6 +24,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'domain.dart';
+import 'domain/classification/work.dart';
+import 'domain/classification_configuration.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
 import 'domain/gallery_metadata_filter.dart';
@@ -405,6 +408,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot dco_decode_catalog_snapshot(dynamic raw);
 
   @protected
+  ClassificationCategoryInput dco_decode_classification_category_input(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationConfigurationAction
+  dco_decode_classification_configuration_action(dynamic raw);
+
+  @protected
+  ClassificationControlAction dco_decode_classification_control_action(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationDispatchMode dco_decode_classification_dispatch_mode(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationSettings dco_decode_classification_settings(dynamic raw);
+
+  @protected
   ConsolidatedLibraryRoot dco_decode_consolidated_library_root(dynamic raw);
 
   @protected
@@ -613,6 +638,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<AssetLocationView> dco_decode_list_asset_location_view(dynamic raw);
+
+  @protected
+  List<ClassificationCategoryInput>
+  dco_decode_list_classification_category_input(dynamic raw);
 
   @protected
   List<ConsolidatedLibraryRoot> dco_decode_list_consolidated_library_root(
@@ -1441,6 +1470,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CatalogSnapshot sse_decode_catalog_snapshot(SseDeserializer deserializer);
 
   @protected
+  ClassificationCategoryInput sse_decode_classification_category_input(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationConfigurationAction
+  sse_decode_classification_configuration_action(SseDeserializer deserializer);
+
+  @protected
+  ClassificationControlAction sse_decode_classification_control_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationDispatchMode sse_decode_classification_dispatch_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationSettings sse_decode_classification_settings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   ConsolidatedLibraryRoot sse_decode_consolidated_library_root(
     SseDeserializer deserializer,
   );
@@ -1711,6 +1764,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<AssetLocationView> sse_decode_list_asset_location_view(
     SseDeserializer deserializer,
   );
+
+  @protected
+  List<ClassificationCategoryInput>
+  sse_decode_list_classification_category_input(SseDeserializer deserializer);
 
   @protected
   List<ConsolidatedLibraryRoot> sse_decode_list_consolidated_library_root(
@@ -2702,6 +2759,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_classification_category_input(
+    ClassificationCategoryInput self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_configuration_action(
+    ClassificationConfigurationAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_control_action(
+    ClassificationControlAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_dispatch_mode(
+    ClassificationDispatchMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_settings(
+    ClassificationSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_consolidated_library_root(
     ConsolidatedLibraryRoot self,
     SseSerializer serializer,
@@ -3037,6 +3124,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_asset_location_view(
     List<AssetLocationView> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_classification_category_input(
+    List<ClassificationCategoryInput> self,
     SseSerializer serializer,
   );
 

@@ -17,6 +17,7 @@ mod operations;
 mod predictions;
 mod request;
 pub(super) mod review;
+mod settings;
 pub(super) mod setup;
 mod undo;
 pub(super) mod validation;

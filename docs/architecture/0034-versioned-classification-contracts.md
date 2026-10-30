@@ -107,8 +107,13 @@ The profile selects refinement below its first-pass cutoff, then optional review
 cutoff. Exact ties always remain boundary cases; threshold equality otherwise uses the separated side.
 The remaining band is eligible for routine sampling, not automatically confirmed or guaranteed
 correct. Application admission of a measured profile remains separate from structural validation.
-No numerical cutoff is a built-in default. The [calibration evidence](../acceptance/r5-calibration.md)
-records candidate profiles and their limitations before any runtime setup enables them.
+Thresholds come from an admitted, version-bound profile; the matching domain has no universal cutoff.
+The [calibration evidence](../acceptance/r5-calibration.md) owns the measured initial candidate and its
+limitations. An application-owned candidate binds its exact primary/refinement descriptions,
+category IDs, calibration identity and frozen native model revisions. Explicit enablement of that
+category set selects its measured profile. Display renames preserve it; changed descriptions, category
+membership or encoder pipelines produce uncalibrated suggestions until a compatible profile is
+admitted. The six initial categories are editable starting definitions, not a fixed output vocabulary.
 
 ## Selected runtime boundary
 

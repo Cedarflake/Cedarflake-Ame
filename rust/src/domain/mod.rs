@@ -2,6 +2,7 @@ use std::fmt::{Display, Formatter};
 
 pub mod classification;
 pub mod classification_catalog;
+pub mod classification_configuration;
 pub mod classification_review;
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;

@@ -4615,6 +4615,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
             is_inline: false,
         },
         AvailabilityModuleContract {
+            name: "classification_installation",
+            visibility: "",
+            attributes: &["cfg(any(all(windows,feature=\"classification-worker\"),test))"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "classification_runtime",
             visibility: "pub(crate)",
             attributes: &["cfg(feature=\"classification-worker\")"],
@@ -4715,6 +4721,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         },
         AvailabilityModuleContract {
             name: "classification_catalog",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_configuration",
             visibility: "pub",
             attributes: &[],
             is_inline: false,

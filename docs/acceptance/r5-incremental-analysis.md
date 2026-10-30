@@ -377,3 +377,56 @@ their R5-06 presentation scope.
 | Native desktop session / typed bridge facade | 181 / 144 | 0 | 137 |
 | Local installation store | 91 | 0 | 47 |
 | Desktop lifecycle owner | 192 | 0 | 218 |
+
+## Classification configuration and activation
+
+Typed application/bridge entrypoints now expose the saved configuration, editable initial categories,
+explicit enablement and pause/continue/disable/stop. Selecting local artifacts still verifies them
+without enabling classification. Saving categories while disabled needs no installed model. The
+catalog transaction owns the definition edit, immutable replacement setup and dispatch transition;
+stale revisions or failed activation roll back the whole edit. Save preserves paused/stopped intent,
+while replay preserves any later user transition. A display rename keeps the existing run and cursor.
+No catalog migration or new dependency is required.
+
+The initial screening candidate contains the retained primary and purpose-aware refinement
+descriptions, category thresholds and calibration identity. Its model identities are frozen to the
+native-input candidate already measured in the calibration record. Exact definitions select that
+profile at explicit enablement; semantic/category/model changes retain usable uncalibrated analysis.
+Names can change without invalidation. This supplies an editable starting scheme without generating
+additional categories or treating unsupported confidence bands as calibrated.
+
+Desktop configuration joins opening, execution, availability recovery and handle retirement before
+saving. The native runtime ownership gate independently fences mutation. A failed write restores the
+prior runnable configuration. The replacement's opening settles before the controller reloads its
+state, including the dispatch revision advanced by opening. Closing joins an already executing write
+and prevents another session from starting.
+
+Ten added native cases compile under test-enabled Clippy with warnings denied (34.63 seconds).
+They cover saved-but-disabled definitions, explicit enablement, paused semantic replacement and
+reopening, display-only preservation, replay/stop, stale control authority, transactional rollback,
+model/description-specific calibration and missing installation. Complete execution remains with
+hosted Catalog/Remaining gates. The generated bridge and Rust Release build pass (2 minutes
+39 seconds); the 25 asynchronous contracts and their rejecting guardrails pass. Dart analysis of the
+changed composition, configuration and lifecycle files passes. All 12 focused lifecycle tests pass,
+including six new configuration/opening/closing races. Initial diagnostic runs exposed an unnecessary
+timer turn and a test assertion inside a guarded asynchronous callback; the command now schedules a
+microtask and the test observes callback state before asserting it outside the pump.
+
+The preceding `25562604` Windows Accessibility job failed before its application-ready assertions:
+the UIA probe exceeded its eight-second parent deadline while its last progress record identified
+system assembly loading. That failure remains unresolved; it is not a classification-function pass.
+Its Rust Remaining job completed 1,037 cases successfully, with two source-contract failures caused
+by the missing exact declaration for the new classification installation module. The loading
+contract now records that declaration and the configuration domain module, with rejection cases
+retaining the visibility, platform and alternate-loading boundaries. Execution of the corrected
+contract remains with the next hosted gate.
+The current configuration boundary still requires the planned real-model client run, operating-system
+suspend/resume and integrated resource measurements. Its controls retain their R5-06 presentation
+scope, and no original-media files were changed by this implementation or its focused checks.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Configuration application / catalog transaction | 149 / 137 | 0 | 55 / 234 |
+| Version-bound screening candidate | 130 | 0 | 136 |
+| Desktop lifecycle | 247 | 0 | 362 |
+| Local-files availability contract | 2,629 | 3,464 | 532 (module topology) |

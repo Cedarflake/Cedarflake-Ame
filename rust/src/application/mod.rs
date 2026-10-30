@@ -4,6 +4,10 @@ mod catalog_reclamation;
 mod catalog_session;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
 pub(crate) mod classification_analysis;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+pub(crate) mod classification_candidate;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_configuration;
 pub(crate) mod classification_decisions;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) mod classification_desktop;
