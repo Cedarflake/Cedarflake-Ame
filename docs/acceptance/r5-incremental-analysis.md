@@ -71,6 +71,11 @@ Rust test metadata because Windows reported its pagefile limit (OS error 1455), 
 without running tests. This is not evidence of an executed regression pass. Exact-commit hosted
 checks retain those scenarios. Formatting and `git diff --check` passed; no originals were opened.
 
+The hosted `dbdf2365` run found one compile-time mismatch in an existing stale-source test: it still
+treated the shared publication result as a boolean. The assertion now requires `Superseded` for each
+changed generation, revision and path, retaining the same rejection cases with the typed outcome.
+The failed run did not execute the database regressions; their results require the corrected head.
+
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
 | Source verification application / port | 86 / 28 | 0 | 285 database/application integration |
