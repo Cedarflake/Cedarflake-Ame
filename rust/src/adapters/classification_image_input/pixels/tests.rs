@@ -162,3 +162,38 @@ fn cancellation_during_io_never_returns_partial_pixels() {
     };
     assert!(prepare(reader, &cancelled).is_err());
 }
+
+struct UnavailableSource;
+
+impl Read for UnavailableSource {
+    fn read(&mut self, _: &mut [u8]) -> io::Result<usize> {
+        Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "Source disconnected",
+        ))
+    }
+}
+
+impl Seek for UnavailableSource {
+    fn seek(&mut self, _: SeekFrom) -> io::Result<u64> {
+        Ok(0)
+    }
+}
+
+#[test]
+fn unavailable_source_is_distinct_from_corrupt_image_data() {
+    assert_eq!(
+        prepare(UnavailableSource, &AtomicBool::new(false))
+            .unwrap_err()
+            .code,
+        "classification_source_read_failed"
+    );
+    assert_eq!(
+        decode_error(image::ImageError::IoError(io::Error::new(
+            io::ErrorKind::NotFound,
+            "Source disconnected"
+        ),))
+        .code,
+        "classification_source_read_failed"
+    );
+}

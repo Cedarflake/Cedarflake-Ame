@@ -15,14 +15,11 @@ use super::classification_residency::{ClassificationEncoderResidency, ResidencyC
 use super::classification_screening::ScreeningClassifier;
 
 #[cfg(all(windows, feature = "classification-worker"))]
-pub fn analyze_classification_content<C: ResidencyClock>(
+pub fn analyze_classification_content<F: ClassificationEncoderFactory, C: ResidencyClock>(
     database_path: &std::path::Path,
     lease: &ClassificationWorkLease,
     classifier: &ScreeningClassifier,
-    residency: &mut ClassificationEncoderResidency<
-        crate::adapters::classification_runtime::LocalClassificationEncoderFactory,
-        C,
-    >,
+    residency: &mut ClassificationEncoderResidency<F, C>,
     cache: &mut impl ClassificationFeatureRepository,
     cancelled: &AtomicBool,
 ) -> Result<ClassificationAnalysisResult, ScanError> {

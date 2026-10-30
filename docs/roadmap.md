@@ -100,8 +100,10 @@ their Catalog gate remains in progress. Independent R5-04 work connects encoder 
 durable task admission under [ADR 0036](architecture/0036-durable-classification-dispatch.md), with
 [incremental-analysis evidence](acceptance/r5-incremental-analysis.md). Source verification, compatible
 feature reuse and guarded content execution now have native owners. Native image input has a frozen-policy
-comparison, and per-file background admission is shared with exact analysis. Foreground signals, desktop
-dispatch and remaining R5-04 integration are pending.
+comparison, and per-file background admission is shared with exact analysis. A native dispatch loop
+now connects demand loading, quiet admission, foreground yielding, retries and idle retirement.
+Desktop ownership/signals, durable setup reconstruction, automatic arrival priorities and scoped
+availability wakeups remain in R5-04 integration.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference

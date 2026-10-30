@@ -41,6 +41,11 @@ pub trait ClassificationWorkRepository {
         now_unix_ms: u64,
     ) -> Result<Option<ClassificationWorkLease>, ScanError>;
 
+    fn classification_work_ready_at(
+        &self,
+        session_id: &ClassificationRecordId,
+    ) -> Result<Option<u64>, ScanError>;
+
     fn finish_classification_verification(
         &mut self,
         lease: &ClassificationWorkLease,

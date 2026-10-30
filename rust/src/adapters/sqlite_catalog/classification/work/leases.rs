@@ -134,6 +134,40 @@ pub(super) fn claim(
     Ok(None)
 }
 
+pub(super) fn ready_at(
+    connection: &Connection,
+    session: &ClassificationRecordId,
+) -> Result<Option<u64>, ScanError> {
+    let dispatch = control::session(connection, session)?;
+    if dispatch.state.mode != ClassificationDispatchMode::Automatic {
+        return Ok(None);
+    }
+    let run = control::run(connection, &dispatch)?;
+    let mut statement = connection
+        .prepare_cached(
+            "SELECT ready_unix_ms FROM classification_work_items
+         WHERE configuration_revision = ?1 AND phase = 'queued' AND priority = ?2 AND kind = ?3
+         ORDER BY ready_unix_ms, work_id LIMIT 1",
+        )
+        .map_err(database_error)?;
+    let mut earliest: Option<u64> = None;
+    for priority in 0..=2 {
+        for kind in ["source", "content"] {
+            let ready = statement
+                .query_row(
+                    params![codec::revision(run.configuration()), priority, kind],
+                    |row| read_unsigned(row, 0),
+                )
+                .optional()
+                .map_err(database_error)?;
+            if let Some(ready) = ready {
+                earliest = Some(earliest.map_or(ready, |current| current.min(ready)));
+            }
+        }
+    }
+    Ok(earliest)
+}
+
 pub(super) fn current(
     connection: &Connection,
     lease: &ClassificationWorkLease,

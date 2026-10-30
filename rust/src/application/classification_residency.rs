@@ -92,6 +92,17 @@ impl<F: ClassificationEncoderFactory, C: ResidencyClock> ClassificationEncoderRe
         Ok(())
     }
 
+    pub fn idle_delay(&self) -> Option<Duration> {
+        self.resident.as_ref().map(|resident| {
+            if matches!(resident.state, EncoderState::Retiring) {
+                Duration::ZERO
+            } else {
+                self.idle_retention
+                    .saturating_sub(self.clock.elapsed().saturating_sub(resident.last_used))
+            }
+        })
+    }
+
     pub fn retire_if_idle(&mut self) -> Result<(), ScanError> {
         if let Some(resident) = &self.resident
             && (matches!(resident.state, EncoderState::Retiring)

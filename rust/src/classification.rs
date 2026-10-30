@@ -2,12 +2,21 @@ pub use crate::adapters::SqliteClassificationFeatureCache;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub use crate::application::classification_analysis::analyze_classification_content;
 pub use crate::application::classification_decisions::plan_classification_change;
+pub use crate::application::classification_dispatch::{
+    ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,
+    ClassificationDispatcher, ClassificationForegroundState, MonotonicDispatchClock,
+};
 pub use crate::application::classification_features::prepare_classification_matcher;
 pub use crate::application::classification_matching::{
     CategoryMatcher, CategoryScore, RankedPrediction,
 };
 pub use crate::application::classification_residency::{
     ClassificationEncoderResidency, MonotonicResidencyClock, ResidencyClock,
+};
+#[cfg(all(windows, feature = "classification-worker"))]
+pub use crate::application::classification_runtime::{
+    ClassificationAnalysisSetup, ClassificationRuntimeControl, ClassificationRuntimePaths,
+    NativeClassificationRuntime,
 };
 pub use crate::application::classification_screening::{
     ReviewRecommendation, ScreeningClassifier, ScreeningResult,
@@ -40,6 +49,9 @@ pub use crate::domain::classification_review::{
 pub use crate::ports::classification::ClassificationRepository;
 pub use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
+};
+pub use crate::ports::classification_execution::{
+    ClassificationExecutionError, ClassificationExecutionOutcome, ClassificationWorkExecutor,
 };
 pub use crate::ports::classification_features::{
     ClassificationFeatureCacheStats, ClassificationFeatureRepository,

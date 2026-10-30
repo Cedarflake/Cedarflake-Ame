@@ -69,8 +69,33 @@ observe cancellation every 25 ms and never acquire a source or database transact
 The exact-reader capability retains admission through fingerprint publication and drops its held
 source before releasing the slot. Content execution acquires admission before opening its catalog
 session and retains it through source retirement. Cancellation does not release another task's slot
-or change durable manual intent. Foreground signals and model/text preparation still require their
-dispatcher integration; this slot does not itself enable classification.
+or change durable manual intent. Text-model initialization and each uncached description use the
+same slot independently, allowing exact reads between descriptions. Image initialization remains
+within its content task's admission, without acquiring the slot twice.
+
+The native dispatcher owns its repository session and one executor. It processes a bounded source
+window and one claimed task per turn. Six indexed queue seeks provide the earliest retry deadline
+without materializing task lists. An empty queue waits on a coalesced condition-variable signal;
+the earlier of a retry deadline and the resident encoder's idle deadline supplies a timed wake.
+Notification identity is captured before the turn, preventing a signal between the queue check and
+wait from being lost. Transient retries wait five seconds from the observed failure and retain the
+durable three-attempt budget.
+
+The initial admission requires three quiet seconds. Cached browsing resets this interval only
+before admission or after the queue becomes idle. Actual foreground source reads, import, suspend
+and memory pressure cancel the active turn and request model retirement. Readiness resumes after
+quiet without modifying durable manual intent. Manual controls signal cancellation before the
+short persistence transaction and signal its committed result afterward; only the persisted epoch
+authorizes publication. Close retires the runtime while preserving the selected durable mode.
+
+One native runtime may own model resources in an application process. A replacement cannot acquire
+ownership until the old runtime has retired and dropped its executor. Unproven retirement retains
+process admission until process restart. Model preparation remains demand-driven: source-only work,
+manual pause and an empty queue do not start an encoder. The native setup must describe the exact
+stored run, rules and optional screening profile; an unavailable profile cannot silently become an
+uncalibrated replacement. Setup or unknown execution errors end the loop with queued work retained,
+while unavailable, corrupt and transient per-source failures retain their distinct queue outcomes.
+File I/O failure during decoding is an unavailable-source outcome, separate from corrupt image data.
 
 Requested scope, new content and backlog use a seven-slot weighted admission cycle: requested,
 requested, new, requested, new, requested, backlog. Empty lanes are skipped. Ready work within a lane

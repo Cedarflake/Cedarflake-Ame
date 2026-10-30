@@ -175,15 +175,20 @@ fn fixture() -> (Owner, Rc<RefCell<Scenario>>, Clock) {
 fn image_residency_expires_from_the_last_completed_inference() {
     let (mut owner, scenario, clock) = fixture();
     let cancelled = AtomicBool::new(false);
+    assert_eq!(owner.idle_delay(), None);
     scenario.borrow_mut().inference_duration = Duration::from_secs(5);
     owner.encode_prepared_image(&[], &cancelled).unwrap();
+    assert_eq!(owner.idle_delay(), Some(Duration::from_secs(60)));
     clock.0.set(Duration::from_secs(64));
+    assert_eq!(owner.idle_delay(), Some(Duration::from_secs(1)));
     owner.retire_if_idle().unwrap();
     assert_eq!(scenario.borrow().active, 1);
     owner.encode_prepared_image(&[], &cancelled).unwrap();
     assert_eq!(scenario.borrow().events, ["start:Image"]);
     clock.0.set(Duration::from_secs(129));
+    assert_eq!(owner.idle_delay(), Some(Duration::ZERO));
     owner.retire_if_idle().unwrap();
+    assert_eq!(owner.idle_delay(), None);
     assert_eq!(owner.resident_kind(), None);
     assert_eq!(scenario.borrow().active, 0);
 }

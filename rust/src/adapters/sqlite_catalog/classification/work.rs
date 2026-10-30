@@ -79,6 +79,19 @@ impl ClassificationWorkRepository for SqliteCatalog {
         Ok(result)
     }
 
+    fn classification_work_ready_at(
+        &self,
+        session_id: &ClassificationRecordId,
+    ) -> Result<Option<u64>, ScanError> {
+        let transaction = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
+        let next = leases::ready_at(&transaction, session_id)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(next)
+    }
+
     fn finish_classification_verification(
         &mut self,
         lease: &ClassificationWorkLease,

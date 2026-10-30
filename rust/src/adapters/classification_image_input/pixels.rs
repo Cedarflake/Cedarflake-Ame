@@ -16,11 +16,11 @@ pub(super) fn prepare(
     cancelled: &AtomicBool,
 ) -> Result<Vec<f32>, ScanError> {
     check_cancelled(cancelled)?;
-    source.seek(SeekFrom::Start(0)).map_err(decode_error)?;
+    source.seek(SeekFrom::Start(0)).map_err(read_error)?;
     let guarded = CancellableReader { source, cancelled };
     let mut reader = ImageReader::new(BufReader::new(guarded))
         .with_guessed_format()
-        .map_err(decode_error)?;
+        .map_err(read_error)?;
     let mut limits = Limits::default();
     limits.max_image_width = Some(MAX_DIMENSION);
     limits.max_image_height = Some(MAX_DIMENSION);
@@ -88,8 +88,15 @@ pub(super) fn cancelled_error() -> ScanError {
     ScanError::new("classification_cancelled", "Classification was cancelled")
 }
 
-fn decode_error(error: impl std::fmt::Display) -> ScanError {
-    ScanError::new("classification_image_decode_failed", error.to_string())
+fn decode_error(error: image::ImageError) -> ScanError {
+    match error {
+        image::ImageError::IoError(error) => read_error(error),
+        error => ScanError::new("classification_image_decode_failed", error.to_string()),
+    }
+}
+
+fn read_error(error: io::Error) -> ScanError {
+    ScanError::new("classification_source_read_failed", error.to_string())
 }
 
 #[cfg(test)]

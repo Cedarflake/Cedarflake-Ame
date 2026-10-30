@@ -183,5 +183,55 @@ application entrypoints and retained R3 behavior remain covered by the current-h
 | Content execution / source verification | 166 / 84 | 0 | Existing database/application suites |
 | Existing exact-analysis facade | 220 | 0 | Existing exact-analysis suites |
 
-The integrated dispatcher, foreground signals, model/text preparation admission and desktop enablement
-remain in R5-04. The native slot and execution entrypoints alone do not enable automatic analysis.
+The native dispatch connection is recorded below. Desktop enablement remains in R5-04; these native
+entrypoints do not enable automatic analysis in the desktop application.
+
+## Native dispatch lifecycle
+
+The native runtime now composes the persisted work queue, guarded verification/content execution,
+feature cache, compatible matcher preparation and encoder residency. Its signal owner distinguishes
+cached browsing from actual foreground source reads, import, suspend and pressure. Cached browsing
+defers initial admission without repeatedly cancelling an admitted queue. Manual pause remains a
+catalog decision. Source-only or empty queues start no model. Cancellation returns unfinished work
+without consuming the failure budget; model setup failure returns the active claim to the queue and
+ends the loop. Runtime ownership prevents concurrent replacements within the application process.
+
+An empty queue sleeps until a signal, retry or idle-retirement deadline. The ready-time query uses
+six indexed lane/kind seeks. Retry timing starts after a failed attempt, including time spent in the
+worker. Separate I/O and codec failures preserve unavailable-versus-invalid input handling; numerical
+image preparation is unchanged.
+
+Six signal tests and two runtime-ownership tests pass in a focused probe, together with two diagnostic
+clock/admission checks, in under 0.01 seconds. Production signal/test and ownership files are
+byte-identical to the probe inputs; its minimal error
+type replaces only the unrelated domain fixture. Seven pixel-input tests pass in 0.13 seconds using
+the existing offline probe, including the newly disconnected-source case. These checks read no source
+media and download no models or dependencies.
+
+The library passed feature-enabled Clippy with warnings denied. The initial restricted check emitted
+an incremental-cache hard-link warning; the same repository-cache invocation outside that restriction
+completed without it. The new database tests compiled, and a subsequent retry-clock assertion exposed
+an unsupported unsigned SQLite fixture read. It now reads the actual signed SQLite integer type;
+test-enabled Clippy subsequently passed, including the final ownership change in 20.86 seconds.
+Seven database/dispatcher cases cover shared
+prediction completion, completed-work reuse after restart, checkpointed pause/continue, foreground
+yielding, retry exhaustion/deadlines, setup failure and empty-queue close. Their execution remains owned
+by the current-head hosted gate, alongside native setup/ownership error handling and prior R5-03 suites.
+
+The preceding `f703c445` run has passed Static, Rust Remaining, Windows Scan, Windows Accessibility
+and Unsigned Release checks. Catalog, Schema and Queue, and other jobs were still running at the last
+successful read; the complete R5-03 gate has not been declared passed. Initial status requests timed
+out before the GitHub API resumed responding. No unchanged full-root test execution was repeated.
+
+This delivery establishes the native loop and control boundary. Desktop lifecycle wiring, persisted
+model/profile reconstruction, automatic new-content priority, source-specific availability wakeups
+and actual integrated model/foreground measurements retain their R5-04 scope. No UI acceptance,
+automatic desktop classification or complete R5-04 result is claimed by these focused checks.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Dispatch loop / signal owner | 177 / 266 | 0 | 176 signal; 378 database/dispatcher |
+| Native runtime / immutable setup / admitted text | 280 / 90 / 72 | 0 | 58 error-policy |
+| Runtime ownership | 46 | 24 | 0 |
+| Execution port / work repository / lease owner | 34 / 161 / 279 | 0 | Existing queue and new dispatcher suites |
+| Pixel preparation | 101 | 0 | 199 |
