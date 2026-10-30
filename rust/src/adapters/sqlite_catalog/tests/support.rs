@@ -68,6 +68,7 @@ pub(super) fn publish_fixture(
                 preview_issue_message: None,
                 metadata_engine_id: "fixture-metadata".to_owned(),
                 metadata_engine_version: "1".to_owned(),
+                camera: Default::default(),
                 capture_time: None,
             },
         )
@@ -351,6 +352,7 @@ pub(super) fn publish_gallery_query_fixture(
                     preview_issue_message: None,
                     metadata_engine_id: "fixture-metadata".to_owned(),
                     metadata_engine_version: "1".to_owned(),
+                    camera: Default::default(),
                     capture_time: capture_local_time.map(|local_time| CaptureTimeEvidence {
                         local_time: local_time.to_owned(),
                         offset_minutes: None,
@@ -410,6 +412,7 @@ pub(super) fn publish_gallery_dimension_fixture(
                     preview_issue_message: None,
                     metadata_engine_id: "fixture-metadata".to_owned(),
                     metadata_engine_version: "1".to_owned(),
+                    camera: Default::default(),
                     capture_time: capture_local_time.map(|local_time| CaptureTimeEvidence {
                         local_time: local_time.to_owned(),
                         offset_minutes: None,

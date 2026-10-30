@@ -29,6 +29,7 @@ import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
+import 'domain/media_metadata.dart';
 import 'domain/organization.dart';
 import 'domain/organization_archive.dart';
 import 'domain/organization_batch.dart';
@@ -3957,8 +3958,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   AssetLocationView dco_decode_asset_location_view(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 22)
-      throw Exception('unexpected arr length: expect 22 but see ${arr.length}');
+    if (arr.length != 23)
+      throw Exception('unexpected arr length: expect 23 but see ${arr.length}');
     return AssetLocationView(
       assetId: dco_decode_String(arr[0]),
       locationId: dco_decode_String(arr[1]),
@@ -3983,7 +3984,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       previewIssueMessage: dco_decode_opt_String(arr[18]),
       metadataEngineId: dco_decode_String(arr[19]),
       metadataEngineVersion: dco_decode_String(arr[20]),
-      captureTime: dco_decode_opt_box_autoadd_capture_time_evidence(arr[21]),
+      camera: dco_decode_camera_metadata(arr[21]),
+      captureTime: dco_decode_opt_box_autoadd_capture_time_evidence(arr[22]),
     );
   }
 
@@ -4293,6 +4295,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_viewer_source_request(raw);
+  }
+
+  @protected
+  CameraMetadata dco_decode_camera_metadata(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return CameraMetadata(
+      make: dco_decode_opt_String(arr[0]),
+      model: dco_decode_opt_String(arr[1]),
+    );
   }
 
   @protected
@@ -6693,6 +6707,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_previewIssueMessage = sse_decode_opt_String(deserializer);
     var var_metadataEngineId = sse_decode_String(deserializer);
     var var_metadataEngineVersion = sse_decode_String(deserializer);
+    var var_camera = sse_decode_camera_metadata(deserializer);
     var var_captureTime = sse_decode_opt_box_autoadd_capture_time_evidence(
       deserializer,
     );
@@ -6718,6 +6733,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       previewIssueMessage: var_previewIssueMessage,
       metadataEngineId: var_metadataEngineId,
       metadataEngineVersion: var_metadataEngineVersion,
+      camera: var_camera,
       captureTime: var_captureTime,
     );
   }
@@ -7080,6 +7096,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_viewer_source_request(deserializer));
+  }
+
+  @protected
+  CameraMetadata sse_decode_camera_metadata(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_make = sse_decode_opt_String(deserializer);
+    var var_model = sse_decode_opt_String(deserializer);
+    return CameraMetadata(make: var_make, model: var_model);
   }
 
   @protected
@@ -10168,6 +10192,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.previewIssueMessage, serializer);
     sse_encode_String(self.metadataEngineId, serializer);
     sse_encode_String(self.metadataEngineVersion, serializer);
+    sse_encode_camera_metadata(self.camera, serializer);
     sse_encode_opt_box_autoadd_capture_time_evidence(
       self.captureTime,
       serializer,
@@ -10565,6 +10590,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_viewer_source_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_camera_metadata(
+    CameraMetadata self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_String(self.make, serializer);
+    sse_encode_opt_String(self.model, serializer);
   }
 
   @protected

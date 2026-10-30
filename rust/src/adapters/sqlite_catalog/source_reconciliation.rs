@@ -55,6 +55,7 @@ pub(super) fn reconcile_location_source(
     identity_generation_expectation: IdentityGenerationExpectation,
     identity_generation_batch: &mut HashMap<(String, String), IdentityGenerationBatchState>,
 ) -> Result<ReconciledLocationSource, ScanError> {
+    location.camera.validate()?;
     let file_size = sqlite_integer(location.file_size, "file size")?;
     let source_revision_token = location
         .source_revision
@@ -270,7 +271,8 @@ fn propagate_observation(
                      capture_time_source = ?12, capture_raw_value = ?13,
                      source_revision_token = ?14, source_generation = ?15,
                      preview_path = '', preview_status = 'pending',
-                     preview_issue_code = NULL, preview_issue_message = NULL
+                     preview_issue_code = NULL, preview_issue_message = NULL,
+                     camera_make = ?17, camera_model = ?18
                  WHERE file_identity_scheme = ?1 AND file_identity_value = ?2
                    AND (?16 IS NULL OR scan_id = ?16)
                    AND (
@@ -316,6 +318,8 @@ fn propagate_observation(
                 source_revision_token,
                 source_generation,
                 staged_scan_id,
+                location.camera.make,
+                location.camera.model,
             ],
         )
         .map_err(database_error)?;

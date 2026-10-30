@@ -30,6 +30,7 @@ import 'domain/gallery_time_snapshot.dart';
 import 'domain/library_change.dart';
 import 'domain/library_change_queue.dart';
 import 'domain/library_synchronization.dart';
+import 'domain/media_metadata.dart';
 import 'domain/organization.dart';
 import 'domain/organization_archive.dart';
 import 'domain/organization_batch.dart';
@@ -332,6 +333,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ViewerSourceRequest dco_decode_box_autoadd_viewer_source_request(dynamic raw);
+
+  @protected
+  CameraMetadata dco_decode_camera_metadata(dynamic raw);
 
   @protected
   CaptureTimeEvidence dco_decode_capture_time_evidence(dynamic raw);
@@ -1309,6 +1313,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   ViewerSourceRequest sse_decode_box_autoadd_viewer_source_request(
     SseDeserializer deserializer,
   );
+
+  @protected
+  CameraMetadata sse_decode_camera_metadata(SseDeserializer deserializer);
 
   @protected
   CaptureTimeEvidence sse_decode_capture_time_evidence(
@@ -2500,6 +2507,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_viewer_source_request(
     ViewerSourceRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_camera_metadata(
+    CameraMetadata self,
     SseSerializer serializer,
   );
 

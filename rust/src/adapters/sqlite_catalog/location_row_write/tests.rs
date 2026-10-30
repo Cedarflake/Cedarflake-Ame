@@ -49,6 +49,7 @@ fn location(index: usize) -> AssetLocationView {
         preview_issue_message: None,
         metadata_engine_id: "fixture".to_owned(),
         metadata_engine_version: "1".to_owned(),
+        camera: Default::default(),
         capture_time: None,
     }
 }
@@ -107,6 +108,8 @@ fn rejected_commit_preserves_cached_insert_and_replaces_optional_bindings_on_ret
     let mut catalog = catalog(directory.path().join("catalog.sqlite3"));
     let mut first = location(1);
     first.created_unix_ms = Some(1000);
+    first.camera.make = Some("Fixture".into());
+    first.camera.model = Some("Camera 2".into());
     first.capture_time = Some(CaptureTimeEvidence {
         local_time: "2000-01-02T03:04:05".to_owned(),
         offset_minutes: Some(480),
@@ -147,15 +150,18 @@ fn rejected_commit_preserves_cached_insert_and_replaces_optional_bindings_on_ret
         "SELECT
            (SELECT COUNT(*) FROM asset_locations WHERE location_id = 'location-1'
              AND created_unix_ms = 1000 AND capture_local_time = '2000-01-02T03:04:05'
-             AND capture_offset_minutes = 480 AND capture_raw_value = '2000:01:02 03:04:05' AND width = 10),
+             AND capture_offset_minutes = 480 AND capture_raw_value = '2000:01:02 03:04:05' AND width = 10
+             AND camera_make = 'Fixture' AND camera_model = 'Camera 2'),
            (SELECT COUNT(*) FROM asset_locations WHERE location_id = 'location-2'
              AND created_unix_ms IS NULL AND capture_local_time IS NULL AND capture_offset_minutes IS NULL
-             AND capture_time_source IS NULL AND capture_raw_value IS NULL AND width = 30)",
+             AND capture_time_source IS NULL AND capture_raw_value IS NULL AND width = 30
+             AND camera_make IS NULL AND camera_model IS NULL)",
         [], |row| Ok((row.get(0)?, row.get(1)?)),
     ).expect("independent complete parameter bindings");
     assert_eq!(rows, (1, 1));
     first.created_unix_ms = None;
     first.capture_time = None;
+    first.camera = Default::default();
     first.height = 40;
     catalog
         .stage_location("scan", "root", &first)
@@ -166,7 +172,8 @@ fn rejected_commit_preserves_cached_insert_and_replaces_optional_bindings_on_ret
     let cleared: i64 = catalog.connection.query_row(
         "SELECT COUNT(*) FROM asset_locations WHERE location_id = 'location-1'
          AND created_unix_ms IS NULL AND capture_local_time IS NULL AND capture_offset_minutes IS NULL
-         AND capture_time_source IS NULL AND capture_raw_value IS NULL AND height = 40", [], |row| row.get(0),
+         AND capture_time_source IS NULL AND capture_raw_value IS NULL AND height = 40
+         AND camera_make IS NULL AND camera_model IS NULL", [], |row| row.get(0),
     ).expect("upsert replaces nullable values");
     assert_eq!(cleared, 1);
 }

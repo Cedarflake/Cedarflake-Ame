@@ -138,10 +138,10 @@ pub(super) fn read_candidate(
     row: &Row<'_>,
 ) -> rusqlite::Result<Result<FingerprintCandidate, ScanError>> {
     let stored = read_stored_asset(row)?;
-    let root_path = row.get(25)?;
-    let generation = read_unsigned(row, 26)?;
-    let scheme = row.get(27)?;
-    let value = row.get(28)?;
+    let root_path = row.get(27)?;
+    let generation = read_unsigned(row, 28)?;
+    let scheme = row.get(29)?;
+    let value = row.get(30)?;
     Ok((|| {
         let location = stored_asset_view(stored)?;
         let root = IncrementalCatalogRoot {

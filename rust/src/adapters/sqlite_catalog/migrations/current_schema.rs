@@ -215,6 +215,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 61 {
         super::gallery_search::validate(connection)?;
     }
+    if schema_version >= 62 {
+        super::camera_metadata::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

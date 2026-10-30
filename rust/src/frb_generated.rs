@@ -3697,6 +3697,8 @@ impl SseDecode for crate::domain::AssetLocationView {
         let mut var_previewIssueMessage = <Option<String>>::sse_decode(deserializer);
         let mut var_metadataEngineId = <String>::sse_decode(deserializer);
         let mut var_metadataEngineVersion = <String>::sse_decode(deserializer);
+        let mut var_camera =
+            <crate::domain::media_metadata::CameraMetadata>::sse_decode(deserializer);
         let mut var_captureTime =
             <Option<crate::domain::CaptureTimeEvidence>>::sse_decode(deserializer);
         return crate::domain::AssetLocationView {
@@ -3721,6 +3723,7 @@ impl SseDecode for crate::domain::AssetLocationView {
             preview_issue_message: var_previewIssueMessage,
             metadata_engine_id: var_metadataEngineId,
             metadata_engine_version: var_metadataEngineVersion,
+            camera: var_camera,
             capture_time: var_captureTime,
         };
     }
@@ -3737,6 +3740,18 @@ impl SseDecode for Box<crate::domain::AssetLocationView> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         return Box::new(<crate::domain::AssetLocationView>::sse_decode(deserializer));
+    }
+}
+
+impl SseDecode for crate::domain::media_metadata::CameraMetadata {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_make = <Option<String>>::sse_decode(deserializer);
+        let mut var_model = <Option<String>>::sse_decode(deserializer);
+        return crate::domain::media_metadata::CameraMetadata {
+            make: var_make,
+            model: var_model,
+        };
     }
 }
 
@@ -7366,6 +7381,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::AssetLocationView {
             self.preview_issue_message.into_into_dart().into_dart(),
             self.metadata_engine_id.into_into_dart().into_dart(),
             self.metadata_engine_version.into_into_dart().into_dart(),
+            self.camera.into_into_dart().into_dart(),
             self.capture_time.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -7379,6 +7395,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::AssetLocationView>
     for crate::domain::AssetLocationView
 {
     fn into_into_dart(self) -> crate::domain::AssetLocationView {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::media_metadata::CameraMetadata {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.make.into_into_dart().into_dart(),
+            self.model.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::media_metadata::CameraMetadata
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::media_metadata::CameraMetadata>
+    for crate::domain::media_metadata::CameraMetadata
+{
+    fn into_into_dart(self) -> crate::domain::media_metadata::CameraMetadata {
         self
     }
 }
@@ -10788,6 +10825,7 @@ impl SseEncode for crate::domain::AssetLocationView {
         <Option<String>>::sse_encode(self.preview_issue_message, serializer);
         <String>::sse_encode(self.metadata_engine_id, serializer);
         <String>::sse_encode(self.metadata_engine_version, serializer);
+        <crate::domain::media_metadata::CameraMetadata>::sse_encode(self.camera, serializer);
         <Option<crate::domain::CaptureTimeEvidence>>::sse_encode(self.capture_time, serializer);
     }
 }
@@ -10803,6 +10841,14 @@ impl SseEncode for Box<crate::domain::AssetLocationView> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::domain::AssetLocationView>::sse_encode(*self, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::media_metadata::CameraMetadata {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.make, serializer);
+        <Option<String>>::sse_encode(self.model, serializer);
     }
 }
 

@@ -136,7 +136,7 @@ pub(super) fn build_gallery_asset_query(
                     locations.capture_offset_minutes, locations.capture_time_source,
                     locations.capture_raw_value, locations.file_identity_scheme,
                     locations.file_identity_value, locations.source_revision_token,
-                    locations.source_generation
+                    locations.source_generation, locations.camera_make, locations.camera_model
              {source}
              {where_clause}
              ORDER BY {missing} {missing_direction},

@@ -51,7 +51,7 @@ impl SqliteCatalog {
                         location.capture_local_time, location.capture_offset_minutes,
                         location.capture_time_source, location.capture_raw_value,
                         location.file_identity_scheme, location.file_identity_value,
-                        location.source_revision_token, location.source_generation
+                        location.source_revision_token, location.source_generation, location.camera_make, location.camera_model
                  FROM scan_resume_pending_locations AS pending
                  JOIN asset_locations AS location
                    ON location.scan_id = pending.scan_id AND location.location_id = pending.location_id

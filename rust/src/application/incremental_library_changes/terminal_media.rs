@@ -84,6 +84,7 @@ pub(super) fn terminal_media_change(
         preview_issue_message: Some(issue.message.clone()),
         metadata_engine_id: inspector.inspection_engine_id().to_owned(),
         metadata_engine_version: inspector.inspection_engine_version().to_string(),
+        camera: Default::default(),
         capture_time: None,
     };
     let mutation = CatalogDeltaMutation {

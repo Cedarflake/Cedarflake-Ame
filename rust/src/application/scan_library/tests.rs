@@ -2270,7 +2270,7 @@ fn unchanged_file_is_reinspected_when_metadata_engine_identity_changes() {
 
     assert_eq!(scan_id, "metadata-engine-second");
     assert_eq!(engine_id, "kamadak-exif");
-    assert_eq!(engine_version, "0.6.1+ame-orientation-1");
+    assert_eq!(engine_version, "0.6.1+ame-camera-1");
     assert!(capture_local_time.is_none());
     assert_eq!(
         fs::read(&source_path).expect("source after reinspection"),
@@ -2348,7 +2348,7 @@ fn unchanged_file_reuses_capture_evidence_from_the_active_metadata_engine() {
             .expect("active metadata evidence");
 
     assert_eq!(engine_id, "kamadak-exif");
-    assert_eq!(engine_version, "0.6.1+ame-orientation-1");
+    assert_eq!(engine_version, "0.6.1+ame-camera-1");
     assert_eq!(
         capture_local_time.as_deref(),
         Some("1999-01-01T00:00:00.000000000")
@@ -2420,7 +2420,7 @@ fn rescan_repairs_legacy_orientation_dimensions_and_invalidates_old_preview() {
         .next()
         .expect("recovered asset");
     assert_eq!((recovered.width, recovered.height), (60, 80));
-    assert_eq!(recovered.metadata_engine_version, "0.6.1+ame-orientation-1");
+    assert_eq!(recovered.metadata_engine_version, "0.6.1+ame-camera-1");
     assert!(matches!(recovered.preview_status, PreviewStatus::Pending));
     assert!(recovered.preview_path.is_empty());
 

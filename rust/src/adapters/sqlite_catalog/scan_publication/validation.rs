@@ -39,6 +39,8 @@ const PAYLOAD_COLUMNS: &[&str] = &[
     "file_identity_value",
     "source_revision_token",
     "source_generation",
+    "camera_make",
+    "camera_model",
 ];
 
 const DERIVED_COLUMNS: &[&str] = &[
@@ -54,6 +56,8 @@ const DERIVED_COLUMNS: &[&str] = &[
     "capture_offset_minutes",
     "capture_time_source",
     "capture_raw_value",
+    "camera_make",
+    "camera_model",
 ];
 
 pub(crate) struct StagedValidationRoster {

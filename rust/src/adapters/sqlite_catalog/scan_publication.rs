@@ -16,6 +16,8 @@ use crate::domain::{
 
 use super::change_queue;
 use super::scan_change_capture::ScanChangeCapture;
+mod identity_projection;
+use identity_projection::{mirror_newer_active_identity, supersede_active_identity};
 mod live_change_admission;
 use live_change_admission::ensure_publishable as ensure_change_queue_is_publishable;
 #[cfg(test)]
@@ -33,12 +35,11 @@ mod tests;
 mod transaction;
 mod validation;
 use super::{
-    LiveGapRecoveryConsumer, ScanOwner, SqliteCatalog, StoredIdentityGroupState,
-    allocate_source_generation, catalog_delta, consume_foreground_recovery_claims, database_error,
-    delete_orphan_assets, detach_preview_references_for_root_locations,
-    establish_root_publication_namespace, load_active_identity_group_state, load_catalog_revision,
-    load_scan_identity_group_state, mark_unreferenced_preview_artifacts_stale, revisions_conflict,
-    sqlite_unsigned,
+    LiveGapRecoveryConsumer, ScanOwner, SqliteCatalog, StoredIdentityGroupState, catalog_delta,
+    consume_foreground_recovery_claims, database_error, delete_orphan_assets,
+    detach_preview_references_for_root_locations, establish_root_publication_namespace,
+    load_active_identity_group_state, load_catalog_revision, load_scan_identity_group_state,
+    mark_unreferenced_preview_artifacts_stale, revisions_conflict, sqlite_unsigned,
 };
 use crate::ports::{RootConsolidationPlan, ScanPublicationControl};
 pub(crate) use rejected_input_validation::RejectedInputValidationRoster;
@@ -67,33 +68,6 @@ struct PublicationAuthority {
     change_queue_high_watermark: Option<i64>,
     scan_owner: String,
     namespace_identity: Option<FileIdentityEvidence>,
-}
-
-struct StoredIdentityObservationPayload {
-    created_unix_ms: Option<i64>,
-    width: i64,
-    height: i64,
-    metadata_engine_id: String,
-    metadata_engine_version: String,
-    capture_local_time: Option<String>,
-    capture_offset_minutes: Option<i64>,
-    capture_time_source: Option<String>,
-    capture_raw_value: Option<String>,
-}
-
-struct StoredActiveIdentityProjectionPayload {
-    created_unix_ms: Option<i64>,
-    width: i64,
-    height: i64,
-    metadata_engine_id: String,
-    metadata_engine_version: String,
-    capture_local_time: Option<String>,
-    capture_offset_minutes: Option<i64>,
-    capture_time_source: Option<String>,
-    capture_raw_value: Option<String>,
-    preview_status: String,
-    preview_issue_code: Option<String>,
-    preview_issue_message: Option<String>,
 }
 
 #[cfg(test)]
@@ -731,218 +705,4 @@ fn adopt_compatible_identity(
         )
         .map_err(database_error)?;
     Ok(())
-}
-
-fn mirror_newer_active_identity(
-    transaction: &Transaction<'_>,
-    scan_id: &str,
-    identity: &FileIdentityEvidence,
-    active: &StoredIdentityGroupState,
-) -> Result<(), ScanError> {
-    let payload = load_active_identity_projection_payload(transaction, identity)?;
-    let preview_status = if payload.preview_status == "failed" {
-        "failed"
-    } else {
-        "pending"
-    };
-    let preview_issue_code = (preview_status == "failed")
-        .then_some(payload.preview_issue_code.as_deref())
-        .flatten();
-    let preview_issue_message = (preview_status == "failed")
-        .then_some(payload.preview_issue_message.as_deref())
-        .flatten();
-    transaction
-        .execute(
-            "UPDATE asset_locations
-             SET file_size = ?4, created_unix_ms = ?5, modified_unix_ms = ?6,
-                 file_local_time = strftime(
-                   '%Y-%m-%dT%H:%M:%f', COALESCE(?5, ?6) / 1000.0,
-                   'unixepoch', 'localtime'
-                 ),
-                 width = ?7, height = ?8,
-                 metadata_engine_id = ?9, metadata_engine_version = ?10,
-                 capture_local_time = ?11, capture_offset_minutes = ?12,
-                 capture_time_source = ?13, capture_raw_value = ?14,
-                 source_revision_token = ?15, source_generation = ?16,
-                 preview_path = '', preview_status = ?17,
-                 preview_issue_code = ?18, preview_issue_message = ?19
-             WHERE scan_id = ?3
-               AND file_identity_scheme = ?1 AND file_identity_value = ?2",
-            params![
-                identity.scheme,
-                identity.value,
-                scan_id,
-                active.file_size,
-                payload.created_unix_ms,
-                active.modified_unix_ms,
-                payload.width,
-                payload.height,
-                payload.metadata_engine_id,
-                payload.metadata_engine_version,
-                payload.capture_local_time,
-                payload.capture_offset_minutes,
-                payload.capture_time_source,
-                payload.capture_raw_value,
-                active.source_revision_token,
-                active.generation,
-                preview_status,
-                preview_issue_code,
-                preview_issue_message,
-            ],
-        )
-        .map_err(database_error)?;
-    Ok(())
-}
-
-fn supersede_active_identity(
-    transaction: &Transaction<'_>,
-    scan_id: &str,
-    identity: &FileIdentityEvidence,
-    staged: &StoredIdentityGroupState,
-) -> Result<(), ScanError> {
-    let payload = load_staged_identity_payload(transaction, scan_id, identity)?;
-    let generation = allocate_source_generation(transaction)?;
-    transaction
-        .execute(
-            "DELETE FROM preview_artifact_locations
-             WHERE location_id IN (
-               SELECT locations.location_id
-               FROM asset_locations AS locations
-               WHERE locations.file_identity_scheme = ?1
-                 AND locations.file_identity_value = ?2
-                 AND (
-                   locations.scan_id = ?3 OR EXISTS (
-                     SELECT 1 FROM library_roots AS roots
-                     WHERE roots.id = locations.root_id
-                       AND roots.active_scan_id = locations.scan_id
-                   )
-                 )
-             )",
-            params![identity.scheme, identity.value, scan_id],
-        )
-        .map_err(database_error)?;
-    transaction
-        .execute(
-            "DELETE FROM library_terminal_media_evidence
-             WHERE file_identity_scheme = ?1 AND file_identity_value = ?2",
-            params![identity.scheme, identity.value],
-        )
-        .map_err(database_error)?;
-    transaction
-        .execute(
-            "UPDATE asset_locations
-             SET file_size = ?4, created_unix_ms = ?5, modified_unix_ms = ?6,
-                 file_local_time = strftime(
-                   '%Y-%m-%dT%H:%M:%f', COALESCE(?5, ?6) / 1000.0,
-                   'unixepoch', 'localtime'
-                 ),
-                 width = ?7, height = ?8,
-                 metadata_engine_id = ?9, metadata_engine_version = ?10,
-                 capture_local_time = ?11, capture_offset_minutes = ?12,
-                 capture_time_source = ?13, capture_raw_value = ?14,
-                 source_revision_token = ?15, source_generation = ?16,
-                 preview_path = '', preview_status = 'pending',
-                 preview_issue_code = NULL, preview_issue_message = NULL
-             WHERE file_identity_scheme = ?1 AND file_identity_value = ?2
-               AND (
-                 scan_id = ?3 OR EXISTS (
-                   SELECT 1 FROM library_roots AS roots
-                   WHERE roots.id = asset_locations.root_id
-                     AND roots.active_scan_id = asset_locations.scan_id
-                 )
-               )",
-            params![
-                identity.scheme,
-                identity.value,
-                scan_id,
-                staged.file_size,
-                payload.created_unix_ms,
-                staged.modified_unix_ms,
-                payload.width,
-                payload.height,
-                payload.metadata_engine_id,
-                payload.metadata_engine_version,
-                payload.capture_local_time,
-                payload.capture_offset_minutes,
-                payload.capture_time_source,
-                payload.capture_raw_value,
-                staged.source_revision_token,
-                generation,
-            ],
-        )
-        .map_err(database_error)?;
-    Ok(())
-}
-
-fn load_active_identity_projection_payload(
-    transaction: &Transaction<'_>,
-    identity: &FileIdentityEvidence,
-) -> Result<StoredActiveIdentityProjectionPayload, ScanError> {
-    transaction
-        .query_row(
-            "SELECT locations.created_unix_ms, locations.width, locations.height,
-                    locations.metadata_engine_id, locations.metadata_engine_version,
-                    locations.capture_local_time, locations.capture_offset_minutes,
-                    locations.capture_time_source, locations.capture_raw_value,
-                    locations.preview_status, locations.preview_issue_code,
-                    locations.preview_issue_message
-             FROM asset_locations AS locations
-             JOIN library_roots AS roots
-               ON roots.id = locations.root_id
-              AND roots.active_scan_id = locations.scan_id
-             WHERE locations.file_identity_scheme = ?1
-               AND locations.file_identity_value = ?2
-             ORDER BY locations.root_id, locations.location_id
-             LIMIT 1",
-            params![identity.scheme, identity.value],
-            |row| {
-                Ok(StoredActiveIdentityProjectionPayload {
-                    created_unix_ms: row.get(0)?,
-                    width: row.get(1)?,
-                    height: row.get(2)?,
-                    metadata_engine_id: row.get(3)?,
-                    metadata_engine_version: row.get(4)?,
-                    capture_local_time: row.get(5)?,
-                    capture_offset_minutes: row.get(6)?,
-                    capture_time_source: row.get(7)?,
-                    capture_raw_value: row.get(8)?,
-                    preview_status: row.get(9)?,
-                    preview_issue_code: row.get(10)?,
-                    preview_issue_message: row.get(11)?,
-                })
-            },
-        )
-        .map_err(database_error)
-}
-
-fn load_staged_identity_payload(
-    transaction: &Transaction<'_>,
-    scan_id: &str,
-    identity: &FileIdentityEvidence,
-) -> Result<StoredIdentityObservationPayload, ScanError> {
-    transaction
-        .query_row(
-            "SELECT created_unix_ms, width, height, metadata_engine_id,
-                    metadata_engine_version, capture_local_time,
-                    capture_offset_minutes, capture_time_source, capture_raw_value
-             FROM asset_locations
-             WHERE scan_id = ?1 AND file_identity_scheme = ?2
-               AND file_identity_value = ?3
-             ORDER BY location_id LIMIT 1",
-            params![scan_id, identity.scheme, identity.value],
-            |row| {
-                Ok(StoredIdentityObservationPayload {
-                    created_unix_ms: row.get(0)?,
-                    width: row.get(1)?,
-                    height: row.get(2)?,
-                    metadata_engine_id: row.get(3)?,
-                    metadata_engine_version: row.get(4)?,
-                    capture_local_time: row.get(5)?,
-                    capture_offset_minutes: row.get(6)?,
-                    capture_time_source: row.get(7)?,
-                    capture_raw_value: row.get(8)?,
-                })
-            },
-        )
-        .map_err(database_error)
 }

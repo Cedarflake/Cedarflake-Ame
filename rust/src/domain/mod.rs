@@ -2,6 +2,8 @@ use std::fmt::{Display, Formatter};
 
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
+pub mod media_metadata;
+pub use media_metadata::CameraMetadata;
 pub mod organization;
 pub mod organization_archive;
 pub mod organization_batch;
@@ -293,6 +295,7 @@ pub struct AssetLocationView {
     pub preview_issue_message: Option<String>,
     pub metadata_engine_id: String,
     pub metadata_engine_version: String,
+    pub camera: CameraMetadata,
     pub capture_time: Option<CaptureTimeEvidence>,
 }
 
@@ -322,6 +325,7 @@ pub enum CaptureTimeSource {
 pub struct MetadataInspection {
     pub engine_id: String,
     pub engine_version: String,
+    pub camera: CameraMetadata,
     pub capture_time: Option<CaptureTimeEvidence>,
     pub issues: Vec<ScanIssue>,
 }

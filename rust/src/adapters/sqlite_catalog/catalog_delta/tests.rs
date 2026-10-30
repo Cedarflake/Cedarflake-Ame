@@ -258,6 +258,8 @@ fn changed_hardlink_fans_out_revision_generation_and_preview_invalidation() {
     first.height = 320;
     first.metadata_engine_id = "metadata-v2".to_owned();
     first.metadata_engine_version = "2".to_owned();
+    first.camera.make = Some("Changed".into());
+    first.camera.model = Some("Camera 2".into());
     first.preview_status = PreviewStatus::Pending;
     first.preview_issue_code = None;
     first.preview_issue_message = None;
@@ -303,6 +305,8 @@ fn changed_hardlink_fans_out_revision_generation_and_preview_invalidation() {
         assert_eq!((location.width, location.height), (512, 320));
         assert_eq!(location.metadata_engine_id, "metadata-v2");
         assert_eq!(location.metadata_engine_version, "2");
+        assert_eq!(location.camera.make.as_deref(), Some("Changed"));
+        assert_eq!(location.camera.model.as_deref(), Some("Camera 2"));
         assert!(matches!(location.preview_status, PreviewStatus::Pending));
         assert!(location.preview_path.is_empty());
         assert!(location.preview_issue_code.is_none());
@@ -360,6 +364,12 @@ fn changed_hardlink_fans_out_revision_generation_and_preview_invalidation() {
     catalog
         .publish_scan(&replacement_scan.scan_id, "root-a", 2, 0)
         .expect("publish hardlink replacement scan");
+    let restored = catalog
+        .load_incremental_location_by_relative_path("root-a", "b.jpg")
+        .unwrap()
+        .unwrap();
+    assert_eq!(restored.camera.make.as_deref(), Some("Changed"));
+    assert_eq!(restored.camera.model.as_deref(), Some("Camera 2"));
 }
 
 #[test]
@@ -1728,14 +1738,14 @@ fn incremental_identity_lookup_reads_a_normalized_scan_handoff_batch() {
                width, height, preview_status, preview_issue_code, preview_issue_message,
                metadata_engine_id, metadata_engine_version, capture_local_time,
                capture_offset_minutes, capture_time_source, capture_raw_value,
-               source_revision_token, source_generation
+               source_revision_token, source_generation, camera_make, camera_model
               ) VALUES (
                'scan-source', 'windows-file-id-128-v1', 'volume:file',
                'asset-a', 'location-source', 'root-source',
                'C:/source/photo.jpg', 'photo.jpg', 'C:/preview/photo.jpg',
                10, 1, 2, 8, 6, 'ready', NULL, NULL,
                'metadata', '1', NULL, NULL, NULL, NULL,
-               'windows-file-change-time-100ns-v1:0000000000000001', 1
+               'windows-file-change-time-100ns-v1:0000000000000001', 1, 'Fixture', 'Camera 2'
               );",
         )
         .expect("normalized scan handoff fixture");
@@ -1759,6 +1769,8 @@ fn incremental_identity_lookup_reads_a_normalized_scan_handoff_batch() {
     assert_eq!(location.relative_path, "photo.jpg");
     assert_eq!(location.preview_path, "C:/preview/photo.jpg");
     assert!(matches!(location.preview_status, PreviewStatus::Ready));
+    assert_eq!(location.camera.make.as_deref(), Some("Fixture"));
+    assert_eq!(location.camera.model.as_deref(), Some("Camera 2"));
 }
 
 fn seed_catalog(
@@ -1870,6 +1882,7 @@ fn location(
         preview_issue_message: None,
         metadata_engine_id: "metadata".to_owned(),
         metadata_engine_version: "1".to_owned(),
+        camera: Default::default(),
         capture_time: None,
     }
 }

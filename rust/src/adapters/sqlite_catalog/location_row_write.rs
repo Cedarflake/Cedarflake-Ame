@@ -18,6 +18,7 @@ pub(super) struct LocationRowWrite<'a> {
 
 impl LocationRowWrite<'_> {
     pub(super) fn persist(self, transaction: &Transaction<'_>) -> Result<(), ScanError> {
+        self.location.camera.validate()?;
         let Self {
             scan_id,
             root_id,
@@ -41,7 +42,7 @@ impl LocationRowWrite<'_> {
                    metadata_engine_id, metadata_engine_version, capture_local_time,
                    capture_offset_minutes, capture_time_source, capture_raw_value,
                    file_identity_scheme, file_identity_value, source_revision_token,
-                   source_generation
+                   source_generation, camera_make, camera_model
                  ) VALUES (
                     ?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10,
                     strftime(
@@ -49,7 +50,7 @@ impl LocationRowWrite<'_> {
                       'unixepoch', 'localtime'
                     ),
                     ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, ?19, ?20,
-                    ?21, ?22, ?23, ?24, ?25, ?26, ?27
+                    ?21, ?22, ?23, ?24, ?25, ?26, ?27, ?28, ?29
                   )
                  ON CONFLICT(scan_id, location_id) DO UPDATE SET
                    asset_id = excluded.asset_id,
@@ -77,7 +78,9 @@ impl LocationRowWrite<'_> {
                    file_identity_scheme = excluded.file_identity_scheme,
                    file_identity_value = excluded.file_identity_value,
                    source_revision_token = excluded.source_revision_token,
-                   source_generation = excluded.source_generation",
+                   source_generation = excluded.source_generation,
+                   camera_make = excluded.camera_make,
+                   camera_model = excluded.camera_model",
             )
             .map_err(database_error)?
             .execute(params![
@@ -127,6 +130,8 @@ impl LocationRowWrite<'_> {
                     .map(|identity| &identity.value),
                 source_revision_token,
                 source_generation,
+                location.camera.make,
+                location.camera.model,
             ])
             .map_err(database_error)?;
         Ok(())

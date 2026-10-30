@@ -1,8 +1,9 @@
 # R5 metadata and search evidence
 
 The [roadmap](../roadmap.md#r5-implementation-sequence) owns R5 delivery status. This record covers
-the first indexed-text-search change under [ADR 0032](../architecture/0032-indexed-catalog-text-search.md),
-not the complete R5-01 metadata and structured-query workflow.
+indexed text search under [ADR 0032](../architecture/0032-indexed-catalog-text-search.md) and camera
+metadata under [ADR 0006](../architecture/0006-exif-capture-time-adapter.md). Structured predicates
+and integrated R5-01 acceptance retain their separate remaining scope.
 
 ## Catalog text index - 2026-10-30
 
@@ -77,3 +78,64 @@ the new migration owner, with query policy in the small gallery search owner.
 
 The large pre-existing facades remain tracked architecture debt. This change adds no search policy,
 tokenization, index SQL or branch-specific behavior to those facades.
+
+## Camera metadata - 2026-10-30
+
+Scope: optional camera make/model, schema 61 to 62, compatible metadata reuse and invalidation,
+generated desktop mapping, and the existing information sheet. The admitted parser retains the
+128-byte field bound and independent failure handling. No new dependency or source-writing path is
+introduced; the engine revision is `0.6.1+ame-camera-1`.
+
+Focused local checks passed:
+
+- Three parser cases cover Unicode, padding, missing fields, malformed type/encoding, multiple
+  values, control characters, field bounds and independent preservation of valid capture time.
+- Four migration cases cover retained catalog/history, unknown old values, rollback/retry across
+  all three payload tables, bounded column admission and Unicode round-tripping.
+- Six persistence/application checks cover row writing, hard-link evidence propagation, scan
+  handoff reuse, same-identity metadata reuse and invalidation without opening source content.
+- Two Dart mapping tests and eleven viewer tests pass, including camera fields in the existing
+  information sheet and preservation through preview updates.
+- The canonical bridge check verifies 17 asynchronous contracts and matching generated hashes.
+
+The invalidation check initially reported `root_publication_namespace_guard_unsupported` from the
+restricted local process before metadata publication. The same unchanged check passed with normal
+workstation permissions using repository-contained temporary storage. No namespace guard or test
+assertion was relaxed.
+
+The Windows Debug client used a separate profile and two controlled images derived from the reusable
+test corpus. Import completed with two visible images. The JPEG's preview information sheet showed
+`Fixture Camera`, `Model 2`, `2026-10-30 12:34:56` and its image-time provenance. The PNG's card
+information sheet showed unknown camera and capture fields. Both sheets retained aligned, selectable
+information rows and fit the settled 1089-by-694 client surface. Searching the literal filename
+suffix `jpg` returned one image, whose viewer showed `1 / 1`; clearing search restored both images.
+The resulting catalog retained both values under schema 62. Both source SHA-256 values matched the
+pre-run hashes after the owned client exited.
+
+Hosted verification remains required for the committed camera change. The earlier search head's
+10,000-image workload reported a 79,667,200-byte catalog against the retained 64-MiB limit; that
+index-storage repair remains part of R5-01 and is not waived by these metadata checks.
+
+### Camera ownership and reviewability
+
+Physical line counts include blank lines; test-only counts include conditional test helpers and
+module declarations. Metadata assembly, row decoding and physical-identity projection now have
+dedicated owners. The existing transaction, generation and source-revalidation boundaries remain.
+
+| Affected owner | Production | Inline test-only | Dedicated tests |
+| --- | ---: | ---: | --- |
+| `sqlite_catalog.rs` | 2,889 | 442 | Existing test tree: 11,299 lines |
+| `migrations.rs` | 4,084 | 2,349 | Existing migration modules retained; camera migration below |
+| `scan_publication.rs` | 643 | 65 | Existing test and pagination files: 1,012 lines |
+| `incremental_library_changes.rs` | 1,340 | 2 | Existing dedicated test tree: 5,914 lines |
+| `exif_metadata.rs` | 250 | 136 | New camera parser: 91 lines |
+| `exif_metadata/camera.rs` | 51 | 2 | 91 lines |
+| `migrations/camera_metadata.rs` | 66 | 18 | 129 lines |
+| `location_row_read.rs` | 120 | 0 | Existing query and row-persistence tests |
+| `scan_publication/identity_projection.rs` | 261 | 0 | Existing publication/identity tests |
+| `incremental_library_changes/location_evidence.rs` | 142 | 0 | Existing reuse/invalidation tests |
+| `library_asset.dart` / `library_asset_mapping.dart` | 145 / 65 | 0 | Existing mapping and viewer tests |
+
+The Dart facades retain compatible exports: `library_models.dart` is 425 lines and
+`library_catalog.dart` is 551 lines. Their new camera behavior lives in the asset value/mapping
+owners, without extending unrelated scan or workspace policies.

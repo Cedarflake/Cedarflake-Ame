@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import 'domain/gallery_scroll_section.dart';
+import 'domain/media_metadata.dart';
 import 'domain/organization_queue.dart';
 import 'frb_generated.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -32,6 +33,7 @@ class AssetLocationView {
   final String? previewIssueMessage;
   final String metadataEngineId;
   final String metadataEngineVersion;
+  final CameraMetadata camera;
   final CaptureTimeEvidence? captureTime;
 
   const AssetLocationView({
@@ -56,6 +58,7 @@ class AssetLocationView {
     this.previewIssueMessage,
     required this.metadataEngineId,
     required this.metadataEngineVersion,
+    required this.camera,
     this.captureTime,
   });
 
@@ -82,6 +85,7 @@ class AssetLocationView {
       previewIssueMessage.hashCode ^
       metadataEngineId.hashCode ^
       metadataEngineVersion.hashCode ^
+      camera.hashCode ^
       captureTime.hashCode;
 
   @override
@@ -110,6 +114,7 @@ class AssetLocationView {
           previewIssueMessage == other.previewIssueMessage &&
           metadataEngineId == other.metadataEngineId &&
           metadataEngineVersion == other.metadataEngineVersion &&
+          camera == other.camera &&
           captureTime == other.captureTime;
 }
 

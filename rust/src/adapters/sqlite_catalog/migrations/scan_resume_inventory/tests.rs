@@ -57,6 +57,7 @@ fn v32_migration_preserves_unpublished_checkpoint_and_retained_assets() {
                 preview_issue_message: None,
                 metadata_engine_id: "fixture".to_owned(),
                 metadata_engine_version: "1".to_owned(),
+                camera: Default::default(),
                 capture_time: None,
             },
         )
