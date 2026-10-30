@@ -127,6 +127,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_review_bookmark",
                 "organization_review_cursor",
                 "organization_review_sort",
+                "organization_review_filters",
                 "organization_review_operations",
                 "organization_review_scopes",
                 "organization_review_session",

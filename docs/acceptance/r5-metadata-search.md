@@ -4,7 +4,7 @@ The [roadmap](../roadmap.md#r5-implementation-sequence) owns R5 delivery status.
 indexed text search under [ADR 0032](../architecture/0032-indexed-catalog-text-search.md) and camera
 metadata under [ADR 0006](../architecture/0006-exif-capture-time-adapter.md), plus shared structured
 filters under [ADR 0033](../architecture/0033-structured-gallery-filters.md). Integrated R5-01
-acceptance retains exact-head hosted storage and integration checks after the local reclamation repair.
+acceptance includes hosted storage evidence; the remaining integrated regressions are recorded below.
 
 ## Catalog text index - 2026-10-30
 
@@ -373,10 +373,47 @@ not the optimized hosted performance result.
 The final active/all location and asset counts were 10,000, cancelled rows were absent, both
 sampled source contents matched and all 10,000 source entries remained. The original 64-MiB final
 storage and scan/control timing assertions remain. The allocation before reclamation still exceeds
-64 MiB; no peak-allocation pass is claimed. Exact-head hosted verification remains outstanding.
+64 MiB; no peak-allocation pass is claimed.
 
 Physical ownership: `catalog_reclamation.rs` is 427 production lines plus two test-module lines;
 `catalog_reclamation/policy.rs` has 31 production and 44 inline-test lines. The dedicated parent
 suite is 347 lines, the new small-catalog suite 127, and the scan maintenance helper 62 test-only
 lines. The scan test facade adds one production-maintenance invocation. No UI, bridge, source-safety,
 publication or logical-cleanup behavior changed.
+
+### Hosted storage and integrated regression checks
+
+[Run 41021320953](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41021320953) for
+`10de05f1` passes the optimized 10,000-image workload, including its final-storage, timing, count,
+cancellation and source-preservation assertions. The catalog shrank from 69,427,200 to 59,977,728
+bytes in 319 ms, reclaiming 9,437,184 bytes and retaining 7,520,256 free bytes. Fixture, cold, warm,
+pause, resume and cancellation times were 799, 7,966, 11,269, 21, 6,905 and 94 ms respectively;
+the resumed catalog occupied 39,063,552 bytes. Final allocation is 57.20 MiB; pre-reclamation
+allocation remains a separate observation.
+
+The same run passes Static, Flutter Tests, Windows Scan, Windows Accessibility, Remaining Rust,
+unsigned Release and all five synthetic workloads. Three native partitions expose retained-test
+assumptions about the extended schema: Synchronization and Scan has 414 passing / three failing /
+12 ignored tests; Schema and Queue has 375 / one / zero; Catalog has 708 / nine / seven.
+The partition failures are not counted as a passing integrated gate.
+
+The scan payload comparison now excludes the scan-local search key alongside the scan ID and
+verifies actual indexed lookup after publication. The schema-33 preservation fixture asserts the
+new review-filter table is empty before comparing every retained row. Bulk cancellation and
+root-recovery fixtures insert NULL for newly allocated search keys instead of duplicating the
+source row's unique key. The publication-column guard retains every media/source/derived column;
+the internal search key is outside that payload's authority. Production publication, identity
+guards, cleanup limits, preemption deadlines and migration preservation rules are unchanged.
+
+All 21 focused checks pass after correction: eleven live-finalization cases, one schema-33
+migration/reopen case, the publication-column guard, six bounded-retirement cases and two
+80,002-location recovery/preemption cases. Recovery's Live writer waited 3 ms in both cases;
+complete rebases took 61,830 and 63,817 ms in the unoptimized diagnostic build. The second case
+also retains all 4,096 inventory rows after preemption. The ordinary-user run used the existing
+workspace scratch base. Earlier sandbox attempts stopped at namespace-handle admission before
+the recovery test body; the same guarded test passed outside the sandbox without changing policy.
+
+The changed dedicated test owners contain 665 (live finalization), 297 (schema-33), 194
+(root recovery) and 360 (bounded retirement) lines. The 444-line publication validator changes
+only its inline test; production payload/publication logic is unchanged. The final integrated
+partition rerun follows publication of the combined repair.

@@ -298,6 +298,7 @@ fn duplicate_staging(fixture: &mut PublicationFixture, extra_locations: usize) {
     let selections = columns
         .iter()
         .map(|column| match column.as_str() {
+            "gallery_search_id" => "NULL".to_owned(),
             "location_id" | "absolute_path" | "display_path" | "relative_path" => {
                 format!("source.{column} || printf('-%06d', copies.number)")
             }

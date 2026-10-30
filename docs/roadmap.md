@@ -268,8 +268,9 @@ R5-01 is in progress. Indexed literal path search under
 [focused migration/query and client evidence](acceptance/r5-metadata-search.md). Structured metadata
 conditions under [ADR 0033](architecture/0033-structured-gallery-filters.md) now share gallery queries,
 organization continuation and portable recovery, with focused and desktop apply/cancel/clear evidence.
-Post-scan incremental reclamation now meets the final-storage bound in the long-path local workload;
-exact-head hosted storage and integrated checks remain in this slice.
+Post-scan incremental reclamation meets the final-storage bound in local and hosted workloads.
+The combined scan-publication, migration and fixture corrections pass focused checks; exact-head
+integrated verification remains in this slice.
 R4 classification-independent
 decisions remain the baseline. Model quality and dependency admission are resolved before dependent
 inference work; unknown thresholds and resource limits are measured outputs, not invented acceptance.

@@ -26,6 +26,9 @@ Base/16-224 with FP16 image and INT8 text encoders; the
 [exploratory evidence](../acceptance/r5-model-evaluation.md) informs R5-02 admission rather than
 replacing product quality, license, packaging, or resource checks. Keep large models outside scope.
 Use a stage PR and exact-head checks before requesting merge; merging requires explicit authorization.
+The stage PR covers R5-01 through R5-07. Keep its title and stage scope stable while implementing the
+sequence; describe substantial scope changes without turning each fix into a PR rewrite. Group related
+implementation, repairs, and verification around complete user workflows.
 
 ## Foundation and responsibility map
 
