@@ -1,6 +1,6 @@
 # R4 - Virtual organization implementation plan
 
-Status: active execution plan; current slice and acceptance status are owned by the roadmap.
+Status: implementation reference; current delivery and acceptance status are owned by the roadmap.
 
 The [roadmap](../roadmap.md#r4-implementation-sequence) selects this sequence and owns stage status,
 priority, blockers and closure. This plan defines the work and exit conditions for each slice.
@@ -26,11 +26,12 @@ delivered R2c/R3 browsing and synchronization boundaries. Automatic classificati
 similarity and physical file operations remain in their later stages. No separate review workspace,
 mobile layout, new startup-wide hash pass or second source copy is part of this plan.
 
-## Current starting points
+## Original starting points
 
-The inspected source already provides exact-group evidence, bounded group/member queries,
-representative selection and durable R3 preferred-copy/ignore choices. These support R4 but do not
-provide album membership, organization progress or resumable organization sessions.
+At plan creation, the inspected source provided exact-group evidence, bounded group/member queries,
+representative selection and durable R3 preferred-copy/ignore choices. These were the reuse
+foundation; album membership, organization progress and resumable organization sessions were
+the planned additions.
 
 | Existing owner | Reuse and boundary |
 | --- | --- |
@@ -311,6 +312,12 @@ Work:
    safety evidence where inputs are unchanged.
 6. Update the roadmap's exit decision only after the complete product contract is demonstrated.
    Preserve the frozen R2c/R3 regressions without replaying unrelated milestone acceptance.
+
+The roadmap's accepted 2026-10-30 disposition separates the remaining cloud-primary first-use
+frame optimization from R4 merge preparation. Keep its measurements and source safeguards in the
+linked evidence; follow the [deferred scope](../roadmap.md#deferred-constrained-device-rendering)
+instead of repeating completed integration checks. This changes the delivery boundary, not the
+product's organization, recovery or original-media requirements.
 
 ## Implementation handoff
 

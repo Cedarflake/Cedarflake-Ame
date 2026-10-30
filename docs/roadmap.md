@@ -2,7 +2,7 @@
 
 Status: canonical active delivery plan
 
-Last planning update: 2026-10-29
+Last planning update: 2026-10-30
 
 This file owns product delivery order, the current focus, blocking obligations, and stage exit
 decisions. Only one stage may be active. Detailed product contracts, execution procedures, architecture,
@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Active; R4-07 integrated verification in progress |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Verified for merge on 2026-10-30; integration pending |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -48,96 +48,24 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**R2c is frozen and R3 is completed. R4 is active on `codex/r4-organization`.**
-R4-01's durable records, guarded whole-group commands, first favorite transaction and migration
-recovery are implemented and covered by hosted checks. R4-02 adds album transitions, version-checked
-undo, late-group conflicts and content-version reassociation. Explicit source removal and parent
-consolidation preserve or retire organization ownership transactionally. Focused diagnostics pass
-for these boundaries. R4-03's album/Favorite scopes now cover bounded pages, counts, layout and
-viewer anchors, with focused Rust and Flutter checks. The catalog-storage correction passes the
-unchanged local and hosted 10,000-image workloads. The remaining stale terminal-trigger version
-assertion is corrected with its focused regression. R4-04 now records publication-order admissions
-transactionally, including source transfer/removal and migration. Pending, deferred and ignored
-queries share bounded pages, group counts and logical anchors; focused Rust and Flutter regressions
-pass. Durable continuation now retains logical work across reopen, group changes and ordinary-mode
-edits, with atomic progress saves and stale-session rejection. Focused continuation, migration and
-source-lifecycle checks pass. The viewer-Favorite checkpoint passed hosted verification. The current
-queue-layout checkpoint passed hosted verification, including its cancelled-request fixture
-correction. The subsequent conflict and batch-status head failed two availability-inventory assertions;
-the exact domain-module inventory is now corrected with passing focused admission and rejection
-checks. The published inventory repair and subsequent native-check commit both passed hosted
-verification.
-R4-05 now connects viewer Favorite/unfavorite, undo/retry and the Favorite collection.
-Controlled desktop checks cover transient Favorite feedback without notification history,
-create-in-picker assignment, defer/ignore/restore, saved continuation, collection persistence and
-ordinary-scope restoration after mode exit. Album management, viewer assignment/movement/removal,
-sidebar scopes and durable album settings are connected and covered by focused regressions;
-native undo, album management, settings and stale-save retry now have controlled client evidence. The
-query-wide selection foundation is
-implemented with bounded staging, atomic group writes and cancellation; its focused adapter and
-session checks pass. Gallery selection now connects whole-query album/Favorite commands, shared
-picker creation, cancellation and transient undo; focused Rust and Flutter checks pass. The shared
-batch path has controlled desktop evidence for whole-query album assignment,
-picker cancellation, restart retention and batch Favorite/unfavorite without history entries.
-Preparation feedback ends when
-the picker takes ownership. Organization mode connects its menu entry, shared counts, queue controls,
-contextual actions and durable
-continuation through the existing gallery and viewer. Both queue layouts use continuous rows;
-focused regressions and controlled desktop checks pass. Persistent conflict labels, involved-album
-inspection and resolution are connected through the shared notification, deferred queue and picker.
-Controlled desktop checks cover discovery after notice expiry, cancellation, committed resolution
-and restart retention; focused checks cover retired albums, pagination, failed saves and undo.
-Committed album retirement now leaves affected active and saved browsing scopes before refreshing;
-controlled Windows integration verifies deletion and undo, with focused publication and lifecycle
-regressions. Native unavailable-item integration also preserves pending decisions while navigating
-and retrying a blocked original. These desktop workflows have passed their controlled client and
-hosted checks. R4-06 now implements portable archive export, restoration admission and catalog-evidence
-association preview. Catalog publication now reattaches rebuilt versions through compatible native
-evidence, with focused group, conflict, source-removal and migration checks. Atomic archive
-application now connects the application and typed bridge, preserving current decisions, operation
-history, queue order, continuation and unmatched evidence. Focused restore, cancellation, migration
-and queue-cost checks pass. Settings export, inspection and guarded restoration are connected,
-with focused controller/widget checks and native export, matched/unmatched restore and matched-profile
-restart evidence.
-Manual unresolved-record inspection, guarded cleanup and settings confirmation are connected;
-focused boundary checks pass, and native age selection and confirmation counts are verified.
-Repeated native restore, unmatched-profile restart and late association after importing the
-retained test corpus now have controlled client evidence. Native cleanup publication, post-cleanup
-reimport and restart leave cleared decisions absent while retaining album definitions and source media.
-The atomic-restore checkpoint failed hosted historical upgrade checks because shared reconciliation
-read archive tables before their migration. Schema-aware local versus imported authority now passes
-focused upgrade, rollback and current-catalog rejection checks. Hosted verification passes the
-repaired upgrade paths and expected-table inventory. The later archive checkpoint exposes two
-static flow-control violations and a source-management integration setup error; both pass subsequent
-hosted verification. The settings-page control inventory now includes cleanup's age selector;
-its focused and hosted checks pass. The ordinary-journal import failure has recurred;
-independent fallback now retires the superseded first-import execution owner, with focused
-handoff/restart/rollback checks passing. Subsequent hosted synchronization passes; retain the
-numeric native-read diagnostic for recurrence. The cleanup checkpoint also exposed a one-copy
-publication cost regression. Schema 55's maintained unresolved-association lookup restores bounded
-group updates, with migration, cleanup/restoration, query-growth and exact-head hosted checks passing.
-The R4-05 control follow-up adds a bottom album tray, state-aware Favorite/album commands and
-persistent chronological undo/redo across viewed groups. Focused regressions and the controlled
-desktop move/remove and restart paths pass. Schema-56 recovery-shape admission, Dart style and
-stale picker/archive test expectations are repaired with focused checks; hosted verification now
-passes through product commit `7e11d8a7`. Deferred/ignored controls expose state-aware removal in
-gallery selection, detailed viewing and the album tray, with native removal/undo evidence in the
-R4 acceptance record.
-Owning-query repairs reduce retained-library album, Favorite and organization-queue read costs.
-The complete Debug client verifies populated collections, single-group Favorite publication,
-new arrivals and an empty deferred queue on a full catalog copy. Optimized-client timing now covers
-collection reads, committed-save publication, empty queues and saved continuation. Preview-usage
-publication now yields to an active writer, with focused contention checks passing. The current Profile
-client displays an album in 4.05 seconds during the write, before saving finishes, and prepares/saves
-47,832 Favorite changes in 27.00 seconds. Remaining query/publication waits and constrained-device
-resource acceptance remain open. The subsequent same-package cloud run completes its 12,007-file,
-11,985-group workflow after production metadata reconciliation. It saves 11,984 Favorite changes in
-7.895 seconds while opening an album in 1.505 seconds, with at most 500 retained assets. Its
-build/raster P95 of 20.019/73.751 ms leaves constrained-device rendering diagnosis open. Per-interaction
-measurement supports a shared-surface clipping repair, with lower sidebar and mode-entry costs;
-queue/viewer transitions and retained-library read waits remain open. The related sidebar-reflow
-edge-position repair passes focused and native checks; preserve that boundary while continuing
-constrained-device transition and read-latency work.
+**R2c is frozen and R3 is completed. R4 is verified for merge on
+`codex/r4-organization`; integration into `main` is pending.**
+R4-01 through R4-07 deliver whole-group single-album decisions, independent Favorites, durable
+organization progress and continuation, late-group conflict handling, bounded gallery/viewer
+scopes, recovery and explicit unresolved-record cleanup. The accepted desktop controls, sidebar
+management and state-aware actions are connected. The
+[merge verification](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) links the
+functional, recovery, source-preservation, retained-scale and complete hosted evidence.
+
+The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
+records. The branch contains the current `main` baseline. R4 has no remaining merge prerequisite
+within the accepted scope. R5 remains planned; this closeout does not start its implementation.
+
+On 2026-10-30, the remaining cloud-primary first-viewer and mode-entry frame peaks are explicitly
+deferred to a [separate performance follow-up](#deferred-constrained-device-rendering).
+That limitation remains recorded and is no longer an R4 merge condition. Skia, the accepted visual
+language, full-resolution viewing and original-media safeguards remain unchanged.
+
 The [R3 execution record](plans/r3-exact-duplicates.md) and
 [closeout evidence](acceptance/r3-exact-duplicates.md#r3-closeout) retain the delivered
 [R3 product contract](product/organization-workflows.md#r3---exact-duplicate-understanding),
@@ -159,20 +87,15 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-The requested R4 sidebar-management follow-up connects saved drag ordering for albums and imported
-top-level source folders, icon-initiated multi-selection and batch album deletion/source removal.
-Library and Albums use matching destination and section-heading rows, with creation/import at the
-heading's trailing edge. Focused checks and controlled native batch interactions pass. Album and
-image-card context menus now reuse existing commands and current-state decisions, with focused and
-native checks for their connected entrypoints. Compact selection controls and primary-workspace
-selection reset retain their own verified boundary.
-Child-folder ordering is unchanged. These requested controls precede the
-remaining retained-library performance work and retain the existing source-safety and recovery rules.
+R4 implementation and merge preparation are complete on `codex/r4-organization`.
+The next integration action is merging that branch after an explicit request. Preserve the verified
+album, Favorite, organization, sidebar-management and recovery behavior. The separate deferred
+rendering follow-up below retains its bounded scope; it does not reopen completed R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
 through shared templates under the [gallery contract](product/gallery-ui.md#feedback-templates).
 Its [scoped verification](acceptance/notification-feedback.md) retains the affected checks and client
-evidence. This does not change R4's remaining performance order or stage boundary.
+evidence. Preserve these shared templates during the separate rendering follow-up.
 
 The requested sidebar maintenance hides expansion for leaf roots and reserves source status for
 import and directory synchronization, independently of duplicate analysis. Its [scoped evidence](acceptance/library-sidebar.md) records the focused
@@ -296,151 +219,12 @@ their evidence in the linked acceptance record.
 
 ## R4 implementation sequence
 
-R4-01's internal foundation passed its hosted checks. R4-02's transitions, source lifecycle and
-group reconciliation and R4-03's bounded collection queries are implemented. The storage correction
-passes the unchanged local and hosted 10,000-image workloads. R4-04's transactional admission ordering
-passes focused publication, source-lifecycle and migration checks. Its bounded queue queries and
-coherent progress counts and durable continuation pass focused regressions, including reopen,
-ordinary-mode edits, stale saves, rollback, group evolution and source lifecycle. R4-05 connects
-the viewer Favorite path, album management, viewer membership commands, collection entries and
-album settings connected. The query-wide selection command boundary passes focused adapter and
-session checks. Controlled desktop checks cover the core organization-mode loop, restart,
-Favorite history behavior, whole-query album assignment and restored ordinary context. Batch
-Favorite commands, durable default-album settings, management, undo and stale-save retry now have
-controlled client evidence. Gallery selection and the core
-organization-mode workflows and persistent conflict inspection/resolution are connected. Controlled
-desktop checks cover conflict discovery, cancellation, resolution, restart and unavailable-image
-navigation/retry without completing pending work. The corrected availability source inventory and
-native workflows have passed hosted verification. R4-06 implements the versioned archive codec,
-snapshot export, staged restoration validation and bounded association preview behind the typed
-bridge. Native-version reassociation is connected to the existing publication transaction, including
-cross-root aliases and contradictory-content rejection. Atomic restore and repeat/conflict handling
-are implemented through the application and typed bridge. Restored queue order and continuation,
-retained R3 choices and source-removal precedence have focused regression coverage.
-Native export, matched restore, restart of the matched
-profile and unmatched restore into an empty profile now have controlled client evidence. Cleanup
-age selection and confirmation counts are verified. Repeated restoration preserves the same
-decisions, and reimport associates all retained test records without duplicate albums or groups;
-both unmatched and associated records survive restart. Native cleanup publication, reimport and
-restart now verify that cleared decisions remain absent while album definitions and source media
-survive. Manual unresolved-record cleanup passes its focused boundary checks; R4-06 is verified.
-Hosted verification passes the schema-55 association-cost repair and earlier follow-ups. Retain the
-native journal-read diagnostic for recurrence and repair the retained-library query latency exposed
-by the catalog-only baseline before integrated performance acceptance.
-Indexed representative evidence, bounded connection caches, non-repeated group scope and
-published-source query plans are implemented. Shared chronological membership/count reads now take
-about 2.37 seconds for the retained album and 1.90–1.94 seconds for the one-item pending queue,
-including its shared progress counts. Empty deferred/ignored reads take 0.66–0.68 seconds including
-counts. Focused query regressions and the retained-catalog workload pass. Exact-head hosted run
-`40228493472` passes all 14 applicable jobs on `491d0692`, including the timeline change, schema-57
-recovery admission and retained-update loading regression.
-The full Debug client preserves 47,833 organized groups while startup
-synchronization admits 12 new pending groups. Its populated album/Favorite, single-group unfavorite
-and empty deferred-queue interactions pass with sampled resources. Optimized-client measurements
-locate additional waits in collection reads, saved continuation and committed-list publication.
-Preview last-use publication now yields immediately to an active organization writer, with bounded
-read/write-contention regressions. Empty album, Favorite, deferred and ignored reads now avoid
-location traversal when no matching decisions exist, with focused and retained-catalog checks passing.
-Chronological timelines reuse one scoped group relation for representatives and physical counts.
-The retained Profile client completes the measured workflow; concurrent album publication takes
-4.05 seconds while the writer remains active. Position-preserving reads now reuse proven fallback
-ordinals and reject ineligible anchor membership before expanding scoped groups. The retained
-catalog comparison reduces removed-anchor reads from 7.8 to 3.54–3.58 seconds; the affected client
-refresh falls from 9.72 to 5.72 seconds, with unchanged position and count assertions. The current
-standalone client completes the retained workflow with collection entries of 3.46–4.59 seconds,
-single-group saved-action feedback of 72 ms, committed-list publication of 5.63 seconds and final
-empty-Favorite publication of 6.39 seconds. Carry these measured waits into integrated resource
-acceptance; keep collection entry, anchored refresh and writer timing separate. Successful
-representative anchors now reuse their transaction-local group proof while retaining point scope
-checks. Focused and paired native verification pass, with lower retained-anchor and album-refresh
-costs; remaining publication and removed-anchor waits stay in the R4-07 queue.
-Folded collection queries also reuse their resolved canonical record for membership and grouping.
-Focused query/batch checks and the retained native flow pass; its album refresh changes from about
-7.2 to 6.7 seconds. Keep the remaining read cost and constrained-device rendering in R4-07.
-Preferred-copy queries now gate representative evidence through an indexed location/asset lookup.
-Schema-59 migration and bounded-history regressions pass. Alternating retained-catalog reads reduce
-album/Favorite grouping by 22–23%, with pending reads essentially unchanged. The paired native
-album refresh changes from 3.80 to 3.51 seconds while preserving position, counts and decoded
-previews. Continue with the remaining publication waits, then constrained-device rendering and
-integrated acceptance in the existing order.
-Shared queue counts now reuse resolved canonical membership instead of repeating record lookups.
-The retained-catalog counts remain 47,845 total/12 pending/47,833 organized while their reads fall
-from 727–760 ms to 535–555 ms. Scoped, unbound-copy, content-change and snapshot regressions pass.
-The current Skia client also completes the retained cloud-primary transition workload with its
-original catalog unchanged. Most measured menu/queue frames are inexpensive, but first-viewer
-and organization-entry raster spikes remain. Continue the retained-read/publication work, then
-resolve these constrained-device peaks before R4-07 closure; preserve the accepted interface,
-full-resolution viewing and source-read lifetime. Historical root fixtures now match the original
-schema; their upgrade, sidebar-order and exact-commit hosted checks pass. Notification undo now
-publishes album retirement, workspace switching serializes mode entry, and schema 60 preserves
-the mode-entry arrival boundary across archive restoration. Their focused regressions and complete
-exact-commit hosted verification pass. The current retained-scale native workflow passes with
-collection entry around 2 seconds, single-group feedback at 66 ms, committed-list publication at
-3.09 seconds and a 500-asset client window, including browsing during the full-library writer.
-The read-plan alternative regressed dense collection timelines and was discarded; retain the
-published-source-first implementation and its expanded historical-location regression. Continue
-with constrained-device frame peaks before final R4-07 closure. The
-[first-use rendering evidence](acceptance/r4-organization.md#constrained-device-first-use-rendering---2026-10-30)
-narrows this gap to viewer and mode-entry graphics upload/synchronization; the warm-up, motion and
-cache experiments provide no adopted repair. The reported album-title loading flash is repaired,
-with delayed-query widget, native frame and complete hosted checks passing. The
-[retained closeout](acceptance/r4-organization.md#retained-collection-closeout---2026-10-30)
-records the current native measurements and resource bounds.
-Bounded statement reuse reduces full-library album preparation/commit from 13.2/62.6 seconds to
-3.6/32.4 seconds and Favorite preparation/commit from 15.5/38.2 seconds to 5.1/13.6 seconds on the
-same retained catalog. Guard, rollback, undo and final-state checks pass. Keep visible publication
-and remaining read/write waits separate from these backend measurements. Header-height changes now
-preserve the viewport anchor in the current frame without repeatedly restarting photo reflow;
-focused and Windows Profile component checks pass. The current complete client records 5,254 frames
-with build/raster P95 of 0.818/1.475 ms and at most 500 retained assets. These aggregate frame results
-do not close the measured publication waits or constrained-device acceptance.
-Sort-driven date, name and current-entry arrival-range rails have focused regression and build
-coverage. Native interaction verifies date years/ticks, numeric name sections, near-top-to-top
-dragging and current-entry arrival ranges. Single-image ranges remain visible when new and earlier
-images share a row, and re-entry resets the arrival boundary. Schema-57 recovery
-admission passes focused repair, rejection, upgrade and hosted checks.
-Full-catalog cancellation verifies prompt return during preparation and halfway through a
-47,833-group write, with all durable records unchanged after reopen. Native preparation and
-in-flight save cancellation now also preserve all durable organization tables across restart.
-The native check exposed a post-commit form wait: successful actions now return their receipt
-without waiting for the independently owned gallery refresh. Focused and native checks cover the
-commit, cancellation and refresh-retry boundary. Exact-head hosted run `40515066782` passes all
-14 applicable jobs and the aggregate Windows Gate on `737e35c9`.
-The original recovery profile remains intact. Native inspection and cancellation use one settings
-entry with range selection inside the dialog. Authorized cleanup in an independent restore fixture
-now verifies bottom-notification publication and non-resurrection after reimport and restart.
-The user-confirmed cloud-primary connection is verified. A manifest-verified standalone package
-preserves its older checkout and installed SDK. The independent catalog completes 19,006-group
-album/Favorite preparation and writes, but the first preview fails its 90-second deadline with
-`preview_source_missing` before decoding. Metadata checks find available year-based source files
-and stale records under an absent subdirectory. Production synchronization reconciles a fresh copy
-to 12,007 files and 11,985 groups in 146.332 seconds; the unchanged package then completes the client
-workflow. Album/Favorite entry takes 1.86–2.98 seconds, and saved continuation displays its image in
-2.05 seconds. Per-interaction diagnosis now isolates unnecessary full-surface clipping and background
-work. Its shared-surface repair lowers measured sidebar and mode-entry raster costs, while queue and
-viewer transitions remain costly. The geometry owner now retains the gallery's start/end position
-through sidebar reflow, with focused and native verification. Continue diagnosis of remaining
-transition and collection-read costs before responsiveness acceptance. Original catalogs remain
-unchanged and the normal local controlled test window has been restored.
-The authorized SDK upgrade pins Flutter stable 3.47.8 across local and hosted builds. Matched Release
-visual checks pass on local-primary and cloud-primary, including the latter's Microsoft Basic Render
-adapter. The stable Impeller path displays correctly but increases cloud transition cost and memory
-use in the matched comparison. Ame therefore explicitly retains Skia through Flutter's public API.
-SDK lifecycle, image I/O scheduling, analysis, formatting and the final Release build pass;
-exact-commit hosted checks remain in this delivery. Completed cloud runtime packages are retired;
-one working catalog/profile and compact reports remain. The R4 acceptance record owns measurements
-and provenance; retained-library query latency remains the next performance item.
-The requested primary Albums destination is connected under R4-05: Library, Albums and
-Duplicates retain separate navigation roles with one shared gallery, and Favorites belongs to the
-Albums sidebar. Organization mode is scoped to all-source Library or the selected source/folder,
-with collection entry and cross-scope continuation excluded. Ordinary workspace switches reset
-selection and position; organizing Library retains its mode and browse context across primary-sidebar
-visits to Albums, Duplicates and Settings.
-Its focused checks and controlled desktop verification belong to the R4 evidence record.
-R4-07 retains the complete integrated flow and retained-library
-resource measurements. The
-[execution plan](plans/r4-organization.md) defines the dependencies, work and exit conditions below;
-this roadmap owns their order and status. The complete R4 stage remains unaccepted.
+R4-01 through R4-07 are verified for merge. The
+[execution plan](plans/r4-organization.md) retains their dependencies and exit conditions, and the
+[merge verification](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) connects each
+slice to its actual evidence. The three audit repairs, retained-library publication checks and
+album-heading continuity repair are included in the verified implementation. Historical failures,
+rejected performance candidates and measurements remain in the acceptance record.
 
 | Order | Slice | Required result |
 | --- | --- | --- |
@@ -452,14 +236,25 @@ this roadmap owns their order and status. The complete R4 stage remains unaccept
 | R4-06 | [Export, restoration and unresolved-record cleanup](plans/r4-organization.md#r4-06-export-restoration-and-unresolved-record-cleanup) | Versioned portable recovery, preserved rebuilds and explicit cleanup without resurrection on reimport |
 | R4-07 | [Integrated verification and stage closure](plans/r4-organization.md#r4-07-integrated-verification-and-stage-closure) | Verified complete desktop flow, retained-library resource bounds, recovery and source preservation |
 
-R4-01 is the first implementation slice. Establish group evolution and explicit source-removal
-safety before exposing album writes. Migration backup belongs to R4-01; the later recovery settings
-do not postpone protection of existing user data. Requirements and accepted control placement remain
-with their product owners rather than being re-decided during implementation.
-The [R4 evidence record](acceptance/r4-organization.md) covers internal boundaries and the connected
-desktop workflows. Recovery settings have native export and matched/unmatched restore evidence;
-cleanup, reimport and integrated cancellation also have native evidence. Retained-library resource
-verification remains outstanding.
+This sequence remains the implementation reference. Migration recovery, whole-group authority,
+explicit source-removal behavior and the separation of durable decisions from derived data remain
+binding. Native recovery, cleanup/reimport, cancellation, retained-scale reads and writes, desktop
+interaction and complete hosted verification cover the integrated result.
+
+## Deferred constrained-device rendering
+
+By explicit user decision on 2026-10-30, first-use rendering optimization on cloud-primary is a
+separate follow-up after R4 and does not block its merge. The
+[retained diagnosis](acceptance/r4-organization.md#constrained-device-first-use-rendering---2026-10-30)
+owns the measurements and known limits. The remaining scope is the first viewer frame and mode-entry
+graphics upload/synchronization on the two-core, 8-GiB software-rendered client.
+
+Resume from the saved per-interaction traces, identify a cause-level repair and compare the same
+Skia workflow before and after on cloud-primary and local-primary. Preserve accepted controls and
+motion, full-resolution viewing, source-read lifetimes, cancellation and bounded memory. The tested
+warm-up, reduced-motion and cache variants are not product changes and should not be repeated
+without new evidence. This follow-up does not schedule another complete R4 acceptance cycle or
+change the R5–R10 order.
 
 ## Frozen R2c ownership
 

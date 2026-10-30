@@ -2,7 +2,44 @@
 
 The [roadmap](../roadmap.md) owns delivery status and the
 [execution plan](../plans/r4-organization.md) owns slice exit conditions. Evidence below covers
-only the named boundary; it does not establish completion of the R4 desktop workflow.
+the named boundary. The final merge verification connects the applicable results without
+changing the scope of earlier observations.
+
+## R4 merge verification - 2026-10-30
+
+The verified implementation is `17c16c7dac21700a3f89081ee8c9bbd6e9f19a7b` on
+`codex/r4-organization`. The subsequent commits change documentation only. The branch contains
+`main` at `27cac9ef810abc60f54fc1971b46ed69692eb6b1`; the complete branch whitespace check passes.
+The three prior audit repairs are retained, and the later code changes are limited to the
+[album-heading repair](#album-heading-continuity---2026-10-30) and retained-location regression.
+
+[Actions run 40914823543](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/40914823543)
+passes all 14 applicable jobs and the aggregate Windows Gate for that implementation. It covers
+static analysis, Rust and Flutter suites, historical upgrades, native organization and accessibility,
+five synthetic workloads and unsigned Windows Release. Three signing/release-only jobs are skipped
+under the existing gate scope. Documentation closeout reuses that unchanged product result.
+
+| Slice | Connected verification |
+| --- | --- |
+| R4-01 | [Pre-upgrade recovery](#pre-upgrade-backup-foundation---2026-10-24), guarded group commands and historical migrations preserve durable data. |
+| R4-02 | [Group reconciliation](#group-reconciliation-and-content-version-association---2026-10-24), source removal, conflict handling and the [combined audit repairs](#combined-repair-verification) cover shared authority and undo publication. |
+| R4-03 | [Bounded collection queries](#bounded-collection-queries---2026-10-24) and the [retained collection workflow](#retained-collection-closeout---2026-10-30) cover album/Favorite counts, position and concurrent writes. |
+| R4-04 | [Durable continuation](#durable-organization-continuation---2026-10-24), [sort rails](#resumed-native-sort-rail-interaction---2026-10-26) and [restored arrival ranges](#arrival-ranges-across-archive-restoration---2026-10-29) cover restart and changing membership. |
+| R4-05 | Native [album actions and settings](#native-undo-album-retirement-and-settings---2026-10-24), [unavailable images](#unavailable-image-organization-continuity---2026-10-24), [sidebar management](#sidebar-selection-and-batch-management---2026-10-28) and context menus cover the accepted desktop workflow. |
+| R4-06 | [Archive restoration](#native-archive-export-and-restoration), [cleanup/reimport](#native-cleanup-and-reimport---2026-10-27) and [native cancellation](#native-cancellation-and-commit-feedback---2026-10-27) cover persistence, explicit removal and source preservation. |
+| R4-07 | Retained-scale client measurements, [stable SDK/renderer selection](#stable-sdk-and-renderer-selection---2026-10-28), current full CI and the scoped heading check cover integration. |
+
+The retained local client contains 63,077 files/47,833 groups and keeps at most 500 assets in the
+UI while allowing album browsing during a full-library write. The cloud client completes the
+12,007-file/11,985-group workflow with original catalogs unchanged. Controlled source manifests,
+recovery tests and the cited native flows retain the original-media and no-hydration boundaries.
+
+The user explicitly accepts moving the remaining cloud first-viewer and mode-entry raster peaks
+to a separate follow-up on 2026-10-30. The [rendering diagnosis](#constrained-device-first-use-rendering---2026-10-30)
+retains the approximately 0.7-second and 0.25–0.30-second peaks; no ineffective experiment is adopted.
+This exception concerns those two performance observations only. Functional, recovery, cancellation,
+source-safety and hosted requirements remain satisfied. The roadmap owns the merge-ready disposition;
+actual integration into `main` remains pending.
 
 ## Pre-upgrade backup foundation - 2026-10-24
 
@@ -4125,8 +4162,8 @@ not used as a matched performance comparison.
 Detailed tracing peaks at 320,184,320 working-set bytes and 332,025,856 private bytes. The ordinary
 comparison runs peak below those values. Compact timings, traces, source-preservation results and
 diagnostic scripts remain in ignored `r4-closeout-render` storage. The first-viewer and mode-entry
-peaks remain the specific R4-07 performance gap; the passing functional and hosted results above
-remain valid.
+peaks remain unresolved. The explicit 2026-10-30 delivery decision moves them to the roadmap's
+separate performance follow-up; the passing functional and hosted results above remain valid.
 
 After process retirement and report transfer/hash verification, the dedicated runtime, compiled
 probe payloads and incoming archives are removed through exact-path, containment and reparse checks.
