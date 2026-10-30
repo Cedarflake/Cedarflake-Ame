@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use super::ClassificationError;
 
-const MAX_CATEGORIES: usize = 256;
+pub(super) const MAX_CATEGORIES: usize = 256;
 const MAX_DESCRIPTIONS: usize = 8;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord, Hash)]

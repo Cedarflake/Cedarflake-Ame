@@ -94,8 +94,11 @@ and recovery behavior. R5 is active, following its
 [implementation sequence](#r5-implementation-sequence). Its requirements include the `智能相册`
 section, usable initial-screening suggestions, optional classification review, and the approved
 shared gallery/viewer interaction. R5-01 metadata and structured search are verified through
-`44d54b6a`; current work is R5-02 category/model/runtime admission. The selected SigLIP 2 candidate
-and incremental lifecycle retain their existing R5-02/R5-04 scopes.
+`44d54b6a`. R5-02 has established the category/encoder contracts, selected runtime and measured
+initial-screening operating candidate; current work advances to R5-03 durable classification and
+recovery. Its optional-review tradeoff and unsupported confidence bands remain explicit in the
+[calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference
+and actual human-work measurements retain their R5-04/R5-07 gates.
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
@@ -276,10 +279,12 @@ contracts in [ADR 0034](architecture/0034-versioned-classification-contracts.md)
 [runtime and boundary evidence](acceptance/r5-runtime-admission.md). The native worker now provides
 verified local artifacts, bounded inference, cancellation and versioned process communication;
 explicit model installation is admitted with upstream/conversion provenance under that ADR.
-Purpose-aware calibration remains the R5-02 focus. The
-[first separated calibration](acceptance/r5-calibration.md) retains a once-only held-out comparison:
-bounded re-screening preserves overall agreement but does not yet justify a default confidence/review
-profile. Version-bound one-pass refinement is implemented without enabling those candidate cutoffs.
+The [separated calibration](acceptance/r5-calibration.md) retains two once-only held-out comparisons.
+The category-aware operating candidate keeps usable first-pass suggestions, bounds refinement and
+exposes categories without enough review evidence. Its optional checks cover a limited additional
+error set; actual correction-time savings and high-confidence quality remain integrated acceptance
+questions. The earlier global cutoffs are not selected. R5-03 now uses the established taxonomy and
+compatibility contracts for durable whole-group decisions and recovery.
 Model setup and application scheduling retain
 their R5-04 scope; the native adapter does not enable background classification or establish a
 confidence threshold.

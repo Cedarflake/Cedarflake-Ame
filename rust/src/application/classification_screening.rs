@@ -44,7 +44,9 @@ impl ScreeningClassifier {
             primary_rules: primary.taxonomy().revision(),
             refinement_rules: refinement.taxonomy().revision(),
         };
-        if profile.identity() != identity {
+        if profile.identity() != identity
+            || !profile.matches_categories(primary.taxonomy().categories())
+        {
             return Err(ClassificationError::IncompatibleScreeningProfile);
         }
         Ok(Self {
@@ -66,7 +68,10 @@ impl ScreeningClassifier {
                 review: ReviewRecommendation::Uncalibrated,
             });
         };
-        let thresholds = refinement.profile.thresholds();
+        let thresholds = refinement
+            .profile
+            .thresholds_for(&initial.leading().category_id)
+            .ok_or(ClassificationError::IncompatibleScreeningProfile)?;
         let refined = match initial.margin() {
             Some(margin) if margin == 0.0 || margin < thresholds.rescreen_below() => {
                 Some(refinement.matcher.rank(image)?)
@@ -74,12 +79,17 @@ impl ScreeningClassifier {
             _ => None,
         };
         let suggestion = refined.as_ref().unwrap_or(&initial);
-        let review = match suggestion.margin() {
-            None => ReviewRecommendation::Uncalibrated,
-            Some(margin) if margin == 0.0 || margin < thresholds.review_below() => {
-                ReviewRecommendation::LowSeparation
-            }
-            Some(_) => ReviewRecommendation::RoutineSampling,
+        let review_threshold = refinement
+            .profile
+            .thresholds_for(&suggestion.leading().category_id)
+            .ok_or(ClassificationError::IncompatibleScreeningProfile)?
+            .review_below();
+        let review = match (suggestion.margin(), review_threshold) {
+            (None, _) => ReviewRecommendation::Uncalibrated,
+            (Some(0.0), _) => ReviewRecommendation::LowSeparation,
+            (Some(_), None) => ReviewRecommendation::Uncalibrated,
+            (Some(margin), Some(cutoff)) if margin < cutoff => ReviewRecommendation::LowSeparation,
+            (Some(_), Some(_)) => ReviewRecommendation::RoutineSampling,
         };
         Ok(ScreeningResult {
             initial,

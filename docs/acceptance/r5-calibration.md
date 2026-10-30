@@ -102,26 +102,94 @@ both workers exit and are joined. Worker digest:
 `2c63587eec11339617e7f050ca4c1584243e85831e2b2a9561487774aac2e2ea`.
 Protocol, model artifacts, tensor preprocessing and text-batch identity retain that record's checks.
 
+## Category-aware operating candidate
+
+A second policy fits only the original 236 calibration groups. Each initial leading category gets
+its own refinement cutoff, chosen by definite-label agreement and then fewer refinements. Review
+cutoffs use the same error-retrieval objective within each final leading category. Fewer than ten
+definite predictions leave that category's review band uncalibrated. This support floor is a fitting
+guard, not an accuracy guarantee. The descriptions, native runtime and cached text features are
+unchanged. The first 120-group holdout is excluded from this fit.
+
+| Category | Refine below | Optional check below |
+| --- | ---: | ---: |
+| Illustration | 0.0009956361027434468 | 0.010479376651346684 |
+| Comic | 0 | Uncalibrated |
+| Meme/reaction | 0.0009016544208861887 | 0.005887806881219149 |
+| Screenshot | 0 | 0.002599731320515275 |
+| Photograph | 0 | 0 |
+| Other defined content | 0 | Uncalibrated |
+
+Exact ties still receive one refinement and remain boundary cases. An uncalibrated category keeps
+its proposed result and enters optional checking; no human confirmation is inferred. On calibration,
+agreement is 163/188 with six refinements and 43 optional checks. A deterministic five-fold comparison
+that refits within each training partition gives 161/188, three refinements and 44 checks; the
+unchanged first pass gives 160/188. This is internal calibration evidence.
+
+The frozen policy hash is
+`93ac9469ca56a67e15c445c2714626c7265aec5db78751db98cad1dbaac1b64d`.
+A new 192-image sample is labeled before inference. Exact content, known post series and close
+visual hashes from both earlier partitions are excluded during preparation. Visual inspection
+additionally excludes ten known prior-family overlaps and eleven repeated within-sample members.
+The sealed comparison therefore has 171 groups: 158 definite and 13 ambiguous. Label hash:
+`a2e43ca7f8047d4bd2c98ae9eefb3dea3809c0ab3167b8177ee71a6300f43d11`.
+The same provisional-authority and unknown-relationship limits apply.
+
+| New held-out observation | First pass with the previous global check cutoff | Category-aware policy |
+| --- | ---: | ---: |
+| Definite-label agreement | 136/158 | 136/158 |
+| Groups re-screened | 0 | 0 |
+| Optional checks | 18/171 | 28/171 |
+| Optional checks per 1,000 groups | 105.26 | 163.74 |
+| Definite errors inside review | 9 | 10 |
+| Definite errors outside review | 13 | 12 |
+
+The additional ten checks cover one additional definite error. This cohort has no cases below the
+new refinement cutoffs, so it establishes no fresh refinement gain. Final category agreement is
+25/33 illustration predictions, 4/5 comic, 36/44 meme, 41/45 screenshot, 22/22 photograph and 8/9 other;
+the corresponding definite reference counts are 27, 4, 46, 43, 28 and 10. Comic coverage remains small.
+The unchecked subset contains 12 errors among 135 definite groups. It is a sampling band, not a
+validated high-confidence accuracy claim.
+
+Retain this category-aware profile as the initial-screening integration candidate for these exact
+descriptions and encoder revisions. It preserves useful suggestions, limits automatic refinement,
+and makes unsupported review bands explicit. It does not establish a reduction in actual correction
+time; the connected R5-07 workflow owns that comparison. Custom definitions keep suggestions usable
+without borrowing an unrelated category's calibration. No further threshold tuning is performed
+against either evaluated holdout.
+
+Preparation reads 203 local-primary files and 282,921,670 bytes after metadata-only traversal. Seven
+exact overlaps, three unrecognized images and one oversized decoded image are excluded. Source
+writes and placeholder hydration requests remain zero. A palette-transparency conversion warning
+is repaired through explicit RGBA-to-RGB conversion; a focused palette fixture confirms identical
+RGB bytes with no warning. Retained tensors keep the same image-pipeline semantics.
+One verified worker encodes all 192 prepared tensors and retires cleanly, without opening originals.
+The production Rust matcher and category-aware screening owner reproduce all 192 frozen category,
+review-band and refinement outcomes from the cached features. This parity check includes excluded
+samples only for numerical correspondence; they remain excluded from the quality denominator.
+
 ## Application boundary
 
 The application exposes version-bound profiles, cached-feature first-pass/refinement evidence and
 uncalibrated/low-separation/routine-sampling recommendations. There is no built-in numerical profile,
 background enablement, human confirmation, catalog write or R4 organization change in this boundary.
-The domain profile owner is 91 lines, the application screening owner is 131 lines, and its dedicated
-tests are 347 lines; neither production owner embeds test bodies. The existing matching owner is
+The domain profile owner is 184 lines and the application screening owner is 141 lines. Dedicated
+tests occupy 360 lines for common screening and 145 for category profiles; neither production owner
+embeds test bodies. The existing matching owner is
 135 lines after adding its narrow internal taxonomy/model accessors.
 
-All 32 focused domain/matching/screening tests pass, including 14 new screening regressions, with
+All 39 focused domain/matching/screening tests pass, including 21 screening regressions, with
 zero failed or ignored. Cases cover retained suggestions without calibration, one cached-feature
 refinement, separated first-pass retention, ties, threshold equality, single-category schemes,
 semantic/model changes, category retirement, obsolete features, display renames and profile identity.
 The local monolithic `--all-features --lib classification` build exhausted compiler memory before
-executing tests. A diagnostic harness uses hash-checked hard links to the same nine production/test
-source files and the same direct Blake3/thiserror versions, preserving their normal module paths.
-Its 32-test pass establishes these focused boundaries; complete repository integration remains owned
+executing tests. A diagnostic harness uses ten hash-checked production/test source files, nine through
+hard links and one exact copy, with the same direct Blake3/thiserror versions and normal module paths.
+Its 39-test pass and warning-free Clippy check establish these focused boundaries; complete repository integration remains owned
 by the exact-commit hosted gate. No production test or hosted requirement was removed.
 
 The preceding `f8078187` hosted run passed every applicable job except Static. Clippy rejected an
 unnecessary enclosing `Ok(...?)` in native session initialization; the expression now returns the
 existing fallible session construction directly. This changes no inference configuration or error
-mapping. Hosted verification of the combined screening change and lint correction follows its push.
+mapping. The `1d79729f` hosted Static job passes this correction; that commit's remaining hosted jobs
+and the subsequent category-aware change retain their own exact-commit gate.

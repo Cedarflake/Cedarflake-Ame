@@ -93,7 +93,7 @@ fn rescreens_a_boundary_once_with_the_same_cached_image() {
     let first = primary();
     let second = refinement();
     let policy = profile(&first, &second, 0.01, 0.02);
-    let classifier = ScreeningClassifier::with_profile(first, second, policy).unwrap();
+    let classifier = ScreeningClassifier::with_profile(first, second, policy.clone()).unwrap();
     let result = classifier.classify(&image([1.0, 0.0])).unwrap();
     assert_eq!(result.initial().leading().category_id.as_str(), "beta");
     assert_eq!(result.suggestion().leading().category_id.as_str(), "alpha");
@@ -239,7 +239,9 @@ fn rejects_a_profile_after_semantic_or_model_changes() {
         let changed = ScreeningProfile::new(
             changed_identity,
             original.calibration(),
-            original.thresholds(),
+            original
+                .thresholds_for(&CategoryId::new("alpha".to_owned()).unwrap())
+                .unwrap(),
         );
         assert!(matches!(
             ScreeningClassifier::with_profile(primary(), refinement(), changed),
@@ -262,7 +264,7 @@ fn rejects_added_or_retired_categories_and_unchanged_refinement() {
         primary(),
     ] {
         assert!(matches!(
-            ScreeningClassifier::with_profile(primary(), invalid, policy),
+            ScreeningClassifier::with_profile(primary(), invalid, policy.clone()),
             Err(ClassificationError::IncompatibleRefinement)
         ));
     }
@@ -316,8 +318,13 @@ fn display_only_renaming_keeps_the_profile_compatible() {
 #[test]
 fn versions_thresholds_and_reference_evidence_independently_of_features() {
     let original = profile(&primary(), &refinement(), 0.01, 0.02);
-    let changed_evidence =
-        ScreeningProfile::new(original.identity(), revision(8), original.thresholds());
+    let changed_evidence = ScreeningProfile::new(
+        original.identity(),
+        revision(8),
+        original
+            .thresholds_for(&CategoryId::new("alpha".to_owned()).unwrap())
+            .unwrap(),
+    );
     let changed_threshold = ScreeningProfile::new(
         original.identity(),
         original.calibration(),
@@ -332,6 +339,10 @@ fn versions_thresholds_and_reference_evidence_independently_of_features() {
 fn rejects_non_finite_or_impossible_separation_thresholds() {
     for invalid in [f32::NAN, f32::INFINITY, f32::NEG_INFINITY, -0.1, 2.1] {
         assert_eq!(
+            ScreeningThresholds::without_review_calibration(invalid),
+            Err(ClassificationError::InvalidScreeningThresholds)
+        );
+        assert_eq!(
             ScreeningThresholds::new(invalid, 0.1),
             Err(ClassificationError::InvalidScreeningThresholds)
         );
@@ -345,3 +356,5 @@ fn rejects_non_finite_or_impossible_separation_thresholds() {
         ScreeningThresholds::new(0.0, 0.0)
     );
 }
+
+mod category_profiles;

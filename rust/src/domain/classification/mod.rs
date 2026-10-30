@@ -3,7 +3,9 @@ mod screening;
 mod taxonomy;
 
 pub use features::{Embedding, FeatureIdentity, ImageFeature, ModelCompatibility, TextFeature};
-pub use screening::{ScreeningIdentity, ScreeningProfile, ScreeningThresholds};
+pub use screening::{
+    CategoryScreeningThresholds, ScreeningIdentity, ScreeningProfile, ScreeningThresholds,
+};
 pub use taxonomy::{CategoryDefinition, CategoryId, ClassificationRevision, Taxonomy};
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -32,6 +34,8 @@ pub enum ClassificationError {
     UnexpectedTextFeature,
     #[error("Screening thresholds must be finite cosine separations between zero and two")]
     InvalidScreeningThresholds,
+    #[error("Screening categories must have one to 256 unique identities")]
+    InvalidScreeningCategories,
     #[error("Screening profile does not match the active model and category rules")]
     IncompatibleScreeningProfile,
     #[error("Refinement must use the same model and active category identities")]

@@ -5,7 +5,7 @@ pub use crate::application::classification_screening::{
     ReviewRecommendation, ScreeningClassifier, ScreeningResult,
 };
 pub use crate::domain::classification::{
-    CategoryDefinition, CategoryId, ClassificationError, ClassificationRevision, Embedding,
-    FeatureIdentity, ImageFeature, ModelCompatibility, ScreeningIdentity, ScreeningProfile,
-    ScreeningThresholds, Taxonomy, TextFeature,
+    CategoryDefinition, CategoryId, CategoryScreeningThresholds, ClassificationError,
+    ClassificationRevision, Embedding, FeatureIdentity, ImageFeature, ModelCompatibility,
+    ScreeningIdentity, ScreeningProfile, ScreeningThresholds, Taxonomy, TextFeature,
 };

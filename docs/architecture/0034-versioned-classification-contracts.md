@@ -69,11 +69,16 @@ revision. It cannot add a category or request another image read. The result ret
 the selected suggestion and its screening-profile revision; it carries no human confirmation.
 
 `ScreeningProfile` binds the model, primary/refinement rule revisions, calibration-evidence revision
-and finite top-two separation thresholds. Its canonical revision includes all these fields. Names can
+and finite top-two separation thresholds. Thresholds can be uniform or explicitly cover every active
+category ID. A category without sufficient review evidence has an uncalibrated review band; it keeps
+its suggestion available. Missing, duplicate or extra category entries reject the profile. Its
+canonical revision includes the rule form, sorted category entries and absent review bands. Names can
 change without invalidation; semantic edits, category changes or encoder replacement reject an old
 profile before matching. A missing profile still produces a usable uncalibrated suggestion. One
 category has no runner-up separation and cannot establish a calibrated band from its score alone.
 
+The initial leading category selects the refinement cutoff; the final leading category selects the
+review cutoff. Refinement therefore cannot accidentally reuse the previous category's review band.
 The profile selects refinement below its first-pass cutoff, then optional review below its final
 cutoff. Exact ties always remain boundary cases; threshold equality otherwise uses the separated side.
 The remaining band is eligible for routine sampling, not automatically confirmed or guaranteed
