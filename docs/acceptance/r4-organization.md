@@ -38,8 +38,12 @@ The user explicitly accepts moving the remaining cloud first-viewer and mode-ent
 to a separate follow-up on 2026-10-30. The [rendering diagnosis](#constrained-device-first-use-rendering---2026-10-30)
 retains the approximately 0.7-second and 0.25–0.30-second peaks; no ineffective experiment is adopted.
 This exception concerns those two performance observations only. Functional, recovery, cancellation,
-source-safety and hosted requirements remain satisfied. The roadmap owns the merge-ready disposition;
-actual integration into `main` remains pending.
+source-safety and hosted requirements remain satisfied. The roadmap owns the delivery disposition.
+
+After explicit merge authorization on 2026-10-30, `main` advances from `27cac9ef` through the verified
+R4 branch tip `53bbb5bc4cc79516c005c9270ed427b108d1b02a`. The fast-forward retains all branch commits
+without conflicts or history rewriting. The integration record changes documentation only; the
+product implementation remains the one covered by the hosted result above.
 
 ## Pre-upgrade backup foundation - 2026-10-24
 

@@ -33,7 +33,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2b | Continuous gallery, bounded previews, selection, viewer, and storage lifecycle | Accepted on 2026-08-13; preserve regression boundaries |
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
-| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Verified for merge on 2026-10-30; integration pending |
+| R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
 | R5 | Metadata, primary classification, calibrated confidence, and human correction | Planned after R4 |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
@@ -48,8 +48,7 @@ this overview does not reduce them to navigation shells or compilation milestone
 
 ## Current stage and acceptance boundary
 
-**R2c is frozen and R3 is completed. R4 is verified for merge on
-`codex/r4-organization`; integration into `main` is pending.**
+**R2c is frozen and R3 is completed. R4 is completed and merged into `main` on 2026-10-30.**
 R4-01 through R4-07 deliver whole-group single-album decisions, independent Favorites, durable
 organization progress and continuation, late-group conflict handling, bounded gallery/viewer
 scopes, recovery and explicit unresolved-record cleanup. The accepted desktop controls, sidebar
@@ -58,8 +57,8 @@ management and state-aware actions are connected. The
 functional, recovery, source-preservation, retained-scale and complete hosted evidence.
 
 The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
-records. The branch contains the current `main` baseline. R4 has no remaining merge prerequisite
-within the accepted scope. R5 remains planned; this closeout does not start its implementation.
+records. The R4 branch through `53bbb5bc` is integrated without conflict or history rewriting.
+R5 remains planned; this closeout does not start its implementation.
 
 On 2026-10-30, the remaining cloud-primary first-viewer and mode-entry frame peaks are explicitly
 deferred to a [separate performance follow-up](#deferred-constrained-device-rendering).
@@ -87,10 +86,9 @@ R3's selected workflow are handled at their owning layer under the repository co
 
 ## Current execution queue
 
-R4 implementation and merge preparation are complete on `codex/r4-organization`.
-The next integration action is merging that branch after an explicit request. Preserve the verified
-album, Favorite, organization, sidebar-management and recovery behavior. The separate deferred
-rendering follow-up below retains its bounded scope; it does not reopen completed R4 verification.
+R4 is integrated into `main`. Preserve the verified album, Favorite, organization, sidebar-management
+and recovery behavior. R5 remains the next planned stage. The separate deferred rendering follow-up
+below retains its bounded scope; it does not reopen completed R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
 through shared templates under the [gallery contract](product/gallery-ui.md#feedback-templates).
@@ -146,7 +144,7 @@ Preserve its source-read boundaries, deterministic representatives, bounded wind
 navigation and accepted workbench behavior. The execution and acceptance records retain the completed
 R3-01 through R3-05 deliveries; they are no longer an active repair queue.
 
-The active stage is [R4 virtual organization and review](product/r4-organization.md).
+The completed [R4 virtual organization and review](product/r4-organization.md) remains the baseline.
 Its requirements cover whole-group single-album assignment, independent Favorites, continuous
 organization progress, conflict handling, and recovery/cleanup. The
 [gallery contract](product/gallery-ui.md#review-workflow) owns the accepted desktop interaction.
@@ -219,7 +217,7 @@ their evidence in the linked acceptance record.
 
 ## R4 implementation sequence
 
-R4-01 through R4-07 are verified for merge. The
+R4-01 through R4-07 are verified and integrated into `main`. The
 [execution plan](plans/r4-organization.md) retains their dependencies and exit conditions, and the
 [merge verification](acceptance/r4-organization.md#r4-merge-verification---2026-10-30) connects each
 slice to its actual evidence. The three audit repairs, retained-library publication checks and

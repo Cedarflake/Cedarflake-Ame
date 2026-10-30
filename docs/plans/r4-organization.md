@@ -6,8 +6,8 @@ The [roadmap](../roadmap.md#r4-implementation-sequence) selects this sequence an
 priority, blockers and closure. This plan defines the work and exit conditions for each slice.
 [R4 requirements](../product/r4-organization.md) own behavior;
 [the gallery contract](../product/gallery-ui.md#review-workflow) owns the accepted desktop controls.
-Implementation runs on `codex/r4-organization`. Completing an internal slice does not expose or
-complete the later desktop workflow.
+Implementation was delivered on `codex/r4-organization`. Completing an internal slice does not
+expose or complete the later desktop workflow.
 
 ## Outcome and scope
 
