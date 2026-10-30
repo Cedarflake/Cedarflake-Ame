@@ -4,7 +4,7 @@ The [roadmap](../roadmap.md#r5-implementation-sequence) owns R5 delivery status.
 indexed text search under [ADR 0032](../architecture/0032-indexed-catalog-text-search.md) and camera
 metadata under [ADR 0006](../architecture/0006-exif-capture-time-adapter.md), plus shared structured
 filters under [ADR 0033](../architecture/0033-structured-gallery-filters.md). Integrated R5-01
-acceptance retains the storage regression and exact-head hosted checks.
+acceptance retains exact-head hosted storage and integration checks after the local reclamation repair.
 
 ## Catalog text index - 2026-10-30
 
@@ -317,7 +317,7 @@ The catalog facade remains 2,889 production / 442 inline test-only lines; migrat
 controller adds one normalization call; the 433-line gallery model composes the typed filter value.
 No unrelated controller or filesystem behavior was added.
 
-### Remaining hosted storage failure
+### Hosted storage failure before reclamation repair
 
 Run 41015378674 for branch head `17270938` (PR merge revision `b5ff9a7b`) still fails the unchanged
 10,000-image 64-MiB catalog assertion. Its isolated optimized workload reports 69,484,544 catalog
@@ -325,4 +325,58 @@ bytes, 16,969,728 free bytes and 39,129,088 resumed-catalog bytes. Fixture creat
 cold scan 9,197 ms, warm scan 11,958 ms, pause 11 ms, resume 7,919 ms and cancellation 89 ms.
 The retained artifact is `synthetic-scan-41015378674-1`, ID 12960146812. Source checks after the size
 assertion were not reached. This repeats the long-base storage regression and remains an R5-01
-obligation; structured-filter verification does not resolve it or complete the hosted gate.
+obligation at that head; structured-filter verification does not resolve it or complete the hosted gate.
+
+## Post-scan storage reclamation - 2026-10-30
+
+The compact index's live term data is only part of allocated database size. The failed hosted
+catalog retained 16,969,728 free bytes after old scan versions were deleted. The application already
+schedules background reclamation after scan retirement, but its previous 64-MiB/25-percent start
+threshold left this slack untouched. The standalone scan fixture also disabled the application
+worker and drove only retired-row deletion. Its allocated-file measurement therefore omitted the
+desktop's post-scan maintenance lifecycle.
+
+Catalog-only comparisons used SQLite 3.47.1 and two 10,000-row generations with the actual location
+table/index definitions. They were diagnostic comparisons, not bundled-engine acceptance. An
+external-content index saved 270,336 bytes; delayed publication indexing saved 765,952 bytes;
+preassigning integer identities saved no space. None was adopted. Their 311,533,568 bytes of disposable
+databases were removed after process retirement; the small scripts/results remain ignored.
+
+The [storage policy](../architecture/0005-storage-governance-and-budget.md#catalog-database-page-reclamation)
+now admits bounded incremental reclamation at 16 MiB and 20 percent free space. Legacy full-rewrite
+admission remains at 64 MiB and 25 percent. The existing 256-page windows, foreground preemption,
+validated-session preservation, 8-MiB/five-percent stop conditions and final WAL checkpoint remain.
+The policy has its own owner; no migration, index replacement, source read or synchronous full VACUUM
+was added. The synthetic fixture invokes the real background worker after retired-row cleanup,
+requires completion within ten seconds, and reports pre/post allocation without concealing the peak.
+
+Twenty-seven focused native reclamation checks passed under the repository lock. They cover the
+new byte/ratio boundaries and hysteresis, actual small-catalog reclamation with retained indexed
+search and album history, unchanged source bytes, no smaller legacy rewrite, cancellation,
+foreground preemption, interleaved reads, session validation and worker-generation ownership.
+
+The changed 10,000-image workload then passed all assertions using a 112-character workspace
+temporary base, longer than the failed hosted base. This was an unoptimized diagnostic build,
+not the optimized hosted performance result.
+
+| Measurement | Result |
+| --- | ---: |
+| Allocated catalog before reclamation | 69,722,112 bytes (66.49 MiB) |
+| Final catalog after reclamation | 60,272,640 bytes (57.48 MiB) |
+| Reclaimed free pages | 9,437,184 bytes |
+| Remaining free pages | 7,774,208 bytes |
+| Reclamation | 442 ms |
+| Fixture / cold / warm | 8,246 / 27,166 / 19,855 ms |
+| Pause / resume / cancel | 24 / 24,891 / 88 ms |
+| Resumed catalog | 39,215,104 bytes |
+
+The final active/all location and asset counts were 10,000, cancelled rows were absent, both
+sampled source contents matched and all 10,000 source entries remained. The original 64-MiB final
+storage and scan/control timing assertions remain. The allocation before reclamation still exceeds
+64 MiB; no peak-allocation pass is claimed. Exact-head hosted verification remains outstanding.
+
+Physical ownership: `catalog_reclamation.rs` is 427 production lines plus two test-module lines;
+`catalog_reclamation/policy.rs` has 31 production and 44 inline-test lines. The dedicated parent
+suite is 347 lines, the new small-catalog suite 127, and the scan maintenance helper 62 test-only
+lines. The scan test facade adds one production-maintenance invocation. No UI, bridge, source-safety,
+publication or logical-cleanup behavior changed.

@@ -1387,6 +1387,9 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   runs compiler-free negative fixtures against that boundary, including cross-method false matches.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
+  The scan case completes the production post-scan reclamation worker before measuring settled
+  catalog storage, with a ten-second maintenance deadline. It records allocated bytes before and
+  after reclamation separately; the final 64-MiB assertion does not describe peak allocation.
 - `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, million-record
   parser, seven-format cold/warm preview, and 50,000-identity concurrent publication catalog with
   exact execution and bounded resource evidence. Hosted CI runs its cases on isolated workers;

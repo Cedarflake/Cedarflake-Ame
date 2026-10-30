@@ -75,7 +75,11 @@ in the 10,000-image cold/warm workload. Positionless terms alone still exceeded 
 mapping table duplicated long identities during overlapping scan versions. Inline integer identity
 removes that duplication. Positionless candidates avoid storing phrase evidence already checked
 by the literal residual; the query bound limits FTS expression size even for long
-input. The original storage limit remains the validation requirement. Broad and
+input. The original final-storage limit remains the validation requirement. The synthetic scan drives
+the same post-scan space-reclamation operation as the desktop, recording allocated bytes before
+and after it separately. [ADR 0005](0005-storage-governance-and-budget.md#catalog-database-page-reclamation)
+owns its mode-specific thresholds and bounded batches; search indexing does not run a VACUUM or
+claim that pre-reclamation peak allocation is below the final-storage bound. Broad and
 short searches can still inspect many catalog rows. SQLite performs candidate handling, ordering
 and bounded result windows; Flutter never collects all hits to filter or sort.
 

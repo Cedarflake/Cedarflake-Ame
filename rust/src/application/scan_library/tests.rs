@@ -3425,6 +3425,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
         .elapsed();
 
     staging_cleanup::finish_retired_staging(&storage_paths.catalog_path, CANCEL_AFTER);
+    staging_cleanup::finish_space_reclamation(&storage_paths.catalog_path);
 
     let connection = Connection::open(&storage_paths.catalog_path).expect("benchmark catalog");
     let (active_locations, all_locations, assets, cancelled_locations): (i64, i64, i64, i64) =
