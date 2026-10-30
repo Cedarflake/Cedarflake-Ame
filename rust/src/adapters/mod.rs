@@ -1,3 +1,5 @@
+#[cfg(feature = "classification-worker")]
+pub(crate) mod classification_runtime;
 mod durable_local_metadata_inventory;
 mod exact_content_reader;
 mod exif_metadata;

@@ -273,9 +273,12 @@ Post-scan incremental reclamation meets the final-storage bound in local and hos
 The combined scan-publication, migration and fixture corrections pass focused checks and the complete
 exact-commit hosted gate. R5-02 admission work establishes configurable category and feature-compatibility
 contracts in [ADR 0034](architecture/0034-versioned-classification-contracts.md), backed by
-[runtime and boundary evidence](acceptance/r5-runtime-admission.md). Purpose-aware calibration,
-converted-artifact redistribution admission and the connected supervised runtime remain open;
-the retained probes do not enable background classification or establish a confidence threshold.
+[runtime and boundary evidence](acceptance/r5-runtime-admission.md). The native worker now provides
+verified local artifacts, bounded inference, cancellation and versioned process communication;
+explicit model installation is admitted with upstream/conversion provenance under that ADR.
+Purpose-aware calibration remains the R5-02 focus. Model setup and application scheduling retain
+their R5-04 scope; the native adapter does not enable background classification or establish a
+confidence threshold.
 R4 classification-independent decisions remain the baseline. Model quality and dependency admission
 are resolved before dependent inference work; unknown thresholds and resource limits are measured
 outputs, not invented acceptance.

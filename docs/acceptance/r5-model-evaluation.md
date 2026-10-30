@@ -54,8 +54,10 @@ both encoders, retaining open-vocabulary text matching.
 The selected [ONNX export](https://huggingface.co/onnx-community/siglip2-base-patch16-224-ONNX/tree/ba1f3b0843f24bc5417d38e19c37b287d719b2f4)
 is pinned to `ba1f3b0843f24bc5417d38e19c37b287d719b2f4`, with `vision_model_fp16.onnx` and
 `text_model_quantized.onnx`. The [Google model card](https://huggingface.co/google/siglip2-base-patch16-224)
-describes zero-shot classification and identifies Apache-2.0 licensing; R5-02 still owns full
-code/weight/runtime redistribution admission and packaged-artifact verification.
+describes zero-shot classification and identifies Apache-2.0 licensing. Code/weight/runtime admission
+and explicit local installation are owned by
+[ADR 0034](../architecture/0034-versioned-classification-contracts.md); the later
+[runtime evidence](r5-runtime-admission.md) covers pinned-artifact verification.
 
 ## Local CPU observation
 

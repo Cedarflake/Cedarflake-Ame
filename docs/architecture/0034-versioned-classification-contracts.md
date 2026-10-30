@@ -74,7 +74,7 @@ input and normalization by mean/standard deviation 0.5. Text uses the pinned tok
 64-token padding/truncation policy. Both return 768 values. These are adapter details, included in
 pipeline revisions rather than hard-coded in the general taxonomy/matching domain.
 
-The native probe used ONNX Runtime 1.31.1, `ort` 2.0.0-rc.15 and `tokenizers` 0.23.2. Runtime code is
+The admitted CPU adapter uses ONNX Runtime 1.31.1, `ort` 2.0.0-rc.15 and `tokenizers` 0.23.2. Runtime code is
 MIT; bindings are MIT/Apache-2.0; tokenizer code is Apache-2.0. Retain runtime license, third-party
 notices and privacy documentation. Disable default binding features and runtime download, tokenizer
 network support and tokenizer parallelism. Set `ORT_DISABLE_TELEMETRY=1` in the child environment
@@ -82,15 +82,60 @@ before loading the runtime, then disable it through the API as well.
 
 The [upstream Google model](https://huggingface.co/google/siglip2-base-patch16-224/tree/75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2)
 declares Apache-2.0. The [pinned conversion](https://huggingface.co/onnx-community/siglip2-base-patch16-224-ONNX/tree/ba1f3b0843f24bc5417d38e19c37b287d719b2f4)
-identifies that base model but has no separate license declaration. Preserve both provenance records;
-redistribution admission for the converted artifacts remains distinct from the demonstrated local
-probe. These contracts add no runtime dependency or model binary to the application distribution.
+identifies its weights as an ONNX conversion of that base model, with no separate license declaration.
+The selected graphs retain that provenance and have no external tensor files. Admit explicit local
+installation of these hash-pinned conversions under the upstream
+[Apache-2.0 grant](https://www.apache.org/licenses/LICENSE-2.0), which includes mechanically converted
+object forms. Preserve Google's attribution, the license, conversion source
+and quantization notice. This admission applies to these artifacts, not every file in the conversion
+repository. Model weights are separate, explicitly installed data; they are not bundled or mirrored
+by the application. A later redistribution must retain the applicable license and notices.
 
-The application owns process supervision, source admission, immutable runs, cancellation fences and
-publication. The worker never opens the catalog or changes a human decision. Native runtime errors
-become structured per-work outcomes. Complete retirement precedes replacement; a timeout cannot
-authorize another worker while the first still owns memory or input. The measured sub-30-ms forced
-termination is a probe observation, not an integrated cancellation guarantee.
+### Worker ownership and protocol
+
+The `classification-worker` Cargo feature builds a separate native executable and its adapter.
+Default desktop builds do not load an inference runtime. The worker accepts one encoder for its
+entire lifetime; replacing image with text inference requires retiring that process first. Ame's
+supervisor starts it below normal priority, attaches a Windows Job before sending initialization,
+and bounds the job to one process and 2 GiB of committed process memory. Closing the job kills its
+worker. Source admission, publication and the application's single-worker scheduling remain outside
+this adapter.
+
+Anonymous standard-input/output pipes carry versioned, length-prefixed JSON control records and
+fixed-size little-endian F32 tensors. Control records are bounded to 32 KiB, image input to one
+3 × 224 × 224 tensor and output to one 768-value embedding. The worker receives prepared pixels or
+one bounded description, never an original-media path or catalog access. Session and request IDs
+must match before a response is admitted. Readiness also binds the complete encoder/pipeline
+revision, so an older worker executable cannot label features with its caller's newer identity.
+Protocol errors retire the connection; a native inference
+failure is a structured terminal outcome. A new process can retry without replaying a published
+decision. Reader/writer work stays off the caller's wait loop so cancellation can terminate a worker
+even while its pipe is blocked.
+
+Before loading native code, the worker verifies the pinned runtime DLL, provider helper, selected
+graph and text tokenizer with incremental SHA-256 (`sha2` 0.10.9, MIT/Apache-2.0). Windows namespace
+guards hold each directory against rename and reject reparse/cloud-placeholder entries; file guards
+deny writes/deletion from verification through use. No artifact lookup falls back to another version,
+network download or source directory. Hashing uses a bounded buffer. Runtime notices remain alongside
+the separately installed runtime.
+
+DLL dependency lookup is restricted to Windows system libraries and the pinned runtime directory;
+the current directory and arbitrary search-path entries are excluded inside the worker.
+
+The narrow Windows Job, DLL search and artifact guards require `unsafe` calls to Win32. Owned handles close
+exactly once; borrowed process handles remain valid during job assignment; fixed initialized structs
+and their actual byte lengths are passed to the kernel. UTF-16 path buffers live through each call,
+and each DLL-directory cookie is removed once. No borrowed pointer escapes a call. Boundary tests
+exercise invalid artifacts, held namespaces, malformed frames, process exit and cancellation; a real
+model process check verifies the same pinned tensors and tokenizer used for admission. These native
+operations do not add privilege or execute in the catalog/domain layers.
+
+The application owns single-worker admission, source admission, immutable runs, cancellation fences
+and publication. The worker never opens the catalog or changes a human decision. Native runtime
+errors become structured per-work outcomes. The supervisor joins process and pipe-thread retirement
+before reporting cancellation. Complete retirement precedes replacement; a timeout cannot authorize
+another worker while the first still owns memory or input. Failed retirement retains its owner for
+recovery. Foreground scheduling and result publication remain application responsibilities.
 
 ## Alternatives and consequences
 

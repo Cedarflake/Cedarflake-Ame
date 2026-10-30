@@ -49,6 +49,7 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert_eq!(location[0].attributes, ["cfg(windows)"]);
     assert!(!location[0].is_inline);
     for module_name in [
+        "classification",
         "exact_duplicate_review",
         "organization_archive",
         "organization_batch",
@@ -264,6 +265,16 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
             ],
             "local",
             "media_signature",
+        ),
+        (
+            crate_source.as_str(),
+            "#[cfg(feature = \"classification-worker\")]\npub mod classification_worker;",
+            vec![
+                "pub mod classification_worker;".to_owned(),
+                "#[cfg(feature = \"classification-worker\")]\n#[path = \"alternate.rs\"]\npub mod classification_worker;".to_owned(),
+            ],
+            "crate-parent",
+            "classification_worker",
         ),
         (
             crate_source.as_str(),

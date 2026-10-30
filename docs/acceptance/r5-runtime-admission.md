@@ -1,10 +1,11 @@
 # R5 inference runtime evidence
 
-Date: 2026-10-30. This record covers isolated runtime probes for the selected initial-screening
+Date: 2026-10-30. This record covers the isolated native adapter and runtime probes for the selected initial-screening
 candidate. The [roadmap](../roadmap.md#r5-implementation-sequence) owns delivery status; the
 [exploratory comparison](r5-model-evaluation.md) retains the separate model-quality observations.
-No model or runtime dependency has entered the production application through these probes. The
-Ame-owned category/matching contracts below are separate from the native inference adapter.
+The native adapter is gated by `classification-worker`; ordinary desktop builds do not load it.
+Model setup, application scheduling, durable decisions and desktop classification remain in their
+owning R5 slices. The Ame-owned category/matching contracts remain separate from the native adapter.
 
 ## Category and feature contracts
 
@@ -24,7 +25,54 @@ behavior, not model accuracy or complete classification delivery.
 Physical owners contain 179 taxonomy lines, 108 feature lines, 31 error/export lines plus three
 test-module/spacing lines, 124 matching lines plus three test-module/spacing lines and a seven-line
 public facade. Dedicated domain/application tests contain 181 and 202 lines; no inline test body,
-schema, bridge generation, dependency or presentation change is included.
+schema, bridge generation or presentation change is included in that contract delivery.
+
+## Supervised native worker
+
+The [worker interface](../../rust/src/classification_worker.rs) now starts the admitted native
+encoder behind a Windows Job and bounded pipe protocol. It verifies the selected graph, runtime,
+provider helper and tokenizer before loading, holds their paths/files through use, and rejects
+incompatible encoder revisions during readiness. It exposes prepared-image and description features;
+it neither reads source media nor opens a catalog. The worker has one encoder/thread and a 2-GiB
+process-commit limit, with telemetry disabled before native loading.
+
+Focused checks cover twelve runtime cases and four executable-boundary cases: artifact replacement,
+namespace redirection, placeholder/path rejection, bounded and truncated frames, mismatched session,
+request, phase and runtime identity, blocked-pipe cancellation, joined timeout retirement, missing
+artifacts, pre-start cancellation and parent disconnect. Nine existing root-availability contract
+regressions are also checked after adding the exact new module declarations. Their alternate-loader
+and broader-visibility rejection remains intact.
+
+Run the source-safe [native probe](../../rust/examples/classification_worker_probe.rs) under the
+repository tool lock after building the worker and example with `--all-features`. Its four arguments
+are the worker executable, locally installed model directory, runtime DLL directory and retained
+prepared-fixture directory. The probe accepts exactly 32 prepared images and 24 descriptions and
+their retained reference features. It never enumerates a media root.
+
+The local-primary Debug worker and probe pass this comparison. Minimum feature cosine against the
+admitted native reference is 0.9999999999999973 for images and 0.999999999999998 for text. Invalid
+input is rejected without losing the healthy session. Graceful image shutdown takes 60.19 ms.
+The running-image cancellation case completes in 35.76 ms including its scheduled 20-ms delay;
+the process and pipe thread are retired before the result returns. No original-media file is opened.
+Cold initialization including artifact hashing takes 4,990.84 ms for images and 12,516.06 ms for text
+in this unoptimized Debug build; these are functional-check observations, not Release throughput.
+The worker SHA-256 is `2c63587eec11339617e7f050ca4c1584243e85831e2b2a9561487774aac2e2ea`;
+the probe is `d055ff83aa5e47c17408f5933fa7eccaa2766c06d3341e65e304dde80ec4c4c7`.
+
+The adapter has 1,205 physical module lines, including module-only test declarations: protocol 255,
+session 184, transport 149, encoder 148, artifact guards 123, worker dispatch 111, manifest 80,
+exports/errors 70, Job ownership 50 and DLL search 35. Dedicated unit tests contain 276 lines;
+the process test has 64 and the native probe 141. The existing local-file owner has 2,629 lines
+before its inline-test section (including existing test instrumentation), 3,428 inline-test lines
+and 473 lines in the affected dedicated topology test. Its production behavior is unchanged;
+the changes there are exact test-fixture declarations and rejecting cases.
+
+The prior contract commit `655f59bd` failed two hosted root-availability topology checks because
+its new classification module declarations were absent from the exact source inventory. All other
+applicable jobs passed. The inventory repair above is covered by the focused accepting and rejecting
+cases. One local Debug compilation exhausted available memory; the same checks subsequently compiled
+serially in the ordinary process environment. Hosted acceptance of the combined worker delivery
+must use its own pushed commit.
 
 ## Artifacts and execution boundary
 

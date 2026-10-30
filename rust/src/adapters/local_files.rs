@@ -4528,6 +4528,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const CRATE_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "classification",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_worker",
+            visibility: "pub",
+            attributes: &["cfg(feature=\"classification-worker\")"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "adapters",
             visibility: "",
             attributes: &[],
@@ -4590,6 +4602,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "classification_runtime",
+            visibility: "pub(crate)",
+            attributes: &["cfg(feature=\"classification-worker\")"],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "exact_content_reader",
             visibility: "",
@@ -4677,6 +4695,12 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "classification",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "organization_archive",
             visibility: "pub",
