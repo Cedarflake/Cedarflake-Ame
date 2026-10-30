@@ -19,6 +19,7 @@ mod request;
 pub(super) mod review;
 mod undo;
 pub(super) mod validation;
+mod work;
 mod writes;
 
 impl ClassificationRepository for SqliteCatalog {

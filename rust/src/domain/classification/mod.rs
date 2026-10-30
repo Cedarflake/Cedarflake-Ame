@@ -4,6 +4,7 @@ mod features;
 mod ranking;
 mod screening;
 mod taxonomy;
+pub mod work;
 
 pub use decisions::{
     ClassificationAction, ClassificationChange, ClassificationFieldAuthority,

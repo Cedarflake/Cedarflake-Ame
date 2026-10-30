@@ -110,6 +110,8 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "classification_rule_members",
                 "classification_rules",
                 "classification_runs",
+                "classification_stopped_runs",
+                "classification_work_items",
                 "content_fingerprints",
                 "exact_analysis_outcomes",
                 "exact_analysis_runs",
@@ -165,6 +167,20 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                     Value::Null,
                     Value::Null,
                     Value::Null,
+                ]]),
+            );
+            assert_eq!(
+                after.remove("classification_dispatch_state"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Integer(0),
+                    Value::Integer(0),
+                    Value::Text("disabled".into()),
+                    Value::Null,
+                    Value::Null,
+                    Value::Integer(0),
+                    Value::Integer(0),
+                    Value::Integer(0),
                 ]]),
             );
             assert_eq!(

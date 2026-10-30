@@ -95,8 +95,12 @@ and recovery behavior. R5 is active, following its
 section, usable initial-screening suggestions, optional classification review, and the approved
 shared gallery/viewer interaction. R5-01 metadata and structured search are verified through
 `44d54b6a`. R5-02 has established the category/encoder contracts, selected runtime and measured
-initial-screening operating candidate; current work advances to R5-03 durable classification and
-recovery. Its optional-review tradeoff and unsupported confidence bands remain explicit in the
+initial-screening operating candidate. R5-03 durable classification and recovery are implemented;
+their Catalog gate remains in progress. Independent R5-04 work connects encoder residency and
+durable task admission under [ADR 0036](architecture/0036-durable-classification-dispatch.md), with
+[incremental-analysis evidence](acceptance/r5-incremental-analysis.md). Desktop dispatch and the
+remaining R5-04 integration are still pending. The optional-review tradeoff and unsupported confidence
+bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference
 and actual human-work measurements retain their R5-04/R5-07 gates.
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.

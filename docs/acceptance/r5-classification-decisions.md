@@ -112,7 +112,10 @@ the new version-65 tables. The loading contract now names both exact declaration
 its alternate-loader rejection cases against them. The migration test asserts all 13 new tables
 are empty and the classification singleton has its exact initial values before comparing every
 retained older row. No production source-access or migration behavior is changed by these corrections.
-Their hosted rerun remains required.
+The corrected source-loading and Schema/Queue jobs passed at `5bb59484` in
+[run 41073285348](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41073285348).
+The Catalog job had not finished when the next change was prepared; its persistence/recovery
+scenarios still require a completed hosted result.
 
 The changed source-loading fixture occupies 3,439 lines in the existing inline test module after
 2,630 lines of source, with a 487-line companion test file. The migration test owner contains 320
