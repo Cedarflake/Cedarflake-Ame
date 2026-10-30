@@ -99,7 +99,7 @@ impl ClassificationEncoder for LocalClassificationEncoder {
     }
 }
 
-fn runtime_error(error: RuntimeError) -> ScanError {
+pub(super) fn runtime_error(error: RuntimeError) -> ScanError {
     let code = match error {
         RuntimeError::Cancelled => "classification_cancelled",
         RuntimeError::ArtifactMismatch | RuntimeError::UnsafeArtifact => {

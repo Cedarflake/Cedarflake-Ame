@@ -25,6 +25,18 @@ pub use factory::LocalClassificationEncoderFactory;
 #[cfg(windows)]
 pub use process::{WorkerConfiguration, WorkerSession};
 
+#[cfg(windows)]
+pub(crate) fn verify_local_installation(
+    models: &std::path::Path,
+    runtime: &std::path::Path,
+) -> Result<(), crate::domain::ScanError> {
+    let _image = artifacts::ArtifactSet::open(models, runtime, EncoderKind::Image)
+        .map_err(factory::runtime_error)?;
+    let _text = artifacts::ArtifactSet::open(models, runtime, EncoderKind::Text)
+        .map_err(factory::runtime_error)?;
+    Ok(())
+}
+
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum EncoderKind {

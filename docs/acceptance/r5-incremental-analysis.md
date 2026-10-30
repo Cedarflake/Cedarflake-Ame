@@ -296,9 +296,8 @@ source guards and removal cascades. It uses only in-memory fixture tables and do
 desktop or integrated model acceptance. The initial compile found two callers of the moved source
 queries and two unsigned SQLite fixture parameters; both are corrected without suppressions.
 
-Desktop lifecycle and publication/availability wakeups remain integration work. The committed
-late-generation handoff is recorded below; these native recovery methods do not enable
-classification in the desktop UI.
+The committed late-generation handoff and desktop lifecycle wiring are recorded below. These native
+recovery methods do not themselves enable classification in the desktop UI.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -336,3 +335,45 @@ failure was not retried.
 | Publication migration | 80 | 14 downgrade-fixture support | 85 |
 | Source admission / dispatch control | 123 / 271 | 0 | Retained arrival and work suites |
 | Scan publication transaction | 245 | 0 | Retained scan-publication tests plus new rollback case |
+
+## Desktop lifecycle wiring
+
+Desktop bootstrap now owns a classification lifecycle alongside exact analysis and synchronization.
+The native session restores only automatic or manually paused dispatch, keeps initial admission
+suspended until current desktop activity arrives, and runs on the bridge executor. Foreground reads,
+import and committed catalog changes reuse the existing activity owners. Available-root generations
+are coalesced and recovered serially. Shutdown signals cancellation, joins the running call and
+availability recovery, then releases the session. A handle returned after closing began is retired
+without entering the dispatcher.
+
+Local installation selection verifies both pinned encoder artifacts and the runtime before saving
+their directories in a separate schema-1 settings database. It does not enable dispatch. The default
+Windows build includes the supervised worker executable; models and runtime DLLs remain separate.
+Portable and installer checks now require that executable, and installer fixture checks retain file,
+component and ACL ownership. No source-media files or real catalogs were used for these checks.
+
+The generated bridge and Rust Release library build pass (4 minutes 26 seconds for the Cargo build).
+Test-enabled classification-worker Clippy passes with warnings denied. Four added native cases compile
+and await hosted execution: absent installation, settings persistence/version rejection, paused
+startup, close-before-run and joined native shutdown. Six focused Flutter lifecycle cases pass,
+covering late-open close, unconfigured startup, latest foreground state, task/recovery joining,
+catalog/root coalescing and memory-pressure cooldown. Analysis of the five affected Dart entrypoints
+passes after correcting one constructor-style diagnostic. The compiler-free installer payload check
+and `git diff --check` pass. The unsigned payload and portable archive fixtures pass with the added
+worker; the unsigned check initially required sandbox access to create its isolated rejection-case
+junction. Bridge verification covers 21 asynchronous methods with matching generated hashes; its
+roster assertion was updated for the four new classification contracts without changing rejection
+rules.
+
+These results establish the wiring and its boundary behavior, not the completed R5-04 client workflow.
+Model-backed desktop foreground/resume measurements and operating-system power suspension remain
+integration work. The existing Flutter paused/detached lifecycle signal is connected; focus loss and
+minimization keep background classification eligible. A one-minute memory-pressure cooldown is an
+integration candidate awaiting resource measurement. Model enablement and configuration controls retain
+their R5-06 presentation scope.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Native desktop session / typed bridge facade | 181 / 144 | 0 | 137 |
+| Local installation store | 91 | 0 | 47 |
+| Desktop lifecycle owner | 192 | 0 | 218 |

@@ -163,8 +163,10 @@ by the application. A later redistribution must retain the applicable license an
 
 ### Worker ownership and protocol
 
-The `classification-worker` Cargo feature builds a separate native executable and its adapter.
-Default desktop builds do not load an inference runtime. The worker accepts one encoder for its
+The default `classification-worker` Cargo feature builds a separate native executable and its adapter.
+Windows desktop bundles include that executable beside Ame; portable and installer payload checks
+require it. Model weights and runtime DLLs remain separately installed data. Desktop startup does
+not load an inference runtime. The worker accepts one encoder for its
 entire lifetime; replacing image with text inference requires retiring that process first. Ame's
 supervisor starts it below normal priority, attaches a Windows Job before sending initialization,
 and bounds the job to one process and 2 GiB of committed process memory. Closing the job kills its
@@ -188,6 +190,11 @@ guards hold each directory against rename and reject reparse/cloud-placeholder e
 deny writes/deletion from verification through use. No artifact lookup falls back to another version,
 network download or source directory. Hashing uses a bounded buffer. Runtime notices remain alongside
 the separately installed runtime.
+
+Explicit local installation validates both encoders and the runtime before storing the selected
+directories in a separate versioned settings database. The worker repeats held-file verification
+when an encoder is demanded. Selection does not enable analysis or change its durable mode. Feature
+storage is a separate rebuildable database beside the active catalog, outside the source tree.
 
 DLL dependency lookup is restricted to Windows system libraries and the pinned runtime directory;
 the current directory and arbitrary search-path entries are excluded inside the worker.

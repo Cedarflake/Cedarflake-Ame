@@ -63,6 +63,9 @@ try {
     Copy-Item `
         -LiteralPath $signedFixtureSource `
         -Destination (Join-Path $releaseRoot "cedarflake_ame_journal_broker.exe")
+    Copy-Item `
+        -LiteralPath $signedFixtureSource `
+        -Destination (Join-Path $releaseRoot "cedarflake_ame_classification_worker.exe")
 
     Add-Type -AssemblyName System.IO.Compression.FileSystem
     New-Item -ItemType Directory -Path $outputDirectory -Force | Out-Null
@@ -197,6 +200,7 @@ try {
     foreach ($relativePath in @(
         "cedarflake_ame.exe",
         "cedarflake_ame_journal_broker.exe",
+        "cedarflake_ame_classification_worker.exe",
         "flutter_windows.dll",
         "data\app.so",
         "data\icudtl.dat",

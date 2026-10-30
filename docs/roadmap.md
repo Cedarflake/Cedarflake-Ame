@@ -106,8 +106,10 @@ Complete setup restoration, separately checkpointed new-content admission and sc
 recovery are connected to the native runtime. Unavailable copies can yield to another verified copy;
 root/source recovery retains pause, stop and source-generation guards. Durable scan-publication
 receipts admit sources whose generations became visible after an admission cursor had passed them.
-Desktop ownership and publication/availability wakeups remain in R5-04 integration, with full database regressions
-still owned by the current-head hosted gate.
+Desktop startup, foreground reads, catalog/availability wakeups and joined shutdown are wired through
+an opaque native session. Model-backed desktop verification, operating-system suspend/resume and
+integrated resource measurements remain in R5-04, with full database regressions owned by the
+current-head hosted gate.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference

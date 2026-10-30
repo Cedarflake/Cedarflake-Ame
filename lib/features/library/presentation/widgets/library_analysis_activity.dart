@@ -6,12 +6,14 @@ import "package:flutter_riverpod/flutter_riverpod.dart";
 
 import "../../../settings/application/ame_preferences.dart";
 import "../../application/library_controller.dart";
+import "../../application/library_classification_lifecycle.dart";
 import "../../application/library_exact_analysis_controller.dart";
 import "../../application/library_exact_analysis_publication.dart";
 import "../../application/library_exact_analysis_scheduler.dart";
 import "../../application/library_synchronization.dart";
 import "../../application/library_update_controller.dart";
 import "../../domain/library_synchronization_models.dart";
+import "../../domain/library_models.dart";
 
 /// Bridges catalog publication and foreground input to the analysis scheduler.
 class LibraryAnalysisActivity extends ConsumerStatefulWidget {
@@ -24,8 +26,10 @@ class LibraryAnalysisActivity extends ConsumerStatefulWidget {
 }
 
 class _LibraryAnalysisActivityState
-    extends ConsumerState<LibraryAnalysisActivity> {
+    extends ConsumerState<LibraryAnalysisActivity>
+    with WidgetsBindingObserver {
   LibraryExactAnalysisScheduler? _scheduler;
+  LibraryClassificationLifecycle? _classification;
   late final LibraryExactAnalysisPublication _publication;
   late final LibraryExactAnalysisController _analysis;
   StreamSubscription<LibrarySynchronizationSnapshot>? _synchronization;
@@ -41,10 +45,16 @@ class _LibraryAnalysisActivityState
           ref.read(libraryControllerProvider.notifier).refreshCurrentQuery(),
     );
     _scheduler = ref.read(libraryExactAnalysisSchedulerProvider);
+    _classification = ref.read(libraryClassificationLifecycleProvider);
+    WidgetsBinding.instance.addObserver(this);
+    final lifecycleState = WidgetsBinding.instance.lifecycleState;
+    if (lifecycleState != null) {
+      didChangeAppLifecycleState(lifecycleState);
+    }
     final synchronization = ref.read(librarySynchronizationProvider);
     _snapshot = synchronization.current;
     _updateCatalog();
-    if (_scheduler == null) {
+    if (_scheduler == null && _classification == null) {
       return;
     }
     _synchronization = synchronization.watch().listen((snapshot) {
@@ -83,6 +93,20 @@ class _LibraryAnalysisActivityState
           state.isCommittedRemovalReloadPending ||
           updates.hasActive,
     );
+    _classification?.updateCatalog(
+      revision: revision == null || revision < _snapshot.catalogRevision
+          ? _snapshot.catalogRevision
+          : revision,
+      availableRoots: {
+        for (final root in _snapshot.roots.values)
+          if (root.availability == LibraryRootAvailability.available)
+            root.rootId: root.rootGeneration,
+      },
+      isBusy:
+          state.isTaskProcessing ||
+          state.isCommittedRemovalReloadPending ||
+          updates.hasActive,
+    );
     if (!state.isBusy && state.errorMessage == null) {
       _publication.retry();
     }
@@ -90,15 +114,16 @@ class _LibraryAnalysisActivityState
 
   bool _onKey(KeyEvent event) {
     if (event is KeyDownEvent || event is KeyRepeatEvent) {
-      _scheduler?.browsingActivity();
+      _browsingActivity();
     }
     return false;
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _publication.dispose();
-    if (_scheduler != null) {
+    if (_scheduler != null || _classification != null) {
       HardwareKeyboard.instance.removeHandler(_onKey);
     }
     unawaited(_synchronization?.cancel());
@@ -106,10 +131,25 @@ class _LibraryAnalysisActivityState
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    _classification?.setSuspended(
+      state == AppLifecycleState.paused || state == AppLifecycleState.detached,
+    );
+  }
+
+  @override
+  void didHaveMemoryPressure() => _classification?.memoryPressure();
+
+  void _browsingActivity() {
+    _scheduler?.browsingActivity();
+    _classification?.browsingActivity();
+  }
+
+  @override
   Widget build(BuildContext context) => Listener(
-    onPointerDown: (_) => _scheduler?.browsingActivity(),
-    onPointerMove: (_) => _scheduler?.browsingActivity(),
-    onPointerSignal: (_) => _scheduler?.browsingActivity(),
+    onPointerDown: (_) => _browsingActivity(),
+    onPointerMove: (_) => _browsingActivity(),
+    onPointerSignal: (_) => _browsingActivity(),
     child: widget.child,
   );
 }

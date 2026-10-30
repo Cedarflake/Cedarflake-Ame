@@ -5,6 +5,8 @@ mod catalog_session;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]
 pub(crate) mod classification_analysis;
 pub(crate) mod classification_decisions;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_desktop;
 pub(crate) mod classification_dispatch;
 pub(crate) mod classification_features;
 pub(crate) mod classification_matching;

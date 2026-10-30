@@ -120,6 +120,23 @@ quiet without modifying durable manual intent. Manual controls signal cancellati
 short persistence transaction and signal its committed result afterward; only the persisted epoch
 authorizes publication. Close retires the runtime while preserving the selected durable mode.
 
+The desktop opens an opaque application session after the first usable catalog frame. Disabled or
+stopped dispatch stays inactive. An enabled or manually paused setup restores its selected local
+installation without starting an encoder. The native session initially inhibits admission until
+the desktop supplies its latest foreground state. Its blocking loop runs on a bridge background
+executor; synchronous activity and cancellation calls only update the dispatch signal.
+
+The desktop lifecycle owner retains the open/run future and joins it during shutdown. A close that
+arrives during opening retires the returned session without running it. Close while running cancels
+the native turn, waits for execution and availability recovery, and then releases the handle. No
+session mutex is held over inference or recovery. Catalog changes wake admission; currently available
+root generations feed serial, coalesced recovery. Removed or superseded roots lose pending recovery,
+and native generation checks fence in-flight requests. Foreground original reads and import state
+reuse the existing desktop owners. Paused/detached application lifecycle states inhibit admission;
+ordinary focus loss or a minimized window does not. A memory-pressure event retires resources and holds admission for
+one minute before trying the normal quiet interval; the integrated resource check owns that interval's
+measurement. These signals never overwrite manual pause or revive a stopped run.
+
 One native runtime may own model resources in an application process. A replacement cannot acquire
 ownership until the old runtime has retired and dropped its executor. Unproven retirement retains
 process admission until process restart. Model preparation remains demand-driven: source-only work,

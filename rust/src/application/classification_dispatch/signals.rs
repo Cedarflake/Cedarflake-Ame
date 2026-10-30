@@ -136,6 +136,11 @@ impl<C: ClassificationDispatchClock> ClassificationDispatchSignals<C> {
         Ok(())
     }
 
+    #[cfg(all(windows, feature = "classification-worker"))]
+    pub(crate) fn is_closed(&self) -> Result<bool, ScanError> {
+        Ok(self.shared.state.lock().map_err(|_| unavailable())?.closed)
+    }
+
     fn interrupt(&self, state: &mut State) {
         if let Some(active) = &state.active {
             active.store(true, Ordering::Release);

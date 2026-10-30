@@ -66,6 +66,7 @@ try {
     $requiredEntries = @(
         "Cedarflake-Ame/cedarflake_ame.exe",
         "Cedarflake-Ame/cedarflake_ame_journal_broker.exe",
+        "Cedarflake-Ame/cedarflake_ame_classification_worker.exe",
         "Cedarflake-Ame/rust_lib_cedarflake_ame.dll",
         "Cedarflake-Ame/flutter_windows.dll",
         "Cedarflake-Ame/data/app.so",

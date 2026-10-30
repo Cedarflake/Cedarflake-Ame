@@ -1,6 +1,8 @@
 mod classification_feature_cache;
 #[cfg(all(windows, any(feature = "classification-worker", test)))]
 pub(crate) mod classification_image_input;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+mod classification_installation;
 #[cfg(feature = "classification-worker")]
 pub(crate) mod classification_runtime;
 mod durable_local_metadata_inventory;
@@ -28,6 +30,10 @@ pub(crate) use windows_identity_journal::production_factory as production_identi
 mod windows_library_change_source;
 
 pub use classification_feature_cache::SqliteClassificationFeatureCache;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) use classification_installation::{
+    ClassificationInstallation, ClassificationInstallationStore,
+};
 pub(crate) use durable_local_metadata_inventory::DurableLocalMetadataInventory;
 #[cfg(all(windows, test))]
 pub(crate) use local_files::force_publication_namespace_guard_failure_for_test;
