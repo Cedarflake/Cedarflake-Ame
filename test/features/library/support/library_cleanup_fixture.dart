@@ -48,18 +48,21 @@ class CleanupTaskFixture implements LibraryCleanupTask {
   }
 }
 
-LibraryCleanupInspection cleanupInspection({int groups = 4}) =>
-    LibraryCleanupInspection(
-      cutoffUnixMs: 1790000000000,
-      inspectedUnixMs: 1792830000000,
-      catalogRevision: BigInt.from(10),
-      organizationRevision: BigInt.from(10),
-      selectionDigest: "a" * 64,
-      groups: groups,
-      albumGroups: groups,
-      favoriteGroups: groups,
-      progressGroups: groups,
-      duplicateChoices: 0,
-      oldestUnassociatedUnixMs: groups > 0 ? 1780000000000 : null,
-      newestUnassociatedUnixMs: groups > 0 ? 1781000000000 : null,
-    );
+LibraryCleanupInspection cleanupInspection({
+  int groups = 4,
+  int classificationGroups = 0,
+}) => LibraryCleanupInspection(
+  cutoffUnixMs: 1790000000000,
+  inspectedUnixMs: 1792830000000,
+  catalogRevision: BigInt.from(10),
+  organizationRevision: BigInt.from(10),
+  selectionDigest: "a" * 64,
+  groups: groups,
+  albumGroups: groups,
+  favoriteGroups: groups,
+  progressGroups: groups,
+  classificationGroups: classificationGroups,
+  duplicateChoices: 0,
+  oldestUnassociatedUnixMs: groups > 0 ? 1780000000000 : null,
+  newestUnassociatedUnixMs: groups > 0 ? 1781000000000 : null,
+);

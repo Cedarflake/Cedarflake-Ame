@@ -9,6 +9,7 @@ class LibraryCleanupInspection {
     required this.albumGroups,
     required this.favoriteGroups,
     required this.progressGroups,
+    required this.classificationGroups,
     required this.duplicateChoices,
     this.oldestUnassociatedUnixMs,
     this.newestUnassociatedUnixMs,
@@ -23,6 +24,7 @@ class LibraryCleanupInspection {
   final int albumGroups;
   final int favoriteGroups;
   final int progressGroups;
+  final int classificationGroups;
   final int duplicateChoices;
   final int? oldestUnassociatedUnixMs;
   final int? newestUnassociatedUnixMs;

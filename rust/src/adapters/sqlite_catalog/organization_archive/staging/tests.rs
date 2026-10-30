@@ -34,8 +34,16 @@ fn entries(path: &Path) -> Vec<Value> {
 
 fn write_archive(path: &Path, entries: &[Value]) {
     let mut bytes = Vec::new();
-    let mut counts = vec![0_u64; records::KINDS.len()];
+    let version = entries[0]["header"]["version"].as_u64().unwrap() as u32;
+    let mut counts = vec![0_u64; records::kind_count(version)];
     for entry in entries.iter().filter(|entry| entry["type"] != "footer") {
+        if version < 5
+            && entry["kind"]
+                .as_str()
+                .is_some_and(|kind| kind.starts_with("classification_"))
+        {
+            continue;
+        }
         serde_json::to_writer(&mut bytes, entry).unwrap();
         bytes.push(b'\n');
         if entry["type"] == "row" {

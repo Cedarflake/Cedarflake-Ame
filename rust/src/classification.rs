@@ -16,3 +16,12 @@ pub use crate::domain::classification::{
     RefinementIdentity, ScreeningIdentity, ScreeningProfile, ScreeningThresholds, Taxonomy,
     TextFeature,
 };
+pub use crate::domain::classification_catalog::{
+    ClassificationCatalogState, ClassificationWriteReceipt, PreparedClassificationSelection,
+};
+pub use crate::domain::classification_review::{
+    ClassificationReviewBookmark, ClassificationReviewFilter, ClassificationReviewPosition,
+    ClassificationReviewReceipt, ClassificationReviewScope, ClassificationReviewSession,
+};
+pub use crate::ports::classification::ClassificationRepository;
+pub use crate::ports::classification_review::ClassificationReviewRepository;

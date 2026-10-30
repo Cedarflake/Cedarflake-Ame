@@ -65,6 +65,7 @@ pub(super) fn unregister_root(
     }
     change_queue::root_retirement::retire_removed_root_recovery_authorities(transaction, root_id)?;
     delete_root_unregister_orphan_assets(transaction)?;
+    super::classification::review::lifecycle::forget_source(transaction, root_id)?;
     clear_root_unregister_scope(transaction)?;
     Ok(true)
 }

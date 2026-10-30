@@ -82,6 +82,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v63_for_test(connection: &Connection) {
+    super::classification::downgrade_to_v64_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 64 {
         connection
             .execute_batch(

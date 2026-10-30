@@ -15,7 +15,7 @@ use super::super::exact_duplicates::read_unsigned;
 use super::super::{database_error, sqlite_integer};
 use super::authority::field;
 
-pub(super) fn prepare(
+pub(in crate::adapters::sqlite_catalog) fn prepare(
     connection: &Connection,
     selections: &[OrganizationSelection],
 ) -> Result<OrganizationPreparedSelection, ScanError> {
@@ -50,7 +50,7 @@ pub(super) fn prepare(
     })
 }
 
-pub(super) fn selected_keys(
+pub(in crate::adapters::sqlite_catalog) fn selected_keys(
     connection: &Connection,
     selections: &[OrganizationSelection],
 ) -> Result<BTreeSet<OrganizationGroupKey>, ScanError> {

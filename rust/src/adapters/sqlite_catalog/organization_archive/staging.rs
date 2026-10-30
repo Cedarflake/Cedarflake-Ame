@@ -13,6 +13,8 @@ use crate::domain::organization_archive::{
 
 use super::{codec, database_error, error, io_error, records, report};
 
+mod classification;
+mod classification_schema;
 mod input;
 mod metadata_filter;
 mod schema;
@@ -48,6 +50,9 @@ pub(super) fn read(
     connection
         .execute_batch(schema::SQL)
         .map_err(database_error)?;
+    connection
+        .execute_batch(classification_schema::SQL)
+        .map_err(database_error)?;
     let verified = codec::read_records(
         BufReader::new(input),
         &mut |index, values| insert(&connection, index, values),
@@ -79,6 +84,13 @@ pub(super) fn read(
             )
         },
     )?;
+    classification::validate(&connection, &mut || {
+        report(
+            progress,
+            OrganizationArchivePhase::Verifying,
+            verified.record_count,
+        )
+    })?;
     Ok(StagedArchive {
         connection,
         _file: file,

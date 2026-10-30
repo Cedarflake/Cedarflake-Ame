@@ -5831,8 +5831,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 12)
-      throw Exception('unexpected arr length: expect 12 but see ${arr.length}');
+    if (arr.length != 13)
+      throw Exception('unexpected arr length: expect 13 but see ${arr.length}');
     return OrganizationCleanupInspection(
       cutoffUnixMs: dco_decode_i_64(arr[0]),
       inspectedUnixMs: dco_decode_i_64(arr[1]),
@@ -5843,9 +5843,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       albumGroups: dco_decode_u_64(arr[6]),
       favoriteGroups: dco_decode_u_64(arr[7]),
       progressGroups: dco_decode_u_64(arr[8]),
-      duplicateChoices: dco_decode_u_64(arr[9]),
-      oldestUnassociatedUnixMs: dco_decode_opt_box_autoadd_i_64(arr[10]),
-      newestUnassociatedUnixMs: dco_decode_opt_box_autoadd_i_64(arr[11]),
+      classificationGroups: dco_decode_u_64(arr[9]),
+      duplicateChoices: dco_decode_u_64(arr[10]),
+      oldestUnassociatedUnixMs: dco_decode_opt_box_autoadd_i_64(arr[11]),
+      newestUnassociatedUnixMs: dco_decode_opt_box_autoadd_i_64(arr[12]),
     );
   }
 
@@ -9162,6 +9163,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_albumGroups = sse_decode_u_64(deserializer);
     var var_favoriteGroups = sse_decode_u_64(deserializer);
     var var_progressGroups = sse_decode_u_64(deserializer);
+    var var_classificationGroups = sse_decode_u_64(deserializer);
     var var_duplicateChoices = sse_decode_u_64(deserializer);
     var var_oldestUnassociatedUnixMs = sse_decode_opt_box_autoadd_i_64(
       deserializer,
@@ -9179,6 +9181,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       albumGroups: var_albumGroups,
       favoriteGroups: var_favoriteGroups,
       progressGroups: var_progressGroups,
+      classificationGroups: var_classificationGroups,
       duplicateChoices: var_duplicateChoices,
       oldestUnassociatedUnixMs: var_oldestUnassociatedUnixMs,
       newestUnassociatedUnixMs: var_newestUnassociatedUnixMs,
@@ -12333,6 +12336,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_u_64(self.albumGroups, serializer);
     sse_encode_u_64(self.favoriteGroups, serializer);
     sse_encode_u_64(self.progressGroups, serializer);
+    sse_encode_u_64(self.classificationGroups, serializer);
     sse_encode_u_64(self.duplicateChoices, serializer);
     sse_encode_opt_box_autoadd_i_64(self.oldestUnassociatedUnixMs, serializer);
     sse_encode_opt_box_autoadd_i_64(self.newestUnassociatedUnixMs, serializer);

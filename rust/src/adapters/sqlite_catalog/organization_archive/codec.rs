@@ -7,7 +7,7 @@ use crate::domain::ScanError;
 use super::{error, io_error, records};
 
 pub(super) const FORMAT: &str = "ame-organization-archive";
-pub(super) const VERSION: u32 = 4;
+pub(super) const VERSION: u32 = 5;
 pub(super) const MAX_LINE_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -64,6 +64,9 @@ impl<W: Write> ArchiveWriter<W> {
     }
 
     pub fn row(&mut self, kind_index: usize, values: &[Cell]) -> Result<(), ScanError> {
+        if kind_index >= records::kind_count(self.version) {
+            return Err(invalid());
+        }
         let kind = records::KINDS.get(kind_index).ok_or_else(invalid)?;
         validate_values(kind, values, self.version)?;
         self.append(
@@ -76,9 +79,16 @@ impl<W: Write> ArchiveWriter<W> {
     }
 
     pub fn finish(mut self, counts: &[u64]) -> Result<W, ScanError> {
+        let count = records::kind_count(self.version);
+        if counts.len() < count
+            || counts.len() > records::KINDS.len()
+            || counts[count..].iter().any(|value| *value != 0)
+        {
+            return Err(invalid());
+        }
         self.append(
             &WrittenEntry::Footer {
-                counts,
+                counts: &counts[..count],
                 checksum: self.hash.finalize().to_hex().to_string(),
             },
             false,
@@ -151,7 +161,7 @@ pub(super) fn read_records(
     validate_header(&header)?;
     let mut hash = blake3::Hasher::new();
     hash.update(&bytes);
-    let mut counts = vec![0_u64; records::KINDS.len()];
+    let mut counts = vec![0_u64; records::kind_count(header.version)];
     let mut last_kind = 0;
     let mut total = 0_u64;
     loop {
@@ -163,7 +173,7 @@ pub(super) fn read_records(
                     .iter()
                     .position(|spec| spec.name == kind)
                     .ok_or_else(invalid)?;
-                if index < last_kind {
+                if index < last_kind || index >= counts.len() {
                     return Err(invalid());
                 }
                 validate_values(&records::KINDS[index], &values, header.version)?;

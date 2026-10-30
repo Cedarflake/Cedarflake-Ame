@@ -5926,6 +5926,7 @@ impl SseDecode for crate::domain::organization_cleanup::OrganizationCleanupInspe
         let mut var_albumGroups = <u64>::sse_decode(deserializer);
         let mut var_favoriteGroups = <u64>::sse_decode(deserializer);
         let mut var_progressGroups = <u64>::sse_decode(deserializer);
+        let mut var_classificationGroups = <u64>::sse_decode(deserializer);
         let mut var_duplicateChoices = <u64>::sse_decode(deserializer);
         let mut var_oldestUnassociatedUnixMs = <Option<i64>>::sse_decode(deserializer);
         let mut var_newestUnassociatedUnixMs = <Option<i64>>::sse_decode(deserializer);
@@ -5939,6 +5940,7 @@ impl SseDecode for crate::domain::organization_cleanup::OrganizationCleanupInspe
             album_groups: var_albumGroups,
             favorite_groups: var_favoriteGroups,
             progress_groups: var_progressGroups,
+            classification_groups: var_classificationGroups,
             duplicate_choices: var_duplicateChoices,
             oldest_unassociated_unix_ms: var_oldestUnassociatedUnixMs,
             newest_unassociated_unix_ms: var_newestUnassociatedUnixMs,
@@ -9592,6 +9594,7 @@ impl flutter_rust_bridge::IntoDart
             self.album_groups.into_into_dart().into_dart(),
             self.favorite_groups.into_into_dart().into_dart(),
             self.progress_groups.into_into_dart().into_dart(),
+            self.classification_groups.into_into_dart().into_dart(),
             self.duplicate_choices.into_into_dart().into_dart(),
             self.oldest_unassociated_unix_ms
                 .into_into_dart()
@@ -12758,6 +12761,7 @@ impl SseEncode for crate::domain::organization_cleanup::OrganizationCleanupInspe
         <u64>::sse_encode(self.album_groups, serializer);
         <u64>::sse_encode(self.favorite_groups, serializer);
         <u64>::sse_encode(self.progress_groups, serializer);
+        <u64>::sse_encode(self.classification_groups, serializer);
         <u64>::sse_encode(self.duplicate_choices, serializer);
         <Option<i64>>::sse_encode(self.oldest_unassociated_unix_ms, serializer);
         <Option<i64>>::sse_encode(self.newest_unassociated_unix_ms, serializer);

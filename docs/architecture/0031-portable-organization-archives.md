@@ -14,7 +14,7 @@ is a portable identity or authority to overwrite a newer decision.
 ## Decision
 
 Use an Ame-owned UTF-8 JSON Lines format, identified by `ame-organization-archive` and an integer
-format version. Version 4 contains a header, ordered records and a completion footer. Record kinds,
+format version. Version 5 contains a header, ordered records and a completion footer. Record kinds,
 field order and scalar types are explicit adapter contracts, independent of SQLite schema discovery.
 The header records an opaque archive identifier, creation time and source schema version for
 provenance. The footer contains record counts and a BLAKE3 digest of all preceding bytes, including
@@ -35,6 +35,15 @@ Version 4 appends the bounded metadata-filter payload to the saved review scope 
 [ADR 0033](0033-structured-gallery-filters.md). Versions 1 through 3 expand to empty metadata
 conditions. Staging validates its versioned field shape and domain bounds before restoration;
 the restored bookmark and conditions publish in the same transaction.
+
+Version 5 appends the classification families owned by
+[ADR 0035](0035-classification-decision-authority.md): category definitions and semantic history,
+human choices, review fields, operation provenance, and an independent classification bookmark.
+A separate classification context carries its revision ceiling and selected rules. Versions 1–4
+retain their original record kinds and footer counts; they restore without classification records.
+Models, predictions, feature caches and active classification sessions remain outside this archive.
+Staging validates typed category descriptions, rule hashes, choice provenance, paired undo targets,
+bookmark scope and all classification revision ceilings before restoration.
 
 Export includes album definitions and retirements, lineage decisions, group mappings, bindings,
 source ownership, conflicts, operation/undo provenance, the committed bookmark and its scope,
@@ -175,6 +184,11 @@ retires its applicable retained authority; automatic reimport cannot recreate it
 application remains a separate user action.
 
 Receipt, history, field decisions, evidence, queue order and bookmark changes commit together.
+Classification recovery allocates its own checked revision interval in that transaction. Existing
+local category labels, rule selection and handled fields remain authoritative. Imported operations
+retain a restoration marker and cannot authorize a fresh undo. The classification bookmark recovers
+only when absent; source/location/admission hints are remapped through the same association evidence,
+and an available group refreshes its ordering boundary. Active classification callbacks are retired.
 Cancellation checkpoints before commit and any failed statement roll back the whole write. The
 admitted connection owns temporary tables and its staging attachment and closes before the staging
 file is retired, including on Windows. Archive input and original media remain read-only. No source
@@ -210,7 +224,10 @@ Retirement removes every selected group's provenance aliases, their bindings, co
 references together. It removes selected unresolved R3 choices and retires unused generation/admission
 authority without touching evidence still owned by a retained record, published location or pending
 choice. Album definitions and opaque operation history remain; history cannot reauthorize a deleted
-lineage. Reimport cannot recover a cleaned decision, while explicit backup application can restore it.
+lineage. Classification choices, deferred review and continuation are included in the affected-group
+count and inspection digest. Their lineage-bound records retire with the selected groups, while
+opaque targets keep an old classification undo from becoming valid after cleanup.
+Reimport cannot recover a cleaned decision, while explicit backup application can restore it.
 Cancellation before commit or a failed statement rolls back the complete selection and receipt.
 After commit, presentation refreshes shared organization state and reports the confirmed result.
 No original media, preview, source enumeration or hydration participates in inspection or cleanup.

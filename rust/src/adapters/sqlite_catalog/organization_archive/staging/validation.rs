@@ -6,6 +6,9 @@ use crate::domain::organization::{normalize_album_name, validate_identifier};
 use super::super::{codec::Cell, database_error, error};
 
 pub(super) fn record(kind: &str, values: &[Cell]) -> Result<(), ScanError> {
+    if kind.starts_with("classification_") {
+        return super::classification::record(kind, values);
+    }
     let identifiers: &[usize] = match kind {
         "album" | "retired_album" | "operation" | "root_evidence" => &[0],
         "record" | "binding" | "source_owner" | "group" | "conflict" | "album_change"

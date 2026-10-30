@@ -79,7 +79,7 @@ fn archive_codec_rejects_tampering_trailing_data_and_wrong_counts() {
 fn archive_codec_rejects_future_versions_unknown_fields_and_kinds() {
     let text = String::from_utf8(archive()).unwrap();
     for altered in [
-        text.replace("\"version\":4", "\"version\":5"),
+        text.replace("\"version\":5", "\"version\":6"),
         text.replace(
             "\"source_schema\":52",
             "\"source_schema\":52,\"script\":\"ignored\"",

@@ -86,8 +86,43 @@ features remain excluded. Old R3/R4 archives remain readable. Restore uses indep
 classification revisions and preserves current local choices; foreign revisions and sessions never
 become live command authority. Recovery without installed model binaries preserves human choices.
 
-These constraints do not declare a schema or archive extension complete. Its implementation and
-verification remain in R5-03 under the [roadmap](../roadmap.md#r5-implementation-sequence).
+Schema 65 keeps category definitions and immutable semantic versions alongside separate run,
+prediction, human-choice, operation and continuation tables. Human choices reference the durable
+organization lineage, never a derived asset or prediction row. Category and review fields retain
+their own revisions and imported-intent markers. Classification writes publish the catalog revision
+without advancing R4's organization history. A change to category descriptions retires the active
+analysis configuration; changing only a display label keeps compatible predictions available.
+
+Each operation retains its request digest, before-images and opaque targets. Target records survive
+lineage cleanup even when their before-images are retired. Imported operation history retains a
+restoration marker so its foreign receipt cannot authorize a new undo. New local operations receive
+fresh local revisions. These rules also apply when explicitly recovering previously removed records.
+
+Portable format 5 appends classification records to the existing ordered archive. Its classification
+context carries a separate revision ceiling and the saved category-rule selection. Definitions,
+semantic history, choices, operation provenance and the logical bookmark travel with the existing
+association evidence. Active runs, active review sessions, model configuration and predictions remain
+local. Restoration reserves a separate checked classification revision interval and commits within
+the existing archive transaction. Existing category labels, active rules and handled local fields
+take precedence; missing fields can recover imported intent. Versions 1 through 4 keep their original
+record counts and acquire no classification state during restoration.
+
+Classification review uses a separate session, monotonically increasing position sequence and typed
+scope. Checkpoints retain the logical group and the gallery's existing ordering boundary. A review
+command validates the active session and bookmarked group, then commits its field changes and next
+position authority together. Identical retries return the original receipt; an old session or
+position cannot replace later work. Confirmation stays at the current image when its scope still
+includes it; deferral or leaving the selected category/review filter records an after-current anchor.
+R5-05 owns resolving that anchor through the bounded smart-album projection. R4's session, bookmark,
+album decisions and Favorite fields are independent.
+
+Removing a source retires scopes bound to it. A global bookmark may use a surviving copy of the same
+group. Compatible root reassociation remaps retained scopes without treating paths as identity.
+Unresolved-record cleanup includes category/review fields and the classification bookmark in its
+counts and guarded digest; retired lineages remain in opaque operation targets to reject partial undo.
+
+The schema and archive extension are implemented and verified together in R5-03 under the
+[roadmap](../roadmap.md#r5-implementation-sequence); this decision does not establish their completion.
 
 ## Alternatives and consequences
 
