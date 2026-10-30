@@ -3,7 +3,7 @@ use std::collections::BTreeSet;
 use rusqlite::{Connection, OptionalExtension, params};
 
 use crate::domain::ScanError;
-use crate::domain::classification::work::{ClassificationBacklogPage, ClassificationWorkPriority};
+use crate::domain::classification::work::ClassificationWorkPriority;
 use crate::domain::classification::{
     ClassificationContent, ClassificationRecordId, ClassificationRun,
 };
@@ -12,63 +12,6 @@ use crate::domain::organization::{OrganizationSelection, validate_selections};
 use super::super::super::{database_error, exact_duplicates, sqlite_integer};
 use super::super::codec;
 use super::{changed, control, invalid};
-
-const SOURCE_WINDOW: usize = 64;
-
-pub(super) fn seed(
-    connection: &Connection,
-    session: &ClassificationRecordId,
-    now_unix_ms: u64,
-) -> Result<ClassificationBacklogPage, ScanError> {
-    let dispatch = control::session(connection, session)?;
-    let run = control::run(connection, &dispatch)?;
-    let sql = format!(
-        "SELECT l.asset_id, l.location_id, l.source_generation FROM {}
-         WHERE l.source_generation > ?1 AND l.location_id = (
-             SELECT min(member.location_id) FROM asset_locations AS member
-             JOIN library_roots AS root ON root.id = member.root_id AND root.active_scan_id = member.scan_id
-             JOIN library_change_root_state AS state ON state.root_id = root.id AND state.is_active = 1
-             WHERE member.source_generation = l.source_generation)
-         ORDER BY l.source_generation LIMIT ?2", exact_duplicates::queries::CURRENT_LOCATIONS,
-    );
-    let mut statement = connection.prepare(&sql).map_err(database_error)?;
-    let mut sources = statement
-        .query_map(
-            params![
-                sqlite_integer(dispatch.source_cursor, "source cursor")?,
-                (SOURCE_WINDOW + 1) as i64
-            ],
-            selection,
-        )
-        .map_err(database_error)?
-        .collect::<rusqlite::Result<Vec<_>>>()
-        .map_err(database_error)?;
-    let has_more = sources.len() > SOURCE_WINDOW;
-    sources.truncate(SOURCE_WINDOW);
-    let mut queued = 0;
-    for source in &sources {
-        queued += enqueue_source(
-            connection,
-            &run,
-            source.source_generation,
-            ClassificationWorkPriority::Backlog,
-            now_unix_ms,
-        )?;
-    }
-    if let Some(source) = sources.last() {
-        connection
-            .execute(
-                "UPDATE classification_dispatch_state SET source_cursor = ?1 WHERE singleton = 1",
-                [sqlite_integer(source.source_generation, "source cursor")?],
-            )
-            .map_err(database_error)?;
-    }
-    Ok(ClassificationBacklogPage {
-        visited_sources: sources.len() as u32,
-        queued_sources: queued as u32,
-        has_more,
-    })
-}
 
 pub(super) fn request(
     connection: &Connection,
@@ -114,7 +57,7 @@ pub(super) fn request(
     Ok(queued)
 }
 
-fn enqueue_source(
+pub(super) fn enqueue_source(
     connection: &Connection,
     run: &ClassificationRun,
     generation: u64,

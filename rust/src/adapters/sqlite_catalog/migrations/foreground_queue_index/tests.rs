@@ -97,6 +97,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 Some(Vec::new()),
             );
             for table in [
+                "classification_analysis_setups",
                 "classification_categories",
                 "classification_category_versions",
                 "classification_decisions",
@@ -167,6 +168,22 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                     Value::Null,
                     Value::Null,
                     Value::Null,
+                ]]),
+            );
+            let ceiling: i64 = catalog
+                .connection
+                .query_row(
+                    "SELECT next_source_generation - 1 FROM catalog_state",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(
+                after.remove("classification_dispatch_admission"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Integer(ceiling),
+                    Value::Integer(ceiling)
                 ]]),
             );
             assert_eq!(

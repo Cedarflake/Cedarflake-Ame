@@ -72,6 +72,9 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     if schema_version >= 66 {
         super::classification_work::validate_rows(connection)?;
     }
+    if schema_version >= 67 {
+        super::classification_setup::validate_rows(connection)?;
+    }
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_rows(connection)?;
     }
@@ -240,6 +243,9 @@ pub(super) fn validate_schema_structure(
     }
     if schema_version >= 66 {
         super::classification_work::validate(connection)?;
+    }
+    if schema_version >= 67 {
+        super::classification_setup::validate(connection)?;
     }
     validate_existing_source_metadata_marker(connection)
 }

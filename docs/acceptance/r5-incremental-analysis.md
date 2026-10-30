@@ -223,8 +223,8 @@ and Unsigned Release checks. Catalog, Schema and Queue, and other jobs were stil
 successful read; the complete R5-03 gate has not been declared passed. Initial status requests timed
 out before the GitHub API resumed responding. No unchanged full-root test execution was repeated.
 
-This delivery establishes the native loop and control boundary. Desktop lifecycle wiring, persisted
-model/profile reconstruction, automatic new-content priority, source-specific availability wakeups
+This delivery establishes the native loop and control boundary. The setup and arrival connection
+is recorded below. Desktop lifecycle wiring, source-specific availability wakeups
 and actual integrated model/foreground measurements retain their R5-04 scope. No UI acceptance,
 automatic desktop classification or complete R5-04 result is claimed by these focused checks.
 
@@ -235,3 +235,44 @@ automatic desktop classification or complete R5-04 result is claimed by these fo
 | Runtime ownership | 46 | 24 | 0 |
 | Execution port / work repository / lease owner | 34 / 161 / 279 | 0 | Existing queue and new dispatcher suites |
 | Pixel preparation | 101 | 0 | 199 |
+
+## Stored setup and incremental admission
+
+Schema 67 stores the complete immutable analysis setup and source-admission boundary. The native
+runtime reconstructs both rule sets and the calibrated profile from the catalog before taking work;
+missing legacy setup cannot silently select uncalibrated analysis. Activation commits its run,
+profile and dispatch change atomically, with independent catalog/dispatch revisions. Retrying a
+committed activation preserves a later pause, disable or stop. Existing decisions and portable
+human archives retain their own ownership.
+
+Arrival admission has its own durable cursor. New sources enter their priority lane before the old
+catalog walk completes, while each turn still admits at most 64 sources and reserves capacity for
+backlog. Pause/restart retain the boundary and both checkpoints. A replacement run captures a new
+boundary. Availability wakeups and desktop publication signals remain separate integration work.
+
+Focused offline checks pass for exact uniform/category-profile round trips, revision binding,
+unknown-version rejection, payload bounds and missing refinement. They use the actual domain and
+profile modules with bounded serialization/error fixture helpers; they do not substitute for the
+complete catalog tests. Production migration SQL also passes isolated SQLite checks for retained
+pause, arrival watermarks, invalid-watermark rejection and transactional DDL rollback. No source
+media or models are read. The initial probe exposed an unused fixture dependency and its SQL reader's
+handling of multiline literals; both probe issues are corrected. The cache hard-link restriction
+was removed by using the established offline cache outside that restriction, without changing
+compiler warning policy.
+
+Test-enabled, classification-worker Clippy passes with warnings denied. Eight setup/runtime cases,
+three arrival cases and three migration cases are included in the hosted catalog and schema suites.
+They cover immutable restoration, explicit uncalibrated setup, replay/manual intent, replacement,
+atomic failure, invalid profiles, paused native restart without a worker, early arrival admission,
+fairness and schema preservation/rollback. Their full database execution remains pending the hosted
+gate. Earlier `c96f7776` checks passed Static, Flutter, Synchronization and Scan, Windows Scan,
+Windows Accessibility, Unsigned Release and the five synthetic workloads; Remaining, Catalog and
+Schema and Queue were still running at the last read.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Immutable setup / setup port | 66 / 20 | 0 | Setup cases below |
+| Setup persistence / profile codec | 152 / 126 | 0 | 379 setup/runtime |
+| Source admission / dispatch control / queue lookup | 121 / 270 / 184 | 0 | 158 arrivals plus retained work suites |
+| Setup migration | 83 | 14 downgrade-fixture support | 180 migration plus retained historical preservation |
+| Native runtime / matcher preparation | 288 / 46 | 0 | Existing error policy and setup restart case |

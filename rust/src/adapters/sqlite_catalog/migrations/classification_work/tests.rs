@@ -110,6 +110,10 @@ fn startup_rejects_missing_dispatch_state() {
     let catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     catalog
         .connection
+        .execute("DELETE FROM classification_dispatch_admission", [])
+        .unwrap();
+    catalog
+        .connection
         .execute("DELETE FROM classification_dispatch_state", [])
         .unwrap();
     assert!(validate_rows(&catalog.connection).is_err());

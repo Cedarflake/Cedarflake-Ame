@@ -3,6 +3,7 @@ mod evidence;
 mod features;
 mod ranking;
 mod screening;
+mod setup;
 mod taxonomy;
 pub mod work;
 
@@ -19,8 +20,10 @@ pub use evidence::{
 pub use features::{Embedding, FeatureIdentity, ImageFeature, ModelCompatibility, TextFeature};
 pub use ranking::{CategoryScore, RankedPrediction};
 pub use screening::{
-    CategoryScreeningThresholds, ScreeningIdentity, ScreeningProfile, ScreeningThresholds,
+    CategoryScreeningThresholds, ScreeningIdentity, ScreeningPolicy, ScreeningProfile,
+    ScreeningThresholds,
 };
+pub use setup::{ClassificationAnalysisSetup, ClassificationSetupActivation};
 pub use taxonomy::{CategoryDefinition, CategoryId, ClassificationRevision, Taxonomy};
 
 #[derive(Clone, Debug, PartialEq, Eq, thiserror::Error)]
@@ -55,6 +58,8 @@ pub enum ClassificationError {
     IncompatibleScreeningProfile,
     #[error("Refinement must use the same model and active category identities")]
     IncompatibleRefinement,
+    #[error("The analysis setup does not match its immutable run")]
+    IncompatibleAnalysisSetup,
     #[error("Prediction rankings require unique categories and finite cosine scores")]
     InvalidPrediction,
     #[error("Classification record identity is invalid")]

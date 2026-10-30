@@ -66,7 +66,7 @@ pub struct CategoryScreeningThresholds {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-enum ScreeningPolicy {
+pub enum ScreeningPolicy {
     Uniform(ScreeningThresholds),
     Categories(Vec<CategoryScreeningThresholds>),
 }
@@ -156,6 +156,10 @@ impl ScreeningProfile {
 
     pub fn calibration(&self) -> ClassificationRevision {
         self.calibration
+    }
+
+    pub fn policy(&self) -> &ScreeningPolicy {
+        &self.policy
     }
 
     pub fn thresholds_for(&self, category: &CategoryId) -> Option<ScreeningThresholds> {

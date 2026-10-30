@@ -9,6 +9,7 @@ pub(crate) mod classification_encoder;
 pub(crate) mod classification_execution;
 pub(crate) mod classification_features;
 pub(crate) mod classification_review;
+pub(crate) mod classification_setup;
 pub(crate) mod classification_source;
 pub(crate) mod classification_work;
 pub(crate) mod exact_duplicate_review;

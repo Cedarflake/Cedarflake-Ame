@@ -17,6 +17,7 @@ mod catch_up_contract;
 mod catch_up_repair;
 mod change_lane_contract;
 mod classification;
+mod classification_setup;
 mod classification_work;
 mod compact_gallery_search;
 mod compatibility_repair_shape;
@@ -169,6 +170,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         organization_review_filters::migrate_transaction(&transaction)?;
         classification::migrate_transaction(&transaction)?;
         classification_work::migrate_transaction(&transaction)?;
+        classification_setup::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -274,6 +276,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             63 => organization_review_filters::migrate(connection)?,
             64 => classification::migrate(connection)?,
             65 => classification_work::migrate(connection)?,
+            66 => classification_setup::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

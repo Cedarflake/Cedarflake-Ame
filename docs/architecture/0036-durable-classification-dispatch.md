@@ -27,6 +27,24 @@ Foreground yielding does not change manual intent. Startup replaces abandoned cl
 manual pause; repeated interrupted attempts exhaust the same bounded failure budget as worker errors.
 The application retires an old process before admitting its replacement under ADR 0034.
 
+Schema 67 stores the complete analysis setup alongside its immutable run. Category descriptions
+remain in the versioned rule tables; calibrated thresholds are stored as exact floating-point bits
+with their calibration identity and bounded policy payload. Reconstruction validates the model,
+both rule sets, category identities and profile revision before creating a matcher. A setup row with
+no profile explicitly selects uncalibrated analysis; a missing legacy row never implies that choice.
+Run creation, setup storage and dispatch activation commit together under separate catalog and
+dispatch revision guards. Repeating an already committed activation preserves subsequent pause,
+disable or stop intent. Continuing a paused run remains a separate command.
+
+Activation also captures the catalog's source-generation high-water mark. Committed sources at or
+below that mark enter the backlog lane; later new or changed generations enter the new-content lane.
+The mark survives pause and restart and resets when a new run starts. Existing schema-66 queues
+retain their priorities; migration captures the current catalog mark without starting analysis or
+reconstructing unknown calibration. These execution records remain outside portable human archives.
+Independent arrival and backlog cursors admit at most 64 sources per turn. While backlog remains,
+up to 32 places go to arrivals and the remaining places go to backlog. A new source therefore does
+not wait for the complete old catalog walk before entering its priority lane.
+
 Stopping records the run identity permanently. Cache misses, process restart and ordinary automatic
 dispatch cannot restart it. Explicit enablement supplies a new run; compatible committed evidence
 and features remain reusable. A semantic rule change may replace an active run while preserving a
@@ -114,4 +132,4 @@ integrated verification; this decision assigns authority and does not claim thos
 The scheduler may change its batching or execution strategy behind the work port. Changing durable
 keys or lease semantics requires a forward migration. Queue/cache reclamation never deletes human
 decisions or changes stopped-run intent. Older application versions use their preserved migration
-snapshot for rollback rather than opening schema 66.
+snapshot for rollback rather than opening the newer schema.

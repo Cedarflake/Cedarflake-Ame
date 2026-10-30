@@ -4,16 +4,17 @@ use std::time::Duration;
 
 use crate::adapters::classification_runtime::LocalClassificationEncoderFactory;
 use crate::adapters::{SqliteCatalog, SqliteClassificationFeatureCache};
-use crate::domain::classification::ClassificationRecordId;
 use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationDispatchCommand, ClassificationDispatchState,
     ClassificationVerificationResult, ClassificationWorkFailure, ClassificationWorkLease,
     ClassificationWorkTarget,
 };
+use crate::domain::classification::{ClassificationAnalysisSetup, ClassificationRecordId};
 use crate::domain::{LibraryChangeLane, ScanError};
 use crate::ports::classification_execution::{
     ClassificationExecutionError, ClassificationExecutionOutcome, ClassificationWorkExecutor,
 };
+use crate::ports::classification_setup::ClassificationSetupRepository;
 use crate::ports::classification_work::ClassificationWorkRepository;
 
 use super::classification_analysis::analyze_classification_content;
@@ -28,7 +29,6 @@ mod admitted_text;
 mod ownership;
 mod setup;
 use admitted_text::AdmittedTextFactory;
-pub use setup::ClassificationAnalysisSetup;
 
 pub struct ClassificationRuntimePaths {
     pub database: PathBuf,
@@ -86,7 +86,6 @@ pub struct NativeClassificationRuntime {
 impl NativeClassificationRuntime {
     pub fn open(
         paths: ClassificationRuntimePaths,
-        setup: ClassificationAnalysisSetup,
         session: ClassificationRecordId,
         signals: ClassificationDispatchSignals,
     ) -> Result<Self, ScanError> {
@@ -94,9 +93,13 @@ impl NativeClassificationRuntime {
         let catalog =
             super::catalog_session::open_catalog(&paths.database, LibraryChangeLane::Recovery)?;
         let state = catalog.classification_dispatch_state()?;
-        if state.run_id.as_ref() != Some(setup.run.id()) {
-            return Err(setup::mismatch());
-        }
+        let run_id = state.run_id.as_ref().ok_or_else(setup::mismatch)?;
+        let setup = catalog.load_classification_setup(run_id)?.ok_or_else(|| {
+            ScanError::new(
+                "classification_setup_missing",
+                "The saved analysis settings are incomplete; choose an analysis configuration",
+            )
+        })?;
         let control = ClassificationRuntimeControl {
             database: paths.database.clone(),
             session: session.clone(),
@@ -170,7 +173,12 @@ impl NativeExecutor {
         }
         let cache = self.cache.as_mut().expect("the feature cache is owned");
         if self.classifier.is_none() {
-            self.classifier = Some(self.setup.prepare(&mut self.residency, cache, cancelled)?);
+            self.classifier = Some(setup::prepare(
+                &self.setup,
+                &mut self.residency,
+                cache,
+                cancelled,
+            )?);
         }
         analyze_classification_content(
             &self.database,
@@ -193,7 +201,7 @@ impl ClassificationWorkExecutor for NativeExecutor {
         if cancelled.load(Ordering::Acquire) {
             return Ok(ClassificationExecutionOutcome::Cancelled);
         }
-        if &lease.run_id != self.setup.run.id() {
+        if &lease.run_id != self.setup.run().id() {
             return Err(ClassificationExecutionError::Blocked(setup::mismatch()));
         }
         let result = match &lease.target {

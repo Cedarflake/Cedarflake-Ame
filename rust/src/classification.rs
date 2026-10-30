@@ -15,8 +15,7 @@ pub use crate::application::classification_residency::{
 };
 #[cfg(all(windows, feature = "classification-worker"))]
 pub use crate::application::classification_runtime::{
-    ClassificationAnalysisSetup, ClassificationRuntimeControl, ClassificationRuntimePaths,
-    NativeClassificationRuntime,
+    ClassificationRuntimeControl, ClassificationRuntimePaths, NativeClassificationRuntime,
 };
 pub use crate::application::classification_screening::{
     ReviewRecommendation, ScreeningClassifier, ScreeningResult,
@@ -30,13 +29,14 @@ pub use crate::domain::classification::work::{
 };
 pub use crate::domain::classification::{
     CategoryDefinition, CategoryId, CategoryScreeningThresholds, ClassificationAction,
-    ClassificationChange, ClassificationContent, ClassificationError, ClassificationFieldAuthority,
-    ClassificationObservation, ClassificationProposal, ClassificationRecordId,
-    ClassificationReview, ClassificationRevision, ClassificationRun, ClassificationSubject,
-    ClassificationTarget, EffectiveClassification, Embedding, FeatureIdentity, HumanCategoryChoice,
-    HumanClassification, HumanClassificationConsensus, HumanDecisionOrigin, ImageFeature,
-    ModelCompatibility, PredictionEvidence, PredictionReference, ProvisionalClassificationContent,
-    RefinementIdentity, ScreeningIdentity, ScreeningProfile, ScreeningThresholds, Taxonomy,
+    ClassificationAnalysisSetup, ClassificationChange, ClassificationContent, ClassificationError,
+    ClassificationFieldAuthority, ClassificationObservation, ClassificationProposal,
+    ClassificationRecordId, ClassificationReview, ClassificationRevision, ClassificationRun,
+    ClassificationSetupActivation, ClassificationSubject, ClassificationTarget,
+    EffectiveClassification, Embedding, FeatureIdentity, HumanCategoryChoice, HumanClassification,
+    HumanClassificationConsensus, HumanDecisionOrigin, ImageFeature, ModelCompatibility,
+    PredictionEvidence, PredictionReference, ProvisionalClassificationContent, RefinementIdentity,
+    ScreeningIdentity, ScreeningPolicy, ScreeningProfile, ScreeningThresholds, Taxonomy,
     TextFeature,
 };
 pub use crate::domain::classification_catalog::{
@@ -57,4 +57,5 @@ pub use crate::ports::classification_features::{
     ClassificationFeatureCacheStats, ClassificationFeatureRepository,
 };
 pub use crate::ports::classification_review::ClassificationReviewRepository;
+pub use crate::ports::classification_setup::ClassificationSetupRepository;
 pub use crate::ports::classification_work::ClassificationWorkRepository;

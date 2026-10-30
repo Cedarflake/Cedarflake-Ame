@@ -12,6 +12,7 @@ mod archives;
 mod authority;
 mod lifecycle;
 mod review;
+mod setup;
 mod work;
 
 fn id(value: &str) -> ClassificationRecordId {
