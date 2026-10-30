@@ -48,6 +48,20 @@ the source task. Fingerprints retain the exact engine's immutable run provenance
 verification has a distinct run identity and never emits the full duplicate scan's UI progress.
 Cancellation before commit rolls back both group publication and the task checkpoint.
 
+Content analysis loads its immutable run and exact selected source under a short transaction, then
+releases the transaction before opening or decoding media. The application checks that its matcher
+and encoder describe the same stored run. It reuses a compatible feature or decodes and encodes one
+source under ADR 0034's held capability. Claim/source authority is checked before inference and again
+before publishing the cached feature; source revalidation also precedes the final prediction commit.
+Pause, stop, a replaced run/session, removed source or changed generation rejects the old completion.
+Cancellation observed while inserting a prediction rolls back its task checkpoint as well.
+
+Prediction identity binds the run, session, task, lease and epoch. A repeated completion cannot add
+another prediction after its task has completed. A completed compatible feature may survive a failed
+catalog transaction and be reused by the next admitted attempt; it carries no completion or human
+decision authority. Physical reads, model work and feature-cache transactions never hold the catalog
+transaction. Foreground scheduling and automatic retry remain the dispatcher owner's responsibility.
+
 Requested scope, new content and backlog use a seven-slot weighted admission cycle: requested,
 requested, new, requested, new, requested, backlog. Empty lanes are skipped. Ready work within a lane
 uses arrival/retry time and stable work identity. This bounds starvation without assigning a worker

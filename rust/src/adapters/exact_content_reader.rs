@@ -94,7 +94,7 @@ impl ExactContentReader for GuardedExactContentReader {
 
 // The byte engine only receives an admitted reader; it cannot reopen a path or mutate a source.
 #[cfg(any(windows, test))]
-fn hash_reader(
+pub(super) fn hash_reader(
     reader: impl Read,
     expected_length: u64,
     cancelled: &AtomicBool,

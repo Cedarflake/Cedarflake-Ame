@@ -476,6 +476,43 @@ fn root_availability_search_index_module_retains_exact_windows_loading() {
     }
 }
 
+#[test]
+fn root_availability_classification_adapters_retain_exact_loading_boundaries() {
+    let source = ADAPTERS_SOURCE.replace("\r\n", "\n");
+    for declaration in [
+        "mod classification_feature_cache;",
+        "#[cfg(all(windows, any(feature = \"classification-worker\", test)))]\npub(crate) mod classification_image_input;",
+    ] {
+        assert!(source.contains(declaration));
+        let broader = if declaration.starts_with("mod ") {
+            format!("pub {declaration}")
+        } else {
+            declaration.replace("pub(crate)", "pub")
+        };
+        for replacement in [
+            String::new(),
+            format!("{declaration}\n{declaration}"),
+            format!("#[path = \"alternate.rs\"]\n{declaration}"),
+            declaration.replace(';', " { mod generated {} }"),
+            broader,
+        ] {
+            let mutated = source.replacen(declaration, &replacement, 1);
+            assert_ne!(mutated, source);
+            assert!(
+                assert_availability_exact_source_contract_with_environment(
+                    LOCAL_SOURCE,
+                    Some(DOMAIN_SOURCE),
+                    Some(METADATA_SOURCE),
+                    Some(&mutated),
+                    Some(CRATE_SOURCE),
+                )
+                .is_err(),
+                "the changed adapter boundary must be rejected: {replacement}"
+            );
+        }
+    }
+}
+
 fn assert_contract(local: &str, parent: &str) -> Result<(), String> {
     assert_availability_exact_source_contract_with_environment(
         local,

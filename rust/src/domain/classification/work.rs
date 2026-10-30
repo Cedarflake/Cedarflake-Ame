@@ -82,3 +82,10 @@ pub enum ClassificationVerificationResult {
     Cancelled,
     Superseded,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClassificationAnalysisResult {
+    Completed { used_cached_feature: bool },
+    Cancelled,
+    Superseded,
+}

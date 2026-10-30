@@ -1,4 +1,6 @@
 mod classification_feature_cache;
+#[cfg(all(windows, any(feature = "classification-worker", test)))]
+pub(crate) mod classification_image_input;
 #[cfg(feature = "classification-worker")]
 pub(crate) mod classification_runtime;
 mod durable_local_metadata_inventory;

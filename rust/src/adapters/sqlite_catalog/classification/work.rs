@@ -9,6 +9,8 @@ use crate::ports::classification_work::ClassificationWorkRepository;
 
 use super::super::{SqliteCatalog, database_error};
 
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+mod analysis;
 mod completion;
 mod control;
 mod leases;

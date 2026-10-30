@@ -12,8 +12,9 @@ owning R5 slices. The Ame-owned category/matching contracts remain separate from
 [ADR 0034](../architecture/0034-versioned-classification-contracts.md) separates display labels,
 canonical category rules, the shared embedding space and independent encoder revisions. The
 [native classification interface](../../rust/src/classification.rs) exposes validated Ame-owned
-definitions/features and bounded matching without vendor types, file reads or database access.
-It is not yet connected to desktop classification or durable R5 decisions.
+definitions/features and bounded matching. Later source verification, feature persistence and queued
+analysis integration are recorded in [incremental analysis](r5-incremental-analysis.md); the initial
+matching checks below cover the domain boundary independently of those adapters.
 
 The 18 new focused tests pass: ten domain cases and eight application matching cases. They cover
 label/ordering reuse, semantic edits, added/retired active definitions, custom category counts,

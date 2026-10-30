@@ -4603,6 +4603,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "classification_feature_cache",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_image_input",
+            visibility: "pub(crate)",
+            attributes: &["cfg(all(windows,any(feature=\"classification-worker\",test)))"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "classification_runtime",
             visibility: "pub(crate)",
             attributes: &["cfg(feature=\"classification-worker\")"],

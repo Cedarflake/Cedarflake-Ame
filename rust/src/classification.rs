@@ -1,4 +1,6 @@
 pub use crate::adapters::SqliteClassificationFeatureCache;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub use crate::application::classification_analysis::analyze_classification_content;
 pub use crate::application::classification_decisions::plan_classification_change;
 pub use crate::application::classification_features::prepare_classification_matcher;
 pub use crate::application::classification_matching::{
@@ -12,10 +14,10 @@ pub use crate::application::classification_screening::{
 };
 pub use crate::application::classification_verification::verify_classification_source;
 pub use crate::domain::classification::work::{
-    ClassificationBacklogPage, ClassificationDispatchCommand, ClassificationDispatchMode,
-    ClassificationDispatchState, ClassificationVerificationResult, ClassificationWorkFailure,
-    ClassificationWorkIssue, ClassificationWorkLease, ClassificationWorkPriority,
-    ClassificationWorkTarget,
+    ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,
+    ClassificationDispatchMode, ClassificationDispatchState, ClassificationVerificationResult,
+    ClassificationWorkFailure, ClassificationWorkIssue, ClassificationWorkLease,
+    ClassificationWorkPriority, ClassificationWorkTarget,
 };
 pub use crate::domain::classification::{
     CategoryDefinition, CategoryId, CategoryScreeningThresholds, ClassificationAction,

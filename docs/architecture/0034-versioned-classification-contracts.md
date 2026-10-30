@@ -123,6 +123,22 @@ input and normalization by mean/standard deviation 0.5. Text uses the pinned tok
 64-token padding/truncation policy. Both return 768 values. These are adapter details, included in
 pipeline revisions rather than hard-coded in the general taxonomy/matching domain.
 
+The native source-input adapter uses the existing `image` 0.25.10 Rust codecs, detects format from
+bytes, applies EXIF orientation, converts to RGB8 before Triangle resampling and builds the admitted
+tensor. The image-pipeline revision binds this implementation; tensors prepared by another resize
+implementation do not silently share its feature cache or screening profile. Reuse of the exploratory
+Pillow calibration requires a measured native-input comparison, without retuning against its holdout.
+Decode admission bounds encoded content to 256 MiB, either dimension to 16,384, decoded area to
+16,777,216 pixels and decoder allocation to 128 MiB. I/O checks cancellation, with additional checks
+between decode, orientation, resize and encoding. Inputs outside these limits produce a per-item issue.
+No alternate native codec or implicit cloud download is attempted.
+
+The source adapter opens the existing read-only file/namespace capability against the current root,
+physical identity and source revision. Without durable identity/revision evidence it also compares a
+bounded exact hash with the leased content before decoding or using a cached feature. The capability
+stays held through inference, cache insertion and the prediction/checkpoint transaction. Compatible
+cache hits still revalidate the source but skip both decoding and image inference.
+
 The admitted CPU adapter uses ONNX Runtime 1.31.1, `ort` 2.0.0-rc.15 and `tokenizers` 0.23.2. Runtime code is
 MIT; bindings are MIT/Apache-2.0; tokenizer code is Apache-2.0. Retain runtime license, third-party
 notices and privacy documentation. Disable default binding features and runtime download, tokenizer

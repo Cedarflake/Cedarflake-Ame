@@ -108,10 +108,55 @@ memory; it supplies no passing Clippy result. No further full-root test build wa
 A focused SQLite check executed the production schema with `trusted_schema=OFF`: 260 insertions
 accounted for 68,640 bytes, bounded cleanup left four entries, rollback restored all 260, and the
 eviction query used `feature_recency`. Formatting and whitespace checks pass. This check covers SQL
-accounting and query shape, not the Rust adapter or Windows file capability. Source decoding,
-the integrated dispatcher and desktop enablement remain pending R5-04 work.
+accounting and query shape, not the Rust adapter or Windows file capability. The
+[`cb3f7d53` hosted job](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41089127551/job/124178269076)
+subsequently passed all twelve cache/description scenarios. That job still failed two exact module
+loading assertions because the adapter roster omitted the new feature-cache module. The roster now
+admits only its exact declaration and the new native-input declaration, retaining alternate-path,
+generated-module and broader-visibility rejection. The corrected complete gate remains pending.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
 | Feature-cache adapter / storage / schema | 272 / 179 / 26 | 0 | 322 |
 | Description preparation / repository port | 76 / 41 | 0 | 307 |
+
+## Guarded content execution
+
+The feature-gated native entrypoint connects a leased content task to source admission, compatible
+feature lookup, image preparation, encoder residency, bounded matching and transactional prediction
+publication. It checks the stored run before source access, holds the file/namespace capability
+through commit, and rechecks source/task authority after inference. A cache hit skips decode and
+encoding. A failed catalog commit can retain the completed compatible feature without completing the
+task or changing human decisions. Cancellation during prediction insertion rolls back the checkpoint.
+
+Six database/application scenarios cover committed publication and lost acknowledgements, cache-only
+matching with a held source, incompatible pipeline rejection before I/O, cancellation at decode and
+inference, concurrent pause/source replacement, failed source validation, checkpoint rollback/reuse
+and cancellation during the final transaction. Two real Windows source-capability cases cover Chinese
+paths, wrong extensions, read-only file/namespace retention and exact-hash fallback when the revision
+is uncertain. These cases await the new head's hosted execution; no local database pass is claimed.
+
+Five decoder tests passed in a focused single-process probe in 0.13 seconds, with no compiler warnings
+in the corrected probe. Its decoder and test files match the production files byte-for-byte. It covers
+seven admitted formats, first-frame GIF behavior, RGB channel/alpha handling, EXIF rotation, invalid or
+oversized inputs, and cancellation before/during I/O. It does not stand in for the Windows capability,
+catalog transaction or actual model path. The initial restricted compile hit OS error 1455; a separate
+serial probe used the repository lockfile offline after correcting its module/dependency setup.
+
+Six synthetic PNG inputs compare native preprocessing with Pillow 12.3.0 bilinear resizing. The
+224-by-224 input matches exactly; the other five differ by at most one 8-bit channel level, with mean
+absolute differences from 0.07446 to 0.19791 levels. The image-pipeline revision now binds the native
+RGB8/Triangle implementation, leaving text compatibility unchanged. This establishes a numerical
+difference, not classification equivalence. Native-input comparison against the retained calibration
+cohort remains required before activating its calibrated profile. These probes read no original media,
+download no dependencies or models, and modify no source media.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Content execution / analysis port | 163 / 48 | 0 | Database/application scenarios below |
+| Native source capability / pixel preparation | 100 / 96 | 0 | 126 / 147 |
+| Analysis publication transaction | 84 | 0 | 547 database/application integration |
+| Existing local-file owner | 2,629 unchanged | 3,452; twelve exact-roster lines added | Existing availability suites plus adapter loading rejection |
+
+The integrated dispatcher, foreground resource admission, native-input calibration comparison and
+desktop enablement remain in R5-04. The entrypoint alone does not enable automatic analysis.

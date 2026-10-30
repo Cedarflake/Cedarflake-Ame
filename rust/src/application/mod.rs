@@ -1,6 +1,8 @@
 mod authoritative_library_changes;
 mod catalog_reclamation;
 mod catalog_session;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+pub(crate) mod classification_analysis;
 pub(crate) mod classification_decisions;
 pub(crate) mod classification_features;
 pub(crate) mod classification_matching;

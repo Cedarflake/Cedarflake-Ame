@@ -4,6 +4,7 @@ use crate::ports::exact_duplicates::ExactDuplicateRepository;
 
 use super::*;
 
+mod analysis;
 mod recovery;
 mod verification;
 

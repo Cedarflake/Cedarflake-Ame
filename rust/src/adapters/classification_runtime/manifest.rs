@@ -48,7 +48,7 @@ pub(super) fn compatibility() -> ModelCompatibility {
             IMAGE.digest.as_bytes(),
             RUNTIME.digest.as_bytes(),
             execution.as_slice(),
-            b"first-frame;oriented-rgb;whole-bilinear-224;f32-nchw;mean-0.5;std-0.5;level-1;l2-f64",
+            b"image-0.25.10;first-frame;oriented-rgb8;triangle-whole-224;f32-nchw;mean-0.5;std-0.5;level-1;l2-f64",
         ],
     );
     let text = ClassificationRevision::derive(
