@@ -97,6 +97,19 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 Some(Vec::new()),
             );
             for table in [
+                "classification_categories",
+                "classification_category_versions",
+                "classification_decisions",
+                "classification_operation_changes",
+                "classification_operation_targets",
+                "classification_operations",
+                "classification_predictions",
+                "classification_review_bookmark",
+                "classification_review_operations",
+                "classification_review_session",
+                "classification_rule_members",
+                "classification_rules",
+                "classification_runs",
                 "content_fingerprints",
                 "exact_analysis_outcomes",
                 "exact_analysis_runs",
@@ -144,6 +157,16 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }
+            assert_eq!(
+                after.remove("classification_state"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Integer(0),
+                    Value::Null,
+                    Value::Null,
+                    Value::Null,
+                ]]),
+            );
             assert_eq!(
                 after.remove("library_sidebar_root_order"),
                 Some(vec![vec![Value::Text("root".into()), Value::Integer(0)]]),

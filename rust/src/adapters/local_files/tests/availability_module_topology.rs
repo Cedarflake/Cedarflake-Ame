@@ -50,6 +50,8 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert!(!location[0].is_inline);
     for module_name in [
         "classification",
+        "classification_catalog",
+        "classification_review",
         "exact_duplicate_review",
         "organization_archive",
         "organization_batch",
@@ -325,6 +327,18 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
 #[test]
 fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loading() {
     for (source_key, source, declaration, alternate_visibility) in [
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod classification_catalog;",
+            "pub(crate) mod classification_catalog;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod classification_review;",
+            "pub(crate) mod classification_review;",
+        ),
         (
             "local",
             LOCAL_SOURCE,

@@ -104,6 +104,20 @@ The previous commit `5556aa9c` passed all applicable jobs in
 That result covers the earlier decision boundary, not this persistence integration. Classification
 desktop interaction and next-eligible navigation remain in their planned connected slices.
 
+The first hosted persistence run at `96d126e9`,
+[41067397036](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41067397036), exposed three
+historical-test expectations: two source-loading checks omitted the new `classification_catalog`
+and `classification_review` declarations, and the version-33 migration snapshot did not account for
+the new version-65 tables. The loading contract now names both exact declarations and exercises
+its alternate-loader rejection cases against them. The migration test asserts all 13 new tables
+are empty and the classification singleton has its exact initial values before comparing every
+retained older row. No production source-access or migration behavior is changed by these corrections.
+Their hosted rerun remains required.
+
+The changed source-loading fixture occupies 3,439 lines in the existing inline test module after
+2,630 lines of source, with a 487-line companion test file. The migration test owner contains 320
+dedicated test lines; these corrections add no production behavior or new test owner.
+
 ### Integration ownership
 
 Production modules keep transaction publication, observation authority, field undo, review position,
