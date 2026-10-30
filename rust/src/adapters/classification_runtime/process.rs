@@ -36,20 +36,33 @@ impl WorkerSession {
         if cancelled.load(Ordering::Acquire) {
             return Err(RuntimeError::Cancelled);
         }
+        let mut worker = Self::prepare(&configuration)?;
+        worker.initialize(configuration, cancelled)?;
+        Ok(worker)
+    }
+
+    pub(super) fn prepare(configuration: &WorkerConfiguration) -> Result<Self, RuntimeError> {
         let session = NEXT_SESSION.fetch_add(1, Ordering::Relaxed);
         if session == 0 {
             return Err(RuntimeError::Configuration);
         }
-        let mut worker = Self {
+        Ok(Self {
             transport: Transport::start(&configuration.executable)?,
             session,
             next_request: 1,
             encoder: configuration.encoder,
-        };
-        worker.exchange(
+        })
+    }
+
+    pub(super) fn initialize(
+        &mut self,
+        configuration: WorkerConfiguration,
+        cancelled: &AtomicBool,
+    ) -> Result<(), RuntimeError> {
+        self.exchange(
             Request::Start {
                 version: protocol::VERSION,
-                session,
+                session: self.session,
                 encoder: configuration.encoder,
                 models: configuration.model_directory,
                 runtime: configuration.runtime_directory,
@@ -58,7 +71,7 @@ impl WorkerSession {
             Duration::from_secs(30),
             cancelled,
         )?;
-        Ok(worker)
+        Ok(())
     }
 
     pub fn compatibility(&self) -> ModelCompatibility {
@@ -71,6 +84,10 @@ impl WorkerSession {
 
     pub fn is_retired(&self) -> bool {
         self.transport.is_retired()
+    }
+
+    pub(super) fn retire_process(&mut self) -> Result<(), RuntimeError> {
+        self.transport.retire()
     }
 
     pub fn encode_prepared_image(

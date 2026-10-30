@@ -204,3 +204,38 @@ features changes none of the 240 category predictions when the current text feat
 Agreement remains 163/191 definite provisional labels, with 49 uncertain labels outside that ratio.
 This confirms the runtime/policy comparison; it does not validate the later purpose-aware rubric or
 establish independent human accuracy. The temporary tensor is removed after process retirement.
+
+## Demand-loaded encoder residency
+
+The application residency owner and native factory connect model creation, initialization, reuse,
+and complete retirement. Text features release their worker when the description batch finishes;
+image features retain one worker until the configured idle limit. Replacement is blocked until the
+old process and pipe thread retire. Initialization failure, inference failure and cancellation retain
+cleanup ownership and reject late results. This internal owner does not yet dispatch catalog work.
+
+Nine focused tests passed, including a controlled clock, failed/incomplete retirement, initialization
+failure, and cancellation before and after inference. They use hash-matched production and test
+modules in the existing ignored diagnostic harness; its `ScanError` glue retains the production
+error representation without the unrelated retry builder. Library compilation with
+`classification-worker` passed. The full local test/example link ran out of compiler memory and
+produced no runtime result, so the native lifecycle probe was built with the actual adapter sources
+and existing focused application/domain modules instead. No production build setting or hosted
+workload was changed. Focused Clippy, including that native probe, passed with warnings denied.
+
+The real native worker used the retained local-primary model/runtime artifacts and prepared pixels.
+Two image features and two description features matched the admitted references with minimum cosine
+0.9999999999999982. The text worker retired after its batch; the image worker stayed resident at
+59,999 milliseconds and retired at 60,000 milliseconds on a controlled clock. A subsequent image
+request reloaded the model. Cancelling a warm inference retired the process and rejected its result
+in 50.17 milliseconds, measured from request start including the 20-millisecond cancellation timer.
+The probe opened zero source files and downloaded no artifacts. These checks establish process
+lifetime and result preservation; sustained foreground interference and the scheduling interval
+remain integrated R5-04 checks.
+
+| Owner | Production lines | Inline test lines | Dedicated test/probe lines |
+| --- | ---: | ---: | ---: |
+| Encoder residency | 184 | 0 | 308 |
+| Encoder port | 38 | 0 | Covered by residency tests |
+| Native factory | 115 | 0 | Covered by native probe |
+| Process host | 201 | 0 | Existing transport/protocol suites |
+| Native residency probe | 0 | 0 | 107 |

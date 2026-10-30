@@ -1,4 +1,8 @@
 #[cfg(all(windows, feature = "classification-worker"))]
+#[path = "classification_worker_probe/residency.rs"]
+mod residency;
+
+#[cfg(all(windows, feature = "classification-worker"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     verification::run()
 }
@@ -26,6 +30,9 @@ mod verification {
 
     pub fn run() -> Result<()> {
         let arguments: Vec<_> = std::env::args_os().skip(1).collect();
+        if arguments.len() == 5 && arguments[4] == "--residency" {
+            return super::residency::run(&arguments[..4]);
+        }
         if arguments.len() != 4 {
             return Err("Expected worker executable, model directory, runtime directory and cached fixture directory".into());
         }
@@ -113,7 +120,7 @@ mod verification {
         Ok(())
     }
 
-    fn floats(path: &Path, expected: usize) -> Result<Vec<f32>> {
+    pub(super) fn floats(path: &Path, expected: usize) -> Result<Vec<f32>> {
         if fs::metadata(path)?.len() != expected as u64 * 4 {
             return Err("Cached tensor length does not match the retained fixture".into());
         }
@@ -123,7 +130,7 @@ mod verification {
             .collect())
     }
 
-    fn cosine(left: &[f32], right: &[f32]) -> f64 {
+    pub(super) fn cosine(left: &[f32], right: &[f32]) -> f64 {
         let dot: f64 = left
             .iter()
             .zip(right)

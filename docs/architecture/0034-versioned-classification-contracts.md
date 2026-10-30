@@ -162,6 +162,18 @@ before reporting cancellation. Complete retirement precedes replacement; a timeo
 another worker while the first still owns memory or input. Failed retirement retains its owner for
 recovery. Foreground scheduling and result publication remain application responsibilities.
 
+`ClassificationEncoderResidency` owns demand loading and reuse through an Ame encoder factory port.
+The native factory maps that port to the verified worker without exposing protocol/runtime objects
+to application policy. Creation acquires ownership before initialization can start a process or
+load a model, so failed initialization cannot abandon a worker whose retirement is incomplete.
+An image worker retains its last completed-use time under a monotonic clock;
+the configured idle interval is supplied by scheduling policy. Description batches explicitly retire
+their text worker when their required features are ready. Switching encoders first completes process
+and pipe retirement. Failed or incomplete retirement preserves ownership and blocks replacement,
+including reuse of the same encoder. Cancellation rejects a late feature before returning it and
+retires its worker. Pressure, disable and suspend use the same explicit retirement operation;
+durable dispatch intent and publication fences belong to the analysis scheduler.
+
 ## Alternatives and consequences
 
 Fixed output classes would prevent user descriptions and are rejected. Re-encoding images for

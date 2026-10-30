@@ -3,6 +3,7 @@ mod catalog_reclamation;
 mod catalog_session;
 pub(crate) mod classification_decisions;
 pub(crate) mod classification_matching;
+pub(crate) mod classification_residency;
 pub(crate) mod classification_screening;
 mod directory_synchronization;
 pub(crate) mod exact_duplicate_review;

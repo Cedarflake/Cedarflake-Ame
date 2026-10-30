@@ -4,6 +4,8 @@ mod artifacts;
 mod dll_search;
 #[cfg(windows)]
 mod encoder;
+#[cfg(windows)]
+mod factory;
 mod manifest;
 #[cfg(windows)]
 mod process;
@@ -18,6 +20,8 @@ mod worker;
 use serde::{Deserialize, Serialize};
 use std::process::ExitCode;
 
+#[cfg(windows)]
+pub use factory::LocalClassificationEncoderFactory;
 #[cfg(windows)]
 pub use process::{WorkerConfiguration, WorkerSession};
 

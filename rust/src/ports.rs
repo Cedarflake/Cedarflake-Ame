@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 pub(crate) mod classification;
+pub(crate) mod classification_encoder;
 pub(crate) mod classification_review;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;

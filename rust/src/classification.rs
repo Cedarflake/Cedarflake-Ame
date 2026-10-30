@@ -2,6 +2,9 @@ pub use crate::application::classification_decisions::plan_classification_change
 pub use crate::application::classification_matching::{
     CategoryMatcher, CategoryScore, RankedPrediction,
 };
+pub use crate::application::classification_residency::{
+    ClassificationEncoderResidency, MonotonicResidencyClock, ResidencyClock,
+};
 pub use crate::application::classification_screening::{
     ReviewRecommendation, ScreeningClassifier, ScreeningResult,
 };
@@ -24,4 +27,7 @@ pub use crate::domain::classification_review::{
     ClassificationReviewReceipt, ClassificationReviewScope, ClassificationReviewSession,
 };
 pub use crate::ports::classification::ClassificationRepository;
+pub use crate::ports::classification_encoder::{
+    ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
+};
 pub use crate::ports::classification_review::ClassificationReviewRepository;
