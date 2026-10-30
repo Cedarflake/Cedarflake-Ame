@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
 use super::*;
 
@@ -23,6 +23,28 @@ pub(in crate::adapters::sqlite_catalog) const COMPATIBLE_FINGERPRINT: &str =
     AND f.file_identity_scheme IS l.file_identity_scheme
     AND f.file_identity_value IS l.file_identity_value
     AND f.source_revision_token IS l.source_revision_token";
+
+pub(in crate::adapters::sqlite_catalog) fn load_selected(
+    connection: &Connection,
+    source: &crate::domain::organization::OrganizationSelection,
+) -> Result<Option<FingerprintCandidate>, ScanError> {
+    connection
+        .query_row(
+            &format!(
+                "SELECT {CANDIDATE_COLUMNS} FROM {CURRENT_LOCATIONS}
+            WHERE l.asset_id = ?1 AND l.location_id = ?2 AND l.source_generation = ?3"
+            ),
+            params![
+                source.asset_id,
+                source.location_id,
+                sqlite_integer(source.source_generation, "source generation")?
+            ],
+            read_candidate,
+        )
+        .optional()
+        .map_err(database_error)?
+        .transpose()
+}
 
 pub(super) fn load_candidates(
     connection: &Connection,

@@ -39,6 +39,15 @@ enumeration. The existing guarded exact reader verifies sources without a same-s
 Each verified source can continue independently; the complete duplicate scan is not a prerequisite.
 Current source membership and exact evidence are checked again before inference/publication.
 
+Classification verification selects one leased catalog source even when no same-size peer exists;
+the ordinary R3 duplicate scan retains its peer pruning. Existing compatible fingerprints can be
+published through the shared bounded gallery/organization transaction without rereading bytes.
+Otherwise the guarded reader holds source and namespace handles through a transaction that checks
+the classification claim, records the exact fingerprint, publishes group membership and completes
+the source task. Fingerprints retain the exact engine's immutable run provenance. Classification
+verification has a distinct run identity and never emits the full duplicate scan's UI progress.
+Cancellation before commit rolls back both group publication and the task checkpoint.
+
 Requested scope, new content and backlog use a seven-slot weighted admission cycle: requested,
 requested, new, requested, new, requested, backlog. Empty lanes are skipped. Ready work within a lane
 uses arrival/retry time and stable work identity. This bounds starvation without assigning a worker

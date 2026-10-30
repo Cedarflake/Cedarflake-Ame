@@ -8,10 +8,12 @@ pub use crate::application::classification_residency::{
 pub use crate::application::classification_screening::{
     ReviewRecommendation, ScreeningClassifier, ScreeningResult,
 };
+pub use crate::application::classification_verification::verify_classification_source;
 pub use crate::domain::classification::work::{
     ClassificationBacklogPage, ClassificationDispatchCommand, ClassificationDispatchMode,
-    ClassificationDispatchState, ClassificationWorkFailure, ClassificationWorkIssue,
-    ClassificationWorkLease, ClassificationWorkPriority, ClassificationWorkTarget,
+    ClassificationDispatchState, ClassificationVerificationResult, ClassificationWorkFailure,
+    ClassificationWorkIssue, ClassificationWorkLease, ClassificationWorkPriority,
+    ClassificationWorkTarget,
 };
 pub use crate::domain::classification::{
     CategoryDefinition, CategoryId, CategoryScreeningThresholds, ClassificationAction,

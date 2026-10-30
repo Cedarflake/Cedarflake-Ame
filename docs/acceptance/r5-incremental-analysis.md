@@ -33,9 +33,10 @@ the library check. The full root test compile also exhausted compiler memory and
 execution result. Hosted exact-commit checks own the new runtime and migration regressions; no
 workload or assertion was removed. Formatting and whitespace checks passed.
 
-This storage implementation is not yet connected to the desktop dispatcher. Guarded singleton
-verification, feature storage, foreground admission, model setup and shared progress remain part
-of the same R5-04 workflow. No background classification is enabled by this change.
+This storage implementation is not yet connected to the desktop dispatcher. Feature storage,
+foreground admission, model setup and shared progress remain part of the same R5-04 workflow.
+The guarded verification connection is recorded below. No background classification is enabled
+by these internal operations.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -43,3 +44,36 @@ of the same R5-04 workflow. No background classification is enabled by this chan
 | Repository facade | 145 | 0 | 469 admission/publication + 252 recovery |
 | Dispatch / admission / leases / completion | 248 / 241 / 245 / 144 | 0 | Shared repository scenarios |
 | Migration / schema | 108 / 59 | 14 migration fixture helper | 116 migration |
+
+## Guarded per-source verification
+
+The classification workflow now selects its leased catalog source without requiring a same-size
+duplicate peer. It uses the existing root-relative no-recall reader and 256-MiB encoded-source bound.
+The held file and namespace lease spans fingerprint revalidation and the atomic fingerprint,
+gallery/organization membership and task-checkpoint transaction. Existing compatible fingerprints
+retain their original provenance and can complete verification without another media read.
+
+The ordinary exact scanner keeps its peer pruning, run authority, bounded batches and publication
+order. Shared membership publication now accepts the already-validated bounded generation list;
+classification first validates its current task/session/epoch and exact source identity. Its native
+entrypoint reuses the validated catalog-session registry and background write lane. Classification
+verification does not emit or finish the complete duplicate scan's progress.
+
+Six additional database scenarios exercise singleton admission, zero-read evidence reuse, source
+lease retention through commit, rollback of fingerprint/membership/run/checkpoint, pause during
+validation, hash cancellation and changed-source rejection. Existing R3 batch tests retain their
+run-isolation, terminal-authority, bounded-publication and revision/rollback checks.
+
+Production Clippy with `classification-worker` and warnings denied passed in 18.92 seconds outside
+the restricted executor after the native entrypoint was corrected to use the catalog-session owner.
+The restricted attempt exhausted compiler memory. A targeted database-test build then failed to map
+Rust test metadata because Windows reported its pagefile limit (OS error 1455), and was stopped
+without running tests. This is not evidence of an executed regression pass. Exact-commit hosted
+checks retain those scenarios. Formatting and `git diff --check` passed; no originals were opened.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Source verification application / port | 86 / 28 | 0 | 285 database/application integration |
+| Source verification transaction | 132 | 0 | Shared verification scenarios |
+| Exact fingerprint publication | 122 | 0 | Existing source-identity and publication suites |
+| Shared gallery membership / organization publication | 129 / 71 | 0 | Existing batch, grouping and recovery suites |

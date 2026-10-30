@@ -13,6 +13,7 @@ mod completion;
 mod control;
 mod leases;
 mod queue;
+mod verification;
 
 impl ClassificationWorkRepository for SqliteCatalog {
     fn classification_dispatch_state(&self) -> Result<ClassificationDispatchState, ScanError> {

@@ -75,3 +75,10 @@ pub struct ClassificationBacklogPage {
     pub queued_sources: u32,
     pub has_more: bool,
 }
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClassificationVerificationResult {
+    Completed,
+    Cancelled,
+    Superseded,
+}

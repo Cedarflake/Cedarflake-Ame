@@ -5,6 +5,7 @@ use crate::ports::exact_duplicates::ExactDuplicateRepository;
 use super::*;
 
 mod recovery;
+mod verification;
 
 fn start(catalog: &mut SqliteCatalog) -> (ClassificationRun, ClassificationRecordId) {
     let run = setup(catalog);

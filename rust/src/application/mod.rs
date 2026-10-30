@@ -5,6 +5,7 @@ pub(crate) mod classification_decisions;
 pub(crate) mod classification_matching;
 pub(crate) mod classification_residency;
 pub(crate) mod classification_screening;
+pub(crate) mod classification_verification;
 mod directory_synchronization;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;

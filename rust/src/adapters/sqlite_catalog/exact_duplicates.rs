@@ -18,8 +18,8 @@ use super::{
     stored_file_identity, unix_time_ms,
 };
 
-mod gallery_publication;
-mod publication;
+pub(super) mod gallery_publication;
+pub(super) mod publication;
 pub(super) mod queries;
 
 impl ExactDuplicateRepository for SqliteCatalog {
@@ -114,7 +114,7 @@ impl ExactDuplicateRepository for SqliteCatalog {
             return Ok(false);
         }
         transaction.commit().map_err(database_error)?;
-        Ok(accepted)
+        Ok(accepted == publication::FingerprintPublication::Published)
     }
 
     fn load_duplicate_groups(
