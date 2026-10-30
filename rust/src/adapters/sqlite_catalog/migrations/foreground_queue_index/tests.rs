@@ -75,6 +75,19 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                     .expect("new index definition")
             );
             let mut after = retained_rows(&catalog.connection);
+            assert_eq!(after.remove("gallery_search_documents"), Some(Vec::new()));
+            assert_eq!(after.remove("gallery_search_terms"), Some(Vec::new()));
+            catalog.connection.execute_batch(
+                "INSERT INTO gallery_search_terms(gallery_search_terms) VALUES ('integrity-check');",
+            ).expect("derived text index remains internally consistent");
+            for table in [
+                "gallery_search_terms_config",
+                "gallery_search_terms_data",
+                "gallery_search_terms_docsize",
+                "gallery_search_terms_idx",
+            ] {
+                assert!(after.remove(table).is_some(), "{table}");
+            }
             assert_eq!(
                 after.remove("library_journal_scope_recoveries"),
                 Some(Vec::new()),

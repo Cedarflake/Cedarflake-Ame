@@ -26,6 +26,20 @@ The exact-head hosted checks and the affected desktop search interaction remain 
 integrated acceptance. These adapter checks do not establish metadata extraction, structured filter
 controls, real-library search latency or complete R5 acceptance.
 
+### Retained migration compatibility
+
+Hosted run 41005834851 on `76653f32` exposed nine failures in the schema/queue partition.
+Recovery admission still capped the unchanged inventory/live-gap contracts at schema 60, an old
+version-16 fixture omitted the source path column, and the version-33 preservation comparison
+did not account for the new derived FTS tables. The repair binds the compatibility horizon to the
+current admitted schema while retaining the exact DDL/marker checks and rejection of future
+versions. The fixtures retain complete path structure and separately validate the empty FTS index
+before comparing all pre-existing rows.
+
+Focused working-tree diagnosis passed 17 `current_schema_` checks, the version-16 upgrade, and the
+version-33 retained-row upgrade/reopen check. These checks ran alongside the in-progress camera
+metadata extension; hosted verification of the committed repair remains separate.
+
 ## Synthetic cost sample
 
 One local unoptimized Rust diagnostic used 10,001 synthetic catalog locations in temporary storage.

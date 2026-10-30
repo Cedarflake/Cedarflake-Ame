@@ -68,6 +68,7 @@ fn migrates_v16_without_losing_existing_catalog_rows() {
                width INTEGER NOT NULL DEFAULT 0,
                height INTEGER NOT NULL DEFAULT 0,
                root_id TEXT NOT NULL,
+               absolute_path TEXT NOT NULL,
                relative_path TEXT NOT NULL,
                scan_id TEXT NOT NULL,
                location_id TEXT NOT NULL,
