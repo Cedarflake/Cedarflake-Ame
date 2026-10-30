@@ -262,7 +262,11 @@ informs R5-02 admission; functional, license, runtime, and resource gates remain
 | R5-06 | [Desktop classification review](plans/r5-classification.md#r5-06-desktop-classification-review) | Approved sidebar/photo-wall/viewer controls, batch review, continuation, and shared feedback |
 | R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured human-work reduction, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
 
-R5-01 is the authorized first implementation slice. R4 classification-independent
+R5-01 is in progress. Its first change connects indexed literal path search under
+[ADR 0032](architecture/0032-indexed-catalog-text-search.md), with
+[focused migration/query evidence](acceptance/r5-metadata-search.md). Metadata admission,
+structured predicates, desktop interaction and integrated checks remain in this slice.
+R4 classification-independent
 decisions remain the baseline. Model quality and dependency admission are resolved before dependent
 inference work; unknown thresholds and resource limits are measured outputs, not invented acceptance.
 R6 through R10 retain their order. The separate rendering follow-up below remains independent.

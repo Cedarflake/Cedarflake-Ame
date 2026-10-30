@@ -36,6 +36,7 @@ Use a stage PR and exact-head checks before requesting merge; merging requires e
 | [Organization decisions](../architecture/0030-durable-organization-decisions.md) | Reuse guarded whole-group targeting and durable lineage/field revisions without storing classification in album state. |
 | [Portable archives](../architecture/0031-portable-organization-archives.md) | Version new decision records and preserve old archive readers, validation, and atomic restoration. |
 | [Gallery query port](../../rust/src/ports/gallery_query.rs) | Keep pages, counts, layout, search, selection, and viewer scopes coherent and bounded. |
+| [Indexed text search](../architecture/0032-indexed-catalog-text-search.md) | Preserve literal path matching through the shared query while keeping FTS data rebuildable from catalog rows. |
 | [Organization review domain](../../rust/src/domain/organization_review.rs) | Reuse continuation principles; existing organization sessions do not already implement classification review. |
 | [Workspace navigation](../architecture/0029-functional-workbench-navigation.md) | Retain primary navigation, ordinary reset rules, and the organizing Library's retained state. |
 | [Invariant-owned modules](../architecture/0025-invariant-owned-workflow-modules.md) | Give inference, category projection, review authority, and recovery cohesive owners before extending shared facades. |

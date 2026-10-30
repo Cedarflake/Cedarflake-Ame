@@ -81,18 +81,7 @@ pub(super) fn push_location_filters(
             parameters.push(Value::Text(folder));
         }
     }
-    let search = query.search_text.trim();
-    if !search.is_empty() {
-        clauses.push(
-            "(instr(lower(locations.absolute_path), lower(?)) > 0 OR \
-             instr(lower(locations.relative_path), lower(?)) > 0)"
-                .to_owned(),
-        );
-        parameters.extend([
-            Value::Text(search.to_owned()),
-            Value::Text(search.to_owned()),
-        ]);
-    }
+    super::search::push_text_filter(&query.search_text, clauses, parameters);
 }
 
 pub(super) fn push_membership_filters(

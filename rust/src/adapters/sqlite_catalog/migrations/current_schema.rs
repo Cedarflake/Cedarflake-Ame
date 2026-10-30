@@ -212,6 +212,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 60 {
         super::organization_admission_clock::validate(connection)?;
     }
+    if schema_version >= 61 {
+        super::gallery_search::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

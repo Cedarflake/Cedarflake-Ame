@@ -46,3 +46,4 @@ Recorded decisions:
 - [ADR 0029: Functional workbench navigation](0029-functional-workbench-navigation.md)
 - [ADR 0030: Bind durable organization decisions to content lineages](0030-durable-organization-decisions.md)
 - [ADR 0031: Stream portable organization archives from a committed snapshot](0031-portable-organization-archives.md)
+- [ADR 0032: Preserve literal gallery search with an FTS5 candidate index](0032-indexed-catalog-text-search.md)

@@ -11,6 +11,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [Quality gates](quality-gates.md) | Canonical commands, workload admission, hosted/client boundaries, and authorization requirements |
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
 | [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |
+| [R5 metadata and search](r5-metadata-search.md) | Indexed literal-search migration, compatibility, synthetic cost, and remaining integrated verification |
 | [Notification templates](notification-feedback.md) | Shared bottom feedback and compact viewer top notices, interaction checks and ownership |
 | [Image rendering](image-rendering.md) | Original sampling, cropped preview detail, card sizes and row-packing verification |
 | [Maintainability refactor](maintainability-refactor.md) | Scoped behavior-preservation checks and physical ownership measurements for the maintenance branch |

@@ -40,6 +40,7 @@ pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
 mod foreground_scan_capture;
 mod gallery_duplicates;
+mod gallery_search;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 pub(super) mod journal_contract;
@@ -156,6 +157,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         sidebar_order::migrate_transaction(&transaction)?;
         preferred_copy_index::migrate_transaction(&transaction)?;
         organization_admission_clock::migrate_transaction(&transaction)?;
+        gallery_search::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -255,6 +257,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             57 => sidebar_order::migrate(connection)?,
             58 => preferred_copy_index::migrate(connection)?,
             59 => organization_admission_clock::migrate(connection)?,
+            60 => gallery_search::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

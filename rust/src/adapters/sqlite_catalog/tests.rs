@@ -20,5 +20,6 @@ mod scan_publication;
 mod session_validation;
 mod source_reconciliation;
 mod support;
+mod text_search;
 mod time_anchor_window;
 mod write_admission;

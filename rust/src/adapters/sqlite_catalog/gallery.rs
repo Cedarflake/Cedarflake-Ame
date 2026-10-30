@@ -12,6 +12,7 @@ pub(super) mod organization_queue;
 pub(super) mod retained_membership;
 pub(super) mod review;
 mod scroll_sections;
+mod search;
 pub(super) mod selection;
 mod time_anchor;
 mod timeline;
