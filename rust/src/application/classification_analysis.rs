@@ -29,6 +29,9 @@ pub fn analyze_classification_content<C: ResidencyClock>(
     if cancelled.load(Ordering::Acquire) {
         return Ok(ClassificationAnalysisResult::Cancelled);
     }
+    let Some(_admission) = super::background_analysis::shared().acquire(cancelled)? else {
+        return Ok(ClassificationAnalysisResult::Cancelled);
+    };
     let mut catalog = super::catalog_session::open_catalog(
         database_path,
         crate::domain::LibraryChangeLane::Recovery,

@@ -62,6 +62,16 @@ catalog transaction and be reused by the next admitted attempt; it carries no co
 decision authority. Physical reads, model work and feature-cache transactions never hold the catalog
 transaction. Foreground scheduling and automatic retry remain the dispatcher owner's responsibility.
 
+Native exact-source verification and content inference share one application-owned background slot.
+Admission is FIFO at each file/content boundary, so a classification task can run between exact
+duplicate reads while the global duplicate scan continues. At most eight callers may wait; waiters
+observe cancellation every 25 ms and never acquire a source or database transaction while waiting.
+The exact-reader capability retains admission through fingerprint publication and drops its held
+source before releasing the slot. Content execution acquires admission before opening its catalog
+session and retains it through source retirement. Cancellation does not release another task's slot
+or change durable manual intent. Foreground signals and model/text preparation still require their
+dispatcher integration; this slot does not itself enable classification.
+
 Requested scope, new content and backlog use a seven-slot weighted admission cycle: requested,
 requested, new, requested, new, requested, backlog. Empty lanes are skipped. Ready work within a lane
 uses arrival/retry time and stable work identity. This bounds starvation without assigning a worker

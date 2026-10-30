@@ -1,4 +1,5 @@
 mod authoritative_library_changes;
+mod background_analysis;
 mod catalog_reclamation;
 mod catalog_session;
 #[cfg(any(all(windows, feature = "classification-worker"), test))]

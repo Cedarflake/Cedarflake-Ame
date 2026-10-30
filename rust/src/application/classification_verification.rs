@@ -22,13 +22,11 @@ pub fn verify_classification_source(
         database_path,
         crate::domain::LibraryChangeLane::Recovery,
     )?;
-    verify(
-        &mut catalog,
-        &crate::adapters::GuardedExactContentReader,
-        lease,
-        now_unix_ms,
-        cancelled,
-    )
+    let reader = super::background_analysis::AdmittedExactContentReader::new(
+        crate::adapters::GuardedExactContentReader,
+        super::background_analysis::shared(),
+    );
+    verify(&mut catalog, &reader, lease, now_unix_ms, cancelled)
 }
 
 pub(crate) fn verify(

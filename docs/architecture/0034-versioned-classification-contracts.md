@@ -128,6 +128,11 @@ bytes, applies EXIF orientation, converts to RGB8 before Triangle resampling and
 tensor. The image-pipeline revision binds this implementation; tensors prepared by another resize
 implementation do not silently share its feature cache or screening profile. Reuse of the exploratory
 Pillow calibration requires a measured native-input comparison, without retuning against its holdout.
+The [fixed-policy comparison](../acceptance/r5-calibration.md#native-image-input-comparison) retains
+the numerical cutoffs as a native-input integration candidate with a distinct pipeline revision.
+The decoder's GIF first frame uses a transparent canvas outside its encoded rectangle; conversion to
+RGB therefore differs from Pillow's palette-background fill in that region. This behavior remains
+part of the versioned native input and is covered by a partial-frame fixture.
 Decode admission bounds encoded content to 256 MiB, either dimension to 16,384, decoded area to
 16,777,216 pixels and decoder allocation to 128 MiB. I/O checks cancellation, with additional checks
 between decode, orientation, resize and encoding. Inputs outside these limits produce a per-item issue.

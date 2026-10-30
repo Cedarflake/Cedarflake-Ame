@@ -62,6 +62,23 @@ fn first_gif_frame_is_used_and_formats_are_identified_from_bytes() {
 }
 
 #[test]
+fn partial_gif_frame_uses_transparent_canvas_outside_its_frame() {
+    // The two-pixel frame starts one pixel into a four-pixel logical screen.
+    let mut bytes = b"GIF89a".to_vec();
+    bytes.extend_from_slice(&[
+        4, 0, 1, 0, 128, 0, 0, 255, 0, 0, 0, 0, 255, 33, 249, 4, 1, 0, 0, 0, 0, 44, 1, 0, 0, 0, 2,
+        0, 1, 0, 0, 2, 2, 68, 10, 0, 59,
+    ]);
+    let pixels = prepare(Cursor::new(bytes), &AtomicBool::new(false)).unwrap();
+    for color in 0..3 {
+        assert_eq!(channel(&pixels, 0, 0, color), -1.0);
+        assert_eq!(channel(&pixels, 223, 223, color), -1.0);
+    }
+    assert!(channel(&pixels, 84, 112, 0) > 0.95);
+    assert!(channel(&pixels, 140, 112, 2) > 0.95);
+}
+
+#[test]
 fn exif_rotation_precedes_resize() {
     let image = RgbImage::from_fn(80, 40, |x, _| {
         if x < 40 {

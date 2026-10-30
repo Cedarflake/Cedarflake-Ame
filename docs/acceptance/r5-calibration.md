@@ -168,6 +168,54 @@ The production Rust matcher and category-aware screening owner reproduce all 192
 review-band and refinement outcomes from the cached features. This parity check includes excluded
 samples only for numerical correspondence; they remain excluded from the quality denominator.
 
+## Native image-input comparison
+
+The native RGB8/Triangle input from `7a4e257a` was compared against the retained category-aware
+cohort with the same sealed labels, descriptions, numerical policy and pinned model graphs. No
+threshold was fitted and no new untouched-holdout result is claimed. Source digests and Windows
+identities matched all 192 fixed inputs. Native admission decoded 189; three exceeded the existing
+16,777,216-pixel limit. Those three remain explicit analysis failures, reducing the 171 eligible
+groups to 168 comparable groups with 155 definite references. Their absence is a coverage loss,
+not a correct prediction.
+
+| Paired observation on the same 168 groups | Retained Pillow input | Native input |
+| --- | ---: | ---: |
+| Definite-reference agreement | 133/155 | 133/155 |
+| Optional checks | 28 | 28 |
+| Automatic refinements | 0 | 1 |
+| Definite errors inside optional checking | 10 | 10 |
+| Definite errors outside optional checking | 12 | 12 |
+
+Two suggestions change: one screenshot-to-meme change agrees with its provisional reference, while
+one meme-to-illustration change loses agreement. Review flags are unchanged. Minimum paired feature
+cosine is 0.98593109 and median cosine is 0.99993449. These observations support retaining the frozen
+numerical cutoffs as an initial-screening integration candidate under the native pipeline revision;
+they establish neither bit equivalence nor a new high-confidence accuracy claim. The reference-label
+authority, small-category coverage and human-time limitations above continue to apply.
+
+The largest pixel difference belongs to a partial-frame GIF. Its encoded rectangle occupies
+`(63, 52)–(449, 455)` of a 512-by-512 logical canvas. Pillow retains palette-background RGB outside
+that rectangle, while the native decoder initializes it to transparent zero. Giving both the same
+canvas reduces their maximum channel difference to one 8-bit level; the suggestion remains unchanged.
+A synthetic partial-frame GIF now covers this native behavior alongside the existing orientation,
+alpha, first-frame, format, limit and cancellation fixtures. All six pixel tests pass in 0.20 seconds.
+
+Preparation read 192 local-primary inputs and 252,462,778 bytes without source mutation or placeholder
+hydration. Three bounded diagnostic rereads of the same GIF added 36,807 bytes. Only one temporary
+encoded image existed at a time; it was retired before the next input. Prepared tensors and aggregate
+comparison results remain outside source trees and Git. Preparation took 594.05 seconds in a Debug
+helper that includes process startup and unbuffered tensor serialization; this is not a production
+decode-throughput result. The existing admitted native worker encoded 189 tensors in 232.58 seconds
+and exited cleanly. It receives prepared pixels and opens no original media.
+
+The pixel-owner SHA-256 is
+`5ec3f83e5d66f122d2304c98f268cc7275382243fc0c54555c75cf82c246170b`;
+the numerical worker retains digest
+`2c63587eec11339617e7f050ca4c1584243e85831e2b2a9561487774aac2e2ea`.
+This comparison reuses the admitted model graphs through their old worker handshake; validation of
+the rebuilt current caller/worker pair remains part of runtime integration. The native pipeline has
+its own compatibility identity and cannot relabel prior cached image features.
+
 ## Application boundary
 
 The application exposes version-bound profiles, cached-feature first-pass/refinement evidence and

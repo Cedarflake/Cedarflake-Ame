@@ -504,13 +504,16 @@ fn cancellation_during_prediction_insert_rolls_back_the_completed_checkpoint() {
     let lease = claimed(&mut catalog, &session);
     let cancelled = std::sync::Arc::new(AtomicBool::new(false));
     let hook_cancelled = cancelled.clone();
-    catalog.connection.update_hook(Some(
-        move |_: rusqlite::hooks::Action, _: &str, table: &str, _: i64| {
-            if table == "classification_predictions" {
-                hook_cancelled.store(true, Ordering::Release);
-            }
-        },
-    ));
+    catalog
+        .connection
+        .update_hook(Some(
+            move |_: rusqlite::hooks::Action, _: &str, table: &str, _: i64| {
+                if table == "classification_predictions" {
+                    hook_cancelled.store(true, Ordering::Release);
+                }
+            },
+        ))
+        .unwrap();
     let observed = Rc::new(Observed::default());
     let reader = Reader {
         database: directory.path().join("catalog.sqlite3"),

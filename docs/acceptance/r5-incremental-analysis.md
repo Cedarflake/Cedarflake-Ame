@@ -135,6 +135,9 @@ inference, concurrent pause/source replacement, failed source validation, checkp
 and cancellation during the final transaction. Two real Windows source-capability cases cover Chinese
 paths, wrong extensions, read-only file/namespace retention and exact-hash fallback when the revision
 is uncertain. These cases await the new head's hosted execution; no local database pass is claimed.
+The first integrated build exposed a missing test-type import, corrected in `3bb51c89`. That head's
+Static job then rejected an unchecked `update_hook` result in the cancellation fixture. Registration
+now must succeed before the fixture proceeds; the injected cancellation and rollback assertions remain.
 
 Five decoder tests passed in a focused single-process probe in 0.13 seconds, with no compiler warnings
 in the corrected probe. Its decoder and test files match the production files byte-for-byte. It covers
@@ -147,9 +150,10 @@ Six synthetic PNG inputs compare native preprocessing with Pillow 12.3.0 bilinea
 224-by-224 input matches exactly; the other five differ by at most one 8-bit channel level, with mean
 absolute differences from 0.07446 to 0.19791 levels. The image-pipeline revision now binds the native
 RGB8/Triangle implementation, leaving text compatibility unchanged. This establishes a numerical
-difference, not classification equivalence. Native-input comparison against the retained calibration
-cohort remains required before activating its calibrated profile. These probes read no original media,
-download no dependencies or models, and modify no source media.
+difference, not classification equivalence. The subsequent
+[frozen-policy native-input comparison](r5-calibration.md#native-image-input-comparison) records
+the retained cohort's result and decoder-coverage limits. The six synthetic probes read no original
+media, download no dependencies or models, and modify no source media.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -158,5 +162,26 @@ download no dependencies or models, and modify no source media.
 | Analysis publication transaction | 84 | 0 | 547 database/application integration |
 | Existing local-file owner | 2,629 unchanged | 3,452; twelve exact-roster lines added | Existing availability suites plus adapter loading rejection |
 
-The integrated dispatcher, foreground resource admission, native-input calibration comparison and
-desktop enablement remain in R5-04. The entrypoint alone does not enable automatic analysis.
+## Shared background admission
+
+Native exact verification and classification content execution now share one FIFO slot per file or
+content task. Admission is released after the held source, including failed publication/revalidation.
+A waiting classification task therefore precedes the duplicate scanner's next source; it does not
+wait for the whole scan. Cancellation removes only the waiting request. The bounded queue rejects a
+ninth waiter and never retires an active owner's source on another request's behalf.
+
+The six focused checks pass in 0.07 seconds: FIFO handoff, cancellation while another task owns the
+source, queue saturation/drain, pre-cancellation/error cleanup, source-before-slot retirement and an
+additional reader failure probe. Five tests reside with the production owners. The diagnostic entry
+uses byte-identical owner/test files with minimal domain/port fixture declarations; compiler warnings
+are denied. It establishes these concurrency and lifetime rules, while the whole-repository types,
+application entrypoints and retained R3 behavior remain covered by the current-head hosted gate.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Shared background admission / admitted exact reader | 94 / 58 | 0 | 116 / 52 |
+| Content execution / source verification | 166 / 84 | 0 | Existing database/application suites |
+| Existing exact-analysis facade | 220 | 0 | Existing exact-analysis suites |
+
+The integrated dispatcher, foreground signals, model/text preparation admission and desktop enablement
+remain in R5-04. The native slot and execution entrypoints alone do not enable automatic analysis.
