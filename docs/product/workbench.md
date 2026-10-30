@@ -58,8 +58,11 @@ file count or gallery feature breadth. Each applicable stage records:
   state are scopes or display conditions, not peer tabs or nested pages.
 - The gallery has no visible pagination. The UI uses continuous lazy rendering while the backend
   uses bounded cursor windows.
-- The right scrollbar is also a year/month timeline navigator.
-- The left sidebar owns navigation and source scope only. Duplicate review is not a sidebar entry.
+- The shared right scroll rail follows the active sort: dates show time ranges, names show letter
+  ranges, and organization-only new-first order retains its admitted-range annotation.
+- The primary function rail selects Library, Albums, and Duplicates, with Settings below, under
+  [ADR 0029](../architecture/0029-functional-workbench-navigation.md). The secondary Library sidebar
+  owns source folders; Albums owns Favorites, manual albums, and R5 smart-album results.
 - Gallery operations live in the upper-right contextual action area.
 - Selecting one or more items replaces browsing actions with selection-specific actions.
 - Exact duplicate display is distinct from perceptual and semantic similarity.
@@ -68,13 +71,15 @@ file count or gallery feature breadth. Each applicable stage records:
 - Common-type classification follows durable human-decision and review-session foundations. Model
   quality, confidence calibration, and sampling evidence must be evaluated against the real target
   library before high-confidence predictions can reduce the review queue.
-- Classification result groups are derived smart-album projections, not ordinary user albums.
-  Users cannot create, delete, rename, or directly edit smart-album membership, but they can correct
-  an asset's effective category through a durable `UserOverride`; the projection then updates from
-  that effective result.
+- Classification result groups appear under `智能相册` as derived effective-category projections.
+  Users confirm or correct a complete group's category through durable intent; this recomputes the
+  result without editing manual-album membership. [R5 requirements](r5-classification.md) own taxonomy,
+  review, source lifecycle, and recovery. Smart albums have no user-managed membership list.
 - A high-confidence prediction may be displayed by default or selected for sampling, but it is not
   recorded as a user-confirmed decision. Model evidence, user intent, the effective category, and
   review status remain distinct.
+- `待确认` is a classification review filter, not a category or R4 organization state. Confirmation
+  and correction do not mark organization complete; manual-album assignment retains that effect.
 - Review is a resumable productivity workflow with a stable query, cursor, progress, keyboard
   actions, undo, and cross-restart continuation. It is not a temporary selection mode or a generic
   background task entry.
@@ -165,22 +170,23 @@ may serve as benchmarks or fallbacks but are not automatically preferred over ma
 
 - Do not start a later stage to avoid finishing the active stage's difficult acceptance criteria.
 - Do not treat a static UI, mock data, compilation, or a screenshot as a completed vertical slice.
-- Do not add a control to the production shell before its use case is connected; confirmed controls
-  may be exercised with deterministic fixtures only in the explicit R2a prototype surface.
+- Do not add a control to the production shell before its use case is connected. Isolated interaction
+  sketches may explore later-stage controls with sample content; they are not production or
+  functional-acceptance evidence.
 - Do not add a navigation entry for an unavailable future feature.
-- Do not place duplicate review in the sidebar.
-- Do not add a standalone duplicate toolbar action; exact duplicate display and review belong to
-  the gallery filter menu.
+- Do not place duplicate review in the secondary source/album sidebar. Its dedicated primary
+  destination follows ADR 0029; exact-duplicate display remains in the gallery filter menu.
 - Do not add video media filters until video indexing is accepted and connected end to end.
 - Do not expose internal storage, task, database, adapter, or analysis vocabulary in ordinary
   settings.
 - Do not mix English placeholder text into the initial Simplified Chinese UI or introduce a language
   selector before formal i18n scope is accepted.
 - Do not turn classification, similarity, or search into separate competing gallery applications.
-- Do not expose classification, category filters, smart albums, or model placeholders before R5.
-- Do not represent classification as an ordinary filter or editable album membership. R5 smart
-  albums are derived `EffectiveCategory` projections over current trustworthy catalog, compatible
-  model evidence, and durable user overrides.
+- Do not expose classification, category filters, smart albums, or model placeholders before their
+  R5 use cases are connected. Approved sketches are not evidence of implementation availability.
+- Smart-album/category and review-status query predicates may compose with ordinary filters. Their
+  authority remains a derived `EffectiveCategory` projection over trustworthy catalog state,
+  compatible model evidence, and durable user decisions, not editable album membership.
 - Do not let users create, delete, rename, add to, or remove from a smart album result group.
 - Do not interpret that membership rule as a ban on category correction. Users correct category
   authority through `UserOverride`, and the derived projection must follow the effective result.

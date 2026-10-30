@@ -1,6 +1,6 @@
 # Organization workflow requirements
 
-Status: planned product scope, not implementation or acceptance evidence.
+Status: stage product requirements; implementation and acceptance status belong to the roadmap.
 
 The [roadmap](../roadmap.md#delivery-sequence) alone selects delivery order and the active stage.
 These requirements retain the complete R3–R10 outcomes, exclusions, and acceptance boundaries without
@@ -58,7 +58,7 @@ Scope:
   content-change reconciliation;
 - organization mode entered from the existing gallery, stable continuation, new groups at the queue
   front, and the [accepted desktop controls](gallery-ui.md#review-workflow);
-- durable decisions and `UserOverride` infrastructure, transactional progress, undo, migrations,
+- durable album/Favorite decisions, transactional progress, undo, migrations,
   export/restoration, explicit source-removal cleanup, and manual unresolved-record cleanup.
 
 R4 does not yet invent model predictions. It establishes the durable authority and review mechanics
@@ -68,48 +68,25 @@ that prevent later automation from being mistaken for human confirmation.
 
 User outcome:
 
-Ame processes the bulk of common image understanding, publishes calibrated primary-category
-predictions, and asks the user to review only sampled, uncertain, conflicting, or failed results.
-The user can correct categories quickly, close the application, and continue from the same durable
-review session later.
-
-Primary taxonomy:
-
-- photo;
-- anime or illustration;
-- screenshot;
-- meme or reaction image;
-- document image;
-- design asset;
-- other;
-- needs review.
+Ame extracts useful metadata, publishes calibrated primary categories into `智能相册`, and helps
+the user confirm or correct groups in batches. [R5 requirements](r5-classification.md) own the full
+taxonomy, model admission, review, recovery, resource, and acceptance boundaries; the
+[execution plan](../plans/r5-classification.md) follows the roadmap's implementation sequence.
 
 Scope:
 
-- supported metadata extraction through admitted adapters, including capture evidence, dimensions,
-  camera or basic metadata where trustworthy, and no embedded metadata writes;
-- SQLite FTS5 and bounded structured search over filename, path, date, type, size, source, album,
-  category, and supported metadata;
-- written model and runtime admission evidence, local inference, bounded model storage, immutable
-  analysis runs, model provenance, versioned parameters, confidence, and failure evidence;
-- separate `ModelPrediction`, `UserOverride`, `EffectiveCategory`, and `ReviewStatus` persistence;
-- confidence bands calibrated against the target library rather than hard-coded assumptions: high
-  confidence may reduce routine review but remains eligible for sampling, medium and low confidence
-  enter review, and conflicts or analysis failures receive explicit queues;
-- compatible analysis reuse for byte-identical content without coupling user decisions to an
-  absolute path or silently copying an override to unrelated content;
-- effective-category smart albums derived atomically from the current compatible model run and
-  durable overrides;
-- keyboard-first individual and safe batch review, accept-model, category correction, defer, undo,
-  progress, estimated remaining work, and cross-restart continuation through R4's `ReviewSession`;
-- bounded analysis of newly indexed or invalidated assets without rebuilding every result group;
-- reanalysis that preserves older model evidence for traceability and never erases user intent;
-- no face recognition, identity naming, or automatic file operation.
+- metadata extraction and FTS5/structured search through bounded, source-preserving adapters;
+- admitted local models, calibrated confidence, immutable analysis evidence, and bounded execution
+  on the two-core/8-GiB baseline;
+- separate predictions, human category decisions, effective categories, and classification review;
+- derived smart albums under Albums, sharing the gallery/viewer and independent of manual membership;
+- whole-group confirmation/correction, sampling, deferred review, undo, and durable continuation;
+- incremental compatible analysis reuse, group reconciliation, and versioned decision recovery.
 
-R5 acceptance records coverage and error evidence per confidence band, sampled high-confidence
-quality, the remaining human-review count, review throughput, override survival after reanalysis,
-and source preservation. Success is reduced trustworthy human work, not a large headline number of
-automatically labelled images.
+`待确认` is a review filter, not a primary category. Confirmation does not complete R4 organization;
+manual-album assignment remains the operation that does. R5 has its own classification session and
+bookmark while reusing R4's guarded commands and continuation principles. Acceptance measures
+category/band quality, remaining human work, review throughput, recovery, and source preservation.
 
 ## R6 - Perceptual similarity review
 

@@ -22,9 +22,14 @@ recovery and manual cleanup before closing R4. Migration backup and source-remov
 to the first affected slices; they are not deferred to the final recovery screen.
 
 R4 changes Ame-owned records only. Preserve original media, cloud-placeholder behavior and the
-delivered R2c/R3 browsing and synchronization boundaries. Automatic classification, perceptual
-similarity and physical file operations remain in their later stages. No separate review workspace,
-mobile layout, new startup-wide hash pass or second source copy is part of this plan.
+delivered R2c/R3 browsing and synchronization boundaries. Classification and `智能相册` follow the
+[R5 plan](r5-classification.md); perceptual similarity and physical file operations retain their
+later stages. No separate review workspace, mobile layout, new startup-wide hash pass or second
+source copy is part of this plan.
+
+R4's [R5 boundary](../product/r4-organization.md#boundary-with-r5-classification) distinguishes manual
+album membership and organization progress from category results and review. Reuse this completed
+foundation without adding classification decisions to R4's state fields or reopening its delivery.
 
 ## Original starting points
 
@@ -211,17 +216,18 @@ Work in this order within the slice:
    scroll rail in both modes. Date sorts keep the complete time annotations and navigation; name
    sorting supplies letter ranges. `新加入优先` marks the range first admitted after the current
    mode entry, retaining that boundary until exit.
-5. Put defer and album actions on the same contextual action row. Successful album assignment
-   completes work; the organization-mode viewer advances only after commit. Add the accepted ignore
-   actions without adding manual completion or a separate new-items tab. Keep chronological undo and
-   redo in More, including operations on previously viewed groups. Use the bottom album tray with
-   a deselectable single destination, ignore/defer actions and state-aware Favorite/album commands.
+5. Keep album actions in the contextual action row. Put `稍后整理` and ignore in More only during
+   organization mode, with `取消稍后整理` and `取消忽略` when applicable. Successful manual-album
+   assignment completes organization; the organization-mode viewer advances only after commit.
+   Keep chronological undo and redo in that mode's More menu, including previous-group operations.
+   Use the bottom album tray with a deselectable single manual-album destination; its ignore/defer
+   actions also appear only in organization mode. Retain state-aware Favorite and album commands.
 6. Make album conflicts persistently discoverable in `稍后整理`, with the involved albums and a
    destination choice. Coalesce background notices, retain conflicts after notice dismissal and
    clear them only after a valid resolution commits.
 7. Complete keyboard/focus, undo, busy/save failure, empty queue, unavailable item and cross-restart
-   interactions. Reserve space for the dock, and verify supported desktop widths, text scaling and
-   reduced motion without changing the accepted narrow-window rules.
+   interactions. Verify the two-row header transition, unchanged bottom feedback placement, supported
+   desktop widths, text scaling, and reduced motion under the accepted narrow-window rules.
 
 Exit conditions:
 
@@ -303,13 +309,11 @@ Work:
 4. Verify the real desktop interactions under the existing UI verification map and the applicable
    hosted checks for the exact implementation commit. Record results and remaining gaps in an R4
    acceptance record when implementation evidence exists.
-5. Upgrade the pinned Flutter toolchain to a stable release supporting Windows Impeller. Preserve the
-   previous SDK revision for rollback and keep local and hosted pins consistent. Build a complete
-   matched Release runtime; verify real pixels, gallery/viewer transitions, window lifecycle and
-   image I/O scheduling on local-primary and cloud-primary before comparing frame cost and memory.
-   Adopt Impeller after the stable Release candidate passes these checks; retain Skia when an
-   unresolved display, interaction or performance regression remains. Reuse prior catalog and source
-   safety evidence where inputs are unchanged.
+5. Preserve the completed SDK/renderer decision in
+   [ADR 0001](../architecture/0001-flutter-rust-desktop-stack.md#windows-sdk-and-renderer): Flutter
+   3.47.8 with explicit Skia. The stable-SDK comparison and real-pixel evidence are retained in the
+   linked acceptance record. This reference plan does not schedule another renderer switch or
+   repeat the completed comparison; a future change follows that ADR's measured replacement boundary.
 6. Update the roadmap's exit decision only after the complete product contract is demonstrated.
    Preserve the frozen R2c/R3 regressions without replaying unrelated milestone acceptance.
 
@@ -319,11 +323,12 @@ linked evidence; follow the [deferred scope](../roadmap.md#deferred-constrained-
 instead of repeating completed integration checks. This changes the delivery boundary, not the
 product's organization, recovery or original-media requirements.
 
-## Implementation handoff
+## Maintenance and later-stage handoff
 
-Resume the slice selected by the roadmap. Recover current user decisions and Git state, read the
-relevant ADRs, and inspect the actual owners before edits. Use the R4 development branch and apply
-the repository's commit rules to each independently reversible outcome. The
+R4's implementation sequence is a retained reference. Follow the current roadmap for maintenance
+or later-stage work; do not resume a completed slice or recreate its retired development branch.
+Recover current user decisions and Git state, read the relevant ADRs, inspect the actual owners,
+and apply the repository's branch/commit rules to the new scope. The
 [organization ADR](../architecture/0030-durable-organization-decisions.md) owns the admitted identity,
 transaction and upgrade-backup boundaries.
 

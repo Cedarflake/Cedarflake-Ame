@@ -1,6 +1,6 @@
 # R4 - Virtual organization and resumable review
 
-Status: planned product requirements, not implementation or acceptance evidence.
+Status: retained product requirements; delivery and acceptance status belong to the roadmap.
 
 This document owns R4 behavior and acceptance requirements. The [roadmap](../roadmap.md) selects
 delivery order and implementation status; the [gallery UI contract](gallery-ui.md) owns control
@@ -15,8 +15,8 @@ which image groups have been handled and where work stopped. New images join thi
 without resetting earlier work or creating a separate review workbench.
 
 R4 changes only Ame-owned records. It does not move, copy, rename, delete, or write original media,
-hydrate cloud-only files, or require a second source copy. Automatic classification remains R5 work;
-later analysis must preserve the human decisions established here.
+hydrate cloud-only files, or require a second source copy. Classification and `智能相册` belong to
+[R5](r5-classification.md); later analysis preserves the human decisions established here.
 
 ## Albums, Favorites, and duplicate groups
 
@@ -28,10 +28,10 @@ Primary-sidebar switches to Albums, Duplicates or Settings clear ordinary select
 photo wall to the top. An organizing Library retains its mode, queue, position and selection across
 those visits and restores them on return.
 
-An album contains logical image groups. Albums are flat and do not nest. A group has at most one
-confirmed album assignment. Moving it to another album replaces that assignment for the entire
-group. Source folders describe physical locations and do not define album membership or duplicate
-group boundaries.
+In this document, an album means a manual, user-owned album. It contains logical image groups and
+does not nest. A group has at most one confirmed manual-album assignment. Moving it replaces that
+assignment for the entire group. Source folders describe physical locations and do not define
+album membership or duplicate-group boundaries.
 
 Compatible exact-duplicate evidence defines the current group across folders and library roots.
 Until duplicates are identified, each image is a provisional singleton group. Albums always fold
@@ -133,7 +133,7 @@ without undoing unrelated favorites, overwriting newer decisions, or applying to
 content. A failed save leaves the previous committed state available and exposes retry; only a
 successful commit may advance an organization-mode viewer or publish updated completion counts.
 
-Expose `撤销操作` and `重做操作` only in organization mode, in chronological operation order, including
+Expose R4's chronological `撤销操作` and `重做操作` controls only in organization mode, including
 operations on a previously viewed group. They reverse actual committed Favorite, album and
 organization changes rather than resetting the current group to pending. Successive reversals retain compatible
 field-version evidence. A new committed edit after undo starts a new branch and clears redo.
@@ -185,12 +185,35 @@ The [review UI contract](gallery-ui.md#review-workflow) owns the overflow-menu e
 two-row upper-right operation area, continuation button, and contextual actions. R4 targets the desktop
 application and does not introduce a mobile layout.
 
+## Boundary with R5 classification
+
+R5 adds a separate `智能相册` section below manual albums in Albums. Its results derive from category
+authority and use the same gallery/viewer. They do not count as extra manual-album assignments or
+appear in the album tray. Manual albums retain their creation, rename, deletion, ordering, and
+membership controls; classification results follow the [R5 rules](r5-classification.md).
+
+Classification prediction, confirmation, correction, and deferred review do not change R4's
+`待整理`, `稍后整理`, `已整理`, or `已忽略` state. `待确认` describes classification review, not the
+organization queue. Assigning a manual album from any supported view still completes organization;
+removing that assignment still records `已忽略`. Favorite changes remain independent.
+
+Manual albums, Favorites, and smart albums remain ordinary browsing scopes without R4 organization
+mode. R5 classification actions are available in their own review context, including its shared
+photo wall and viewer; this does not expose R4's ignore/defer or chronological undo/redo controls
+outside organization mode. Operation-specific classification undo uses the shared feedback surface.
+
+Classification continuation has its own scope and authority. It cannot overwrite the organizing
+Library's bookmark, retained selection, or mode. R5 extends migrations, portable decision recovery,
+and source-removal/cleanup behavior for its new records; existing R4 archives do not already contain
+classification decisions. Preserve R4's completed behavior while verifying these new boundaries.
+
 ## Persistence, removal, and recovery
 
-Albums, album decisions, favorites, organization states, conflict choices, review progress, undo
-boundaries, and applicable `UserOverride` records are durable user data. Catalog indexes, previews,
-and model evidence remain separately rebuildable. Save each completed operation immediately and
-atomically with its progress/continuation effects; closing the application is not the save trigger.
+Albums, album decisions, favorites, organization states, conflict choices, review progress, and undo
+boundaries are durable user data. R5 adds its own category `UserOverride` records under the same
+preservation principle. Catalog indexes, previews, and model evidence remain separately rebuildable.
+Save each completed operation immediately and atomically with its progress/continuation effects;
+closing the application is not the save trigger.
 The application owns these transactions and reconciliation policies, not presentation code.
 
 | Event | Required treatment |
@@ -234,7 +257,7 @@ pipelines, retaining their source-read, cancellation, and cloud-placeholder safe
 
 ## Acceptance requirements
 
-R4 delivery must demonstrate the following behavior through its eventual implementation and the
+Preserve the following R4 behavior through affected implementation changes and the
 [repository verification workflow](../acceptance/quality-gates.md#delivery-and-verification):
 
 - cross-folder duplicates fold in albums after late identification; folded and unfolded selections

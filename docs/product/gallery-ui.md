@@ -322,11 +322,11 @@ late folding, independent favorites, and assignment rules.
 Selecting an album immediately displays its known name in the content heading. Asynchronous
 metadata loading retains that name; a confirmed rename or removal updates it when the result arrives.
 
-When R5 is functional, the same `相册` navigation area also contains a distinct `智能相册` subsection.
-Its result groups are derived from `EffectiveCategory`, not ordinary album membership. Users cannot
-create, delete, rename, directly add, or directly remove their images, and smart albums never appear
-as targets in the `加入相册` dialog. Correcting a category through `UserOverride` recomputes the
-effective result and therefore moves the asset between derived groups without editing membership.
+When R5 is functional, the same `相册` navigation area contains a distinct `智能相册` section below
+manual albums. Its result groups derive from `EffectiveCategory`, independently of manual-album
+membership. Smart albums have no create, rename, delete, drag-order, or membership-selection controls
+and never appear as targets in the album tray. Category correction recomputes their results through
+durable user intent. The [smart-album workflow](#smart-album-workflow) owns this interaction.
 
 Every imported root is a folder from the user's perspective. Cloud-backed, offline, unavailable,
 or removable-media properties may appear as a row status or badge, but they do not create separate
@@ -367,8 +367,9 @@ connected, its confirmation also explains the affected organization-record clean
 unavailability does not trigger that cleanup, and groups still present in other sources retain
 their valid records. Drawing this menu does not complete the source-removal use case.
 
-Do not place Timeline, Categories, Search, Sort, Filter, Settings, Task Activity, or Duplicate Review
-in the sidebar.
+Do not add Timeline, Categories, Search, Sort, Filter, Settings, Task Activity, or Duplicate Review
+to the Library's source/folder sidebar. The primary function rail retains Albums, Duplicates, and
+Settings under ADR 0029; R5 category collections belong to Albums' `智能相册` section.
 
 ## Unified gallery header
 
@@ -398,8 +399,8 @@ responsibility.
 When the album prompt is enabled, the album action opens a Material bottom sheet with one
 destination before group assignments are changed. The selection toolbar keeps Favorite first and
 More last; ignore and defer appear inside More only in organization mode.
-The organization More menu, including chronological undo and redo, is also limited to organization
-mode. Ordinary selection and viewing omit that menu entirely.
+R4's organization actions in More, including chronological undo and redo, are limited to organization
+mode. Ordinary selection and viewing retain their applicable browsing and later classification actions.
 Preparation lasting over 500 milliseconds uses a progress line below the existing controls without
 inserting text into their row. Short preparation shows no indicator; completion removes it immediately.
 Button bounds stay stable through preparation, tray opening and dismissal.
@@ -1082,7 +1083,7 @@ page, but unavailable rows remain absent from the production shell until connect
 
 ## Explicit current UI exclusions
 
-The current UI prototype and early production shell do not show:
+Until each owning stage connects its complete workflow, the production UI does not show:
 
 - classification, category filters, category pages, classification review, or model status;
 - perceptual or semantic similarity;
@@ -1091,17 +1092,18 @@ The current UI prototype and early production shell do not show:
 - delete, move, copy, rename, recycle-bin, quarantine, or dry-run execution controls;
 - a permanent task center, read-only-validation entry, cache diagnostics, or engineering limits.
 
-Classification remains an R5 feature. It later appears as effective-category smart albums that
-scope the same unified gallery without becoming filter choices, peer gallery applications, or
-editable user albums. Users correct category authority through the review workflow rather than by
-directly editing derived smart-album membership.
+Classification belongs to R5 and appears as `智能相册`, scoping the same gallery through a derived
+effective-category query. Category and review-status predicates compose with existing search and
+filters; the visible collection entry remains in Albums. Users correct category authority rather
+than edit derived membership. The [R5 requirements](r5-classification.md) own that distinction.
 
 ## Review workflow
 
 R4 uses the existing desktop gallery and image viewer. Ordinary browsing is the default. Only the
 Library workspace's upper-right `更多` menu contains `整理模式`: Library covers every configured
 source, while a source or folder selection restricts the queues and counts to that scope, including
-descendants under the existing folder rule. Favorites and albums expose no organization mode.
+descendants under the existing folder rule. Favorites, manual albums, and smart albums expose no
+R4 organization mode.
 Primary-sidebar visits preserve the organizing Library's mode, scope, selection and position for
 its return; Albums itself remains ordinary browsing.
 Entering organization mode reveals its controls and `整理模式` beside the gallery title; the same menu offers
@@ -1163,7 +1165,7 @@ automatically; omit separate `标为已整理`, `保存并完成`, and `完成�
 viewer can advance after the save commits, while the ordinary-mode viewer stays on the current image. Shared progress is
 updated in either mode. Organization-mode actions provide `忽略` where applicable, plus `撤销操作` and
 `重做操作` following committed operation order across groups, with unavailable directions disabled.
-Ordinary viewing and selection omit this organization menu. The history commands replace the
+Ordinary viewing and selection omit these R4 organization actions. The history commands replace the
 current-group `恢复待整理` shortcut. The contextual `取消稍后整理` or `取消忽略` action only clears the
 corresponding current state; it remains distinct from chronological undo. Organization ignore
 remains separate from Duplicates' review ignore.
@@ -1180,3 +1182,86 @@ and durable decisions are owned by [R4 requirements](r4-organization.md), not wi
 Closing the application preserves committed progress; reopening does not infer completion from
 scroll position or later model confidence. Later classification and similarity review reuse these
 foundations through their own product contracts without adding model controls to R4.
+
+## Smart album workflow
+
+R5 uses the existing desktop shell, Material components, photo wall, viewer, and feedback templates.
+The visible section name is `智能相册`. Keep the primary `图库`, `相册`, `去重` order and place the
+section below manual albums in Albums' secondary sidebar. It may collapse as one section; its
+heading opens the all-results scope, and its category rows open the corresponding derived results.
+Favorites remains independent above the manual albums. This adds no primary workspace, dashboard,
+mobile layout, or competing gallery.
+
+### Browsing and review filters
+
+Selecting a category immediately displays its known name, with `智能相册`, result count, and the
+pending-confirmation count in the existing supporting row. The all-results heading is `智能相册`.
+Retain the title during asynchronous loading, using the same ownership rule as manual album names.
+Do not show an intermediate generic title or add a permanent classification-status panel.
+
+Keep Select, Sort, Filter, Layout, and More in their existing upper-right positions. Classification
+state belongs in Filter: `全部结果`, `待确认`, and `已确认`, with the shared dot marker and neutral
+menu icons. `待确认` is not a sidebar category, R4 organization queue, or extra permanent toolbar.
+An item requiring attention can show a compact `待确认` indicator; its accessible detail distinguishes
+uncertainty, sampling, category conflict, and analysis failure. Routine cards do not need confidence
+percentages or repeated model information.
+
+The all-results view keeps unresolved/failed items reachable when they cannot belong to a category.
+Use existing loading, empty, unavailable, retry, and task-feedback surfaces for setup and analysis.
+Short waits do not insert transient wording or shift controls. Background results preserve the
+current image and viewport anchor; a complete replacement query publishes coherently.
+
+Smart-album results always fold confirmed exact duplicates. Their Sort, Layout, right scroll rail,
+selection, and preview use the same bounded gallery behavior. Date sorts retain year/month
+annotations, and name sort retains letter ranges. Organization-only `新加入优先` and the R4 queue
+controls remain in the organizing Library.
+
+### Selection and single-image actions
+
+Selecting images replaces the normal action row with contextual controls. Keep Favorite first and
+More last; retain the manual-album action and selection cancellation. In the classification context,
+add `确认分类` and `更改分类` beside the related image actions. Freeze the selected group/query scope
+before opening a menu or applying a batch. Actions reflect current eligibility rather than claiming
+that missing predictions or category conflicts can be confirmed without a choice.
+
+`更改分类` opens an anchored category menu. Use the same dot selection marker, icon color, sizing,
+keyboard behavior, and focus return as existing menus. A uniform selection marks its current category;
+a mixed selection has no fabricated shared category. Choosing a category explicitly corrects the
+selected groups; confirming a mixed prediction batch accepts each group's own eligible prediction.
+Changing a category counts as classification confirmation, without an extra Save or Mark done step.
+
+The viewer places its category entry in the existing top action area alongside Favorite and Album.
+It shows the current category and applicable review state, with `确认分类` and `更改分类` available
+through its anchored menu. Image context menus expose the same applicable commands and target guards.
+Use the existing viewer information area for supported metadata; do not add a permanent side panel.
+Classification review remains distinct from Library organization mode and its automatic advancement.
+
+Confirmation keeps the item in its category collection. A `待确认` filter removes it only after a
+successful commit, retaining the surrounding logical position. A correction moves it to the newly
+chosen category; an open viewer keeps the current image and offers navigation through its retained
+scope rather than replacing the image with a late result. Failures leave the prior state visible.
+
+Manual-album actions reuse the bottom tray, its deselectable single destination, and state-aware
+add/move/remove behavior. Smart albums and Favorites never become tray destinations. Classification
+views omit R4 ignore/defer actions; adding a manual album updates R4 progress without confirming the
+category. Confirmation/correction changes neither Favorite nor manual-album membership.
+
+### Feedback and continuation
+
+Classification confirmation, correction, and operation-specific undo use the shared bottom feedback
+in the photo wall and top notice in the viewer. Apply the [feedback templates](#feedback-templates),
+including aligned text/actions and transient history policy; do not introduce another notification
+style or persistent success row. R4's chronological `撤销操作` / `重做操作` controls remain exclusive
+to organization mode. A classification notice's undo affects only that operation's category fields.
+
+Persist classification decisions, review progress, and the logical continuation anchor independently
+of R4's organization bookmark. Deferred classification remains discoverable through `待确认`, with
+its classification context retaining the applicable defer/retry actions. Explicit continuation uses
+the existing contextual More/continuation pattern only after prior activity and a saved position;
+it does not silently restore ordinary selections on primary-sidebar switches. The organizing
+Library retains its own mode, selection, and position when visiting these Albums views.
+
+The accepted sketch establishes section placement, shared canvas, contextual batch actions, top
+viewer entry, and reuse of the album tray. Its sample images/counts and substitute icons are not
+production assets or requirements. Follow the installed SDK, existing icon library, and component
+admission rules when connecting the real workflow.
