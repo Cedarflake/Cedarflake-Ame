@@ -69,6 +69,15 @@ Follows R5-01; its output fixes the model/taxonomy compatibility used by later s
    retirement/remapping rules, and purpose-aware ambiguous examples. Keep `待确认` outside the
    taxonomy and distinguish failed analysis from a legitimate `其他` category. Sample labels are
    evaluation inputs, not a fixed product class list.
+   Settle category granularity, inclusion/exclusion examples, starting coverage, and the policy for
+   proposing additions/merges before freezing the scheme. Evaluate a soft category-count budget
+   against coverage and usefulness; neither unbounded generated categories nor a permanently tiny
+   fixed list meets the requirement. Model similarity alone does not establish a useful category.
+   New memes can depend on cultural context absent from the local model: description changes do
+   not guarantee that knowledge. Evaluate reusable local examples/corrections for repeated cases
+   without assuming online research, automatic learning, or reliable recognition of every new meme.
+   Category-growth automation and its confirmation policy remain an admission decision, not an
+   implemented or approved automatic category-creation workflow.
 2. Create a source-safe evaluation protocol with representative labeled groups, calibration and
    held-out partitions, duplicate-leakage prevention, and per-category/band metrics.
 3. Admit the selected SigLIP 2 configuration using retained exploratory comparisons and focused
