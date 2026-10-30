@@ -64,8 +64,9 @@ class LibraryGalleryFilter extends StatelessWidget {
           context: context,
           filter: query.metadataFilter,
         );
-        if (context.mounted && filter != null)
+        if (context.mounted && filter != null) {
           onChanged(query.copyWith(metadataFilter: filter));
+        }
         return;
       }
       onChanged(switch (choice) {

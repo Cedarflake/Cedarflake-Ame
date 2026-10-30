@@ -270,8 +270,9 @@ class _LibraryMetadataFilterEditorState
 }
 
 int? _number(String text, {bool size = false}) {
-  if (!RegExp(size ? r"^\d+(\.\d{1,6})?$" : r"^\d+$").hasMatch(text))
+  if (!RegExp(size ? r"^\d+(\.\d{1,6})?$" : r"^\d+$").hasMatch(text)) {
     return null;
+  }
   final parts = text.split(".");
   final whole = BigInt.tryParse(parts[0]);
   if (whole == null) return null;
