@@ -1,8 +1,22 @@
+mod decisions;
+mod evidence;
 mod features;
+mod ranking;
 mod screening;
 mod taxonomy;
 
+pub use decisions::{
+    ClassificationAction, ClassificationChange, ClassificationFieldAuthority,
+    ClassificationObservation, ClassificationReview, ClassificationSubject, ClassificationTarget,
+    EffectiveClassification, HumanCategoryChoice, HumanClassification,
+    HumanClassificationConsensus, HumanDecisionOrigin, ProvisionalClassificationContent,
+};
+pub use evidence::{
+    ClassificationContent, ClassificationProposal, ClassificationRecordId, ClassificationRun,
+    PredictionEvidence, PredictionReference, RefinementIdentity, ReviewRecommendation,
+};
 pub use features::{Embedding, FeatureIdentity, ImageFeature, ModelCompatibility, TextFeature};
+pub use ranking::{CategoryScore, RankedPrediction};
 pub use screening::{
     CategoryScreeningThresholds, ScreeningIdentity, ScreeningProfile, ScreeningThresholds,
 };
@@ -40,6 +54,28 @@ pub enum ClassificationError {
     IncompatibleScreeningProfile,
     #[error("Refinement must use the same model and active category identities")]
     IncompatibleRefinement,
+    #[error("Prediction rankings require unique categories and finite cosine scores")]
+    InvalidPrediction,
+    #[error("Classification record identity is invalid")]
+    InvalidRecordId,
+    #[error("Prediction evidence does not match its analysis run")]
+    IncompatiblePrediction,
+    #[error("The classification target has no valid content version")]
+    InvalidClassificationTarget,
+    #[error("The image group or its classification decision changed; refresh before saving")]
+    ClassificationTargetChanged,
+    #[error("Category definitions changed; refresh before saving")]
+    ClassificationRulesChanged,
+    #[error("The displayed prediction changed; refresh before confirming")]
+    ClassificationPredictionChanged,
+    #[error("The selected group has no current compatible prediction to confirm")]
+    NoCompatiblePrediction,
+    #[error("Choose a category to resolve the group's conflicting human decisions")]
+    ClassificationConflictUnresolved,
+    #[error("Use an explicit category correction to replace the saved human choice")]
+    HumanChoiceRequiresCorrection,
+    #[error("The selected category is no longer active")]
+    CategoryRetired,
 }
 
 #[cfg(test)]

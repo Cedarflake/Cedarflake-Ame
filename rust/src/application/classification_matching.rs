@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
 
 use crate::domain::classification::{
-    CategoryId, ClassificationError, ClassificationRevision, Embedding, ImageFeature,
-    ModelCompatibility, Taxonomy, TextFeature,
+    ClassificationError, ClassificationRevision, Embedding, ImageFeature, ModelCompatibility,
+    Taxonomy, TextFeature,
 };
+
+pub use crate::domain::classification::{CategoryScore, RankedPrediction};
 
 pub struct CategoryMatcher {
     taxonomy: Taxonomy,
@@ -80,54 +82,7 @@ impl CategoryMatcher {
                 similarity,
             });
         }
-        categories.sort_by(|left, right| {
-            right
-                .similarity
-                .total_cmp(&left.similarity)
-                .then_with(|| left.category_id.cmp(&right.category_id))
-        });
-        Ok(RankedPrediction {
-            rules_revision: self.taxonomy.revision(),
-            model: self.model,
-            categories,
-        })
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct CategoryScore {
-    pub category_id: CategoryId,
-    pub similarity: f32,
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RankedPrediction {
-    rules_revision: ClassificationRevision,
-    model: ModelCompatibility,
-    categories: Vec<CategoryScore>,
-}
-
-impl RankedPrediction {
-    pub fn rules_revision(&self) -> ClassificationRevision {
-        self.rules_revision
-    }
-
-    pub fn model(&self) -> ModelCompatibility {
-        self.model
-    }
-
-    pub fn categories(&self) -> &[CategoryScore] {
-        &self.categories
-    }
-
-    pub fn leading(&self) -> &CategoryScore {
-        &self.categories[0]
-    }
-
-    pub fn margin(&self) -> Option<f32> {
-        self.categories
-            .get(1)
-            .map(|runner_up| self.leading().similarity - runner_up.similarity)
+        RankedPrediction::new(self.taxonomy.revision(), self.model, categories)
     }
 }
 

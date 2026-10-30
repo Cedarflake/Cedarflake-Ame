@@ -49,3 +49,4 @@ Recorded decisions:
 - [ADR 0032: Preserve literal gallery search with an FTS5 candidate index](0032-indexed-catalog-text-search.md)
 - [ADR 0033: Share typed metadata filters across gallery workflows](0033-structured-gallery-filters.md)
 - [ADR 0034: Separate category rules from encoder compatibility](0034-versioned-classification-contracts.md)
+- [ADR 0035: Keep classification evidence and human authority independent](0035-classification-decision-authority.md)

@@ -41,6 +41,7 @@ implementation, repairs, and verification around complete user workflows.
 | [Gallery query port](../../rust/src/ports/gallery_query.rs) | Keep pages, counts, layout, search, selection, and viewer scopes coherent and bounded. |
 | [Indexed text search](../architecture/0032-indexed-catalog-text-search.md) | Preserve literal path matching through the shared query while keeping FTS data rebuildable from catalog rows. |
 | [Classification contracts and runtime](../architecture/0034-versioned-classification-contracts.md) | Reuse independent category/encoder revisions and the verified worker boundary; application admission and publication retain their own authority. |
+| [Classification decision authority](../architecture/0035-classification-decision-authority.md) | Keep accepted evidence, human conflict/restore precedence and category/review command guards independent of R4 state. |
 | [Organization review domain](../../rust/src/domain/organization_review.rs) | Reuse continuation principles; existing organization sessions do not already implement classification review. |
 | [Workspace navigation](../architecture/0029-functional-workbench-navigation.md) | Retain primary navigation, ordinary reset rules, and the organizing Library's retained state. |
 | [Invariant-owned modules](../architecture/0025-invariant-owned-workflow-modules.md) | Give inference, category projection, review authority, and recovery cohesive owners before extending shared facades. |

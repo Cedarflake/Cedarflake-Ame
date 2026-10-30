@@ -5,6 +5,8 @@ use crate::domain::classification::{
     TextFeature,
 };
 
+mod evidence;
+
 fn revision(value: u8) -> ClassificationRevision {
     ClassificationRevision::from_bytes([value; 32])
 }

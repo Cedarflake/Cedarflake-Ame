@@ -1,6 +1,7 @@
 mod authoritative_library_changes;
 mod catalog_reclamation;
 mod catalog_session;
+pub(crate) mod classification_decisions;
 pub(crate) mod classification_matching;
 pub(crate) mod classification_screening;
 mod directory_synchronization;

@@ -1,6 +1,6 @@
 use super::*;
 
-use crate::domain::classification::CategoryDefinition;
+use crate::domain::classification::{CategoryDefinition, CategoryId};
 
 fn revision(value: u8) -> ClassificationRevision {
     ClassificationRevision::from_bytes([value; 32])

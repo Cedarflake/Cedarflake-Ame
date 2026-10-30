@@ -1,6 +1,10 @@
 use crate::domain::classification::{
-    ClassificationError, ClassificationRevision, ImageFeature, ScreeningIdentity, ScreeningProfile,
+    ClassificationContent, ClassificationError, ClassificationRecordId, ClassificationRevision,
+    ClassificationRun, ImageFeature, PredictionEvidence, RefinementIdentity, ScreeningIdentity,
+    ScreeningProfile,
 };
+
+pub use crate::domain::classification::ReviewRecommendation;
 
 use super::classification_matching::{CategoryMatcher, RankedPrediction};
 
@@ -15,6 +19,23 @@ struct AdmittedRefinement {
 }
 
 impl ScreeningClassifier {
+    pub fn describe_run(
+        &self,
+        id: ClassificationRecordId,
+    ) -> Result<ClassificationRun, ClassificationError> {
+        ClassificationRun::new(
+            id,
+            self.primary.model(),
+            self.primary.taxonomy().revision(),
+            self.refinement
+                .as_ref()
+                .map(|refinement| RefinementIdentity {
+                    rules: refinement.matcher.taxonomy().revision(),
+                    profile: refinement.profile.revision(),
+                }),
+        )
+    }
+
     pub fn uncalibrated(primary: CategoryMatcher) -> Self {
         Self {
             primary,
@@ -64,7 +85,7 @@ impl ScreeningClassifier {
             return Ok(ScreeningResult {
                 initial,
                 refined: None,
-                profile: None,
+                refinement: None,
                 review: ReviewRecommendation::Uncalibrated,
             });
         };
@@ -94,28 +115,36 @@ impl ScreeningClassifier {
         Ok(ScreeningResult {
             initial,
             refined,
-            profile: Some(refinement.profile.revision()),
+            refinement: Some(RefinementIdentity {
+                rules: refinement.matcher.taxonomy().revision(),
+                profile: refinement.profile.revision(),
+            }),
             review,
         })
     }
-}
-
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
-pub enum ReviewRecommendation {
-    Uncalibrated,
-    LowSeparation,
-    RoutineSampling,
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ScreeningResult {
     initial: RankedPrediction,
     refined: Option<RankedPrediction>,
-    profile: Option<ClassificationRevision>,
+    refinement: Option<RefinementIdentity>,
     review: ReviewRecommendation,
 }
 
 impl ScreeningResult {
+    pub fn into_evidence(
+        self,
+        id: ClassificationRecordId,
+        run: ClassificationRun,
+        content: ClassificationContent,
+    ) -> Result<PredictionEvidence, ClassificationError> {
+        if self.refinement != run.refinement() {
+            return Err(ClassificationError::IncompatiblePrediction);
+        }
+        PredictionEvidence::new(id, run, content, self.initial, self.refined, self.review)
+    }
+
     pub fn initial(&self) -> &RankedPrediction {
         &self.initial
     }
@@ -129,7 +158,7 @@ impl ScreeningResult {
     }
 
     pub fn profile_revision(&self) -> Option<ClassificationRevision> {
-        self.profile
+        self.refinement.map(|identity| identity.profile)
     }
 
     pub fn review_recommendation(&self) -> ReviewRecommendation {
