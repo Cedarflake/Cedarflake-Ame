@@ -1206,6 +1206,12 @@ An item requiring attention can show a compact `待确认` indicator; its access
 uncertainty, sampling, category conflict, and analysis failure. Routine cards do not need confidence
 percentages or repeated model information.
 
+Initial-screening suggestions are usable immediately. Machine-only differences are resolved through
+the current analysis and bounded automatic re-screening before optional checking is suggested. A
+remaining uncertain prediction can stay in its suggested category and the `待确认` filter together.
+Do not open review prompts automatically or require clearing that filter before browsing. Human
+decision conflicts and missing/failed analysis retain their distinct states without a guessed winner.
+
 The all-results view keeps unresolved/failed items reachable when they cannot belong to a category.
 Use existing loading, empty, unavailable, retry, and task-feedback surfaces for setup and analysis.
 Short waits do not insert transient wording or shift controls. Background results preserve the

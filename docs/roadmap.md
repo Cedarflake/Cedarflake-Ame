@@ -34,7 +34,7 @@ R3–R10 scope; their existence does not make those capabilities available.
 | R2c | Change-driven continuity with usable browsing during synchronization | Completed and frozen on 2026-10-16; preserve delivered behavior |
 | R3 | Exact duplicates folded with inspectable physical locations and no source mutation | Completed on 2026-10-17; preserve delivered behavior |
 | R4 | Independent Favorites, flat group-based albums, and durable organization progress | Completed and merged into main on 2026-10-30 |
-| R5 | Metadata, smart albums, calibrated classification, and human review | Requirements and implementation plan defined; implementation not started |
+| R5 | Metadata, smart albums, calibrated initial screening, and optional review | Active; implementation authorized in the existing R5-01 through R5-07 order |
 | R6 | Perceptual similarity review, distinct from exact duplicates | Planned after R5 |
 | R7 | Structured and semantic discovery through the same gallery | Planned after R6 |
 | R8 | Immutable physical-organization dry-run with conflicts and no execution | Planned after R7 |
@@ -59,7 +59,9 @@ functional, recovery, source-preservation, retained-scale and complete hosted ev
 The implementation is verified through `17c16c7d`, with subsequent changes limited to delivery
 records. The R4 branch through `53bbb5bc` is integrated without conflict or history rewriting.
 R5's [requirements](product/r5-classification.md) and [implementation plan](plans/r5-classification.md)
-are defined; product implementation has not started.
+now include the selected screening candidate, configurable categories, incremental lifecycle, and
+automatic disagreement resolution. R5 implementation is authorized on `codex/r5-smart-albums`, starting
+with R5-01. Stage delivery uses a PR, exact-head verification, and a separately authorized merge.
 
 On 2026-10-30, the remaining cloud-primary first-viewer and mode-entry frame peaks are explicitly
 deferred to a [separate performance follow-up](#deferred-constrained-device-rendering).
@@ -88,9 +90,11 @@ R3's selected workflow are handled at their owning layer under the repository co
 ## Current execution queue
 
 R4 is integrated into `main`. Preserve the verified album, Favorite, organization, sidebar-management
-and recovery behavior. R5 is the next planned stage, following its
+and recovery behavior. R5 is active, following its
 [implementation sequence](#r5-implementation-sequence). Its requirements include the `智能相册`
-section, independent classification review, and the approved shared gallery/viewer interaction.
+section, usable initial-screening suggestions, optional classification review, and the approved
+shared gallery/viewer interaction. Current work begins with R5-01 metadata and structured search;
+the selected SigLIP 2 candidate and lifecycle enter their existing R5-02/R5-04 slices.
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
@@ -244,8 +248,9 @@ interaction and complete hosted verification cover the integrated result.
 
 The [R5 requirements](product/r5-classification.md) define metadata, classification authority,
 `智能相册`, human review, recovery, and the two-core/8-GiB baseline. The
-[execution plan](plans/r5-classification.md) expands these ordered slices without changing stage
-status. This planning update does not select a model/runtime, change the schema, or begin product edits.
+[execution plan](plans/r5-classification.md) expands these ordered slices. The selected initial
+candidate is SigLIP 2 Base/16-224 with FP16 image and INT8 text encoders. Its exploratory evidence
+informs R5-02 admission; functional, license, runtime, and resource gates remain in their owning slices.
 
 | Order | Slice | Required result |
 | --- | --- | --- |
@@ -257,7 +262,7 @@ status. This planning update does not select a model/runtime, change the schema,
 | R5-06 | [Desktop classification review](plans/r5-classification.md#r5-06-desktop-classification-review) | Approved sidebar/photo-wall/viewer controls, batch review, continuation, and shared feedback |
 | R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured human-work reduction, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
 
-R5-01 is the first implementation slice when development is authorized. R4 classification-independent
+R5-01 is the authorized first implementation slice. R4 classification-independent
 decisions remain the baseline. Model quality and dependency admission are resolved before dependent
 inference work; unknown thresholds and resource limits are measured outputs, not invented acceptance.
 R6 through R10 retain their order. The separate rendering follow-up below remains independent.
