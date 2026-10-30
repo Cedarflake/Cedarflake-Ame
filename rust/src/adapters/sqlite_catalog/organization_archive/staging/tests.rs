@@ -110,7 +110,7 @@ fn organization_archive_inspection_rejects_unproven_native_copy_counts() {
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
     let original = entries(&archive);
-    assert_eq!(original[0]["header"]["version"], 3);
+    assert_eq!(original[0]["header"]["version"], 4);
     for copies in [json!(0), json!(-1), Value::Null] {
         let mut rows = original.clone();
         rows.iter_mut()
@@ -156,6 +156,57 @@ fn organization_archive_inspection_upgrades_v2_ordering_without_rewriting_input(
         ("library_admission".into(), "descending".into(), true)
     );
     assert_eq!(fs::read(&archive).unwrap(), before);
+}
+
+#[test]
+fn organization_archive_inspection_upgrades_v3_filters_and_rejects_invalid_v4_payloads() {
+    use crate::domain::gallery_metadata_filter::GalleryMetadataFilter;
+    let (directory, catalog) = fixture();
+    let archive = directory.path().join("metadata.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let original = entries(&archive);
+    let mut old = original.clone();
+    old[0]["header"]["version"] = json!(3);
+    old.iter_mut()
+        .find(|row| row["kind"] == "review_scope")
+        .unwrap()["values"]
+        .as_array_mut()
+        .unwrap()
+        .truncate(9);
+    write_archive(&archive, &old);
+    let before = fs::read(&archive).unwrap();
+    let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
+    let payload: String = staged
+        .connection
+        .query_row(
+            "SELECT metadata_filter FROM archive_review_scope",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(
+        serde_json::from_str::<GalleryMetadataFilter>(&payload).unwrap(),
+        GalleryMetadataFilter::default()
+    );
+    assert_eq!(fs::read(&archive).unwrap(), before);
+    drop(staged);
+    for payload in ["{}".to_owned(), "x".repeat(4097)] {
+        let mut invalid = original.clone();
+        invalid
+            .iter_mut()
+            .find(|row| row["kind"] == "review_scope")
+            .unwrap()["values"][9] = json!(payload);
+        write_archive(&archive, &invalid);
+        assert_eq!(
+            read(&archive, directory.path(), &mut |_| true)
+                .err()
+                .unwrap()
+                .code,
+            "organization_archive_records_invalid"
+        );
+    }
 }
 
 #[test]

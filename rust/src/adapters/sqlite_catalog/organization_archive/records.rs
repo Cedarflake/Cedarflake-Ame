@@ -89,10 +89,11 @@ pub(super) const KINDS: &[RecordKind] = &[
                 ORDER BY operation_id, record_id, field",
     },
     RecordKind {
-        name: "review_scope", fields: &[T, NT, NT, NT, I, T, T, T, T],
+        name: "review_scope", fields: &[T, NT, NT, NT, I, T, T, T, T, T],
         query: "SELECT collection, album_id, root_id, folder_relative_path, include_descendants,
-                       search_text, queue, sort_key, sort_direction FROM organization_review_scopes
-                JOIN organization_review_sort ON scope_slot = slot WHERE slot = 'bookmark'",
+                       search_text, queue, sort_key, sort_direction, filters.payload FROM organization_review_scopes
+                JOIN organization_review_sort AS ordering ON ordering.scope_slot = slot
+                JOIN organization_review_filters AS filters ON filters.scope_slot = slot WHERE slot = 'bookmark'",
     },
     RecordKind {
         name: "bookmark", fields: &[T, I, T, T, I, I, I, T, I],

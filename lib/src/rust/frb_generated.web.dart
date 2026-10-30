@@ -26,6 +26,7 @@ import 'dart:convert';
 import 'domain.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
+import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_query_snapshot.dart';
 import 'domain/gallery_scroll_section.dart';
 import 'domain/gallery_time_snapshot.dart';
@@ -448,6 +449,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GalleryCollection dco_decode_gallery_collection(dynamic raw);
 
   @protected
+  GalleryDateField dco_decode_gallery_date_field(dynamic raw);
+
+  @protected
+  GalleryDateRange dco_decode_gallery_date_range(dynamic raw);
+
+  @protected
   GalleryDuplicateAnnotation dco_decode_gallery_duplicate_annotation(
     dynamic raw,
   );
@@ -480,6 +487,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GalleryLocationAnchorResolution dco_decode_gallery_location_anchor_resolution(
     dynamic raw,
   );
+
+  @protected
+  GalleryMetadataFilter dco_decode_gallery_metadata_filter(dynamic raw);
+
+  @protected
+  GalleryNumberRange dco_decode_gallery_number_range(dynamic raw);
 
   @protected
   GalleryQuery dco_decode_gallery_query(dynamic raw);
@@ -1464,6 +1477,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   GalleryCollection sse_decode_gallery_collection(SseDeserializer deserializer);
 
   @protected
+  GalleryDateField sse_decode_gallery_date_field(SseDeserializer deserializer);
+
+  @protected
+  GalleryDateRange sse_decode_gallery_date_range(SseDeserializer deserializer);
+
+  @protected
   GalleryDuplicateAnnotation sse_decode_gallery_duplicate_annotation(
     SseDeserializer deserializer,
   );
@@ -1500,6 +1519,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   GalleryLocationAnchorResolution sse_decode_gallery_location_anchor_resolution(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryMetadataFilter sse_decode_gallery_metadata_filter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  GalleryNumberRange sse_decode_gallery_number_range(
     SseDeserializer deserializer,
   );
 
@@ -2696,6 +2725,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_gallery_date_field(
+    GalleryDateField self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_date_range(
+    GalleryDateRange self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_gallery_duplicate_annotation(
     GalleryDuplicateAnnotation self,
     SseSerializer serializer,
@@ -2740,6 +2781,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_gallery_location_anchor_resolution(
     GalleryLocationAnchorResolution self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_metadata_filter(
+    GalleryMetadataFilter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_gallery_number_range(
+    GalleryNumberRange self,
     SseSerializer serializer,
   );
 

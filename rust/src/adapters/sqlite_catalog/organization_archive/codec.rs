@@ -7,7 +7,7 @@ use crate::domain::ScanError;
 use super::{error, io_error, records};
 
 pub(super) const FORMAT: &str = "ame-organization-archive";
-pub(super) const VERSION: u32 = 3;
+pub(super) const VERSION: u32 = 4;
 pub(super) const MAX_LINE_BYTES: usize = 1024 * 1024;
 
 #[derive(Debug, Deserialize, Serialize)]

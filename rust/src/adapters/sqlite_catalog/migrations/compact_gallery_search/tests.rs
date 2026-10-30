@@ -34,7 +34,7 @@ fn prior() -> (tempfile::TempDir, SqliteCatalog) {
 }
 
 fn documents(connection: &Connection) -> Vec<(i64, String, String)> {
-    let sql = if schema_shape::schema_version(connection).unwrap() == 63 {
+    let sql = if schema_shape::schema_version(connection).unwrap() >= 63 {
         "SELECT gallery_search_id, scan_id, location_id FROM asset_locations ORDER BY gallery_search_id"
     } else {
         "SELECT id, scan_id, location_id FROM gallery_search_documents ORDER BY id"

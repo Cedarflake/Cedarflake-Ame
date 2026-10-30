@@ -138,6 +138,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v62_for_test(connection: &Connection) {
+    super::organization_review_filters::downgrade_to_v63_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() != 63 {
         return;
     }

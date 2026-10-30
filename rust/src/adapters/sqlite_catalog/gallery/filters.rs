@@ -82,6 +82,7 @@ pub(super) fn push_location_filters(
         }
     }
     super::search::push_text_filter(&query.search_text, clauses, parameters);
+    super::metadata_filters::push_filters(&query.metadata_filter, clauses, parameters);
 }
 
 pub(super) fn push_membership_filters(

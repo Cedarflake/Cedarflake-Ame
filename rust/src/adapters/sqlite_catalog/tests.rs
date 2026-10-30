@@ -4,6 +4,7 @@ mod catalog_migrations;
 mod foreground_recovery;
 mod interrupted_scan;
 mod legacy_scan_retirement;
+mod metadata_filters;
 mod preview_cleanup;
 mod preview_publication;
 mod preview_reclamation;

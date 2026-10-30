@@ -265,8 +265,10 @@ informs R5-02 admission; functional, license, runtime, and resource gates remain
 R5-01 is in progress. Indexed literal path search under
 [ADR 0032](architecture/0032-indexed-catalog-text-search.md) and bounded camera metadata under
 [ADR 0006](architecture/0006-exif-capture-time-adapter.md) are connected, with
-[focused migration/query and client evidence](acceptance/r5-metadata-search.md). Structured predicates,
-the search-index storage regression and exact-head integrated checks remain in this slice.
+[focused migration/query and client evidence](acceptance/r5-metadata-search.md). Structured metadata
+conditions under [ADR 0033](architecture/0033-structured-gallery-filters.md) now share gallery queries,
+organization continuation and portable recovery, with focused and desktop apply/cancel/clear evidence.
+The search-index storage regression and exact-head integrated checks remain in this slice.
 R4 classification-independent
 decisions remain the baseline. Model quality and dependency admission are resolved before dependent
 inference work; unknown thresholds and resource limits are measured outputs, not invented acceptance.

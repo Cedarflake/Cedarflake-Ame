@@ -11,6 +11,7 @@ import "../domain/library_models.dart";
 import "../domain/library_query_snapshot.dart";
 import "../domain/library_time_snapshot.dart";
 import "library_asset_mapping.dart";
+import "library_metadata_filter_mapping.dart";
 
 export "../domain/library_query_snapshot.dart";
 export "../domain/library_time_snapshot.dart";
@@ -497,6 +498,7 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
     folderRelativePath: query.folderRelativePath,
     includeDescendants: query.includeDescendants,
     searchText: query.searchText,
+    metadataFilter: mapLibraryMetadataFilter(query.metadataFilter),
     sortKey: switch (query.sortKey) {
       LibraryGallerySortKey.captureTime =>
         rust_domain.GallerySortKey.captureTime,

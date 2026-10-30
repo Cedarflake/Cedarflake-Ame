@@ -32,6 +32,9 @@ pub(super) fn record(kind: &str, values: &[Cell]) -> Result<(), ScanError> {
     if let Some(Cell::Text(name)) = name {
         normalize_album_name(name).map_err(|_| invalid())?;
     }
+    if kind == "review_scope" {
+        super::metadata_filter::validate(values)?;
+    }
     Ok(())
 }
 

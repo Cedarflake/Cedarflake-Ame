@@ -21,6 +21,7 @@ pub use exact_duplicates::{
 mod journal_scope_recovery;
 pub use journal_scope_recovery::JournalScopeRecoveryOutcome;
 
+pub mod gallery_metadata_filter;
 pub mod gallery_query_snapshot;
 pub mod gallery_scroll_section;
 pub use gallery_query_snapshot::{GalleryQueryAnchor, GalleryQuerySnapshot};
@@ -473,6 +474,7 @@ pub struct GalleryQuery {
     pub folder_relative_path: Option<String>,
     pub include_descendants: bool,
     pub search_text: String,
+    pub metadata_filter: gallery_metadata_filter::GalleryMetadataFilter,
     pub sort_key: GallerySortKey,
     pub sort_direction: GallerySortDirection,
     pub duplicate_mode: GalleryDuplicateMode,
@@ -488,6 +490,7 @@ impl Default for GalleryQuery {
             folder_relative_path: None,
             include_descendants: true,
             search_text: String::new(),
+            metadata_filter: gallery_metadata_filter::GalleryMetadataFilter::default(),
             sort_key: GallerySortKey::CaptureTime,
             sort_direction: GallerySortDirection::Descending,
             duplicate_mode: GalleryDuplicateMode::All,

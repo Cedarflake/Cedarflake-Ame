@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
+import 'gallery_metadata_filter.dart';
 import 'organization.dart';
 import 'organization_queue.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';

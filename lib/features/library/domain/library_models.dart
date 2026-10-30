@@ -1,10 +1,12 @@
 import "library_asset.dart";
+import "library_metadata_filter.dart";
 import "library_gallery_collection.dart";
 import "library_organization_queue.dart";
 import "library_root_consolidation.dart";
 import "library_scroll_section.dart";
 
 export "library_asset.dart";
+export "library_metadata_filter.dart";
 export "library_gallery_collection.dart";
 export "library_organization_queue.dart";
 export "library_root_consolidation.dart";
@@ -121,6 +123,7 @@ class LibraryGalleryQuery {
     this.folderRelativePath,
     this.includeDescendants = true,
     this.searchText = "",
+    this.metadataFilter = const LibraryMetadataFilter(),
     this.sortKey = LibraryGallerySortKey.captureTime,
     this.sortDirection = LibraryGallerySortDirection.descending,
     this.duplicateMode = LibraryGalleryDuplicateMode.all,
@@ -135,6 +138,7 @@ class LibraryGalleryQuery {
   final String? folderRelativePath;
   final bool includeDescendants;
   final String searchText;
+  final LibraryMetadataFilter metadataFilter;
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection sortDirection;
   final LibraryGalleryDuplicateMode duplicateMode;
@@ -156,6 +160,7 @@ class LibraryGalleryQuery {
     Object? folderRelativePath = _unchanged,
     bool? includeDescendants,
     String? searchText,
+    LibraryMetadataFilter? metadataFilter,
     LibraryGallerySortKey? sortKey,
     LibraryGallerySortDirection? sortDirection,
     LibraryGalleryDuplicateMode? duplicateMode,
@@ -174,6 +179,7 @@ class LibraryGalleryQuery {
           : folderRelativePath as String?,
       includeDescendants: includeDescendants ?? this.includeDescendants,
       searchText: searchText ?? this.searchText,
+      metadataFilter: metadataFilter ?? this.metadataFilter,
       sortKey: sortKey ?? this.sortKey,
       sortDirection: sortDirection ?? this.sortDirection,
       duplicateMode: duplicateMode ?? this.duplicateMode,
@@ -189,6 +195,7 @@ class LibraryGalleryQuery {
     folderRelativePath,
     includeDescendants,
     searchText,
+    metadataFilter,
     sortKey,
     sortDirection,
     duplicateMode,
@@ -205,6 +212,7 @@ class LibraryGalleryQuery {
             folderRelativePath == other.folderRelativePath &&
             includeDescendants == other.includeDescendants &&
             searchText == other.searchText &&
+            metadataFilter == other.metadataFilter &&
             sortKey == other.sortKey &&
             sortDirection == other.sortDirection &&
             duplicateMode == other.duplicateMode;

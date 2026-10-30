@@ -9,6 +9,7 @@ import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "library_catalog.dart";
+import "library_metadata_filter_mapping.dart";
 import "library_organization.dart";
 
 abstract interface class LibraryReview {
@@ -173,6 +174,7 @@ class RustLibraryReview implements LibraryReview {
     folderRelativePath: value.folderRelativePath,
     includeDescendants: value.includeDescendants,
     searchText: value.searchText,
+    metadataFilter: mapRustMetadataFilter(value.metadataFilter),
     sortKey: switch (value.sortKey) {
       rust.GallerySortKey.captureTime => LibraryGallerySortKey.captureTime,
       rust.GallerySortKey.createdTime => LibraryGallerySortKey.createdTime,

@@ -46,6 +46,11 @@ pub(super) fn fixture() -> (tempfile::TempDir, SqliteCatalog) {
          INSERT INTO organization_review_operations VALUES ('operation-a', 'old-session', 1, 2);
          INSERT INTO exact_duplicate_decisions VALUES ('blake3-256-full-v1', printf('%064d', 0), 20, 'a', 'asset-a', 1, 3);"
     ).unwrap();
+    let empty_filter = serde_json::to_string(
+        &crate::domain::gallery_metadata_filter::GalleryMetadataFilter::default(),
+    )
+    .unwrap();
+    catalog.connection.execute("INSERT INTO organization_review_filters SELECT slot, 1, ?1 FROM organization_review_scopes", [empty_filter]).unwrap();
     (directory, catalog)
 }
 

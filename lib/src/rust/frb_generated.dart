@@ -23,6 +23,7 @@ import 'dart:convert';
 import 'domain.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
+import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_query_snapshot.dart';
 import 'domain/gallery_scroll_section.dart';
 import 'domain/gallery_time_snapshot.dart';
@@ -4686,6 +4687,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryDateField dco_decode_gallery_date_field(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return GalleryDateField.values[raw as int];
+  }
+
+  @protected
+  GalleryDateRange dco_decode_gallery_date_range(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return GalleryDateRange(
+      field: dco_decode_gallery_date_field(arr[0]),
+      start: dco_decode_opt_String(arr[1]),
+      end: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
   GalleryDuplicateAnnotation dco_decode_gallery_duplicate_annotation(
     dynamic raw,
   ) {
@@ -4801,11 +4821,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryMetadataFilter dco_decode_gallery_metadata_filter(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return GalleryMetadataFilter(
+      extension_: dco_decode_String(arr[0]),
+      bytes: dco_decode_gallery_number_range(arr[1]),
+      width: dco_decode_gallery_number_range(arr[2]),
+      height: dco_decode_gallery_number_range(arr[3]),
+      date: dco_decode_gallery_date_range(arr[4]),
+      cameraText: dco_decode_String(arr[5]),
+    );
+  }
+
+  @protected
+  GalleryNumberRange dco_decode_gallery_number_range(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return GalleryNumberRange(
+      minimum: dco_decode_opt_box_autoadd_u_64(arr[0]),
+      maximum: dco_decode_opt_box_autoadd_u_64(arr[1]),
+    );
+  }
+
+  @protected
   GalleryQuery dco_decode_gallery_query(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 10)
-      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
     return GalleryQuery(
       collection: dco_decode_gallery_collection(arr[0]),
       organizationQueue: dco_decode_opt_box_autoadd_organization_queue(arr[1]),
@@ -4814,9 +4862,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       folderRelativePath: dco_decode_opt_String(arr[4]),
       includeDescendants: dco_decode_bool(arr[5]),
       searchText: dco_decode_String(arr[6]),
-      sortKey: dco_decode_gallery_sort_key(arr[7]),
-      sortDirection: dco_decode_gallery_sort_direction(arr[8]),
-      duplicateMode: dco_decode_gallery_duplicate_mode(arr[9]),
+      metadataFilter: dco_decode_gallery_metadata_filter(arr[7]),
+      sortKey: dco_decode_gallery_sort_key(arr[8]),
+      sortDirection: dco_decode_gallery_sort_direction(arr[9]),
+      duplicateMode: dco_decode_gallery_duplicate_mode(arr[10]),
     );
   }
 
@@ -7567,6 +7616,22 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryDateField sse_decode_gallery_date_field(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return GalleryDateField.values[inner];
+  }
+
+  @protected
+  GalleryDateRange sse_decode_gallery_date_range(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_field = sse_decode_gallery_date_field(deserializer);
+    var var_start = sse_decode_opt_String(deserializer);
+    var var_end = sse_decode_opt_String(deserializer);
+    return GalleryDateRange(field: var_field, start: var_start, end: var_end);
+  }
+
+  @protected
   GalleryDuplicateAnnotation sse_decode_gallery_duplicate_annotation(
     SseDeserializer deserializer,
   ) {
@@ -7700,6 +7765,37 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  GalleryMetadataFilter sse_decode_gallery_metadata_filter(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_extension_ = sse_decode_String(deserializer);
+    var var_bytes = sse_decode_gallery_number_range(deserializer);
+    var var_width = sse_decode_gallery_number_range(deserializer);
+    var var_height = sse_decode_gallery_number_range(deserializer);
+    var var_date = sse_decode_gallery_date_range(deserializer);
+    var var_cameraText = sse_decode_String(deserializer);
+    return GalleryMetadataFilter(
+      extension_: var_extension_,
+      bytes: var_bytes,
+      width: var_width,
+      height: var_height,
+      date: var_date,
+      cameraText: var_cameraText,
+    );
+  }
+
+  @protected
+  GalleryNumberRange sse_decode_gallery_number_range(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_minimum = sse_decode_opt_box_autoadd_u_64(deserializer);
+    var var_maximum = sse_decode_opt_box_autoadd_u_64(deserializer);
+    return GalleryNumberRange(minimum: var_minimum, maximum: var_maximum);
+  }
+
+  @protected
   GalleryQuery sse_decode_gallery_query(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_collection = sse_decode_gallery_collection(deserializer);
@@ -7711,6 +7807,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_folderRelativePath = sse_decode_opt_String(deserializer);
     var var_includeDescendants = sse_decode_bool(deserializer);
     var var_searchText = sse_decode_String(deserializer);
+    var var_metadataFilter = sse_decode_gallery_metadata_filter(deserializer);
     var var_sortKey = sse_decode_gallery_sort_key(deserializer);
     var var_sortDirection = sse_decode_gallery_sort_direction(deserializer);
     var var_duplicateMode = sse_decode_gallery_duplicate_mode(deserializer);
@@ -7722,6 +7819,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       folderRelativePath: var_folderRelativePath,
       includeDescendants: var_includeDescendants,
       searchText: var_searchText,
+      metadataFilter: var_metadataFilter,
       sortKey: var_sortKey,
       sortDirection: var_sortDirection,
       duplicateMode: var_duplicateMode,
@@ -10950,6 +11048,26 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_gallery_date_field(
+    GalleryDateField self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_gallery_date_range(
+    GalleryDateRange self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_gallery_date_field(self.field, serializer);
+    sse_encode_opt_String(self.start, serializer);
+    sse_encode_opt_String(self.end, serializer);
+  }
+
+  @protected
   void sse_encode_gallery_duplicate_annotation(
     GalleryDuplicateAnnotation self,
     SseSerializer serializer,
@@ -11047,6 +11165,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_gallery_metadata_filter(
+    GalleryMetadataFilter self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.extension_, serializer);
+    sse_encode_gallery_number_range(self.bytes, serializer);
+    sse_encode_gallery_number_range(self.width, serializer);
+    sse_encode_gallery_number_range(self.height, serializer);
+    sse_encode_gallery_date_range(self.date, serializer);
+    sse_encode_String(self.cameraText, serializer);
+  }
+
+  @protected
+  void sse_encode_gallery_number_range(
+    GalleryNumberRange self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_u_64(self.minimum, serializer);
+    sse_encode_opt_box_autoadd_u_64(self.maximum, serializer);
+  }
+
+  @protected
   void sse_encode_gallery_query(GalleryQuery self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_gallery_collection(self.collection, serializer);
@@ -11059,6 +11201,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_String(self.folderRelativePath, serializer);
     sse_encode_bool(self.includeDescendants, serializer);
     sse_encode_String(self.searchText, serializer);
+    sse_encode_gallery_metadata_filter(self.metadataFilter, serializer);
     sse_encode_gallery_sort_key(self.sortKey, serializer);
     sse_encode_gallery_sort_direction(self.sortDirection, serializer);
     sse_encode_gallery_duplicate_mode(self.duplicateMode, serializer);

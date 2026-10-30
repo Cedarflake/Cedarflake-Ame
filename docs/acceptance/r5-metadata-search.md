@@ -2,8 +2,9 @@
 
 The [roadmap](../roadmap.md#r5-implementation-sequence) owns R5 delivery status. This record covers
 indexed text search under [ADR 0032](../architecture/0032-indexed-catalog-text-search.md) and camera
-metadata under [ADR 0006](../architecture/0006-exif-capture-time-adapter.md). Structured predicates
-and integrated R5-01 acceptance retain their separate remaining scope.
+metadata under [ADR 0006](../architecture/0006-exif-capture-time-adapter.md), plus shared structured
+filters under [ADR 0033](../architecture/0033-structured-gallery-filters.md). Integrated R5-01
+acceptance retains the storage regression and exact-head hosted checks.
 
 ## Catalog text index - 2026-10-30
 
@@ -248,3 +249,80 @@ as preferred changed its control to `取消首选`; returning to the group list 
 the representative with unchanged group/location counts. Both original fixture hashes and the
 copy's hash remained unchanged. No original library or user profile was used. Exact-commit hosted
 checks remain pending.
+
+## Structured metadata conditions - 2026-10-30
+
+The shared gallery query now carries filename extension, byte/dimension ranges, a selected calendar
+date field, and literal camera text. Conditions apply before duplicate representative selection and
+compose with source, folder, album, text and sorting scope. Unknown dimensions and capture dates do
+not match conditions on those fields. Schema 64 retains the same conditions in active organization
+sessions and bookmarks. Portable archive version 4 preserves them; versions 1 through 3 expand to
+empty conditions without changing their existing scope. No model or additional source reads are used.
+
+### Focused verification
+
+Fifteen affected native checks passed: five compound/group/query/continuation checks, two migration
+and rollback checks, two domain validation checks, one query-identity check, and five archive checks.
+The archive checks cover versions 1–3, rejection of invalid version-4 payloads, restored selected
+sorting/filter conditions, and preservation of an existing local bookmark/session. The final query
+run includes the maximum-only width case, so unknown dimensions cannot satisfy that condition.
+
+The first broad identity name filter also selected an unrelated source-admission test, which failed
+at the sandbox's namespace ACL boundary. Its affected query-identity test passed. Archive diagnosis
+initially failed when sandbox permissions denied access to temporary backup files and was stopped.
+The five relevant archive cases then passed with normal local file permissions under the repository
+lock. No production guards or assertions were changed for either execution limitation.
+
+Two editor widget checks and the existing asynchronous filter-menu semantics check passed. They
+cover invalid calendar dates and inverted ranges, exact byte conversion, typed bridge round-trip,
+scope-preserving apply/cancel/clear, and the filtered-empty message. Rust and Dart formatting pass;
+the generated bridge and Windows Debug client were rebuilt from the changed source.
+
+The actual Windows client reused the three-image isolated profile and upgraded schema 63 to 64.
+Its menu opened the complete form at the retained desktop window size. Applying `png` reduced the
+gallery to one image and the viewer to `1 / 1`. Editing maximum width to `1` and cancelling retained
+that PNG; reopening showed the unsaved width absent. Clearing conditions restored three physical
+images and two merged items. Closing the owned window preserved all three fixture SHA-256 values.
+The client log contained no matching exception, panic or failed-root entry. Original libraries and
+user profiles were not used.
+
+### Component admission and ownership
+
+The form composes Flutter 3.47.8 `AlertDialog(scrollable: true)`, `TextFormField`,
+`DropdownButtonFormField(initialValue: ...)`, and `showDatePicker`, inspected in the installed SDK.
+The [Material dialog guidance](https://m3.material.io/components/dialogs/overview),
+[dropdown API](https://api.flutter.dev/flutter/material/DropdownButtonFormField-class.html), and
+[date-picker API](https://api.flutter.dev/flutter/material/showDatePicker.html) identify the framework
+owners. The current menu remains the entry; a separate page would split the shared gallery workflow.
+A standard form supplies validation, focus, scrolling and calendar selection without custom input
+primitives. Existing menu dots, theme, buttons and empty-state composition are reused.
+
+Physical line counts include blanks. New query predicates, saved-filter persistence, archive
+validation and editor state have separate cohesive owners; existing facades only compose them.
+
+| Owner | Production | Inline test-only | Dedicated tests |
+| --- | ---: | ---: | --- |
+| `domain/gallery_metadata_filter.rs` | 114 | 2 | 82 lines |
+| `gallery/metadata_filters.rs` | 64 | 0 | Catalog 209; grouped selection 49 lines |
+| `migrations/organization_review_filters.rs` | 82 | 14 | 72 lines |
+| `organization/review/filters.rs` | 54 | 0 | Restart/continuation 41 lines |
+| `organization_archive/staging/metadata_filter.rs` | 22 | 0 | Existing staging suite 470 lines |
+| `application/load_catalog/query.rs` | 107 | 202 | Existing inline identity cases |
+| `library_metadata_filter.dart` / mapping | 84 / 52 | 0 | Editor/bridge suite 118 lines |
+| `library_metadata_filter_editor.dart` | 304 | 0 | Editor/bridge suite 118 lines |
+
+The catalog facade remains 2,889 production / 442 inline test-only lines; migrations has 4,090 /
+2,349 and current-schema validation 342 / 29. The filesystem facade retains 2,629 production /
+3,404 inline test-only lines, with only its exact-module contract updated. The 1,301-line viewport
+controller adds one normalization call; the 433-line gallery model composes the typed filter value.
+No unrelated controller or filesystem behavior was added.
+
+### Remaining hosted storage failure
+
+Run 41015378674 for branch head `17270938` (PR merge revision `b5ff9a7b`) still fails the unchanged
+10,000-image 64-MiB catalog assertion. Its isolated optimized workload reports 69,484,544 catalog
+bytes, 16,969,728 free bytes and 39,129,088 resumed-catalog bytes. Fixture creation took 1,421 ms,
+cold scan 9,197 ms, warm scan 11,958 ms, pause 11 ms, resume 7,919 ms and cancellation 89 ms.
+The retained artifact is `synthetic-scan-41015378674-1`, ID 12960146812. Source checks after the size
+assertion were not reached. This repeats the long-base storage regression and remains an R5-01
+obligation; structured-filter verification does not resolve it or complete the hosted gate.

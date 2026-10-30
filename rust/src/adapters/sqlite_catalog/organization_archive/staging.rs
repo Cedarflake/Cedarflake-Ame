@@ -14,6 +14,7 @@ use crate::domain::organization_archive::{
 use super::{codec, database_error, error, io_error, records, report};
 
 mod input;
+mod metadata_filter;
 mod schema;
 mod validation;
 

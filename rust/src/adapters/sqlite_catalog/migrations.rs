@@ -28,6 +28,7 @@ mod interrupted_foreground_repair;
 mod inventory_spool_contract;
 mod live_gap_contract;
 mod location_columns;
+mod organization_review_filters;
 mod prerelease_journal_repair;
 mod recovery_authority_contract;
 mod recovery_execution_contract;
@@ -163,6 +164,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         gallery_search::migrate_transaction(&transaction)?;
         camera_metadata::migrate_transaction(&transaction)?;
         compact_gallery_search::migrate_transaction(&transaction)?;
+        organization_review_filters::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -265,6 +267,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             60 => gallery_search::migrate(connection)?,
             61 => camera_metadata::migrate(connection)?,
             62 => compact_gallery_search::migrate(connection)?,
+            63 => organization_review_filters::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

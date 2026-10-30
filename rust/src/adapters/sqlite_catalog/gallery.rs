@@ -4,6 +4,7 @@ pub(super) mod duplicates;
 mod filters;
 mod location_anchor;
 mod member_locations;
+mod metadata_filters;
 mod ordering;
 pub(super) mod organization;
 mod organization_counts;
@@ -47,6 +48,7 @@ pub(super) struct BuiltGalleryQuery {
 }
 
 pub(super) fn validate_gallery_query(query: &GalleryQuery) -> Result<(), ScanError> {
+    query.metadata_filter.validate()?;
     if let Some(boundary) = query.new_since_admission {
         super::sqlite_integer(boundary, "new-arrival boundary")?;
     }

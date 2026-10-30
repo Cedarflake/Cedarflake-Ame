@@ -12,6 +12,7 @@ mod collection_groups;
 mod empty_scope_cost;
 pub(super) mod evolution;
 mod fingerprint_cost;
+mod metadata_filters;
 mod queues;
 mod scroll_sections;
 mod source_scope_cost;

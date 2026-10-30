@@ -4278,6 +4278,34 @@ impl SseDecode for crate::domain::GalleryCollection {
     }
 }
 
+impl SseDecode for crate::domain::gallery_metadata_filter::GalleryDateField {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::gallery_metadata_filter::GalleryDateField::Capture,
+            1 => crate::domain::gallery_metadata_filter::GalleryDateField::Created,
+            2 => crate::domain::gallery_metadata_filter::GalleryDateField::Modified,
+            _ => unreachable!("Invalid variant for GalleryDateField: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::domain::gallery_metadata_filter::GalleryDateRange {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_field =
+            <crate::domain::gallery_metadata_filter::GalleryDateField>::sse_decode(deserializer);
+        let mut var_start = <Option<String>>::sse_decode(deserializer);
+        let mut var_end = <Option<String>>::sse_decode(deserializer);
+        return crate::domain::gallery_metadata_filter::GalleryDateRange {
+            field: var_field,
+            start: var_start,
+            end: var_end,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4413,6 +4441,42 @@ impl SseDecode for crate::domain::GalleryLocationAnchorResolution {
     }
 }
 
+impl SseDecode for crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_extension_ = <String>::sse_decode(deserializer);
+        let mut var_bytes =
+            <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_decode(deserializer);
+        let mut var_width =
+            <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_decode(deserializer);
+        let mut var_height =
+            <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_decode(deserializer);
+        let mut var_date =
+            <crate::domain::gallery_metadata_filter::GalleryDateRange>::sse_decode(deserializer);
+        let mut var_cameraText = <String>::sse_decode(deserializer);
+        return crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
+            extension: var_extension_,
+            bytes: var_bytes,
+            width: var_width,
+            height: var_height,
+            date: var_date,
+            camera_text: var_cameraText,
+        };
+    }
+}
+
+impl SseDecode for crate::domain::gallery_metadata_filter::GalleryNumberRange {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_minimum = <Option<u64>>::sse_decode(deserializer);
+        let mut var_maximum = <Option<u64>>::sse_decode(deserializer);
+        return crate::domain::gallery_metadata_filter::GalleryNumberRange {
+            minimum: var_minimum,
+            maximum: var_maximum,
+        };
+    }
+}
+
 impl SseDecode for crate::domain::GalleryQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4425,6 +4489,10 @@ impl SseDecode for crate::domain::GalleryQuery {
         let mut var_folderRelativePath = <Option<String>>::sse_decode(deserializer);
         let mut var_includeDescendants = <bool>::sse_decode(deserializer);
         let mut var_searchText = <String>::sse_decode(deserializer);
+        let mut var_metadataFilter =
+            <crate::domain::gallery_metadata_filter::GalleryMetadataFilter>::sse_decode(
+                deserializer,
+            );
         let mut var_sortKey = <crate::domain::GallerySortKey>::sse_decode(deserializer);
         let mut var_sortDirection = <crate::domain::GallerySortDirection>::sse_decode(deserializer);
         let mut var_duplicateMode = <crate::domain::GalleryDuplicateMode>::sse_decode(deserializer);
@@ -4436,6 +4504,7 @@ impl SseDecode for crate::domain::GalleryQuery {
             folder_relative_path: var_folderRelativePath,
             include_descendants: var_includeDescendants,
             search_text: var_searchText,
+            metadata_filter: var_metadataFilter,
             sort_key: var_sortKey,
             sort_direction: var_sortDirection,
             duplicate_mode: var_duplicateMode,
@@ -8160,6 +8229,50 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::GalleryCollection>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_metadata_filter::GalleryDateField {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Capture => 0.into_dart(),
+            Self::Created => 1.into_dart(),
+            Self::Modified => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_metadata_filter::GalleryDateField
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_metadata_filter::GalleryDateField>
+    for crate::domain::gallery_metadata_filter::GalleryDateField
+{
+    fn into_into_dart(self) -> crate::domain::gallery_metadata_filter::GalleryDateField {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_metadata_filter::GalleryDateRange {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.field.into_into_dart().into_dart(),
+            self.start.into_into_dart().into_dart(),
+            self.end.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_metadata_filter::GalleryDateRange
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_metadata_filter::GalleryDateRange>
+    for crate::domain::gallery_metadata_filter::GalleryDateRange
+{
+    fn into_into_dart(self) -> crate::domain::gallery_metadata_filter::GalleryDateRange {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -8343,6 +8456,55 @@ impl flutter_rust_bridge::IntoIntoDart<crate::domain::GalleryLocationAnchorResol
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::domain::gallery_metadata_filter::GalleryMetadataFilter
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.extension.into_into_dart().into_dart(),
+            self.bytes.into_into_dart().into_dart(),
+            self.width.into_into_dart().into_dart(),
+            self.height.into_into_dart().into_dart(),
+            self.date.into_into_dart().into_dart(),
+            self.camera_text.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_metadata_filter::GalleryMetadataFilter
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_metadata_filter::GalleryMetadataFilter>
+    for crate::domain::gallery_metadata_filter::GalleryMetadataFilter
+{
+    fn into_into_dart(self) -> crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::domain::gallery_metadata_filter::GalleryNumberRange {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.minimum.into_into_dart().into_dart(),
+            self.maximum.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::gallery_metadata_filter::GalleryNumberRange
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::domain::gallery_metadata_filter::GalleryNumberRange>
+    for crate::domain::gallery_metadata_filter::GalleryNumberRange
+{
+    fn into_into_dart(self) -> crate::domain::gallery_metadata_filter::GalleryNumberRange {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::domain::GalleryQuery {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -8353,6 +8515,7 @@ impl flutter_rust_bridge::IntoDart for crate::domain::GalleryQuery {
             self.folder_relative_path.into_into_dart().into_dart(),
             self.include_descendants.into_into_dart().into_dart(),
             self.search_text.into_into_dart().into_dart(),
+            self.metadata_filter.into_into_dart().into_dart(),
             self.sort_key.into_into_dart().into_dart(),
             self.sort_direction.into_into_dart().into_dart(),
             self.duplicate_mode.into_into_dart().into_dart(),
@@ -11273,6 +11436,34 @@ impl SseEncode for crate::domain::GalleryCollection {
     }
 }
 
+impl SseEncode for crate::domain::gallery_metadata_filter::GalleryDateField {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::gallery_metadata_filter::GalleryDateField::Capture => 0,
+                crate::domain::gallery_metadata_filter::GalleryDateField::Created => 1,
+                crate::domain::gallery_metadata_filter::GalleryDateField::Modified => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::domain::gallery_metadata_filter::GalleryDateRange {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::domain::gallery_metadata_filter::GalleryDateField>::sse_encode(
+            self.field, serializer,
+        );
+        <Option<String>>::sse_encode(self.start, serializer);
+        <Option<String>>::sse_encode(self.end, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::exact_duplicates::GalleryDuplicateAnnotation {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11369,6 +11560,35 @@ impl SseEncode for crate::domain::GalleryLocationAnchorResolution {
     }
 }
 
+impl SseEncode for crate::domain::gallery_metadata_filter::GalleryMetadataFilter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.extension, serializer);
+        <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_encode(
+            self.bytes, serializer,
+        );
+        <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_encode(
+            self.width, serializer,
+        );
+        <crate::domain::gallery_metadata_filter::GalleryNumberRange>::sse_encode(
+            self.height,
+            serializer,
+        );
+        <crate::domain::gallery_metadata_filter::GalleryDateRange>::sse_encode(
+            self.date, serializer,
+        );
+        <String>::sse_encode(self.camera_text, serializer);
+    }
+}
+
+impl SseEncode for crate::domain::gallery_metadata_filter::GalleryNumberRange {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<u64>>::sse_encode(self.minimum, serializer);
+        <Option<u64>>::sse_encode(self.maximum, serializer);
+    }
+}
+
 impl SseEncode for crate::domain::GalleryQuery {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11382,6 +11602,10 @@ impl SseEncode for crate::domain::GalleryQuery {
         <Option<String>>::sse_encode(self.folder_relative_path, serializer);
         <bool>::sse_encode(self.include_descendants, serializer);
         <String>::sse_encode(self.search_text, serializer);
+        <crate::domain::gallery_metadata_filter::GalleryMetadataFilter>::sse_encode(
+            self.metadata_filter,
+            serializer,
+        );
         <crate::domain::GallerySortKey>::sse_encode(self.sort_key, serializer);
         <crate::domain::GallerySortDirection>::sse_encode(self.sort_direction, serializer);
         <crate::domain::GalleryDuplicateMode>::sse_encode(self.duplicate_mode, serializer);

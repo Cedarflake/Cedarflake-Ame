@@ -3,6 +3,7 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_scroll_section.dart';
 import 'domain/media_metadata.dart';
 import 'domain/organization_queue.dart';
@@ -554,6 +555,7 @@ class GalleryQuery {
   final String? folderRelativePath;
   final bool includeDescendants;
   final String searchText;
+  final GalleryMetadataFilter metadataFilter;
   final GallerySortKey sortKey;
   final GallerySortDirection sortDirection;
   final GalleryDuplicateMode duplicateMode;
@@ -566,6 +568,7 @@ class GalleryQuery {
     this.folderRelativePath,
     required this.includeDescendants,
     required this.searchText,
+    required this.metadataFilter,
     required this.sortKey,
     required this.sortDirection,
     required this.duplicateMode,
@@ -580,6 +583,7 @@ class GalleryQuery {
       folderRelativePath.hashCode ^
       includeDescendants.hashCode ^
       searchText.hashCode ^
+      metadataFilter.hashCode ^
       sortKey.hashCode ^
       sortDirection.hashCode ^
       duplicateMode.hashCode;
@@ -596,6 +600,7 @@ class GalleryQuery {
           folderRelativePath == other.folderRelativePath &&
           includeDescendants == other.includeDescendants &&
           searchText == other.searchText &&
+          metadataFilter == other.metadataFilter &&
           sortKey == other.sortKey &&
           sortDirection == other.sortDirection &&
           duplicateMode == other.duplicateMode;

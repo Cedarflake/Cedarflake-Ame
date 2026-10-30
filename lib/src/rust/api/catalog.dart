@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../domain.dart';
+import '../domain/gallery_metadata_filter.dart';
 import '../domain/gallery_query_snapshot.dart';
 import '../domain/gallery_scroll_section.dart';
 import '../domain/gallery_time_snapshot.dart';
