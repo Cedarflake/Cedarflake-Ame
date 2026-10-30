@@ -48,3 +48,4 @@ Recorded decisions:
 - [ADR 0031: Stream portable organization archives from a committed snapshot](0031-portable-organization-archives.md)
 - [ADR 0032: Preserve literal gallery search with an FTS5 candidate index](0032-indexed-catalog-text-search.md)
 - [ADR 0033: Share typed metadata filters across gallery workflows](0033-structured-gallery-filters.md)
+- [ADR 0034: Separate category rules from encoder compatibility](0034-versioned-classification-contracts.md)

@@ -1,5 +1,6 @@
 use std::fmt::{Display, Formatter};
 
+pub mod classification;
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
 pub mod media_metadata;

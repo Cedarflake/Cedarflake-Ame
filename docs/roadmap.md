@@ -93,8 +93,9 @@ R4 is integrated into `main`. Preserve the verified album, Favorite, organizatio
 and recovery behavior. R5 is active, following its
 [implementation sequence](#r5-implementation-sequence). Its requirements include the `智能相册`
 section, usable initial-screening suggestions, optional classification review, and the approved
-shared gallery/viewer interaction. Current work begins with R5-01 metadata and structured search;
-the selected SigLIP 2 candidate and lifecycle enter their existing R5-02/R5-04 slices.
+shared gallery/viewer interaction. R5-01 metadata and structured search are verified through
+`44d54b6a`; current work is R5-02 category/model/runtime admission. The selected SigLIP 2 candidate
+and incremental lifecycle retain their existing R5-02/R5-04 scopes.
 The separate deferred rendering follow-up retains its bounded scope and does not reopen R4 verification.
 
 The requested notification maintenance standardizes bottom feedback and image-preview top notices
@@ -262,18 +263,22 @@ informs R5-02 admission; functional, license, runtime, and resource gates remain
 | R5-06 | [Desktop classification review](plans/r5-classification.md#r5-06-desktop-classification-review) | Approved sidebar/photo-wall/viewer controls, batch review, continuation, and shared feedback |
 | R5-07 | [Integrated verification](plans/r5-classification.md#r5-07-integrated-quality-scale-and-closure) | Measured human-work reduction, source-safe recovery, usable low-resource browsing, and applicable hosted gates |
 
-R5-01 is in progress. Indexed literal path search under
+R5-01 is verified through `44d54b6a`. Indexed literal path search under
 [ADR 0032](architecture/0032-indexed-catalog-text-search.md) and bounded camera metadata under
 [ADR 0006](architecture/0006-exif-capture-time-adapter.md) are connected, with
 [focused migration/query and client evidence](acceptance/r5-metadata-search.md). Structured metadata
 conditions under [ADR 0033](architecture/0033-structured-gallery-filters.md) now share gallery queries,
 organization continuation and portable recovery, with focused and desktop apply/cancel/clear evidence.
 Post-scan incremental reclamation meets the final-storage bound in local and hosted workloads.
-The combined scan-publication, migration and fixture corrections pass focused checks; exact-head
-integrated verification remains in this slice.
-R4 classification-independent
-decisions remain the baseline. Model quality and dependency admission are resolved before dependent
-inference work; unknown thresholds and resource limits are measured outputs, not invented acceptance.
+The combined scan-publication, migration and fixture corrections pass focused checks and the complete
+exact-commit hosted gate. R5-02 admission work establishes configurable category and feature-compatibility
+contracts in [ADR 0034](architecture/0034-versioned-classification-contracts.md), backed by
+[runtime and boundary evidence](acceptance/r5-runtime-admission.md). Purpose-aware calibration,
+converted-artifact redistribution admission and the connected supervised runtime remain open;
+the retained probes do not enable background classification or establish a confidence threshold.
+R4 classification-independent decisions remain the baseline. Model quality and dependency admission
+are resolved before dependent inference work; unknown thresholds and resource limits are measured
+outputs, not invented acceptance.
 R6 through R10 retain their order. The separate rendering follow-up below remains independent.
 
 ## Deferred constrained-device rendering

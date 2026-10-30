@@ -415,5 +415,10 @@ the recovery test body; the same guarded test passed outside the sandbox without
 
 The changed dedicated test owners contain 665 (live finalization), 297 (schema-33), 194
 (root recovery) and 360 (bounded retirement) lines. The 444-line publication validator changes
-only its inline test; production payload/publication logic is unchanged. The final integrated
-partition rerun follows publication of the combined repair.
+only its inline test; production payload/publication logic is unchanged.
+
+[Run 41027688235](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41027688235) completes
+successfully for `44d54b6a85a44e8c50651e1ac662b6004430c0e0`. All applicable Daily partitions, five
+synthetic workloads, Windows accessibility/scan checks and unsigned Release pass. The last Catalog
+partition has 717 passing, zero failing and seven ignored tests. Protected release/signing jobs are
+skipped by design. This closes the integrated regressions above without weakening their assertions.

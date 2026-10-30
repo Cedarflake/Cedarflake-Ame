@@ -83,6 +83,14 @@ Follows R5-01; its output fixes the model/taxonomy compatibility used by later s
    implemented or approved automatic category-creation workflow.
 2. Create a source-safe evaluation protocol with representative labeled groups, calibration and
    held-out partitions, duplicate-leakage prevention, and per-category/band metrics.
+   Freeze the purpose-aware rubric before comparing predictions. Record the label's authoring
+   authority and ambiguity; unfinished folders and provisional visual labels do not become human
+   truth. Keep exact duplicates and known visual/page-series clusters in one partition. Publish
+   aggregate results using logical roots and opaque sample IDs, retaining private paths and media
+   outside Git. Fit candidate separation/review policy only on calibration groups, then evaluate
+   once on the sealed holdout with unchanged descriptions, runtime and text-batch policy. Report
+   uncertain labels separately rather than scoring them as `其他` or silently discarding their
+   coverage. A changed rubric, encoder or matching policy needs its own compatible calibration.
 3. Admit the selected SigLIP 2 configuration using retained exploratory comparisons and focused
    missing evidence. Calibrate first-pass publication and one bounded cached-feature re-screen
    against errors, optional checks/corrections per thousand groups, and human time saved. Keep CLIP

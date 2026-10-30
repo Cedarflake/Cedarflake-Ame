@@ -59,6 +59,26 @@ descriptions determine this precedence; being a toy or photograph alone does not
 Auxiliary content evidence does not create several primary memberships or a general tagging feature.
 Evaluate the same versioned rubric for every candidate without silently reinterpreting human choices.
 
+Use these boundary examples when authoring and evaluating descriptions; they are not a fixed product
+class list:
+
+| Intended category | Positive evidence and boundary |
+| --- | --- |
+| Reaction image or meme | A recognizable conversational reaction, captioned joke or expressive sticker. Photographed toys and people can qualify; photographic appearance alone does not decide the primary use. |
+| Comic | Sequential storytelling, narrative dialogue or identifiable comic-page context. An isolated character crop needs additional evidence to distinguish artwork from a reaction image. |
+| Illustration | Standalone drawn or painted artwork without a dominant narrative or reaction purpose. Scanning a drawing does not by itself turn its primary content into a photograph. |
+| Screenshot | Screen, application, game or conversation content is the useful subject. A border around artwork alone does not establish this purpose. |
+| Photograph | A real scene, person, animal or object without stronger evidence for another configured purpose. |
+| Other defined content | Positive descriptions such as documents, charts or design assets. Missing evidence and analysis failure remain separate. |
+
+Start definitions broadly enough to cover the collection and split them when a recurring distinction
+helps the user retrieve or organize images. Keep the scheme editable rather than selecting a fixed
+target count. R5 does not automatically create a category for each unusual image or merge a category
+because it contains few groups. Cultural meaning absent from visible evidence remains uncertain;
+repeated examples and corrections can inform later evaluation without automatic online research or
+unannounced retraining. The [compatibility contract](../architecture/0034-versioned-classification-contracts.md)
+owns bounded definitions, canonical revisions and feature reuse.
+
 `待确认` is a review filter, not a category. `其他` is a legitimate content category, not a substitute
 for missing predictions, failed analysis, or a category conflict. A result can have a proposed
 category while remaining eligible for optional review.

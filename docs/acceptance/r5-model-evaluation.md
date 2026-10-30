@@ -76,6 +76,9 @@ The preparation record is separate and reusable; adding its time to inference is
 not a measured integrated Ame latency. Background transfers were present, and this was not a repeated
 controlled speed benchmark. RSS includes the evaluation process, runtime, model, and input batches.
 No selected-candidate GPU or cloud-primary timing is established here.
+The later [runtime probes](r5-runtime-admission.md) retain separate local native and cloud CPU
+measurements, including the text-batch compatibility difference; they do not revise this cohort's
+original quality figures.
 
 ## Evidence needed during implementation
 

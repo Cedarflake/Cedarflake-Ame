@@ -1,0 +1,117 @@
+# ADR 0034: Separate category rules from encoder compatibility
+
+- Status: Accepted for implementation
+- Date: 2026-10-30
+
+## Context
+
+Classification compares images with configurable descriptions. Display names, comparison rules,
+image features, text features and human choices have different lifetimes. Invalidating all of them
+when a label changes wastes image reads and can erase intent. Reusing them after an encoder change
+can silently mix incompatible results. The retained runtime probe also found that INT8 text batching
+changes some predictions even with identical tokens.
+
+The [product contract](../product/r5-classification.md) owns whole-group authority, optional review,
+manual-album separation and source safety. This decision owns category and feature compatibility;
+it does not grant model downloads, source reads, publication or human-decision authority.
+
+## Category contract
+
+An active taxonomy is a bounded snapshot of flat definitions. Each definition has an opaque stable
+ID, a display label and one to eight comparison descriptions. Names and ordering are presentation
+data. The canonical rule revision includes active IDs and their descriptions, sorted independently
+of presentation order. UTF-8 descriptions are trimmed at admission; internal spelling and whitespace
+remain significant. No folder name or model-generated label becomes a category identity.
+
+One snapshot admits up to 256 active definitions, with labels of at most 80 characters and individual
+descriptions of at most 1,024 characters. These are resource/admission limits, not a target category
+count. Exact duplicate descriptions within a category and duplicate category IDs are rejected.
+Shared descriptions across different categories are allowed and can produce an ambiguous tie.
+
+Definitions can be added or retired explicitly. Retirement removes a definition from future
+matching; persistence retains its identity and description history for saved human choices. Remapping
+a retired human choice is a separate explicit command, never a side effect of refreshing the active
+taxonomy. An empty active scheme has no classifier and produces no invented `其他` result.
+
+R5 does not generate categories from isolated low scores. Start with an editable broad scheme and
+retain its versioned inclusion/exclusion rubric. A useful new category needs a repeatable distinction
+in the user's collection; small occupancy alone neither deletes a category nor establishes an error.
+Repeated corrections can supply local examples for evaluation. They do not silently train a model,
+change definitions, research new cultural context or create categories. Category-growth automation
+requires a separate measured policy before admission.
+
+## Features and matching
+
+Adapters supply Ame-owned, opaque revisions for the shared embedding space and the independent image
+and text pipelines. A pipeline revision binds artifact digests, runtime/build identity, tensor and
+tokenizer behavior, preprocessing, normalization and relevant execution parameters. Vendor object
+types and model-repository names stay inside adapters. Dimensions must agree with the admitted
+contract; non-finite and zero-length vectors are rejected before ranking.
+
+Text features also bind the exact description revision. Missing, duplicate, unexpected or mismatched
+text features reject construction of a matcher. Image inference and category matching have separate
+boundaries: a new taxonomy can match retained compatible image features and reuse unchanged text
+features. A display rename or reorder preserves the rules revision. Semantic edits or a changed
+active set change the matching revision while preserving the independent image-pipeline revision.
+
+The initial ranking uses L2-normalized vectors and maximum description cosine per category, retaining
+the comparison's measured aggregation rather than introducing an unvalidated averaging rule.
+Ties have stable category-ID ordering and zero separation. A single-category scheme has no runner-up
+margin. Ranking produces similarities and provenance; it neither manufactures probabilities nor
+marks a result human-confirmed. Optional review, bounded re-screening and calibrated confidence are
+application policies that consume this evidence, separately versioned with their calibration data.
+
+## Selected runtime boundary
+
+The candidate is the pinned SigLIP 2 Base/16-224 FP16-image/INT8-text export documented in the
+[runtime evidence](../acceptance/r5-runtime-admission.md). Preserve both encoders. The initial CPU
+configuration is one supervised process, one inference thread, sequential execution, disabled
+spinning and one image or description per batch. Encode descriptions individually; appending an
+unrelated description must not change another description's quantization context.
+
+The image contract is oriented RGB, first frame, whole-image bilinear resize to 224 × 224, F32 NCHW
+input and normalization by mean/standard deviation 0.5. Text uses the pinned tokenizer, EOS and
+64-token padding/truncation policy. Both return 768 values. These are adapter details, included in
+pipeline revisions rather than hard-coded in the general taxonomy/matching domain.
+
+The native probe used ONNX Runtime 1.31.1, `ort` 2.0.0-rc.15 and `tokenizers` 0.23.2. Runtime code is
+MIT; bindings are MIT/Apache-2.0; tokenizer code is Apache-2.0. Retain runtime license, third-party
+notices and privacy documentation. Disable default binding features and runtime download, tokenizer
+network support and tokenizer parallelism. Set `ORT_DISABLE_TELEMETRY=1` in the child environment
+before loading the runtime, then disable it through the API as well.
+
+The [upstream Google model](https://huggingface.co/google/siglip2-base-patch16-224/tree/75de2d55ec2d0b4efc50b3e9ad70dba96a7b2fa2)
+declares Apache-2.0. The [pinned conversion](https://huggingface.co/onnx-community/siglip2-base-patch16-224-ONNX/tree/ba1f3b0843f24bc5417d38e19c37b287d719b2f4)
+identifies that base model but has no separate license declaration. Preserve both provenance records;
+redistribution admission for the converted artifacts remains distinct from the demonstrated local
+probe. These contracts add no runtime dependency or model binary to the application distribution.
+
+The application owns process supervision, source admission, immutable runs, cancellation fences and
+publication. The worker never opens the catalog or changes a human decision. Native runtime errors
+become structured per-work outcomes. Complete retirement precedes replacement; a timeout cannot
+authorize another worker while the first still owns memory or input. The measured sub-30-ms forced
+termination is a probe observation, not an integrated cancellation guarantee.
+
+## Alternatives and consequences
+
+Fixed output classes would prevent user descriptions and are rejected. Re-encoding images for
+description edits wastes source reads; canonical rule and pipeline revisions make that unnecessary.
+Comparing raw unversioned arrays is rejected because dimensions alone do not establish compatibility.
+Mean/prototype aggregation showed no consistent advantage in the retained diagnostic and would
+require a new scoring revision and calibration before adoption. GPU acceleration remains optional.
+
+This contract adds no schema or bridge change. Persistence and worker adapters can use the same
+validated inputs without depending on each other's engine types. The 256 × 8 description limit
+bounds matching storage; future increases need resource evidence, not new category semantics.
+
+## Validation and replacement
+
+Boundary tests cover renaming, reordering, semantic edits, active-set changes, malformed definitions,
+missing/mixed features, invalid vectors, ties and non-fixed category counts. Runtime measurements and
+their limits remain in the linked evidence. Purpose-aware calibration and independent held-out
+evaluation retain the requirements in the [execution plan](../plans/r5-classification.md); this
+decision establishes no high-confidence threshold or product quality pass.
+
+Replace the encoder behind its feature contract, create new pipeline revisions and rematch only
+compatible features. Preserve older immutable evidence and human decisions. Replacing the scoring
+policy creates a new matching/calibration revision; it does not require recataloging source media.

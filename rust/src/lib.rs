@@ -1,6 +1,7 @@
 mod adapters;
 pub mod api;
 mod application;
+pub mod classification;
 mod domain;
 mod frb_generated;
 pub mod journal_broker;
