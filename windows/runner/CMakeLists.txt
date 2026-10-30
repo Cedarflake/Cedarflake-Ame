@@ -8,6 +8,7 @@ project(runner LANGUAGES CXX)
 # Any new source files that you add to the application should be added here.
 add_executable(${BINARY_NAME} WIN32
   "flutter_io_thread_priority.cpp"
+  "flutter_power_channel.cpp"
   "flutter_window.cpp"
   "main.cpp"
   "single_instance_lock.cpp"

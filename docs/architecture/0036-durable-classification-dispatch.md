@@ -145,6 +145,27 @@ ordinary focus loss or a minimized window does not. A memory-pressure event reti
 one minute before trying the normal quiet interval; the integrated resource check owns that interval's
 measurement. These signals never overwrite manual pause or revive a stopped run.
 
+The Windows runner registers its HWND with `RegisterSuspendResumeNotification` and translates
+`WM_POWERBROADCAST` into a versioned power snapshot over an internal Flutter method channel. The
+adapter owns only registration, event identity and teardown; classification policy remains in the
+existing application lifecycle. The desktop environment combines this snapshot with Flutter's
+paused/detached state, so focus or visibility changes cannot clear a system suspension. Admission
+waits for the initial snapshot; an older snapshot cannot overwrite a newer event. Registration or
+protocol failure inhibits classification and reports through its existing lifecycle error owner.
+
+Suspend signals cancellation and retirement without blocking the window procedure. An automatic
+resume also fences an old turn when its preceding suspend notification was missed, then restores
+the normal quiet interval and source revalidation. A subsequent user-interaction resume notification
+does not repeat that transition. Manual intent remains unchanged. Registration and channel handlers
+retire before the Flutter engine, and the desktop observer retires before classification shutdown.
+Windows grants approximately two seconds for suspend handling and may freeze the application before
+asynchronous retirement finishes; checkpoint and claim guards remain authoritative after wake.
+Targeted HWND event verification covers the application path without claiming a physical sleep test.
+The platform contracts are Microsoft's
+[power broadcasts](https://learn.microsoft.com/en-us/windows/win32/power/wm-powerbroadcast),
+[registration API](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registersuspendresumenotification)
+and [suspend deadline](https://learn.microsoft.com/en-us/windows/win32/power/pbt-apmsuspend).
+
 Configuration and model-installation changes retire the owned desktop session before entering the
 native configuration boundary. Native admission independently rejects changes while a runtime still
 owns resources. Only one desktop configuration change may be outstanding. A late opening is closed

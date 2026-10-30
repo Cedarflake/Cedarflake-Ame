@@ -1373,8 +1373,11 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   classification client workflow with existing admitted artifacts and an existing three-file,
   two-content fixture under `build/test` (`-FixturePath` overrides `build/test/metadata`). It uses
   the repository lock, an owned process tree and fresh isolated Debug storage. Its bounded Python
-  observer reads only that derived storage; source bytes are compared before and after. Logs and
-  catalogs remain outside the fixture. This opt-in model workflow adds no hosted model download.
+  observer reads only that derived storage; source bytes are compared before and after. Its native
+  power probe validates its invoking Debug client and sends suspend/resume messages only to that
+  process's runner HWND, without changing the computer's power state. It observes owned worker
+  retirement and verifies the framework memory-pressure cooldown. Logs and catalogs remain outside
+  the fixture. This opt-in model workflow adds no hosted model download.
 - `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
   cases and two real Debug-engine retirement cases, using an explicit `-CMakePath` or the current
   Flutter CMake cache. The latter require prepared, matching SDK artifacts and assemble only an

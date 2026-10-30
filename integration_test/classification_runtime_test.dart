@@ -120,15 +120,39 @@ void main() {
     settings = await client.configuration.load();
     expect(settings.mode, LibraryClassificationMode.paused);
     reading.close();
+    await client.windows("suspend");
+    await client.windows("resume");
     await Future<void>.delayed(const Duration(seconds: 4));
     expect((await client.observe()).predictions, isEmpty);
+    expect(
+      (await client.configuration.load()).mode,
+      LibraryClassificationMode.paused,
+    );
+    expect(await client.windows("workers"), isEmpty);
     settings = await client.configuration.changeControl(
       expectedRevision: settings.dispatchRevision,
       action: LibraryClassificationControl.resume,
     );
+    await client.waitForWorker(resident: true);
+    final suspendClock = Stopwatch()..start();
+    await client.windows("suspend");
+    await client.waitForWorker(resident: false);
+    expect(suspendClock.elapsed, lessThan(const Duration(seconds: 2)));
+    final suspended = await client.observe();
+    expect(suspended.features, isNotEmpty);
+    expect(suspended.completed("client-first-run"), isFalse);
+    await Future<void>.delayed(const Duration(seconds: 4));
+    final stillSuspended = await client.observe();
+    expect(stillSuspended.predictions, suspended.predictions);
+    expect(stillSuspended.features, suspended.features);
+    expect(await client.windows("workers"), isEmpty);
+    await client.windows("resume");
     final initial = await client.waitForRun("client-first-run");
     expect(initial.predictions, {"client-first-run": 2});
     expect(initial.features, isNotEmpty);
+    for (final entry in suspended.features.entries) {
+      expect(initial.features[entry.key], entry.value);
+    }
 
     final renamed = [
       LibraryClassificationCategory(
@@ -161,6 +185,9 @@ void main() {
       ),
       ...renamed.skip(1),
     ];
+    final pressureClock = Stopwatch()..start();
+    client.environment.didHaveMemoryPressure();
+    await client.waitForWorker(resident: false);
     settings = await client.configuration.save(
       operationId: "client-edited-run",
       observed: settings,
@@ -168,7 +195,20 @@ void main() {
       action: LibraryClassificationConfigurationAction.save,
     );
     expect(settings.runId, "client-edited-run");
+    final hold = const Duration(seconds: 55) - pressureClock.elapsed;
+    if (hold > Duration.zero) {
+      await Future<void>.delayed(hold);
+    }
+    expect((await client.observe()).predictions, initial.predictions);
+    expect(await client.windows("workers"), isEmpty);
     final rematched = await client.waitForRun("client-edited-run");
+    expect(
+      pressureClock.elapsed,
+      greaterThanOrEqualTo(const Duration(seconds: 63)),
+    );
+    debugPrint(
+      "CLASSIFICATION_PRESSURE completedAfterMs=${pressureClock.elapsedMilliseconds}",
+    );
     expect(rematched.predictions, {
       "client-first-run": 2,
       "client-edited-run": 2,

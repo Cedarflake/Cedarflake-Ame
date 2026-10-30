@@ -421,9 +421,9 @@ by the missing exact declaration for the new classification installation module.
 contract now records that declaration and the configuration domain module, with rejection cases
 retaining the visibility, platform and alternate-loading boundaries. Execution of the corrected
 contract remains with the next hosted gate.
-The current configuration boundary still requires the planned real-model client run, operating-system
-suspend/resume and integrated resource measurements. Its controls retain their R5-06 presentation
-scope, and no original-media files were changed by this implementation or its focused checks.
+At this checkpoint, the real-model client run, operating-system suspend/resume and integrated
+resource measurements remained outstanding. The following sections record the subsequent client
+coverage. Controls retain their R5-06 presentation scope, and these focused checks change no originals.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
@@ -472,11 +472,66 @@ deadline; the second inspected the cache directory as a database file. Both were
 the complete pass. Final test-enabled Clippy passes with warnings denied in 13.53 seconds, and Dart
 analysis plus PowerShell/Python syntax checks pass. The separate `48e85d93` hosted Windows
 Accessibility and Windows Scan jobs pass; this does not retroactively explain the earlier UIA timeout.
-Operating-system suspend/resume, integrated resource/foreground measurements and the later visible
-classification controls retain their existing R5-04/R5-06 scope.
+The following native power-event verification extends this client case. Integrated constrained-device
+resource/foreground measurements and the visible classification controls retain their R5-04/R5-06 scope.
 
 | Owner | Production lines | Inline test lines | Dedicated test lines |
 | --- | ---: | ---: | ---: |
 | Native runtime / desktop composition | 258 / 183 | 0 | 58 / 137 |
 | Atomic configuration | 132 | 0 | 234 |
 | Local client runner / read-only observer | 76 / 54 | 0 | 196 + 98 (client and support) |
+
+## Windows power events and pressure cooldown
+
+The HWND adapter registers native suspend/resume events and supplies revisioned state to the desktop
+environment. That environment owns combined framework/system inhibition and event admission;
+`LibraryAnalysisActivity` retains only catalog and foreground-input composition. Existing native
+dispatch retains cancellation, model retirement, source revalidation and durable manual intent.
+There is no schema, model, source-media or third-party dependency change in this connection.
+
+Six focused environment tests pass: a late initial snapshot, focus/minimize behavior, application
+pause overlapping system resume, a missing suspend notification, disposal, and registration/protocol
+failure. The existing 12 classification lifecycle tests also pass. Final Dart analysis and test-enabled
+Clippy pass with warnings denied; Clippy takes 15.47 seconds. The actual Debug runner compiles with
+the same adapter included in the engine-free and real-engine retirement targets.
+
+The expanded real-model client case passes in 137 seconds after a 20.0-second incremental build.
+It sends power events only to its own verified Debug HWND, without physically suspending the machine:
+
+- Suspend/resume while manually paused retains pause and starts no worker or prediction.
+- The loaded text worker has already published reusable features when interrupted. Its observed
+  working set is 401,215,488 bytes, private memory 386,650,112 bytes and peak working set 715,886,592
+  bytes. These are one worker observation on local-primary, not a full-run memory or cloud benchmark.
+- The suspend message call takes 171 ms and the subsequent no-worker observation completes in
+  172 ms. The combined check passes its two-second bound. Four seconds later, no worker exists and
+  neither predictions nor features have advanced.
+- Resume completes both distinct contents and preserves every feature committed before suspension.
+  The 23,826-ms completion wait includes quiet admission, remaining preparation and model work.
+- A framework memory-pressure callback holds new work across description configuration replacement.
+  At 55 seconds, no worker or replacement prediction exists. The edited run completes
+  71,072 ms after the pressure event, preserving the one-minute hold followed by quiet admission.
+  Image-worker retirement under pressure is not separately measured by this case: display-only
+  reconfiguration had already retired that resident process.
+- The prior duplicate sharing, display-name preservation, rematching, stop/reopen and unchanged
+  three-file source assertions remain in the complete passing case.
+
+The first native event run timed out while observing workers, before producing observer diagnostics.
+A bounded observer with owned-process retirement and delayed stack capture passed the same boundary;
+that timeout's cause remains unestablished. A second pass covered interruption during process startup;
+the final case requires feature production before interruption and adds pressure cooldown coverage.
+The native-event path is verified; physical sleep and integrated constrained-device browsing/resource
+behavior are not established by synthetic window messages.
+
+The `67c0d52a` Schema and Queue gate passed 388 cases and failed one obsolete version assertion.
+The availability migration correctly reached 68, and production reopen advanced it to 69 before
+the assertion. Its test now checks 68 immediately after that historical migration and the canonical
+current version after reopening, retaining pause, Favorite and queued-work assertions. Full native
+execution of that adjusted assertion belongs to the next exact-head hosted gate.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Windows power channel, including header | 102 | 0 | Covered by native client and runner gates |
+| Desktop environment | 138 | 0 | 153 |
+| Classification lifecycle / activity composition | 250 / 138 | 0 | 362 (lifecycle) |
+| Real client / client support / Windows probe | 0 | 0 | 236 / 165 / 163 |
+| Availability migration regression | Unchanged | 0 | 164 |

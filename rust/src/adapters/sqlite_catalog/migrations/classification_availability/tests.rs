@@ -9,6 +9,7 @@ use crate::ports::classification::ClassificationRepository;
 use crate::ports::classification_work::ClassificationWorkRepository;
 use crate::ports::organization::OrganizationRepository;
 
+use super::super::SCHEMA_VERSION;
 use super::*;
 
 #[test]
@@ -128,6 +129,10 @@ fn upgrade_reconsiders_legacy_waiting_work_without_resuming_pause_or_changing_fa
     let configuration = catalog.load_classification_state().unwrap();
     downgrade_to_v67_for_test(&catalog.connection);
     migrate(&mut catalog.connection).unwrap();
+    assert_eq!(
+        schema_shape::schema_version(&catalog.connection).unwrap(),
+        68
+    );
     drop(catalog);
     let mut catalog = SqliteCatalog::open(directory.path().join("catalog.sqlite3")).unwrap();
     assert_eq!(catalog.classification_dispatch_state().unwrap(), paused);
@@ -153,7 +158,7 @@ fn upgrade_reconsiders_legacy_waiting_work_without_resuming_pause_or_changing_fa
     );
     assert_eq!(
         schema_shape::schema_version(&catalog.connection).unwrap(),
-        68
+        SCHEMA_VERSION
     );
     validate_rows(&catalog.connection).unwrap();
 }

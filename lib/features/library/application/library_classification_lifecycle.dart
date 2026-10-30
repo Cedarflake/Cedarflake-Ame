@@ -37,6 +37,9 @@ class LibraryClassificationLifecycle extends ChangeNotifier {
 
   Object? get error => _error;
 
+  void reportEnvironmentError(Object error, StackTrace stackTrace) =>
+      _reportError(error, stackTrace);
+
   Future<void> waitUntilOpened() async {
     try {
       await _opening;

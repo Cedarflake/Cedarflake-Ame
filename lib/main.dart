@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
@@ -7,6 +9,7 @@ import "app/bootstrap/ame_startup_orchestrator.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/window/ame_window_actions.dart";
+import "app/window/ame_analysis_environment.dart";
 import "app/window/ame_shutdown_coordinator.dart";
 import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
@@ -76,7 +79,16 @@ Future<void> main() async {
       const RustLibraryClassification(),
       foregroundReads: libraryForegroundReads,
     );
-    shutdownCoordinator.register(classificationLifecycle.close);
+    final classificationEnvironment = AmeAnalysisEnvironment(
+      onSuspendedChanged: classificationLifecycle.setSuspended,
+      onMemoryPressure: classificationLifecycle.memoryPressure,
+      onError: classificationLifecycle.reportEnvironmentError,
+    );
+    unawaited(classificationEnvironment.start());
+    shutdownCoordinator.register(() async {
+      classificationEnvironment.dispose();
+      await classificationLifecycle?.close();
+    });
     final classificationConfiguration = LibraryClassificationConfiguration(
       const RustLibraryClassificationConfiguration(),
       classificationLifecycle,

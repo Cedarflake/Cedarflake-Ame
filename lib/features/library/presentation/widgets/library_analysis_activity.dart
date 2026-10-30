@@ -26,8 +26,7 @@ class LibraryAnalysisActivity extends ConsumerStatefulWidget {
 }
 
 class _LibraryAnalysisActivityState
-    extends ConsumerState<LibraryAnalysisActivity>
-    with WidgetsBindingObserver {
+    extends ConsumerState<LibraryAnalysisActivity> {
   LibraryExactAnalysisScheduler? _scheduler;
   LibraryClassificationLifecycle? _classification;
   late final LibraryExactAnalysisPublication _publication;
@@ -46,11 +45,6 @@ class _LibraryAnalysisActivityState
     );
     _scheduler = ref.read(libraryExactAnalysisSchedulerProvider);
     _classification = ref.read(libraryClassificationLifecycleProvider);
-    WidgetsBinding.instance.addObserver(this);
-    final lifecycleState = WidgetsBinding.instance.lifecycleState;
-    if (lifecycleState != null) {
-      didChangeAppLifecycleState(lifecycleState);
-    }
     final synchronization = ref.read(librarySynchronizationProvider);
     _snapshot = synchronization.current;
     _updateCatalog();
@@ -121,7 +115,6 @@ class _LibraryAnalysisActivityState
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _publication.dispose();
     if (_scheduler != null || _classification != null) {
       HardwareKeyboard.instance.removeHandler(_onKey);
@@ -129,16 +122,6 @@ class _LibraryAnalysisActivityState
     unawaited(_synchronization?.cancel());
     super.dispose();
   }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    _classification?.setSuspended(
-      state == AppLifecycleState.paused || state == AppLifecycleState.detached,
-    );
-  }
-
-  @override
-  void didHaveMemoryPressure() => _classification?.memoryPressure();
 
   void _browsingActivity() {
     _scheduler?.browsingActivity();

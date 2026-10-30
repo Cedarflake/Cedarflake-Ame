@@ -111,9 +111,11 @@ an opaque native session. Typed configuration entrypoints connect local installa
 categories, explicit enablement and manual controls; category/run replacement commits atomically and
 desktop reconfiguration joins the old session before reopening. The native Windows client now verifies
 real-model enablement, foreground inhibition, durable pause/stop, shared duplicate results and
-description rematching with retained features. Operating-system suspend/resume and integrated
-resource measurements remain in R5-04, with full database regressions owned by the current-head
-hosted gate.
+description rematching with retained features. Windows power notifications now feed the same
+cancellation/resumption owner; targeted native events verify loaded-worker retirement, retained
+manual pause and feature reuse. The real-client case also covers the memory-pressure cooldown
+across configuration changes. Integrated constrained-device resource/foreground measurements
+remain in R5-04, with full database regressions owned by the current-head hosted gate.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference
