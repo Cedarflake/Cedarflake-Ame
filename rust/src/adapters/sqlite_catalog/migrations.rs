@@ -18,6 +18,7 @@ mod catch_up_repair;
 mod change_lane_contract;
 mod classification;
 mod classification_availability;
+mod classification_maintenance;
 mod classification_projection;
 mod classification_publications;
 mod classification_setup;
@@ -177,6 +178,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         classification_availability::migrate_transaction(&transaction)?;
         classification_publications::migrate_transaction(&transaction)?;
         classification_projection::migrate_transaction(&transaction)?;
+        classification_maintenance::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -286,6 +288,7 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             67 => classification_availability::migrate(connection)?,
             68 => classification_publications::migrate(connection)?,
             69 => classification_projection::migrate(connection)?,
+            70 => classification_maintenance::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

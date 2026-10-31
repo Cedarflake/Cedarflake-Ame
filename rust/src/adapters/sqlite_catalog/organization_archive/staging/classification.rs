@@ -9,6 +9,10 @@ use super::super::{codec::Cell, database_error, error};
 
 pub(super) fn record(kind: &str, values: &[Cell]) -> Result<(), ScanError> {
     let ids: &[usize] = match kind {
+        "classification_origin" => {
+            origin(values)?;
+            &[]
+        }
         "classification_category" | "classification_version" => {
             let Some(Cell::Text(value)) = values.first() else {
                 return Err(invalid());
@@ -44,6 +48,40 @@ pub(super) fn record(kind: &str, values: &[Cell]) -> Result<(), ScanError> {
         };
         validate_identifier(value).map_err(|_| invalid())?;
     }
+    Ok(())
+}
+
+fn origin(values: &[Cell]) -> Result<(), ScanError> {
+    use crate::domain::classification::discovery::ConceptId;
+    use crate::domain::classification::maintenance::managed_category_identity;
+    let [
+        Cell::Text(category),
+        Cell::Text(concept),
+        purpose,
+        Cell::Text(operation),
+        Cell::Text(_),
+        Cell::Text(semantic),
+        Cell::Integer(protected),
+    ] = values
+    else {
+        return Err(invalid());
+    };
+    let purpose = match purpose {
+        Cell::Null => None,
+        Cell::Text(value) => Some(CategoryId::new(value.clone()).map_err(|_| invalid())?),
+        _ => return Err(invalid()),
+    };
+    let concept = ConceptId::from_bytes(
+        *blake3::Hash::from_hex(concept)
+            .map_err(|_| invalid())?
+            .as_bytes(),
+    );
+    let expected = managed_category_identity(concept, purpose.as_ref()).map_err(|_| invalid())?;
+    if expected.as_str() != category || !matches!(*protected, 0 | 1) {
+        return Err(invalid());
+    }
+    ClassificationRecordId::new(operation.clone()).map_err(|_| invalid())?;
+    blake3::Hash::from_hex(semantic).map_err(|_| invalid())?;
     Ok(())
 }
 
@@ -169,6 +207,9 @@ fn choices(
 }
 
 const RELATIONSHIPS: &[&str] = &[
+    "SELECT EXISTS(SELECT 1 FROM archive_classification_origin AS origin
+         JOIN archive_classification_operation AS operation USING(operation_id)
+         WHERE operation.operation_kind <> 'configure' OR operation.revision > ?1)",
     "SELECT EXISTS(SELECT 1 FROM archive_classification_category AS category WHERE revision > ?1
        OR NOT EXISTS(SELECT 1 FROM archive_classification_version WHERE category_id = category.category_id))",
     "SELECT EXISTS(SELECT 1 FROM archive_classification_decision WHERE choice_revision > ?1 OR review_revision > ?1)",

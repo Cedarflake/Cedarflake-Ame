@@ -2,7 +2,10 @@ use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
 use crate::domain::classification::discovery::{CategoryNaming, ConceptId, DiscoveryCohort};
-use crate::domain::classification::maintenance::CategoryExpansionPlan;
+use crate::domain::classification::maintenance::{
+    CategoryExpansionBounds, CategoryExpansionCandidate, CategoryExpansionCriteria,
+    CategoryExpansionPlan, CategoryExpansionProvenance,
+};
 use crate::domain::classification::work::ClassificationDispatchMode;
 use crate::domain::classification::{
     CategoryDefinition, CategoryId, ClassificationAnalysisSetup, ClassificationRecordId,
@@ -95,12 +98,33 @@ pub fn prepare_category_expansion(
     }
     let mut categories = matcher.taxonomy().categories().to_vec();
     let mut additions = Vec::new();
+    let mut candidates = Vec::new();
     for category in proposed {
         if snapshot.known_categories.contains(category.id()) {
             result.already_known.push(category.id().clone());
         } else if categories.len() == 256 {
             result.capacity_deferred.push(category.id().clone());
         } else {
+            let admitted = result
+                .admission
+                .candidates
+                .iter()
+                .find(|candidate| {
+                    managed_category_id(candidate.concept_id, &discovery.naming)
+                        .is_ok_and(|id| &id == category.id())
+                })
+                .ok_or_else(stale)?;
+            candidates.push(CategoryExpansionCandidate {
+                category_id: category.id().clone(),
+                concept_id: admitted.concept_id,
+                supporting_contents: admitted
+                    .members
+                    .iter()
+                    .filter(|member| member.disposition == super::MemberAdmission::Supports)
+                    .map(|member| member.content.clone())
+                    .collect(),
+                mean_supporting_improvement: admitted.mean_supporting_improvement,
+            });
             additions.push(category.id().clone());
             categories.push(category);
         }
@@ -129,8 +153,57 @@ pub fn prepare_category_expansion(
         additions,
         sources: cohort.source_contents(),
         evidence: evidence_identity(&result.admission),
+        provenance: provenance(cohort, &result.admission, policy, candidates),
     });
     Ok(result)
+}
+
+fn provenance(
+    cohort: &DiscoveryCohort,
+    admission: &CategoryAdmission,
+    policy: &CategoryAdmissionPolicy,
+    candidates: Vec<CategoryExpansionCandidate>,
+) -> CategoryExpansionProvenance {
+    let criteria = policy.criteria();
+    let retrieval = admission.retrieval_limits;
+    let consolidation = admission.consolidation_limits;
+    CategoryExpansionProvenance {
+        naming: admission.naming.clone(),
+        vocabulary: admission.vocabulary_revision,
+        cohort: admission.cohort_revision,
+        retrieval: admission.retrieval_revision,
+        frontier: admission.frontier_revision,
+        consolidation: admission.consolidation_revision,
+        policy: admission.policy_revision,
+        comparison_rules: admission.taxonomy_revision,
+        comparison_names: admission.taxonomy_names_revision,
+        criteria: CategoryExpansionCriteria {
+            minimum_members: criteria.minimum_members,
+            coverage_per_thousand: criteria.coverage_per_thousand,
+            minimum_improvement: criteria.minimum_improvement,
+            minimum_separation: criteria.minimum_separation,
+            minimum_context_contrast: criteria.minimum_context_contrast,
+            max_proposals: criteria.max_proposals,
+            minimum_context_relatedness: admission.minimum_context_relatedness,
+        },
+        bounds: CategoryExpansionBounds {
+            entry_points: retrieval.entry_points,
+            expanded_concepts: retrieval.expanded_concepts,
+            retrieval_edges: retrieval.edges,
+            retrieval_hops: retrieval.hops,
+            seeds: retrieval.seeds,
+            results: retrieval.results,
+            consolidation_hops: consolidation.hops,
+            consolidation_concepts: consolidation.concepts,
+            consolidation_edges: consolidation.edges,
+        },
+        members: cohort
+            .member_samples()
+            .iter()
+            .map(|sample| sample.content.clone())
+            .collect(),
+        candidates,
+    }
 }
 
 fn managed_category_id(
@@ -138,19 +211,11 @@ fn managed_category_id(
     naming: &CategoryNaming,
 ) -> Result<CategoryId, ScanError> {
     let purpose = match naming {
-        CategoryNaming::Unconditioned => "",
-        CategoryNaming::WithinCategory(purpose) => purpose.category().as_str(),
+        CategoryNaming::Unconditioned => None,
+        CategoryNaming::WithinCategory(purpose) => Some(purpose.category()),
     };
-    let identity = ClassificationRevision::derive(
-        "ame.classification.managed-category.v1",
-        [concept.bytes().as_slice(), purpose.as_bytes()],
-    );
-    CategoryId::new(
-        blake3::Hash::from_bytes(*identity.bytes())
-            .to_hex()
-            .to_string(),
-    )
-    .map_err(|_| stale())
+    crate::domain::classification::maintenance::managed_category_identity(concept, purpose)
+        .map_err(|_| stale())
 }
 
 fn evidence_identity(admission: &CategoryAdmission) -> ClassificationRevision {

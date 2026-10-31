@@ -12,6 +12,7 @@ use super::{SqliteCatalog, database_error};
 
 pub(super) mod codec;
 mod configuration;
+pub(super) mod maintenance;
 mod observations;
 mod operations;
 mod predictions;

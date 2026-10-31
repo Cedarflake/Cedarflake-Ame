@@ -161,8 +161,10 @@ candidate for maintenance, preserving four useful distinctions while deferring t
 portrait/code-artwork errors and useful but sparse two-content candidates. Native category additions
 now preserve stable identities, retired definitions and human choices, revalidate support/comparison
 sources, and atomically replace the active setup with retry/cancellation guards. Complete cumulative
-budgets, overlap/retirement policy and retained maintenance provenance, then connect automatic
-maintenance and first use. Context coverage and integrated human-work verification remain explicit;
+budgets and overlap/retirement policy, then connect automatic maintenance and first use. Generated
+origins, immutable admission evidence and manual-definition protection now persist together; portable
+recovery retains protection without importing model evidence or claiming legacy categories.
+Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the

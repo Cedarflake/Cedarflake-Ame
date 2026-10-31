@@ -33,7 +33,13 @@ impl ClassificationConfigurationRepository for SqliteCatalog {
     ) -> Result<ClassificationConfigurationSnapshot, ScanError> {
         let transaction = self.begin_user_interactive_write()?;
         let digest = request_digest(change)?;
-        apply(&transaction, change, &digest)?;
+        if let Some(before) = apply(&transaction, change, &digest)? {
+            super::maintenance::protect_manual_changes(
+                &transaction,
+                before.catalog.taxonomy.as_ref(),
+                change.setup.primary(),
+            )?;
+        }
         let snapshot = load(&transaction)?;
         transaction.commit().map_err(database_error)?;
         Ok(snapshot)
@@ -51,9 +57,9 @@ fn apply(
     connection: &Connection,
     change: &ClassificationConfigurationChange,
     digest: &str,
-) -> Result<(), ScanError> {
+) -> Result<Option<ClassificationConfigurationSnapshot>, ScanError> {
     if operations::replay(connection, &change.operation_id, digest)?.is_some() {
-        return Ok(());
+        return Ok(None);
     }
     let before = load(connection)?;
     if before.catalog.revision != change.expected_catalog_revision
@@ -106,7 +112,7 @@ fn apply(
             activation,
         )?;
     }
-    Ok(())
+    Ok(Some(before))
 }
 
 fn request_digest(change: &ClassificationConfigurationChange) -> Result<String, ScanError> {

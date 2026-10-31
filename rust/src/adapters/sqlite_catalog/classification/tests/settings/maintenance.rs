@@ -7,6 +7,7 @@ use crate::ports::classification_configuration::CategoryExpansionRepository;
 use super::*;
 
 mod fixture;
+mod origins;
 mod preservation;
 use fixture::{assess, evidence, plan, start};
 
@@ -130,6 +131,35 @@ fn concurrent_pause_or_edit_rejects_uncommitted_expansion() {
             );
         }
     }
+}
+
+#[test]
+fn direct_rule_replacement_cannot_reuse_the_old_automatic_run_for_expansion() {
+    let (_directory, mut catalog) = super::super::fixture();
+    start(&mut catalog);
+    let evidence = evidence(&catalog);
+    let before = catalog.load_classification_state().unwrap();
+    catalog
+        .configure_classification(
+            &id("direct-rule-edit"),
+            before.revision,
+            &edited_rules("Drawing", "changed description"),
+        )
+        .unwrap();
+    let current = catalog.load_classification_configuration().unwrap();
+    assert!(current.catalog.active_run_id.is_none());
+    assert!(current.dispatch.run_id.is_some());
+    assert_eq!(
+        assess(&catalog, &evidence, "after-direct-edit")
+            .err()
+            .unwrap()
+            .code,
+        "classification_changed"
+    );
+    assert_eq!(
+        catalog.load_classification_configuration().unwrap(),
+        current
+    );
 }
 
 #[test]

@@ -66,4 +66,15 @@ CREATE TABLE archive_classification_context (
   revision INTEGER NOT NULL CHECK(revision >= 0), active_rules TEXT REFERENCES archive_classification_rules(rules_revision)
 ) STRICT;
 CREATE UNIQUE INDEX archive_classification_context_singleton ON archive_classification_context((1));
+CREATE TABLE archive_classification_origin (
+  category_id TEXT PRIMARY KEY NOT NULL REFERENCES archive_classification_category(category_id),
+  concept_id TEXT NOT NULL CHECK(length(concept_id) = 64 AND concept_id NOT GLOB '*[^0-9a-f]*'),
+  purpose_category_id TEXT REFERENCES archive_classification_category(category_id),
+  operation_id TEXT NOT NULL REFERENCES archive_classification_operation(operation_id),
+  admitted_label TEXT NOT NULL CHECK(length(admitted_label) BETWEEN 1 AND 80),
+  admitted_semantic_revision TEXT NOT NULL CHECK(length(admitted_semantic_revision) = 64),
+  protected INTEGER NOT NULL CHECK(protected IN (0, 1)),
+  FOREIGN KEY(category_id, admitted_semantic_revision)
+    REFERENCES archive_classification_version(category_id, semantic_revision)
+) STRICT;
 ";

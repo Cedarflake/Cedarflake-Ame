@@ -65,6 +65,64 @@ fn write_archive(path: &Path, entries: &[Value]) {
 }
 
 #[test]
+fn organization_archive_inspection_accepts_version_five_without_managed_origins() {
+    use crate::domain::classification::{
+        CategoryDefinition, CategoryId, ClassificationRecordId, Taxonomy,
+    };
+    use crate::ports::classification::ClassificationRepository;
+
+    let (directory, mut catalog) = fixture();
+    let rules = Taxonomy::new(vec![
+        CategoryDefinition::new(
+            CategoryId::new("drawing".into()).unwrap(),
+            "Drawing".into(),
+            vec!["an illustration".into()],
+        )
+        .unwrap(),
+    ])
+    .unwrap();
+    let before = catalog.load_classification_state().unwrap();
+    catalog
+        .configure_classification(
+            &ClassificationRecordId::new("configure".into()).unwrap(),
+            before.revision,
+            &rules,
+        )
+        .unwrap();
+    let archive = directory.path().join("version-five.ame-backup");
+    catalog
+        .export_organization_archive(&archive, &mut |_| true)
+        .unwrap();
+    let mut rows = entries(&archive);
+    rows[0]["header"]["version"] = json!(5);
+    rows[0]["header"]["source_schema"] = json!(70);
+    write_archive(&archive, &rows);
+    let before = fs::read(&archive).unwrap();
+    let staged = read(&archive, directory.path(), &mut |_| true).unwrap();
+    let label: String = staged
+        .connection
+        .query_row(
+            "SELECT label FROM archive_classification_category WHERE category_id = 'drawing'",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(label, "Drawing");
+    let origins: i64 = staged
+        .connection
+        .query_row(
+            "SELECT COUNT(*) FROM archive_classification_origin",
+            [],
+            |row| row.get(0),
+        )
+        .unwrap();
+    assert_eq!(origins, 0);
+    assert_eq!(fs::read(&archive).unwrap(), before);
+    drop(staged);
+    assert_no_scratch(directory.path());
+}
+
+#[test]
 fn organization_archive_inspection_upgrades_v1_native_copy_evidence_without_changing_input() {
     let (directory, catalog) = fixture();
     let archive = directory.path().join("version-one.ame-backup");

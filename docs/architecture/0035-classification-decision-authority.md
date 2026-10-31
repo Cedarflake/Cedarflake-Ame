@@ -130,6 +130,12 @@ the existing archive transaction. Existing category labels, active rules and han
 take precedence; missing fields can recover imported intent. Versions 1 through 4 keep their original
 record counts and acquire no classification state during restoration.
 
+Portable format 6 adds the managed-category origin and monotonic manual-protection flag defined in
+[ADR 0034](0034-versioned-classification-contracts.md). Restoring an older archive cannot weaken
+retained protection or claim an existing category whose automatic origin was never recorded.
+Version 5 keeps its classification records and original record count. Discovery evidence remains
+derived local data and does not travel with the portable decision archive.
+
 Classification review uses a separate session, monotonically increasing position sequence and typed
 scope. Checkpoints retain the logical group and the gallery's existing ordering boundary. A review
 command validates the active session and bookmarked group, then commits its field changes and next

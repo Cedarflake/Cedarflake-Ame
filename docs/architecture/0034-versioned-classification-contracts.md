@@ -252,8 +252,22 @@ the category addition and run replacement. No source-file access occurs in this 
 The changed category set creates an explicitly uncalibrated immutable setup; a screening profile
 for the previous category set is not transferred. Existing runs and human decisions remain retained.
 The addition boundary preserves the 256-category contract bound and per-assessment proposal limit.
-Cumulative soft budgets, overlap/retirement policy, retained maintenance provenance, and automatic
-scheduling are separate requirements before enabling managed maintenance in first use.
+Cumulative soft budgets, overlap/retirement policy and automatic scheduling are separate requirements
+before enabling managed maintenance in first use.
+
+Schema 71 records immutable discovery evidence once per addition operation and a separate durable
+origin for each generated category. Evidence retains the encoder/run, vocabulary and policy revisions,
+actual work limits and admission criteria, complete cohort identities, naming parameters and member
+support. Origins retain canonical concept/purpose, admitted definition and creation operation.
+Explicit definition edits or retirement permanently protect that origin from automatic maintenance,
+even if a later edit restores its former wording. Repeating an older configuration operation cannot
+change that protection. Legacy categories without a recorded origin are treated as protected.
+
+Portable archive version 6 includes category origins and manual protection, independently of derived
+model evidence. Versions 1–5 remain readable and do not grant automatic authority to imported legacy
+categories. Restoration cannot weaken existing protection or replace a conflicting origin. Missing
+local discovery evidence requires fresh assessment before automatic maintenance; restoration itself
+does not enable classification or recreate the source cohort.
 
 ## Features and matching
 

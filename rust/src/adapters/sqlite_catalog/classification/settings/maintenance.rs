@@ -13,6 +13,7 @@ use crate::domain::classification_configuration::ClassificationConfigurationSnap
 use crate::ports::classification_configuration::CategoryExpansionRepository;
 
 use super::super::super::exact_duplicates::queries::CURRENT_LOCATIONS;
+use super::super::maintenance;
 use super::{SqliteCatalog, changed, codec, database_error, operations, setup};
 
 impl CategoryExpansionRepository for SqliteCatalog {
@@ -35,7 +36,8 @@ impl CategoryExpansionRepository for SqliteCatalog {
         cancelled: &AtomicBool,
     ) -> Result<ClassificationConfigurationSnapshot, ScanError> {
         check_cancelled(cancelled)?;
-        let digest = request_digest(plan)?;
+        let payload = maintenance::encode(plan)?;
+        let digest = request_digest(plan, &payload)?;
         let transaction = self.begin_user_interactive_write()?;
         if operations::replay(&transaction, &plan.configuration.operation_id, &digest)?.is_none() {
             let current = snapshot(&transaction, &plan.additions)?;
@@ -50,7 +52,8 @@ impl CategoryExpansionRepository for SqliteCatalog {
             }
             validate_sources(&transaction, &plan.sources)?;
             check_cancelled(cancelled)?;
-            super::apply(&transaction, &plan.configuration, &digest)?;
+            super::apply(&transaction, &plan.configuration, &digest)?.ok_or_else(changed)?;
+            maintenance::publish(&transaction, plan, &payload)?;
         }
         let result = super::load(&transaction)?;
         check_cancelled(cancelled)?;
@@ -71,7 +74,13 @@ fn snapshot(
     }
     let configuration = super::load(connection)?;
     let model = match configuration.dispatch.run_id.as_ref() {
-        Some(run_id) => setup::load(connection, run_id.as_str())?.map(|setup| setup.run().model()),
+        Some(run_id) => setup::load(connection, run_id.as_str())?
+            .filter(|setup| {
+                configuration.catalog.active_run_id.as_deref() == Some(run_id.as_str())
+                    && configuration.catalog.configuration == Some(setup.run().configuration())
+                    && configuration.catalog.taxonomy.as_ref() == Some(setup.primary())
+            })
+            .map(|setup| setup.run().model()),
         None => None,
     };
     let encoded =
@@ -92,6 +101,7 @@ fn snapshot(
         configuration,
         model,
         known_categories,
+        managed_categories: maintenance::load(connection, proposed)?,
     })
 }
 
@@ -146,13 +156,14 @@ fn source_payload(sources: &[ClassificationContent]) -> Result<String, ScanError
     serde_json::to_string(&values).map_err(|_| changed())
 }
 
-fn request_digest(plan: &CategoryExpansionPlan) -> Result<String, ScanError> {
+fn request_digest(plan: &CategoryExpansionPlan, payload: &str) -> Result<String, ScanError> {
     let mut hasher = blake3::Hasher::new_derive_key("ame.classification.category-expansion.v1");
     operations::field(
         &mut hasher,
         super::request_digest(&plan.configuration)?.as_bytes(),
     );
     operations::field(&mut hasher, plan.evidence.bytes());
+    operations::field(&mut hasher, payload.as_bytes());
     operations::field(&mut hasher, source_payload(&plan.sources)?.as_bytes());
     for category in &plan.additions {
         operations::field(&mut hasher, category.as_str().as_bytes());

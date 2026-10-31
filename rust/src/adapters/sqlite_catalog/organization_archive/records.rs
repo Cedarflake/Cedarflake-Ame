@@ -27,7 +27,11 @@ pub(super) struct RecordKind {
 use Field::{Integer as I, OptionalInteger as NI, OptionalText as NT, Text as T};
 
 pub(super) fn kind_count(version: u32) -> usize {
-    if version < 5 { 20 } else { KINDS.len() }
+    match version {
+        1..=4 => 20,
+        5 => 30,
+        _ => KINDS.len(),
+    }
 }
 
 // Field order belongs to the versioned archive contract, never catalog schema discovery.
@@ -222,5 +226,11 @@ pub(super) const KINDS: &[RecordKind] = &[
     RecordKind {
         name: "classification_context", fields: &[I, NT],
         query: "SELECT revision, active_rules FROM classification_state WHERE singleton = 1",
+    },
+    RecordKind {
+        name: "classification_origin", fields: &[T, T, NT, T, T, T, I],
+        query: "SELECT category_id, concept_id, purpose_category_id, operation_id, admitted_label,
+                       admitted_semantic_revision, protected
+                FROM classification_managed_categories ORDER BY category_id",
     },
 ];

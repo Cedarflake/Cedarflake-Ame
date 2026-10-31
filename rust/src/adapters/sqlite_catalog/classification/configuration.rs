@@ -80,6 +80,7 @@ pub(super) fn configure(
     let previous = load(connection)?;
     let revision = operations::begin(connection, id, &digest, "configure")?;
     let changed = apply_rules(connection, &previous, taxonomy, revision)?;
+    super::maintenance::protect_manual_changes(connection, previous.taxonomy.as_ref(), taxonomy)?;
     operations::finish(connection, id, revision, 0, changed)
 }
 

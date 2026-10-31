@@ -40,6 +40,14 @@ impl CategoryNamingPurpose {
     pub fn category_revision(&self) -> ClassificationRevision {
         self.category_revision
     }
+
+    pub fn label_pattern(&self) -> &str {
+        &self.label_pattern
+    }
+
+    pub fn comparison_pattern(&self) -> &str {
+        &self.comparison_pattern
+    }
 }
 
 impl CategoryNaming {

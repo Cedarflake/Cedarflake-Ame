@@ -38,7 +38,7 @@ pub use crate::domain::classification::discovery::{
     ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample, VocabularyConcept,
 };
 pub use crate::domain::classification::maintenance::{
-    CategoryExpansionPlan, CategoryExpansionSnapshot,
+    CategoryExpansionPlan, CategoryExpansionSnapshot, ManagedCategoryOrigin,
 };
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,

@@ -999,3 +999,46 @@ remain outside this delivery, and hosted CI owns exact-commit verification.
 This establishes the native publication boundary. Cumulative soft budgets, overlap/retirement rules,
 retained maintenance provenance, automatic scheduling/first use and integrated human-work measures
 remain required. It does not enable managed maintenance in the desktop application.
+
+### Managed origins and portable manual protection
+
+Schema 71 retains an immutable admission record and a durable origin for each generated category.
+The record binds the new run, comparison taxonomy and names, vocabulary/policy revisions, actual
+criteria/work bounds, naming parameters, cohort/source identities and admitted member support.
+It contains no paths, media, embeddings or model binaries, and its encoded payload is bounded to
+512 KiB. The origin separately records canonical concept/purpose identity, the admitted definition
+and a monotonic manual-protection flag. Categories with no origin retain manual authority.
+
+Definition edits, retirement and later restoration of the original wording keep that protection.
+Configuration replay cannot claim newly generated categories or undo later edits. Origin and
+evidence insertion share the category/run transaction, including rollback on insertion failure.
+Expansion also requires the catalog's active run and configuration to match dispatch; direct rule
+replacement cannot reuse an obsolete automatic run.
+
+Portable version 6 includes origins and protection while omitting derived admission evidence.
+Restoring an older backup cannot remove protection. An incoming origin does not claim an existing
+category with unknown ownership, and retained local names and rules take precedence. Re-export and
+restart preserve the same result. Versions 1–5 retain their original record counts and remain
+readable; the version-5 case preserves definitions without inventing origins or changing input bytes.
+
+Focused diagnostics use repository-contained temporary SQLite catalogs and no source-media reads,
+model downloads or desktop interaction. The initial compile exposed private codec access from the
+archive boundary; origin validation now uses the shared domain identity and local format parsing.
+The final diagnostics cover 25 settings/expansion cases, two migration cases, three existing
+classification recovery cases, 13 archive-inspection cases and the stable-identity case. Tests cover
+failed-migration rollback/retry, legacy ownership, full-parameter persistence, stale-run rejection,
+committed retry, manual protection and portable recovery. Hosted checks retain full-suite ownership.
+The read-only formatting gate passes across 685 Dart files with no changes, alongside Rust format
+validation and `git diff --check`.
+
+The preparation owner has 270 production lines, the domain plan/origin owner 118, SQLite origin
+persistence 144, evidence encoding 64, publication 182 and shared settings 141, with zero inline
+test cases. Dedicated expansion, origin and stable-identity tests have 329, 266 and 53 lines.
+The migration has 80 production lines, 14 test-helper lines and 70 dedicated test lines. Portable
+origin restoration has 40 production lines; classification staging has 241, with 542 lines in the
+shared archive-inspection test owner. Schema registration and archive framing keep their existing
+owners. Unrelated desktop/batch edits remain outside this delivery.
+
+This supplies provenance and manual authority for subsequent maintenance. Cumulative category
+budgets, overlap/retirement decisions, automatic scheduling/first use and integrated human-work
+verification remain in the canonical queue.

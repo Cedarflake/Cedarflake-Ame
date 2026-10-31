@@ -6,6 +6,7 @@ use super::super::{database_error, error};
 
 pub(super) mod bookmark;
 mod history;
+mod origins;
 
 pub(super) fn apply(connection: &Connection) -> Result<Option<i64>, ScanError> {
     let source_revision: Option<i64> = connection
@@ -34,6 +35,7 @@ pub(super) fn apply(connection: &Connection) -> Result<Option<i64>, ScanError> {
     definitions(connection, base)?;
     choices(connection, base)?;
     history::apply(connection, base)?;
+    origins::apply(connection, base)?;
     connection.execute(
         "UPDATE classification_state SET revision = ?1,
          active_rules = COALESCE(active_rules, (SELECT active_rules FROM recovery.archive_classification_context))
