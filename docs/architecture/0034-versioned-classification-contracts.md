@@ -78,6 +78,30 @@ It returns bounded nearest and distinctive candidate lists for naming/consolidat
 The lexical probes do not admit raw dictionary nouns as smart albums or close the remaining
 maintenance-policy and first-use integration requirements.
 
+### Semantic consolidation
+
+Retrieved fine-grained concepts can be consolidated through the vocabulary's distinct `Broader`
+relationship. The adapter owns whether that edge means a generalization or a whole-image context;
+ordinary related concepts do not establish either relation. A bounded naming frontier supplies the
+candidate contexts for one evaluation. Its identities and the vocabulary revision bind that choice,
+without imposing a permanent product category list.
+
+The consolidation owner traverses at most four hops from the retrieved nearest and distinctive
+concepts, stopping each path at its first frontier member. It retains at most 4,096 concepts and
+limits both vocabulary-edge reads and traversal work to 65,536 edges. Pages contain at most 64
+concepts; the frontier contains at most 64 identities. Per-origin scheduling prevents cycles and
+shared paths from multiplying queued work. Incomplete retrieval, exhausted work limits, changed
+definitions or changed cohort/model/vocabulary authority reject the proposal.
+
+Each reached context is scored again using its own description and the retained image cohort.
+Narrower-concept scores are not inherited, and multiple related words do not count as additional
+images or establish confidence. Unresolved concepts remain explicit. The result binds the original
+retrieval revision and limits, naming frontier, consolidation revision and resource limits. Text
+features use the shared cache and supervised encoder; every terminal path retires description work.
+This owner returns naming evidence and has no category-write or human-decision authority. Selection
+of useful frontiers and final category admission remain application policy evaluated against the
+collection, with existing categories retained during evaluation.
+
 ## Features and matching
 
 Adapters supply Ame-owned, opaque revisions for the shared embedding space and the independent image

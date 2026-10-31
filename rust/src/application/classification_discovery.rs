@@ -13,9 +13,14 @@ use crate::ports::classification_vocabulary::{
 use super::classification_features::load_or_encode_descriptions;
 use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 
+mod consolidation;
 mod ranking;
 mod search;
 
+pub use consolidation::{
+    ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest,
+    ConsolidatedConcept, consolidate_classification_concepts,
+};
 pub use ranking::{ConceptMatch, DiscoveryCandidates};
 use search::ConceptSearch;
 pub use search::{ConceptSearchBound, ConceptSearchLimits};

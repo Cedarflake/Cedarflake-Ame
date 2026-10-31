@@ -366,3 +366,70 @@ diagnostic build reported incremental hard-link fallback and is not the passing 
 | Shared description feature preparation | 130 | 0 | 342 |
 | Feature-cache facade / validated read window | 265 / 66 | 0 | 324 / 103 |
 | Native discovery / cost diagnostics | 254 / 95 | 0 | Uses the production retrieval/cache boundaries |
+
+## Sense-aware coverage and semantic consolidation
+
+The retained photographic calibration cohorts expose two different naming problems: missing activity
+concepts and ambiguous dictionary senses. A bounded sense check selects 82 nearest/distinctive seeds,
+then their immediate parents and shared-lemma senses. It encodes 409 missing descriptions across 268
+concepts, combining the lemma with its dictionary definition in a photographic context. Encoding
+takes 18.966 seconds with peak working set 390,684,672 bytes; all rows match input SHA-256
+`5bcb95cf4c63da6db2d2151df1d7aed6768353474c4518a7664381e5f027f9d6`.
+The financial sense of `actual damages` leaves the first twelve results, and B057 includes play.
+Local object/material and unsupported fine-grained candidates remain, so the check establishes the
+need for sense-aware descriptions without admitting dictionary ranking as a naming policy.
+
+The expanded native fixture adds translated activities and branching concepts to the initial
+entry selection. Its 3,921 entries cover the same 82,115 nodes and retained image vectors. The
+15,261,699-byte fixture has SHA-256
+`988d2baf65a2446b603b9eb9fee2895262ca237eb88875fca7d63c14c693af9d`.
+After the sandbox namespace guard rejects cache opening, the ordinary-user run completes in 86.641
+seconds with peak process-tree working set 656,822,272 bytes. B021 scores 4,145 concepts in 71.848
+seconds and repeats in 1.330 seconds; B057 scores 4,347 in 11.392 seconds and repeats in 1.734 seconds.
+The cache grows from 3,561 to 4,947 entries. Repair and classroom activities become reachable, while
+raw financial/material candidates still show why retrieval needs a separate consolidation boundary.
+
+The native consolidation owner follows the distinct broader-context relation, stops at the supplied
+naming frontier, and scores reached contexts using their own descriptions. Seven new boundary cases
+pass together with the five retained retrieval cases. They cover independent rescoring, duplicate-word
+deduplication, unresolved concepts, cycle termination, graph budgets, incomplete retrieval, changed
+cohort/vocabulary/definition authority, cancellation, retirement and frontier identity. Broader
+concepts never inherit a narrow candidate's score or count lexical paths as additional image votes.
+
+The real-model diagnostic uses seventeen exploratory activity/scene/subject contexts to exercise
+this boundary. They are supplied by the fixture, not an admitted product class list or automatic
+frontier-selection policy. The 18,213,872-byte fixture contains 3,924 entries and has SHA-256
+`d0d69e5978ae5f24492fc515745448d6489047f35bb6327a97b6cbdb68e87756`.
+The Release build and four-pass probe pass without warnings. Total probe time is 11.579 seconds,
+peak process-tree working set is 694,767,616 bytes, and the cache grows from 4,947 to 4,966 entries.
+
+| Cohort | Scored concepts | Consolidated first candidate | Context contrast | First pass | Cache-only repeat | Unresolved lexical candidates |
+| --- | ---: | --- | ---: | ---: | ---: | ---: |
+| B021 | 4,299 | 建筑施工 | 0.05113 | 4.146 s | 1.128 s | 52 |
+| B057 | 4,350 | 儿童游戏 | 0.04390 | 3.459 s | 1.379 s | 61 |
+
+B021 also retains room, repair, renovation and building contexts; B057 retains teaching activities.
+Consolidation traverses 371 and 322 edges respectively, adds approximately 6–10 ms per pass after
+retrieval, and reproduces identical candidates and scores on each cache-only repetition. All passes
+finish within their resource bounds and retire the worker. The timing includes new descriptions
+and retained cache entries; it does not measure a wholly cold vocabulary installation.
+
+These are exploratory calibration observations. The manually chosen frontier and provisional
+cohorts cannot establish automatic naming quality or whole-group membership: B021 includes a finished
+corridor and B057 includes a home desk scene. Automatic frontier selection, useful-name admission,
+coverage and category maintenance remain required before first-use integration. All new checks use
+retained image features, read no original media or held-out samples, and change no category or human
+decision. Inputs, resource records and JSONL results remain in ignored discovery storage.
+
+| Affected owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Retrieval lifecycle | 213 | 0 | 408 |
+| Consolidation lifecycle / graph frontier | 173 / 116 | 0 | 244 |
+| Native discovery diagnostic | 314 | 0 | Uses the production retrieval/consolidation/cache boundaries |
+
+The preceding `20cb3978654aedc41c8fe6390de942eadf9c5051` completes the ordinary
+[hosted Windows gate](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41235559649), including
+the corrected title branch, Flutter, native partitions, scan/accessibility integrations, synthetic
+workloads and unsigned Release. The three signing/release jobs are intentionally skipped. That run
+covers the preceding retrieval/cache and sidebar commits; consolidation requires its own pushed-head
+gate.

@@ -6,6 +6,8 @@ use crate::domain::classification::discovery::{ConceptId, VocabularyConcept};
 pub enum ConceptNeighborhood {
     EntryPoints,
     Related(ConceptId),
+    /// A generalization or whole-image context, not merely an associated concept.
+    Broader(ConceptId),
 }
 
 pub struct ConceptPage {

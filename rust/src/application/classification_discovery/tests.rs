@@ -13,6 +13,8 @@ use crate::ports::classification_encoder::{ClassificationEncoder, Classification
 
 use super::*;
 
+mod consolidation;
+
 #[derive(Default)]
 struct Calls {
     encoded: RefCell<Vec<String>>,
@@ -140,7 +142,7 @@ impl ClassificationVocabulary for Vocabulary {
         }
         let ids = match neighborhood {
             ConceptNeighborhood::EntryPoints => &self.entries,
-            ConceptNeighborhood::Related(id) => {
+            ConceptNeighborhood::Related(id) | ConceptNeighborhood::Broader(id) => {
                 self.links.get(&id).map(Vec::as_slice).unwrap_or(&[])
             }
         };

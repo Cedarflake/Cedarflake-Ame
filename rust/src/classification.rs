@@ -3,8 +3,9 @@ pub use crate::adapters::SqliteClassificationFeatureCache;
 pub use crate::application::classification_analysis::analyze_classification_content;
 pub use crate::application::classification_decisions::plan_classification_change;
 pub use crate::application::classification_discovery::{
-    ConceptMatch, ConceptSearchBound, ConceptSearchLimits, DiscoveryCandidates,
-    retrieve_classification_concepts,
+    ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptMatch,
+    ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept, DiscoveryCandidates,
+    consolidate_classification_concepts, retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,

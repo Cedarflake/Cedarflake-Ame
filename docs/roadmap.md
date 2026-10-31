@@ -137,15 +137,18 @@ the versioned vocabulary and existing feature cache, with focused invariant/life
 The complete Release retrieval and its cache-only repetitions pass. Bounded cache windows remove
 per-entry commit overhead while preserving candidate scores, cancellation and completed work.
 Useful-name admission and category maintenance remain required before automatic first-use integration.
+Native semantic consolidation now follows broader contexts and independently scores their
+descriptions, retaining unresolved concepts and bounded work. The retained calibration probe returns
+useful construction and child-play contexts; its fixture-supplied frontier is exploratory. Automatic
+frontier selection and category admission remain the next R5-02 policy boundary.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
-after checking their compatibility. The `323c5ba2` hosted Rust Catalog, Remaining, Schema/Queue and
-Synchronization/Scan partitions pass, including the archive corrections. Its static/Flutter/client
-build failures are addressed in the pending desktop changes. The retained Windows Scan diagnostics
-show the same missing smart-album title branch before test startup. The pending changes require
-their own hosted gate after delivery.
+after checking their compatibility. The complete `20cb3978` hosted gate passes, including the archive
+corrections, smart-album title branch, sidebar empty state, native partitions, Flutter/static checks,
+Windows integrations, synthetic workloads and unsigned Release. Remaining desktop and native
+consolidation changes require their own hosted gate after delivery.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference

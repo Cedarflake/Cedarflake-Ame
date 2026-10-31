@@ -9,9 +9,10 @@ use std::time::{Duration, Instant};
 use rust_lib_cedarflake_ame::classification::{
     ClassificationContent, ClassificationEncoderFactory, ClassificationEncoderResidency,
     ClassificationFeatureRepository, ClassificationRecordId, ClassificationRevision,
-    ClassificationVocabulary, ConceptId, ConceptMatch, ConceptNeighborhood, ConceptPage,
-    ConceptSearchLimits, DiscoveryCohort, DiscoverySample, Embedding, ImageFeature,
-    MonotonicResidencyClock, SqliteClassificationFeatureCache, VocabularyConcept,
+    ClassificationVocabulary, ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptId,
+    ConceptMatch, ConceptNeighborhood, ConceptPage, ConceptSearchLimits, DiscoveryCohort,
+    DiscoverySample, Embedding, ImageFeature, MonotonicResidencyClock,
+    SqliteClassificationFeatureCache, VocabularyConcept, consolidate_classification_concepts,
     retrieve_classification_concepts,
 };
 use rust_lib_cedarflake_ame::classification_worker::LocalClassificationEncoderFactory;
@@ -30,6 +31,8 @@ struct Fixture {
     entries: Vec<String>,
     samples: Vec<Sample>,
     cohorts: Vec<Cohort>,
+    #[serde(default)]
+    frontier: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -38,6 +41,8 @@ struct Concept {
     label: String,
     description: String,
     related: Vec<String>,
+    #[serde(default)]
+    broader: Vec<String>,
 }
 
 #[derive(Deserialize)]
@@ -57,6 +62,7 @@ struct ProbeVocabulary {
     revision: ClassificationRevision,
     concepts: BTreeMap<ConceptId, VocabularyConcept>,
     related: BTreeMap<ConceptId, Vec<ConceptId>>,
+    broader: BTreeMap<ConceptId, Vec<ConceptId>>,
     entries: Vec<ConceptId>,
 }
 
@@ -74,8 +80,12 @@ impl ProbeVocabulary {
         }
         let mut definitions = BTreeMap::new();
         let mut related = BTreeMap::new();
+        let mut broader = BTreeMap::new();
         for concept in concepts {
-            if concept.related.len() > 16_384 || concept.id.len() > 128 {
+            if concept.related.len() > 16_384
+                || concept.broader.len() > 16_384
+                || concept.id.len() > 128
+            {
                 return Err("Concept fixture exceeds the diagnostic limit".into());
             }
             let id = concept_id(&concept.id);
@@ -85,6 +95,12 @@ impl ProbeVocabulary {
                 .map(|value| concept_id(value))
                 .collect();
             related.insert(id, neighbors.into_iter().collect());
+            let parents: BTreeSet<_> = concept
+                .broader
+                .iter()
+                .map(|value| concept_id(value))
+                .collect();
+            broader.insert(id, parents.into_iter().collect());
             let definition = VocabularyConcept::new(id, concept.label, concept.description)?;
             if definitions.insert(id, definition).is_some() {
                 return Err("Repeated concept fixture identity".into());
@@ -94,6 +110,7 @@ impl ProbeVocabulary {
         if entries
             .iter()
             .chain(related.values().flatten())
+            .chain(broader.values().flatten())
             .any(|id| !definitions.contains_key(id))
         {
             return Err("Vocabulary fixture references an unknown concept".into());
@@ -102,6 +119,7 @@ impl ProbeVocabulary {
             revision: ClassificationRevision::from_bytes(revision),
             concepts: definitions,
             related,
+            broader,
             entries: entries.into_iter().collect(),
         })
     }
@@ -122,6 +140,9 @@ impl ClassificationVocabulary for ProbeVocabulary {
             ConceptNeighborhood::EntryPoints => self.entries.as_slice(),
             ConceptNeighborhood::Related(id) => {
                 self.related.get(&id).map(Vec::as_slice).unwrap_or(&[])
+            }
+            ConceptNeighborhood::Broader(id) => {
+                self.broader.get(&id).map(Vec::as_slice).unwrap_or(&[])
             }
         };
         let start = after
@@ -168,6 +189,11 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
         }
     }
     let mut vocabulary = ProbeVocabulary::new(fixture.revision, fixture.concepts, fixture.entries)?;
+    let frontier: BTreeSet<_> = fixture
+        .frontier
+        .iter()
+        .map(|value| concept_id(value))
+        .collect();
     let mut cache = SqliteClassificationFeatureCache::open(Path::new(&arguments[4]))?;
     let mut residency = ClassificationEncoderResidency::new(
         factory,
@@ -183,7 +209,7 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
         edges: 65_536,
         hops: 2,
         seeds: 16,
-        results: 12,
+        results: if frontier.is_empty() { 12 } else { 64 },
     };
     for cohort in fixture.cohorts {
         let load = |identities: &[String]| -> Result<Vec<DiscoverySample>> {
@@ -221,6 +247,38 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                 &mut cache,
                 &AtomicBool::new(false),
             )?;
+            let retrieval_seconds = started.elapsed().as_secs_f64();
+            let naming = if frontier.is_empty() {
+                None
+            } else {
+                let result = consolidate_classification_concepts(
+                    ConceptConsolidationRequest {
+                        cohort: &cohort_features,
+                        retrieved: &result,
+                        frontier: &frontier,
+                        limits: ConceptConsolidationLimits {
+                            hops: 4,
+                            concepts: 4096,
+                            edges: 65_536,
+                        },
+                    },
+                    &mut vocabulary,
+                    &mut residency,
+                    &mut cache,
+                    &AtomicBool::new(false),
+                )?;
+                Some(json!({
+                    "candidates": result.candidates.iter().map(|candidate| json!({
+                        "label": candidate.candidate.concept.label(),
+                        "description": candidate.candidate.concept.description(),
+                        "similarity": candidate.candidate.scores.similarity,
+                        "contrast": candidate.candidate.scores.contrast,
+                        "narrower_concepts": candidate.narrower_concepts.len(),
+                    })).collect::<Vec<_>>(),
+                    "unresolved_concepts": result.unresolved_concepts.len(),
+                    "visited_edges": result.visited_edges,
+                }))
+            };
             let after = cache.feature_cache_stats()?;
             if residency.resident_kind().is_some() {
                 return Err("Discovery left a model resident".into());
@@ -229,10 +287,12 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                 "{}",
                 json!({
                     "cohort": cohort.label, "round": round, "seconds": started.elapsed().as_secs_f64(),
+                    "retrieval_seconds": retrieval_seconds,
                     "scored_concepts": result.scored_concepts, "visited_edges": result.visited_edges,
                     "bounds_reached": format!("{:?}", result.bounds_reached),
                     "cache_entries_before": before.entries, "cache_entries_after": after.entries,
                     "nearest": report(&result.nearest), "distinctive": report(&result.distinctive),
+                    "naming": naming,
                     "worker_retired": true, "source_reads": 0,
                 })
             );
