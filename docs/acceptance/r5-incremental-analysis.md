@@ -603,3 +603,34 @@ application-ready probe exceeds the eight-second parent deadline; final progress
 loading UIAutomationClient and 1,395 ms locating the window, followed by element lookup. Cleanup also
 fails to read the process log while it remains open. These failures retain their own repairs; this
 performance comparison does not establish a passing complete hosted gate.
+
+## Native verification process reuse and output retirement
+
+The failed application-ready probe reloaded UIAutomationClient for 5,130 ms after a separate
+preparation process had already exited. The archive-only head `efb3f7d2` passes the unchanged native
+gate in [run 41156326620](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41156326620): its
+application-ready phase takes 2,018 ms, including 752 ms loading UIAutomationClient. This establishes
+variable loading cost rather than a consistently failing native assertion; the underlying cause of
+the unusually slow binder call remains unestablished.
+
+The canary now retains one owned MTA process after preparation. Each application phase keeps its
+eight-second parent deadline, fresh sequenced request, invocation-return event and validated evidence.
+An already-written complete record cannot acknowledge an invocation that is still blocked. Invalid
+results and timeouts retire the session; whole-run success also requires session retirement. The
+ten existing native assertions are unchanged. Output capture obtains exclusive log access after
+closing the application job, waiting only within the remaining five-second cleanup budget for
+asynchronous writer release. A persistent lock remains a failure with retained raw evidence.
+
+The complete accessibility guardrail entrypoint passes locally. Its real retained-process loader
+case measures 61/9 ms across two invocations, and the new cases reject wrong ownership, incomplete
+results, assertion failures and a blocked invocation. Request validation rejects stale sequence,
+unknown phase, invalid process identity and escaping result paths. Output checks verify delayed
+writer completion, bounded lock failure and unchanged evidence. PowerShell syntax and diff whitespace
+checks pass. The integrated native interaction for this new session remains assigned to its next
+exact-head hosted gate; the earlier passing job used the previous per-phase process lifetime.
+
+| Owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Probe session / protocol / worker | 145 / 53 / 38 | 0 | 132 |
+| Output retirement | 29 | 0 | 58 |
+| Existing cleanup / canary composition | 159 / 399 | 0 | Existing guardrail entrypoint: 503 |

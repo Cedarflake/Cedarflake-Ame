@@ -118,7 +118,8 @@ manual pause and feature reuse. The real-client case also covers the memory-pres
 across configuration changes. A local-primary Profile comparison now exercises actual scrolling and
 original-image viewing while classification advances, including pause/resume and bounded resource
 sampling. The paired cloud-primary measurement remains in R5-04. The current-head hosted gate also
-requires the corrected archive regressions to pass and the Windows Accessibility timeout to be resolved.
+requires the corrected archive regressions and the UIA session/output-retirement changes to pass
+their hosted gates. The preceding archive-only head passes the unchanged Windows Accessibility job.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference
