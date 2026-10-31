@@ -2,6 +2,10 @@ pub use crate::adapters::SqliteClassificationFeatureCache;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub use crate::application::classification_analysis::analyze_classification_content;
 pub use crate::application::classification_decisions::plan_classification_change;
+pub use crate::application::classification_discovery::{
+    ConceptMatch, ConceptSearchBound, ConceptSearchLimits, DiscoveryCandidates,
+    retrieve_classification_concepts,
+};
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,
     ClassificationDispatcher, ClassificationForegroundState, MonotonicDispatchClock,
@@ -21,6 +25,11 @@ pub use crate::application::classification_screening::{
     ReviewRecommendation, ScreeningClassifier, ScreeningResult,
 };
 pub use crate::application::classification_verification::verify_classification_source;
+pub use crate::domain::ScanError;
+pub use crate::domain::classification::discovery::{
+    ConceptId, ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample,
+    VocabularyConcept,
+};
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,
     ClassificationDispatchMode, ClassificationDispatchState, ClassificationRecoveryCursor,
@@ -60,4 +69,7 @@ pub use crate::ports::classification_features::{
 };
 pub use crate::ports::classification_review::ClassificationReviewRepository;
 pub use crate::ports::classification_setup::ClassificationSetupRepository;
+pub use crate::ports::classification_vocabulary::{
+    ClassificationVocabulary, ConceptNeighborhood, ConceptPage,
+};
 pub use crate::ports::classification_work::ClassificationWorkRepository;

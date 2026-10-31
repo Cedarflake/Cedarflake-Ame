@@ -1,6 +1,8 @@
 use super::*;
 use crate::domain::classification::ClassificationRecordId;
 
+mod window;
+
 fn revision(value: u8) -> ClassificationRevision {
     ClassificationRevision::from_bytes([value; 32])
 }

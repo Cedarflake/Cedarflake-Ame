@@ -11,6 +11,7 @@ pub(crate) mod classification_configuration;
 pub(crate) mod classification_decisions;
 #[cfg(all(windows, feature = "classification-worker"))]
 pub(crate) mod classification_desktop;
+pub(crate) mod classification_discovery;
 pub(crate) mod classification_dispatch;
 pub(crate) mod classification_features;
 pub(crate) mod classification_matching;

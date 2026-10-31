@@ -3,6 +3,10 @@
 mod residency;
 
 #[cfg(all(windows, feature = "classification-worker"))]
+#[path = "classification_worker_probe/discovery.rs"]
+mod discovery;
+
+#[cfg(all(windows, feature = "classification-worker"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     verification::run()
 }
@@ -30,6 +34,11 @@ mod verification {
 
     pub fn run() -> Result<()> {
         let arguments: Vec<_> = std::env::args_os().skip(1).collect();
+        if arguments.len() == 6
+            && (arguments[5] == "--discovery" || arguments[5] == "--discovery-cost")
+        {
+            return super::discovery::run(&arguments);
+        }
         if arguments.len() == 5 && arguments[4] == "--residency" {
             return super::residency::run(&arguments[..4]);
         }

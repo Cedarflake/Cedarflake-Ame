@@ -33,12 +33,50 @@ matching; persistence retains its identity and description history for saved hum
 a retired human choice is a separate explicit command, never a side effect of refreshing the active
 taxonomy. An empty active scheme has no classifier and produces no invented `其他` result.
 
-R5 does not generate categories from isolated low scores. Start with an editable broad scheme and
-retain its versioned inclusion/exclusion rubric. A useful new category needs a repeatable distinction
-in the user's collection; small occupancy alone neither deletes a category nor establishes an error.
-Repeated corrections can supply local examples for evaluation. They do not silently train a model,
-change definitions, research new cultural context or create categories. Category-growth automation
-requires a separate measured policy before admission.
+The application owns the starting vocabulary and category maintenance; manual definition editing is
+an optional override, not setup required from the user. Automatic discovery and maintenance are
+required R5 behavior. Their candidate naming and admission policy still requires measured evidence
+before implementation can claim that behavior. SigLIP supplies image/text compatibility; its matching
+adapter does not generate category names or decide whether a new category is useful. The scoped
+[discovery evidence](../acceptance/r5-category-discovery.md) records the naming probes separately from
+the admitted screening encoder.
+
+Do not generate categories from isolated low scores. A useful addition or split needs a repeatable,
+meaningful distinction in the collection; small occupancy alone neither deletes a category nor
+establishes an error. Maintenance must retain stable identities and saved human intent. Repeated
+corrections can supply local examples for evaluation without silently training a model or researching
+new cultural context. A larger fixed candidate list or user-authored definitions cannot substitute
+for the missing discovery/maintenance owner.
+
+### Bounded candidate retrieval
+
+The native discovery owner retrieves evidence from a versioned vocabulary without changing the
+active taxonomy. Its port returns bounded, ID-ordered entry and related-concept windows. The adapter
+owns lexical identifiers, graph interpretation and language resources; Ame receives opaque concept
+identities, labels and descriptions. Vocabulary changes, changed definitions under the same identity,
+invalid windows and incompatible features reject the result rather than publishing a mixed search.
+
+A discovery cohort contains retained compatible image features for distinct content versions and
+a separate comparison set. Their combined limit is 512 samples. The scorer retains two arithmetic
+mean vectors and computes mean cosine and within-context contrast; it does not renormalize a diffuse
+cohort into a unit vector or treat contrast as a probability. Repeated content within or between
+the sets is rejected. Model, cohort, vocabulary, retrieval revision and explicit search limits
+accompany the result. Cohort selection and semantic admission retain separate policy ownership.
+
+Search streams up to 4,096 entry concepts, then expands selected neighbors within caller-supplied
+limits: at most 4,096 additional concepts, 65,536 edges and four hops. A window contains at most
+64 concepts, with at most 64 retained results and expansion seeds. These are resource ceilings,
+not category-count targets, confidence thresholds or default maintenance settings. Traversal tracks
+already scored and already scheduled identities separately, so a known intermediate concept can
+still lead to a previously missing leaf. Budget exhaustion is explicit in the result.
+
+Description preparation uses the same independently keyed feature cache and supervised text encoder
+as ordinary matching. Compatible descriptions are reused; missing descriptions are encoded one at
+a time. Completed cache entries survive cancellation or failure, and the text worker is retired on
+every terminal path. Retrieval has no image-read, catalog-write or category-publication capability.
+It returns bounded nearest and distinctive candidate lists for naming/consolidation evaluation.
+The lexical probes do not admit raw dictionary nouns as smart albums or close the remaining
+maintenance-policy and first-use integration requirements.
 
 ## Features and matching
 
@@ -78,6 +116,15 @@ an interrupted batch. Cache loss or eviction does not change queue checkpoints, 
 human choices or stopped-run intent; missing vectors are recomputed only for admitted analysis work.
 Source identity and claim checks still authorize image-feature publication and prediction publication.
 
+Description lookups use windows of at most 64 keys. The SQLite adapter validates the complete window
+and updates its durable recency in one short transaction, preserving requested order, missing entries
+and duplicates. A corrupt entry rejects the window and rolls back its recency updates. Empty windows
+perform no database work, and oversized windows are rejected before access. The transaction ends
+before any missing description is encoded; each completed encoding is still stored immediately.
+The preparation owner deduplicates descriptions within a window while retaining encoding order,
+cancellation checks and model/description identity validation. This changes storage scheduling only;
+the admitted one-description inference policy and cache durability remain unchanged.
+
 The initial ranking uses L2-normalized vectors and maximum description cosine per category, retaining
 the comparison's measured aggregation rather than introducing an unvalidated averaging rule.
 Ties have stable category-ID ordering and zero separation. A single-category scheme has no runner-up
@@ -113,7 +160,8 @@ limitations. An application-owned candidate binds its exact primary/refinement d
 category IDs, calibration identity and frozen native model revisions. Explicit enablement of that
 category set selects its measured profile. Display renames preserve it; changed descriptions, category
 membership or encoder pipelines produce uncalibrated suggestions until a compatible profile is
-admitted. The six initial categories are editable starting definitions, not a fixed output vocabulary.
+admitted. The six categories establish the measured screening reference only. They do not complete
+application-managed category discovery or determine the product's permanent output vocabulary.
 
 ## Selected runtime boundary
 

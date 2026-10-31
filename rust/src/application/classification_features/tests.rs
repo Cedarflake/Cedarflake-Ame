@@ -305,3 +305,38 @@ fn cached_descriptions_leave_a_warm_image_worker_available() {
     assert_eq!(calls.retired.get(), 1);
     residency.retire().unwrap();
 }
+
+#[test]
+fn large_schemes_prepare_and_reuse_more_than_one_cache_window() {
+    let directory = tempfile::tempdir().unwrap();
+    let calls = Rc::new(Calls::default());
+    let mut residency =
+        ClassificationEncoderResidency::new(Factory(calls.clone()), Clock, Duration::from_secs(60));
+    let mut cache = SqliteClassificationFeatureCache::open(directory.path()).unwrap();
+    let taxonomy = Taxonomy::new(
+        (0..129)
+            .map(|index| {
+                CategoryDefinition::new(
+                    CategoryId::new(format!("category-{index}")).unwrap(),
+                    format!("Category {index}"),
+                    vec![format!("description {index}")],
+                )
+                .unwrap()
+            })
+            .collect(),
+    )
+    .unwrap();
+    for _ in 0..2 {
+        prepare_classification_matcher(
+            taxonomy.clone(),
+            &mut residency,
+            &mut cache,
+            &AtomicBool::new(false),
+        )
+        .unwrap();
+    }
+    assert_eq!(calls.descriptions.borrow().len(), 129);
+    assert_eq!(cache.feature_cache_stats().unwrap().entries, 129);
+    assert_eq!(calls.started.get(), 1);
+    assert_eq!(calls.retired.get(), 1);
+}

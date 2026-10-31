@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::path::Path;
 
-use rusqlite::{Connection, OptionalExtension, TransactionBehavior, params};
+use rusqlite::{Connection, TransactionBehavior, params};
 
 use crate::domain::ScanError;
 use crate::domain::classification::{
@@ -9,11 +9,12 @@ use crate::domain::classification::{
     ModelCompatibility, TextFeature,
 };
 use crate::ports::classification_features::{
-    ClassificationFeatureCacheStats, ClassificationFeatureRepository,
+    ClassificationFeatureCacheStats, ClassificationFeatureRepository, validate_text_feature_window,
 };
 
 use super::PreviewCacheNamespace;
 
+mod read;
 mod storage;
 
 const DEFAULT_BUDGET: u64 = 256 * 1024 * 1024;
@@ -52,43 +53,11 @@ impl SqliteClassificationFeatureCache {
         key: ClassificationRevision,
         dimensions: usize,
     ) -> Result<Option<Embedding>, ScanError> {
-        let transaction = self
-            .connection
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(database_error)?;
-        let stored = transaction
-            .query_row(
-                "SELECT length(payload), substr(payload, 1, 16384), substr(checksum, 1, 33)
-             FROM features WHERE key = ?1",
-                [key.bytes().as_slice()],
-                |row| {
-                    Ok((
-                        row.get::<_, i64>(0)?,
-                        row.get::<_, Vec<u8>>(1)?,
-                        row.get::<_, Vec<u8>>(2)?,
-                    ))
-                },
-            )
-            .optional()
-            .map_err(database_error)?;
-        let Some((length, bytes, checksum)) = stored else {
-            return Ok(None);
-        };
-        if length != (dimensions * 4) as i64
-            || bytes.len() as i64 != length
-            || checksum.as_slice() != payload_digest(key, &bytes).bytes()
-        {
-            return Err(invalid("The stored feature failed its integrity check"));
-        }
-        let values = bytes
-            .chunks_exact(4)
-            .map(|value| f32::from_le_bytes([value[0], value[1], value[2], value[3]]))
-            .collect();
-        let embedding = Embedding::from_normalized_values(values)
-            .map_err(|error| invalid(error.to_string()))?;
-        storage::touch(&transaction, key)?;
-        transaction.commit().map_err(database_error)?;
-        Ok(Some(embedding))
+        Ok(
+            read::load_features(&mut self.connection, &[key], dimensions)?
+                .pop()
+                .expect("one requested feature"),
+        )
     }
 
     fn store(
@@ -184,6 +153,30 @@ impl ClassificationFeatureRepository for SqliteClassificationFeatureCache {
             &feature.embedding,
         )?;
         self.store(text_key(model, feature.description), &feature.embedding)
+    }
+
+    fn load_text_features(
+        &mut self,
+        model: ModelCompatibility,
+        descriptions: &[ClassificationRevision],
+    ) -> Result<Vec<Option<TextFeature>>, ScanError> {
+        validate_text_feature_window(descriptions.len())?;
+        let keys: Vec<_> = descriptions
+            .iter()
+            .map(|description| text_key(model, *description))
+            .collect();
+        let features = read::load_features(&mut self.connection, &keys, model.dimensions())?;
+        Ok(descriptions
+            .iter()
+            .zip(features)
+            .map(|(description, embedding)| {
+                embedding.map(|embedding| TextFeature {
+                    identity: model.text_identity(),
+                    description: *description,
+                    embedding,
+                })
+            })
+            .collect())
     }
 
     fn feature_cache_stats(&self) -> Result<ClassificationFeatureCacheStats, ScanError> {

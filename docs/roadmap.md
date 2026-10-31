@@ -119,13 +119,33 @@ across configuration changes. A local-primary Profile comparison now exercises a
 original-image viewing while classification advances, including pause/resume and bounded resource
 sampling. R5-05 now connects effective category/review membership to the shared gallery query,
 bounded continuation and catalog publication; its [query evidence](acceptance/r5-smart-albums.md)
-records local checks and native regressions awaiting hosted execution. Continue with R5-06 desktop
-review while the applicable R5-05 checks run. Complete the
+records the query boundary. The category setup
+requires correction before R5-06 acceptance: the current implementation exposes six editable
+screening definitions and manual description authoring, while the required default is
+application-managed vocabulary and useful category maintenance without user setup. Complete the
+missing R5-02 discovery/naming/admission policy at its owning boundary, preserving the admitted
+encoder/runtime and existing R5-03 through R5-05 evidence, then connect it to first use. An editable
+or enlarged fixed list does not close that gap. The bounded
+[discovery probes](acceptance/r5-category-discovery.md) establish that visual grouping still needs
+semantic consolidation. Both small naming candidates produce unsupported or overly specific names;
+comparison with existing descriptions also admits false names, while the caption-based probe loses
+useful distinctions. Lexical retrieval with content context retains a recurring code candidate and
+rejects several spurious names, but photograph proposals still name parts or objects rather than
+useful scenes. Complete whole-scene/use naming and consolidation before dependent integration,
+retaining existing categories while a candidate is evaluated. Bounded native retrieval now connects
+the versioned vocabulary and existing feature cache, with focused invariant/lifecycle coverage.
+The complete Release retrieval and its cache-only repetitions pass. Bounded cache windows remove
+per-entry commit overhead while preserving candidate scores, cancellation and completed work.
+Useful-name admission and category maintenance remain required before automatic first-use integration.
+Card review
+indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
-after checking their compatibility. The current-head hosted gate still requires the corrected
-archive regressions to pass. The UIA session and
-output-retirement changes pass the native Windows Accessibility job.
+after checking their compatibility. The `323c5ba2` hosted Rust Catalog, Remaining, Schema/Queue and
+Synchronization/Scan partitions pass, including the archive corrections. Its static/Flutter/client
+build failures are addressed in the pending desktop changes. The retained Windows Scan diagnostics
+show the same missing smart-album title branch before test startup. The pending changes require
+their own hosted gate after delivery.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference

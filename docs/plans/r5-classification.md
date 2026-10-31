@@ -82,8 +82,12 @@ Follows R5-01; its output fixes the model/taxonomy compatibility used by later s
    New memes can depend on cultural context absent from the local model: description changes do
    not guarantee that knowledge. Evaluate reusable local examples/corrections for repeated cases
    without assuming online research, automatic learning, or reliable recognition of every new meme.
-   Category-growth automation and its confirmation policy remain an admission decision, not an
-   implemented or approved automatic category-creation workflow.
+   Supply application-owned starting descriptions and implement measured category discovery and
+   maintenance. First use must work without manual category or prompt authoring. Keep manual editing
+   optional; an editable fixed sample list or a larger fixed vocabulary does not fulfill this slice.
+   Admit candidate discovery, naming, expansion/merge thresholds and human-choice preservation before
+   connecting automatic maintenance. Preserve valid runtime evidence while measuring this missing
+   policy; do not repeat an unchanged encoder comparison or use similarity alone to name categories.
 2. Create a source-safe evaluation protocol with representative labeled groups, calibration and
    held-out partitions, duplicate-leakage prevention, and per-category/band metrics.
    Freeze the purpose-aware rubric before comparing predictions. Record the label's authoring
@@ -198,9 +202,12 @@ Depends on R5-05 and the guarded writes/recovery from R5-03.
    organization-only chronological undo/redo and its saved Library context.
 5. Verify first-use/setup, empty, unclassified, uncertain, conflicting, failed, unavailable, stale,
    saving, cancellation, and restart states with the real application services.
-6. Connect flat category-name/description configuration through the existing contextual/settings
-   patterns. Keep semantic-rule editing distinct from manual-album membership and preserve explicit
-   decisions when definitions are renamed or retired; no extra primary workspace or tagging system.
+6. Connect the application-managed category scheme through the existing contextual/settings patterns.
+   First use needs no user-authored category table or manual model/runtime directory selection.
+   Connect explicit model download/enablement to verified application-managed installation and the
+   bundled compatible runtime. Optional name/description edits remain distinct
+   from manual-album membership and preserve explicit decisions when definitions are renamed or
+   retired; no extra primary workspace or tagging system.
 
 Exit: the accepted desktop interaction completes real review and manual-album workflows, preserves
 selection/position rules, and displays only committed results. The sketch supplies interaction

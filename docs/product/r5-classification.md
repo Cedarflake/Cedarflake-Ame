@@ -45,9 +45,13 @@ changes the derived result; it does not move a physical file or edit a manual al
 
 ## Primary taxonomy and review status
 
-Categories are configurable flat definitions with stable identities, display names, and classification
-descriptions. Preserve the text encoder so new descriptions do not require a fixed output-head class.
-Example categories and evaluation labels do not limit the product to a fixed seven- or six-class list.
+Categories are application-managed flat definitions with stable identities, display names, and
+classification descriptions. Ame supplies the starting vocabulary and maintains useful categories
+from recurring library evidence. Enabling smart albums does not require the user to name categories,
+write comparison descriptions or manage model prompts. Manual edits remain optional overrides.
+Preserve the text encoder so new descriptions do not require a fixed output-head class. Example
+categories and evaluation labels do not limit the product to a fixed seven- or six-class list; making
+that list manually editable alone does not satisfy category discovery or maintenance.
 Display-only renaming preserves classification compatibility; semantic description changes and
 adding/removing definitions create a new classification-rule revision. Retired definitions retain
 human-decision provenance; remapping a saved human choice requires explicit intent.
@@ -71,13 +75,18 @@ class list:
 | Photograph | A real scene, person, animal or object without stronger evidence for another configured purpose. |
 | Other defined content | Positive descriptions such as documents, charts or design assets. Missing evidence and analysis failure remain separate. |
 
-Start definitions broadly enough to cover the collection and split them when a recurring distinction
-helps the user retrieve or organize images. Keep the scheme editable rather than selecting a fixed
-target count. R5 does not automatically create a category for each unusual image or merge a category
-because it contains few groups. Cultural meaning absent from visible evidence remains uncertain;
-repeated examples and corrections can inform later evaluation without automatic online research or
-unannounced retraining. The [compatibility contract](../architecture/0034-versioned-classification-contracts.md)
-owns bounded definitions, canonical revisions and feature reuse.
+Start definitions broadly enough to cover the collection. Ame must detect recurring distinctions
+that support useful additions or splits, and excessive overlap that warrants a scheme adjustment.
+Candidate discovery, naming and admission belong to the application; a user-authored category table
+is not a prerequisite. Admit the maintenance policy against coverage, useful distinctions, stability
+and human effort rather than a fixed target count. A larger hard-coded list is not a replacement for
+this policy. Isolated unusual images and small occupancy alone do not create or remove a category.
+Automatic maintenance preserves stable identities and explicit human choices; it never silently
+remaps a saved human category or requests confirmation for every image or routine vocabulary change.
+Cultural meaning absent from visible evidence remains uncertain; repeated examples and corrections
+can inform evaluation without automatic online research or unannounced retraining. The
+[compatibility contract](../architecture/0034-versioned-classification-contracts.md) owns bounded
+definitions, canonical revisions, policy admission and feature reuse.
 
 `待确认` is a review filter, not a category. `其他` is a legitimate content category, not a substitute
 for missing predictions, failed analysis, or a category conflict. A result can have a proposed
@@ -195,6 +204,10 @@ Evaluate candidate models and runtimes before selecting dependencies. Record exa
 and weight licenses, redistribution terms, download/storage sizes, artifact integrity, Windows CPU
 support, failure isolation, maintenance, and replacement contracts. A runtime mentioned in planning
 is not an admitted dependency. Model setup and downloads require an explicit user action.
+The normal setup offers the application's admitted model and manages its verified files. Ship the
+compatible inference runtime with the application. Users enable smart albums and authorize any
+required model download; they do not choose model/runtime directories or supply category definitions.
+Installation failure retains a retryable setup state without enabling analysis against partial files.
 
 The selected initial-screening candidate is SigLIP 2 Base/16-224 with an FP16 image encoder and INT8
 text encoder through ONNX. Its [local exploratory comparison](../acceptance/r5-model-evaluation.md)

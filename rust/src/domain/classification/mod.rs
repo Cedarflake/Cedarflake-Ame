@@ -1,4 +1,5 @@
 mod decisions;
+pub mod discovery;
 mod evidence;
 mod features;
 mod ranking;

@@ -12,6 +12,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R4 organization verification](r4-organization.md) | Durable organization, migration recovery and connected desktop workflow evidence |
 | [R5 exploratory model comparison](r5-model-evaluation.md) | Provisional local candidate comparison, source/provenance boundaries and remaining admission evidence |
 | [R5 inference runtime](r5-runtime-admission.md) | Pinned artifact provenance, isolated local/cloud resource observations and feature-compatibility evidence |
+| [R5 category discovery](r5-category-discovery.md) | Retained-feature grouping, bounded naming probes and category-maintenance admission gaps |
 | [R5 screening calibration](r5-calibration.md) | Purpose-aware reference labels, separated calibration/holdout evidence and bounded re-screening policy |
 | [R5 classification decisions](r5-classification-decisions.md) | Immutable evidence, human precedence and guarded category/review commands; persistence and recovery evidence |
 | [R5 incremental analysis](r5-incremental-analysis.md) | Durable task admission, publication leases, restart/retry behavior and connected scheduling evidence |

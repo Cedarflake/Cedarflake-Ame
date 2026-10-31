@@ -13,6 +13,7 @@ pub(crate) mod classification_features;
 pub(crate) mod classification_review;
 pub(crate) mod classification_setup;
 pub(crate) mod classification_source;
+pub(crate) mod classification_vocabulary;
 pub(crate) mod classification_work;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
