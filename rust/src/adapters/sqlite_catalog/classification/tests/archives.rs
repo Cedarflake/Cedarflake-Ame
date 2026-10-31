@@ -172,9 +172,20 @@ fn failed_classification_restore_rolls_back_r4_and_r5_together() {
     source
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
-    let mut target = SqliteCatalog::open(directory.path().join("target.sqlite3")).unwrap();
-    target.connection.execute_batch("CREATE TRIGGER fail_classification_restore BEFORE INSERT ON classification_decisions BEGIN SELECT RAISE(ABORT, 'injected restore failure'); END;").unwrap();
-    assert!(restore(&mut target, &archive, "fail").is_err());
+    let target_path = directory.path().join("target.sqlite3");
+    let target = SqliteCatalog::open(target_path.clone()).unwrap();
+    target
+        .connection
+        .execute_batch(
+            "CREATE TRIGGER fail_classification_restore
+             BEFORE INSERT ON classification_decisions
+             BEGIN SELECT RAISE(ABORT, 'injected restore failure'); END;",
+        )
+        .unwrap();
+    drop(target);
+    let mut target = SqliteCatalog::open(target_path.clone()).unwrap();
+    let failure = restore(&mut target, &archive, "fail").unwrap_err();
+    assert!(failure.message.contains("injected restore failure"));
     for table in [
         "classification_categories",
         "classification_operations",
@@ -193,6 +204,8 @@ fn failed_classification_restore_rolls_back_r4_and_r5_together() {
         .connection
         .execute_batch("DROP TRIGGER fail_classification_restore")
         .unwrap();
+    drop(target);
+    let mut target = SqliteCatalog::open(target_path).unwrap();
     restore(&mut target, &archive, "retry").unwrap();
     assert_eq!(
         scalar(&target, "SELECT count(*) FROM classification_decisions"),

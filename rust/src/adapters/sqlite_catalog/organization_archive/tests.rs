@@ -202,7 +202,10 @@ fn organization_archive_empty_catalog_is_complete() {
     let receipt = catalog
         .export_organization_archive(&destination, &mut |_| true)
         .unwrap();
-    assert_eq!(receipt.record_count, 0);
-    assert_eq!(entries(&destination).len(), 2);
+    assert_eq!(receipt.record_count, 1);
+    let exported = entries(&destination);
+    assert_eq!(exported.len(), 3);
+    assert_eq!(exported[1]["kind"], "classification_context");
+    assert_eq!(exported[1]["values"], serde_json::json!([0, null]));
     assert_no_scratch(directory.path());
 }

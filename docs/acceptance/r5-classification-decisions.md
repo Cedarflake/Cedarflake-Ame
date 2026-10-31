@@ -135,3 +135,23 @@ source lifecycle and archive restoration separate. Dedicated tests are excluded 
 | Review facade / scope / position / source lifecycle / command | 95 / 166 / 135 / 135 / 102 | 0 | 269 review |
 | Migration schema | 122 | 0 | 45 migration |
 | Archive validation / restore history / bookmark association | 200 / 41 / 87 | 0 | 201 archive |
+
+### Archive regression fixture correction
+
+At product head `3002ad1f`, the Catalog job in
+[run 41132041240](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41132041240)
+passed 795 tests and failed five archive cases. Three assertions still expected the earlier archive
+version or an empty archive without the version-5 `classification_context` record. The cancellation
+fixture appended albums after that context record, violating record ordering before cancellation.
+The restore rollback fixture changed the SQLite schema and then reused an invalidated catalog
+session, so it failed before reaching its injected transaction error.
+
+The fixtures now assert version 5's context row, preserve record order, and reopen the validated
+session after each controlled trigger change. The rollback test requires the injected trigger error
+before checking that both R4 and R5 writes rolled back, then retries after removing the trigger.
+Production archive validation, transaction handling and stale-session rejection remain unchanged.
+
+Owned `rustfmt` and test-enabled Clippy with warnings denied pass. Executing these corrected cases
+remains assigned to the next exact-head hosted Catalog job. The changed classification archive,
+archive-staging and archive-export suites contain 214, 484 and 211 dedicated test lines respectively;
+this correction adds no production or inline-test lines.

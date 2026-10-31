@@ -113,12 +113,14 @@ fn organization_archive_inspection_upgrades_v1_native_copy_evidence_without_chan
 #[test]
 fn organization_archive_inspection_rejects_unproven_native_copy_counts() {
     let (directory, catalog) = fixture();
-    let archive = directory.path().join("version-two.ame-backup");
+    let archive = directory
+        .path()
+        .join("invalid-native-copy-counts.ame-backup");
     catalog
         .export_organization_archive(&archive, &mut |_| true)
         .unwrap();
     let original = entries(&archive);
-    assert_eq!(original[0]["header"]["version"], 4);
+    assert_eq!(original[0]["header"]["version"], codec::VERSION);
     for copies in [json!(0), json!(-1), Value::Null] {
         let mut rows = original.clone();
         rows.iter_mut()
@@ -411,7 +413,8 @@ fn organization_archive_inspection_handles_empty_and_sql_like_names_as_data() {
         .inspect_organization_archive(&archive, &mut |_| true)
         .unwrap();
     assert_eq!(empty.groups, 0);
-    assert_eq!(empty.record_count, 0);
+    assert_eq!(empty.record_count, 1);
+    assert_eq!(empty.active_albums, 0);
     assert!(!empty.has_continuation);
     let mut altered = entries(&archive);
     altered[0]["header"]["organization_revision"] = json!(1);
@@ -438,9 +441,12 @@ fn organization_archive_inspection_cancels_while_staging_without_touching_input_
         .unwrap();
     let mut altered = entries(&archive);
     altered[0]["header"]["organization_revision"] = json!(1);
-    for number in 0..512 {
-        altered.insert(altered.len() - 1, json!({"type":"row", "kind":"album", "values":[format!("album-{number}"), "测试", 1, 0, 0]}));
-    }
+    altered.splice(
+        1..1,
+        (0..512).map(|number| {
+            json!({"type":"row", "kind":"album", "values":[format!("album-{number}"), "测试", 1, 0, 0]})
+        }),
+    );
     write_archive(&archive, &altered);
     let before = fs::read(&archive).unwrap();
     let failure = catalog
