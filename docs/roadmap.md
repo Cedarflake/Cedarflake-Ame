@@ -142,8 +142,11 @@ descriptions, retaining unresolved concepts and bounded work. The retained calib
 useful construction and child-play contexts; its fixture-supplied frontier is exploratory.
 Per-content evidence now preserves individual members alongside the aggregate. Automatic frontier
 selection based on lexical-origin counts still favors parts and unsupported meanings; it is not
-admitted. Image-level coverage/competition, useful-name admission and category maintenance remain
-the next R5-02 policy boundary.
+admitted. Native candidate assessment now compares per-content coverage and competing contexts
+against the current taxonomy, retaining deferred candidates and separate name authority. Its
+calibration probes preserve supported code/play suggestions while excluding isolated competing
+labels. Selection of a measured operating profile, automatic useful-name selection and guarded
+category maintenance remain the next R5-02 boundary before first-use integration.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;

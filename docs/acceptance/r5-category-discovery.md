@@ -489,3 +489,51 @@ outputs in ignored discovery storage.
 | Discovery concepts and cohort scoring | 235 | 0 | 163 |
 | Consolidation lifecycle | 179 | 0 | 247 |
 | Native discovery diagnostic | 329 | 0 | Uses the production retrieval/consolidation/cache boundaries |
+
+### Candidate coverage and competition assessment
+
+The application now assesses consolidated candidates against the current taxonomy through its
+existing matcher. Each exact-content member records improvement over its current category and
+separation from the strongest competing context. Assessment retains rejected members and deferred
+candidates, including name conflicts and the proposal budget. The result binds semantic taxonomy
+and display-name revisions separately: renaming preserves matching but invalidates old name checks.
+Nine admission regressions pass, covering partial support, coverage, ties, ordering, invalid/stale
+evidence, cancellation, policy revisions, name conflicts and rename authority. The twelve existing
+retrieval/consolidation cases also pass during this change. The Release diagnostic builds, and the
+repository format check reports 685 files with no changes.
+
+The native probe prepares the six retained screening definitions as its comparison baseline and
+applies an exploratory profile requiring at least two supporting contents and 50% coverage, with
+strictly positive improvement, separation and contextual contrast; it permits at most eight
+proposals. These diagnostic values are not product defaults or a calibrated confidence policy.
+The photo input has SHA-256
+`0be844998559a09fad51cfc81a08571e291634bef799ecdf44964620028c638b`; the code input has
+`592377ca97a729e87cde73baa5f88194713a6374407c3a9f104028e7529817b7`.
+
+| Calibration cohort | Assessment outcome | Preserved unsupported contents |
+| --- | --- | --- |
+| B132, seven code screenshots | `代码` is supported by five members; `编译器` has only one and is deferred | B100 has a competing context; B219 does not improve on its current category |
+| B021, four interior photographs | No proposal; pipe, window, doorway and corridor each win only one member | All four retain their current category |
+| B057, three play/desk photographs | `游戏` is supported by B057 and B230 | B103 supports another context and retains its current category |
+
+Photo retrieval plus assessment completes four passes in 8.812 seconds with a peak process-tree
+working set of 656,515,072 bytes, including 24 new baseline-description features. The two code passes
+take 27.141 seconds and peak at 659,750,912 bytes; 533 new descriptions enter the retained cache.
+The code cache-only repetition takes 0.861 seconds. Assessment itself takes 0.084–0.190 ms per cohort.
+All workers retire, all work bounds are respected, and repeated decisions/member evidence match
+exactly. Earlier photo retrieval/consolidation scores remain unchanged. These runs reuse retained
+calibration features, read no original media or held-out samples, and publish no categories or
+human decisions. Inputs, outputs and the checked comparison remain in ignored discovery storage as
+`native-admission-photo*`, `native-admission-code*` and `native-admission-comparison.json`.
+
+The code frontier uses the two concepts retained by the earlier calibration probe; the photo
+frontier retains the exploratory lexical-origin policy. This verifies the assessment boundary,
+not automatic frontier/name selection. Sensitivity computed from the same scores retains all five
+code supporters at a 0.002 separation, but only one play supporter. Select and validate the operating
+profile before integration; do not infer broad quality from these three provisional cohorts.
+
+| Affected owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Candidate assessment / immutable profile | 283 / 70 | 0 | 349 |
+| Discovery concepts and cohort scoring | 239 | 0 | Existing 163 |
+| Native discovery diagnostic / assessment diagnostic | 342 / 135 | 0 | Exercises production matching, retrieval and assessment |

@@ -147,6 +147,10 @@ impl DiscoveryCohort {
         self.revision
     }
 
+    pub(crate) fn member_samples(&self) -> &[DiscoverySample] {
+        &self.member_samples
+    }
+
     pub fn score(&self, feature: &TextFeature) -> Result<ConceptSimilarity, DiscoveryError> {
         self.validate_text(feature)?;
         let similarity = mean_cosine(&self.member_mean, feature);

@@ -13,10 +13,16 @@ use crate::ports::classification_vocabulary::{
 use super::classification_features::load_or_encode_descriptions;
 use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 
+mod admission;
 mod consolidation;
 mod ranking;
 mod search;
 
+pub use admission::{
+    CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
+    CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryMemberEvidence, MemberAdmission,
+    assess_category_candidates,
+};
 pub use consolidation::{
     ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest,
     ConsolidatedConcept, consolidate_classification_concepts,

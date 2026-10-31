@@ -13,6 +13,7 @@ use crate::ports::classification_encoder::{ClassificationEncoder, Classification
 
 use super::*;
 
+mod admission;
 mod consolidation;
 
 #[derive(Default)]

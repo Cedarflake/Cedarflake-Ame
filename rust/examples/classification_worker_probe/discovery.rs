@@ -21,6 +21,8 @@ use serde_json::json;
 
 type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
+#[path = "discovery/admission.rs"]
+mod admission;
 #[path = "discovery/cost.rs"]
 mod cost;
 
@@ -35,6 +37,8 @@ struct Fixture {
     frontier: Vec<String>,
     #[serde(default)]
     results: Option<usize>,
+    #[serde(default)]
+    admission: Option<admission::Fixture>,
 }
 
 #[derive(Deserialize)]
@@ -205,6 +209,10 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
     if arguments[5] == "--discovery-cost" {
         return cost::measure(&vocabulary, &mut residency, &mut cache);
     }
+    let assessment = fixture
+        .admission
+        .map(|fixture| admission::prepare(fixture, &mut residency, &mut cache))
+        .transpose()?;
     let limits = ConceptSearchLimits {
         entry_points: 4096,
         expanded_concepts: 4096,
@@ -278,7 +286,12 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
                     &mut cache,
                     &AtomicBool::new(false),
                 )?;
+                let assessment = assessment
+                    .as_ref()
+                    .map(|prepared| prepared.assess(&cohort_features, &result, &member_ids))
+                    .transpose()?;
                 Some(json!({
+                    "admission": assessment,
                     "candidates": result.candidates.iter().map(|candidate| json!({
                         "label": candidate.candidate.concept.label(),
                         "description": candidate.candidate.concept.description(),

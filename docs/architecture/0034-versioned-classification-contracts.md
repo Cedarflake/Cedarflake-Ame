@@ -108,6 +108,30 @@ This owner returns naming evidence and has no category-write or human-decision a
 of useful frontiers and final category admission remain application policy evaluated against the
 collection, with existing categories retained during evaluation.
 
+### Candidate admission evidence
+
+Admission compares each consolidated context against the current taxonomy through the existing
+category matcher, using the cohort's retained image features. It also compares the context with
+the strongest competing context for that same content. A supporting member must improve on the
+current taxonomy and separate from its competitors; exact ties support neither proposal. Distinct
+content identities, not files or lexical paths, determine support and coverage.
+
+An immutable admission profile binds its calibration identity, required member count, coverage in
+thousandths, improvement, separation, context contrast and bounded proposal count. It requires at
+least two supporting contents. These parameters have no unmeasured product defaults. Profiles and
+their measured selection remain separate from calibrated prediction confidence.
+
+The application rejects mismatched model/cohort authority, duplicate concepts, incomplete member
+sets and invalid scores before assessing any candidate. Assessment preserves unsupported members
+and the reason a candidate is deferred. Context contrast, support and coverage precede the proposal
+budget; stable ties cannot silently discard another candidate's evidence. Existing and selected
+display names are reserved case-insensitively; conflicting proposals are deferred without automatic
+renaming. Cancellation returns no partial assessment. The result binds the current taxonomy's semantic
+and display-name revisions separately, together with the discovery/consolidation/profile revisions.
+A display-only rename preserves matching but invalidates stale name-conflict decisions.
+It proposes additions only: it cannot replace existing categories, remap human choices or
+publish predictions. Category maintenance retains its own guarded commit boundary.
+
 ## Features and matching
 
 Adapters supply Ame-owned, opaque revisions for the shared embedding space and the independent image
