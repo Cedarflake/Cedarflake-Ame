@@ -535,3 +535,71 @@ execution of that adjusted assertion belongs to the next exact-head hosted gate.
 | Classification lifecycle / activity composition | 250 / 138 | 0 | 362 (lifecycle) |
 | Real client / client support / Windows probe | 0 | 0 | 236 / 165 / 163 |
 | Availability migration regression | Unchanged | 0 | 164 |
+
+## Integrated local foreground comparison
+
+The standalone Profile client uses product head `3002ad1f`, the installed SDK, the optimized native
+library with the existing isolated-storage assertion switch, and the production classification
+worker. It composes the production synchronization owner, classification lifecycle, Windows power
+adapter, foreground-read signals, `AmeApp`, photo wall and original-image viewer. It does not substitute
+blank previews or a mocked catalog. The native storage path is checked before fixture admission.
+
+The reusable measurement set contains 48 distinct files selected from the established synthetic
+mixed corpus, totaling 47,786,849 bytes. Fifteen exceed the existing 16,777,216-pixel classification
+input bound; the expected complete result is 33 predictions plus 15 `classification_image_limit`
+outcomes. All 48 remain browsable. Those skipped images are an input-coverage limitation, not model
+classification results. Original fixture hashes are unchanged after every attempt.
+
+On local-primary, the final complete run lasts 51.664 seconds. First prediction follows enablement
+after 9,109 ms, including quiet admission and initial text/image setup. Three scroll/viewer rounds
+advance prediction count from one to five; pause retires the worker, and resume finishes the admitted
+contents. Enabled wall time is 44,105 ms, including those interactions, deliberate quiet intervals,
+pause and observation. This interval is not steady-state inference throughput.
+
+| Measured interval | Scroll wall interval | Viewer wall interval | Raster P95, scroll / viewer |
+| --- | ---: | ---: | ---: |
+| Disabled, after warm-up | 713.086 ms | 304.525 ms | 1.165 / 1.062 ms |
+| Automatic, round 1 | 711.575 ms | 295.391 ms | 0.961 / 0.873 ms |
+| Automatic, round 2 | 714.328 ms | 300.869 ms | 1.305 / 1.032 ms |
+| Automatic, round 3 | 711.293 ms | 300.763 ms | 1.010 / 0.862 ms |
+| Paused, after automatic work | 712.659 ms | 294.953 ms | 0.763 / 0.843 ms |
+
+Scroll intervals include two 350-ms settling waits; viewer intervals include 250 ms after the full
+image becomes available. They are paired workflow intervals, not exact input-to-image latency.
+No measured interval has a raster frame above 50 ms. Active-interval maximum raster duration is
+6.926 ms and maximum build P95 is 2.780 ms. These are local-primary results at a 1,582 × 853 physical
+surface with 1.25 scale; they do not establish cloud-primary rendering behavior or remove the
+separately deferred first-use rendering work.
+
+At 200-ms process sampling, peak combined client/worker working set is 1,121,148,928 bytes
+(about 1.044 GiB). Separate client and worker peaks are 257,310,720 and 870,576,128 bytes; separate
+peaks need not occur at the combined peak. Sampled CPU totals are 22.797 client seconds and 18.531
+worker seconds. At most one model worker is resident, the gallery retains 48 assets for this bounded
+fixture, and client retirement leaves no model worker. These are process observations, not a whole
+machine memory limit or large-library query benchmark.
+
+The first sampler attempt ended with an unlocated Windows access error. A second attempt preserved
+a traceback showing replacement of a progress file while Dart held a reader. The sampler now appends
+complete records and readers ignore an unfinished trailing record; native process handles are also
+retained for sampling across retirement. A third attempt completed admitted classification but its
+old all-files-success condition waited for the 15 explicitly rejected large inputs; that owned
+client was stopped. The final assertions distinguish the frozen fixture's 33 supported and 15
+limited inputs and pass, alongside real foreground interactions. No product guard was relaxed.
+
+Diagnostic sources, the final `local-04` reports and earlier attempt records remain under ignored
+`build/test/derived/r5-classification-measure`. The four retired attempt profiles are removed after
+checking owned-process retirement and reparse-free contained paths, reclaiming 17,509,972 bytes;
+the fixture, reports and a verified 36,020,546-byte transfer package remain. Cloud-primary capacity inspection confirms two logical
+processors, 8,536,289,280 physical-memory bytes and 11,405,623,296 free-storage bytes at inspection.
+Its existing model installation remains unchanged. File-transfer UI approval timed out before any
+package was sent, so the paired cloud measurement remains open.
+
+The exact-head hosted run [41132041240](https://github.com/Cedarflake/Cedarflake-Ame/actions/runs/41132041240)
+finishes with 12 passing and two failing applicable jobs. Schema and Queue now passes the adjusted
+historical/current migration assertion. Catalog passes 795 cases, fails five archive cases and ignores
+seven designated cases; failures concern stale validated-session authority and archive version/count/
+cancellation expectations. Windows Accessibility reaches native-semantics readiness, then its
+application-ready probe exceeds the eight-second parent deadline; final progress records 5,130 ms
+loading UIAutomationClient and 1,395 ms locating the window, followed by element lookup. Cleanup also
+fails to read the process log while it remains open. These failures retain their own repairs; this
+performance comparison does not establish a passing complete hosted gate.

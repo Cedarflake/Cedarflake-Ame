@@ -96,7 +96,7 @@ section, usable initial-screening suggestions, optional classification review, a
 shared gallery/viewer interaction. R5-01 metadata and structured search are verified through
 `44d54b6a`. R5-02 has established the category/encoder contracts, selected runtime and measured
 initial-screening operating candidate. R5-03 durable classification and recovery are implemented;
-their Catalog gate remains in progress. Independent R5-04 work connects encoder residency and
+their Catalog gate has five archive regression failures requiring repair. Independent R5-04 work connects encoder residency and
 durable task admission under [ADR 0036](architecture/0036-durable-classification-dispatch.md), with
 [incremental-analysis evidence](acceptance/r5-incremental-analysis.md). Source verification, compatible
 feature reuse and guarded content execution now have native owners. Native image input has a frozen-policy
@@ -114,8 +114,10 @@ real-model enablement, foreground inhibition, durable pause/stop, shared duplica
 description rematching with retained features. Windows power notifications now feed the same
 cancellation/resumption owner; targeted native events verify loaded-worker retirement, retained
 manual pause and feature reuse. The real-client case also covers the memory-pressure cooldown
-across configuration changes. Integrated constrained-device resource/foreground measurements
-remain in R5-04, with full database regressions owned by the current-head hosted gate.
+across configuration changes. A local-primary Profile comparison now exercises actual scrolling and
+original-image viewing while classification advances, including pause/resume and bounded resource
+sampling. The paired cloud-primary measurement remains in R5-04. The current-head hosted gate also
+requires the archive regressions and Windows Accessibility timeout to be resolved.
 The optional-review tradeoff and unsupported confidence
 bands remain explicit in the
 [calibration record](acceptance/r5-calibration.md). Integrated scheduling, foreground interference
