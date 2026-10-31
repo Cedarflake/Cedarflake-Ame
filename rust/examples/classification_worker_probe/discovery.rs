@@ -22,6 +22,8 @@ type Result<T> = std::result::Result<T, Box<dyn std::error::Error>>;
 
 #[path = "discovery/admission.rs"]
 mod admission;
+#[path = "discovery/context_vocabulary.rs"]
+mod context_vocabulary;
 #[path = "discovery/cost.rs"]
 mod cost;
 #[path = "discovery/naming.rs"]
@@ -44,6 +46,8 @@ struct Fixture {
     automatic_contexts: Option<usize>,
     #[serde(default)]
     minimum_context_relatedness: Option<f32>,
+    #[serde(default)]
+    naming_contexts: Option<Vec<context_vocabulary::Context>>,
 }
 
 #[derive(Deserialize)]
@@ -219,7 +223,7 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
             return Err("Invalid discovery sample identity or dimensions".into());
         }
     }
-    let mut vocabulary = ProbeVocabulary::new(fixture.revision, fixture.concepts, fixture.entries)?;
+    let vocabulary = ProbeVocabulary::new(fixture.revision, fixture.concepts, fixture.entries)?;
     let frontier: BTreeSet<_> = fixture
         .frontier
         .iter()
@@ -234,6 +238,9 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
     if arguments[5] == "--discovery-cost" {
         return cost::measure(&vocabulary, &mut residency, &mut cache);
     }
+    let cancelled = AtomicBool::new(false);
+    let mut vocabulary =
+        context_vocabulary::Vocabulary::new(vocabulary, fixture.naming_contexts, &cancelled)?;
     let naming = naming::Naming::prepare(
         frontier,
         fixture.automatic_contexts,

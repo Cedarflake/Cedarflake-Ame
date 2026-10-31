@@ -70,6 +70,80 @@ fn assess(harness: &Harness, result: &ConceptNomination) -> Result<CategoryAdmis
 }
 
 #[test]
+fn retrieved_nouns_cannot_bypass_the_independent_context_name_and_description() {
+    let mut harness = purpose_harness();
+    let cancelled = AtomicBool::new(false);
+    let source = std::mem::replace(&mut harness.vocabulary, vocabulary());
+    let catalog = NamingContextCatalog::new(vec![NamingContext {
+        concept: VocabularyConcept::new(id(20), "宠物猫".into(), "pet cats at home".into())
+            .unwrap()
+            .with_subject("pet cats".into())
+            .unwrap(),
+        cues: vec![id(3)],
+        broader: vec![],
+    }])
+    .unwrap();
+    let mut vocabulary = ContextualVocabulary::new(source, catalog, &cancelled);
+    harness.calls.features.borrow_mut().insert(
+        "a reaction sticker featuring pet cats".into(),
+        vec![0.8, 0.6],
+    );
+    let retrieved = retrieve_classification_concepts(
+        &harness.cohort,
+        &mut vocabulary,
+        limits(),
+        &mut harness.residency,
+        &mut harness.cache,
+        &cancelled,
+    )
+    .unwrap();
+    assert!(
+        retrieved
+            .nearest
+            .iter()
+            .any(|row| row.concept.id() == id(3))
+    );
+    assert!(
+        retrieved
+            .nearest
+            .iter()
+            .all(|row| row.concept.naming_scope() == ConceptNamingScope::TraversalOnly)
+    );
+    let result = nominate_classification_contexts(
+        ConceptNominationRequest {
+            cohort: &harness.cohort,
+            retrieved: &retrieved,
+            matcher: &harness.matcher,
+            policy: &harness.policy,
+            limits: context_limits(),
+            max_candidates: 64,
+            minimum_context_relatedness: 0.9,
+            naming: &harness.naming,
+        },
+        &mut vocabulary,
+        &mut harness.residency,
+        &mut harness.cache,
+        &cancelled,
+    )
+    .unwrap();
+    assert_eq!(result.naming_concepts, 1);
+    let candidate = &result.contexts.candidates[0];
+    assert_eq!(candidate.candidate.concept.label(), "宠物猫表情");
+    assert_eq!(
+        candidate.candidate.concept.description(),
+        "a reaction sticker featuring pet cats"
+    );
+    assert!((candidate.member_similarities[0].similarity - 0.8).abs() < 1e-6);
+    let assessment = assess(&harness, &result).unwrap();
+    assert_eq!(assessment.candidates[0].supporting_members, 2);
+    assert_eq!(
+        assessment.candidates[0].members[2].disposition,
+        MemberAdmission::DifferentPurpose
+    );
+    assert!(harness.residency.resident_kind().is_none());
+}
+
+#[test]
 fn composed_names_are_scored_independently_and_cannot_claim_a_different_image_purpose() {
     let mut harness = purpose_harness();
     let first = harness

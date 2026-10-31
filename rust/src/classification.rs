@@ -8,9 +8,10 @@ pub use crate::application::classification_discovery::{
     ConceptAlternative, ConceptConsolidation, ConceptConsolidationLimits,
     ConceptConsolidationRequest, ConceptMatch, ConceptNomination, ConceptNominationRequest,
     ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept, ContextComparison,
-    ContextComparisonPolicy, ContextMemberAlternative, DiscoveryCandidates, MemberAdmission,
-    assess_category_candidates, consolidate_classification_concepts,
-    nominate_classification_contexts, retrieve_classification_concepts,
+    ContextComparisonPolicy, ContextMemberAlternative, ContextualVocabulary, DiscoveryCandidates,
+    MemberAdmission, NamingContext, NamingContextCatalog, assess_category_candidates,
+    consolidate_classification_concepts, nominate_classification_contexts,
+    retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,

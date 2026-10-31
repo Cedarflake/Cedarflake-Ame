@@ -178,6 +178,34 @@ Unconditioned nomination remains available for evaluation and category discovery
 do not select a fixed list of media types, make the user author patterns, or authorize category writes.
 Useful local labels and the operating composition still require measured admission.
 
+### Managed naming contexts
+
+The application can compose the retrieval vocabulary with a separate, immutable naming-context
+catalog. A context has its own identity, local display label, complete comparison description and
+optional purpose-composition subject. Explicit cue links nominate it for evaluation; broader links
+connect only declared contexts. The context catalog admits at most 4,096 definitions and 65,536
+total links, rejecting duplicate definitions/links, unknown context parents and overlapping cue/context
+identities. These bounds constrain the input vocabulary, not the number of active smart albums.
+
+`ContextualVocabulary` preserves raw entry/related traversal and exact retrieval descriptions while
+marking every source concept traversal-only. Dictionary labels and aliases therefore cannot acquire
+name authority from a high retrieval score. Broader traversal merges the declared whole-image contexts
+with existing source links through the same ordered, at-most-64-item windows. Context descriptions
+receive their own scoring and purpose checks; a cue relation never grants image support or inherits
+its score. An empty context catalog leaves retrieval available and nominates no names.
+
+Context identity, wording, subject phrases and relations bind a canonical revision independent of
+input order. The composed vocabulary also binds the underlying source revision. Changes during a
+read, malformed underlying windows, context/source identity collisions and cancellation reject the
+result. The composition has no model, source-media, persistence or category-publication capability.
+Existing description features remain compatible when only local names or relations change.
+
+The application supplies and evaluates these contexts; users need not author them. A context is a
+candidate, not a pre-created category. Recurring-content nomination, useful-name admission and
+guarded category maintenance still determine the active scheme. The retained calibration context
+catalog is exploratory; its finite entries do not establish the product's permanent category set,
+admit every purpose/topic combination or close the maintenance-policy requirement.
+
 ### Candidate admission evidence
 
 Admission compares each consolidated context against the current taxonomy through the existing

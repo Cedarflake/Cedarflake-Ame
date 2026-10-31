@@ -152,9 +152,11 @@ proposals while retaining existing categories. The completed 28-cohort shared-me
 over-specific lexical names and lost image purpose. Purpose-bound composition now independently scores
 complete descriptions and excludes other-purpose members. Complete broader-ancestor selection now
 crosses unsupported intermediates within explicit work bounds; its six-cohort check also exposes
-overly broad lexical names. Establish application-owned whole-image naming contexts and useful local
-labels separately from retrieval vocabulary, then calibrate the operating profile and connect guarded
-category maintenance before first-use integration; score-cutoff changes alone do not resolve this gap.
+overly broad lexical names. Managed context composition now separates local naming definitions from
+raw retrieval cues, preserving the existing bounded scoring and purpose checks. Its initial context
+comparison retains useful topic names alongside an unresolved mixed-reaction error. Expand coverage
+and calibrate context applicability and the operating profile, then connect guarded category maintenance
+before first-use integration; an enlarged fixed context list alone does not close that requirement.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;

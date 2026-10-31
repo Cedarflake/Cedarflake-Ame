@@ -15,6 +15,7 @@ use super::*;
 
 mod admission;
 mod consolidation;
+mod context_vocabulary;
 mod nomination;
 
 #[derive(Default)]

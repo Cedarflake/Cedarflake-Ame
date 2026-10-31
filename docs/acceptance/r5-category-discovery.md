@@ -793,3 +793,64 @@ fixture SHA-256 `8c14a0b9ba99d93f0d3db238319b0b34103a7196d5a011be0874a0d14303034
 The selection owner has 145 production and 109 inline-test lines; nomination has 296 production
 lines with 456 existing and 181 purpose-specific dedicated-test lines. The naming diagnostic has
 157 production lines.
+
+### Separate retrieval cues from managed naming contexts
+
+The application now composes the source vocabulary with a separate immutable context catalog.
+Every raw concept remains available for retrieval and traversal, but only declared contexts supply
+names. Context definitions carry local labels, complete descriptions and purpose subjects; explicit
+cue links connect them to retrieval without inheriting scores. Ordered merged windows, independent
+revisions and disjoint identities retain the existing discovery, cache and cancellation boundaries.
+No category, decision, catalog, original image or desktop control is changed by this owner.
+
+The [frozen context fixture](fixtures/r5-naming-contexts.json) contains 42 application-authored
+whole-image topics, including scenes, activities, digital content and character contexts. Its
+ordinary lexical cues resolve to 714 links in the retained vocabulary. It is a calibration input,
+not the active product taxonomy or a permanent category limit. The fixture SHA-256 is
+`baa23594bed2a95b51c288f65ebb7d4f0b0e4b8957092c101ff78b9f22d23834`.
+The source lexicon, current categories, purpose patterns and numerical admission criteria are
+unchanged. This comparison measures the effect of name authority and whole-image descriptions;
+it does not retune cutoffs or inspect either held-out partition.
+
+| Cohort | Managed-context result | Supporting contents | Retained observation |
+| --- | --- | ---: | --- |
+| B001 | `人物肖像表情` | 4 of 4 | Incorrect for the mixed panda-face and cat reactions; purpose-qualified similarity still overstates topic support. |
+| B151 | `猫咪表情` | 3 of 3 | Preserves reaction use without a breed or age claim. |
+| B186 | `兽耳角色插画` | 4 of 4 | Names the depicted character context rather than a biological fox variety. |
+| B132 | `代码截图` | 7 of 7 | Covers editors, terminal code and the mobile code viewer. |
+| B075 | None | 0 of 4 | Existing categories remain; no language/row/monologue name is proposed. |
+| B191 | None | 0 of 5 | Existing categories remain; the unsupported printing-corrections name stays absent. |
+
+The initial fixture projection adds 41 text features, takes 27.141 seconds across four batches and
+peaks at 799,584,256 bytes of process-tree working set. The implemented contextual vocabulary then
+reproduces its retrieval, nominations and admission evidence exactly across all 12 passes over six
+cohorts and 27 distinct contents. Those passes add no features, take 18.515 seconds across four
+batches and peak at 87,363,584 bytes. Workers retire and no work limit is reached. Neither run reads
+original media or publishes a category. Retained calibration thumbnails confirm the mixed-reaction
+error; these targeted observations are not independent accuracy estimates or corrected user labels.
+
+Forty-nine application regressions pass, including eight new context-catalog and connected naming
+cases. They cover merged pagination, raw-name exclusion, empty context catalogs, name/meaning/link
+revisions, malformed and oversized catalogs, identity collisions, invalid source windows, source
+revision changes, cancellation, independently scored composition and other-purpose members. An
+initial new-test assertion incorrectly assumed the top aggregate cue from one member's score; it
+was corrected to verify that the cue is retrieved, while preserving the independent whole-cohort
+ranking and naming assertions. The Release diagnostic/worker build and read-only formatting check
+pass; formatting reports 685 files with no changes. Local builds retain unrelated native worktree
+changes, so committed-tree verification remains with hosted CI.
+
+The context owner has 201 production lines and 222 dedicated-test lines; connected purpose tests
+now occupy 255 lines. The diagnostic facade/context adapter has 346/99 production lines. There are
+no schema, bridge, model, runtime or dependency changes. Context applicability, broader collection
+coverage, measured admission and guarded category maintenance remain required before first use.
+
+Managed fixture SHA-256 values, in reaction/illustration/screenshot/document order:
+
+- `fd3e6053eb92cbf3c428531df655c88dff943037520f358cdccc7060bbc74d5d`
+- `88aac870c3916dee1ccc4baa00ad9c74146e6f9edd467b7dad2dcdb5a99a4f98`
+- `e42147359804148c3f71492dd114eabde9cd88f68c726aeec7308a71eb437508`
+- `f456323fdc28104758a5f2b5d08bdcfe3d0faa8a8d2771f33b8f2c4f80680ae4`
+
+Ignored `native-topics-*` and `native-managed-*` retain the projection, implemented comparison,
+resources and binary digests. Preparation and verification remain in `prepare_topic_contexts.py`,
+`prepare_managed_contexts.py` and `check_managed_contexts.py`.
