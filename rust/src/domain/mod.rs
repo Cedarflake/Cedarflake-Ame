@@ -466,7 +466,13 @@ pub enum GalleryDuplicateMode {
 pub enum GalleryCollection {
     Library,
     Favorites,
-    Album { album_id: String },
+    Album {
+        album_id: String,
+    },
+    SmartAlbum {
+        category_id: Option<String>,
+        review: classification_review::ClassificationReviewFilter,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -505,7 +511,10 @@ impl Default for GalleryQuery {
 impl GalleryQuery {
     pub fn folds_duplicates(&self) -> bool {
         self.organization_queue.is_some()
-            || matches!(self.collection, GalleryCollection::Album { .. })
+            || matches!(
+                self.collection,
+                GalleryCollection::Album { .. } | GalleryCollection::SmartAlbum { .. }
+            )
             || self.duplicate_mode == GalleryDuplicateMode::Merged
     }
 

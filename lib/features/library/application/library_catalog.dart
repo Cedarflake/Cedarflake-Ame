@@ -11,6 +11,7 @@ import "../domain/library_models.dart";
 import "../domain/library_query_snapshot.dart";
 import "../domain/library_time_snapshot.dart";
 import "library_asset_mapping.dart";
+import "library_gallery_collection_mapping.dart";
 import "library_metadata_filter_mapping.dart";
 
 export "../domain/library_query_snapshot.dart";
@@ -477,13 +478,7 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
   LibraryGalleryQuery query,
 ) {
   return rust_domain.GalleryQuery(
-    collection: switch (query.collection) {
-      LibraryAllCollection() => const rust_domain.GalleryCollection.library_(),
-      LibraryFavoritesCollection() =>
-        const rust_domain.GalleryCollection.favorites(),
-      LibraryAlbumCollection(:final albumId) =>
-        rust_domain.GalleryCollection.album(albumId: albumId),
-    },
+    collection: mapLibraryCollection(query.collection),
     organizationQueue: switch (query.organizationQueue) {
       null => null,
       LibraryOrganizationQueue.pending =>

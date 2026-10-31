@@ -150,6 +150,7 @@ class LibraryGalleryQuery {
   bool get foldsDuplicates =>
       organizationQueue != null ||
       collection is LibraryAlbumCollection ||
+      collection is LibrarySmartAlbumCollection ||
       duplicateMode == LibraryGalleryDuplicateMode.merged;
 
   LibraryGalleryQuery copyWith({

@@ -4,8 +4,8 @@ use crate::domain::ScanError;
 use crate::domain::classification::{ClassificationAction, ClassificationRecordId};
 use crate::domain::classification_catalog::PreparedClassificationSelection;
 use crate::domain::classification_review::{
-    ClassificationReviewBookmark, ClassificationReviewReceipt, ClassificationReviewScope,
-    ClassificationReviewSession,
+    ClassificationContinuation, ClassificationReviewBookmark, ClassificationReviewReceipt,
+    ClassificationReviewScope, ClassificationReviewSession,
 };
 use crate::domain::organization::{OrganizationSelection, validate_selections};
 use crate::ports::classification_review::ClassificationReviewRepository;
@@ -14,11 +14,22 @@ use super::super::{SqliteCatalog, database_error};
 use super::codec;
 
 mod commands;
+mod continuation;
 pub(in crate::adapters::sqlite_catalog) mod lifecycle;
 pub(in crate::adapters::sqlite_catalog) mod position;
 pub(in crate::adapters::sqlite_catalog) mod scope;
 
 impl ClassificationReviewRepository for SqliteCatalog {
+    fn load_classification_continuation(&self) -> Result<ClassificationContinuation, ScanError> {
+        let transaction = self
+            .connection
+            .unchecked_transaction()
+            .map_err(database_error)?;
+        let result = continuation::load(&transaction)?;
+        transaction.commit().map_err(database_error)?;
+        Ok(result)
+    }
+
     fn begin_classification_review(
         &mut self,
         requested: &ClassificationReviewScope,

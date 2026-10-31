@@ -92,6 +92,7 @@ pub(super) fn push_membership_filters(
 ) {
     organization::push_collection_filter(query, clauses, parameters);
     organization_queue::push_filter(query, clauses, parameters);
+    super::classification::push_filter(query, clauses, parameters);
 }
 
 pub(super) fn push_anchor_filters(
@@ -107,6 +108,10 @@ pub(super) fn push_anchor_filters(
     push_membership_filters(query, &mut membership, parameters);
     let mut group = Vec::new();
     organization_groups::push_group_filter(query, &mut group, parameters);
+    if membership.is_empty() {
+        clauses.extend(group);
+        return;
+    }
     // CASE keeps a rejected point lookup from materializing every eligible group.
     // Group selection still owns the physical scope and preferred representative.
     clauses.push(format!(

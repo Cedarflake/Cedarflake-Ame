@@ -13,9 +13,7 @@ pub(super) fn normalize_gallery_query(mut query: GalleryQuery) -> GalleryQuery {
     if query.sort_key == GallerySortKey::LibraryAdmission {
         query.sort_direction = GallerySortDirection::Descending;
     }
-    if query.organization_queue.is_some()
-        || matches!(query.collection, GalleryCollection::Album { .. })
-    {
+    if query.folds_duplicates() {
         query.duplicate_mode = crate::domain::GalleryDuplicateMode::Merged;
     }
     query
@@ -48,6 +46,19 @@ pub(super) fn gallery_query_identity(query: &GalleryQuery) -> String {
         GalleryCollection::Album { album_id } => {
             hasher.update(&[2]);
             update_query_identity(&mut hasher, album_id);
+        }
+        GalleryCollection::SmartAlbum {
+            category_id,
+            review,
+        } => {
+            use crate::domain::classification_review::ClassificationReviewFilter;
+            hasher.update(&[3]);
+            update_query_identity(&mut hasher, category_id.as_deref().unwrap_or_default());
+            hasher.update(&[match review {
+                ClassificationReviewFilter::All => 0,
+                ClassificationReviewFilter::Pending => 1,
+                ClassificationReviewFilter::Confirmed => 2,
+            }]);
         }
     }
     update_query_identity(&mut hasher, query.root_id.as_deref().unwrap_or_default());
@@ -108,6 +119,30 @@ fn update_metadata_identity(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn smart_album_identity_separates_categories_and_review_filters() {
+        use crate::domain::classification_review::ClassificationReviewFilter;
+        let mut identities = std::collections::HashSet::new();
+        for category_id in [None, Some("drawing"), Some("photo")] {
+            for review in [
+                ClassificationReviewFilter::All,
+                ClassificationReviewFilter::Pending,
+                ClassificationReviewFilter::Confirmed,
+            ] {
+                let query = normalize_gallery_query(GalleryQuery {
+                    collection: GalleryCollection::SmartAlbum {
+                        category_id: category_id.map(str::to_owned),
+                        review,
+                    },
+                    ..Default::default()
+                });
+                assert!(query.folds_duplicates());
+                assert!(identities.insert(gallery_query_identity(&query)));
+            }
+        }
+        assert!(!identities.contains(&gallery_query_identity(&GalleryQuery::default())));
+    }
 
     #[test]
     fn metadata_identity_separates_each_predicate_and_normalizes_empty_dates() {

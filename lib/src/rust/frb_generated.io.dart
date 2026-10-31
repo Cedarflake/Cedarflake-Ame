@@ -26,6 +26,7 @@ import 'dart:ffi' as ffi;
 import 'domain.dart';
 import 'domain/classification/work.dart';
 import 'domain/classification_configuration.dart';
+import 'domain/classification_review.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
 import 'domain/gallery_metadata_filter.dart';
@@ -423,6 +424,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationDispatchMode dco_decode_classification_dispatch_mode(
+    dynamic raw,
+  );
+
+  @protected
+  ClassificationReviewFilter dco_decode_classification_review_filter(
     dynamic raw,
   );
 
@@ -1485,6 +1491,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   ClassificationDispatchMode sse_decode_classification_dispatch_mode(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  ClassificationReviewFilter sse_decode_classification_review_filter(
     SseDeserializer deserializer,
   );
 
@@ -2779,6 +2790,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_classification_dispatch_mode(
     ClassificationDispatchMode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_classification_review_filter(
+    ClassificationReviewFilter self,
     SseSerializer serializer,
   );
 

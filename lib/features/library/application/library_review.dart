@@ -9,6 +9,7 @@ import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "library_catalog.dart";
+import "library_gallery_collection_mapping.dart";
 import "library_metadata_filter_mapping.dart";
 import "library_organization.dart";
 
@@ -156,13 +157,7 @@ class RustLibraryReview implements LibraryReview {
       );
 
   LibraryGalleryQuery _query(rust.GalleryQuery value) => LibraryGalleryQuery(
-    collection: switch (value.collection) {
-      rust.GalleryCollection_Library() => const LibraryAllCollection(),
-      rust.GalleryCollection_Favorites() => const LibraryFavoritesCollection(),
-      rust.GalleryCollection_Album(:final albumId) => LibraryAlbumCollection(
-        albumId,
-      ),
-    },
+    collection: mapRustCollection(value.collection),
     organizationQueue: switch (value.organizationQueue) {
       null => null,
       queue.OrganizationQueue.pending => LibraryOrganizationQueue.pending,

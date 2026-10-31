@@ -48,6 +48,29 @@ selects optional review or routine sampling, never confirmation. Deferred work r
 suggestion. Missing or incompatible evidence has no invented category. Human conflicts remain
 distinct from machine uncertainty and from R4 album conflicts.
 
+## Gallery projection
+
+Smart albums are a typed gallery collection with an optional category and an independent review
+filter. They always fold exact-content groups and cannot carry R4 organization queues. The existing
+gallery owns physical scope, search, sorting, paging, selection, layout and viewer anchors; the
+classification owner supplies only effective membership. All-results includes groups without usable
+predictions. Pending includes optional checking, deferral and human conflicts; a routine suggestion
+does not become a human confirmation.
+
+Schema 70 adds rebuildable SQL views over human lineage choices and compatible prediction evidence.
+Human reduction follows the same local-before-restored consensus as commands. Prediction projection
+selects the current configuration/rules and the latest publication for the displayed content, using
+the admitted refined ranking when present. These views neither copy decisions into R4 records nor
+introduce a second publication lifecycle. Existing transactional catalog revisions invalidate query
+snapshots after prediction, decision, group or source changes.
+
+Reads use the gallery's published and explicitly retained display evidence so a pending verification
+does not independently change the visible group's category. Retained evidence grants no command
+authority: confirmation and correction still require the current content, membership and field
+guards. Physical scope can choose another representative of the same group. Projection migration
+adds no source reads, model execution or archive records; normal pre-upgrade snapshots protect
+rollback, and all prior durable decisions remain unchanged.
+
 ## Command authority
 
 A prepared classification command binds the exact or provisional content target, complete current

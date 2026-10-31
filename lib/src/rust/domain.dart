@@ -3,6 +3,7 @@
 
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
+import 'domain/classification_review.dart';
 import 'domain/gallery_metadata_filter.dart';
 import 'domain/gallery_scroll_section.dart';
 import 'domain/media_metadata.dart';
@@ -406,6 +407,10 @@ sealed class GalleryCollection with _$GalleryCollection {
   const factory GalleryCollection.favorites() = GalleryCollection_Favorites;
   const factory GalleryCollection.album({required String albumId}) =
       GalleryCollection_Album;
+  const factory GalleryCollection.smartAlbum({
+    String? categoryId,
+    required ClassificationReviewFilter review,
+  }) = GalleryCollection_SmartAlbum;
 }
 
 enum GalleryDuplicateMode { all, merged }

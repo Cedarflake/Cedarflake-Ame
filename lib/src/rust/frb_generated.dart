@@ -25,6 +25,7 @@ import 'dart:convert';
 import 'domain.dart';
 import 'domain/classification/work.dart';
 import 'domain/classification_configuration.dart';
+import 'domain/classification_review.dart';
 import 'domain/exact_duplicate_review.dart';
 import 'domain/exact_duplicates.dart';
 import 'domain/gallery_metadata_filter.dart';
@@ -5094,6 +5095,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ClassificationReviewFilter dco_decode_classification_review_filter(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return ClassificationReviewFilter.values[raw as int];
+  }
+
+  @protected
   ClassificationSettings dco_decode_classification_settings(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -5356,6 +5365,11 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         return GalleryCollection_Favorites();
       case 2:
         return GalleryCollection_Album(albumId: dco_decode_String(raw[1]));
+      case 3:
+        return GalleryCollection_SmartAlbum(
+          categoryId: dco_decode_opt_String(raw[1]),
+          review: dco_decode_classification_review_filter(raw[2]),
+        );
       default:
         throw Exception("unreachable");
     }
@@ -8114,6 +8128,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  ClassificationReviewFilter sse_decode_classification_review_filter(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return ClassificationReviewFilter.values[inner];
+  }
+
+  @protected
   ClassificationSettings sse_decode_classification_settings(
     SseDeserializer deserializer,
   ) {
@@ -8419,6 +8442,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case 2:
         var var_albumId = sse_decode_String(deserializer);
         return GalleryCollection_Album(albumId: var_albumId);
+      case 3:
+        var var_categoryId = sse_decode_opt_String(deserializer);
+        var var_review = sse_decode_classification_review_filter(deserializer);
+        return GalleryCollection_SmartAlbum(
+          categoryId: var_categoryId,
+          review: var_review,
+        );
       default:
         throw UnimplementedError('');
     }
@@ -11764,6 +11794,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_classification_review_filter(
+    ClassificationReviewFilter self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
   void sse_encode_classification_settings(
     ClassificationSettings self,
     SseSerializer serializer,
@@ -11994,6 +12033,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       case GalleryCollection_Album(albumId: final albumId):
         sse_encode_i_32(2, serializer);
         sse_encode_String(albumId, serializer);
+      case GalleryCollection_SmartAlbum(
+        categoryId: final categoryId,
+        review: final review,
+      ):
+        sse_encode_i_32(3, serializer);
+        sse_encode_opt_String(categoryId, serializer);
+        sse_encode_classification_review_filter(review, serializer);
     }
   }
 

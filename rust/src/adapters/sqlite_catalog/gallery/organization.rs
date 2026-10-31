@@ -135,7 +135,7 @@ pub(super) fn collection_condition(
     parameters: &mut Vec<Value>,
 ) -> Option<&'static str> {
     match collection {
-        GalleryCollection::Library => None,
+        GalleryCollection::Library | GalleryCollection::SmartAlbum { .. } => None,
         GalleryCollection::Favorites => Some("record.favorite = 1"),
         GalleryCollection::Album { album_id } => {
             parameters.push(Value::Text(album_id.clone()));

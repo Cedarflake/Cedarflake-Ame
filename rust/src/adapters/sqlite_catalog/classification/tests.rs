@@ -11,6 +11,7 @@ use super::*;
 mod archives;
 mod authority;
 mod lifecycle;
+mod queries;
 mod review;
 mod settings;
 mod setup;

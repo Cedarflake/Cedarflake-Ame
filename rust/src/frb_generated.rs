@@ -4588,6 +4588,19 @@ impl SseDecode for crate::domain::classification::work::ClassificationDispatchMo
     }
 }
 
+impl SseDecode for crate::domain::classification_review::ClassificationReviewFilter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::domain::classification_review::ClassificationReviewFilter::All,
+            1 => crate::domain::classification_review::ClassificationReviewFilter::Pending,
+            2 => crate::domain::classification_review::ClassificationReviewFilter::Confirmed,
+            _ => unreachable!("Invalid variant for ClassificationReviewFilter: {}", inner),
+        };
+    }
+}
+
 impl SseDecode for crate::domain::classification_configuration::ClassificationSettings {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4921,6 +4934,17 @@ impl SseDecode for crate::domain::GalleryCollection {
                 let mut var_albumId = <String>::sse_decode(deserializer);
                 return crate::domain::GalleryCollection::Album {
                     album_id: var_albumId,
+                };
+            }
+            3 => {
+                let mut var_categoryId = <Option<String>>::sse_decode(deserializer);
+                let mut var_review =
+                    <crate::domain::classification_review::ClassificationReviewFilter>::sse_decode(
+                        deserializer,
+                    );
+                return crate::domain::GalleryCollection::SmartAlbum {
+                    category_id: var_categoryId,
+                    review: var_review,
                 };
             }
             _ => {
@@ -8650,6 +8674,32 @@ impl
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart
+    for crate::domain::classification_review::ClassificationReviewFilter
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::All => 0.into_dart(),
+            Self::Pending => 1.into_dart(),
+            Self::Confirmed => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::domain::classification_review::ClassificationReviewFilter
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::domain::classification_review::ClassificationReviewFilter,
+    > for crate::domain::classification_review::ClassificationReviewFilter
+{
+    fn into_into_dart(self) -> crate::domain::classification_review::ClassificationReviewFilter {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
     for crate::domain::classification_configuration::ClassificationSettings
 {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
@@ -9124,6 +9174,15 @@ impl flutter_rust_bridge::IntoDart for crate::domain::GalleryCollection {
             crate::domain::GalleryCollection::Album { album_id } => {
                 [2.into_dart(), album_id.into_into_dart().into_dart()].into_dart()
             }
+            crate::domain::GalleryCollection::SmartAlbum {
+                category_id,
+                review,
+            } => [
+                3.into_dart(),
+                category_id.into_into_dart().into_dart(),
+                review.into_into_dart().into_dart(),
+            ]
+            .into_dart(),
             _ => {
                 unimplemented!("");
             }
@@ -12188,6 +12247,23 @@ impl SseEncode for crate::domain::classification::work::ClassificationDispatchMo
     }
 }
 
+impl SseEncode for crate::domain::classification_review::ClassificationReviewFilter {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::domain::classification_review::ClassificationReviewFilter::All => 0,
+                crate::domain::classification_review::ClassificationReviewFilter::Pending => 1,
+                crate::domain::classification_review::ClassificationReviewFilter::Confirmed => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
 impl SseEncode for crate::domain::classification_configuration::ClassificationSettings {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -12431,6 +12507,16 @@ impl SseEncode for crate::domain::GalleryCollection {
             crate::domain::GalleryCollection::Album { album_id } => {
                 <i32>::sse_encode(2, serializer);
                 <String>::sse_encode(album_id, serializer);
+            }
+            crate::domain::GalleryCollection::SmartAlbum {
+                category_id,
+                review,
+            } => {
+                <i32>::sse_encode(3, serializer);
+                <Option<String>>::sse_encode(category_id, serializer);
+                <crate::domain::classification_review::ClassificationReviewFilter>::sse_encode(
+                    review, serializer,
+                );
             }
             _ => {
                 unimplemented!("");

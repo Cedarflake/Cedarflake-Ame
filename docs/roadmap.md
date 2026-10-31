@@ -117,7 +117,10 @@ cancellation/resumption owner; targeted native events verify loaded-worker retir
 manual pause and feature reuse. The real-client case also covers the memory-pressure cooldown
 across configuration changes. A local-primary Profile comparison now exercises actual scrolling and
 original-image viewing while classification advances, including pause/resume and bounded resource
-sampling. Continue with R5-05 smart-album queries, followed by R5-06 desktop review. Complete the
+sampling. R5-05 now connects effective category/review membership to the shared gallery query,
+bounded continuation and catalog publication; its [query evidence](acceptance/r5-smart-albums.md)
+records local checks and native regressions awaiting hosted execution. Continue with R5-06 desktop
+review while the applicable R5-05 checks run. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
 it remains a pre-merge acceptance condition. Reuse the retained runtime and measurement assets
 after checking their compatibility. The current-head hosted gate still requires the corrected

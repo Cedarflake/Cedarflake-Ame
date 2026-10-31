@@ -5,6 +5,7 @@
 
 import '../domain.dart';
 import '../frb_generated.dart';
+import 'classification_review.dart';
 import 'gallery_metadata_filter.dart';
 import 'organization.dart';
 import 'organization_queue.dart';

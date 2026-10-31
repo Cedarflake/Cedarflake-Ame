@@ -36,6 +36,7 @@ pub(super) fn save_active(connection: &Connection, query: &GalleryQuery) -> Resu
         GalleryCollection::Library => ("library", None),
         GalleryCollection::Favorites => ("favorites", None),
         GalleryCollection::Album { album_id } => ("album", Some(album_id.as_str())),
+        GalleryCollection::SmartAlbum { .. } => return Err(invalid()),
     };
     let queue = query
         .organization_queue

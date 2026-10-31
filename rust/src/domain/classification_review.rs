@@ -33,6 +33,19 @@ impl Default for ClassificationReviewScope {
 }
 
 impl ClassificationReviewScope {
+    pub fn gallery_query(&self) -> GalleryQuery {
+        GalleryQuery {
+            collection: super::GalleryCollection::SmartAlbum {
+                category_id: self
+                    .category
+                    .as_ref()
+                    .map(|category| category.as_str().to_owned()),
+                review: self.review,
+            },
+            ..self.gallery.clone()
+        }
+    }
+
     pub fn includes(&self, classification: &EffectiveClassification) -> bool {
         if self.category.is_some() && self.category != classification.category {
             return false;
@@ -80,4 +93,21 @@ pub struct ClassificationReviewBookmark {
 pub struct ClassificationReviewReceipt {
     pub operation: ClassificationWriteReceipt,
     pub session: ClassificationReviewSession,
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ClassificationContinuationStatus {
+    NoActivity,
+    Ready,
+    AnchorUnavailable,
+    ScopeUnavailable,
+    EmptyScope,
+    EndOfScope,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClassificationContinuation {
+    pub status: ClassificationContinuationStatus,
+    pub query: Option<GalleryQuery>,
+    pub target: Option<super::organization::OrganizationSelection>,
 }

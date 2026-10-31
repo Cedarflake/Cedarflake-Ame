@@ -259,6 +259,9 @@ pub(super) fn validate_schema_structure(
     if schema_version >= 69 {
         super::classification_publications::validate(connection)?;
     }
+    if schema_version >= 70 {
+        super::classification_projection::validate(connection)?;
+    }
     validate_existing_source_metadata_marker(connection)
 }
 

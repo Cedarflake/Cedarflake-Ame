@@ -15,6 +15,7 @@ recorded local checkpoint does not establish that the current product source pas
 | [R5 screening calibration](r5-calibration.md) | Purpose-aware reference labels, separated calibration/holdout evidence and bounded re-screening policy |
 | [R5 classification decisions](r5-classification-decisions.md) | Immutable evidence, human precedence and guarded category/review commands; persistence and recovery evidence |
 | [R5 incremental analysis](r5-incremental-analysis.md) | Durable task admission, publication leases, restart/retry behavior and connected scheduling evidence |
+| [R5 smart-album queries](r5-smart-albums.md) | Effective categories, coherent gallery scopes, continuation, publication and projection-migration evidence |
 | [R5 metadata and search](r5-metadata-search.md) | Indexed literal-search migration, compatibility, synthetic cost, client interaction and integrated verification |
 | [Notification templates](notification-feedback.md) | Shared bottom feedback and compact viewer top notices, interaction checks and ownership |
 | [Image rendering](image-rendering.md) | Original sampling, cropped preview detail, card sizes and row-packing verification |
