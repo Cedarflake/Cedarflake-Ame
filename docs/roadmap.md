@@ -158,9 +158,11 @@ compares original context descriptions while retaining purpose-qualified image s
 comparison excludes the two cat members from the portrait candidate while preserving the supported
 cat, artwork and code cohorts. The broader 28-cohort comparison selects a three-content recurrence
 candidate for maintenance, preserving four useful distinctions while deferring the demonstrated
-portrait/code-artwork errors and useful but sparse two-content candidates. Complete guarded category
-maintenance with stable identities, cumulative budgets, overlap handling and human-choice preservation,
-then connect first use. Context coverage and integrated human-work verification remain explicit;
+portrait/code-artwork errors and useful but sparse two-content candidates. Native category additions
+now preserve stable identities, retired definitions and human choices, revalidate support/comparison
+sources, and atomically replace the active setup with retry/cancellation guards. Complete cumulative
+budgets, overlap/retirement policy and retained maintenance provenance, then connect automatic
+maintenance and first use. Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the

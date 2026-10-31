@@ -4,14 +4,14 @@ pub use crate::application::classification_analysis::analyze_classification_cont
 pub use crate::application::classification_decisions::plan_classification_change;
 pub use crate::application::classification_discovery::{
     CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
-    CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryMemberEvidence,
-    ConceptAlternative, ConceptConsolidation, ConceptConsolidationLimits,
-    ConceptConsolidationRequest, ConceptMatch, ConceptNomination, ConceptNominationRequest,
-    ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept, ContextComparison,
-    ContextComparisonPolicy, ContextMemberAlternative, ContextualVocabulary, DiscoveryCandidates,
-    MemberAdmission, NamingContext, NamingContextCatalog, assess_category_candidates,
-    consolidate_classification_concepts, nominate_classification_contexts,
-    retrieve_classification_concepts,
+    CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryExpansionAssessment,
+    CategoryExpansionRequest, CategoryMemberEvidence, ConceptAlternative, ConceptConsolidation,
+    ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptMatch, ConceptNomination,
+    ConceptNominationRequest, ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept,
+    ContextComparison, ContextComparisonPolicy, ContextMemberAlternative, ContextualVocabulary,
+    DiscoveryCandidates, MemberAdmission, NamingContext, NamingContextCatalog,
+    assess_category_candidates, consolidate_classification_concepts,
+    nominate_classification_contexts, prepare_category_expansion, retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,
@@ -36,6 +36,9 @@ pub use crate::domain::ScanError;
 pub use crate::domain::classification::discovery::{
     CategoryNaming, CategoryNamingPurpose, ConceptId, ConceptMemberSimilarity, ConceptNamingScope,
     ConceptSimilarity, DiscoveryCohort, DiscoveryError, DiscoverySample, VocabularyConcept,
+};
+pub use crate::domain::classification::maintenance::{
+    CategoryExpansionPlan, CategoryExpansionSnapshot,
 };
 pub use crate::domain::classification::work::{
     ClassificationAnalysisResult, ClassificationBacklogPage, ClassificationDispatchCommand,
@@ -65,6 +68,7 @@ pub use crate::domain::classification_review::{
 };
 pub use crate::ports::classification::ClassificationRepository;
 pub use crate::ports::classification_availability::ClassificationAvailabilityRepository;
+pub use crate::ports::classification_configuration::CategoryExpansionRepository;
 pub use crate::ports::classification_encoder::{
     ClassificationEncoder, ClassificationEncoderFactory, ClassificationEncoderKind,
 };

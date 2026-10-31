@@ -234,6 +234,27 @@ A display-only rename preserves matching but invalidates stale name-conflict dec
 It proposes additions only: it cannot replace existing categories, remap human choices or
 publish predictions. Category maintenance retains its own guarded commit boundary.
 
+### Guarded category additions
+
+Candidate assessment and category publication have separate owners. The application prepares an
+immutable addition plan by reassessing the complete cohort against the current matcher and policy.
+Category identity derives from the canonical concept identity and optional purpose-category identity,
+independently of display labels, cohort, model, or vocabulary release. Previously known identities,
+including retired categories, are not recreated or overwritten. Existing definitions remain intact.
+
+Publication revalidates the classification and dispatch revisions, active encoder, and exact-content
+membership of both support and comparison samples in one catalog transaction. A surviving verified
+copy is sufficient; retained features alone are not source authority. The operation receipt binds the
+prepared evidence identity and complete configuration. An identical committed retry returns current
+state without undoing a subsequent pause, stop, or edit. Cancellation before commit rolls back both
+the category addition and run replacement. No source-file access occurs in this transaction.
+
+The changed category set creates an explicitly uncalibrated immutable setup; a screening profile
+for the previous category set is not transferred. Existing runs and human decisions remain retained.
+The addition boundary preserves the 256-category contract bound and per-assessment proposal limit.
+Cumulative soft budgets, overlap/retirement policy, retained maintenance provenance, and automatic
+scheduling are separate requirements before enabling managed maintenance in first use.
+
 ## Features and matching
 
 Adapters supply Ame-owned, opaque revisions for the shared embedding space and the independent image

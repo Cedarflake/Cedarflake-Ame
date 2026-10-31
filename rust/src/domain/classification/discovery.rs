@@ -125,6 +125,7 @@ pub struct DiscoveryCohort {
     member_mean: Vec<f64>,
     member_samples: Vec<DiscoverySample>,
     comparison: Vec<f64>,
+    comparison_contents: Vec<ClassificationContent>,
 }
 
 impl DiscoveryCohort {
@@ -181,6 +182,10 @@ impl DiscoveryCohort {
             member_mean: mean_feature(model.dimensions(), members),
             member_samples,
             comparison: mean_feature(model.dimensions(), comparison),
+            comparison_contents: comparison
+                .iter()
+                .map(|sample| sample.content.clone())
+                .collect(),
         })
     }
 
@@ -194,6 +199,22 @@ impl DiscoveryCohort {
 
     pub(crate) fn member_samples(&self) -> &[DiscoverySample] {
         &self.member_samples
+    }
+
+    pub(crate) fn source_contents(&self) -> Vec<ClassificationContent> {
+        let mut contents: Vec<_> = self
+            .member_samples
+            .iter()
+            .map(|sample| sample.content.clone())
+            .chain(self.comparison_contents.iter().cloned())
+            .collect();
+        contents.sort_by(|left, right| {
+            left.scheme
+                .cmp(&right.scheme)
+                .then_with(|| left.digest.cmp(&right.digest))
+                .then_with(|| left.byte_length.cmp(&right.byte_length))
+        });
+        contents
     }
 
     pub fn score(&self, feature: &TextFeature) -> Result<ConceptSimilarity, DiscoveryError> {

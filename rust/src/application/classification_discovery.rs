@@ -18,6 +18,7 @@ mod competition;
 mod consolidation;
 mod context_graph;
 mod context_vocabulary;
+mod maintenance;
 mod nomination;
 mod ranking;
 mod search;
@@ -35,6 +36,9 @@ pub use consolidation::{
     ConsolidatedConcept, consolidate_classification_concepts,
 };
 pub use context_vocabulary::{ContextualVocabulary, NamingContext, NamingContextCatalog};
+pub use maintenance::{
+    CategoryExpansionAssessment, CategoryExpansionRequest, prepare_category_expansion,
+};
 pub use nomination::{
     ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
 };

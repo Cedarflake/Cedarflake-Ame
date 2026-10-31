@@ -12,6 +12,8 @@ use crate::ports::classification_configuration::ClassificationConfigurationRepos
 use super::super::{SqliteCatalog, database_error};
 use super::{changed, codec, configuration, operations, setup, work::control};
 
+mod maintenance;
+
 impl ClassificationConfigurationRepository for SqliteCatalog {
     fn load_classification_configuration(
         &self,
@@ -30,7 +32,8 @@ impl ClassificationConfigurationRepository for SqliteCatalog {
         change: &ClassificationConfigurationChange,
     ) -> Result<ClassificationConfigurationSnapshot, ScanError> {
         let transaction = self.begin_user_interactive_write()?;
-        apply(&transaction, change)?;
+        let digest = request_digest(change)?;
+        apply(&transaction, change, &digest)?;
         let snapshot = load(&transaction)?;
         transaction.commit().map_err(database_error)?;
         Ok(snapshot)
@@ -47,9 +50,9 @@ fn load(connection: &Connection) -> Result<ClassificationConfigurationSnapshot, 
 fn apply(
     connection: &Connection,
     change: &ClassificationConfigurationChange,
+    digest: &str,
 ) -> Result<(), ScanError> {
-    let digest = request_digest(change)?;
-    if operations::replay(connection, &change.operation_id, &digest)?.is_some() {
+    if operations::replay(connection, &change.operation_id, digest)?.is_some() {
         return Ok(());
     }
     let before = load(connection)?;
@@ -80,7 +83,7 @@ fn apply(
             }
         }
     };
-    let revision = operations::begin(connection, &change.operation_id, &digest, "configure")?;
+    let revision = operations::begin(connection, &change.operation_id, digest, "configure")?;
     let metadata_changed = configuration::apply_rules(
         connection,
         &before.catalog,

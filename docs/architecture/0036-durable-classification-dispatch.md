@@ -208,6 +208,12 @@ without cancelling unrelated active inference. These observations remain derived
 outside portable human archives. Migration requeues legacy waiting work once because schema 67 did
 not retain the failed-copy identity; it preserves durable mode and opens no source files.
 
+Managed category additions use the same atomic settings/run replacement transaction, with the
+additional evidence and source guards defined in ADR 0034. They are admitted only while dispatch is
+automatic; a concurrent pause, stop, or configuration change invalidates an uncommitted plan. A
+committed retry preserves current dispatch. Runtime integration must retire the old session before
+applying the plan, as it does for explicit reconfiguration.
+
 ## Validation and replacement
 
 Migration checks preserve prior human records and prove atomic rollback. Repository tests exercise

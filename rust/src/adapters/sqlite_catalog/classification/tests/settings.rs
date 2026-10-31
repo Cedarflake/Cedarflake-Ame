@@ -11,6 +11,8 @@ use crate::ports::classification_work::ClassificationWorkRepository;
 
 use super::*;
 
+mod maintenance;
+
 fn request(
     catalog: &SqliteCatalog,
     operation: &str,

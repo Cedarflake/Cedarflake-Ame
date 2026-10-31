@@ -2,6 +2,7 @@ mod decisions;
 pub mod discovery;
 mod evidence;
 mod features;
+pub mod maintenance;
 mod ranking;
 mod screening;
 mod setup;

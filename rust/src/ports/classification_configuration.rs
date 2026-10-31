@@ -3,6 +3,9 @@ use crate::domain::classification_configuration::{
     ClassificationConfigurationChange, ClassificationConfigurationSnapshot,
 };
 
+mod maintenance;
+pub use maintenance::CategoryExpansionRepository;
+
 pub trait ClassificationConfigurationRepository {
     fn load_classification_configuration(
         &self,

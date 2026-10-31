@@ -962,3 +962,40 @@ resource records, binary/fixture hashes and checked summaries. `prepare_managed_
 `prepare_managed_profile.py` and `check_managed_coverage.py` preserve preparation and assertions.
 The profile probe reuses one bounded temporary fixture path serially; each purpose's exact payload
 is reproducible from its retained source fixture and hashed preparation record.
+
+### Guarded category addition transaction
+
+The native application now reassesses a cohort against the current matcher and admission policy,
+prepares an immutable addition plan, and publishes it through the existing configuration/run
+transaction. Managed identity binds canonical concept and optional purpose-category identity;
+renaming, changed vocabulary releases and parent wording do not create another category. Lookup
+covers all historical category identities, so an existing manual edit or retirement is preserved.
+The bounded addition path neither removes existing definitions nor remaps human classification.
+
+Publication checks classification/dispatch revisions, encoder compatibility, and current published
+exact-content evidence for every member and comparison sample. Another current verified copy can
+retain that evidence. Cancellation before commit rolls back categories, run and receipt together;
+an identical committed retry preserves later stop/source removal. Changed category sets receive an
+explicit uncalibrated setup, retaining the previous immutable run rather than transferring its
+category-specific screening profile. No schema migration, source reads, runtime download or desktop
+interaction is involved.
+
+The focused application-to-SQLite diagnostic passes 18 settings/expansion regressions and one stable
+identity regression. Cases cover restart, missing/unpublished/changed source evidence, duplicate-copy
+survival, concurrent pause/rename, incompatible encoder, manual definition/choice preservation,
+independent Favorites, insufficient recurrence, capacity, idempotency, failed activation and
+cancellation during run insertion. The first diagnostic exposed three fixture issues: an expected
+error-code mismatch, a missing root publication identity, and a cancellation hook on a WITHOUT ROWID
+table. Those fixtures were corrected without weakening the assertions; the final run has no warnings.
+The fixture support threshold of two exercises the configurable boundary, not a change to the
+three-content operating candidate.
+
+The preparation owner has 207 production lines, the SQLite publication owner 171, the shared settings
+transaction 135, and the cohort owner 311; each has zero inline test lines. Dedicated new tests and
+fixtures have 53, 299, 181 and 161 lines; the existing settings regression owner has 236 lines.
+The domain plan and persistence port have 29 and 21 lines. Unrelated desktop/batch worktree changes
+remain outside this delivery, and hosted CI owns exact-commit verification.
+
+This establishes the native publication boundary. Cumulative soft budgets, overlap/retirement rules,
+retained maintenance provenance, automatic scheduling/first use and integrated human-work measures
+remain required. It does not enable managed maintenance in the desktop application.
