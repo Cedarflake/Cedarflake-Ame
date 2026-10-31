@@ -1042,3 +1042,69 @@ owners. Unrelated desktop/batch edits remain outside this delivery.
 This supplies provenance and manual authority for subsequent maintenance. Cumulative category
 budgets, overlap/retirement decisions, automatic scheduling/first use and integrated human-work
 verification remain in the canonical queue.
+
+### Whole-scheme candidate comparison
+
+The native assessment now compares additions jointly against the unchanged current scheme. It
+recomputes independent support after each overlapping, conflicting or budget-constrained proposal
+is deferred. Existing definitions remain intact, including categories with no winners in the sampled
+window. Cohort naming and purpose admission retain their earlier authority; this pass assesses the
+combined scheme's competition and does not publish it or enable background maintenance.
+
+The diagnostic reuses the retained six-category comparison and four selected managed proposals,
+with three independent supports required and strictly positive improvement/separation. It reads
+236 cached calibration vectors after the earlier known visual-duplicate exclusions, plus existing
+text features. The feature-cache lookup streams 512 rows at a time across 29,597 retained entries.
+No original images, model workers or sealed holdouts are opened; no new inference is performed.
+Opaque sample IDs supply diagnostic identities, not current source-publication proof. Earlier
+visual labels remain provisional and are not treated as user-confirmed truth.
+
+| Addition ceiling | Selected proposals and final independent support | Changed leaders | Two ordered/reversed assessments |
+| --- | --- | --- | --- |
+| 1 | Character reactions: 43 | 43 | 0.258 s |
+| 2 | Character reactions: 43; code screenshots: 17 | 60 | 0.242 s |
+| 3 | Character artwork: 16; character reactions: 37; code screenshots: 17 | 70 | 0.242 s |
+| 8 | Character artwork: 16; character reactions: 34; cat reactions: 5; code screenshots: 17 | 72 | 0.233 s |
+
+These are Debug measurements of the in-memory comparison and its reordered repetition, excluding
+fixture parsing and matcher construction. Every repetition returns identical evidence and decisions.
+The full four-proposal result agrees with the independent retained-cache calculation for all 236
+sample assignments. Ceiling 8 retains the earlier per-round profile; 1, 2 and 3 are counterfactual
+limits, not selected product settings. The six existing definitions are retained in every case.
+
+Joint matching changes the evidence available to an individual proposal. The cat-reaction candidate
+retains only two of its original three cohort members, while finding five independent winners in
+the complete diagnostic window. The character-reaction candidate also attracts twelve prior artwork,
+two prior comic and one prior screenshot assignments alongside nineteen prior reaction assignments.
+This records category-set effects rather than an accuracy result: some images have overlapping uses,
+and the earlier machine categories do not establish the intended human category. A smaller ceiling
+can remove a useful distinction; this comparison does not select a cumulative category-count budget.
+
+The retained fixture is 4,299,568 bytes, with SHA-256
+`2acb51ba7e4002fdac0ca52a572259de422d72a902062c186303f31a7ca0edd9`.
+The final diagnostic binary SHA-256 is
+`9aafe3091fe1c7d6367305b79a966c7a88b3010aa66b95f970086837674e95f7`,
+and the JSONL result SHA-256 is
+`d0ab5565287002d34a99a0c99bfba9329c9b90919c58a8deca49a76ee7bf223e`.
+The ignored `.build/r5-category-discovery/native-scheme-fixture.json` and `native-scheme.jsonl`
+retain the vectors and outputs locally. Build the existing `classification_worker_probe` example
+and pass `<fixture> --scheme`; the bounded fixture supplies categories with description vectors,
+baseline IDs, sample IDs/vectors, the recurrence requirement and counterfactual addition ceilings.
+
+Eight focused native regressions pass: distinct versus redundant broad proposals, sparse support,
+existing-description reuse, equivalent proposals, budget selection, input-order invariance,
+duplicate-content rejection, name conflicts, final assignment ties, incompatible input, cancellation
+and evidence identity. The evidence identity includes the baseline winning category as well as its
+score, so a changed old assignment cannot retain the same assessment revision merely because the
+winning score is unchanged. Final native compilation has no warnings. The non-mutating formatting
+gate passes across 685 Dart files with zero changes and the Rust sources. Hosted CI retains
+full-suite and lint ownership.
+
+The scheme owner has 237 production lines, selection 157 and the diagnostic 190, each with zero
+inline test cases; the dedicated boundary tests have 332 lines. The existing discovery facade and
+public native facade expose the typed assessment, while the existing diagnostic entrypoint selects
+it. There is no schema, bridge, model, dependency or desktop change in this delivery.
+
+Persistent cumulative budgets, guarded merge/retirement publication, runtime scheduling, first-use
+integration and measured reduction of human work remain in the canonical queue. This bounded window
+does not authorize deleting an existing category or replacing a human decision.

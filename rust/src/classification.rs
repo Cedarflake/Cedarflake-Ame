@@ -5,13 +5,15 @@ pub use crate::application::classification_decisions::plan_classification_change
 pub use crate::application::classification_discovery::{
     CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
     CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryExpansionAssessment,
-    CategoryExpansionRequest, CategoryMemberEvidence, ConceptAlternative, ConceptConsolidation,
-    ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptMatch, ConceptNomination,
-    ConceptNominationRequest, ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept,
-    ContextComparison, ContextComparisonPolicy, ContextMemberAlternative, ContextualVocabulary,
-    DiscoveryCandidates, MemberAdmission, NamingContext, NamingContextCatalog,
-    assess_category_candidates, consolidate_classification_concepts,
-    nominate_classification_contexts, prepare_category_expansion, retrieve_classification_concepts,
+    CategoryExpansionRequest, CategoryMemberEvidence, CategorySchemeAssessment,
+    CategorySchemeCandidate, CategorySchemeDisposition, CategorySchemeMember, ConceptAlternative,
+    ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptMatch,
+    ConceptNomination, ConceptNominationRequest, ConceptSearchBound, ConceptSearchLimits,
+    ConsolidatedConcept, ContextComparison, ContextComparisonPolicy, ContextMemberAlternative,
+    ContextualVocabulary, DiscoveryCandidates, MemberAdmission, NamingContext,
+    NamingContextCatalog, assess_category_candidates, assess_category_scheme,
+    consolidate_classification_concepts, nominate_classification_contexts,
+    prepare_category_expansion, retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,

@@ -160,10 +160,14 @@ cat, artwork and code cohorts. The broader 28-cohort comparison selects a three-
 candidate for maintenance, preserving four useful distinctions while deferring the demonstrated
 portrait/code-artwork errors and useful but sparse two-content candidates. Native category additions
 now preserve stable identities, retired definitions and human choices, revalidate support/comparison
-sources, and atomically replace the active setup with retry/cancellation guards. Complete cumulative
-budgets and overlap/retirement policy, then connect automatic maintenance and first use. Generated
+sources, and atomically replace the active setup with retry/cancellation guards. Generated
 origins, immutable admission evidence and manual-definition protection now persist together; portable
-recovery retains protection without importing model evidence or claiming legacy categories.
+recovery retains protection without importing model evidence or claiming legacy categories. Bounded
+whole-scheme comparison now measures additions jointly against existing definitions, recomputing
+independent support after overlap and budget decisions. The retained cache-only comparison preserves
+input-order stability and exposes category-set effects; it does not select a cumulative product budget
+or retire existing categories. Persistent maintenance policy and its publication/runtime integration
+remain before automatic first use.
 Context coverage and integrated human-work verification remain explicit;
 an enlarged fixed context list alone does not close that requirement.
 Card review

@@ -234,6 +234,40 @@ A display-only rename preserves matching but invalidates stale name-conflict dec
 It proposes additions only: it cannot replace existing categories, remap human choices or
 publish predictions. Category maintenance retains its own guarded commit boundary.
 
+### Whole-scheme comparison
+
+A separate application assessment evaluates proposed definitions together with the current scheme.
+Both matchers must use the same encoder compatibility, preserve every existing definition and label,
+and produce identical scores for each existing category on each comparison sample. The input admits
+at most 512 distinct content identities and 64 additions within the existing 256-category contract.
+Duplicate identities, incompatible features and changed baseline definitions reject the assessment.
+
+The comparison starts with all eligible additions. Definitions with the same complete description
+set as an existing category refer to that existing identity; existing names remain reserved without
+automatic renaming. A candidate's independent support must improve on the baseline and separate from
+every other active candidate, using the admission profile's improvement, separation and recurrence
+criteria. Exact ties supply no independent support. Cohort coverage, context contrast and naming
+authority remain prerequisites owned by candidate admission; this comparison does not establish them.
+
+The selector removes one unsupported candidate at a time, recomputing support after each removal so
+equivalent proposals cannot eliminate every copy. It then resolves new-name conflicts and applies
+the profile's addition budget. Removal prefers the least total marginal separation, then the fewest
+independent members, then the highest canonical identity. Existing categories remain intact regardless
+of their occupancy in this window. The result records sparse, overlapping, name-conflicting and
+budget-deferred candidates separately. Deferred statistics describe their decision step; selected
+statistics describe the final scheme. A budget is a ceiling, never a requested number of categories.
+
+The result also retains each sample's old and proposed leading category. Final assignment uses the
+matching contract's canonical identity tie-break; tied assignments do not become independent support.
+The assessment revision binds semantic and display definitions, encoder compatibility, policy,
+ordered content identities, baseline leaders and the comparison scores. Reordering the same input
+preserves the result and revision. Cancellation returns no partial assessment.
+
+This bounded comparison has no model, source-read, persistence or runtime-enablement capability.
+Its selected window does not establish whole-library category usefulness or authorize retirement.
+Persistent cumulative budgets, guarded merge/retirement publication, scheduling and first use retain
+their separate maintenance requirements. Measured counterfactual budgets do not select a default.
+
 ### Guarded category additions
 
 Candidate assessment and category publication have separate owners. The application prepares an

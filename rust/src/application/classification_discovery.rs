@@ -21,6 +21,7 @@ mod context_vocabulary;
 mod maintenance;
 mod nomination;
 mod ranking;
+mod scheme;
 mod search;
 
 pub use admission::{
@@ -43,6 +44,10 @@ pub use nomination::{
     ConceptNomination, ConceptNominationRequest, nominate_classification_contexts,
 };
 pub use ranking::{ConceptMatch, DiscoveryCandidates};
+pub use scheme::{
+    CategorySchemeAssessment, CategorySchemeCandidate, CategorySchemeDisposition,
+    CategorySchemeMember, assess_category_scheme,
+};
 use search::ConceptSearch;
 pub use search::{ConceptSearchBound, ConceptSearchLimits};
 

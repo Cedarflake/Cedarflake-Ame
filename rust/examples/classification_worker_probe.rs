@@ -7,6 +7,10 @@ mod residency;
 mod discovery;
 
 #[cfg(all(windows, feature = "classification-worker"))]
+#[path = "classification_worker_probe/scheme.rs"]
+mod scheme;
+
+#[cfg(all(windows, feature = "classification-worker"))]
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     verification::run()
 }
@@ -34,6 +38,9 @@ mod verification {
 
     pub fn run() -> Result<()> {
         let arguments: Vec<_> = std::env::args_os().skip(1).collect();
+        if arguments.len() == 2 && arguments[1] == "--scheme" {
+            return super::scheme::run(&arguments[0]);
+        }
         if arguments.len() == 6
             && (arguments[5] == "--discovery" || arguments[5] == "--discovery-cost")
         {
