@@ -14,7 +14,10 @@ use super::{Result, admission};
 enum Strategy {
     Disabled,
     Frontier(BTreeSet<ConceptId>),
-    Automatic(usize),
+    Automatic {
+        capacity: usize,
+        minimum_relatedness: f32,
+    },
 }
 
 pub(super) struct Naming {
@@ -26,6 +29,7 @@ impl Naming {
     pub(super) fn prepare<F: ClassificationEncoderFactory, C: ResidencyClock>(
         frontier: BTreeSet<ConceptId>,
         automatic: Option<usize>,
+        minimum_relatedness: Option<f32>,
         fixture: Option<admission::Fixture>,
         residency: &mut ClassificationEncoderResidency<F, C>,
         cache: &mut impl ClassificationFeatureRepository,
@@ -36,7 +40,15 @@ impl Naming {
                     "Automatic naming needs an admission profile and no supplied frontier".into(),
                 );
             }
-            Strategy::Automatic(capacity)
+            let minimum_relatedness = minimum_relatedness
+                .ok_or("Automatic naming needs an explicit context comparison cutoff")?;
+            if !minimum_relatedness.is_finite() || !(0.0..=1.0).contains(&minimum_relatedness) {
+                return Err("Context comparison cutoff is outside its bounds".into());
+            }
+            Strategy::Automatic {
+                capacity,
+                minimum_relatedness,
+            }
         } else if frontier.is_empty() {
             Strategy::Disabled
         } else {
@@ -87,7 +99,10 @@ impl Naming {
                 )?,
                 None,
             ),
-            Strategy::Automatic(max_candidates) => {
+            Strategy::Automatic {
+                capacity,
+                minimum_relatedness,
+            } => {
                 let assessment = self.assessment.as_ref().ok_or("Missing naming profile")?;
                 let result = nominate_classification_contexts(
                     ConceptNominationRequest {
@@ -96,7 +111,8 @@ impl Naming {
                         matcher: &assessment.matcher,
                         policy: &assessment.policy,
                         limits,
-                        max_candidates: *max_candidates,
+                        max_candidates: *capacity,
+                        minimum_context_relatedness: *minimum_relatedness,
                     },
                     vocabulary,
                     residency,

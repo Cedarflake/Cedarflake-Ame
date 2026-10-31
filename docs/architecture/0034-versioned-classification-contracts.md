@@ -131,6 +131,18 @@ and ranking data during selection. Lexical origin counts do not increase rank. T
 considered/nameable/eligible/subsumed counts and candidate truncation. Final admission still resolves
 competition and names among nominated contexts.
 
+Pruning a name does not remove its conflicting image evidence. Nomination retains the strongest
+eligible, semantically distinct alternative for every member of each selected context. Distinctness
+uses an explicit, versioned text-feature relatedness cutoff; identical descriptions remain related.
+The cutoff is a measured nomination input, not a probability or a product default. Alternative
+contexts are streamed through the same bounded feature windows after selection, with at most
+64 selected features resident. Evidence retains the alternative identity, image similarity and text
+relatedness without promoting that alternative to a category. Final admission compares this evidence
+alongside the current taxonomy and other nominated contexts. Incomplete or inconsistent comparison
+evidence is rejected. Its explicit scope distinguishes selected-frontier comparison from complete
+distinct-context evidence, so losing every comparison row cannot silently fall back to the former.
+Cancellation retires the same description worker and publishes no assessment.
+
 Nomination binds its algorithm, profile, semantic taxonomy, selected identities and resource limits.
 Uncovered retrieval seeds remain explicit. Missing descriptions use the existing supervised worker
 and completed cache; every terminal path retires description work. Nomination neither requires user

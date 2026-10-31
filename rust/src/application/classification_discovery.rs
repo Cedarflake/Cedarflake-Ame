@@ -14,6 +14,7 @@ use super::classification_features::load_or_encode_descriptions;
 use super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 
 mod admission;
+mod competition;
 mod consolidation;
 mod context_graph;
 mod nomination;
@@ -24,6 +25,9 @@ pub use admission::{
     CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
     CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryMemberEvidence, MemberAdmission,
     assess_category_candidates,
+};
+pub use competition::{
+    ConceptAlternative, ContextComparison, ContextComparisonPolicy, ContextMemberAlternative,
 };
 pub use consolidation::{
     ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest,

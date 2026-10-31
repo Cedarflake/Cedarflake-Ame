@@ -115,6 +115,7 @@ impl PreparedAdmission {
             "policy_revision": result.policy_revision.bytes(),
             "taxonomy_revision": result.taxonomy_revision.bytes(),
             "taxonomy_names_revision": result.taxonomy_names_revision.bytes(),
+            "minimum_context_relatedness": result.minimum_context_relatedness,
             "candidates": result.candidates.iter().map(|candidate| json!({
                 "label": labels[&candidate.concept_id],
                 "disposition": format!("{:?}", candidate.disposition),
@@ -128,6 +129,11 @@ impl PreparedAdmission {
                     "improvement": member.improvement,
                     "separation": member.separation,
                     "disposition": format!("{:?}", member.disposition),
+                    "alternative_context": member.alternative_context.map(|alternative| json!({
+                        "concept": alternative.concept.bytes(),
+                        "similarity": alternative.similarity,
+                        "relatedness": alternative.relatedness,
+                    })),
                 })).collect::<Vec<_>>(),
             })).collect::<Vec<_>>(),
         }))

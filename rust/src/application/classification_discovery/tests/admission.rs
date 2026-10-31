@@ -55,6 +55,7 @@ impl AdmissionFixture {
                     embedding: Embedding::normalized(values).unwrap(),
                 };
                 ConsolidatedConcept {
+                    comparison: None,
                     candidate: ConceptMatch {
                         concept: VocabularyConcept::new(id(identity), label.into(), label.into())
                             .unwrap(),
@@ -66,6 +67,7 @@ impl AdmissionFixture {
             })
             .collect();
         let discovery = ConceptConsolidation {
+            comparison_policy: ContextComparisonPolicy::SelectedContexts,
             model: model(),
             cohort_revision: cohort.revision(),
             vocabulary_revision: revision(4),
@@ -294,6 +296,58 @@ fn traversal_only_contexts_cannot_bypass_nomination_and_become_category_proposal
         .with_naming_scope(ConceptNamingScope::TraversalOnly);
     let error = fixture.assess(criteria()).unwrap_err();
     assert_eq!(error.code, "classification_discovery_evidence_invalid");
+}
+
+#[test]
+fn incomplete_or_related_alternative_evidence_cannot_change_admission() {
+    let mut fixture = AdmissionFixture::new();
+    fixture.discovery.comparison_policy = ContextComparisonPolicy::DistinctContexts {
+        minimum_relatedness: 0.9,
+    };
+    for candidate in &mut fixture.discovery.candidates {
+        candidate.comparison = Some(ContextComparison {
+            minimum_relatedness: 0.9,
+            members: candidate
+                .member_similarities
+                .iter()
+                .map(|member| ContextMemberAlternative {
+                    content: member.content.clone(),
+                    alternative: Some(ConceptAlternative {
+                        concept: id(8),
+                        similarity: 0.8,
+                        relatedness: 0.5,
+                    }),
+                })
+                .collect(),
+        });
+    }
+    let result = fixture.assess(criteria()).unwrap();
+    assert_eq!(
+        result.candidates[0].disposition,
+        CategoryAdmissionDisposition::InsufficientMembers
+    );
+    let comparison = fixture.discovery.candidates[0].comparison.as_mut().unwrap();
+    let original = comparison.members.clone();
+    comparison.members.pop();
+    assert!(fixture.assess(criteria()).is_err());
+    let comparison = fixture.discovery.candidates[0].comparison.as_mut().unwrap();
+    comparison.members = original.clone();
+    comparison.members[1] = original[0].clone();
+    assert!(fixture.assess(criteria()).is_err());
+    let comparison = fixture.discovery.candidates[0].comparison.as_mut().unwrap();
+    comparison.members = original;
+    comparison.members[0]
+        .alternative
+        .as_mut()
+        .unwrap()
+        .relatedness = 0.9;
+    assert!(fixture.assess(criteria()).is_err());
+    fixture.discovery.candidates[0].comparison = None;
+    assert!(fixture.assess(criteria()).is_err());
+    fixture.discovery.candidates[1].comparison = None;
+    assert!(fixture.assess(criteria()).is_err());
+    fixture.discovery.comparison_policy = ContextComparisonPolicy::SelectedContexts;
+    assert!(fixture.assess(criteria()).is_ok());
 }
 
 #[test]

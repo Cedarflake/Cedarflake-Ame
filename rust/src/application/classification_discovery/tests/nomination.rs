@@ -14,6 +14,7 @@ struct Harness {
     retrieved: DiscoveryCandidates,
     matcher: CategoryMatcher,
     policy: CategoryAdmissionPolicy,
+    minimum_relatedness: f32,
 }
 
 impl Harness {
@@ -102,6 +103,7 @@ impl Harness {
             retrieved,
             matcher: matcher("a room", vec![0.0, 1.0]),
             policy,
+            minimum_relatedness: 0.9,
         }
     }
 
@@ -119,6 +121,7 @@ impl Harness {
                 policy: &self.policy,
                 limits,
                 max_candidates,
+                minimum_context_relatedness: self.minimum_relatedness,
             },
             &mut self.vocabulary,
             &mut self.residency,
@@ -230,6 +233,95 @@ fn traversal_only_contexts_keep_the_path_to_a_name_without_encoding_their_descri
             .iter()
             .any(|text| text == "a room")
     );
+}
+
+#[test]
+fn a_pruned_distinct_context_still_prevents_false_member_support() {
+    let mut harness = Harness::new();
+    let members: Vec<_> = harness
+        .cohort
+        .member_samples()
+        .iter()
+        .zip([vec![1.0, 0.0], vec![0.8, 0.6], vec![0.0, 1.0]])
+        .map(|(sample, values)| DiscoverySample {
+            content: sample.content.clone(),
+            feature: ImageFeature {
+                identity: model().image_identity(),
+                embedding: Embedding::normalized(values).unwrap(),
+            },
+        })
+        .collect();
+    let mut comparison = members[0].clone();
+    comparison.content.digest = [9; 32];
+    comparison.feature.embedding = Embedding::normalized(vec![-1.0, 0.0]).unwrap();
+    harness.cohort = DiscoveryCohort::new(model(), &members, &[comparison]).unwrap();
+    harness.retrieved.cohort_revision = harness.cohort.revision();
+    harness
+        .cache
+        .store_text_feature(
+            model(),
+            &TextFeature {
+                identity: model().text_identity(),
+                description: ClassificationRevision::description("a detail"),
+                embedding: Embedding::normalized(vec![0.8, 0.6]).unwrap(),
+            },
+        )
+        .unwrap();
+
+    let nomination = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .unwrap();
+    assert_eq!(nomination.contexts.candidates.len(), 1);
+    assert_eq!(
+        nomination.contexts.candidates[0].candidate.concept.id(),
+        id(3)
+    );
+    let assessment = assess_category_candidates(
+        &harness.cohort,
+        &nomination.contexts,
+        &harness.matcher,
+        &harness.policy,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    let candidate = &assessment.candidates[0];
+    assert_eq!(candidate.supporting_members, 1);
+    assert_eq!(
+        candidate.disposition,
+        CategoryAdmissionDisposition::InsufficientMembers
+    );
+    assert_eq!(
+        candidate.members[1].disposition,
+        MemberAdmission::CompetingContext
+    );
+    assert_eq!(
+        candidate.members[1].alternative_context.unwrap().concept,
+        id(4)
+    );
+
+    let encoded = harness.calls.encoded.borrow().len();
+    harness.minimum_relatedness = 0.55;
+    let related = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .unwrap();
+    assert_ne!(
+        nomination.contexts.frontier_revision,
+        related.contexts.frontier_revision
+    );
+    let assessment = assess_category_candidates(
+        &harness.cohort,
+        &related.contexts,
+        &harness.matcher,
+        &harness.policy,
+        &AtomicBool::new(false),
+    )
+    .unwrap();
+    assert_eq!(assessment.candidates[0].supporting_members, 2);
+    assert_eq!(
+        assessment.candidates[0].disposition,
+        CategoryAdmissionDisposition::Proposed
+    );
+    assert_eq!(harness.calls.encoded.borrow().len(), encoded);
 }
 
 #[test]

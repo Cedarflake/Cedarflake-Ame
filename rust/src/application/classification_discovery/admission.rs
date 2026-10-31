@@ -9,7 +9,8 @@ use crate::domain::classification::{
 
 use super::super::classification_matching::CategoryMatcher;
 use super::{
-    ConceptConsolidation, ConceptConsolidationLimits, ConceptSearchLimits, check_cancelled,
+    ConceptAlternative, ConceptConsolidation, ConceptConsolidationLimits, ConceptSearchLimits,
+    check_cancelled, competition,
 };
 
 mod policy;
@@ -31,6 +32,7 @@ pub struct CategoryMemberEvidence {
     pub improvement: f32,
     pub separation: f32,
     pub disposition: MemberAdmission,
+    pub alternative_context: Option<ConceptAlternative>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -65,6 +67,7 @@ pub struct CategoryAdmission {
     pub taxonomy_revision: ClassificationRevision,
     pub taxonomy_names_revision: ClassificationRevision,
     pub policy_revision: ClassificationRevision,
+    pub minimum_context_relatedness: Option<f32>,
     pub candidates: Vec<CategoryAdmissionCandidate>,
 }
 
@@ -83,6 +86,7 @@ pub fn assess_category_candidates(
         return Err(invalid_evidence());
     }
     let scores = aligned_scores(cohort, discovery, cancelled)?;
+    let minimum_context_relatedness = discovery.comparison_policy.relatedness()?;
     let mut baseline = Vec::with_capacity(cohort.member_samples().len());
     for sample in cohort.member_samples() {
         check_cancelled(cancelled)?;
@@ -95,17 +99,21 @@ pub fn assess_category_candidates(
     let mut candidates = Vec::with_capacity(discovery.candidates.len());
     for (index, concept) in discovery.candidates.iter().enumerate() {
         check_cancelled(cancelled)?;
+        let alternatives = competition::aligned(cohort, concept, minimum_context_relatedness)?;
         let mut members = Vec::with_capacity(baseline.len());
         let mut supporting_members = 0;
         let mut improvement_total = 0.0_f64;
         for (member_index, current) in baseline.iter().enumerate() {
             let similarity = scores[index][member_index];
-            let competing = scores
+            let mut competing = scores
                 .iter()
                 .enumerate()
                 .filter(|(other, _)| *other != index)
                 .map(|(_, row)| row[member_index])
                 .fold(current.similarity, f32::max);
+            if let Some(alternative) = alternatives[member_index] {
+                competing = competing.max(alternative.similarity);
+            }
             let improvement = similarity - current.similarity;
             let separation = similarity - competing;
             let disposition = if improvement <= 0.0 || improvement < criteria.minimum_improvement {
@@ -124,6 +132,7 @@ pub fn assess_category_candidates(
                 improvement,
                 separation,
                 disposition,
+                alternative_context: alternatives[member_index],
             });
         }
         let contrast = concept.candidate.scores.contrast;
@@ -214,6 +223,7 @@ pub fn assess_category_candidates(
             }),
         ),
         policy_revision: policy.revision(),
+        minimum_context_relatedness,
         candidates,
     })
 }

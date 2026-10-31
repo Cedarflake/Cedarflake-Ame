@@ -5,11 +5,12 @@ pub use crate::application::classification_decisions::plan_classification_change
 pub use crate::application::classification_discovery::{
     CategoryAdmission, CategoryAdmissionCandidate, CategoryAdmissionCriteria,
     CategoryAdmissionDisposition, CategoryAdmissionPolicy, CategoryMemberEvidence,
-    ConceptConsolidation, ConceptConsolidationLimits, ConceptConsolidationRequest, ConceptMatch,
-    ConceptNomination, ConceptNominationRequest, ConceptSearchBound, ConceptSearchLimits,
-    ConsolidatedConcept, DiscoveryCandidates, MemberAdmission, assess_category_candidates,
-    consolidate_classification_concepts, nominate_classification_contexts,
-    retrieve_classification_concepts,
+    ConceptAlternative, ConceptConsolidation, ConceptConsolidationLimits,
+    ConceptConsolidationRequest, ConceptMatch, ConceptNomination, ConceptNominationRequest,
+    ConceptSearchBound, ConceptSearchLimits, ConsolidatedConcept, ContextComparison,
+    ContextComparisonPolicy, ContextMemberAlternative, DiscoveryCandidates, MemberAdmission,
+    assess_category_candidates, consolidate_classification_concepts,
+    nominate_classification_contexts, retrieve_classification_concepts,
 };
 pub use crate::application::classification_dispatch::{
     ClassificationDispatchClock, ClassificationDispatchSignals, ClassificationDispatchStep,

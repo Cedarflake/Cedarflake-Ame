@@ -592,3 +592,50 @@ work; they do not establish broad automatic naming quality or a final accuracy p
 | Candidate assessment | 284 | 0 | 362 |
 | Discovery concepts and cohort scoring | 260 | 0 | 179 |
 | Native diagnostic / naming diagnostic | 331 / 138 | 0 | Exercises the production nomination and assessment boundaries |
+
+### Retained competition after nomination
+
+The preceding nomination discarded alternative descriptions when it reduced the name set. Final
+assessment then counted images with a stronger alternative as support for the surviving broad name.
+The application now retains each member's strongest eligible, semantically distinct alternative,
+including its identity, image similarity and text relatedness. Closely related descriptions do not
+split support merely because only one name survives. Complete-context comparison has an explicit
+scope: missing some or all comparison rows cannot silently become selected-frontier comparison.
+The existing frontier workflow remains supported without that additional scope.
+
+Thirty-three discovery regressions pass, covering the pruned-alternative case, related-description
+behavior, comparison identity, malformed/incomplete evidence, cancellation, cache reuse and the
+previous retrieval/consolidation boundaries. An initial synthetic-test expectation used a cutoff
+that left another distinct competitor active; the fixture's cutoff was corrected to match its
+intended related-description case. The final complete focused run and Release build pass.
+
+The bounded cache diagnosis compares text relatedness without another model, prompt change, source
+read or held-out sample. Cutoffs from 0.88 through 0.92 preserve six code supporters while deferring
+the two photographic proposals. The native run uses an explicit exploratory cutoff of 0.90; it is
+not a product default or a calibrated probability. The complete eligible-context comparison confirms:
+
+| Cohort | Retained name | Supported contents | Assessment |
+| --- | --- | ---: | --- |
+| B021 | `repair` | 0 of 4 | Deferred; each member has stronger distinct contextual evidence |
+| B057 | `游戏` | 1 of 3 | Deferred; B230 and B103 have stronger distinct contextual evidence |
+| B132 | `代码` | 6 of 7 | Proposed; B219 retains its existing classification |
+
+Photo fixture SHA-256 is `09ac598c83015b721d08eeaf8dbe8247343bcf38a0eea7eec21b84d92b7fe23d`;
+code fixture SHA-256 is `cb3409ffc5aff218c894344ff8e105dec3dec95d94ee8669bc4d028bf31af5a5`.
+The four photo passes take 6.063 seconds with peak process-tree working set 75,255,808 bytes; the two
+code passes take 2.547 seconds and peak at 70,754,304 bytes. Nomination plus assessment takes 37–99 ms
+per pass. All 10,337 cached features are reused, retrieval and nominated-description scores remain
+unchanged, repeated assessments agree, work bounds hold and workers retire. These are cache-only
+measurements, not cold-model timings. No category, human decision or original media is changed.
+Raw results and the checked comparison remain in ignored discovery storage under
+`native-competition-*`, with the preceding diagnosis in `context-competition.json`.
+
+The repair closes the lost-competition boundary. The retained three provisional cohorts do not
+establish a complete operating profile or useful naming coverage for the collection. Broader
+calibration, localized category naming and guarded maintenance remain required before first use.
+
+| Affected owner | Production lines | Inline test lines | Dedicated test lines |
+| --- | ---: | ---: | ---: |
+| Context comparison evidence | 201 | 0 | Covered by nomination and assessment cases below |
+| Nomination / assessment | 274 / 294 | 0 | 418 / 416 |
+| Native diagnostic / naming / assessment | 334 / 154 / 141 | 0 | Exercises the production comparison boundary |

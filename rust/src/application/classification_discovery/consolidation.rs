@@ -14,7 +14,8 @@ use super::super::classification_features::load_or_encode_descriptions;
 use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
 use super::context_graph::{self, limit_error};
 use super::{
-    ConceptMatch, ConceptSearchLimits, DiscoveryCandidates, check_cancelled, check_revision,
+    ConceptMatch, ConceptSearchLimits, ContextComparison, ContextComparisonPolicy,
+    DiscoveryCandidates, check_cancelled, check_revision,
 };
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -37,6 +38,7 @@ pub struct ConsolidatedConcept {
     pub candidate: ConceptMatch,
     pub member_similarities: Vec<ConceptMemberSimilarity>,
     pub narrower_concepts: Vec<ConceptId>,
+    pub comparison: Option<ContextComparison>,
 }
 
 pub struct ConceptConsolidation {
@@ -49,6 +51,7 @@ pub struct ConceptConsolidation {
     pub consolidation_revision: ClassificationRevision,
     pub limits: ConceptConsolidationLimits,
     pub candidates: Vec<ConsolidatedConcept>,
+    pub comparison_policy: ContextComparisonPolicy,
     pub unresolved_concepts: Vec<ConceptId>,
     pub visited_edges: usize,
 }
@@ -117,6 +120,7 @@ fn consolidate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             ScanError::new("classification_feature_mismatch", error.to_string())
         })?;
         candidates.push(ConsolidatedConcept {
+            comparison: None,
             candidate: ConceptMatch {
                 concept: concept.clone(),
                 scores,
@@ -150,6 +154,7 @@ fn consolidate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     check_cancelled(cancelled)?;
     check_revision(vocabulary, revision)?;
     Ok(ConceptConsolidation {
+        comparison_policy: ContextComparisonPolicy::SelectedContexts,
         model: cohort.model(),
         cohort_revision: cohort.revision(),
         vocabulary_revision: revision,

@@ -13,11 +13,12 @@ use crate::ports::classification_vocabulary::ClassificationVocabulary;
 use super::super::classification_features::load_or_encode_descriptions;
 use super::super::classification_matching::CategoryMatcher;
 use super::super::classification_residency::{ClassificationEncoderResidency, ResidencyClock};
+use super::competition::{self, CompetitionRequest};
 use super::context_graph::{self, limit_error};
 use super::{
     CategoryAdmissionCriteria, CategoryAdmissionPolicy, ConceptConsolidation,
-    ConceptConsolidationLimits, ConceptMatch, ConsolidatedConcept, DiscoveryCandidates,
-    check_cancelled, check_revision,
+    ConceptConsolidationLimits, ConceptMatch, ConsolidatedConcept, ContextComparisonPolicy,
+    DiscoveryCandidates, check_cancelled, check_revision,
 };
 
 mod selection;
@@ -30,6 +31,7 @@ pub struct ConceptNominationRequest<'a> {
     pub policy: &'a CategoryAdmissionPolicy,
     pub limits: ConceptConsolidationLimits,
     pub max_candidates: usize,
+    pub minimum_context_relatedness: f32,
 }
 
 pub struct ConceptNomination {
@@ -67,9 +69,12 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         policy,
         limits,
         max_candidates,
+        minimum_context_relatedness,
     } = request;
     check_cancelled(cancelled)?;
     if !(1..=64).contains(&max_candidates)
+        || !minimum_context_relatedness.is_finite()
+        || !(0.0..=1.0).contains(&minimum_context_relatedness)
         || limits.hops > 4
         || !(1..=4096).contains(&limits.concepts)
         || !(1..=65_536).contains(&limits.edges)
@@ -133,6 +138,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     check_cancelled(cancelled)?;
     check_revision(vocabulary, revision)?;
     let eligible_concepts = eligible.len();
+    let eligible_ids: BTreeSet<_> = eligible.iter().map(|context| context.id).collect();
     let selection = selection::select(
         eligible,
         &graph.parents,
@@ -153,6 +159,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         let concept = &graph.concepts[id];
         let feature = &features[&ClassificationRevision::description(concept.description())];
         candidates.push(ConsolidatedConcept {
+            comparison: None,
             candidate: ConceptMatch {
                 concept: concept.clone(),
                 scores: cohort.score(feature).map_err(feature_error)?,
@@ -161,6 +168,19 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             narrower_concepts: graph.groups[id].iter().copied().collect(),
         });
     }
+    competition::retain(
+        CompetitionRequest {
+            cohort,
+            concepts: &graph.concepts,
+            eligible: &eligible_ids,
+            selected_features: &features,
+            minimum_relatedness: minimum_context_relatedness,
+        },
+        &mut candidates,
+        residency,
+        cache,
+        cancelled,
+    )?;
     check_cancelled(cancelled)?;
     check_revision(vocabulary, revision)?;
     let covered: BTreeSet<_> = candidates
@@ -176,12 +196,14 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let taxonomy_revision = matcher.taxonomy().revision();
     let policy_revision = policy.revision();
     let capacity = (max_candidates as u64).to_le_bytes();
+    let relatedness = minimum_context_relatedness.to_le_bytes();
     let frontier_revision = ClassificationRevision::derive(
-        "ame.classification.automatic-context-frontier.v3",
+        "ame.classification.automatic-context-frontier.v4",
         [
             taxonomy_revision.bytes().as_slice(),
             policy_revision.bytes().as_slice(),
             capacity.as_slice(),
+            relatedness.as_slice(),
         ]
         .into_iter()
         .chain(selected.iter().map(|id| id.bytes().as_slice())),
@@ -193,6 +215,9 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         subsumed_concepts: selection.subsumed,
         candidate_limit_reached: selection.candidate_limit_reached,
         contexts: ConceptConsolidation {
+            comparison_policy: ContextComparisonPolicy::DistinctContexts {
+                minimum_relatedness: minimum_context_relatedness,
+            },
             model: cohort.model(),
             cohort_revision: cohort.revision(),
             vocabulary_revision: revision,
@@ -200,7 +225,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             retrieval_limits: retrieved.limits,
             frontier_revision,
             consolidation_revision: ClassificationRevision::derive(
-                "ame.classification.automatic-context-nomination.v3",
+                "ame.classification.automatic-context-nomination.v4",
                 std::iter::empty(),
             ),
             limits,

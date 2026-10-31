@@ -42,6 +42,8 @@ struct Fixture {
     admission: Option<admission::Fixture>,
     #[serde(default)]
     automatic_contexts: Option<usize>,
+    #[serde(default)]
+    minimum_context_relatedness: Option<f32>,
 }
 
 #[derive(Deserialize)]
@@ -230,6 +232,7 @@ pub fn run(arguments: &[OsString]) -> Result<()> {
     let naming = naming::Naming::prepare(
         frontier,
         fixture.automatic_contexts,
+        fixture.minimum_context_relatedness,
         fixture.admission,
         &mut residency,
         &mut cache,
