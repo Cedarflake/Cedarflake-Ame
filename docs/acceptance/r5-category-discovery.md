@@ -854,3 +854,51 @@ Managed fixture SHA-256 values, in reaction/illustration/screenshot/document ord
 Ignored `native-topics-*` and `native-managed-*` retain the projection, implemented comparison,
 resources and binary digests. Preparation and verification remain in `prepare_topic_contexts.py`,
 `prepare_managed_contexts.py` and `check_managed_contexts.py`.
+
+### Topic competition independent of shared purpose wording
+
+A source-free comparison scores the same 42 context descriptions both unconditioned and with each
+existing purpose pattern. It reuses the six cohorts and 27 contents above, adding 169 text features
+across 24 passes. Five batches take 15.579 seconds and peak at 718,553,088 bytes of process-tree
+working set. Repetitions reuse completed features, retain identical scores and retire their workers.
+Neither sealed holdout nor original media is read. This diagnosis changes no descriptions or cutoffs.
+
+For B156 and B046, the qualified cat description scores 0.107720 and 0.146567, above the qualified
+portrait description's 0.099201 and 0.121394. The previous comparison nevertheless treated these
+topics as related after their common reaction-purpose prefix, dropping that stronger alternative.
+The original cat and portrait topic descriptions have relatedness 0.866569, below the unchanged
+0.9 comparison cutoff. Topic distinctness now uses those original descriptions; member image scores
+continue to use the complete qualified description. Algorithm and frontier revisions advance to v7.
+Both description views remain independently cached and bounded, with the existing cancellation and
+terminal worker-retirement behavior.
+
+The production comparison reuses the four unchanged managed fixtures and completes all 12 passes.
+Raw retrieval, nominated names, qualified scores, purpose scope, current taxonomy and numerical
+profile remain identical. The changed evidence is the retained distinct-topic alternative and its
+effect on per-content support:
+
+| Cohort | Result after topic comparison | Supporting contents |
+| --- | --- | ---: |
+| B001 | `人物肖像表情`; B156 and B046 now report `CompetingContext` | 2 of 4, previously 4 |
+| B151 | `猫咪表情` retained | 3 of 3 |
+| B186 | `兽耳角色插画` retained | 4 of 4 |
+| B132 | `代码截图` retained | 7 of 7 |
+| B075 / B191 | No candidate, existing categories retained | 0 of 4 / 0 of 5 |
+
+The panda-face reactions still support the portrait name under the exploratory profile. This repair
+removes the demonstrated competition defect, while purpose/topic naming quality remains a measured
+admission question. No category is published or human decision changed. Targeted calibration
+observations remain separate from independent accuracy or corrected user labels.
+
+Four batches take 17.297 seconds and peak at 99,241,984 bytes of process-tree working set. They add
+no text features, reach no work limit and retire every worker. Fifty-one discovery regressions and
+the Release diagnostic/worker build pass. The two new regressions cover a shared prefix hiding a
+distinct competitor, repeated cache-only evidence, and cancellation during topic preparation with
+completed features retained and the worker retired. Local builds retain unrelated native worktree
+changes; committed-tree checks remain with hosted CI.
+
+The competition and nomination owners have 215 and 296 production lines and no inline tests.
+Their dedicated admission and purpose tests have 417 and 347 lines. There are no schema, bridge,
+runtime, dependency or source-read changes. Ignored `native-views-*`, `topic-views-reached.json` and
+`native-topic-competition-*` retain the diagnosis, repeated comparison, unchanged managed-fixture
+hashes and binary digests; `prepare_topic_views.py` and `check_topic_competition.py` retain the checks.

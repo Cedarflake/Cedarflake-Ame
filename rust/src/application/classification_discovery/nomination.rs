@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 use std::sync::atomic::AtomicBool;
 
 use crate::domain::ScanError;
@@ -100,10 +100,11 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let revision = retrieved.vocabulary_revision;
     check_revision(vocabulary, revision)?;
     naming.validate(matcher.taxonomy()).map_err(naming_error)?;
-    let mut graph = context_graph::collect(retrieved, limits, vocabulary, cancelled)?;
-    for concept in graph.concepts.values_mut() {
+    let graph = context_graph::collect(retrieved, limits, vocabulary, cancelled)?;
+    let mut projected = BTreeMap::new();
+    for concept in graph.concepts.values() {
         check_cancelled(cancelled)?;
-        *concept = naming.project(concept);
+        projected.insert(concept.id(), naming.project(concept));
     }
     let mut baseline = Vec::with_capacity(cohort.member_samples().len());
     for sample in cohort.member_samples() {
@@ -117,8 +118,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         );
     }
     let mut eligible = Vec::new();
-    let concepts: Vec<_> = graph
-        .concepts
+    let concepts: Vec<_> = projected
         .values()
         .filter(|concept| concept.naming_scope() == ConceptNamingScope::Candidate)
         .collect();
@@ -160,13 +160,13 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let descriptions: Vec<_> = selection
         .selected
         .iter()
-        .map(|id| graph.concepts[id].description())
+        .map(|id| projected[id].description())
         .collect();
     let features = load_or_encode_descriptions(&descriptions, residency, cache, cancelled)?;
     let mut candidates = Vec::with_capacity(selected.len());
     for id in &selection.selected {
         check_cancelled(cancelled)?;
-        let concept = &graph.concepts[id];
+        let concept = &projected[id];
         let feature = &features[&ClassificationRevision::description(concept.description())];
         candidates.push(ConsolidatedConcept {
             comparison: None,
@@ -181,9 +181,9 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     competition::retain(
         CompetitionRequest {
             cohort,
-            concepts: &graph.concepts,
+            qualified: &projected,
+            topics: &graph.concepts,
             eligible: &eligible_ids,
-            selected_features: &features,
             minimum_relatedness: minimum_context_relatedness,
         },
         &mut candidates,
@@ -209,7 +209,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
     let relatedness = minimum_context_relatedness.to_le_bytes();
     let naming_revision = naming.revision();
     let frontier_revision = ClassificationRevision::derive(
-        "ame.classification.automatic-context-frontier.v6",
+        "ame.classification.automatic-context-frontier.v7",
         [
             taxonomy_revision.bytes().as_slice(),
             policy_revision.bytes().as_slice(),
@@ -229,7 +229,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
         ancestry_edges: selection.ancestry_edges,
         contexts: ConceptConsolidation {
             naming: naming.clone(),
-            comparison_policy: ContextComparisonPolicy::DistinctContexts {
+            comparison_policy: ContextComparisonPolicy::DistinctTopics {
                 minimum_relatedness: minimum_context_relatedness,
             },
             model: cohort.model(),
@@ -239,7 +239,7 @@ fn nominate<F: ClassificationEncoderFactory, C: ResidencyClock>(
             retrieval_limits: retrieved.limits,
             frontier_revision,
             consolidation_revision: ClassificationRevision::derive(
-                "ame.classification.automatic-context-nomination.v6",
+                "ame.classification.automatic-context-nomination.v7",
                 std::iter::empty(),
             ),
             limits,

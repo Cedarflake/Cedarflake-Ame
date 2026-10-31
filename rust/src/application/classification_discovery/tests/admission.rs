@@ -302,7 +302,7 @@ fn traversal_only_contexts_cannot_bypass_nomination_and_become_category_proposal
 #[test]
 fn incomplete_or_related_alternative_evidence_cannot_change_admission() {
     let mut fixture = AdmissionFixture::new();
-    fixture.discovery.comparison_policy = ContextComparisonPolicy::DistinctContexts {
+    fixture.discovery.comparison_policy = ContextComparisonPolicy::DistinctTopics {
         minimum_relatedness: 0.9,
     };
     for candidate in &mut fixture.discovery.candidates {

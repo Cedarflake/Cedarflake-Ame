@@ -69,6 +69,92 @@ fn assess(harness: &Harness, result: &ConceptNomination) -> Result<CategoryAdmis
     )
 }
 
+fn shared_prefix_harness() -> Harness {
+    let mut harness = purpose_harness();
+    harness.vocabulary.concepts.insert(
+        id(5),
+        VocabularyConcept::new(id(5), "人物".into(), "a portrait of a person".into())
+            .unwrap()
+            .with_subject("people".into())
+            .unwrap(),
+    );
+    harness
+        .vocabulary
+        .links
+        .get_mut(&id(2))
+        .unwrap()
+        .push(id(5));
+    harness.calls.features.borrow_mut().extend([
+        ("a portrait of a person".into(), vec![0.0, 1.0]),
+        (
+            "a reaction sticker featuring people".into(),
+            vec![0.9, 0.4358899],
+        ),
+    ]);
+    let mut criteria = harness.policy.criteria();
+    criteria.minimum_separation = 0.15;
+    harness.policy = CategoryAdmissionPolicy::new(revision(10), criteria).unwrap();
+    harness
+}
+
+#[test]
+fn shared_prefix_does_not_erase_competition_between_different_topics() {
+    let mut harness = shared_prefix_harness();
+    let projected_relatedness = Embedding::normalized(vec![0.8, 0.6])
+        .unwrap()
+        .cosine(&Embedding::normalized(vec![0.9, 0.4358899]).unwrap())
+        .unwrap();
+    assert!(projected_relatedness > harness.minimum_relatedness);
+    let nomination = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .unwrap();
+    assert_eq!(nomination.contexts.candidates.len(), 1);
+    let candidate = &nomination.contexts.candidates[0];
+    assert_eq!(candidate.candidate.concept.id(), id(5));
+    let alternative = candidate.comparison.as_ref().unwrap().members[0]
+        .alternative
+        .unwrap();
+    assert_eq!(alternative.concept, id(3));
+    assert_eq!(alternative.relatedness, 0.0);
+    assert!((alternative.similarity - 0.8).abs() < 1e-6);
+    let assessment = assess(&harness, &nomination).unwrap();
+    assert_eq!(assessment.candidates[0].supporting_members, 0);
+    assert_eq!(
+        assessment.candidates[0].disposition,
+        CategoryAdmissionDisposition::InsufficientMembers
+    );
+    assert_eq!(
+        assessment.candidates[0].members[0].disposition,
+        MemberAdmission::CompetingContext
+    );
+    assert!((assessment.candidates[0].members[0].separation - 0.1).abs() < 1e-6);
+    let encoded = harness.calls.encoded.borrow().len();
+    let repeated = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .unwrap();
+    assert_eq!(repeated.contexts.candidates, nomination.contexts.candidates);
+    assert_eq!(harness.calls.encoded.borrow().len(), encoded);
+    assert!(harness.residency.resident_kind().is_none());
+}
+
+#[test]
+fn cancelled_topic_comparison_keeps_completed_qualified_features_and_retires() {
+    let mut harness = shared_prefix_harness();
+    harness.calls.cancel_at.set(Some(3));
+    let error = harness
+        .nominate(64, context_limits(), &AtomicBool::new(false))
+        .err()
+        .unwrap();
+    assert_eq!(error.code, "classification_cancelled");
+    assert_eq!(
+        harness.calls.encoded.borrow().last().unwrap(),
+        "a portrait of a person"
+    );
+    assert_eq!(harness.cache.feature_cache_stats().unwrap().entries, 2);
+    assert_eq!(harness.calls.retires.get(), 1);
+    assert!(harness.residency.resident_kind().is_none());
+}
+
 #[test]
 fn retrieved_nouns_cannot_bypass_the_independent_context_name_and_description() {
     let mut harness = purpose_harness();
@@ -165,7 +251,10 @@ fn composed_names_are_scored_independently_and_cannot_claim_a_different_image_pu
         first.contexts.retrieval_revision,
         harness.retrieved.retrieval_revision
     );
-    assert_eq!(*harness.calls.encoded.borrow(), vec![DESCRIPTION]);
+    assert_eq!(
+        *harness.calls.encoded.borrow(),
+        vec![DESCRIPTION, "a classroom"]
+    );
 
     let assessment = assess(&harness, &first).unwrap();
     assert_eq!(assessment.naming, harness.naming);
@@ -184,7 +273,10 @@ fn composed_names_are_scored_independently_and_cannot_claim_a_different_image_pu
         .unwrap();
     assert_eq!(repeated.contexts.candidates, first.contexts.candidates);
     assert_eq!(assess(&harness, &repeated).unwrap(), assessment);
-    assert_eq!(*harness.calls.encoded.borrow(), vec![DESCRIPTION]);
+    assert_eq!(
+        *harness.calls.encoded.borrow(),
+        vec![DESCRIPTION, "a classroom"]
+    );
     assert_eq!(harness.calls.retires.get(), 1);
     assert!(harness.residency.resident_kind().is_none());
 }

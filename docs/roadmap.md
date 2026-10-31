@@ -153,10 +153,13 @@ over-specific lexical names and lost image purpose. Purpose-bound composition no
 complete descriptions and excludes other-purpose members. Complete broader-ancestor selection now
 crosses unsupported intermediates within explicit work bounds; its six-cohort check also exposes
 overly broad lexical names. Managed context composition now separates local naming definitions from
-raw retrieval cues, preserving the existing bounded scoring and purpose checks. Its initial context
-comparison retains useful topic names alongside an unresolved mixed-reaction error. Expand coverage
-and calibrate context applicability and the operating profile, then connect guarded category maintenance
-before first-use integration; an enlarged fixed context list alone does not close that requirement.
+raw retrieval cues, preserving the existing bounded scoring and purpose checks. Topic competition
+compares original context descriptions while retaining purpose-qualified image scores. The targeted
+comparison excludes the two cat members from the portrait candidate while preserving the supported
+cat, artwork and code cohorts; panda-face naming remains unresolved. Broader collection coverage,
+context applicability and the operating profile still need calibration, followed by guarded category
+maintenance before first-use integration; an enlarged fixed context list alone does not close that
+requirement.
 Card review
 indicators, image context-menu commands, continuation and real-client acceptance remain in this slice. Complete the
 paired cloud-primary browsing/classification measurement with the connected workflow in R5-07;
