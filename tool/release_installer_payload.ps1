@@ -65,6 +65,7 @@ function Assert-AmeInstallerPayloadNames {
     }
     foreach ($required in @(
             "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe",
+            "cedarflake_ame_classification_worker.exe",
             "rust_lib_cedarflake_ame.dll", "flutter_windows.dll", "data/app.so", "data/icudtl.dat"
         )) {
         if (-not $names.Contains($required)) { throw "Installer payload is missing $required" }

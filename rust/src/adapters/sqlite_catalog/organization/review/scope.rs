@@ -36,6 +36,7 @@ pub(super) fn save_active(connection: &Connection, query: &GalleryQuery) -> Resu
         GalleryCollection::Library => ("library", None),
         GalleryCollection::Favorites => ("favorites", None),
         GalleryCollection::Album { album_id } => ("album", Some(album_id.as_str())),
+        GalleryCollection::SmartAlbum { .. } => return Err(invalid()),
     };
     let queue = query
         .organization_queue
@@ -61,7 +62,8 @@ pub(super) fn save_active(connection: &Connection, query: &GalleryQuery) -> Resu
             ],
         )
         .map_err(database_error)?;
-    super::ordering::save_scope(connection, query)
+    super::ordering::save_scope(connection, query)?;
+    super::filters::save_scope(connection, &query.metadata_filter)
 }
 
 pub(super) fn copy_to_bookmark(connection: &Connection) -> Result<(), ScanError> {
@@ -78,7 +80,8 @@ pub(super) fn copy_to_bookmark(connection: &Connection) -> Result<(), ScanError>
                search_text = excluded.search_text, queue = excluded.queue;",
         )
         .map_err(database_error)?;
-    super::ordering::copy_to_bookmark(connection)
+    super::ordering::copy_to_bookmark(connection)?;
+    super::filters::copy_to_bookmark(connection)
 }
 
 pub(in super::super::super) fn load(
@@ -114,6 +117,7 @@ pub(in super::super::super) fn load(
                     folder_relative_path: row.get(3)?,
                     include_descendants: row.get(4)?,
                     search_text: row.get(5)?,
+                    metadata_filter: Default::default(),
                     sort_key: GallerySortKey::ModifiedTime,
                     sort_direction: GallerySortDirection::Descending,
                     duplicate_mode: GalleryDuplicateMode::Merged,
@@ -124,6 +128,7 @@ pub(in super::super::super) fn load(
         .map_err(database_error)?;
     if let Some(query) = &mut query {
         super::ordering::load_scope(connection, slot, query)?;
+        query.metadata_filter = super::filters::load_scope(connection, slot)?;
     }
     Ok(query)
 }

@@ -1,6 +1,25 @@
 mod authoritative_library_changes;
+mod background_analysis;
 mod catalog_reclamation;
 mod catalog_session;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+pub(crate) mod classification_analysis;
+#[cfg(any(all(windows, feature = "classification-worker"), test))]
+pub(crate) mod classification_candidate;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_configuration;
+pub(crate) mod classification_decisions;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_desktop;
+pub(crate) mod classification_discovery;
+pub(crate) mod classification_dispatch;
+pub(crate) mod classification_features;
+pub(crate) mod classification_matching;
+pub(crate) mod classification_residency;
+#[cfg(all(windows, feature = "classification-worker"))]
+pub(crate) mod classification_runtime;
+pub(crate) mod classification_screening;
+pub(crate) mod classification_verification;
 mod directory_synchronization;
 pub(crate) mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;

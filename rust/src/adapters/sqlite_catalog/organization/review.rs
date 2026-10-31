@@ -11,6 +11,7 @@ use crate::ports::organization_review::OrganizationReviewRepository;
 use super::super::{SqliteCatalog, database_error};
 
 mod continuation;
+mod filters;
 mod operations;
 pub(in super::super) mod ordering;
 mod position;

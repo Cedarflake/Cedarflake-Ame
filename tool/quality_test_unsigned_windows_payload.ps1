@@ -25,6 +25,7 @@ $builtLibrary = Join-Path $scratch 'library.dll'
 $builtBroker = Join-Path $scratch 'broker.exe'
 $nativeNames = @(
     'cedarflake_ame.exe', 'cedarflake_ame_journal_broker.exe',
+    'cedarflake_ame_classification_worker.exe',
     'rust_lib_cedarflake_ame.dll', 'flutter_windows.dll'
 )
 $ownedFiles = @(
@@ -55,7 +56,7 @@ try {
     [System.IO.File]::WriteAllText($dependencies, $dependencyRule)
     [System.IO.File]::SetLastWriteTimeUtc($source, [DateTime]::UtcNow.AddMinutes(-1))
     $facts = Get-AmeUnsignedWindowsPayloadFacts @arguments
-    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 7 -or $facts.rustDependencyCount -ne 1) {
+    if ($facts.machine -cne 'windows-x64' -or $facts.fileCount -ne 8 -or $facts.rustDependencyCount -ne 1) {
         throw "Valid unsigned Release fixture was not completely described"
     }
     if (@($facts.files | Where-Object { [System.IO.Path]::IsPathRooted($_.relativePath) }).Count -ne 0) {
@@ -65,6 +66,10 @@ try {
     Remove-Item -LiteralPath $broker
     Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'missing required'
     [System.IO.File]::WriteAllBytes($broker, $pe)
+    $worker = Join-Path $bundle 'cedarflake_ame_classification_worker.exe'
+    Remove-Item -LiteralPath $worker
+    Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'missing required'
+    [System.IO.File]::WriteAllBytes($worker, $pe)
     Remove-Item -LiteralPath $asset
     Assert-AmeUnsignedFixtureRejected { Get-AmeUnsignedWindowsPayloadFacts @arguments } 'Flutter assets'
     [System.IO.File]::WriteAllBytes($asset, $pe)
@@ -106,7 +111,7 @@ try {
         [System.IO.Directory]::Delete($junction, $false)
     }
     Get-AmeUnsignedWindowsPayloadFacts @arguments | Out-Null
-    Write-Host 'Unsigned Windows payload guardrails passed: valid bundle and 11 distinct rejection cases'
+    Write-Host 'Unsigned Windows payload guardrails passed: valid bundle and 12 distinct rejection cases'
 } finally {
     foreach ($file in $ownedFiles) {
         if (Test-Path -LiteralPath $file) {

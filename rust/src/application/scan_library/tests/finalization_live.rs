@@ -100,13 +100,40 @@ impl Fixture {
             .column_names()
             .iter()
             .enumerate()
-            .filter_map(|(index, name)| (*name != "scan_id").then_some(index))
+            // Each scan row owns its search key independently of the preserved media payload.
+            .filter_map(|(index, name)| {
+                (!matches!(*name, "scan_id" | "gallery_search_id")).then_some(index)
+            })
             .collect::<Vec<_>>();
         statement
             .query_row(rusqlite::params![self.scan_id(phase), path], |row| {
                 columns.iter().map(|index| row.get(*index)).collect()
             })
             .expect("published payload")
+    }
+
+    fn assert_indexed_path(&self, path: &str) {
+        let snapshot = SqliteCatalog::open(self.storage.catalog_path.clone())
+            .expect("search catalog")
+            .load_snapshot(
+                2,
+                &GalleryQuery {
+                    root_id: Some(self.root_id.clone()),
+                    search_text: path.to_owned(),
+                    ..GalleryQuery::default()
+                },
+                "published-search",
+                None,
+                None,
+                None,
+            )
+            .expect("indexed search after publication");
+        assert_eq!(snapshot.assets.len(), 1);
+        assert_eq!(
+            snapshot.assets[0].location_id,
+            stable_location_id(&self.root_id, path)
+        );
+        assert_eq!(snapshot.assets[0].scan_id, self.scan_id("replacement"));
     }
 
     fn assert_preview_is_referenced(&self, preview: &crate::domain::AssetLocationView) {
@@ -523,6 +550,7 @@ fn assert_live_preview_survives_finalization(path: &str, expected_count: usize) 
         expected_payload.expect("materialized payload")
     );
     fixture.assert_preview_is_referenced(&preview.expect("materialized preview"));
+    fixture.assert_indexed_path(path);
     assert_eq!(
         fs::read(fixture.source.path().join(path)).expect("unchanged source"),
         source_bytes.expect("captured source bytes")
@@ -569,6 +597,7 @@ fn replacement_finalization_normalizes_only_derived_changes_from_the_matching_ac
     .expect("trusted active derived payload wins");
     fixture.assert_completed(1);
     assert_eq!(fixture.payload("replacement", "initial-0.png"), expected);
+    fixture.assert_indexed_path("initial-0.png");
 }
 
 #[test]

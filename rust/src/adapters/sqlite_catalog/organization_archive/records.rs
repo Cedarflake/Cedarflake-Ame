@@ -26,6 +26,10 @@ pub(super) struct RecordKind {
 
 use Field::{Integer as I, OptionalInteger as NI, OptionalText as NT, Text as T};
 
+pub(super) fn kind_count(version: u32) -> usize {
+    if version < 5 { 20 } else { KINDS.len() }
+}
+
 // Field order belongs to the versioned archive contract, never catalog schema discovery.
 pub(super) const KINDS: &[RecordKind] = &[
     RecordKind {
@@ -89,10 +93,11 @@ pub(super) const KINDS: &[RecordKind] = &[
                 ORDER BY operation_id, record_id, field",
     },
     RecordKind {
-        name: "review_scope", fields: &[T, NT, NT, NT, I, T, T, T, T],
+        name: "review_scope", fields: &[T, NT, NT, NT, I, T, T, T, T, T],
         query: "SELECT collection, album_id, root_id, folder_relative_path, include_descendants,
-                       search_text, queue, sort_key, sort_direction FROM organization_review_scopes
-                JOIN organization_review_sort ON scope_slot = slot WHERE slot = 'bookmark'",
+                       search_text, queue, sort_key, sort_direction, filters.payload FROM organization_review_scopes
+                JOIN organization_review_sort AS ordering ON ordering.scope_slot = slot
+                JOIN organization_review_filters AS filters ON filters.scope_slot = slot WHERE slot = 'bookmark'",
     },
     RecordKind {
         name: "bookmark", fields: &[T, I, T, T, I, I, I, T, I],
@@ -172,5 +177,50 @@ pub(super) const KINDS: &[RecordKind] = &[
                 WHERE NOT EXISTS(SELECT 1 FROM exact_duplicate_decisions AS current
                   WHERE current.scheme = retained.scheme AND current.digest = retained.digest AND current.byte_length = retained.byte_length)
                 ORDER BY scheme, digest, byte_length",
+    },
+    RecordKind {
+        name: "classification_category", fields: &[T, T, I],
+        query: "SELECT category_id, label, revision FROM classification_categories ORDER BY category_id",
+    },
+    RecordKind {
+        name: "classification_version", fields: &[T, T, T],
+        query: "SELECT category_id, semantic_revision, descriptions FROM classification_category_versions ORDER BY category_id, semantic_revision",
+    },
+    RecordKind {
+        name: "classification_rules", fields: &[T],
+        query: "SELECT rules_revision FROM classification_rules ORDER BY rules_revision",
+    },
+    RecordKind {
+        name: "classification_member", fields: &[T, T, T],
+        query: "SELECT rules_revision, category_id, semantic_revision FROM classification_rule_members ORDER BY rules_revision, category_id",
+    },
+    RecordKind {
+        name: "classification_decision", fields: &[T, NT, NT, I, I, I, I, I],
+        query: "SELECT record_id, category_id, choice, choice_revision, choice_restored, deferred, review_revision, review_restored
+                FROM classification_decisions ORDER BY record_id",
+    },
+    RecordKind {
+        name: "classification_operation", fields: &[T, T, T, I, I, I, I],
+        query: "SELECT operation_id, request_digest, operation_kind, revision, changed_groups, created_unix_ms, restored
+                FROM classification_operations ORDER BY operation_id",
+    },
+    RecordKind {
+        name: "classification_change", fields: &[T, T, T, NT, I, I, I],
+        query: "SELECT operation_id, record_id, field, previous_payload, previous_revision, previous_restored, applied_revision
+                FROM classification_operation_changes ORDER BY operation_id, record_id, field",
+    },
+    RecordKind {
+        name: "classification_target", fields: &[T, T, T],
+        query: "SELECT operation_id, record_id, field FROM classification_operation_targets ORDER BY operation_id, record_id, field",
+    },
+    RecordKind {
+        name: "classification_bookmark", fields: &[T, T, I, T, T, I, T, I, I, I],
+        query: "SELECT record_id, scope, admission_id, root_id, location_id, primary_missing,
+                       primary_text, primary_number, after_current, revision
+                FROM classification_review_bookmark WHERE singleton = 1",
+    },
+    RecordKind {
+        name: "classification_context", fields: &[I, NT],
+        query: "SELECT revision, active_rules FROM classification_state WHERE singleton = 1",
     },
 ];

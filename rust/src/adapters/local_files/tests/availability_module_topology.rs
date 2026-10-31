@@ -49,6 +49,10 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
     assert_eq!(location[0].attributes, ["cfg(windows)"]);
     assert!(!location[0].is_inline);
     for module_name in [
+        "classification",
+        "classification_catalog",
+        "classification_configuration",
+        "classification_review",
         "exact_duplicate_review",
         "organization_archive",
         "organization_batch",
@@ -60,6 +64,8 @@ fn root_availability_admitted_modules_preserve_exact_source_loading_contracts() 
         "gallery_query_snapshot",
         "gallery_scroll_section",
         "gallery_time_snapshot",
+        "media_metadata",
+        "gallery_metadata_filter",
     ] {
         let snapshot = DOMAIN_MODULE_CONTRACTS
             .iter()
@@ -265,6 +271,16 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
         ),
         (
             crate_source.as_str(),
+            "#[cfg(feature = \"classification-worker\")]\npub mod classification_worker;",
+            vec![
+                "pub mod classification_worker;".to_owned(),
+                "#[cfg(feature = \"classification-worker\")]\n#[path = \"alternate.rs\"]\npub mod classification_worker;".to_owned(),
+            ],
+            "crate-parent",
+            "classification_worker",
+        ),
+        (
+            crate_source.as_str(),
             fixtures,
             vec![
                 "".to_owned(),
@@ -312,6 +328,24 @@ fn root_availability_admitted_modules_reject_alternate_generated_or_broader_load
 #[test]
 fn root_availability_catalog_modules_reject_alternate_generated_or_broader_loading() {
     for (source_key, source, declaration, alternate_visibility) in [
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod classification_catalog;",
+            "pub(crate) mod classification_catalog;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod classification_configuration;",
+            "pub(crate) mod classification_configuration;",
+        ),
+        (
+            "domain",
+            DOMAIN_SOURCE,
+            "pub mod classification_review;",
+            "pub(crate) mod classification_review;",
+        ),
         (
             "local",
             LOCAL_SOURCE,
@@ -446,6 +480,44 @@ fn root_availability_search_index_module_retains_exact_windows_loading() {
             error.contains("availability module topology source adapters-parent"),
             "the adapters module must reject {replacement:?}: {error}"
         );
+    }
+}
+
+#[test]
+fn root_availability_classification_adapters_retain_exact_loading_boundaries() {
+    let source = ADAPTERS_SOURCE.replace("\r\n", "\n");
+    for declaration in [
+        "mod classification_feature_cache;",
+        "#[cfg(all(windows, any(feature = \"classification-worker\", test)))]\npub(crate) mod classification_image_input;",
+        "#[cfg(any(all(windows, feature = \"classification-worker\"), test))]\nmod classification_installation;",
+    ] {
+        assert!(source.contains(declaration));
+        let broader = if declaration.contains("pub(crate)") {
+            declaration.replace("pub(crate)", "pub")
+        } else {
+            declaration.replace("mod ", "pub mod ")
+        };
+        for replacement in [
+            String::new(),
+            format!("{declaration}\n{declaration}"),
+            format!("#[path = \"alternate.rs\"]\n{declaration}"),
+            declaration.replace(';', " { mod generated {} }"),
+            broader,
+        ] {
+            let mutated = source.replacen(declaration, &replacement, 1);
+            assert_ne!(mutated, source);
+            assert!(
+                assert_availability_exact_source_contract_with_environment(
+                    LOCAL_SOURCE,
+                    Some(DOMAIN_SOURCE),
+                    Some(METADATA_SOURCE),
+                    Some(&mutated),
+                    Some(CRATE_SOURCE),
+                )
+                .is_err(),
+                "the changed adapter boundary must be rejected: {replacement}"
+            );
+        }
     }
 }
 

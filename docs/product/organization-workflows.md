@@ -68,8 +68,10 @@ that prevent later automation from being mistaken for human confirmation.
 
 User outcome:
 
-Ame extracts useful metadata, publishes calibrated primary categories into `智能相册`, and helps
-the user confirm or correct groups in batches. [R5 requirements](r5-classification.md) own the full
+Ame extracts useful metadata, publishes usable initial-screening suggestions into `智能相册`, and
+reduces optional checking and correction work through whole-group actions. Categories are configurable
+flat definitions, with purpose-aware matching and bounded automatic re-screening before human review.
+[R5 requirements](r5-classification.md) own the full
 taxonomy, model admission, review, recovery, resource, and acceptance boundaries; the
 [execution plan](../plans/r5-classification.md) follows the roadmap's implementation sequence.
 

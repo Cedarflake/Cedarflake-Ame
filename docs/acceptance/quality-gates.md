@@ -566,16 +566,22 @@ part of `integration_test_windows_accessibility_guardrails.ps1`. The existing ei
 deadline, MTA client, owned process tree, and native positive/negative assertions remain unchanged;
 workstation PowerShell evidence does not replace execution in the hosted PowerShell runtime.
 
-An owned preparation probe validates these dependencies before starting Flutter, using the same
-eight-second process deadline and consuming the existing complete-run budget. It records preparation
-separately from the ten application phases; a preparation result cannot acknowledge any of them.
+An owned MTA session validates these dependencies before starting Flutter and retains the loaded
+assemblies for the ten application phases. Preparation and each requested phase retain their own
+eight-second parent deadline within the existing complete-run budget. Fresh sequenced requests,
+owned completion events and validated results separate the invocations; the worker signals only
+after the phase and its cleanup return. Preparation cannot acknowledge an application phase.
+Timeout or invalid evidence retires the whole session, and complete-run success requires session
+retirement. `integration_test_windows_accessibility_session.ps1` covers real dependency reuse,
+request ownership, incomplete or invalid results and a blocked invocation that already wrote a
+complete result file. The same guardrail entrypoint runs these checks.
 `integration_test_windows_accessibility_preparation.ps1` covers real child loading, complete assembly
 milestones, zero native observations and refusal of an application-phase request. It runs through
 the existing accessibility guardrail entrypoint; actual UIA assertions still run in hosted integration.
 
 Six parent-owned manual-reset event markers distinguish each assembly's load entry, load return
 and completed contract validation independently of progress-file publication. The parent observes
-them only after confirmed probe exit and Job Object closure and retires every handle. They are
+them only after confirmed probe exit or returned session invocation and retires every handle. They are
 diagnostic milestones,
 not completion evidence; no marker can replace the owned result, deadline, phase or cleanup checks.
 The compiler-free `integration_test_windows_accessibility_assembly_progress.ps1` is included in
@@ -587,6 +593,12 @@ same transcript before acknowledgement; they do not replace the ten ordered phas
 `integration_test_windows_accessibility_probe_evidence.ps1` exercises completion identity, original
 failure precedence, and the actual transcript composition without running Flutter, and is included
 in the accessibility guardrail entrypoint.
+
+Output capture waits for exclusive access after closing the owned application job, using only the
+remainder of the existing five-second cleanup budget. Only Windows sharing/lock violations enter
+that wait; other read failures remain immediate. Unreleased writers retain the raw output and fail
+cleanup. The output guardrail checks delayed writer completion, bounded failure and unchanged
+evidence; a readable partial log cannot substitute for writer release.
 
 ## Performance gate
 
@@ -1368,6 +1380,16 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   fixture storage is retained rather than recursively deleted without cleanup authority.
   `./tool/integration_test_windows_scan_guardrails.ps1` verifies its compiler-free lifecycle protocol
   in lint, including original-failure precedence and independent environment restoration.
+- `./tool/integration_test_classification.ps1 -ModelDirectory <verified-models>
+  -RuntimeDirectory <verified-runtime> -PythonPath <uv-python>` runs the explicit local Windows
+  classification client workflow with existing admitted artifacts and an existing three-file,
+  two-content fixture under `build/test` (`-FixturePath` overrides `build/test/metadata`). It uses
+  the repository lock, an owned process tree and fresh isolated Debug storage. Its bounded Python
+  observer reads only that derived storage; source bytes are compared before and after. Its native
+  power probe validates its invoking Debug client and sends suspend/resume messages only to that
+  process's runner HWND, without changing the computer's power state. It observes owned worker
+  retirement and verifies the framework memory-pressure cooldown. Logs and catalogs remain outside
+  the fixture. This opt-in model workflow adds no hosted model download.
 - `./tool/integration_test_windows_runner.ps1` builds and executes three engine-free native window
   cases and two real Debug-engine retirement cases, using an explicit `-CMakePath` or the current
   Flutter CMake cache. The latter require prepared, matching SDK artifacts and assemble only an
@@ -1387,6 +1409,9 @@ change. Do not retain an undocumented alias that creates two canonical entrypoin
   runs compiler-free negative fixtures against that boundary, including cross-method false matches.
 - `./tool/performance_benchmark_synthetic_library.ps1` is the explicit performance gate. It creates 10,000
   temporary images and records cold, warm, pause, resume, memory, and storage evidence.
+  The scan case completes the production post-scan reclamation worker before measuring settled
+  catalog storage, with a ten-second maintenance deadline. It records allocated bytes before and
+  after reclamation separately; the final 64-MiB assertion does not describe peak allocation.
 - `./tool/performance_run_synthetic.ps1` runs the fixed JPEG, 10,000-image scan, million-record
   parser, seven-format cold/warm preview, and 50,000-identity concurrent publication catalog with
   exact execution and bounded resource evidence. Hosted CI runs its cases on isolated workers;

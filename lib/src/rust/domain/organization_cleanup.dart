@@ -39,6 +39,7 @@ class OrganizationCleanupInspection {
   final BigInt albumGroups;
   final BigInt favoriteGroups;
   final BigInt progressGroups;
+  final BigInt classificationGroups;
   final BigInt duplicateChoices;
   final PlatformInt64? oldestUnassociatedUnixMs;
   final PlatformInt64? newestUnassociatedUnixMs;
@@ -53,6 +54,7 @@ class OrganizationCleanupInspection {
     required this.albumGroups,
     required this.favoriteGroups,
     required this.progressGroups,
+    required this.classificationGroups,
     required this.duplicateChoices,
     this.oldestUnassociatedUnixMs,
     this.newestUnassociatedUnixMs,
@@ -69,6 +71,7 @@ class OrganizationCleanupInspection {
       albumGroups.hashCode ^
       favoriteGroups.hashCode ^
       progressGroups.hashCode ^
+      classificationGroups.hashCode ^
       duplicateChoices.hashCode ^
       oldestUnassociatedUnixMs.hashCode ^
       newestUnassociatedUnixMs.hashCode;
@@ -87,6 +90,7 @@ class OrganizationCleanupInspection {
           albumGroups == other.albumGroups &&
           favoriteGroups == other.favoriteGroups &&
           progressGroups == other.progressGroups &&
+          classificationGroups == other.classificationGroups &&
           duplicateChoices == other.duplicateChoices &&
           oldestUnassociatedUnixMs == other.oldestUnassociatedUnixMs &&
           newestUnassociatedUnixMs == other.newestUnassociatedUnixMs;

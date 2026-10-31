@@ -298,7 +298,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                     locations.capture_offset_minutes, locations.capture_time_source,
                     locations.capture_raw_value, locations.file_identity_scheme,
                     locations.file_identity_value, locations.source_revision_token,
-                    locations.source_generation
+                    locations.source_generation, locations.camera_make, locations.camera_model
              FROM library_roots AS roots
              JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
              WHERE locations.root_id = ?
@@ -489,7 +489,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                         locations.capture_offset_minutes, locations.capture_time_source,
                         locations.capture_raw_value, locations.file_identity_scheme,
                         locations.file_identity_value, locations.source_revision_token,
-                        locations.source_generation
+                        locations.source_generation, locations.camera_make, locations.camera_model
                  FROM library_roots AS roots
                  JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
                  WHERE locations.root_id = ?1
@@ -893,6 +893,7 @@ impl IncrementalCatalogRepository for SqliteCatalog {
                              metadata_engine_id = ?7, metadata_engine_version = ?8,
                              capture_local_time = NULL, capture_offset_minutes = NULL,
                              capture_time_source = NULL, capture_raw_value = NULL,
+                             camera_make = NULL, camera_model = NULL,
                              source_revision_token = ?5, source_generation = ?6,
                              preview_path = '', preview_status = 'failed',
                              preview_issue_code = ?9, preview_issue_message = ?10
@@ -1218,7 +1219,7 @@ where
                 locations.capture_offset_minutes, locations.capture_time_source,
                 locations.capture_raw_value, locations.file_identity_scheme,
                 locations.file_identity_value, locations.source_revision_token,
-                locations.source_generation
+                locations.source_generation, locations.camera_make, locations.camera_model
          FROM library_roots AS roots
          JOIN asset_locations AS locations ON locations.scan_id = roots.active_scan_id
          WHERE {predicate}
@@ -1261,7 +1262,7 @@ pub(super) fn load_scan_location_by_file_identity(
                     items.capture_local_time, items.capture_offset_minutes,
                     items.capture_time_source, items.capture_raw_value,
                     items.file_identity_scheme, items.file_identity_value,
-                    items.source_revision_token, items.source_generation
+                    items.source_revision_token, items.source_generation, items.camera_make, items.camera_model
              FROM scan_run_catch_up_lineage AS current_lineage
              JOIN library_change_scan_handoff_lineage AS handoff_lineage
                ON handoff_lineage.catch_up_source = current_lineage.catch_up_source
@@ -1303,7 +1304,7 @@ pub(super) fn load_scan_location_by_file_identity(
                     handoffs.capture_offset_minutes, handoffs.capture_time_source,
                     handoffs.capture_raw_value, handoffs.file_identity_scheme,
                     handoffs.file_identity_value, handoffs.source_revision_token,
-                    handoffs.source_generation
+                    handoffs.source_generation, handoffs.camera_make, handoffs.camera_model
              FROM scan_run_catch_up_lineage AS lineage
              JOIN library_change_catch_up_handoffs AS handoffs
                ON handoffs.catch_up_source = lineage.catch_up_source
@@ -1343,7 +1344,7 @@ fn load_catch_up_handoff_location(
                     items.capture_local_time, items.capture_offset_minutes,
                     items.capture_time_source, items.capture_raw_value,
                     items.file_identity_scheme, items.file_identity_value,
-                    items.source_revision_token, items.source_generation
+                    items.source_revision_token, items.source_generation, items.camera_make, items.camera_model
              FROM library_change_scan_handoff_lineage AS lineage
              JOIN library_change_scan_handoff_batches AS batches ON batches.id = lineage.batch_id
              JOIN library_change_scan_handoff_items AS items ON items.batch_id = batches.id
@@ -1376,7 +1377,7 @@ fn load_catch_up_handoff_location(
                     preview_issue_message, metadata_engine_id, metadata_engine_version,
                     capture_local_time, capture_offset_minutes, capture_time_source,
                     capture_raw_value, file_identity_scheme, file_identity_value,
-                    source_revision_token, source_generation
+                    source_revision_token, source_generation, camera_make, camera_model
              FROM library_change_catch_up_handoffs
              WHERE catch_up_source = ?1 AND catch_up_watermark = ?2
                AND file_identity_scheme = ?3 AND file_identity_value = ?4",
@@ -1500,6 +1501,7 @@ fn retain_catch_up_handoff_snapshots(
                    metadata_engine_id, metadata_engine_version, capture_local_time,
                    capture_offset_minutes, capture_time_source, capture_raw_value,
                    source_revision_token, source_generation,
+                   camera_make, camera_model,
                    updated_unix_ms
                  )
                  SELECT ?1, ?2, locations.file_identity_scheme, locations.file_identity_value,
@@ -1512,7 +1514,8 @@ fn retain_catch_up_handoff_snapshots(
                         locations.metadata_engine_version, locations.capture_local_time,
                         locations.capture_offset_minutes, locations.capture_time_source,
                         locations.capture_raw_value, locations.source_revision_token,
-                        locations.source_generation, ?6
+                        locations.source_generation, locations.camera_make,
+                        locations.camera_model, ?6
                  FROM asset_locations AS locations
                  WHERE locations.scan_id = ?3 AND locations.root_id = ?4
                    AND locations.location_id = ?5
@@ -1629,7 +1632,7 @@ pub(super) fn retain_scan_handoff_snapshots(
                width, height, preview_status, preview_issue_code, preview_issue_message,
                metadata_engine_id, metadata_engine_version, capture_local_time,
                capture_offset_minutes, capture_time_source, capture_raw_value,
-               source_revision_token, source_generation
+               source_revision_token, source_generation, camera_make, camera_model
              )
              SELECT ?1, locations.file_identity_scheme, locations.file_identity_value,
                     locations.asset_id, locations.location_id, locations.root_id,
@@ -1641,7 +1644,7 @@ pub(super) fn retain_scan_handoff_snapshots(
                     locations.metadata_engine_version, locations.capture_local_time,
                     locations.capture_offset_minutes, locations.capture_time_source,
                     locations.capture_raw_value, locations.source_revision_token,
-                    locations.source_generation
+                    locations.source_generation, locations.camera_make, locations.camera_model
              FROM asset_locations AS locations
              WHERE locations.scan_id = ?2 AND locations.root_id = ?3
                AND EXISTS (

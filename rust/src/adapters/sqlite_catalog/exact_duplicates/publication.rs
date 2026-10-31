@@ -2,12 +2,19 @@ use rusqlite::{OptionalExtension, Transaction, params};
 
 use super::*;
 
-pub(super) fn publish(
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub(in crate::adapters::sqlite_catalog) enum FingerprintPublication {
+    Published,
+    Reused,
+    Superseded,
+}
+
+pub(in crate::adapters::sqlite_catalog) fn publish(
     transaction: &Transaction<'_>,
     run_id: &str,
     candidate: &FingerprintCandidate,
     fingerprint: &ContentFingerprint,
-) -> Result<bool, ScanError> {
+) -> Result<FingerprintPublication, ScanError> {
     let location = &candidate.location;
     let root = &candidate.root;
     let source_generation = sqlite_integer(location.source_generation, "source generation")?;
@@ -74,7 +81,7 @@ pub(super) fn publish(
         )
         .map_err(database_error)?;
     if !active {
-        return Ok(false);
+        return Ok(FingerprintPublication::Superseded);
     }
     let existing: Option<(String, u64)> = transaction
         .query_row(
@@ -92,7 +99,7 @@ pub(super) fn publish(
                 "One source generation produced conflicting complete content evidence",
             ));
         }
-        return Ok(false);
+        return Ok(FingerprintPublication::Reused);
     }
     transaction
         .execute(
@@ -111,5 +118,5 @@ pub(super) fn publish(
             ],
         )
         .map_err(database_error)?;
-    Ok(true)
+    Ok(FingerprintPublication::Published)
 }

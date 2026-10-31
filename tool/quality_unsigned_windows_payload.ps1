@@ -149,6 +149,7 @@ function Get-AmeUnsignedWindowsPayloadFacts {
     }
     foreach ($name in @(
         'cedarflake_ame.exe', 'cedarflake_ame_journal_broker.exe',
+        'cedarflake_ame_classification_worker.exe',
         'rust_lib_cedarflake_ame.dll', 'flutter_windows.dll',
         'data/app.so', 'data/icudtl.dat'
     )) {

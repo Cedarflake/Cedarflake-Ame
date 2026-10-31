@@ -61,6 +61,7 @@ fn invalid() -> ScanError {
 
 #[cfg(test)]
 pub(super) fn downgrade_to_v59_for_test(connection: &Connection) {
+    super::gallery_search::downgrade_to_v60_for_test(connection);
     if schema_shape::schema_version(connection).unwrap() == 60 {
         connection
             .execute_batch(

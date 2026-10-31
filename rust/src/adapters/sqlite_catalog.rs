@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use rusqlite::types::Value;
 use rusqlite::{
-    Connection, OpenFlags, OptionalExtension, Row, Transaction, TransactionBehavior, params,
+    Connection, OpenFlags, OptionalExtension, Transaction, TransactionBehavior, params,
     params_from_iter,
 };
 
@@ -38,7 +38,10 @@ mod gallery_snapshot;
 mod gallery_time_snapshot;
 mod identity_group_state;
 mod journal_namespace;
+mod location_row_read;
 mod location_row_write;
+use location_row_read::{read_stored_asset, stored_asset_view};
+mod classification;
 mod media_admission_rechecks;
 mod metadata_inventory;
 mod migration_backup;
@@ -130,7 +133,7 @@ pub(crate) use catalog_delta::set_before_catalog_delta_commit_hook;
 pub(crate) use metadata_inventory::set_before_metadata_inventory_spool_commit_hook;
 #[cfg(test)]
 pub(crate) use scan_publication::set_before_scan_projection_replacement_hook;
-const SCHEMA_VERSION: i64 = 60;
+const SCHEMA_VERSION: i64 = 70;
 const SQLITE_APPLICATION_ID: i64 = 0x414D_4531;
 const SCAN_QUEUE_LEASE_MILLIS: i64 = 15 * 60 * 1_000;
 const MAX_SCAN_CATCH_UP_LINEAGE: i64 = 4_096;
@@ -1040,7 +1043,7 @@ impl SqliteCatalog {
                        metadata_engine_id, metadata_engine_version, capture_local_time,
                        capture_offset_minutes, capture_time_source, capture_raw_value,
                        file_identity_scheme, file_identity_value, source_revision_token,
-                       source_generation
+                       source_generation, camera_make, camera_model
                      )
                      SELECT ?1, asset_id, location_id, root_id, absolute_path, relative_path,
                             preview_path, file_size, created_unix_ms, modified_unix_ms,
@@ -1049,7 +1052,7 @@ impl SqliteCatalog {
                             metadata_engine_id, metadata_engine_version, capture_local_time,
                             capture_offset_minutes, capture_time_source, capture_raw_value,
                             file_identity_scheme, file_identity_value, source_revision_token,
-                            source_generation
+                            source_generation, camera_make, camera_model
                      FROM asset_locations
                      WHERE scan_id = ?2 AND root_id = ?3 AND relative_path = ?4",
                     params![scan_id, previous_active_scan, root_id, relative_path],
@@ -1658,7 +1661,7 @@ impl CatalogRepository for SqliteCatalog {
                         locations.capture_offset_minutes, locations.capture_time_source,
                         locations.capture_raw_value, locations.file_identity_scheme,
                         locations.file_identity_value, locations.source_revision_token,
-                        locations.source_generation
+                        locations.source_generation, locations.camera_make, locations.camera_model
                  FROM library_roots AS roots
                  JOIN asset_locations AS locations
                    ON locations.scan_id = roots.active_scan_id
@@ -1692,7 +1695,7 @@ impl CatalogRepository for SqliteCatalog {
                         locations.capture_offset_minutes, locations.capture_time_source,
                         locations.capture_raw_value, locations.file_identity_scheme,
                         locations.file_identity_value, locations.source_revision_token,
-                        locations.source_generation
+                        locations.source_generation, locations.camera_make, locations.camera_model
                  FROM library_roots AS roots
                  JOIN asset_locations AS locations
                    ON locations.scan_id = roots.active_scan_id
@@ -2899,108 +2902,6 @@ fn persist_location(
     Ok(PersistLocationOutcome {
         active_projection_changed: source.active_projection_changed,
         source_generation: source.source_generation,
-    })
-}
-
-struct StoredAssetRow {
-    asset_id: String,
-    location_id: String,
-    root_id: String,
-    scan_id: String,
-    absolute_path: String,
-    relative_path: String,
-    preview_path: String,
-    file_size: i64,
-    created_unix_ms: Option<i64>,
-    modified_unix_ms: i64,
-    width: i64,
-    height: i64,
-    preview_status: String,
-    preview_issue_code: Option<String>,
-    preview_issue_message: Option<String>,
-    metadata_engine_id: String,
-    metadata_engine_version: String,
-    capture_local_time: Option<String>,
-    capture_offset_minutes: Option<i64>,
-    capture_time_source: Option<String>,
-    capture_raw_value: Option<String>,
-    file_identity_scheme: Option<String>,
-    file_identity_value: Option<String>,
-    source_revision_token: Option<String>,
-    source_generation: Option<i64>,
-}
-
-fn read_stored_asset(row: &Row<'_>) -> rusqlite::Result<StoredAssetRow> {
-    Ok(StoredAssetRow {
-        asset_id: row.get(0)?,
-        location_id: row.get(1)?,
-        root_id: row.get(2)?,
-        scan_id: row.get(3)?,
-        absolute_path: row.get(4)?,
-        relative_path: row.get(5)?,
-        preview_path: row.get(6)?,
-        file_size: row.get(7)?,
-        created_unix_ms: row.get(8)?,
-        modified_unix_ms: row.get(9)?,
-        width: row.get(10)?,
-        height: row.get(11)?,
-        preview_status: row.get(12)?,
-        preview_issue_code: row.get(13)?,
-        preview_issue_message: row.get(14)?,
-        metadata_engine_id: row.get(15)?,
-        metadata_engine_version: row.get(16)?,
-        capture_local_time: row.get(17)?,
-        capture_offset_minutes: row.get(18)?,
-        capture_time_source: row.get(19)?,
-        capture_raw_value: row.get(20)?,
-        file_identity_scheme: row.get(21)?,
-        file_identity_value: row.get(22)?,
-        source_revision_token: row.get(23)?,
-        source_generation: row.get(24)?,
-    })
-}
-
-fn stored_asset_view(stored: StoredAssetRow) -> Result<AssetLocationView, ScanError> {
-    let capture_time = stored_capture_time(
-        stored.capture_local_time,
-        stored.capture_offset_minutes,
-        stored.capture_time_source,
-        stored.capture_raw_value,
-    )?;
-    Ok(AssetLocationView {
-        asset_id: stored.asset_id,
-        location_id: stored.location_id,
-        root_id: stored.root_id,
-        scan_id: stored.scan_id,
-        display_path: user_visible_path(&stored.absolute_path),
-        absolute_path: stored.absolute_path,
-        relative_path: stored.relative_path,
-        preview_path: stored.preview_path,
-        file_size: sqlite_unsigned(stored.file_size, "file size")?,
-        created_unix_ms: stored.created_unix_ms,
-        modified_unix_ms: stored.modified_unix_ms,
-        file_identity: stored_file_identity(
-            stored.file_identity_scheme,
-            stored.file_identity_value,
-        )?,
-        source_revision: stored_source_revision(stored.source_revision_token)?,
-        source_generation: sqlite_unsigned(
-            stored.source_generation.ok_or_else(|| {
-                ScanError::new(
-                    "catalog_source_generation_missing",
-                    "The catalog location has no source generation",
-                )
-            })?,
-            "source generation",
-        )?,
-        width: sqlite_u32(stored.width, "image width")?,
-        height: sqlite_u32(stored.height, "image height")?,
-        preview_status: parse_preview_status(&stored.preview_status)?,
-        preview_issue_code: stored.preview_issue_code,
-        preview_issue_message: stored.preview_issue_message,
-        metadata_engine_id: stored.metadata_engine_id,
-        metadata_engine_version: stored.metadata_engine_version,
-        capture_time,
     })
 }
 

@@ -934,12 +934,22 @@ owner persists structured stage failures without replacing the original run erro
 inject exceptional outcomes without starting Flutter or substituting for the native UIA gate.
 Only an owned process tree grants termination authority; an unrelated process name or a retained
 zero-thread process record does not.
+The output owner requires exclusive log access after job closure and uses the remaining cleanup
+budget to wait for asynchronous writer-handle release. Persistent sharing violations preserve the
+raw output; they cannot be replaced with a partial read while a writer remains active.
 
-Probe completion belongs to the evidence owner: identity, process exit, complete status, and cleanup
-must validate before a successful record can return. The runner persists that record before
-acknowledgement and records phase success only after acknowledgement. Successful traversal metrics
-must survive scratch cleanup, just as failed traversal evidence does; neither can replace the
-ordered native interaction assertions.
+Probe completion belongs to the evidence owner. Standalone probes require identity, process exit,
+complete status and cleanup. The integrated canary retains one owned MTA probe process after runtime
+preparation: each phase uses a fresh sequenced request, result and parent-owned completion event.
+The worker signals completion only after the invocation and its cleanup return. The parent retains
+the eight-second preparation/phase deadline and kills the owned job on a timeout or invalid result.
+The runner persists validated results before acknowledgement, and complete-run success additionally
+requires probe-session retirement. This removes repeated cold assembly loading from application
+phases without extending their deadlines or weakening native assertions. Successful traversal
+metrics must survive scratch cleanup, just as failed traversal evidence does.
+The session owner manages process and invocation lifetimes; its protocol owner validates bounded,
+sequenced messages and direct-child result names. The worker dispatches only the fixed preparation
+and native-probe scripts, keeping native observations and assertions in their existing owner.
 
 `integration_windows_accessibility_timing.ps1` owns monotonic accounting and validation for the fixed
 internal probe stages. Evidence records preserve accumulated stage durations and publication time;
@@ -950,7 +960,7 @@ only and does not change phase identity, completion, process retirement or accep
 
 `integration_windows_accessibility_assembly_progress.ps1` owns six fixed cross-process loader
 milestones, fresh named-event ownership, partial-acquisition cleanup and observation after confirmed
-process exit and Job Object closure. The loader signals entry, return and contract verification
+process exit or a returned session invocation. The loader signals entry, return and contract verification
 without disk publication.
 The process facade composes that owner with its existing deadline and Job Object; the evidence
 owner includes the snapshot without granting it success authority. Missing or incomplete markers

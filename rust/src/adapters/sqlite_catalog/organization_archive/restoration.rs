@@ -4,6 +4,7 @@ use crate::domain::ScanError;
 use crate::domain::organization_archive::{OrganizationArchivePhase, OrganizationArchiveProgress};
 
 mod admission;
+mod classification;
 mod duplicates;
 mod history;
 mod identifiers;
@@ -29,11 +30,13 @@ pub(super) fn apply_decisions(
     records::prepare(connection)?;
     records::decisions(connection, revision_base, now)?;
     records::bindings(connection, archive_id)?;
+    let classification_base = classification::apply(connection)?;
     super::report(progress, OrganizationArchivePhase::Restoring, 2)?;
     history::apply(connection, revision_base)?;
     duplicates::retain(connection, now)?;
     super::report(progress, OrganizationArchivePhase::Restoring, 3)?;
     queue::apply(connection, archive_id)?;
+    classification::bookmark::restore(connection, archive_id, classification_base)?;
     super::report(progress, OrganizationArchivePhase::Restoring, 4)
 }
 

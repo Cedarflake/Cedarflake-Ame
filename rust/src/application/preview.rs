@@ -242,6 +242,7 @@ fn materialize_preview_attempt(
         location.height = inspection.height;
         location.metadata_engine_id = inspection.metadata.engine_id;
         location.metadata_engine_version = inspection.metadata.engine_version;
+        location.camera = inspection.metadata.camera;
         location.capture_time = inspection.metadata.capture_time;
     }
     let materialize_started = Instant::now();
@@ -762,6 +763,7 @@ mod tests {
                         .to_owned(),
                     metadata_engine_version:
                         super::super::INVALIDATED_MEDIA_METADATA_ENGINE_VERSION.to_owned(),
+                    camera: Default::default(),
                     capture_time: None,
                 },
             )
@@ -1426,6 +1428,7 @@ mod tests {
                     preview_issue_message: None,
                     metadata_engine_id: "fixture".to_owned(),
                     metadata_engine_version: "1".to_owned(),
+                    camera: Default::default(),
                     capture_time: None,
                 },
             )

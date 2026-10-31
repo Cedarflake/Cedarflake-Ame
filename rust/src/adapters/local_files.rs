@@ -4528,6 +4528,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
 
     const CRATE_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
         AvailabilityModuleContract {
+            name: "classification",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_worker",
+            visibility: "pub",
+            attributes: &["cfg(feature=\"classification-worker\")"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
             name: "adapters",
             visibility: "",
             attributes: &[],
@@ -4590,6 +4602,30 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const ADAPTERS_PARENT_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "classification_feature_cache",
+            visibility: "",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_image_input",
+            visibility: "pub(crate)",
+            attributes: &["cfg(all(windows,any(feature=\"classification-worker\",test)))"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_installation",
+            visibility: "",
+            attributes: &["cfg(any(all(windows,feature=\"classification-worker\"),test))"],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_runtime",
+            visibility: "pub(crate)",
+            attributes: &["cfg(feature=\"classification-worker\")"],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "exact_content_reader",
             visibility: "",
@@ -4677,6 +4713,30 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
     ];
 
     const DOMAIN_MODULE_CONTRACTS: &[AvailabilityModuleContract] = &[
+        AvailabilityModuleContract {
+            name: "classification",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_catalog",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_configuration",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "classification_review",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
         AvailabilityModuleContract {
             name: "organization_archive",
             visibility: "pub",
@@ -4800,6 +4860,18 @@ pub fn inspect_root_availability(root_path: &str) -> RootAvailabilityEvidence {
         AvailabilityModuleContract {
             name: "library_synchronization",
             visibility: "pub(crate)",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "media_metadata",
+            visibility: "pub",
+            attributes: &[],
+            is_inline: false,
+        },
+        AvailabilityModuleContract {
+            name: "gallery_metadata_filter",
+            visibility: "pub",
             attributes: &[],
             is_inline: false,
         },

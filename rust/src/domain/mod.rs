@@ -1,7 +1,13 @@
 use std::fmt::{Display, Formatter};
 
+pub mod classification;
+pub mod classification_catalog;
+pub mod classification_configuration;
+pub mod classification_review;
 pub mod exact_duplicate_review;
 pub(crate) mod exact_duplicates;
+pub mod media_metadata;
+pub use media_metadata::CameraMetadata;
 pub mod organization;
 pub mod organization_archive;
 pub mod organization_batch;
@@ -19,6 +25,7 @@ pub use exact_duplicates::{
 mod journal_scope_recovery;
 pub use journal_scope_recovery::JournalScopeRecoveryOutcome;
 
+pub mod gallery_metadata_filter;
 pub mod gallery_query_snapshot;
 pub mod gallery_scroll_section;
 pub use gallery_query_snapshot::{GalleryQueryAnchor, GalleryQuerySnapshot};
@@ -293,6 +300,7 @@ pub struct AssetLocationView {
     pub preview_issue_message: Option<String>,
     pub metadata_engine_id: String,
     pub metadata_engine_version: String,
+    pub camera: CameraMetadata,
     pub capture_time: Option<CaptureTimeEvidence>,
 }
 
@@ -322,6 +330,7 @@ pub enum CaptureTimeSource {
 pub struct MetadataInspection {
     pub engine_id: String,
     pub engine_version: String,
+    pub camera: CameraMetadata,
     pub capture_time: Option<CaptureTimeEvidence>,
     pub issues: Vec<ScanIssue>,
 }
@@ -457,7 +466,13 @@ pub enum GalleryDuplicateMode {
 pub enum GalleryCollection {
     Library,
     Favorites,
-    Album { album_id: String },
+    Album {
+        album_id: String,
+    },
+    SmartAlbum {
+        category_id: Option<String>,
+        review: classification_review::ClassificationReviewFilter,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -469,6 +484,7 @@ pub struct GalleryQuery {
     pub folder_relative_path: Option<String>,
     pub include_descendants: bool,
     pub search_text: String,
+    pub metadata_filter: gallery_metadata_filter::GalleryMetadataFilter,
     pub sort_key: GallerySortKey,
     pub sort_direction: GallerySortDirection,
     pub duplicate_mode: GalleryDuplicateMode,
@@ -484,6 +500,7 @@ impl Default for GalleryQuery {
             folder_relative_path: None,
             include_descendants: true,
             search_text: String::new(),
+            metadata_filter: gallery_metadata_filter::GalleryMetadataFilter::default(),
             sort_key: GallerySortKey::CaptureTime,
             sort_direction: GallerySortDirection::Descending,
             duplicate_mode: GalleryDuplicateMode::All,
@@ -494,7 +511,10 @@ impl Default for GalleryQuery {
 impl GalleryQuery {
     pub fn folds_duplicates(&self) -> bool {
         self.organization_queue.is_some()
-            || matches!(self.collection, GalleryCollection::Album { .. })
+            || matches!(
+                self.collection,
+                GalleryCollection::Album { .. } | GalleryCollection::SmartAlbum { .. }
+            )
             || self.duplicate_mode == GalleryDuplicateMode::Merged
     }
 

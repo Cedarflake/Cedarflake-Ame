@@ -94,6 +94,7 @@ fn location_anchor_bounds_preserve_filtered_order_and_missing_dates() {
                     folder_relative_path: folder.map(str::to_owned),
                     include_descendants: descendants,
                     search_text: search.to_owned(),
+                    metadata_filter: Default::default(),
                     duplicate_mode: GalleryDuplicateMode::All,
                     sort_key: sort_key.clone(),
                     sort_direction: sort_direction.clone(),

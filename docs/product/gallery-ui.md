@@ -527,7 +527,7 @@ window locally is forbidden.
 
 ## Filter and exact-duplicate behavior
 
-The gallery Filter menu has two independent single-choice groups:
+The gallery Filter menu retains two independent single-choice groups:
 
 ```text
 显示子目录
@@ -535,12 +535,26 @@ The gallery Filter menu has two independent single-choice groups:
 ────────────────
 全部图片
 合并重复图片
+────────────────
+筛选条件…
 ```
 
 The source group controls descendants of the current folder. The duplicate group controls whether
 all physical instances or one representative per confirmed exact group appears. Before trustworthy
 exact analysis and incremental maintenance are connected, every image remains visible. Once folding
 is connected, it becomes the initial default while preserving an explicit saved choice.
+
+`筛选条件…` opens the shared desktop form for filename extension, file size, width/height,
+capture/created/modified date and camera make/model text. Blank fields impose no condition. Byte and
+dimension limits and both calendar dates are inclusive; missing metadata does not satisfy a
+condition on that field. Capture dates use recorded capture evidence without filesystem fallback.
+File-size entries use decimal MB, with six fractional digits retaining individual-byte precision.
+The extension field describes the filename rather than asserting its encoded format.
+Applying preserves the current source, manual album, literal search and ordering. Cancelling keeps
+the current conditions; `清除条件` removes only these metadata conditions. An active form marks its
+menu entry with the existing selection dot and the filter tooltip describes the active conditions.
+Empty filtered scopes explain that conditions can be adjusted or cleared. Organization continuation
+and portable recovery retain these conditions with the bookmarked scope.
 
 Consecutive filter/search changes retain the original visible image and its fractional viewport
 position. A missing image, empty result or automatic clamp to an edge does not replace that intent;
@@ -1205,6 +1219,12 @@ menu icons. `待确认` is not a sidebar category, R4 organization queue, or ext
 An item requiring attention can show a compact `待确认` indicator; its accessible detail distinguishes
 uncertainty, sampling, category conflict, and analysis failure. Routine cards do not need confidence
 percentages or repeated model information.
+
+Initial-screening suggestions are usable immediately. Machine-only differences are resolved through
+the current analysis and bounded automatic re-screening before optional checking is suggested. A
+remaining uncertain prediction can stay in its suggested category and the `待确认` filter together.
+Do not open review prompts automatically or require clearing that filter before browsing. Human
+decision conflicts and missing/failed analysis retain their distinct states without a guessed winner.
 
 The all-results view keeps unresolved/failed items reachable when they cannot belong to a category.
 Use existing loading, empty, unavailable, retry, and task-feedback surfaces for setup and analysis.

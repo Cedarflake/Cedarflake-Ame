@@ -1,0 +1,251 @@
+{
+  "model": {
+    "embedding_space": [
+      192,
+      83,
+      66,
+      231,
+      94,
+      16,
+      36,
+      21,
+      225,
+      44,
+      57,
+      49,
+      93,
+      214,
+      248,
+      215,
+      195,
+      129,
+      180,
+      142,
+      57,
+      249,
+      200,
+      246,
+      119,
+      180,
+      166,
+      0,
+      194,
+      69,
+      87,
+      225
+    ],
+    "image_pipeline": [
+      198,
+      3,
+      235,
+      186,
+      249,
+      219,
+      74,
+      126,
+      99,
+      95,
+      19,
+      130,
+      76,
+      226,
+      214,
+      8,
+      7,
+      31,
+      89,
+      138,
+      61,
+      173,
+      166,
+      248,
+      98,
+      209,
+      165,
+      149,
+      174,
+      238,
+      134,
+      1
+    ],
+    "text_pipeline": [
+      180,
+      18,
+      220,
+      185,
+      14,
+      83,
+      214,
+      98,
+      102,
+      124,
+      76,
+      39,
+      55,
+      139,
+      212,
+      150,
+      49,
+      191,
+      48,
+      151,
+      247,
+      112,
+      119,
+      43,
+      68,
+      108,
+      212,
+      36,
+      6,
+      108,
+      56,
+      127
+    ],
+    "dimensions": 768
+  },
+  "calibration": [
+    147,
+    172,
+    148,
+    105,
+    202,
+    86,
+    166,
+    126,
+    21,
+    196,
+    69,
+    194,
+    113,
+    70,
+    38,
+    199,
+    38,
+    90,
+    236,
+    93,
+    183,
+    135,
+    81,
+    219,
+    152,
+    202,
+    209,
+    219,
+    170,
+    193,
+    182,
+    77
+  ],
+  "categories": [
+    {
+      "id": "illustration",
+      "label": "插画",
+      "primary": [
+        "a standalone anime illustration or digital character artwork",
+        "an anime fan art drawing or illustrated wallpaper",
+        "a detailed drawing of a fictional anime character",
+        "a standalone cartoon illustration or fantasy painting"
+      ],
+      "refinement": [
+        "A standalone anime illustration composed as character art or a wallpaper.",
+        "A carefully drawn or painted fictional character presented as an artwork.",
+        "An illustration focused on artistic composition, costume, pose and lighting.",
+        "A standalone painting, fan art or landscape drawing for visual appreciation."
+      ],
+      "rescreen_below": 0.0009956361027434468,
+      "review_below": 0.010479376651346684
+    },
+    {
+      "id": "comic",
+      "label": "漫画",
+      "primary": [
+        "a manga page with multiple panels and speech bubbles",
+        "a comic strip telling a story through sequential panels",
+        "a black and white manga page with dialogue",
+        "a single comic panel with characters speaking and narrative dialogue"
+      ],
+      "refinement": [
+        "A comic page telling a story with sequential panels and narrative dialogue.",
+        "A manga panel taken from a story, with speech bubbles and character interaction.",
+        "A comic strip whose panels show events progressing in a sequence.",
+        "A manga illustration with narrative speech bubbles as part of a story."
+      ],
+      "rescreen_below": 0.0,
+      "review_below": null
+    },
+    {
+      "id": "meme",
+      "label": "表情包",
+      "primary": [
+        "an internet meme with a funny caption",
+        "a chat reaction sticker or emoji image",
+        "a humorous reaction image used in online conversations",
+        "a small expressive cartoon sticker with short text"
+      ],
+      "refinement": [
+        "A reaction meme expressing a feeling for use in a chat conversation.",
+        "A photograph of a toy, doll, animal or person with an exaggerated funny expression used as a reaction meme.",
+        "A humorous captioned image, parody edit or visual joke shared as an internet meme.",
+        "A simple expressive chat sticker or emoji used to respond to another person."
+      ],
+      "rescreen_below": 0.0009016544208861887,
+      "review_below": 0.005887806881219149
+    },
+    {
+      "id": "screenshot",
+      "label": "截图",
+      "primary": [
+        "a screenshot of a phone or computer user interface",
+        "a screenshot of a website or software application with visible interface controls",
+        "a screenshot of a video game with visible interface elements",
+        "a screenshot of a chat conversation, menu, settings screen or desktop"
+      ],
+      "refinement": [
+        "A captured software or phone interface showing menus, controls and application content.",
+        "A screenshot recording messages in a chat conversation or a social media post.",
+        "A game screenshot documenting gameplay, score, status or the game interface.",
+        "A captured screen showing a computer desktop, settings page, browser or software error."
+      ],
+      "rescreen_below": 0.0,
+      "review_below": 0.002599731320515275
+    },
+    {
+      "id": "photo",
+      "label": "实拍",
+      "primary": [
+        "a real photograph of people, animals, objects or scenery",
+        "an everyday camera photo indoors or outdoors",
+        "a landscape, travel, street or nature photograph",
+        "a camera photograph of food, a pet, a person or a physical object"
+      ],
+      "refinement": [
+        "A photograph documenting a real outdoor scene, landscape, street or building.",
+        "A camera photo preserving an everyday moment with people, animals or food.",
+        "A photographic portrait or an ordinary snapshot of a physical object.",
+        "A photograph showing an indoor room, a natural scene, travel or daily life."
+      ],
+      "rescreen_below": 0.0,
+      "review_below": 0.0
+    },
+    {
+      "id": "other",
+      "label": "其他",
+      "primary": [
+        "a document, printed page, handwritten note or educational diagram",
+        "a logo, icon, graphic design asset or abstract texture",
+        "a chart, map, technical drawing or presentation slide",
+        "a typographic poster, promotional graphic or informational sign"
+      ],
+      "refinement": [
+        "An informational document, a handwritten note or a page of printed text.",
+        "A chart, map, technical diagram or educational slide explaining information.",
+        "A design resource such as a logo, app icon, texture or graphic asset.",
+        "An informational sign, typographic poster or promotional graphic."
+      ],
+      "rescreen_below": 0.0,
+      "review_below": null
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 mod adapters;
 pub mod api;
 mod application;
+pub mod classification;
+#[cfg(feature = "classification-worker")]
+pub mod classification_worker;
 mod domain;
 mod frb_generated;
 pub mod journal_broker;

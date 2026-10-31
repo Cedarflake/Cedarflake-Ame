@@ -281,6 +281,7 @@ class LibraryViewportController {
           ?.replaceAll("\\", "/")
           .replaceAll(RegExp(r"^/+|/+$"), ""),
       searchText: query.searchText.trim(),
+      metadataFilter: query.metadataFilter.normalized,
     );
     final currentTransition = _queryTransition.currentFor(
       _publicationGeneration,

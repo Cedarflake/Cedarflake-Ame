@@ -66,17 +66,17 @@ file count or gallery feature breadth. Each applicable stage records:
 - Gallery operations live in the upper-right contextual action area.
 - Selecting one or more items replaces browsing actions with selection-specific actions.
 - Exact duplicate display is distinct from perceptual and semantic similarity.
-- Exact duplicate understanding precedes model classification so byte-identical content can reuse
-  compatible analysis work rather than being processed repeatedly.
-- Common-type classification follows durable human-decision and review-session foundations. Model
-  quality, confidence calibration, and sampling evidence must be evaluated against the real target
-  library before high-confidence predictions can reduce the review queue.
+- Per-content exact verification precedes model execution; classification consumes completed items
+  while the rest of deduplication continues and shares work across confirmed identical copies.
+- Configurable flat classification follows durable human-decision and review-session foundations.
+  Initial screening provides usable suggestions with bounded automatic re-screening and optional
+  checking. Calibrate against target-library errors and total human work saved, including corrections.
 - Classification result groups appear under `智能相册` as derived effective-category projections.
   Users confirm or correct a complete group's category through durable intent; this recomputes the
   result without editing manual-album membership. [R5 requirements](r5-classification.md) own taxonomy,
   review, source lifecycle, and recovery. Smart albums have no user-managed membership list.
-- A high-confidence prediction may be displayed by default or selected for sampling, but it is not
-  recorded as a user-confirmed decision. Model evidence, user intent, the effective category, and
+- A usable screening prediction may be displayed by default or selected for optional checking, but
+  it is not recorded as a user-confirmed decision. Model evidence, user intent, the effective category, and
   review status remain distinct.
 - `待确认` is a classification review filter, not a category or R4 organization state. Confirmation
   and correction do not mark organization complete; manual-album assignment retains that effect.

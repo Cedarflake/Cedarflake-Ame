@@ -1,148 +1,16 @@
+import "library_asset.dart";
+import "library_metadata_filter.dart";
 import "library_gallery_collection.dart";
 import "library_organization_queue.dart";
 import "library_root_consolidation.dart";
 import "library_scroll_section.dart";
 
+export "library_asset.dart";
+export "library_metadata_filter.dart";
 export "library_gallery_collection.dart";
 export "library_organization_queue.dart";
 export "library_root_consolidation.dart";
 export "library_scroll_section.dart";
-
-class LibraryAsset {
-  const LibraryAsset({
-    required this.assetId,
-    required this.locationId,
-    required this.rootId,
-    required this.activeScanId,
-    required this.sourcePath,
-    required this.displayPath,
-    required this.relativePath,
-    required this.previewPath,
-    required this.fileSize,
-    required this.modifiedUnixMs,
-    required this.sourceRevision,
-    required this.sourceGeneration,
-    required this.width,
-    required this.height,
-    this.previewStatus = LibraryPreviewStatus.ready,
-    this.previewIssueCode,
-    this.previewIssueMessage,
-    this.metadataEngineId = "unknown",
-    this.metadataEngineVersion = "0",
-    this.createdUnixMs,
-    this.captureTime,
-    this.fileIdentity,
-  });
-
-  final String assetId;
-  final String locationId;
-  final String rootId;
-  final String activeScanId;
-  final String sourcePath;
-  final String displayPath;
-  final String relativePath;
-  final String previewPath;
-  final BigInt fileSize;
-  final int? createdUnixMs;
-  final int modifiedUnixMs;
-  final LibrarySourceRevisionEvidence? sourceRevision;
-  final BigInt sourceGeneration;
-  final int width;
-  final int height;
-  final LibraryPreviewStatus previewStatus;
-  final String? previewIssueCode;
-  final String? previewIssueMessage;
-  final String metadataEngineId;
-  final String metadataEngineVersion;
-  final LibraryCaptureTimeEvidence? captureTime;
-  final LibraryFileIdentityEvidence? fileIdentity;
-
-  LibraryAsset withPreview({
-    required String previewPath,
-    required int width,
-    required int height,
-    required LibraryPreviewStatus previewStatus,
-    String? previewIssueCode,
-    String? previewIssueMessage,
-  }) {
-    return LibraryAsset(
-      assetId: assetId,
-      locationId: locationId,
-      rootId: rootId,
-      activeScanId: activeScanId,
-      sourcePath: sourcePath,
-      displayPath: displayPath,
-      relativePath: relativePath,
-      previewPath: previewPath,
-      fileSize: fileSize,
-      createdUnixMs: createdUnixMs,
-      modifiedUnixMs: modifiedUnixMs,
-      sourceRevision: sourceRevision,
-      sourceGeneration: sourceGeneration,
-      width: width,
-      height: height,
-      previewStatus: previewStatus,
-      previewIssueCode: previewIssueCode,
-      previewIssueMessage: previewIssueMessage,
-      metadataEngineId: metadataEngineId,
-      metadataEngineVersion: metadataEngineVersion,
-      captureTime: captureTime,
-      fileIdentity: fileIdentity,
-    );
-  }
-}
-
-class LibraryFileIdentityEvidence {
-  const LibraryFileIdentityEvidence({
-    required this.scheme,
-    required this.value,
-  });
-
-  final String scheme;
-  final String value;
-}
-
-class LibrarySourceRevisionEvidence {
-  const LibrarySourceRevisionEvidence({
-    required this.scheme,
-    required this.value,
-  });
-
-  final String scheme;
-  final String value;
-
-  @override
-  bool operator ==(Object other) {
-    return other is LibrarySourceRevisionEvidence &&
-        other.scheme == scheme &&
-        other.value == value;
-  }
-
-  @override
-  int get hashCode => Object.hash(scheme, value);
-}
-
-enum LibraryPreviewStatus { pending, ready, failed }
-
-class LibraryCaptureTimeEvidence {
-  const LibraryCaptureTimeEvidence({
-    required this.localTime,
-    required this.source,
-    required this.rawValue,
-    this.offsetMinutes,
-  });
-
-  final String localTime;
-  final int? offsetMinutes;
-  final LibraryCaptureTimeSource source;
-  final String rawValue;
-}
-
-enum LibraryCaptureTimeSource {
-  exifDateTimeOriginal,
-  exifDateTimeDigitized,
-  exifDateTime,
-}
 
 class LibraryRoot {
   const LibraryRoot({
@@ -255,6 +123,7 @@ class LibraryGalleryQuery {
     this.folderRelativePath,
     this.includeDescendants = true,
     this.searchText = "",
+    this.metadataFilter = const LibraryMetadataFilter(),
     this.sortKey = LibraryGallerySortKey.captureTime,
     this.sortDirection = LibraryGallerySortDirection.descending,
     this.duplicateMode = LibraryGalleryDuplicateMode.all,
@@ -269,6 +138,7 @@ class LibraryGalleryQuery {
   final String? folderRelativePath;
   final bool includeDescendants;
   final String searchText;
+  final LibraryMetadataFilter metadataFilter;
   final LibraryGallerySortKey sortKey;
   final LibraryGallerySortDirection sortDirection;
   final LibraryGalleryDuplicateMode duplicateMode;
@@ -280,6 +150,7 @@ class LibraryGalleryQuery {
   bool get foldsDuplicates =>
       organizationQueue != null ||
       collection is LibraryAlbumCollection ||
+      collection is LibrarySmartAlbumCollection ||
       duplicateMode == LibraryGalleryDuplicateMode.merged;
 
   LibraryGalleryQuery copyWith({
@@ -290,6 +161,7 @@ class LibraryGalleryQuery {
     Object? folderRelativePath = _unchanged,
     bool? includeDescendants,
     String? searchText,
+    LibraryMetadataFilter? metadataFilter,
     LibraryGallerySortKey? sortKey,
     LibraryGallerySortDirection? sortDirection,
     LibraryGalleryDuplicateMode? duplicateMode,
@@ -308,6 +180,7 @@ class LibraryGalleryQuery {
           : folderRelativePath as String?,
       includeDescendants: includeDescendants ?? this.includeDescendants,
       searchText: searchText ?? this.searchText,
+      metadataFilter: metadataFilter ?? this.metadataFilter,
       sortKey: sortKey ?? this.sortKey,
       sortDirection: sortDirection ?? this.sortDirection,
       duplicateMode: duplicateMode ?? this.duplicateMode,
@@ -323,6 +196,7 @@ class LibraryGalleryQuery {
     folderRelativePath,
     includeDescendants,
     searchText,
+    metadataFilter,
     sortKey,
     sortDirection,
     duplicateMode,
@@ -339,6 +213,7 @@ class LibraryGalleryQuery {
             folderRelativePath == other.folderRelativePath &&
             includeDescendants == other.includeDescendants &&
             searchText == other.searchText &&
+            metadataFilter == other.metadataFilter &&
             sortKey == other.sortKey &&
             sortDirection == other.sortDirection &&
             duplicateMode == other.duplicateMode;

@@ -1,3 +1,5 @@
+import "dart:async";
+
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
 
@@ -7,9 +9,14 @@ import "app/bootstrap/ame_startup_orchestrator.dart";
 import "app/bootstrap/library_synchronization_lifecycle_owner.dart";
 import "app/bootstrap/rust_library_loader.dart";
 import "app/window/ame_window_actions.dart";
+import "app/window/ame_analysis_environment.dart";
 import "app/window/ame_shutdown_coordinator.dart";
 import "app/window/window_manager_actions.dart";
 import "features/library/application/library_catalog.dart";
+import "features/library/adapters/rust_library_classification.dart";
+import "features/library/adapters/rust_library_classification_configuration.dart";
+import "features/library/application/library_classification_configuration.dart";
+import "features/library/application/library_classification_lifecycle.dart";
 import "features/library/application/library_controller.dart";
 import "features/library/application/library_exact_analysis_controller.dart";
 import "features/library/application/library_exact_analysis_scheduler.dart";
@@ -37,6 +44,7 @@ Future<void> main() async {
   );
 
   LibrarySynchronizationLifecycleOwner? synchronizationLifecycle;
+  LibraryClassificationLifecycle? classificationLifecycle;
   late final Widget application;
   try {
     await initializeRustLibrary();
@@ -67,8 +75,32 @@ Future<void> main() async {
       foregroundReads: libraryForegroundReads,
     );
     shutdownCoordinator.register(exactScheduler.close);
+    classificationLifecycle = LibraryClassificationLifecycle(
+      const RustLibraryClassification(),
+      foregroundReads: libraryForegroundReads,
+    );
+    final classificationEnvironment = AmeAnalysisEnvironment(
+      onSuspendedChanged: classificationLifecycle.setSuspended,
+      onMemoryPressure: classificationLifecycle.memoryPressure,
+      onError: classificationLifecycle.reportEnvironmentError,
+    );
+    unawaited(classificationEnvironment.start());
+    shutdownCoordinator.register(() async {
+      classificationEnvironment.dispose();
+      await classificationLifecycle?.close();
+    });
+    final classificationConfiguration = LibraryClassificationConfiguration(
+      const RustLibraryClassificationConfiguration(),
+      classificationLifecycle,
+    );
     application = ProviderScope(
       overrides: [
+        libraryClassificationConfigurationProvider.overrideWithValue(
+          classificationConfiguration,
+        ),
+        libraryClassificationLifecycleProvider.overrideWithValue(
+          classificationLifecycle,
+        ),
         libraryOrganizationConflictsProvider.overrideWithValue(
           const RustLibraryOrganizationConflicts(),
         ),
@@ -103,6 +135,7 @@ Future<void> main() async {
     mountApplication: () => runApp(application),
     startInBackground: () {
       synchronizationLifecycle?.startInBackground();
+      classificationLifecycle?.startInBackground();
     },
     revealWindowAfterFirstFrame: showAmeWindowAfterFirstFrame,
   );

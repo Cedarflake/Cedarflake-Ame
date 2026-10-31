@@ -115,6 +115,7 @@ mod tests {
         let path = directory.path().join("catalog.sqlite3");
         drop(SqliteCatalog::open(path.clone()).unwrap());
         let mut connection = Connection::open(&path).unwrap();
+        super::super::camera_metadata::downgrade_to_v61_for_test(&connection);
         connection
             .execute_batch(
                 "DROP TABLE library_media_admission_rechecks;
@@ -149,6 +150,7 @@ mod tests {
         let path = directory.path().join("catalog.sqlite3");
         drop(SqliteCatalog::open(path.clone()).unwrap());
         let connection = Connection::open(&path).unwrap();
+        super::super::camera_metadata::downgrade_to_v61_for_test(&connection);
         connection
             .execute_batch(
                 "DROP TABLE library_media_admission_rechecks;

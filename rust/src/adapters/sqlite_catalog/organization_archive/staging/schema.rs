@@ -88,6 +88,7 @@ CREATE TABLE archive_review_scope (
   queue TEXT NOT NULL CHECK(queue IN ('pending', 'deferred', 'ignored')),
   sort_key TEXT NOT NULL CHECK(sort_key IN ('capture_time', 'created_time', 'modified_time', 'file_name', 'library_admission')),
   sort_direction TEXT NOT NULL CHECK(sort_direction IN ('ascending', 'descending')),
+    metadata_filter TEXT NOT NULL CHECK(length(CAST(metadata_filter AS BLOB)) <= 4096 AND json_valid(metadata_filter)),
   CHECK((collection = 'album') = (album_id IS NOT NULL))
 ) STRICT;
 CREATE UNIQUE INDEX archive_review_scope_singleton ON archive_review_scope((1));

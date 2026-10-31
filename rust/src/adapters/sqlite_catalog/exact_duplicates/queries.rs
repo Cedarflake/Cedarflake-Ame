@@ -1,4 +1,4 @@
-use rusqlite::{Connection, params};
+use rusqlite::{Connection, OptionalExtension, params};
 
 use super::*;
 
@@ -8,7 +8,7 @@ pub(in crate::adapters::sqlite_catalog) const CANDIDATE_COLUMNS: &str =
     l.modified_unix_ms, l.width, l.height, l.preview_status, l.preview_issue_code,
     l.preview_issue_message, l.metadata_engine_id, l.metadata_engine_version,
     l.capture_local_time, l.capture_offset_minutes, l.capture_time_source, l.capture_raw_value,
-    l.file_identity_scheme, l.file_identity_value, l.source_revision_token, l.source_generation,
+    l.file_identity_scheme, l.file_identity_value, l.source_revision_token, l.source_generation, l.camera_make, l.camera_model,
     r.path, state.generation, namespace.identity_scheme, namespace.identity_value";
 
 pub(in crate::adapters::sqlite_catalog) const CURRENT_LOCATIONS: &str = "asset_locations AS l
@@ -23,6 +23,28 @@ pub(in crate::adapters::sqlite_catalog) const COMPATIBLE_FINGERPRINT: &str =
     AND f.file_identity_scheme IS l.file_identity_scheme
     AND f.file_identity_value IS l.file_identity_value
     AND f.source_revision_token IS l.source_revision_token";
+
+pub(in crate::adapters::sqlite_catalog) fn load_selected(
+    connection: &Connection,
+    source: &crate::domain::organization::OrganizationSelection,
+) -> Result<Option<FingerprintCandidate>, ScanError> {
+    connection
+        .query_row(
+            &format!(
+                "SELECT {CANDIDATE_COLUMNS} FROM {CURRENT_LOCATIONS}
+            WHERE l.asset_id = ?1 AND l.location_id = ?2 AND l.source_generation = ?3"
+            ),
+            params![
+                source.asset_id,
+                source.location_id,
+                sqlite_integer(source.source_generation, "source generation")?
+            ],
+            read_candidate,
+        )
+        .optional()
+        .map_err(database_error)?
+        .transpose()
+}
 
 pub(super) fn load_candidates(
     connection: &Connection,

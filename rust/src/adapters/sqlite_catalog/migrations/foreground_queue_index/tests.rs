@@ -75,6 +75,19 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                     .expect("new index definition")
             );
             let mut after = retained_rows(&catalog.connection);
+            assert!(!after.contains_key("gallery_search_documents"));
+            assert_eq!(after.remove("gallery_search_terms"), Some(Vec::new()));
+            catalog.connection.execute_batch(
+                "INSERT INTO gallery_search_terms(gallery_search_terms) VALUES ('integrity-check');",
+            ).expect("derived text index remains internally consistent");
+            for table in [
+                "gallery_search_terms_config",
+                "gallery_search_terms_data",
+                "gallery_search_terms_docsize",
+                "gallery_search_terms_idx",
+            ] {
+                assert!(after.remove(table).is_some(), "{table}");
+            }
             assert_eq!(
                 after.remove("library_journal_scope_recoveries"),
                 Some(Vec::new()),
@@ -84,6 +97,24 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 Some(Vec::new()),
             );
             for table in [
+                "classification_analysis_setups",
+                "classification_unavailable_sources",
+                "classification_source_publications",
+                "classification_categories",
+                "classification_category_versions",
+                "classification_decisions",
+                "classification_operation_changes",
+                "classification_operation_targets",
+                "classification_operations",
+                "classification_predictions",
+                "classification_review_bookmark",
+                "classification_review_operations",
+                "classification_review_session",
+                "classification_rule_members",
+                "classification_rules",
+                "classification_runs",
+                "classification_stopped_runs",
+                "classification_work_items",
                 "content_fingerprints",
                 "exact_analysis_outcomes",
                 "exact_analysis_runs",
@@ -114,6 +145,7 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
                 "organization_review_bookmark",
                 "organization_review_cursor",
                 "organization_review_sort",
+                "organization_review_filters",
                 "organization_review_operations",
                 "organization_review_scopes",
                 "organization_review_session",
@@ -130,6 +162,46 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             ] {
                 assert_eq!(after.remove(table), Some(Vec::new()), "{table}");
             }
+            assert_eq!(
+                after.remove("classification_state"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Integer(0),
+                    Value::Null,
+                    Value::Null,
+                    Value::Null,
+                ]]),
+            );
+            let ceiling: i64 = catalog
+                .connection
+                .query_row(
+                    "SELECT next_source_generation - 1 FROM catalog_state",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert_eq!(
+                after.remove("classification_dispatch_admission"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Integer(ceiling),
+                    Value::Integer(ceiling)
+                ]]),
+            );
+            assert_eq!(
+                after.remove("classification_dispatch_state"),
+                Some(vec![vec![
+                    Value::Integer(1),
+                    Value::Integer(0),
+                    Value::Integer(0),
+                    Value::Text("disabled".into()),
+                    Value::Null,
+                    Value::Null,
+                    Value::Integer(0),
+                    Value::Integer(0),
+                    Value::Integer(0),
+                ]]),
+            );
             assert_eq!(
                 after.remove("library_sidebar_root_order"),
                 Some(vec![vec![Value::Text("root".into()), Value::Integer(0)]]),
@@ -153,17 +225,19 @@ fn v33_migration_preserves_all_retained_rows_and_reopens() {
             let sequences = after
                 .get_mut("sqlite_sequence")
                 .expect("retained sequences");
-            let admission_sequence = sequences
-                .iter()
-                .position(|row| row.first() == Some(&Value::Text("organization_admissions".into())))
-                .expect("new admission sequence");
-            assert_eq!(
-                sequences.remove(admission_sequence),
-                vec![
-                    Value::Text("organization_admissions".into()),
-                    Value::Integer(0)
-                ],
-            );
+            for name in [
+                "organization_admissions",
+                "classification_source_publications",
+            ] {
+                let sequence = sequences
+                    .iter()
+                    .position(|row| row.first() == Some(&Value::Text(name.into())))
+                    .expect("new admission sequence");
+                assert_eq!(
+                    sequences.remove(sequence),
+                    vec![Value::Text(name.into()), Value::Integer(0)],
+                );
+            }
             assert_eq!(after, before);
         }
     }

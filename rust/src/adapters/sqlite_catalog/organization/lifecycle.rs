@@ -87,6 +87,11 @@ pub(in crate::adapters::sqlite_catalog) fn transfer_source(
     super::admission::transfer_source(connection, previous_root, destination_root)?;
     super::recovery::transfer_source(connection, previous_root, destination_root)?;
     super::review::transfer_source(connection, previous_root, destination_root)?;
+    super::super::classification::review::lifecycle::transfer_source(
+        connection,
+        previous_root,
+        destination_root,
+    )?;
     connection
         .execute(
             "INSERT OR IGNORE INTO organization_sources(root_id, record_id)

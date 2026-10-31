@@ -1798,6 +1798,7 @@ class _UnifiedLibraryScreenState extends ConsumerState<UnifiedLibraryScreen>
     final collectionName = switch (state.query.collection) {
       LibraryFavoritesCollection() => "收藏夹",
       LibraryAlbumCollection() => albumName ?? "相册",
+      LibrarySmartAlbumCollection() => "智能相册",
       LibraryAllCollection() => null,
     };
     final folder = state.query.folderRelativePath;

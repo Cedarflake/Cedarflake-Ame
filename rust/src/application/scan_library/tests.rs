@@ -31,6 +31,8 @@ mod finalization_live;
 mod phase_cost;
 #[cfg(windows)]
 mod staging_cleanup;
+#[cfg(windows)]
+mod storage_cost;
 
 fn load_test_snapshot(storage: &StoragePaths) -> crate::domain::CatalogSnapshot {
     SqliteCatalog::open(storage.catalog_path.clone())
@@ -2270,7 +2272,7 @@ fn unchanged_file_is_reinspected_when_metadata_engine_identity_changes() {
 
     assert_eq!(scan_id, "metadata-engine-second");
     assert_eq!(engine_id, "kamadak-exif");
-    assert_eq!(engine_version, "0.6.1+ame-orientation-1");
+    assert_eq!(engine_version, "0.6.1+ame-camera-1");
     assert!(capture_local_time.is_none());
     assert_eq!(
         fs::read(&source_path).expect("source after reinspection"),
@@ -2348,7 +2350,7 @@ fn unchanged_file_reuses_capture_evidence_from_the_active_metadata_engine() {
             .expect("active metadata evidence");
 
     assert_eq!(engine_id, "kamadak-exif");
-    assert_eq!(engine_version, "0.6.1+ame-orientation-1");
+    assert_eq!(engine_version, "0.6.1+ame-camera-1");
     assert_eq!(
         capture_local_time.as_deref(),
         Some("1999-01-01T00:00:00.000000000")
@@ -2420,7 +2422,7 @@ fn rescan_repairs_legacy_orientation_dimensions_and_invalidates_old_preview() {
         .next()
         .expect("recovered asset");
     assert_eq!((recovered.width, recovered.height), (60, 80));
-    assert_eq!(recovered.metadata_engine_version, "0.6.1+ame-orientation-1");
+    assert_eq!(recovered.metadata_engine_version, "0.6.1+ame-camera-1");
     assert!(matches!(recovered.preview_status, PreviewStatus::Pending));
     assert!(recovered.preview_path.is_empty());
 
@@ -3423,6 +3425,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
         .elapsed();
 
     staging_cleanup::finish_retired_staging(&storage_paths.catalog_path, CANCEL_AFTER);
+    staging_cleanup::finish_space_reclamation(&storage_paths.catalog_path);
 
     let connection = Connection::open(&storage_paths.catalog_path).expect("benchmark catalog");
     let (active_locations, all_locations, assets, cancelled_locations): (i64, i64, i64, i64) =
@@ -3455,6 +3458,7 @@ fn synthetic_ten_thousand_file_scan_records_bounded_acceptance_evidence() {
         resume_elapsed.as_millis(),
         cancellation_elapsed.as_millis(),
     );
+    storage_cost::print(&connection);
 
     assert_eq!(active_locations, FILE_COUNT as i64);
     assert_eq!(all_locations, FILE_COUNT as i64);

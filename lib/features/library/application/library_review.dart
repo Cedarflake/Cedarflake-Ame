@@ -9,6 +9,8 @@ import "../domain/library_models.dart";
 import "../domain/library_organization.dart";
 import "../domain/library_review.dart";
 import "library_catalog.dart";
+import "library_gallery_collection_mapping.dart";
+import "library_metadata_filter_mapping.dart";
 import "library_organization.dart";
 
 abstract interface class LibraryReview {
@@ -155,13 +157,7 @@ class RustLibraryReview implements LibraryReview {
       );
 
   LibraryGalleryQuery _query(rust.GalleryQuery value) => LibraryGalleryQuery(
-    collection: switch (value.collection) {
-      rust.GalleryCollection_Library() => const LibraryAllCollection(),
-      rust.GalleryCollection_Favorites() => const LibraryFavoritesCollection(),
-      rust.GalleryCollection_Album(:final albumId) => LibraryAlbumCollection(
-        albumId,
-      ),
-    },
+    collection: mapRustCollection(value.collection),
     organizationQueue: switch (value.organizationQueue) {
       null => null,
       queue.OrganizationQueue.pending => LibraryOrganizationQueue.pending,
@@ -173,6 +169,7 @@ class RustLibraryReview implements LibraryReview {
     folderRelativePath: value.folderRelativePath,
     includeDescendants: value.includeDescendants,
     searchText: value.searchText,
+    metadataFilter: mapRustMetadataFilter(value.metadataFilter),
     sortKey: switch (value.sortKey) {
       rust.GallerySortKey.captureTime => LibraryGallerySortKey.captureTime,
       rust.GallerySortKey.createdTime => LibraryGallerySortKey.createdTime,

@@ -1,5 +1,6 @@
 import "package:flutter/material.dart";
 import "package:flutter_riverpod/flutter_riverpod.dart";
+import "package:material_symbols_icons/symbols.dart";
 
 import "../../application/library_album_pages.dart";
 import "../../application/library_album_requests.dart";
@@ -111,6 +112,12 @@ class _LibraryAlbumNavigationState
             ? null
             : () => _edit(LibraryAlbumEditKind.create, page.revision),
       ),
+      if (page?.total == 0)
+        const ListTile(
+          key: Key("library-sidebar-album-empty"),
+          leading: Icon(Symbols.photo_album_rounded),
+          title: Text("还没有创建相册"),
+        ),
     ],
   );
 

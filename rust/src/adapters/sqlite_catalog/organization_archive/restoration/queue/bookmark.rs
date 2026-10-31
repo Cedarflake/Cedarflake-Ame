@@ -48,6 +48,10 @@ pub(super) fn restore(connection: &Connection, archive_id: &str) -> Result<(), S
          SELECT 'bookmark', sort_key, sort_direction FROM recovery.archive_review_scope
          WHERE EXISTS(SELECT 1 FROM organization_review_bookmark)
          ON CONFLICT(scope_slot) DO UPDATE SET sort_key = excluded.sort_key, sort_direction = excluded.sort_direction;
+         INSERT INTO organization_review_filters
+         SELECT 'bookmark', 1, metadata_filter FROM recovery.archive_review_scope
+         WHERE EXISTS(SELECT 1 FROM organization_review_bookmark)
+         ON CONFLICT(scope_slot) DO UPDATE SET version = excluded.version, payload = excluded.payload;
          INSERT INTO organization_review_cursor
          SELECT 1, source.primary_missing, source.primary_text,
            CASE WHEN sort.sort_key = 'library_admission' THEN bookmark.admission_id ELSE source.primary_number END

@@ -1,9 +1,11 @@
 mod anchor_position;
 mod annotations;
+mod classification;
 pub(super) mod duplicates;
 mod filters;
 mod location_anchor;
 mod member_locations;
+mod metadata_filters;
 mod ordering;
 pub(super) mod organization;
 mod organization_counts;
@@ -12,6 +14,7 @@ pub(super) mod organization_queue;
 pub(super) mod retained_membership;
 pub(super) mod review;
 mod scroll_sections;
+mod search;
 pub(super) mod selection;
 mod time_anchor;
 mod timeline;
@@ -46,6 +49,8 @@ pub(super) struct BuiltGalleryQuery {
 }
 
 pub(super) fn validate_gallery_query(query: &GalleryQuery) -> Result<(), ScanError> {
+    classification::validate(query)?;
+    query.metadata_filter.validate()?;
     if let Some(boundary) = query.new_since_admission {
         super::sqlite_integer(boundary, "new-arrival boundary")?;
     }
@@ -135,7 +140,7 @@ pub(super) fn build_gallery_asset_query(
                     locations.capture_offset_minutes, locations.capture_time_source,
                     locations.capture_raw_value, locations.file_identity_scheme,
                     locations.file_identity_value, locations.source_revision_token,
-                    locations.source_generation
+                    locations.source_generation, locations.camera_make, locations.camera_model
              {source}
              {where_clause}
              ORDER BY {missing} {missing_direction},

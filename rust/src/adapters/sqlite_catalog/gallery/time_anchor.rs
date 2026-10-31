@@ -75,7 +75,7 @@ pub(in super::super) fn resolve_gallery_anchor_cursor(
                 locations.capture_offset_minutes, locations.capture_time_source,
                 locations.capture_raw_value, locations.file_identity_scheme,
                 locations.file_identity_value, locations.source_revision_token,
-                locations.source_generation
+                locations.source_generation, locations.camera_make, locations.camera_model
          FROM library_roots AS roots
          JOIN asset_locations AS locations
            ON locations.scan_id = roots.active_scan_id

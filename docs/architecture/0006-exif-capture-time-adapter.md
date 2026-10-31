@@ -2,7 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-08-07
-- Amended: 2026-09-25
+- Amended: 2026-10-30
 
 ## Context
 
@@ -151,14 +151,35 @@ dimensions.
 
 ## Consequences and risks
 
+### R5 camera identity extension
+
+Admit the EXIF `Make` and `Model` fields through the same bounded raw-block parser. Each field is
+optional, independently validated, limited to 128 UTF-8 bytes, trimmed of surrounding whitespace,
+and rejected if malformed or containing control characters. Preserve the manufacturer/model text;
+do not infer identity from a filename, lens, image content or absent field. A malformed camera field
+adds a metadata issue without discarding valid capture-time evidence or making the image unbrowsable.
+
+An Ame-owned `CameraMetadata` value carries the optional make/model through existing inspection,
+guarded publication, catalog and desktop contracts. Store nullable columns with forward migration;
+older catalogs retain explicit unknown values. Extend the metadata engine revision so reuse requires
+the new extraction contract. Ordinary startup does not schedule a full source rescan or hydrate
+cloud files: existing records acquire these fields when an admitted inspection occurs. Content
+invalidation clears stale camera evidence alongside capture metadata; unchanged path moves preserve it.
+
+Use the existing information sheet for camera brand/model rows, following its unknown-value and
+copyable-text conventions. The extension adds no metadata editing, serial-number collection or new
+source-reading surface. Focused validation covers independent missing/malformed fields, size and
+encoding limits, forward migration, preservation/invalidation, real bridge mapping and the existing
+information-sheet interaction before this extension receives integrated acceptance.
+
 - R1 reads image headers and metadata but still defers pixel decoding to visible preview requests.
 - Some containers may expose no raw EXIF through the admitted `image` decoder even when a different
   parser could find metadata; those items remain explicitly unknown rather than guessed.
 - `kamadak-exif` runs in process because it is pure Rust and returns recoverable errors. Hostile
   fixture coverage remains mandatory; any observed process termination triggers worker isolation or
   replacement.
-- This decision covers capture-time and display-orientation evidence only. It does not admit
-  metadata writing, XMP, GPS, camera details, RAW decoding, or video metadata.
+- This decision covers capture-time, display-orientation and the bounded camera make/model extension.
+  It does not admit metadata writing, XMP, GPS, camera serial numbers, RAW decoding, or video metadata.
 
 ## Replacement strategy
 

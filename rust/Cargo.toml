@@ -7,7 +7,14 @@ edition = "2024"
 crate-type = ["cdylib", "staticlib", "rlib"]
 
 [features]
+default = ["classification-worker"]
 broker-acceptance-client = []
+classification-worker = ["dep:ort", "dep:sha2", "dep:tokenizers"]
+
+[[bin]]
+name = "cedarflake_ame_classification_worker"
+path = "src/bin/cedarflake_ame_classification_worker.rs"
+required-features = ["classification-worker"]
 
 [[bin]]
 name = "cedarflake_ame_broker_acceptance_client"
@@ -21,11 +28,14 @@ flutter_rust_bridge = "=2.12.0"
 image = { version = "0.25", default-features = false, features = ["bmp", "gif", "ico", "jpeg", "png", "tiff", "webp"] }
 jpeg-decoder = { version = "=0.3.2", default-features = false }
 kamadak-exif = "=0.6.1"
+ort = { version = "=2.0.0-rc.15", optional = true, default-features = false, features = ["std", "load-dynamic", "api-31"] }
 rusqlite = { version = "0.40.1", features = ["backup", "bundled", "hooks"] }
 serde = { version = "=1.0.229", features = ["derive"] }
 serde_json = "=1.0.154"
+sha2 = { version = "=0.10.9", optional = true }
 tempfile = "3.27.0"
 thiserror = "2.0.19"
+tokenizers = { version = "=0.23.2", optional = true, default-features = false, features = ["fancy-regex"] }
 zune-core = { version = "=0.5.1", features = ["std"] }
 zune-jpeg = { version = "=0.5.15", default-features = false, features = ["std"] }
 
@@ -56,6 +66,7 @@ windows-sys = { version = "0.61.2", features = [
   "Win32_System_Com",
   "Win32_System_Ioctl",
   "Win32_System_JobObjects",
+  "Win32_System_LibraryLoader",
   "Win32_System_Pipes",
   "Win32_System_RemoteDesktop",
   "Win32_System_Services",

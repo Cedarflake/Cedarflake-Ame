@@ -60,6 +60,27 @@ fn validate_in_snapshot(connection: &Connection, schema_version: i64) -> Result<
     // reaches this full proof; ordinary connections retain bounded identity/schema checks.
     validate_pre_live_gap_schema_contract(connection, schema_version)?;
     live_gap_contract::validate(connection)?;
+    if schema_version >= 63 {
+        super::compact_gallery_search::validate_rows(connection)?;
+    }
+    if schema_version >= 64 {
+        super::organization_review_filters::validate_rows(connection)?;
+    }
+    if schema_version >= 65 {
+        super::classification::validate_rows(connection)?;
+    }
+    if schema_version >= 66 {
+        super::classification_work::validate_rows(connection)?;
+    }
+    if schema_version >= 67 {
+        super::classification_setup::validate_rows(connection)?;
+    }
+    if schema_version >= 68 {
+        super::classification_availability::validate_rows(connection)?;
+    }
+    if schema_version >= 69 {
+        super::classification_publications::validate_rows(connection)?;
+    }
     if schema_version >= 33 {
         super::scan_resume_inventory::validate_rows(connection)?;
     }
@@ -211,6 +232,35 @@ pub(super) fn validate_schema_structure(
     }
     if schema_version >= 60 {
         super::organization_admission_clock::validate(connection)?;
+    }
+    if schema_version >= 63 {
+        super::compact_gallery_search::validate(connection)?;
+    } else if schema_version >= 61 {
+        super::gallery_search::validate(connection)?;
+    }
+    if schema_version >= 62 {
+        super::camera_metadata::validate(connection)?;
+    }
+    if schema_version >= 64 {
+        super::organization_review_filters::validate(connection)?;
+    }
+    if schema_version >= 65 {
+        super::classification::validate(connection)?;
+    }
+    if schema_version >= 66 {
+        super::classification_work::validate(connection)?;
+    }
+    if schema_version >= 67 {
+        super::classification_setup::validate(connection)?;
+    }
+    if schema_version >= 68 {
+        super::classification_availability::validate(connection)?;
+    }
+    if schema_version >= 69 {
+        super::classification_publications::validate(connection)?;
+    }
+    if schema_version >= 70 {
+        super::classification_projection::validate(connection)?;
     }
     validate_existing_source_metadata_marker(connection)
 }

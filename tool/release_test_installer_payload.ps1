@@ -21,7 +21,7 @@ if ($firstProduct -cne (Get-AmeInstallerGuid "product/0.1.0") -or
 }
 
 $files = @(
-    "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe", "rust_lib_cedarflake_ame.dll",
+    "cedarflake_ame.exe", "cedarflake_ame_journal_broker.exe", "cedarflake_ame_classification_worker.exe", "rust_lib_cedarflake_ame.dll",
     "flutter_windows.dll", "data/app.so", "data/icudtl.dat", "data/flutter_assets/AssetManifest.bin"
 ) | ForEach-Object { [pscustomobject]@{ relativePath = $_; length = 1L; sha256 = "a" * 64 } }
 Assert-AmeInstallerPayloadNames $files
@@ -41,11 +41,11 @@ try {
     $namespaces = [Xml.XmlNamespaceManager]::new($source.NameTable)
     $namespaces.AddNamespace("w", $script:AmeInstallerNamespace)
     $entries = @($source.SelectNodes("//w:File", $namespaces))
-    if ($entries.Count -ne 6 -or
+    if ($entries.Count -ne 7 -or
         @($entries | Where-Object { $_.Source -like "*cedarflake_ame_journal_broker.exe" }).Count -ne 0 -or
         $source.SelectNodes("//w:Shortcut", $namespaces).Count -ne 2 -or
-        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 11 -or
-        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 9) {
+        $source.SelectNodes("//w:ComponentRef", $namespaces).Count -ne 12 -or
+        $source.SelectNodes("//w:PermissionEx", $namespaces).Count -ne 10) {
         throw "MSI generated component, broker exclusion, shortcut or ACL ownership is incomplete"
     }
     foreach ($name in @('AmeStartMenu', 'AmeDesktop')) {

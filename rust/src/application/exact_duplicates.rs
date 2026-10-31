@@ -60,13 +60,11 @@ pub(crate) fn run_exact_analysis(
         run_id,
         started_unix_ms: current_time_ms()?,
     };
-    let result = execution::analyze(
-        &mut catalog,
-        &crate::adapters::GuardedExactContentReader,
-        &run,
-        &cancelled,
-        &mut emit,
+    let reader = super::background_analysis::AdmittedExactContentReader::new(
+        crate::adapters::GuardedExactContentReader,
+        super::background_analysis::shared(),
     );
+    let result = execution::analyze(&mut catalog, &reader, &run, &cancelled, &mut emit);
     drop(admission);
     result
 }

@@ -12,9 +12,17 @@ use super::{
     unix_time_ms,
 };
 
+mod camera_metadata;
 mod catch_up_contract;
 mod catch_up_repair;
 mod change_lane_contract;
+mod classification;
+mod classification_availability;
+mod classification_projection;
+mod classification_publications;
+mod classification_setup;
+mod classification_work;
+mod compact_gallery_search;
 mod compatibility_repair_shape;
 mod current_recovery_state;
 mod current_schema;
@@ -25,6 +33,8 @@ mod exact_duplicates;
 mod interrupted_foreground_repair;
 mod inventory_spool_contract;
 mod live_gap_contract;
+mod location_columns;
+mod organization_review_filters;
 mod prerelease_journal_repair;
 mod recovery_authority_contract;
 mod recovery_execution_contract;
@@ -40,6 +50,7 @@ pub(crate) use exact_duplicates::downgrade_to_v39_for_test;
 mod foreground_queue_index;
 mod foreground_scan_capture;
 mod gallery_duplicates;
+mod gallery_search;
 mod inventory_spool_retirement;
 pub(super) mod inventory_spool_rows;
 pub(super) mod journal_contract;
@@ -156,6 +167,16 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
         sidebar_order::migrate_transaction(&transaction)?;
         preferred_copy_index::migrate_transaction(&transaction)?;
         organization_admission_clock::migrate_transaction(&transaction)?;
+        gallery_search::migrate_transaction(&transaction)?;
+        camera_metadata::migrate_transaction(&transaction)?;
+        compact_gallery_search::migrate_transaction(&transaction)?;
+        organization_review_filters::migrate_transaction(&transaction)?;
+        classification::migrate_transaction(&transaction)?;
+        classification_work::migrate_transaction(&transaction)?;
+        classification_setup::migrate_transaction(&transaction)?;
+        classification_availability::migrate_transaction(&transaction)?;
+        classification_publications::migrate_transaction(&transaction)?;
+        classification_projection::migrate_transaction(&transaction)?;
         return transaction.commit().map_err(database_error);
     }
 
@@ -255,6 +276,16 @@ pub(super) fn migrate_schema(connection: &mut Connection) -> Result<(), ScanErro
             57 => sidebar_order::migrate(connection)?,
             58 => preferred_copy_index::migrate(connection)?,
             59 => organization_admission_clock::migrate(connection)?,
+            60 => gallery_search::migrate(connection)?,
+            61 => camera_metadata::migrate(connection)?,
+            62 => compact_gallery_search::migrate(connection)?,
+            63 => organization_review_filters::migrate(connection)?,
+            64 => classification::migrate(connection)?,
+            65 => classification_work::migrate(connection)?,
+            66 => classification_setup::migrate(connection)?,
+            67 => classification_availability::migrate(connection)?,
+            68 => classification_publications::migrate(connection)?,
+            69 => classification_projection::migrate(connection)?,
             _ => {
                 return Err(ScanError::new(
                     "catalog_schema_unsupported",

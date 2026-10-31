@@ -10,9 +10,13 @@ import "../domain/library_folder_models.dart";
 import "../domain/library_models.dart";
 import "../domain/library_query_snapshot.dart";
 import "../domain/library_time_snapshot.dart";
+import "library_asset_mapping.dart";
+import "library_gallery_collection_mapping.dart";
+import "library_metadata_filter_mapping.dart";
 
 export "../domain/library_query_snapshot.dart";
 export "../domain/library_time_snapshot.dart";
+export "library_asset_mapping.dart";
 
 const libraryCatalogWindow = 500;
 const libraryTimelineWindow = 160;
@@ -474,13 +478,7 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
   LibraryGalleryQuery query,
 ) {
   return rust_domain.GalleryQuery(
-    collection: switch (query.collection) {
-      LibraryAllCollection() => const rust_domain.GalleryCollection.library_(),
-      LibraryFavoritesCollection() =>
-        const rust_domain.GalleryCollection.favorites(),
-      LibraryAlbumCollection(:final albumId) =>
-        rust_domain.GalleryCollection.album(albumId: albumId),
-    },
+    collection: mapLibraryCollection(query.collection),
     organizationQueue: switch (query.organizationQueue) {
       null => null,
       LibraryOrganizationQueue.pending =>
@@ -495,6 +493,7 @@ rust_domain.GalleryQuery mapLibraryGalleryQueryToRust(
     folderRelativePath: query.folderRelativePath,
     includeDescendants: query.includeDescendants,
     searchText: query.searchText,
+    metadataFilter: mapLibraryMetadataFilter(query.metadataFilter),
     sortKey: switch (query.sortKey) {
       LibraryGallerySortKey.captureTime =>
         rust_domain.GallerySortKey.captureTime,
@@ -529,64 +528,6 @@ LibraryOrganizationCounts mapRustOrganizationCounts(
   organized: counts.organized.toInt(),
   ignored: counts.ignored.toInt(),
 );
-
-LibraryAsset mapRustLibraryAsset(rust_domain.AssetLocationView asset) {
-  final captureTime = asset.captureTime;
-  final fileIdentity = asset.fileIdentity;
-  final sourceRevision = asset.sourceRevision;
-  return LibraryAsset(
-    assetId: asset.assetId,
-    locationId: asset.locationId,
-    rootId: asset.rootId,
-    activeScanId: asset.scanId,
-    sourcePath: asset.absolutePath,
-    displayPath: asset.displayPath,
-    relativePath: asset.relativePath,
-    previewPath: asset.previewPath,
-    fileSize: asset.fileSize,
-    createdUnixMs: asset.createdUnixMs,
-    modifiedUnixMs: asset.modifiedUnixMs,
-    sourceRevision: sourceRevision == null
-        ? null
-        : LibrarySourceRevisionEvidence(
-            scheme: sourceRevision.scheme,
-            value: sourceRevision.value,
-          ),
-    sourceGeneration: asset.sourceGeneration,
-    width: asset.width,
-    height: asset.height,
-    previewStatus: switch (asset.previewStatus) {
-      rust_domain.PreviewStatus.pending => LibraryPreviewStatus.pending,
-      rust_domain.PreviewStatus.ready => LibraryPreviewStatus.ready,
-      rust_domain.PreviewStatus.failed => LibraryPreviewStatus.failed,
-    },
-    previewIssueCode: asset.previewIssueCode,
-    previewIssueMessage: asset.previewIssueMessage,
-    metadataEngineId: asset.metadataEngineId,
-    metadataEngineVersion: asset.metadataEngineVersion,
-    captureTime: captureTime == null
-        ? null
-        : LibraryCaptureTimeEvidence(
-            localTime: captureTime.localTime,
-            offsetMinutes: captureTime.offsetMinutes,
-            source: switch (captureTime.source) {
-              rust_domain.CaptureTimeSource.original =>
-                LibraryCaptureTimeSource.exifDateTimeOriginal,
-              rust_domain.CaptureTimeSource.digitized =>
-                LibraryCaptureTimeSource.exifDateTimeDigitized,
-              rust_domain.CaptureTimeSource.image =>
-                LibraryCaptureTimeSource.exifDateTime,
-            },
-            rawValue: captureTime.rawValue,
-          ),
-    fileIdentity: fileIdentity == null
-        ? null
-        : LibraryFileIdentityEvidence(
-            scheme: fileIdentity.scheme,
-            value: fileIdentity.value,
-          ),
-  );
-}
 
 class LibraryCatalogFailure implements Exception {
   const LibraryCatalogFailure({required this.code, required this.message});

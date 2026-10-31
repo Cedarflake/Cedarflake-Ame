@@ -10,6 +10,7 @@ use super::transitions::{change, create_album};
 use super::*;
 
 mod lifecycle;
+mod metadata_filters;
 mod sorting;
 
 fn pending() -> GalleryQuery {

@@ -1,6 +1,8 @@
 import "package:cedarflake_ame/features/library/application/library_catalog.dart";
 import "package:cedarflake_ame/features/library/domain/library_models.dart";
 import "package:cedarflake_ame/src/rust/domain.dart" as rust_domain;
+import "package:cedarflake_ame/src/rust/domain/media_metadata.dart"
+    as rust_metadata;
 import "package:flutter_test/flutter_test.dart";
 
 void main() {
@@ -27,6 +29,10 @@ void main() {
         previewStatus: rust_domain.PreviewStatus.pending,
         metadataEngineId: "kamadak-exif",
         metadataEngineVersion: "0.6.1",
+        camera: const rust_metadata.CameraMetadata(
+          make: "制造商",
+          model: "Camera 2",
+        ),
         fileIdentity: const rust_domain.FileIdentityEvidence(
           scheme: "windows-file-id-128-v1",
           value: "0000000000000001:00000000000000000000000000000002",
@@ -53,6 +59,15 @@ void main() {
     expect(asset.sourcePath, r"\\?\C:\Pictures\capture.jpg");
     expect(asset.displayPath, r"C:\Pictures\capture.jpg");
     expect(asset.metadataEngineVersion, "0.6.1");
+    expect(asset.camera.make, "制造商");
+    expect(asset.camera.model, "Camera 2");
+    final preview = asset.withPreview(
+      previewPath: "preview.jpg",
+      width: 100,
+      height: 80,
+      previewStatus: LibraryPreviewStatus.ready,
+    );
+    expect(preview.camera, same(asset.camera));
     expect(asset.fileIdentity?.scheme, "windows-file-id-128-v1");
     expect(
       asset.fileIdentity?.value,
@@ -86,9 +101,12 @@ void main() {
         previewStatus: rust_domain.PreviewStatus.pending,
         metadataEngineId: "kamadak-exif",
         metadataEngineVersion: "0.6.1",
+        camera: const rust_metadata.CameraMetadata(),
       ),
     );
 
     expect(asset.captureTime, isNull);
+    expect(asset.camera.make, isNull);
+    expect(asset.camera.model, isNull);
   });
 }
